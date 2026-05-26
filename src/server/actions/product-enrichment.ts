@@ -155,13 +155,12 @@ export async function setPrimaryImage(formData: FormData): Promise<void> {
 /**
  * Genera descripciones largas con IA para varios productos en lote.
  * Útil desde el bulk-bar (selección de productos en /admin/products).
- * Limita a 25 productos por llamada para evitar costos/timeouts.
  */
 export async function bulkGenerateDescriptions(
   productIds: string[]
 ): Promise<{ ok: boolean; processed: number; errors: number }> {
   await requireAdmin();
-  const ids = productIds.slice(0, 25);
+  const ids = productIds;
   let processed = 0;
   let errors = 0;
   for (const id of ids) {
@@ -186,7 +185,7 @@ export async function bulkSearchImages(
   productIds: string[]
 ): Promise<{ ok: boolean; processed: number; skipped: number }> {
   await requireAdmin();
-  const ids = productIds.slice(0, 25);
+  const ids = productIds;
   let processed = 0;
   let skipped = 0;
   for (const id of ids) {

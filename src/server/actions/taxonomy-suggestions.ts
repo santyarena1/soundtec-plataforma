@@ -7,7 +7,7 @@ import { slugify } from "@/lib/utils";
 import { suggestTaxonomyAssignment } from "@/services/openai";
 import { TaxonomySuggestionKind, TaxonomySuggestionStatus } from "@prisma/client";
 
-const BATCH_LIMIT = 50;
+const BATCH_LIMIT = 200;
 
 function revalidateTaxonomyPaths(kind: TaxonomySuggestionKind) {
   revalidatePath(kind === "CATEGORY" ? "/admin/categories" : "/admin/families");
@@ -227,7 +227,6 @@ export async function acceptAllTaxonomySuggestions(
   const pending = await prisma.taxonomySuggestion.findMany({
     where: { kind, status: TaxonomySuggestionStatus.PENDING },
     orderBy: { createdAt: "asc" },
-    take: 100,
   });
 
   let accepted = 0;
@@ -251,7 +250,10 @@ export async function acceptAllTaxonomySuggestions(
   return { ok: true, accepted, failed, created, assigned };
 }
 
-/** Genera sugerencias con IA y las aplica en un solo paso (hasta BATCH_LIMIT productos). */
+/**
+ * Genera sugerencias con IA y las aplica, iterando hasta cubrir todos los productos sin
+ * categoría/familia. Cada pasada procesa BATCH_LIMIT productos; repite mientras queden pendientes.
+ */
 export async function generateAndApplyTaxonomySuggestions(
   kind: TaxonomySuggestionKind
 ): Promise<{
@@ -263,21 +265,39 @@ export async function generateAndApplyTaxonomySuggestions(
   failed: number;
   error?: string;
 }> {
-  const gen = await generateTaxonomySuggestions(kind);
-  if (!gen.ok) return { ok: false, generated: 0, applied: 0, newTaxonomies: 0, assignedExisting: 0, failed: 0, error: gen.error };
+  let totalGenerated = 0;
+  let totalApplied = 0;
+  let totalNew = 0;
+  let totalAssigned = 0;
+  let totalFailed = 0;
+  const MAX_ITERATIONS = 20;
 
-  const apply = await acceptAllTaxonomySuggestions(kind, { createMissing: true });
+  for (let i = 0; i < MAX_ITERATIONS; i++) {
+    const gen = await generateTaxonomySuggestions(kind);
+    if (!gen.ok) {
+      return { ok: false, generated: totalGenerated, applied: totalApplied, newTaxonomies: totalNew, assignedExisting: totalAssigned, failed: totalFailed, error: gen.error };
+    }
+
+    if (gen.created === 0) break;
+
+    totalGenerated += gen.created;
+
+    const apply = await acceptAllTaxonomySuggestions(kind, { createMissing: true });
+    totalApplied += apply.accepted;
+    totalNew += apply.created;
+    totalAssigned += apply.assigned;
+    totalFailed += apply.failed;
+
+    if (gen.created < BATCH_LIMIT) break;
+  }
 
   return {
     ok: true,
-    generated: gen.created,
-    applied: apply.accepted,
-    newTaxonomies: apply.created,
-    assignedExisting: apply.assigned,
-    failed: apply.failed,
-    error:
-      gen.created === 0
-        ? gen.error || "No se generaron sugerencias para aplicar."
-        : undefined,
+    generated: totalGenerated,
+    applied: totalApplied,
+    newTaxonomies: totalNew,
+    assignedExisting: totalAssigned,
+    failed: totalFailed,
+    error: totalGenerated === 0 ? "No hay productos sin asignar." : undefined,
   };
 }
