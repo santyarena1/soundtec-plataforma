@@ -56,6 +56,20 @@ interface Row {
   updatedAt: string;
 }
 
+interface Filters {
+  q: string;
+  brandIds: string[];
+  categoryIds: string[];
+  familyIds: string[];
+  distributorIds: string[];
+  stockStatuses: string[];
+  active: string;
+  nocat: boolean;
+  noimg: boolean;
+  nodesc: boolean;
+  sort: string;
+}
+
 interface Props {
   rows: Row[];
   page: number;
@@ -63,7 +77,7 @@ interface Props {
   total: number;
   totalPages: number;
   showPrices: boolean;
-  filters: { q: string; brandIds: string[]; categoryIds: string[] };
+  filters: Filters;
   brands: Option[];
   categories: Option[];
   families: Option[];
@@ -191,28 +205,37 @@ export function ProductsCatalogAdmin(props: Props) {
   const qFromUrl = search.get("q") || "";
   const brandIdsFromUrl = search.getAll("brand");
   const categoryIdsFromUrl = search.getAll("category");
+  const familyIdsFromUrl = search.getAll("family");
+  const distributorIdsFromUrl = search.getAll("distributor");
+  const stockFromUrl = search.getAll("stock");
+  const activeFromUrl = search.get("active") || "";
+  const sortFromUrl = search.get("sort") || "updated_desc";
 
   const [qInput, setQInput] = useState(qFromUrl);
   const debouncedQ = useDebouncedValue(qInput, 350);
 
-  useEffect(() => {
-    setQInput(qFromUrl);
-  }, [qFromUrl]);
+  useEffect(() => { setQInput(qFromUrl); }, [qFromUrl]);
+
+  type FilterPatch = Partial<{
+    q: string; brand: string[]; category: string[]; family: string[];
+    distributor: string[]; stock: string[]; active: string; sort: string;
+    nocat: string; noimg: string; nodesc: string; page: string;
+  }>;
 
   const pushFilters = useCallback(
-    (patch: Partial<{ q: string; brand: string[]; category: string[]; page: string }>) => {
+    (patch: FilterPatch) => {
       const sp = new URLSearchParams(search.toString());
-      if (patch.q !== undefined) {
-        if (patch.q.trim()) sp.set("q", patch.q.trim());
-        else sp.delete("q");
+      if (patch.q !== undefined) { patch.q.trim() ? sp.set("q", patch.q.trim()) : sp.delete("q"); }
+      for (const key of ["brand", "category", "family", "distributor", "stock"] as const) {
+        if (patch[key] !== undefined) {
+          sp.delete(key);
+          for (const id of patch[key]!) sp.append(key, id);
+        }
       }
-      if (patch.brand !== undefined) {
-        sp.delete("brand");
-        for (const id of patch.brand) sp.append("brand", id);
-      }
-      if (patch.category !== undefined) {
-        sp.delete("category");
-        for (const id of patch.category) sp.append("category", id);
+      if (patch.active !== undefined) { patch.active ? sp.set("active", patch.active) : sp.delete("active"); }
+      if (patch.sort !== undefined) { patch.sort && patch.sort !== "updated_desc" ? sp.set("sort", patch.sort) : sp.delete("sort"); }
+      for (const key of ["nocat", "noimg", "nodesc"] as const) {
+        if (patch[key] !== undefined) { patch[key] === "1" ? sp.set(key, "1") : sp.delete(key); }
       }
       sp.set("page", patch.page ?? "1");
       if (!sp.has("pageSize")) sp.set("pageSize", String(props.pageSize));
@@ -302,47 +325,130 @@ export function ProductsCatalogAdmin(props: Props) {
     });
   }
 
+  const STOCK_OPTIONS = [
+    { id: "IN_STOCK", name: "En stock" },
+    { id: "OUT_OF_STOCK", name: "Sin stock" },
+    { id: "BACKORDER", name: "Backorder" },
+    { id: "DISCONTINUED", name: "Discontinuado" },
+  ];
+
+  const SORT_OPTIONS = [
+    { value: "updated_desc", label: "Más reciente" },
+    { value: "updated_asc", label: "Más antiguo" },
+    { value: "name_asc", label: "Nombre A→Z" },
+    { value: "name_desc", label: "Nombre Z→A" },
+    { value: "cost_asc", label: "Precio ↑" },
+    { value: "cost_desc", label: "Precio ↓" },
+    { value: "sku_asc", label: "SKU A→Z" },
+  ];
+
+  const nocatActive = search.get("nocat") === "1";
+  const noimgActive = search.get("noimg") === "1";
+  const nodescActive = search.get("nodesc") === "1";
+
   return (
     <div className="space-y-3">
-      <div className="grid gap-2 rounded-md border border-border bg-card p-3 lg:grid-cols-[1fr_220px_220px_auto] lg:items-end">
-        <div className="relative">
+      {/* Fila 1: búsqueda + orden */}
+      <div className="flex flex-wrap gap-2 rounded-md border border-border bg-card p-3">
+        <div className="relative min-w-[200px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
-            placeholder="Buscar por SKU o nombre"
+            placeholder="Buscar por SKU, nombre o SKU proveedor"
             className="pl-9"
             aria-label="Buscar productos"
           />
         </div>
+        <Select
+          value={sortFromUrl}
+          onChange={(e) => pushFilters({ sort: e.target.value })}
+          className="h-10 w-44 text-sm"
+          aria-label="Ordenar por"
+        >
+          {SORT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </Select>
+        {pending ? <Loader2 className="h-5 w-5 animate-spin self-center text-muted-foreground" /> : null}
+      </div>
+
+      {/* Fila 2: filtros multi-select */}
+      <div className="grid gap-2 rounded-md border border-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
         <MultiSelectFilter
           label="Marcas"
           options={props.brands}
           values={brandIdsFromUrl}
-          onChange={(ids) =>
-            pushFilters({
-              brand: ids,
-              category: categoryIdsFromUrl,
-              q: qFromUrl,
-            })
-          }
+          onChange={(ids) => pushFilters({ brand: ids })}
         />
         <MultiSelectFilter
           label="Categorías"
           options={props.categories}
           values={categoryIdsFromUrl}
-          onChange={(ids) =>
-            pushFilters({
-              brand: brandIdsFromUrl,
-              category: ids,
-              q: qFromUrl,
-            })
-          }
+          onChange={(ids) => pushFilters({ category: ids })}
         />
-        <div className="flex h-10 items-center gap-2 text-xs text-muted-foreground">
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          <span className="hidden sm:inline">Filtros en vivo</span>
-        </div>
+        <MultiSelectFilter
+          label="Familias"
+          options={props.families}
+          values={familyIdsFromUrl}
+          onChange={(ids) => pushFilters({ family: ids })}
+        />
+        <MultiSelectFilter
+          label="Distribuidores"
+          options={props.distributors}
+          values={distributorIdsFromUrl}
+          onChange={(ids) => pushFilters({ distributor: ids })}
+        />
+      </div>
+
+      {/* Fila 3: filtros rápidos */}
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-card px-3 py-2">
+        <span className="text-xs font-medium text-muted-foreground">Filtros rápidos:</span>
+        <MultiSelectFilter
+          label="Stock"
+          options={STOCK_OPTIONS}
+          values={stockFromUrl}
+          onChange={(ids) => pushFilters({ stock: ids })}
+          compact
+        />
+        <Select
+          value={activeFromUrl}
+          onChange={(e) => pushFilters({ active: e.target.value })}
+          className="h-8 w-36 text-xs"
+          aria-label="Estado activo"
+        >
+          <option value="">Activo: todos</option>
+          <option value="yes">Solo activos</option>
+          <option value="no">Solo inactivos</option>
+        </Select>
+        <button
+          onClick={() => pushFilters({ nocat: nocatActive ? "" : "1" })}
+          className={`rounded-full border px-3 py-1 text-xs transition-colors ${nocatActive ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-secondary"}`}
+        >
+          Sin categoría
+        </button>
+        <button
+          onClick={() => pushFilters({ noimg: noimgActive ? "" : "1" })}
+          className={`rounded-full border px-3 py-1 text-xs transition-colors ${noimgActive ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-secondary"}`}
+        >
+          Sin imagen
+        </button>
+        <button
+          onClick={() => pushFilters({ nodesc: nodescActive ? "" : "1" })}
+          className={`rounded-full border px-3 py-1 text-xs transition-colors ${nodescActive ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-secondary"}`}
+        >
+          Sin desc. IA
+        </button>
+        {(brandIdsFromUrl.length || categoryIdsFromUrl.length || familyIdsFromUrl.length ||
+          distributorIdsFromUrl.length || stockFromUrl.length || activeFromUrl ||
+          nocatActive || noimgActive || nodescActive || qFromUrl) ? (
+          <button
+            onClick={() => pushFilters({ q: "", brand: [], category: [], family: [], distributor: [], stock: [], active: "", nocat: "", noimg: "", nodesc: "" })}
+            className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" /> Limpiar filtros
+          </button>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-end gap-2 rounded-md border border-border bg-card p-3">
@@ -708,11 +814,13 @@ function MultiSelectFilter({
   options,
   values,
   onChange,
+  compact,
 }: {
   label: string;
   options: Option[];
   values: string[];
   onChange: (ids: string[]) => void;
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -753,7 +861,7 @@ function MultiSelectFilter({
       <button
         type="button"
         onClick={() => setOpen((s) => !s)}
-        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-card px-3 text-sm hover:bg-secondary"
+        className={`flex items-center justify-between rounded-md border border-input bg-card px-3 hover:bg-secondary ${compact ? "h-8 text-xs w-28" : "h-10 w-full text-sm"}`}
       >
         <span className="truncate">
           {label}

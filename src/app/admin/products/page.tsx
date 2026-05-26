@@ -11,6 +11,14 @@ interface SP {
   q?: string;
   brand?: string | string[];
   category?: string | string[];
+  family?: string | string[];
+  distributor?: string | string[];
+  stock?: string | string[];
+  active?: string;
+  nocat?: string;
+  noimg?: string;
+  nodesc?: string;
+  sort?: string;
   page?: string;
   pageSize?: string;
 }
@@ -24,6 +32,16 @@ function multi(value: string | string[] | undefined): string[] {
     .filter(Boolean);
 }
 
+const SORT_MAP: Record<string, Prisma.ProductOrderByWithRelationInput> = {
+  updated_desc: { updatedAt: "desc" },
+  updated_asc: { updatedAt: "asc" },
+  name_asc: { normalizedName: "asc" },
+  name_desc: { normalizedName: "desc" },
+  cost_asc: { baseCostUsd: "asc" },
+  cost_desc: { baseCostUsd: "desc" },
+  sku_asc: { internalSku: "asc" },
+};
+
 export default async function AdminProductsPage({ searchParams }: { searchParams: Promise<SP> }) {
   await requireAdmin();
   const showPrices = await canSeePrices();
@@ -35,10 +53,22 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
 
   const brandIds = multi(params.brand);
   const categoryIds = multi(params.category);
+  const familyIds = multi(params.family);
+  const distributorIds = multi(params.distributor);
+  const stockStatuses = multi(params.stock);
+  const activeFilter =
+    params.active === "yes" ? true : params.active === "no" ? false : undefined;
 
   const where: Prisma.ProductWhereInput = {
     ...(brandIds.length ? { brandId: { in: brandIds } } : {}),
     ...(categoryIds.length ? { categoryId: { in: categoryIds } } : {}),
+    ...(familyIds.length ? { familyId: { in: familyIds } } : {}),
+    ...(distributorIds.length ? { distributorId: { in: distributorIds } } : {}),
+    ...(stockStatuses.length ? { stockStatus: { in: stockStatuses as any[] } } : {}),
+    ...(activeFilter !== undefined ? { isActive: activeFilter } : {}),
+    ...(params.nocat === "1" ? { categoryId: null } : {}),
+    ...(params.noimg === "1" ? { images: { none: {} } } : {}),
+    ...(params.nodesc === "1" ? { longDescription: null } : {}),
     ...(params.q
       ? {
           OR: [
@@ -50,10 +80,13 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       : {}),
   };
 
+  const orderBy: Prisma.ProductOrderByWithRelationInput =
+    SORT_MAP[params.sort || ""] ?? { updatedAt: "desc" };
+
   const [products, total, brands, categories, families, distributors] = await Promise.all([
     prisma.product.findMany({
       where,
-      orderBy: { updatedAt: "desc" },
+      orderBy,
       include: {
         brand: { select: { id: true, name: true } },
         category: { select: { id: true, name: true } },
@@ -115,7 +148,17 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         }
       />
 
-      {rows.length === 0 && !params.q && brandIds.length === 0 && categoryIds.length === 0 ? (
+      {rows.length === 0 &&
+      !params.q &&
+      brandIds.length === 0 &&
+      categoryIds.length === 0 &&
+      familyIds.length === 0 &&
+      distributorIds.length === 0 &&
+      stockStatuses.length === 0 &&
+      activeFilter === undefined &&
+      !params.nocat &&
+      !params.noimg &&
+      !params.nodesc ? (
         <TableEmpty message="Todavía no hay productos. Creá uno o importá un Excel desde Importaciones." />
       ) : (
         <ProductsCatalogAdmin
@@ -129,6 +172,14 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
             q: params.q || "",
             brandIds,
             categoryIds,
+            familyIds,
+            distributorIds,
+            stockStatuses,
+            active: params.active || "",
+            nocat: params.nocat === "1",
+            noimg: params.noimg === "1",
+            nodesc: params.nodesc === "1",
+            sort: params.sort || "updated_desc",
           }}
           brands={brands}
           categories={categories}
