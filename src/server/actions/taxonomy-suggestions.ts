@@ -1,13 +1,15 @@
 "use server";
 
+export const maxDuration = 300;
+
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { slugify } from "@/lib/utils";
-import { suggestTaxonomyAssignment } from "@/services/openai";
+import { suggestTaxonomyAssignment, suggestTaxonomyAssignmentBatch } from "@/services/openai";
 import { TaxonomySuggestionKind, TaxonomySuggestionStatus } from "@prisma/client";
 
-const BATCH_LIMIT = 200;
+const MINI_BATCH = 15;
 
 function revalidateTaxonomyPaths(kind: TaxonomySuggestionKind) {
   revalidatePath(kind === "CATEGORY" ? "/admin/categories" : "/admin/families");
@@ -90,7 +92,31 @@ async function ensureTaxonomyAndAssign(
   return { ok: true };
 }
 
-/** Analiza productos sin categoría/familia y genera sugerencias (asignar existente o crear nueva). */
+/** Borra todas las categorías/familias y resetea los productos. Permite empezar de cero. */
+export async function clearAllTaxonomyData(
+  kind: TaxonomySuggestionKind
+): Promise<{ ok: boolean; deleted: number }> {
+  await requireAdmin();
+
+  // Primero romper la FK en productos
+  if (kind === "CATEGORY") {
+    await prisma.product.updateMany({ where: { categoryId: { not: null } }, data: { categoryId: null } });
+    await prisma.taxonomySuggestion.deleteMany({ where: { kind } });
+    const result = await prisma.category.deleteMany({});
+    revalidatePath("/admin/categories");
+    revalidatePath("/admin/products");
+    return { ok: true, deleted: result.count };
+  } else {
+    await prisma.product.updateMany({ where: { familyId: { not: null } }, data: { familyId: null } });
+    await prisma.taxonomySuggestion.deleteMany({ where: { kind } });
+    const result = await prisma.productFamily.deleteMany({});
+    revalidatePath("/admin/families");
+    revalidatePath("/admin/products");
+    return { ok: true, deleted: result.count };
+  }
+}
+
+/** Analiza productos sin categoría/familia (flujo de revisión manual). */
 export async function generateTaxonomySuggestions(
   kind: TaxonomySuggestionKind
 ): Promise<{ ok: boolean; created: number; skipped: number; error?: string }> {
@@ -100,13 +126,8 @@ export async function generateTaxonomySuggestions(
   const products = await prisma.product.findMany({
     where: { isActive: true, [field]: null },
     orderBy: { updatedAt: "desc" },
-    take: BATCH_LIMIT,
-    select: {
-      id: true,
-      normalizedName: true,
-      internalSku: true,
-      shortDescription: true,
-    },
+    take: 100,
+    select: { id: true, normalizedName: true, internalSku: true, shortDescription: true },
   });
 
   if (products.length === 0) {
@@ -122,47 +143,32 @@ export async function generateTaxonomySuggestions(
     ).map((s) => s.productId)
   );
 
-  const taxonomyCatalog =
-    kind === "CATEGORY"
-      ? (await prisma.category.findMany({ orderBy: { name: "asc" }, select: { name: true } })).map((c) => c.name)
-      : (await prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { name: true } })).map((f) => f.name);
-
+  const toProcess = products.filter((p) => !pendingProductIds.has(p.id));
   let created = 0;
-  let skipped = 0;
+  const skipped = products.length - toProcess.length;
 
-  for (const p of products) {
-    if (pendingProductIds.has(p.id)) {
-      skipped++;
-      continue;
-    }
+  for (let i = 0; i < toProcess.length; i += MINI_BATCH) {
+    const chunk = toProcess.slice(i, i + MINI_BATCH);
 
-    const assignment = await suggestTaxonomyAssignment({
+    const taxonomyCatalog =
+      kind === "CATEGORY"
+        ? (await prisma.category.findMany({ select: { name: true } })).map((c) => c.name)
+        : (await prisma.productFamily.findMany({ select: { name: true } })).map((f) => f.name);
+
+    const batchResults = await suggestTaxonomyAssignmentBatch({
       kind,
-      productName: p.normalizedName,
-      productSku: p.internalSku,
-      shortDescription: p.shortDescription,
+      products: chunk.map((p) => ({ id: p.id, name: p.normalizedName, sku: p.internalSku, description: p.shortDescription })),
       taxonomyCatalog,
     });
 
-    if (!assignment.name) {
-      skipped++;
-      continue;
+    for (const result of batchResults) {
+      if (!result.name) continue;
+      const targetId = result.action === "existing" ? await resolveTargetId(kind, result.name) : null;
+      await prisma.taxonomySuggestion.create({
+        data: { kind, productId: result.id, suggestedName: result.name, targetId, confidence: result.confidence },
+      });
+      created++;
     }
-
-    const targetId =
-      assignment.action === "existing" ? await resolveTargetId(kind, assignment.name) : null;
-
-    await prisma.taxonomySuggestion.create({
-      data: {
-        kind,
-        productId: p.id,
-        suggestedName: assignment.name,
-        targetId,
-        confidence: assignment.confidence,
-        rationale: assignment.rationale,
-      },
-    });
-    created++;
   }
 
   revalidateTaxonomyPaths(kind);
@@ -216,7 +222,6 @@ export async function rejectTaxonomySuggestion(suggestionId: string): Promise<{ 
   return { ok: true };
 }
 
-/** Confirma sugerencias pendientes. Por defecto crea categorías/familias nuevas si hace falta. */
 export async function acceptAllTaxonomySuggestions(
   kind: TaxonomySuggestionKind,
   options?: { createMissing?: boolean }
@@ -251,8 +256,9 @@ export async function acceptAllTaxonomySuggestions(
 }
 
 /**
- * Genera sugerencias con IA y las aplica, iterando hasta cubrir todos los productos sin
- * categoría/familia. Cada pasada procesa BATCH_LIMIT productos; repite mientras queden pendientes.
+ * Genera y aplica categorías/familias para TODOS los productos sin asignar.
+ * Procesa en mini-lotes de 15 productos por llamada OpenAI, refrescando el catálogo
+ * entre lotes para maximizar la reutilización de categorías existentes.
  */
 export async function generateAndApplyTaxonomySuggestions(
   kind: TaxonomySuggestionKind
@@ -265,39 +271,87 @@ export async function generateAndApplyTaxonomySuggestions(
   failed: number;
   error?: string;
 }> {
-  let totalGenerated = 0;
+  await requireAdmin();
+
+  const field = kind === "CATEGORY" ? "categoryId" : "familyId";
   let totalApplied = 0;
   let totalNew = 0;
   let totalAssigned = 0;
   let totalFailed = 0;
-  const MAX_ITERATIONS = 20;
 
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const gen = await generateTaxonomySuggestions(kind);
-    if (!gen.ok) {
-      return { ok: false, generated: totalGenerated, applied: totalApplied, newTaxonomies: totalNew, assignedExisting: totalAssigned, failed: totalFailed, error: gen.error };
+  while (true) {
+    const products = await prisma.product.findMany({
+      where: { isActive: true, [field]: null },
+      orderBy: { updatedAt: "desc" },
+      take: MINI_BATCH,
+      select: { id: true, normalizedName: true, internalSku: true, shortDescription: true },
+    });
+
+    if (products.length === 0) break;
+
+    // Snapshot del catálogo actual (se refresca en cada iteración)
+    const taxonomyCatalog =
+      kind === "CATEGORY"
+        ? (await prisma.category.findMany({ select: { name: true } })).map((c) => c.name)
+        : (await prisma.productFamily.findMany({ select: { name: true } })).map((f) => f.name);
+
+    const batchResults = await suggestTaxonomyAssignmentBatch({
+      kind,
+      products: products.map((p) => ({ id: p.id, name: p.normalizedName, sku: p.internalSku, description: p.shortDescription })),
+      taxonomyCatalog,
+    });
+
+    for (const result of batchResults) {
+      if (!result.name) { totalFailed++; continue; }
+
+      let resolvedId = result.action === "existing" ? await resolveTargetId(kind, result.name) : null;
+
+      if (!resolvedId) {
+        if (kind === "CATEGORY") {
+          const existing = await prisma.category.findFirst({ where: { name: { equals: result.name, mode: "insensitive" } } });
+          if (existing) {
+            resolvedId = existing.id;
+          } else {
+            const created = await prisma.category.create({ data: { name: result.name, slug: slugify(result.name) } });
+            resolvedId = created.id;
+            totalNew++;
+          }
+        } else {
+          const existing = await prisma.productFamily.findFirst({ where: { name: { equals: result.name, mode: "insensitive" } } });
+          if (existing) {
+            resolvedId = existing.id;
+          } else {
+            const created = await prisma.productFamily.create({ data: { name: result.name, slug: slugify(result.name), isActive: true } });
+            resolvedId = created.id;
+            totalNew++;
+          }
+        }
+      } else {
+        totalAssigned++;
+      }
+
+      if (resolvedId) {
+        if (kind === "CATEGORY") {
+          await prisma.product.update({ where: { id: result.id }, data: { categoryId: resolvedId } });
+        } else {
+          await prisma.product.update({ where: { id: result.id }, data: { familyId: resolvedId } });
+        }
+        totalApplied++;
+      } else {
+        totalFailed++;
+      }
     }
 
-    if (gen.created === 0) break;
-
-    totalGenerated += gen.created;
-
-    const apply = await acceptAllTaxonomySuggestions(kind, { createMissing: true });
-    totalApplied += apply.accepted;
-    totalNew += apply.created;
-    totalAssigned += apply.assigned;
-    totalFailed += apply.failed;
-
-    if (gen.created < BATCH_LIMIT) break;
+    revalidateTaxonomyPaths(kind);
   }
 
   return {
     ok: true,
-    generated: totalGenerated,
+    generated: totalApplied + totalFailed,
     applied: totalApplied,
     newTaxonomies: totalNew,
     assignedExisting: totalAssigned,
     failed: totalFailed,
-    error: totalGenerated === 0 ? "No hay productos sin asignar." : undefined,
+    error: totalApplied === 0 && totalFailed === 0 ? "No hay productos sin asignar." : undefined,
   };
 }

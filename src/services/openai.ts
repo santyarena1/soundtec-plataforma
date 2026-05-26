@@ -175,6 +175,118 @@ export interface TaxonomyAssignmentSuggestion {
   rationale?: string;
 }
 
+export interface TaxonomyBatchResult {
+  id: string;
+  action: "existing" | "new";
+  name: string;
+  confidence: number;
+}
+
+const STANDARD_CATEGORIES = [
+  "Micrófonos", "Amplificadores", "Mezcladores y Consolas", "Altavoces y Monitores",
+  "Procesadores de Audio", "Cables y Conectores", "Pantallas y Proyectores",
+  "Videoconferencia", "Iluminación Escénica", "Control e Interfaces",
+  "Accesorios y Soportes", "Grabación y Reproducción", "Auriculares",
+  "Wireless y Transmisión", "Distribuidores y Matrices",
+];
+
+const STANDARD_FAMILIES = [
+  "Audio Profesional", "Video y Proyección", "Iluminación", "Videoconferencia",
+  "Control AV", "Networking AV", "Accesorios",
+];
+
+/**
+ * Clasifica hasta 20 productos en una sola llamada a OpenAI.
+ * Prioriza reusar categorías/familias existentes; solo crea nuevas si no hay match.
+ */
+export async function suggestTaxonomyAssignmentBatch(input: {
+  kind: TaxonomyAssignmentKind;
+  products: { id: string; name: string; sku?: string | null; description?: string | null }[];
+  taxonomyCatalog: string[];
+}): Promise<TaxonomyBatchResult[]> {
+  const label = input.kind === "CATEGORY" ? "categoría" : "familia";
+  const labelPlural = input.kind === "CATEGORY" ? "categorías" : "familias";
+  const standards = input.kind === "CATEGORY" ? STANDARD_CATEGORIES : STANDARD_FAMILIES;
+
+  const catalogList = input.taxonomyCatalog.length
+    ? input.taxonomyCatalog.map((c) => `- ${c}`).join("\n")
+    : "(vacío — usá las referencias estándar de abajo)";
+
+  const productList = input.products
+    .map((p, i) => `${i + 1}. ID="${p.id}" | ${p.name}${p.sku ? ` (SKU: ${p.sku})` : ""}${p.description ? ` — ${p.description}` : ""}`)
+    .join("\n");
+
+  const heuristicFallback = (): TaxonomyBatchResult[] =>
+    input.products.map((p) => {
+      const context = `${p.name} ${p.sku || ""} ${p.description || ""}`.toLowerCase();
+      const match = input.taxonomyCatalog.find((c) => c.length >= 3 && context.includes(c.toLowerCase()));
+      if (match) return { id: p.id, action: "existing", name: match, confidence: 0.7 };
+      const stdMatch = standards.find((s) => s.length >= 3 && context.includes(s.toLowerCase()));
+      return { id: p.id, action: "new", name: stdMatch || standards[0], confidence: 0.5 };
+    });
+
+  const client = await getClient();
+  if (!client) return heuristicFallback();
+
+  try {
+    const model = await getModel();
+    const resp = await client.chat.completions.create({
+      model,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `Clasificás productos audiovisuales B2B en ${labelPlural} amplias. Respondés solo JSON válido.`,
+        },
+        {
+          role: "user",
+          content: `Asigná la mejor ${label.toUpperCase()} para cada producto.
+
+REGLAS CRÍTICAS:
+1. Usá SIEMPRE una ${label} del catálogo actual si encaja razonablemente. Aunque el nombre no sea idéntico.
+2. Agrupá por función GENERAL: todos los tipos de micrófono van a "Micrófonos", no a sub-categorías.
+3. El catálogo total de la empresa debe tener 15-20 ${labelPlural} máximo. Evitá fragmentar.
+4. Solo usá action "new" si realmente NINGUNA ${label} existente ni estándar es adecuada.
+5. Al crear ${labelPlural} nuevas, usá nombres cortos en español plural (ej. "Micrófonos", "Cables y Conectores").
+
+${labelPlural.charAt(0).toUpperCase() + labelPlural.slice(1)} de referencia estándar (preferí estas si el catálogo está vacío):
+${standards.map((s) => `- ${s}`).join("\n")}
+
+Catálogo actual:
+${catalogList}
+
+Productos a clasificar:
+${productList}
+
+Respondé EXACTAMENTE con este JSON (un resultado por producto, en el mismo orden):
+{
+  "results": [
+    { "id": "<ID exacto del producto>", "action": "existing", "name": "<nombre exacto del catálogo>", "confidence": 0.9 },
+    { "id": "<ID exacto>", "action": "new", "name": "<nombre nuevo corto>", "confidence": 0.75 }
+  ]
+}`,
+        },
+      ],
+    });
+
+    const raw = resp.choices[0]?.message.content || "{}";
+    const parsed = JSON.parse(raw) as { results?: unknown[] };
+    const items = Array.isArray(parsed.results) ? parsed.results : [];
+
+    return items
+      .filter((r: any) => typeof r?.id === "string" && typeof r?.name === "string")
+      .map((r: any) => ({
+        id: String(r.id),
+        action: r.action === "existing" ? "existing" : ("new" as const),
+        name: String(r.name).trim(),
+        confidence: Math.max(0, Math.min(1, Number(r.confidence) || 0.6)),
+      }));
+  } catch (error) {
+    console.error("OpenAI suggestTaxonomyAssignmentBatch error", error);
+    return heuristicFallback();
+  }
+}
+
 function normalizeTaxonomyLabel(value: string): string {
   return value
     .toLowerCase()

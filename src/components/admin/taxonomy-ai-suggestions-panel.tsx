@@ -7,13 +7,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
-import { Sparkles, Loader2, Check, X, PlusCircle, Zap } from "lucide-react";
+import { Sparkles, Loader2, Check, X, PlusCircle, Zap, Trash2 } from "lucide-react";
 import {
   generateTaxonomySuggestions,
   acceptTaxonomySuggestion,
   rejectTaxonomySuggestion,
   acceptAllTaxonomySuggestions,
   generateAndApplyTaxonomySuggestions,
+  clearAllTaxonomyData,
 } from "@/server/actions/taxonomy-suggestions";
 import type { TaxonomySuggestionKind } from "@prisma/client";
 
@@ -73,13 +74,34 @@ export function TaxonomyAiSuggestionsPanel({
     });
   }
 
+  function runClear() {
+    if (
+      !window.confirm(
+        `¿Borrar TODAS las ${labelPlural} y desasignar todos los productos?\n\nEsto no se puede deshacer.`
+      )
+    )
+      return;
+    setMessage(null);
+    setError(null);
+    start(async () => {
+      const r = await clearAllTaxonomyData(kind);
+      if (r.ok) {
+        setMessage(`Eliminadas ${r.deleted} ${labelPlural}. Los productos quedaron sin asignar.`);
+        router.refresh();
+      } else {
+        setError("No se pudo limpiar.");
+      }
+    });
+  }
+
   function runGenerateAndApply() {
     if (
       !window.confirm(
-        `¿Analizar hasta 50 productos sin ${label} y aplicar automáticamente?\n\n` +
-          `• Si coinciden con una ${label} existente → se asignan.\n` +
+        `¿Analizar TODOS los productos sin ${label} y aplicar automáticamente?\n\n` +
+          `• Agrupa por categorías amplias (máx. ~20 en total).\n` +
+          `• Si coincide con una ${label} existente → se asigna.\n` +
           `• Si no hay match → se crea una ${label} nueva y se asigna.\n\n` +
-          `Podés revisar el resultado en la tabla de ${labelPlural} y productos.`
+          `Para catálogos grandes puede tardar varios minutos.`
       )
     ) {
       return;
@@ -206,6 +228,17 @@ export function TaxonomyAiSuggestionsPanel({
                 </Button>
               </div>
             ) : null}
+            <Button
+              onClick={runClear}
+              disabled={pending}
+              size="sm"
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              title={`Borrar todas las ${labelPlural} y desasignar productos`}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Limpiar todo
+            </Button>
           </div>
         </div>
 

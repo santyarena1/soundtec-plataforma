@@ -9,6 +9,7 @@ import { upsertCategory } from "@/server/actions/admin-catalog";
 import { TaxonomyAiSuggestionsPanel } from "@/components/admin/taxonomy-ai-suggestions-panel";
 import { TaxonomySuggestionKind, TaxonomySuggestionStatus } from "@prisma/client";
 
+export const maxDuration = 300;
 export const metadata = { title: "Admin · Categorías" };
 
 export default async function AdminCategoriesPage() {
