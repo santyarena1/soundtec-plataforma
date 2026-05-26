@@ -1,0 +1,740 @@
+// Soundtec S.R.L. - Esquema de base de datos
+// Provider: PostgreSQL (Neon / Supabase / Render compatible)
+// Las tablas cubren Fase 1, 2 y 3 para evitar migraciones rompedoras.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------
+// AUTH / USUARIOS
+// ---------------------------------------------
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  CLIENT
+}
+
+enum AccountMovementKind {
+  DEBIT
+  CREDIT
+}
+
+model User {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  passwordHash    String
+  role            UserRole @default(CLIENT)
+  customRoleId    String?
+  customRole      CustomRole? @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
+  companyName     String?
+  phone           String?
+  isActive        Boolean  @default(true)
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret String?
+  lastLoginAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Empresa/cliente comercial (usuarios de portal)
+  clientId        String?
+  client          Client?  @relation("ClientPortalUsers", fields: [clientId], references: [id], onDelete: SetNull)
+  wishlists       Wishlist[]
+  requests        CustomerRequest[]
+  requestMessages RequestMessage[]
+  tickets         DeveloperTicket[]
+  aiFeedback      AiContentFeedback[]
+  @@index([email])
+  @@index([role])
+  @@index([customRoleId])
+  @@index([clientId])
+}
+
+model CustomRole {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  description    String?
+  baseSystemRole UserRole @default(CLIENT)
+  permissionsJson Json?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users          User[]
+}
+
+/// Cliente comercial (empresa). No es lo mismo que User: un Client puede tener varios usuarios de portal.
+model Client {
+  id                  String   @id @default(cuid())
+  companyName         String
+  tradeName           String?
+  contactName         String?
+  email               String?
+  phone               String?
+  taxId               String?
+  address             String?
+  notes               String?
+  assignedPriceListId String?
+  assignedPriceList   PriceList? @relation(fields: [assignedPriceListId], references: [id], onDelete: SetNull)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  portalUsers       User[]            @relation("ClientPortalUsers")
+  visibilityRules   VisibilityRule[]
+  marginRules       MarginRule[]      @relation("ClientMargins")
+  discountRules     DiscountRule[]    @relation("ClientDiscounts")
+  accountMovements    AccountMovement[]
+  requests            CustomerRequest[]
+  shareablePriceLists ShareablePriceList[]
+
+  @@index([companyName])
+  @@index([isActive])
+}
+
+// ---------------------------------------------
+// CATÁLOGO
+// ---------------------------------------------
+
+model Brand {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  logoUrl     String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products   Product[]
+  priceLists PriceList[]
+  mappings   ColumnMappingProfile[]
+  imports    ImportBatch[]
+}
+
+model Distributor {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  contactInfo Json?
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products   Product[]
+  priceLists PriceList[]
+  mappings   ColumnMappingProfile[]
+  imports    ImportBatch[]
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Category[] @relation("CategoryParent")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+}
+
+model ProductFamily {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+}
+
+enum StockStatus {
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+  ON_REQUEST
+  UNKNOWN
+}
+
+enum ProductKind {
+  PRINCIPAL
+  ACCESORIO
+}
+
+model Product {
+  id                      String   @id @default(cuid())
+  internalSku             String?  @unique
+  supplierSku             String?
+  normalizedName          String
+  originalName            String
+  brandId                 String?
+  brand                   Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  distributorId           String?
+  distributor             Distributor? @relation(fields: [distributorId], references: [id], onDelete: SetNull)
+  categoryId              String?
+  category                Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  familyId                String?
+  family                  ProductFamily? @relation(fields: [familyId], references: [id], onDelete: SetNull)
+
+  shortDescription        String?
+  longDescription         String?
+  aiGeneratedDescription  Boolean  @default(false)
+  aiDescriptionFeedbackStatus String? // "PENDING" | "APPROVED" | "REJECTED"
+
+  baseCostUsd             Decimal  @db.Decimal(14, 4)
+  currency                String   @default("USD")
+
+  // Posición arancelaria (NCM / partida) cargada manualmente desde admin.
+  // Se aplica como costo extra adicional al baseCost antes del margen.
+  tariffPosition          String?
+  tariffDutyPercent       Decimal? @db.Decimal(6, 3)
+
+  stockStatus             StockStatus @default(UNKNOWN)
+  stockQuantity           Int?
+
+  discountPercent         Decimal? @db.Decimal(6, 3)
+  isCustomizable          Boolean  @default(false)
+  kind                    ProductKind @default(PRINCIPAL)
+  accessoryRequiredWithPrimary Boolean @default(false)
+  isActive                Boolean  @default(true)
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  images          ProductImage[]
+  options         ProductOption[]
+  wishlistItems   WishlistItem[]
+  requestItems    CustomerRequestItem[]
+  marginRules     MarginRule[]
+  discountRules   DiscountRule[]
+  visibilityRules VisibilityRule[]
+  rawImports      RawImportedProduct[]
+  accessories     AccessoryRelation[] @relation("AccessorySource")
+  accessoryFor    AccessoryRelation[] @relation("AccessoryTarget")
+  taxonomySuggestions TaxonomySuggestion[]
+
+  @@index([normalizedName])
+  @@index([brandId])
+  @@index([categoryId])
+  @@index([distributorId])
+  @@index([isActive])
+}
+
+model AccessoryRelation {
+  id                String   @id @default(cuid())
+  productId         String
+  product           Product  @relation("AccessorySource", fields: [productId], references: [id], onDelete: Cascade)
+  accessoryProductId String
+  accessoryProduct  Product  @relation("AccessoryTarget", fields: [accessoryProductId], references: [id], onDelete: Cascade)
+  isRequired        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  @@unique([productId, accessoryProductId])
+  @@index([productId])
+  @@index([accessoryProductId])
+}
+
+model ProductImage {
+  id         String  @id @default(cuid())
+  productId  String
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url        String
+  alt        String?
+  source     String? // "upload" | "serper" | "supplier" | "scraper"
+  isPrimary  Boolean @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([productId])
+}
+
+model ProductOption {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name          String
+  type          String   // "select" | "boolean" | "number" | "text"
+  values        Json
+  priceDeltaUsd Decimal? @db.Decimal(14, 4)
+  isRequired    Boolean  @default(false)
+  sortOrder     Int      @default(0)
+
+  @@index([productId])
+}
+
+// ---------------------------------------------
+// LISTAS DE PRECIO E IMPORTACIONES
+// ---------------------------------------------
+
+enum PriceListSourceType {
+  EXCEL
+  SCRAPER
+  MANUAL
+  API
+}
+
+enum PriceListStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ShareablePriceListStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+// Lista de precios curada con filtros y link público único (/lista/{shareSlug}).
+model ShareablePriceList {
+  id          String                   @id @default(cuid())
+  name        String
+  description String?
+  shareSlug   String                   @unique
+  status      ShareablePriceListStatus @default(DRAFT)
+  filters     Json
+  clientId    String?
+  client      Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  showSku     Boolean                  @default(true)
+  showStock   Boolean                  @default(false)
+  hidePrices  Boolean                  @default(false)
+  expiresAt   DateTime?
+  viewCount   Int                      @default(0)
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  @@index([shareSlug])
+  @@index([status])
+  @@index([clientId])
+}
+
+model PriceList {
+  id              String              @id @default(cuid())
+  name            String
+  distributorId   String?
+  distributor     Distributor?        @relation(fields: [distributorId], references: [id], onDelete: SetNull)
+  brandId         String?
+  brand           Brand?              @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  currency        String              @default("USD")
+  sourceType      PriceListSourceType @default(MANUAL)
+  uploadedFileUrl String?
+  status          PriceListStatus     @default(ACTIVE)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  imports        ImportBatch[]
+  clients        Client[]
+}
+
+enum ImportBatchStatus {
+  PENDING
+  MAPPING
+  REVIEWING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model ImportBatch {
+  id            String            @id @default(cuid())
+  priceListId   String?
+  priceList     PriceList?        @relation(fields: [priceListId], references: [id], onDelete: SetNull)
+  distributorId String?
+  distributor   Distributor?      @relation(fields: [distributorId], references: [id], onDelete: SetNull)
+  brandId       String?
+  brand         Brand?            @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  fileName      String
+  fileUrl       String?
+  status        ImportBatchStatus @default(PENDING)
+  totalRows     Int               @default(0)
+  processedRows Int               @default(0)
+  errorRows     Int               @default(0)
+  notes         String?
+  detectedHeaders Json?
+  appliedMappingJson Json?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  rawProducts RawImportedProduct[]
+}
+
+model ColumnMappingProfile {
+  id            String   @id @default(cuid())
+  name          String
+  distributorId String?
+  distributor   Distributor? @relation(fields: [distributorId], references: [id], onDelete: SetNull)
+  brandId       String?
+  brand         Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  sourceType    PriceListSourceType @default(EXCEL)
+  mappingJson   Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_REVIEW
+}
+
+model RawImportedProduct {
+  id                 String          @id @default(cuid())
+  importBatchId      String
+  importBatch        ImportBatch     @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
+  rawJson            Json
+  suggestedMappingJson Json?
+  normalizedJson     Json?
+  approvalStatus     ApprovalStatus  @default(PENDING)
+  errorMessage       String?
+  productId          String?
+  product            Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([importBatchId])
+  @@index([approvalStatus])
+}
+
+// ---------------------------------------------
+// MOTOR DE PRECIOS: márgenes, descuentos, visibilidad
+// ---------------------------------------------
+
+enum RuleScopeType {
+  PRODUCT
+  BRAND
+  DISTRIBUTOR
+  CATEGORY
+  FAMILY
+  GLOBAL
+  CLIENT
+}
+
+model MarginRule {
+  id             String        @id @default(cuid())
+  name           String
+  priority       Int           @default(100)
+  scopeType      RuleScopeType
+  scopeId        String?
+  clientId       String?
+  client         Client?       @relation("ClientMargins", fields: [clientId], references: [id], onDelete: Cascade)
+  productId      String?
+  product        Product?      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  marginPercent  Decimal       @db.Decimal(6, 3)
+  isActive       Boolean       @default(true)
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([scopeType, scopeId])
+  @@index([clientId])
+}
+
+model DiscountRule {
+  id              String        @id @default(cuid())
+  name            String
+  priority        Int           @default(100)
+  scopeType       RuleScopeType
+  scopeId         String?
+  clientId        String?
+  client          Client?       @relation("ClientDiscounts", fields: [clientId], references: [id], onDelete: Cascade)
+  productId       String?
+  product         Product?      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  discountPercent Decimal       @db.Decimal(6, 3)
+  isActive        Boolean       @default(true)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([scopeType, scopeId])
+  @@index([clientId])
+}
+
+model VisibilityRule {
+  id        String        @id @default(cuid())
+  clientId  String
+  client    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  scopeType RuleScopeType
+  scopeId   String?
+  productId String?
+  product   Product?      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  canView   Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([clientId, scopeType])
+}
+
+// ---------------------------------------------
+// CLIENTE: wishlist, listas, solicitudes
+// ---------------------------------------------
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String   @default("Favoritos")
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items WishlistItem[]
+
+  @@index([userId])
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  wishlistId String
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity   Int      @default(1)
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@unique([wishlistId, productId])
+  @@index([productId])
+}
+
+enum CustomerRequestType {
+  QUOTE
+  ORDER
+  CONSULTATION
+}
+
+enum CustomerRequestStatus {
+  DRAFT
+  SENT
+  IN_REVIEW
+  ANSWERED
+  CONFIRMED
+  REJECTED
+  CLOSED
+}
+
+model CustomerRequest {
+  id                  String                 @id @default(cuid())
+  clientId            String?
+  client              Client?                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userId              String
+  user                User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                CustomerRequestType    @default(QUOTE)
+  status              CustomerRequestStatus  @default(DRAFT)
+  projectDescription  String?
+  adminResponse       String?
+  aiSuggestedResponse String?
+  totalEstimateUsd    Decimal?               @db.Decimal(14, 2)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  items    CustomerRequestItem[]
+  messages RequestMessage[]
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([status])
+}
+
+model CustomerRequestItem {
+  id                String          @id @default(cuid())
+  requestId         String
+  request           CustomerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity          Int             @default(1)
+  selectedOptions   Json?
+  userNotes         String?
+  adminNotes        String?
+  unitPriceUsd      Decimal?        @db.Decimal(14, 4)
+  adminAlternativeProductId String?
+  // Marca si este ítem es una sugerencia del admin (alternativa propuesta al cliente)
+  isAdminSuggestion Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+}
+
+model RequestMessage {
+  id              String   @id @default(cuid())
+  requestId       String
+  request         CustomerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  message         String
+  isAiGenerated   Boolean  @default(false)
+  attachments     Json?
+  createdAt       DateTime @default(now())
+
+  @@index([requestId])
+}
+
+// ---------------------------------------------
+// LANDING PÚBLICA Y CONTENIDO
+// ---------------------------------------------
+
+model LandingPost {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  excerpt       String?
+  content       String
+  coverImageUrl String?
+  isPublished   Boolean  @default(false)
+  publishedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model LandingHero {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String?
+  imageUrl  String?
+  ctaText   String?
+  ctaUrl    String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------
+// CONFIGURACIÓN GLOBAL Y SECRETS
+// ---------------------------------------------
+
+model AdminSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @default("")
+  isSecret    Boolean  @default(false)
+  description String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+// ---------------------------------------------
+// IA: feedback de contenido generado
+// ---------------------------------------------
+
+enum AiFeedbackType {
+  PRODUCT_DESCRIPTION
+  PRODUCT_NORMALIZATION
+  COLUMN_MAPPING
+  REQUEST_RESPONSE
+  IMAGE_SUGGESTION
+}
+
+enum AiFeedbackVerdict {
+  CORRECT
+  HAS_ERRORS
+  UNCLEAR
+}
+
+model AiContentFeedback {
+  id            String              @id @default(cuid())
+  userId        String?
+  user          User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type          AiFeedbackType
+  refEntity     String              // tabla referida (ej. "Product", "CustomerRequest")
+  refId         String
+  generatedText String?
+  verdict       AiFeedbackVerdict?
+  comment       String?
+  createdAt     DateTime            @default(now())
+
+  @@index([type, refId])
+}
+
+enum TaxonomySuggestionKind {
+  CATEGORY
+  FAMILY
+}
+
+enum TaxonomySuggestionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+// Sugerencias de IA para asignar categoría/familia a productos (revisión en admin).
+model TaxonomySuggestion {
+  id            String                   @id @default(cuid())
+  kind          TaxonomySuggestionKind
+  status        TaxonomySuggestionStatus @default(PENDING)
+  productId     String
+  product       Product                  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  suggestedName String
+  // Id en catálogo si la sugerencia coincide con categoría/familia existente.
+  targetId      String?
+  confidence    Float?
+  rationale     String?
+  createdAt     DateTime                 @default(now())
+  resolvedAt    DateTime?
+
+  @@index([kind, status])
+  @@index([productId, kind, status])
+}
+
+model AccountMovement {
+  id            String            @id @default(cuid())
+  clientId      String
+  client        Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  kind          AccountMovementKind
+  concept       String
+  amountUsd     Decimal           @db.Decimal(14, 2)
+  dueDate       DateTime?
+  paidAt        DateTime?
+  referenceType String?
+  referenceId   String?
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([clientId, createdAt])
+  @@index([paidAt])
+}
+
+// ---------------------------------------------
+// TICKETS AL DESARROLLADOR
+// ---------------------------------------------
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model DeveloperTicket {
+  id          String         @id @default(cuid())
+  createdById String
+  createdBy   User           @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  attachments Json?
+  resolution  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([status])
+  @@index([priority])
+}

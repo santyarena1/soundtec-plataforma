@@ -1,0 +1,309 @@
+import { Prisma, RuleScopeType } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+
+/**
+ * Motor central de precios.
+ *
+ * Pipeline de cálculo:
+ *
+ *   costoBase  ──(+ posición arancelaria %)──► costoConArancel
+ *   costoConArancel ──(× (1 + margen%))──► precioBruto
+ *   precioBruto ──(× (1 - descuento%))──► precioFinalCliente
+ *
+ * Prioridad de MÁRGENES (la PRIMERA que matchea gana; orden estricto):
+ *   1. cliente + producto
+ *   2. cliente + marca
+ *   3. cliente + categoría
+ *   4. cliente + familia
+ *   5. cliente (regla global del cliente)
+ *   6. producto
+ *   7. marca
+ *   8. distribuidor
+ *   9. familia
+ *  10. categoría
+ *  11. global del sistema
+ *
+ * Prioridad de DESCUENTOS (idéntica lógica, primera que matchea gana):
+ *   1. cliente + producto
+ *   2. cliente + marca
+ *   3. cliente + categoría
+ *   4. cliente + familia
+ *   5. cliente (regla global del cliente)
+ *   6. producto explícito (Product.discountPercent)
+ *   7. producto por regla
+ *   8. marca
+ *   9. distribuidor
+ *  10. familia
+ *  11. categoría
+ *  12. global
+ *
+ * Notas:
+ *  - `MarginRule.priority` no se usa para reordenar la cadena; se usa solo
+ *    para desempate cuando hay varias reglas dentro del MISMO nivel.
+ *  - El cliente NUNCA ve baseCost, márgenes ni reglas aplicadas: usar
+ *    `toVisibleBreakdown` para devolver solo lo público.
+ *  - La posición arancelaria es un costo extra sobre el costo base.
+ */
+
+export type ViewerRole = "ADMIN" | "SUPER_ADMIN" | "CLIENT";
+
+export interface ProductPricingInput {
+  productId: string;
+  baseCostUsd: number;
+  brandId: string | null;
+  distributorId: string | null;
+  categoryId: string | null;
+  familyId: string | null;
+  productDiscountPercent: number | null;
+  /** % de derechos arancelarios sobre el costo base (NCM). */
+  tariffDutyPercent?: number | null;
+}
+
+export interface AppliedRule {
+  id: string;
+  name: string;
+  scopeType: RuleScopeType;
+  percent: number;
+  priority: number;
+  source: "MARGIN" | "DISCOUNT";
+}
+
+export interface PriceBreakdown {
+  baseCostUsd: number;
+  tariffDutyPercent: number;
+  tariffDutyAmountUsd: number;
+  landedCostUsd: number;
+  marginPercent: number;
+  appliedMarginRule: AppliedRule | null;
+  priceBeforeDiscountUsd: number;
+  discountPercent: number;
+  appliedDiscountRule: AppliedRule | null;
+  discountSource: "RULE" | "PRODUCT" | null;
+  finalPriceUsd: number;
+}
+
+export interface VisibleBreakdown extends Pick<PriceBreakdown, "discountPercent" | "finalPriceUsd"> {
+  priceBeforeDiscountUsd: number | null;
+  showInternals: boolean;
+}
+
+interface CalculatePriceOptions {
+  product: ProductPricingInput;
+  clientId?: string | null;
+  defaultGlobalMarginPercent?: number;
+}
+
+function toNumber(value: Prisma.Decimal | number | null | undefined): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === "number") return value;
+  return Number(value.toString());
+}
+
+export async function calculateCustomerPrice({
+  product,
+  clientId,
+  defaultGlobalMarginPercent = 35,
+}: CalculatePriceOptions): Promise<PriceBreakdown> {
+  const [marginRules, discountRules] = await Promise.all([
+    prisma.marginRule.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { clientId: clientId ?? null },
+          { clientId: null },
+        ],
+      },
+      orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
+    }),
+    prisma.discountRule.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { clientId: clientId ?? null },
+          { clientId: null },
+        ],
+      },
+      orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
+    }),
+  ]);
+
+  type AnyRule = {
+    id: string;
+    name: string;
+    isActive: boolean;
+    priority: number;
+    scopeType: RuleScopeType;
+    scopeId: string | null;
+    clientId: string | null;
+    productId: string | null;
+  };
+
+  // Cadena de matchers de mayor a menor prioridad
+  const matcherChain: Array<(rule: AnyRule) => boolean> = [
+    (r) => !!clientId && r.clientId === clientId && r.scopeType === "PRODUCT" && r.scopeId === product.productId,
+    (r) => !!clientId && r.clientId === clientId && r.scopeType === "BRAND" && r.scopeId === product.brandId,
+    (r) => !!clientId && r.clientId === clientId && r.scopeType === "CATEGORY" && r.scopeId === product.categoryId,
+    (r) => !!clientId && r.clientId === clientId && r.scopeType === "FAMILY" && r.scopeId === product.familyId,
+    (r) => !!clientId && r.clientId === clientId && r.scopeType === "CLIENT",
+    (r) => r.scopeType === "PRODUCT" && r.scopeId === product.productId && !r.clientId,
+    (r) => r.scopeType === "BRAND" && r.scopeId === product.brandId && !r.clientId,
+    (r) => r.scopeType === "DISTRIBUTOR" && r.scopeId === product.distributorId && !r.clientId,
+    (r) => r.scopeType === "FAMILY" && r.scopeId === product.familyId && !r.clientId,
+    (r) => r.scopeType === "CATEGORY" && r.scopeId === product.categoryId && !r.clientId,
+    (r) => r.scopeType === "GLOBAL" && !r.clientId,
+  ];
+
+  function findFirstMatching<T extends AnyRule>(rules: T[]): T | null {
+    for (const matcher of matcherChain) {
+      const found = rules.find((r) => matcher(r as AnyRule));
+      if (found) return found;
+    }
+    return null;
+  }
+
+  const margin = findFirstMatching(marginRules);
+  const marginPercent = margin ? toNumber(margin.marginPercent) : defaultGlobalMarginPercent;
+  const baseCost = toNumber(product.baseCostUsd);
+  const tariffDutyPercent = Math.max(0, toNumber(product.tariffDutyPercent ?? 0));
+  const tariffDutyAmount = baseCost * (tariffDutyPercent / 100);
+  const landedCost = baseCost + tariffDutyAmount;
+  const priceBeforeDiscount = landedCost * (1 + marginPercent / 100);
+
+  let appliedDiscountRule: AppliedRule | null = null;
+  let discountPercent = 0;
+  let discountSource: "RULE" | "PRODUCT" | null = null;
+
+  const discount = findFirstMatching(discountRules);
+  if (discount) {
+    discountPercent = toNumber(discount.discountPercent);
+    appliedDiscountRule = {
+      id: discount.id,
+      name: discount.name,
+      scopeType: discount.scopeType,
+      percent: discountPercent,
+      priority: discount.priority,
+      source: "DISCOUNT",
+    };
+    discountSource = "RULE";
+  } else if (product.productDiscountPercent && product.productDiscountPercent > 0) {
+    discountPercent = product.productDiscountPercent;
+    discountSource = "PRODUCT";
+  }
+
+  const finalPrice = priceBeforeDiscount * (1 - discountPercent / 100);
+
+  return {
+    baseCostUsd: baseCost,
+    tariffDutyPercent,
+    tariffDutyAmountUsd: tariffDutyAmount,
+    landedCostUsd: landedCost,
+    marginPercent,
+    appliedMarginRule: margin
+      ? {
+          id: margin.id,
+          name: margin.name,
+          scopeType: margin.scopeType,
+          percent: marginPercent,
+          priority: margin.priority,
+          source: "MARGIN",
+        }
+      : null,
+    priceBeforeDiscountUsd: priceBeforeDiscount,
+    discountPercent,
+    appliedDiscountRule,
+    discountSource,
+    finalPriceUsd: Math.max(0, finalPrice),
+  };
+}
+
+export function toVisibleBreakdown(breakdown: PriceBreakdown, role: ViewerRole): VisibleBreakdown {
+  const isInternal = role === "ADMIN" || role === "SUPER_ADMIN";
+  return {
+    finalPriceUsd: breakdown.finalPriceUsd,
+    discountPercent: breakdown.discountPercent,
+    priceBeforeDiscountUsd: breakdown.discountPercent > 0 ? breakdown.priceBeforeDiscountUsd : null,
+    showInternals: isInternal,
+  };
+}
+
+export async function calculatePricesForProducts(
+  products: ProductPricingInput[],
+  clientId: string | null,
+  defaultGlobalMarginPercent = 35
+): Promise<Map<string, PriceBreakdown>> {
+  const results = new Map<string, PriceBreakdown>();
+  await Promise.all(
+    products.map(async (p) => {
+      const r = await calculateCustomerPrice({ product: p, clientId, defaultGlobalMarginPercent });
+      results.set(p.productId, r);
+    })
+  );
+  return results;
+}
+
+/**
+ * Decide si un producto en particular es visible para un cliente.
+ * Tiene en cuenta reglas por producto, marca, categoría, familia y distribuidor.
+ * Modo default = blacklist (todo visible salvo reglas con canView=false).
+ */
+export async function isProductVisibleToClient(
+  product: { id: string; brandId: string | null; categoryId: string | null; distributorId: string | null; familyId: string | null },
+  clientId: string
+): Promise<boolean> {
+  const vis = await getClientVisibility(clientId);
+  if (vis.hidden.productIds.has(product.id)) return false;
+  if (product.brandId && vis.hidden.brandIds.has(product.brandId)) return false;
+  if (product.categoryId && vis.hidden.categoryIds.has(product.categoryId)) return false;
+  if (product.distributorId && vis.hidden.distributorIds.has(product.distributorId)) return false;
+  if (product.familyId && vis.hidden.familyIds.has(product.familyId)) return false;
+  return true;
+}
+
+/**
+ * Devuelve los IDs de scopes (brand/category/distributor/family/product) que el cliente tiene OCULTOS.
+ * Si `defaultShowAll` es true (default del sistema), todo es visible salvo reglas con canView=false.
+ * Si fuera false (modo whitelist), sólo serían visibles los que tengan canView=true; lo dejamos preparado.
+ */
+export async function getClientVisibility(clientId: string) {
+  const rules = await prisma.visibilityRule.findMany({ where: { clientId } });
+  const hidden = {
+    productIds: new Set<string>(),
+    brandIds: new Set<string>(),
+    categoryIds: new Set<string>(),
+    distributorIds: new Set<string>(),
+    familyIds: new Set<string>(),
+  };
+  const allowed = {
+    productIds: new Set<string>(),
+    brandIds: new Set<string>(),
+    categoryIds: new Set<string>(),
+    distributorIds: new Set<string>(),
+    familyIds: new Set<string>(),
+  };
+
+  for (const rule of rules) {
+    const targetSet = rule.canView ? allowed : hidden;
+    if (!rule.scopeId) continue;
+    switch (rule.scopeType) {
+      case "PRODUCT":
+        targetSet.productIds.add(rule.scopeId);
+        break;
+      case "BRAND":
+        targetSet.brandIds.add(rule.scopeId);
+        break;
+      case "CATEGORY":
+        targetSet.categoryIds.add(rule.scopeId);
+        break;
+      case "DISTRIBUTOR":
+        targetSet.distributorIds.add(rule.scopeId);
+        break;
+      case "FAMILY":
+        targetSet.familyIds.add(rule.scopeId);
+        break;
+      default:
+        break;
+    }
+  }
+
+  return { hidden, allowed };
+}

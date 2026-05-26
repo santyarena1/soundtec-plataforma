@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 30% 99%;
+    --foreground: 215 28% 17%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 17%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 17%;
+
+    --primary: 213 47% 22%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 25% 95%;
+    --secondary-foreground: 215 28% 17%;
+
+    --accent: 217 91% 49%;
+    --accent-foreground: 0 0% 100%;
+
+    --muted: 215 16% 95%;
+    --muted-foreground: 215 16% 47%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 173 80% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 95% 44%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 215 16% 90%;
+    --input: 215 16% 92%;
+    --ring: 217 91% 49%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .heading-1 {
+    @apply text-3xl font-semibold tracking-tight text-foreground sm:text-4xl;
+  }
+  .heading-2 {
+    @apply text-2xl font-semibold tracking-tight text-foreground;
+  }
+  .heading-3 {
+    @apply text-lg font-semibold tracking-tight text-foreground;
+  }
+  .muted-text {
+    @apply text-sm text-muted-foreground;
+  }
+}
+
+::selection {
+  background: hsl(var(--accent) / 0.18);
+  color: hsl(var(--foreground));
+}
