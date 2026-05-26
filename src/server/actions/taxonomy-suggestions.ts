@@ -1,7 +1,5 @@
 "use server";
 
-export const maxDuration = 300;
-
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
