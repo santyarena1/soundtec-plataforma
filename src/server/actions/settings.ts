@@ -4,9 +4,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { setSetting } from "@/lib/settings";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { randomUUID } from "node:crypto";
 
 const setSchema = z.object({
   key: z.string().min(1).max(120),
@@ -46,21 +43,15 @@ export async function uploadBrandLogo(formData: FormData): Promise<void> {
   const file = formData.get("file");
   if (!(file instanceof File)) return;
   if (file.size === 0) return;
-  if (file.size > 5 * 1024 * 1024) return; // 5MB
+  if (file.size > 500 * 1024) return; // 500KB max para almacenar en DB
   if (!file.type.startsWith("image/")) return;
 
-  const extFromName = path.extname(file.name || "").toLowerCase();
-  const ext = [".png", ".jpg", ".jpeg", ".webp", ".svg"].includes(extFromName) ? extFromName : ".png";
-
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", "logos");
-  await mkdir(uploadsDir, { recursive: true });
-
-  const fileName = `logo-${Date.now()}-${randomUUID()}${ext}`;
-  const outputPath = path.join(uploadsDir, fileName);
   const bytes = await file.arrayBuffer();
-  await writeFile(outputPath, Buffer.from(bytes));
+  const base64 = Buffer.from(bytes).toString("base64");
+  const mimeType = file.type || "image/png";
+  const dataUrl = `data:${mimeType};base64,${base64}`;
 
-  await setSetting("branding.logo_url", `/uploads/logos/${fileName}`);
+  await setSetting("branding.logo_url", dataUrl);
   revalidatePath("/");
   revalidatePath("/admin/branding");
   revalidatePath("/admin/settings");
