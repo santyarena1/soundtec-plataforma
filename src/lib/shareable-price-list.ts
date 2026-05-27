@@ -162,6 +162,10 @@ export async function countShareablePriceListProducts(
 }
 
 export function shareListPublicUrl(shareSlug: string): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:4010";
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    "http://localhost:4010";
   return `${base.replace(/\/$/, "")}/lista/${shareSlug}`;
 }
