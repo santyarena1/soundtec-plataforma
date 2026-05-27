@@ -6,6 +6,7 @@ import { TableEmpty } from "@/components/ui/table";
 import { Plus } from "lucide-react";
 import { Prisma } from "@prisma/client";
 import { ProductsCatalogAdmin } from "./catalog-admin";
+import { Suspense } from "react";
 
 interface SP {
   q?: string;
@@ -161,31 +162,33 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       !params.nodesc ? (
         <TableEmpty message="Todavía no hay productos. Creá uno o importá un Excel desde Importaciones." />
       ) : (
-        <ProductsCatalogAdmin
-          rows={rows}
-          page={page}
-          pageSize={pageSize}
-          total={total}
-          totalPages={totalPages}
-          showPrices={showPrices}
-          filters={{
-            q: params.q || "",
-            brandIds,
-            categoryIds,
-            familyIds,
-            distributorIds,
-            stockStatuses,
-            active: params.active || "",
-            nocat: params.nocat === "1",
-            noimg: params.noimg === "1",
-            nodesc: params.nodesc === "1",
-            sort: params.sort || "updated_desc",
-          }}
-          brands={brands}
-          categories={categories}
-          families={families}
-          distributors={distributors}
-        />
+        <Suspense fallback={null}>
+          <ProductsCatalogAdmin
+            rows={rows}
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            totalPages={totalPages}
+            showPrices={showPrices}
+            filters={{
+              q: params.q || "",
+              brandIds,
+              categoryIds,
+              familyIds,
+              distributorIds,
+              stockStatuses,
+              active: params.active || "",
+              nocat: params.nocat === "1",
+              noimg: params.noimg === "1",
+              nodesc: params.nodesc === "1",
+              sort: params.sort || "updated_desc",
+            }}
+            brands={brands}
+            categories={categories}
+            families={families}
+            distributors={distributors}
+          />
+        </Suspense>
       )}
     </div>
   );

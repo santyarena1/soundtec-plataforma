@@ -327,9 +327,10 @@ export function ProductsCatalogAdmin(props: Props) {
 
   const STOCK_OPTIONS = [
     { id: "IN_STOCK", name: "En stock" },
+    { id: "LOW_STOCK", name: "Stock bajo" },
     { id: "OUT_OF_STOCK", name: "Sin stock" },
-    { id: "BACKORDER", name: "Backorder" },
-    { id: "DISCONTINUED", name: "Discontinuado" },
+    { id: "ON_REQUEST", name: "Bajo pedido" },
+    { id: "UNKNOWN", name: "Desconocido" },
   ];
 
   const SORT_OPTIONS = [
