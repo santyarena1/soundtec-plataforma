@@ -173,21 +173,47 @@ export async function calculateCustomerPrice({
   let discountPercent = 0;
   let discountSource: "RULE" | "PRODUCT" | null = null;
 
-  const discount = findFirstMatching(discountRules);
-  if (discount) {
-    discountPercent = toNumber(discount.discountPercent);
+  // Priority order:
+  //   1-5. Client-specific rules (chain indices 0-4)
+  //   6.   Product.discountPercent (explicit field, higher priority than product rules)
+  //   7-12. Non-client rules: product-rule, brand, distributor, family, category, global (chain indices 5-10)
+  function findMatchingAtLevel(rules: typeof discountRules, startIdx: number, endIdx: number) {
+    for (let i = startIdx; i <= endIdx; i++) {
+      const found = rules.find((r) => matcherChain[i](r as AnyRule));
+      if (found) return found;
+    }
+    return null;
+  }
+
+  const clientDiscount = findMatchingAtLevel(discountRules, 0, 4);
+  if (clientDiscount) {
+    discountPercent = toNumber(clientDiscount.discountPercent);
     appliedDiscountRule = {
-      id: discount.id,
-      name: discount.name,
-      scopeType: discount.scopeType,
+      id: clientDiscount.id,
+      name: clientDiscount.name,
+      scopeType: clientDiscount.scopeType,
       percent: discountPercent,
-      priority: discount.priority,
+      priority: clientDiscount.priority,
       source: "DISCOUNT",
     };
     discountSource = "RULE";
   } else if (product.productDiscountPercent && product.productDiscountPercent > 0) {
     discountPercent = product.productDiscountPercent;
     discountSource = "PRODUCT";
+  } else {
+    const nonClientDiscount = findMatchingAtLevel(discountRules, 5, 10);
+    if (nonClientDiscount) {
+      discountPercent = toNumber(nonClientDiscount.discountPercent);
+      appliedDiscountRule = {
+        id: nonClientDiscount.id,
+        name: nonClientDiscount.name,
+        scopeType: nonClientDiscount.scopeType,
+        percent: discountPercent,
+        priority: nonClientDiscount.priority,
+        source: "DISCOUNT",
+      };
+      discountSource = "RULE";
+    }
   }
 
   const finalPrice = priceBeforeDiscount * (1 - discountPercent / 100);
