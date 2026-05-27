@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { requireCommercialClientId } from "@/lib/client-context";
 import type { CustomerRequest, CustomerRequestType } from "@prisma/client";
 
 /** Solicitud en borrador más reciente del usuario, o una nueva si no hay. */
@@ -18,11 +17,13 @@ export async function getOrCreateActiveDraft(
     return existing;
   }
 
-  const commercialClientId = await requireCommercialClientId(userId);
+  // Use the actual FK to the Client table; do NOT use the legacy userId fallback
+  // from resolveCommercialClientId — passing a userId as clientId fails the FK constraint.
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { clientId: true } });
   const created = await prisma.customerRequest.create({
     data: {
       userId,
-      clientId: commercialClientId,
+      clientId: user?.clientId ?? null,
       type: options?.type ?? "QUOTE",
       status: "DRAFT",
     },
