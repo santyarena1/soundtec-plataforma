@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { parseShareListFilters, resolveShareablePriceListProducts } from "@/lib/shareable-price-list";
-import { formatDate, formatUsd } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { StockBadge } from "@/app/portal/products/catalog-grid";
+import { ShareListTable } from "./share-list-table";
 
 export const metadata = { title: "Lista de precios" };
 
@@ -49,60 +49,12 @@ export default async function PublicShareListPage({ params }: { params: Promise<
             Esta lista no tiene productos con los filtros actuales.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead className="border-b border-border bg-secondary/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2">Producto</th>
-                  {list.showSku ? <th className="px-3 py-2">SKU</th> : null}
-                  <th className="px-3 py-2">Marca</th>
-                  <th className="px-3 py-2">Categoría</th>
-                  {list.showStock ? <th className="px-3 py-2">Stock</th> : null}
-                  {!list.hidePrices ? <th className="px-3 py-2 text-right">Precio USD</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.id} className="border-b border-border/80 hover:bg-secondary/30">
-                    <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-2">
-                        {item.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.imageUrl} alt="" className="h-10 w-10 rounded object-cover bg-secondary" />
-                        ) : null}
-                        <div>
-                          <p className="font-medium">{item.name}</p>
-                          {item.shortDescription ? (
-                            <p className="line-clamp-1 text-xs text-muted-foreground">{item.shortDescription}</p>
-                          ) : null}
-                        </div>
-                      </div>
-                    </td>
-                    {list.showSku ? (
-                      <td className="px-3 py-2.5 text-muted-foreground">{item.sku || "—"}</td>
-                    ) : null}
-                    <td className="px-3 py-2.5">{item.brandName || "—"}</td>
-                    <td className="px-3 py-2.5">{item.categoryName || "—"}</td>
-                    {list.showStock ? (
-                      <td className="px-3 py-2.5">
-                        <StockBadge status={item.stockStatus} qty={item.stockQuantity} />
-                      </td>
-                    ) : null}
-                    {!list.hidePrices ? (
-                      <td className="px-3 py-2.5 text-right font-semibold">
-                        {item.pricing.discountPercent > 0 ? (
-                          <span className="mr-2 text-xs font-normal text-muted-foreground line-through">
-                            {formatUsd(item.pricing.priceBeforeDiscountUsd)}
-                          </span>
-                        ) : null}
-                        {formatUsd(item.pricing.finalPriceUsd)}
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ShareListTable
+            items={items}
+            showSku={list.showSku}
+            showStock={list.showStock}
+            hidePrices={list.hidePrices}
+          />
         )}
 
         <p className="mt-8 text-center text-xs text-muted-foreground">
