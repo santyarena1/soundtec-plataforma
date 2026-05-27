@@ -25,10 +25,10 @@ export function CatalogTable({ items }: { items: CatalogProduct[] }) {
           <TR key={p.id}>
             <TD>
               <Link href={`/portal/products/${p.id}`} className="flex items-center gap-3 hover:text-accent">
-                <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-md bg-secondary">
+                <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white">
                   {p.primaryImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.primaryImage} alt={p.normalizedName} className="h-full w-full object-contain p-0.5" />
+                    <img src={p.primaryImage} alt={p.normalizedName} className="h-full w-full object-contain" />
                   ) : null}
                 </span>
                 <span>

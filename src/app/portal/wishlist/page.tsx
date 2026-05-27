@@ -79,13 +79,13 @@ export default async function WishlistPage() {
         {wishlist.items.map((item) => (
           <Card key={item.id} className="flex flex-col">
             <Link href={`/portal/products/${item.product.id}`} className="block">
-              <div className="aspect-[4/3] overflow-hidden rounded-t-lg bg-secondary">
+              <div className="aspect-[4/3] overflow-hidden rounded-t-lg bg-white">
                 {item.product.images[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={item.product.images[0].url}
                     alt={item.product.normalizedName}
-                    className="h-full w-full object-contain p-2"
+                    className="h-full w-full object-contain"
                   />
                 ) : null}
               </div>

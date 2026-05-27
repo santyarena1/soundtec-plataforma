@@ -202,10 +202,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
       <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-start">
         <div className="space-y-3 lg:sticky lg:top-6">
-          <div className="aspect-[4/3] overflow-hidden rounded-xl border border-border bg-secondary shadow-sm">
+          <div className="aspect-[4/3] overflow-hidden rounded-xl border border-border bg-white shadow-sm">
             {product.images[0] ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.images[0].url} alt={product.normalizedName} className="h-full w-full object-contain p-4" />
+              <img src={product.images[0].url} alt={product.normalizedName} className="h-full w-full object-contain" />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 Producto sin imagen
@@ -215,9 +215,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           {product.images.length > 1 ? (
             <div className="grid grid-cols-4 gap-2">
               {product.images.slice(0, 8).map((img) => (
-                <div key={img.id} className="aspect-square overflow-hidden rounded-md border border-border bg-secondary">
+                <div key={img.id} className="aspect-square overflow-hidden rounded-md border border-border bg-white">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt={img.alt || ""} className="h-full w-full object-contain p-1" />
+                  <img src={img.url} alt={img.alt || ""} className="h-full w-full object-contain" />
                 </div>
               ))}
             </div>

@@ -13,13 +13,13 @@ export function CatalogGrid({ items }: { items: CatalogProduct[] }) {
       {items.map((p) => (
         <Card key={p.id} className="group flex flex-col overflow-hidden transition-shadow hover:shadow-elevated">
           <Link href={`/portal/products/${p.id}`} className="block">
-            <div className="aspect-[4/3] w-full overflow-hidden bg-secondary">
+            <div className="aspect-[4/3] w-full overflow-hidden bg-white">
               {p.primaryImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={p.primaryImage}
                   alt={p.normalizedName}
-                  className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105 p-2"
+                  className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-xs text-muted-foreground">Sin imagen</div>
