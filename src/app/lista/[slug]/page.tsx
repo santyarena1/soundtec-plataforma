@@ -26,7 +26,6 @@ export default async function PublicShareListPage({ params }: { params: Promise<
   const items = await resolveShareablePriceListProducts({
     filters,
     clientId: list.clientId,
-    limit: 500,
   });
 
   return (

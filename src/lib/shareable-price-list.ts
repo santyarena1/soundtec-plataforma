@@ -111,7 +111,7 @@ export async function resolveShareablePriceListProducts(input: {
   const products = await prisma.product.findMany({
     where,
     orderBy: [{ brand: { name: "asc" } }, { normalizedName: "asc" }],
-    take: input.limit ?? 500,
+    take: input.limit ?? 5000,
     include: {
       brand: { select: { name: true } },
       category: { select: { name: true } },
