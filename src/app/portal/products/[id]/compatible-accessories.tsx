@@ -54,7 +54,7 @@ export function CompatibleAccessoriesSection({ parentProductName, items }: Props
                 <div className="aspect-[4/3] bg-secondary">
                   {item.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                    <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain p-2" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                       Sin imagen

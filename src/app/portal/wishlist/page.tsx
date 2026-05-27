@@ -85,7 +85,7 @@ export default async function WishlistPage() {
                   <img
                     src={item.product.images[0].url}
                     alt={item.product.normalizedName}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-contain p-2"
                   />
                 ) : null}
               </div>

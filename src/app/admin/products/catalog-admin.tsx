@@ -625,7 +625,7 @@ function renderCell(
         <img
           src={r.primaryImage}
           alt={r.name}
-          className="h-12 w-12 rounded border border-border object-cover"
+          className="h-12 w-12 rounded border border-border object-contain p-0.5"
         />
       ) : (
         <span className="flex h-12 w-12 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground">

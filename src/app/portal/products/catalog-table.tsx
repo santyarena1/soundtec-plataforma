@@ -28,7 +28,7 @@ export function CatalogTable({ items }: { items: CatalogProduct[] }) {
                 <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-md bg-secondary">
                   {p.primaryImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.primaryImage} alt={p.normalizedName} className="h-full w-full object-cover" />
+                    <img src={p.primaryImage} alt={p.normalizedName} className="h-full w-full object-contain p-0.5" />
                   ) : null}
                 </span>
                 <span>

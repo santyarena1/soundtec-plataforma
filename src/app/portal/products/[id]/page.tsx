@@ -205,7 +205,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <div className="aspect-[4/3] overflow-hidden rounded-xl border border-border bg-secondary shadow-sm">
             {product.images[0] ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.images[0].url} alt={product.normalizedName} className="h-full w-full object-cover" />
+              <img src={product.images[0].url} alt={product.normalizedName} className="h-full w-full object-contain p-4" />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 Producto sin imagen
@@ -217,7 +217,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               {product.images.slice(0, 8).map((img) => (
                 <div key={img.id} className="aspect-square overflow-hidden rounded-md border border-border bg-secondary">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt={img.alt || ""} className="h-full w-full object-cover" />
+                  <img src={img.url} alt={img.alt || ""} className="h-full w-full object-contain p-1" />
                 </div>
               ))}
             </div>
