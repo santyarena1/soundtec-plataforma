@@ -637,6 +637,72 @@ Si ningún candidato es adecuado, devolvé confidence: 0.1 y reasoning explicand
   }
 }
 
+/**
+ * Traduce una lista de nombres de categoría/grupo de inglés a español,
+ * usando el contexto del rubro audiovisual profesional B2B.
+ * Si no hay API key, devuelve un mapeo identidad.
+ * Retorna { ORIGINAL_EN: traducción_es }.
+ */
+export async function translateCategoriesToEs(input: {
+  items: string[];
+  context?: string; // e.g. "Crestron control AV" — ayuda a desambiguar
+}): Promise<Record<string, string>> {
+  const items = Array.from(new Set(input.items.map((s) => s.trim()).filter(Boolean)));
+  if (items.length === 0) return {};
+
+  const client = await getClient();
+  if (!client) {
+    // Sin API key: devolver identidad para que el usuario al menos vea algo
+    return Object.fromEntries(items.map((i) => [i, i]));
+  }
+
+  try {
+    const model = await getModel();
+    const resp = await client.chat.completions.create({
+      model,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content:
+            "Traducís nombres de categorías/grupos de productos audiovisuales B2B de inglés a español. Devolvés solo JSON.",
+        },
+        {
+          role: "user",
+          content: `Traducí cada categoría al español, manteniendo el sentido técnico del rubro audiovisual profesional (${input.context ?? "AV / control / audio / video"}).
+Reglas:
+- Usá plural cuando corresponda (ej. "AMPLIFIERS" → "Amplificadores").
+- Mayúscula sólo en la primera letra, no en todas.
+- Si la sigla es internacional (HDMI, USB, DSP, AV), mantenela.
+- No agregues comentarios, sólo el JSON pedido.
+
+Categorías a traducir:
+${items.map((i, idx) => `${idx + 1}. ${i}`).join("\n")}
+
+Respondé EXACTAMENTE con:
+{ "translations": { "<original exacto>": "<traducción en español>", ... } }`,
+        },
+      ],
+    });
+
+    const raw = resp.choices[0]?.message.content || "{}";
+    const parsed = JSON.parse(raw) as { translations?: Record<string, unknown> };
+    const out: Record<string, string> = {};
+    for (const item of items) {
+      const v = parsed.translations?.[item];
+      if (typeof v === "string" && v.trim().length > 0) {
+        out[item] = v.trim();
+      } else {
+        out[item] = item; // fallback identidad
+      }
+    }
+    return out;
+  } catch (error) {
+    console.error("OpenAI translateCategoriesToEs error", error);
+    return Object.fromEntries(items.map((i) => [i, i]));
+  }
+}
+
 export async function suggestRequestResponse(context: { project?: string; items: { name: string; quantity: number }[] }): Promise<string> {
   const client = await getClient();
   if (!client) {

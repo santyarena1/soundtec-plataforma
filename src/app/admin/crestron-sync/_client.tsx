@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   Languages,
+  Sparkles,
 } from "lucide-react";
 import type {
   SyncPreviewResponse,
@@ -59,6 +60,8 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
   const [showAll, setShowAll] = useState(false);
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [target, setTarget] = useState<CategoryTarget>("rubro");
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
 
   // Hydrate translations and target when a preview arrives
   useEffect(() => {
@@ -85,6 +88,33 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado");
       setState("error");
+    }
+  }
+
+  async function handleAutoTranslate(onlyMissing: boolean) {
+    if (!preview?.uniqueCategories?.length) return;
+    setTranslating(true);
+    setTranslateError(null);
+    try {
+      const items = onlyMissing
+        ? preview.uniqueCategories.filter((c) => !(translations[c] ?? "").trim())
+        : preview.uniqueCategories;
+      if (items.length === 0) {
+        setTranslating(false);
+        return;
+      }
+      const res = await fetch("/api/admin/crestron-sync/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error ?? "Error al traducir");
+      setTranslations((prev) => ({ ...prev, ...(data.translations ?? {}) }));
+    } catch (e) {
+      setTranslateError(e instanceof Error ? e.message : "Error inesperado");
+    } finally {
+      setTranslating(false);
     }
   }
 
@@ -214,15 +244,43 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
           {/* Categories config */}
           <Card>
             <CardContent className="p-5 space-y-4">
-              <div className="flex items-start gap-2">
-                <Languages className="h-4 w-4 mt-0.5 text-accent shrink-0" />
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium">Categorías de Crestron</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Traducí cada grupo al español y elegí dónde guardarlo. Se guarda al aplicar.
-                  </p>
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="flex items-start gap-2 flex-1 min-w-[200px]">
+                  <Languages className="h-4 w-4 mt-0.5 text-accent shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-medium">Categorías de Crestron</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Traducí cada grupo al español y elegí dónde guardarlo. Se guarda al aplicar.
+                    </p>
+                  </div>
                 </div>
+                {(preview.uniqueCategories?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAutoTranslate(true)}
+                      disabled={translating || untranslatedCount === 0}
+                      title="Solo completa las que están vacías"
+                    >
+                      <Sparkles className={`mr-1.5 h-3.5 w-3.5 ${translating ? "animate-pulse" : ""}`} />
+                      {translating ? "Traduciendo…" : `Traducir faltantes (${untranslatedCount})`}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleAutoTranslate(false)}
+                      disabled={translating}
+                      title="Sobrescribe todas las traducciones"
+                    >
+                      Re-traducir todas
+                    </Button>
+                  </div>
+                )}
               </div>
+              {translateError && (
+                <p className="text-xs text-destructive">{translateError}</p>
+              )}
 
               {/* Target selector */}
               <div className="space-y-1.5">
