@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,11 +12,27 @@ import {
   ChevronUp,
   FileSpreadsheet,
   Loader2,
+  Languages,
+  Sparkles,
 } from "lucide-react";
 import type {
   SonancePreviewResponse,
   SonancePreviewItem,
+  CategoryTarget,
 } from "@/app/api/admin/sonance-import/route";
+
+const TARGET_LABELS: Record<CategoryTarget, string> = {
+  categoria: "Categoría (FK)",
+  familia: "Familia (FK)",
+  rubro: "Rubro (texto familia)",
+  subrubro: "Subrubro (texto tipo)",
+};
+const TARGET_HELP: Record<CategoryTarget, string> = {
+  categoria: "Crea o reusa filas en Categorías y la asigna al producto.",
+  familia: "Crea o reusa filas en Familias y la asigna al producto.",
+  rubro: "Escribe el valor traducido directo en el campo libre familia.",
+  subrubro: "Escribe el valor traducido directo en el campo libre tipo.",
+};
 
 type Filter = "changes" | "new" | "matched" | "all";
 type Tone = "success" | "warning" | "destructive" | "muted" | "accent";
@@ -40,9 +56,24 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
     "idle" | "parsing" | "preview" | "applying" | "done" | "error"
   >("idle");
   const [preview, setPreview] = useState<SonancePreviewResponse | null>(null);
-  const [applyResult, setApplyResult] = useState<{ updated: number; created: number } | null>(null);
+  const [applyResult, setApplyResult] = useState<{ updated: number; created: number; categoryWrites?: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("changes");
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [target, setTarget] = useState<CategoryTarget>("rubro");
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
+
+  // Hydrate translations + target when a preview arrives
+  useEffect(() => {
+    if (!preview) return;
+    const base: Record<string, string> = { ...(preview.translations ?? {}) };
+    for (const c of preview.uniqueCategories ?? []) {
+      if (!(c in base)) base[c] = "";
+    }
+    setTranslations(base);
+    if (preview.target) setTarget(preview.target);
+  }, [preview]);
   const [createNew, setCreateNew] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
@@ -106,15 +137,42 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
       const res = await fetch("/api/admin/sonance-import", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: preview.items, createNew }),
+        body: JSON.stringify({ items: preview.items, createNew, translations, target }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error ?? "Error al aplicar");
-      setApplyResult({ updated: data.updated, created: data.created });
+      setApplyResult({ updated: data.updated, created: data.created, categoryWrites: data.categoryWrites });
       setState("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado");
       setState("error");
+    }
+  }
+
+  async function handleAutoTranslate(onlyMissing: boolean) {
+    if (!preview?.uniqueCategories?.length) return;
+    setTranslating(true);
+    setTranslateError(null);
+    try {
+      const items = onlyMissing
+        ? preview.uniqueCategories.filter((c) => !(translations[c] ?? "").trim())
+        : preview.uniqueCategories;
+      if (items.length === 0) {
+        setTranslating(false);
+        return;
+      }
+      const res = await fetch("/api/admin/sonance-import/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error ?? "Error al traducir");
+      setTranslations((prev) => ({ ...prev, ...(data.translations ?? {}) }));
+    } catch (e) {
+      setTranslateError(e instanceof Error ? e.message : "Error inesperado");
+    } finally {
+      setTranslating(false);
     }
   }
 
@@ -129,7 +187,26 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
   })();
 
   const displayed = showAll ? filteredItems : filteredItems.slice(0, 60);
-  const hasChanges = (preview?.priceChanges ?? 0) > 0 || (createNew && (preview?.newProducts ?? 0) > 0);
+
+  // Category change count: matched products whose current category-target field
+  // differs from the translation of their EN category
+  const categoryChanges = useMemo(() => {
+    if (!preview?.items) return 0;
+    return preview.items.filter((i) => {
+      if (i.isNew) return false;
+      const es = (translations[i.category] ?? "").trim();
+      return es.length > 0 && (i.currentCategoryLabel ?? "").trim() !== es;
+    }).length;
+  }, [preview, translations]);
+
+  const untranslatedCount = (preview?.uniqueCategories ?? []).filter(
+    (c) => !translations[c]?.trim()
+  ).length;
+
+  const hasChanges =
+    (preview?.priceChanges ?? 0) > 0 ||
+    categoryChanges > 0 ||
+    (createNew && (preview?.newProducts ?? 0) > 0);
 
   return (
     <div className="space-y-4">
@@ -219,8 +296,9 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
           <CardContent className="p-4 flex items-center gap-2 text-success">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <p className="text-sm font-medium">
-              Aplicado: {applyResult.updated} precios actualizados
-              {applyResult.created > 0 ? `, ${applyResult.created} productos creados` : ""}.
+              Aplicado: {applyResult.updated} productos actualizados
+              {applyResult.created > 0 ? `, ${applyResult.created} creados` : ""}
+              {(applyResult.categoryWrites ?? 0) > 0 ? `, ${applyResult.categoryWrites} con categoría` : ""}.
             </p>
           </CardContent>
         </Card>
@@ -257,6 +335,109 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
             </div>
           )}
 
+          {/* Categories config */}
+          <Card>
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="flex items-start gap-2 flex-1 min-w-[200px]">
+                  <Languages className="h-4 w-4 mt-0.5 text-accent shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-medium">Categorías de Sonance</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Traducí cada grupo al español y elegí dónde guardarlo. Se guarda al aplicar.
+                    </p>
+                  </div>
+                </div>
+                {(preview.uniqueCategories?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAutoTranslate(true)}
+                      disabled={translating || untranslatedCount === 0}
+                      title="Solo completa las que están vacías"
+                    >
+                      <Sparkles className={`mr-1.5 h-3.5 w-3.5 ${translating ? "animate-pulse" : ""}`} />
+                      {translating ? "Traduciendo…" : `Traducir faltantes (${untranslatedCount})`}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleAutoTranslate(false)}
+                      disabled={translating}
+                      title="Sobrescribe todas las traducciones"
+                    >
+                      Re-traducir todas
+                    </Button>
+                  </div>
+                )}
+              </div>
+              {translateError && <p className="text-xs text-destructive">{translateError}</p>}
+
+              {/* Target selector */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-muted-foreground">Guardar como</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(Object.keys(TARGET_LABELS) as CategoryTarget[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTarget(t)}
+                      className={`px-3 py-2 rounded-md border text-left text-xs transition-colors ${
+                        target === t
+                          ? "border-primary bg-primary/8 text-foreground"
+                          : "border-border bg-background text-muted-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      <p className="font-medium">{TARGET_LABELS[t]}</p>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground">{TARGET_HELP[target]}</p>
+              </div>
+
+              {/* Translation table */}
+              {(preview.uniqueCategories ?? []).length > 0 ? (
+                <div className="border border-border rounded-md overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/40 text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium">Original (Sonance · EN)</th>
+                        <th className="px-3 py-2 text-left font-medium">Traducción (ES)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {(preview.uniqueCategories ?? []).map((c) => (
+                        <tr key={c}>
+                          <td className="px-3 py-1.5 font-mono text-muted-foreground max-w-[260px] truncate">{c}</td>
+                          <td className="px-3 py-1.5">
+                            <input
+                              type="text"
+                              value={translations[c] ?? ""}
+                              onChange={(e) => setTranslations((prev) => ({ ...prev, [c]: e.target.value }))}
+                              placeholder="Escribí la traducción…"
+                              className="h-7 w-full rounded border border-border bg-background px-2 text-xs"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  No se detectaron categorías en los datos parseados.
+                </p>
+              )}
+
+              {untranslatedCount > 0 && (
+                <p className="text-[11px] text-warning">
+                  {untranslatedCount} categoría{untranslatedCount === 1 ? "" : "s"} sin traducir — no se escribirán en los productos.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Options + Apply */}
           {(state === "preview" || state === "applying") && (
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -283,8 +464,9 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
                   </>
                 ) : (
                   <>
-                    Aplicar {(preview.priceChanges ?? 0)} cambios de precio
-                    {createNew && (preview.newProducts ?? 0) > 0 ? ` + ${preview.newProducts} nuevos` : ""}
+                    Aplicar {(preview.priceChanges ?? 0)} precio
+                    {categoryChanges > 0 ? ` · ${categoryChanges} categoría` : ""}
+                    {createNew && (preview.newProducts ?? 0) > 0 ? ` · ${preview.newProducts} nuevos` : ""}
                   </>
                 )}
               </Button>
