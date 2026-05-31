@@ -213,32 +213,42 @@ function parseBlaze(ws: XLSX.WorkSheet): SonanceProduct[] {
  * URL format expected: https://*.app.box.com/s/{sharedToken}/file/{fileId}
  */
 export async function downloadFromBoxLink(sharedUrl: string): Promise<Buffer> {
-  // Extract shared token and file ID from the URL
   const match = sharedUrl.match(
-    /box\.com\/s\/([^/]+)\/file\/(\d+)/
+    /https?:\/\/([^/]+)\/s\/([^/]+)\/file\/(\d+)/
   );
   if (!match) throw new Error(`URL de Box inválida: ${sharedUrl}`);
-  const [, sharedToken, fileId] = match;
+  const [, host, sharedToken, fileId] = match;
 
-  const apiUrl = `https://api.box.com/2.0/files/${fileId}/content`;
-  const sharedLink = `https://app.box.com/s/${sharedToken}`;
+  // Preserve the original host — Box validates that shared_link matches the link's domain
+  const sharedLink = `https://${host}/s/${sharedToken}`;
 
-  const res = await fetch(apiUrl, {
+  // Method 1: Box Content API
+  const apiRes = await fetch(`https://api.box.com/2.0/files/${fileId}/content`, {
     headers: {
       BoxApi: `shared_link=${sharedLink}`,
-      "User-Agent": "Soundtec-Sync/1.0",
+      "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
     },
     redirect: "follow",
   });
 
-  if (!res.ok) {
-    throw new Error(
-      `Box API ${res.status} al descargar fileId=${fileId}. Verificá que el link sea público.`
-    );
+  if (apiRes.ok) {
+    return Buffer.from(await apiRes.arrayBuffer());
   }
 
-  const arrayBuffer = await res.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  // Method 2: direct download via the shared link URL (?dl=1 triggers download)
+  const directRes = await fetch(`${sharedLink}/file/${fileId}?dl=1`, {
+    headers: { "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0" },
+    redirect: "follow",
+  });
+
+  if (directRes.ok) {
+    return Buffer.from(await directRes.arrayBuffer());
+  }
+
+  throw new Error(
+    `Box: no se pudo descargar el archivo (API ${apiRes.status}, directo ${directRes.status}). ` +
+    `Verificá que el link sea accesible para cualquiera con el link y sin contraseña.`
+  );
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
