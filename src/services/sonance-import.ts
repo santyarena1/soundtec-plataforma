@@ -259,8 +259,10 @@ export async function downloadFromBoxLink(sharedUrl: string): Promise<Buffer> {
 
   const statuses = [apiRes.status, dlRes.status, qs1Res.status].join(" / ");
   throw new Error(
-    `Box: no se pudo descargar el archivo como Excel (estados: ${statuses}). ` +
-    `Verificá que el link sea accesible para cualquiera con el link y sin contraseña.`
+    `Box: no se pudo descargar el archivo (estados: ${statuses}). ` +
+    `El link requiere autenticación de Box. En Box, abrí el archivo → Share → ` +
+    `"Shared Link Settings" → Access: "People with the link" (no "People in your company"). ` +
+    `Mientras tanto usá la carga manual de archivo.`
   );
 }
 

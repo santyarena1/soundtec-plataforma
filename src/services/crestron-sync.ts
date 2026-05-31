@@ -204,9 +204,12 @@ function buildDtBody(start: number, length: number): string {
     length: String(length),
     "search[value]": "",
     "search[regex]": "false",
+    "order[0][column]": "0",
+    "order[0][dir]": "asc",
   });
   DT_COLUMNS.forEach((col, i) => {
     p.set(`columns[${i}][data]`, col);
+    p.set(`columns[${i}][name]`, col);
     p.set(`columns[${i}][searchable]`, "true");
     p.set(`columns[${i}][orderable]`, "true");
     p.set(`columns[${i}][search][value]`, "");
