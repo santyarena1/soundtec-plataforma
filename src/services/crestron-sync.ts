@@ -31,7 +31,7 @@ interface RawResponse {
   body: string;
 }
 
-function rawRequest(
+function rawRequestOnce(
   url: string,
   method: string,
   reqHeaders: Record<string, string>,
@@ -61,6 +61,38 @@ function rawRequest(
   });
 }
 
+// Follows 3xx redirects (GET only) accumulating Set-Cookie headers.
+// POST stays non-redirecting so we capture the 302 cookies directly.
+async function rawRequest(
+  url: string,
+  method: string,
+  reqHeaders: Record<string, string>,
+  body?: string,
+  accCookies: Record<string, string> = {}
+): Promise<RawResponse & { allCookies: Record<string, string> }> {
+  const res = await rawRequestOnce(url, method, reqHeaders, body);
+  const newCookies = { ...accCookies, ...parseCookiesRaw(rawSetCookies(res.headers)) };
+
+  if (
+    method === "GET" &&
+    res.status >= 300 &&
+    res.status < 400 &&
+    typeof res.headers["location"] === "string"
+  ) {
+    const location = res.headers["location"] as string;
+    const next = location.startsWith("http") ? location : new URL(location, url).toString();
+    return rawRequest(
+      next,
+      "GET",
+      { ...reqHeaders, Cookie: cookieStrFromMap(newCookies) },
+      undefined,
+      newCookies
+    );
+  }
+
+  return { ...res, allCookies: newCookies };
+}
+
 // ── cookie helpers ────────────────────────────────────────────────────────────
 
 function rawSetCookies(headers: NodeJS.Dict<string | string[]>): string[] {
@@ -69,7 +101,7 @@ function rawSetCookies(headers: NodeJS.Dict<string | string[]>): string[] {
   return Array.isArray(v) ? v : [v];
 }
 
-function parseCookies(setCookieHeaders: string[]): Record<string, string> {
+function parseCookiesRaw(setCookieHeaders: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const h of setCookieHeaders) {
     const [pair] = h.split(";");
@@ -79,7 +111,7 @@ function parseCookies(setCookieHeaders: string[]): Record<string, string> {
   return out;
 }
 
-function cookieStr(cookies: Record<string, string>): string {
+function cookieStrFromMap(cookies: Record<string, string>): string {
   return Object.entries(cookies)
     .map(([k, v]) => `${k}=${v}`)
     .join("; ");
@@ -95,13 +127,13 @@ async function login(): Promise<Record<string, string>> {
     throw new Error("Credenciales de Crestron no configuradas en el sistema.");
   }
 
-  // GET login page → CSRF token + initial cookie
+  // GET login page — follows redirects, accumulates cookies
   const getRes = await rawRequest(`${BASE}/accounts/login/`, "GET", {
     "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
     Accept: "text/html",
   });
 
-  const initCookies = parseCookies(rawSetCookies(getRes.headers));
+  const initCookies = getRes.allCookies;
 
   const csrfMatch =
     getRes.body.match(/name="csrfmiddlewaretoken"\s+value="([^"]+)"/) ??
@@ -112,7 +144,7 @@ async function login(): Promise<Record<string, string>> {
     throw new Error("No se pudo obtener el token CSRF del sitio de Crestron.");
   }
 
-  // POST credentials — node:https gives us the raw 302 with its Set-Cookie headers
+  // POST credentials — rawRequestOnce so we get the raw 302 Set-Cookie directly
   const postBody = new URLSearchParams({
     username,
     password,
@@ -120,13 +152,13 @@ async function login(): Promise<Record<string, string>> {
     next: "/clientes/precios",
   }).toString();
 
-  const postRes = await rawRequest(
+  const postRes = await rawRequestOnce(
     `${BASE}/accounts/login/`,
     "POST",
     {
       "Content-Type": "application/x-www-form-urlencoded",
       "Content-Length": String(Buffer.byteLength(postBody)),
-      Cookie: cookieStr(initCookies),
+      Cookie: cookieStrFromMap(initCookies),
       Referer: `${BASE}/accounts/login/`,
       "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
       Accept: "text/html",
@@ -136,7 +168,7 @@ async function login(): Promise<Record<string, string>> {
 
   const authCookies = {
     ...initCookies,
-    ...parseCookies(rawSetCookies(postRes.headers)),
+    ...parseCookiesRaw(rawSetCookies(postRes.headers)),
   };
 
   if (!authCookies["sessionid"]) {
@@ -187,7 +219,7 @@ async function fetchPage(
   length: number
 ): Promise<{ data: CrestronItem[]; recordsTotal: number }> {
   const body = buildDtBody(start, length);
-  const res = await rawRequest(
+  const res = await rawRequestOnce(
     `${BASE}/api/SBO_PROD_USA/precios-dt`,
     "POST",
     {
@@ -195,7 +227,7 @@ async function fetchPage(
       "Content-Length": String(Buffer.byteLength(body)),
       "X-CSRFToken": cookies["csrftoken"] ?? "",
       "X-Requested-With": "XMLHttpRequest",
-      Cookie: cookieStr(cookies),
+      Cookie: cookieStrFromMap(cookies),
       Referer: `${BASE}/clientes/precios`,
       "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
     },
