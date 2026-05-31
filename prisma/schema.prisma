@@ -190,8 +190,16 @@ model Product {
 
   shortDescription        String?
   longDescription         String?
+  htmlContent             String?               // HTML largo enriquecido desde fuente externa
   aiGeneratedDescription  Boolean  @default(false)
   aiDescriptionFeedbackStatus String? // "PENDING" | "APPROVED" | "REJECTED"
+
+  // Enriquecimiento desde portales de proveedores (Sonance, etc.)
+  specifications          Json?                 // [{label, labelEs?, value, valueEs?, group?}]
+  documents               Json?                 // [{name, nameEs?, url, type, fileType?}]
+  sourceMetadata          Json?                 // datos raw del portal (debug/refresh)
+  enrichedAt              DateTime?             // última vez que se enriqueció con datos completos
+  translatedAt            DateTime?             // última vez que se tradujeron campos al ES
 
   baseCostUsd             Decimal  @db.Decimal(14, 4)
   currency                String   @default("USD")
@@ -802,4 +810,20 @@ model DeveloperTicket {
 
   @@index([status])
   @@index([priority])
+}
+
+// Cache de traducciones para evitar re-llamar a OpenAI por textos ya traducidos.
+// key = sha256 de (sourceText + sourceLang + targetLang + context) — único.
+model TranslationCache {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  sourceText     String
+  sourceLang     String   @default("en")
+  targetLang     String   @default("es")
+  context        String?  // "product_name" | "spec_label" | "spec_value" | "category" | "short_desc" | "long_desc" | "doc_name"
+  translatedText String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([context])
 }

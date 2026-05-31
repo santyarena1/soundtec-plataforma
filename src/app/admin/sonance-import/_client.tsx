@@ -65,6 +65,66 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState<string | null>(null);
 
+  // Enriquecimiento (rich data desde my.sonance.com)
+  const [enriching, setEnriching] = useState(false);
+  const [enrichTranslate, setEnrichTranslate] = useState(true);
+  const [enrichForce, setEnrichForce] = useState(false);
+  const [enrichProgress, setEnrichProgress] = useState<{
+    done: number;
+    total: number;
+    updated: number;
+    withImages: number;
+    withSpecs: number;
+    withDocs: number;
+    withAccessories: number;
+    withTranslations: number;
+  } | null>(null);
+  const [enrichError, setEnrichError] = useState<string | null>(null);
+  const [enrichDone, setEnrichDone] = useState(false);
+  const [enrichCancelRef] = useState<{ canceled: boolean }>({ canceled: false });
+
+  async function runEnrich() {
+    setEnriching(true);
+    setEnrichError(null);
+    setEnrichDone(false);
+    setEnrichProgress({ done: 0, total: 0, updated: 0, withImages: 0, withSpecs: 0, withDocs: 0, withAccessories: 0, withTranslations: 0 });
+    enrichCancelRef.canceled = false;
+    try {
+      let offset = 0;
+      let total = 0;
+      const acc = { updated: 0, withImages: 0, withSpecs: 0, withDocs: 0, withAccessories: 0, withTranslations: 0 };
+      while (!enrichCancelRef.canceled) {
+        const res = await fetch("/api/admin/sonance-import/enrich", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ translate: enrichTranslate, force: enrichForce, batchSize: 20, offset }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error ?? "Error al enriquecer");
+        total = data.totalTargets ?? 0;
+        acc.updated += data.updated ?? 0;
+        acc.withImages += data.withImages ?? 0;
+        acc.withSpecs += data.withSpecs ?? 0;
+        acc.withDocs += data.withDocs ?? 0;
+        acc.withAccessories += data.withAccessories ?? 0;
+        acc.withTranslations += data.withTranslations ?? 0;
+        const newDone = (data.nextOffset ?? total);
+        setEnrichProgress({ done: newDone, total, ...acc });
+        if (data.done || data.nextOffset === null) break;
+        offset = data.nextOffset;
+      }
+      setEnrichDone(true);
+    } catch (e) {
+      setEnrichError(e instanceof Error ? e.message : "Error inesperado");
+    } finally {
+      setEnriching(false);
+    }
+  }
+
+  function cancelEnrich() {
+    enrichCancelRef.canceled = true;
+  }
+
   // Hydrate translations + target when a preview arrives
   useEffect(() => {
     if (!preview) return;
@@ -304,6 +364,86 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Enriquecimiento (rich data: imágenes, specs, docs, accesorios + traducción ES) */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-start gap-2 flex-1 min-w-[260px]">
+              <Sparkles className="h-4 w-4 mt-0.5 text-accent shrink-0" />
+              <div>
+                <h3 className="text-sm font-medium">Enriquecer productos Sonance</h3>
+                <p className="text-xs text-muted-foreground">
+                  Baja datos completos del portal por cada producto (imágenes, specs técnicos, datasheets, accesorios, descripciones HTML)
+                  y opcionalmente los traduce al español con OpenAI (con cache: cada texto se traduce 1 sola vez).
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Procesa de a 20 productos por batch — no rompe por timeout. Podés cancelar y reanudar.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-4 text-xs">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enrichTranslate}
+                onChange={(e) => setEnrichTranslate(e.target.checked)}
+                disabled={enriching}
+                className="h-4 w-4 rounded border-border"
+              />
+              Traducir nombres, specs, docs y descripciones al español
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enrichForce}
+                onChange={(e) => setEnrichForce(e.target.checked)}
+                disabled={enriching}
+                className="h-4 w-4 rounded border-border"
+              />
+              Re-procesar productos ya enriquecidos
+            </label>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {!enriching ? (
+              <Button size="sm" onClick={runEnrich}>
+                <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                Iniciar enriquecimiento
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={cancelEnrich}>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Cancelar (termina batch actual)
+              </Button>
+            )}
+            {enrichProgress && enrichProgress.total > 0 && (
+              <p className="text-xs text-muted-foreground self-center">
+                {enrichProgress.done} / {enrichProgress.total} ·{" "}
+                {enrichProgress.withImages} con imágenes ·{" "}
+                {enrichProgress.withSpecs} con specs ·{" "}
+                {enrichProgress.withDocs} con docs ·{" "}
+                {enrichProgress.withAccessories} con accesorios
+                {enrichProgress.withTranslations > 0 ? ` · ${enrichProgress.withTranslations} traducidos` : ""}
+              </p>
+            )}
+          </div>
+          {enrichProgress && enrichProgress.total > 0 && (
+            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${Math.min(100, (enrichProgress.done / enrichProgress.total) * 100)}%` }}
+              />
+            </div>
+          )}
+          {enrichError && <p className="text-xs text-destructive">{enrichError}</p>}
+          {enrichDone && (
+            <p className="text-xs text-success">
+              ✓ Enriquecimiento completo: {enrichProgress?.updated} productos actualizados.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Preview */}
       {(state === "preview" || state === "applying" || state === "done") && preview && (

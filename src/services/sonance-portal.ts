@@ -227,6 +227,145 @@ async function fetchProductsForCategory(
   return all;
 }
 
+// ── rich product detail (V1 endpoint, ~113 campos) ────────────────────────────
+
+export interface PortalImage {
+  id: string;
+  name: string;
+  imageAltText?: string;
+  smallImagePath?: string;
+  mediumImagePath?: string;
+  largeImagePath?: string;
+  imageType?: string;
+  sortOrder?: number;
+}
+
+export interface PortalAttributeValue {
+  id: string;
+  value: string;
+  valueDisplay?: string;
+  sortOrder?: number;
+}
+
+export interface PortalAttributeType {
+  id: string;
+  name: string;
+  label?: string;
+  isFilter?: boolean;
+  isSearchable?: boolean;
+  sortOrder?: number;
+  attributeValues?: PortalAttributeValue[];
+}
+
+export interface PortalDocument {
+  id: string;
+  name?: string;
+  description?: string;
+  documentType?: string;
+  fileTypeString?: string;
+  filePath?: string;
+  fileUrl?: string;
+  createdOn?: string;
+}
+
+export interface PortalAccessory {
+  id: string;
+  productNumber?: string;
+  productTitle?: string;
+  shortDescription?: string;
+  unitListPrice?: number;
+  canShowPrice?: boolean;
+  smallImagePath?: string;
+  mediumImagePath?: string;
+  urlSegment?: string;
+}
+
+export interface PortalProductDetail {
+  id: string;
+  productNumber?: string;
+  productTitle?: string;
+  shortDescription?: string;
+  htmlContent?: string | null;
+  erpNumber?: string;
+  modelNumber?: string;
+  manufacturerItem?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  pageTitle?: string;
+
+  basicListPrice?: number;
+  basicSalePrice?: number;
+  basicSaleStartDate?: string | null;
+  basicSaleEndDate?: string | null;
+  salePriceLabel?: string;
+  canShowPrice?: boolean;
+  quoteRequired?: boolean;
+  currencySymbol?: string;
+
+  isActive?: boolean;
+  isDiscontinued?: boolean;
+  cantBuy?: boolean;
+  canAddToCart?: boolean;
+  canBackOrder?: boolean;
+  isHazardousGood?: boolean;
+  hasMsds?: boolean;
+  minimumOrderQty?: number;
+  multipleSaleQty?: number;
+
+  largeImagePath?: string;
+  mediumImagePath?: string;
+  smallImagePath?: string;
+  altText?: string;
+  productImages?: PortalImage[];
+
+  brand?: { id: string; name: string; urlSegment?: string; logoSmallImagePath?: string };
+  attributeTypes?: PortalAttributeType[];
+  documents?: PortalDocument[];
+  accessories?: PortalAccessory[];
+  crossSells?: PortalAccessory[];
+  alsoPurchasedProducts?: PortalAccessory[];
+
+  shippingHeight?: string | number | null;
+  shippingLength?: string | number | null;
+  shippingWidth?: string | number | null;
+  shippingWeight?: string | number | null;
+  qtyPerShippingPackage?: number;
+
+  availability?: { messageType?: string; message?: string; requiresRealTimeInventory?: boolean };
+  badges?: { name?: string }[];
+
+  properties?: Record<string, unknown>;
+  urlSegment?: string;
+  productDetailUrl?: string;
+  canonicalUrl?: string;
+}
+
+const RICH_EXPAND = "specifications,documents,attributes,detail,accessories,crosssells,brand";
+
+export async function fetchProductDetailRaw(
+  session: Session,
+  productId: string
+): Promise<PortalProductDetail | null> {
+  try {
+    const data = await apiGet<{ product?: PortalProductDetail }>(
+      session,
+      `/api/v1/products/${productId}?expand=${RICH_EXPAND}`
+    );
+    return data.product ?? null;
+  } catch (e) {
+    console.error(`sonance-portal: failed to fetch detail for ${productId}`, e);
+    return null;
+  }
+}
+
+/**
+ * Login una vez y devuelve la session, para que el caller pueda hacer múltiples
+ * llamadas (fetchProductDetailRaw, etc.) reutilizando cookies.
+ */
+export async function openSession(): Promise<Session> {
+  return login();
+}
+
 // ── public API ────────────────────────────────────────────────────────────────
 
 export interface PortalSyncResult {
@@ -250,6 +389,23 @@ function mapPortalToProduct(p: PortalProduct, brand: SonanceBrand): SonanceProdu
     category: p.productLine ?? "",
     subcategory: "",
   };
+}
+
+/**
+ * Devuelve un mapa SKU → productId del portal, para poder pedir el detalle
+ * (V1 endpoint) usando el id de Sonance. Itera todas las marcas conocidas.
+ */
+export async function buildSkuToIdMap(session: Session): Promise<Map<string, string>> {
+  const brandCats = await fetchBrandCategories(session);
+  const map = new Map<string, string>();
+  for (const bc of brandCats) {
+    const items = await fetchProductsForCategory(session, bc.id);
+    for (const p of items) {
+      const sku = (p.productNumber ?? "").trim();
+      if (sku && p.id) map.set(sku, p.id);
+    }
+  }
+  return map;
 }
 
 export async function fetchFromPortal(): Promise<PortalSyncResult> {
