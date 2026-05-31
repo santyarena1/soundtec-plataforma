@@ -18,6 +18,9 @@ export interface NcmResult {
   aec: string | null;
   die: string | null;
   te: string | null;
+  simi: string | null;
+  re: string | null;
+  de: string | null;
   dieNumber: number | null;
 }
 
@@ -69,6 +72,9 @@ function parseNcmTable(
       aec: tax?.aec ?? null,
       die: tax?.die ?? null,
       te: tax?.te ?? null,
+      simi: tax?.simi ?? null,
+      re: tax?.re ?? null,
+      de: tax?.de ?? null,
       dieNumber: parseDieNumber(tax?.die),
     });
   }

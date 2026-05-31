@@ -4,6 +4,18 @@ import { useState } from "react";
 import { Search, Loader2, Copy, Check } from "lucide-react";
 import type { NcmResult } from "@/app/api/admin/ncm-search/route";
 
+function Dash() {
+  return <span className="text-xs text-muted-foreground/40">—</span>;
+}
+
+function RateBadge({ value, color }: { value: string; color: "orange" | "blue" }) {
+  const cls =
+    color === "orange"
+      ? "rounded bg-orange-100 px-1.5 py-0.5 text-[11px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
+      : "rounded bg-blue-100 px-1.5 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+  return <span className={cls}>{value}</span>;
+}
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   function handleCopy() {
@@ -99,6 +111,9 @@ export function NcmSearchClient() {
                   <th className="px-4 py-2.5 text-right">AEC</th>
                   <th className="px-4 py-2.5 text-right">DIE</th>
                   <th className="px-4 py-2.5 text-right">TE</th>
+                  <th className="px-4 py-2.5 text-right">SIMI</th>
+                  <th className="px-4 py-2.5 text-right">RE</th>
+                  <th className="px-4 py-2.5 text-right">DE</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -115,29 +130,22 @@ export function NcmSearchClient() {
                         {r.description}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {r.aec ? (
-                          <span className="rounded bg-orange-100 px-1.5 py-0.5 text-[11px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                            {r.aec}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        {r.aec ? <RateBadge value={r.aec} color="orange" /> : <Dash />}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {r.die ? (
-                          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                            {r.die}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        {r.die ? <RateBadge value={r.die} color="blue" /> : <Dash />}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {r.te ? (
-                          <span className="text-xs text-muted-foreground">{r.te}</span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        {r.te ? <span className="text-xs tabular-nums">{r.te}</span> : <Dash />}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {r.simi && r.simi !== "--" ? <span className="text-xs tabular-nums">{r.simi}</span> : <Dash />}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {r.re ? <span className="text-xs tabular-nums">{r.re}</span> : <Dash />}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {r.de ? <span className="text-xs tabular-nums">{r.de}</span> : <Dash />}
                       </td>
                     </tr>
                   ) : (
@@ -146,7 +154,7 @@ export function NcmSearchClient() {
                       <td className="px-4 py-2">
                         <span className="font-mono text-xs font-medium text-primary/80">{r.position}</span>
                       </td>
-                      <td className="px-4 py-2 text-xs text-foreground/70 italic max-w-xs" colSpan={4}>
+                      <td className="px-4 py-2 text-xs text-foreground/70 italic max-w-xs" colSpan={7}>
                         {r.description}
                       </td>
                     </tr>
@@ -156,7 +164,7 @@ export function NcmSearchClient() {
             </table>
           </div>
           <div className="border-t border-border bg-muted/20 px-4 py-2 text-[10px] text-muted-foreground">
-            Fuente: PCRAM NCM · AEC = Arancel externo común · DIE = Derecho de importación específico · TE = Tasa estadística
+            Fuente: PCRAM NCM · AEC = Arancel externo común · DIE = Derecho de importación específico · TE = Tasa estadística · SIMI = Sistema de importaciones · RE = Reintegro exportación · DE = Derecho de exportación
           </div>
         </div>
       )}
