@@ -102,44 +102,56 @@ export function NcmSearchClient() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {results.map((r) => (
-                  <tr key={r.position} className="hover:bg-muted/30">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-semibold">{r.position}</span>
-                        <CopyButton text={r.position} />
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-xs">
-                      {r.description}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {r.aec ? (
-                        <span className="rounded bg-orange-100 px-1.5 py-0.5 text-[11px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                          {r.aec}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {r.die ? (
-                        <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                          {r.die}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {r.te ? (
-                        <span className="text-xs text-muted-foreground">{r.te}</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {results.map((r) =>
+                  r.isLeaf ? (
+                    <tr key={r.position} className="hover:bg-muted/30">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-semibold">{r.position}</span>
+                          <CopyButton text={r.position} />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground max-w-xs">
+                        {r.description}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {r.aec ? (
+                          <span className="rounded bg-orange-100 px-1.5 py-0.5 text-[11px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                            {r.aec}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {r.die ? (
+                          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                            {r.die}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {r.te ? (
+                          <span className="text-xs text-muted-foreground">{r.te}</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ) : (
+                    // Category / chapter row — no tariff data
+                    <tr key={r.position} className="bg-muted/20">
+                      <td className="px-4 py-2">
+                        <span className="font-mono text-xs font-medium text-primary/80">{r.position}</span>
+                      </td>
+                      <td className="px-4 py-2 text-xs text-foreground/70 italic max-w-xs" colSpan={4}>
+                        {r.description}
+                      </td>
+                    </tr>
+                  )
+                )}
               </tbody>
             </table>
           </div>

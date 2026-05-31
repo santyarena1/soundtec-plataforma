@@ -14,6 +14,7 @@ interface TaxEntry {
 export interface NcmResult {
   position: string;
   description: string;
+  isLeaf: boolean; // true = posición hoja con arancel; false = categoría/subcapítulo
   aec: string | null;
   die: string | null;
   te: string | null;
@@ -51,15 +52,20 @@ function parseNcmTable(
     const position = cells[0].trim();
     const description = cells[1].replace(/\s+/g, " ").trim();
 
-    // Leaf NCM positions end with a letter check digit (e.g. 8518.40.00.000C)
-    if (!/^\d[\d.]{8,}[A-Z]$/.test(position)) continue;
+    // Accept any row that looks like an NCM position (starts with digits, may contain dots)
+    if (!position || !/^\d[\d.]+/.test(position)) continue;
+    if (!description) continue;
+
+    // Leaf: ends with an uppercase check digit letter
+    const isLeaf = /[A-Z]$/.test(position);
 
     const normalizedPos = position.replace(/\./g, "").toUpperCase();
-    const tax = taxMap.get(normalizedPos);
+    const tax = isLeaf ? taxMap.get(normalizedPos) : undefined;
 
     results.push({
       position,
       description,
+      isLeaf,
       aec: tax?.aec ?? null,
       die: tax?.die ?? null,
       te: tax?.te ?? null,
