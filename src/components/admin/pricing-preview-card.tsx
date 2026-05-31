@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 
 interface Props {
   baseCostUsd: number;
@@ -54,36 +53,34 @@ export function PricingPreviewCard({
   );
 
   return (
-    <Card>
-      <CardContent className="p-5">
-        <h3 className="mb-3 text-sm font-semibold">Vista previa de precios (FOB → NAC)</h3>
-        <div>
-          {row("Costo base FOB", `USD ${fmt(baseCostUsd)}`)}
-          {row(
-            `+ Arancel (${fmt(calc.duty, 1)}%)`,
-            `USD ${fmt(calc.costoConArancel)}`,
-            `base × ${fmt(1 + calc.duty / 100, 4)}`
-          )}
-          {row(`TC venta`, `$${fmt(calc.tc, 2)} ARS/USD`, "configurado en Settings")}
-          {row(
-            `× Coef. NAC (${fmt(calc.coef, 4)})`,
-            `ARS ${fmt(calc.precioNac)}`,
-            coefNac == null ? "usando coef. global" : "coef. propio del producto"
-          )}
-          {row(
-            `+ IVA ${fmt(calc.iva, 1)}% + Imp.Int ${fmt(calc.impInt, 1)}%`,
-            `ARS ${fmt(calc.precioNacFinal)}`,
-            undefined,
-            true
-          )}
-          {calc.precioVtaFob != null
-            ? row(`Precio venta FOB (×${fmt(coefVtaFob!, 4)})`, `USD ${fmt(calc.precioVtaFob)}`, undefined, true)
-            : null}
-        </div>
-        {tcVenta === 0 && (
-          <p className="mt-2 text-xs text-destructive">TC de venta no configurado — andá a Settings y cargá pricing.tc_venta.</p>
+    <div>
+      <h3 className="mb-3 text-sm font-semibold text-blue-900 dark:text-blue-200">Vista previa de precios (FOB → NAC)</h3>
+      <div>
+        {row("Costo base FOB", `USD ${fmt(baseCostUsd)}`)}
+        {row(
+          `+ Arancel (${fmt(calc.duty, 1)}%)`,
+          `USD ${fmt(calc.costoConArancel)}`,
+          `base × ${fmt(1 + calc.duty / 100, 4)}`
         )}
-      </CardContent>
-    </Card>
+        {row(`TC venta`, `$${fmt(calc.tc, 2)} ARS/USD`, "configurado en Settings")}
+        {row(
+          `× Coef. NAC (${fmt(calc.coef, 4)})`,
+          `ARS ${fmt(calc.precioNac)}`,
+          coefNac == null ? "usando coef. global" : "coef. propio del producto"
+        )}
+        {row(
+          `+ IVA ${fmt(calc.iva, 1)}% + Imp.Int ${fmt(calc.impInt, 1)}%`,
+          `ARS ${fmt(calc.precioNacFinal)}`,
+          undefined,
+          true
+        )}
+        {calc.precioVtaFob != null
+          ? row(`Precio venta FOB (×${fmt(coefVtaFob!, 4)})`, `USD ${fmt(calc.precioVtaFob)}`, undefined, true)
+          : null}
+      </div>
+      {tcVenta === 0 && (
+        <p className="mt-2 text-xs text-destructive">TC de venta no configurado — andá a Settings y cargá pricing.tc_venta.</p>
+      )}
+    </div>
   );
 }

@@ -12,7 +12,6 @@ import { AiDescriptionPanel } from "./ai-description-panel";
 import { ProductOptionsPanel } from "./options-panel";
 import { AccessoriesPanel } from "./accessories-panel";
 import { AiClassificationPanel } from "./ai-classification-panel";
-import { PricingPreviewCard } from "@/components/admin/pricing-preview-card";
 import { LabelSelector } from "@/components/admin/label-selector";
 import { getSetting } from "@/lib/settings";
 
@@ -110,24 +109,11 @@ export default async function AdminProductEditPage({ params }: { params: Promise
             distributors={distributors}
             categories={categories}
             families={families}
+            tcVenta={parseFloat(tcVentaStr) || 0}
+            globalCoefNac={parseFloat(globalCoefStr) || 35}
           />
         </CardContent>
       </Card>
-
-      <PricingPreviewCard
-        baseCostUsd={Number(product.baseCostUsd)}
-        tariffDutyPercent={product.tariffDutyPercent ? Number(product.tariffDutyPercent) : null}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        coefNac={(product as any).coefNac ? Number((product as any).coefNac) : null}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ivaPercent={(product as any).ivaPercent ? Number((product as any).ivaPercent) : null}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        impIntPercent={(product as any).impIntPercent ? Number((product as any).impIntPercent) : null}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        coefVtaFob={(product as any).coefVtaFob ? Number((product as any).coefVtaFob) : null}
-        tcVenta={parseFloat(tcVentaStr) || 0}
-        globalCoefNac={parseFloat(globalCoefStr) || 35}
-      />
 
       <Card>
         <CardContent className="p-5">

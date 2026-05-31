@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { upsertProduct } from "@/server/actions/admin-catalog";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { PricingPreviewCard } from "@/components/admin/pricing-preview-card";
 import { Loader2 } from "lucide-react";
 
 interface Option { id: string; name: string }
@@ -42,12 +43,22 @@ interface Props {
   distributors: Option[];
   categories: Option[];
   families: Option[];
+  tcVenta?: number;
+  globalCoefNac?: number;
 }
 
-export function ProductForm({ product, brands, distributors, categories, families }: Props) {
+export function ProductForm({ product, brands, distributors, categories, families, tcVenta = 0, globalCoefNac = 35 }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  // Live pricing state for the inline preview
+  const [baseCostUsd, setBaseCostUsd] = useState(product?.baseCostUsd ?? 0);
+  const [tariffDutyPercent, setTariffDutyPercent] = useState<number | null>(product?.tariffDutyPercent ?? null);
+  const [coefNac, setCoefNac] = useState<number | null>(product?.coefNac ?? null);
+  const [ivaPercent, setIvaPercent] = useState<number | null>(product?.ivaPercent ?? null);
+  const [impIntPercent, setImpIntPercent] = useState<number | null>(product?.impIntPercent ?? null);
+  const [coefVtaFob, setCoefVtaFob] = useState<number | null>(product?.coefVtaFob ?? null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -132,106 +143,160 @@ export function ProductForm({ product, brands, distributors, categories, familie
       </div>
 
       {/* ── Precios / Importación ── */}
-      <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Precios e importación</p>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="rounded-xl border-2 border-blue-200 bg-blue-50/60 p-5 dark:border-blue-900/50 dark:bg-blue-950/20">
+        <div className="mb-4 flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">$</span>
           <div>
-            <Label htmlFor="baseCostUsd" required>Costo base (USD)</Label>
-            <Input
-              id="baseCostUsd"
-              name="baseCostUsd"
-              type="number"
-              min={0}
-              step="0.01"
-              required
-              defaultValue={product?.baseCostUsd ?? 0}
-            />
-          </div>
-          <div>
-            <Label htmlFor="discountPercent">Descuento intrínseco (%)</Label>
-            <Input
-              id="discountPercent"
-              name="discountPercent"
-              type="number"
-              min={0}
-              max={100}
-              step="0.1"
-              placeholder="0"
-              defaultValue={product?.discountPercent ?? ""}
-            />
-          </div>
-          <div>
-            <Label htmlFor="tariffPosition">Posición arancelaria (NCM)</Label>
-            <Input
-              id="tariffPosition"
-              name="tariffPosition"
-              placeholder="Ej. 8518.21.00"
-              defaultValue={product?.tariffPosition ?? ""}
-            />
-          </div>
-          <div>
-            <Label htmlFor="tariffDutyPercent">Arancel (%)</Label>
-            <Input
-              id="tariffDutyPercent"
-              name="tariffDutyPercent"
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder="Ej. 18"
-              defaultValue={product?.tariffDutyPercent ?? ""}
-            />
-          </div>
-          <div>
-            <Label htmlFor="coefNac">Coef. NAC (vacío = global)</Label>
-            <Input
-              id="coefNac"
-              name="coefNac"
-              type="number"
-              min={0}
-              step="0.0001"
-              placeholder="Ej. 3.5"
-              defaultValue={product?.coefNac ?? ""}
-            />
-            <p className="mt-1 text-[11px] text-muted-foreground">Costo × TC × Coef</p>
-          </div>
-          <div>
-            <Label htmlFor="ivaPercent">IVA (%)</Label>
-            <Input
-              id="ivaPercent"
-              name="ivaPercent"
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder="21"
-              defaultValue={product?.ivaPercent ?? ""}
-            />
-          </div>
-          <div>
-            <Label htmlFor="impIntPercent">Imp. Interno (%)</Label>
-            <Input
-              id="impIntPercent"
-              name="impIntPercent"
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder="0"
-              defaultValue={product?.impIntPercent ?? ""}
-            />
-          </div>
-          <div>
-            <Label htmlFor="coefVtaFob">Coef. venta FOB</Label>
-            <Input
-              id="coefVtaFob"
-              name="coefVtaFob"
-              type="number"
-              min={0}
-              step="0.0001"
-              placeholder="Ej. 1.15"
-              defaultValue={product?.coefVtaFob ?? ""}
-            />
-            <p className="mt-1 text-[11px] text-muted-foreground">Costo base × Coef</p>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">Precios e importación</p>
+            <p className="text-xs text-blue-700/70 dark:text-blue-400/70">Todos los valores que determinan el costo y precio de venta del producto</p>
           </div>
         </div>
+
+        {/* Bloque 1: costo origen */}
+        <div className="mb-4 rounded-lg bg-white/70 p-4 dark:bg-white/5">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Costo de origen (FOB)</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <Label htmlFor="baseCostUsd" required>Costo base (USD)</Label>
+              <Input
+                id="baseCostUsd"
+                name="baseCostUsd"
+                type="number"
+                min={0}
+                step="0.01"
+                required
+                value={baseCostUsd}
+                onChange={(e) => setBaseCostUsd(Number(e.target.value) || 0)}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Precio FOB del proveedor en dólares</p>
+            </div>
+            <div>
+              <Label htmlFor="discountPercent">Descuento intrínseco (%)</Label>
+              <Input
+                id="discountPercent"
+                name="discountPercent"
+                type="number"
+                min={0}
+                max={100}
+                step="0.1"
+                placeholder="0"
+                defaultValue={product?.discountPercent ?? ""}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Descuento ya incluido en la lista del proveedor</p>
+            </div>
+            <div>
+              <Label htmlFor="tariffPosition">Posición arancelaria (NCM)</Label>
+              <Input
+                id="tariffPosition"
+                name="tariffPosition"
+                placeholder="Ej. 8518.21.00"
+                defaultValue={product?.tariffPosition ?? ""}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Código aduanero del producto</p>
+            </div>
+            <div>
+              <Label htmlFor="tariffDutyPercent">Derecho de importación (%)</Label>
+              <Input
+                id="tariffDutyPercent"
+                name="tariffDutyPercent"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Ej. 18"
+                value={tariffDutyPercent ?? ""}
+                onChange={(e) => setTariffDutyPercent(e.target.value ? Number(e.target.value) : null)}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Arancel que se aplica al ingresar al país</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bloque 2: precio mercado nacional */}
+        <div className="mb-4 rounded-lg bg-white/70 p-4 dark:bg-white/5">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Precio mercado nacional (ARS)</p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="coefNac">Coeficiente NAC</Label>
+              <Input
+                id="coefNac"
+                name="coefNac"
+                type="number"
+                min={0}
+                step="0.0001"
+                placeholder="Vacío = usa el global"
+                value={coefNac ?? ""}
+                onChange={(e) => setCoefNac(e.target.value ? Number(e.target.value) : null)}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Costo USD × TC × Coef → precio ARS. Si está vacío usa el coeficiente global del sistema.</p>
+            </div>
+            <div>
+              <Label htmlFor="ivaPercent">IVA</Label>
+              <Select
+                id="ivaPercent"
+                name="ivaPercent"
+                value={ivaPercent != null ? String(ivaPercent) : "21"}
+                onChange={(e) => setIvaPercent(Number(e.target.value))}
+              >
+                <option value="0">0% — Exento</option>
+                <option value="10.5">10.5% — Tasa reducida</option>
+                <option value="21">21% — Tasa general</option>
+                <option value="27">27% — Tasa superior</option>
+              </Select>
+              <p className="mt-1 text-[11px] text-muted-foreground">Se suma al precio final. La mayoría de los productos aplica 21%.</p>
+            </div>
+            <div>
+              <Label htmlFor="impIntPercent">Impuesto interno (%)</Label>
+              <Input
+                id="impIntPercent"
+                name="impIntPercent"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="0"
+                value={impIntPercent ?? ""}
+                onChange={(e) => setImpIntPercent(e.target.value ? Number(e.target.value) : null)}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Impuesto interno específico del rubro (ej. electrónica, bebidas, etc.).</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bloque 3: precio venta FOB */}
+        <div className="mb-4 rounded-lg bg-white/70 p-4 dark:bg-white/5">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Precio venta FOB (USD)</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="coefVtaFob">Coeficiente de venta FOB</Label>
+              <Input
+                id="coefVtaFob"
+                name="coefVtaFob"
+                type="number"
+                min={0}
+                step="0.0001"
+                placeholder="Ej. 1.15"
+                value={coefVtaFob ?? ""}
+                onChange={(e) => setCoefVtaFob(e.target.value ? Number(e.target.value) : null)}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Costo base USD × Coef → precio de venta en dólares para exportación o ventas FOB.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Vista previa inline */}
+        {tcVenta > 0 || baseCostUsd > 0 ? (
+          <div className="rounded-lg border border-blue-200/60 bg-white/80 p-4 dark:border-blue-800/40 dark:bg-white/5">
+            <PricingPreviewCard
+              baseCostUsd={baseCostUsd}
+              tariffDutyPercent={tariffDutyPercent}
+              coefNac={coefNac}
+              ivaPercent={ivaPercent}
+              impIntPercent={impIntPercent}
+              coefVtaFob={coefVtaFob}
+              tcVenta={tcVenta}
+              globalCoefNac={globalCoefNac}
+            />
+          </div>
+        ) : null}
       </div>
 
       {/* ── Stock ── */}
