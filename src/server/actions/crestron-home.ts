@@ -72,25 +72,33 @@ export async function matchCrestronProducts(): Promise<{ ok: boolean; matched: n
     select: { modelNumber: true },
   });
 
-  const modelNumbers = devices.map((d) => d.modelNumber.trim().toUpperCase());
+  const modelSet = new Set(devices.map((d) => d.modelNumber.trim().toUpperCase()));
 
-  // Reset all first
-  await prisma.product.updateMany({ data: { isCrestronHomeCompatible: false } });
-
-  // Match by internalSku or supplierSku (case-insensitive)
-  const matched = await prisma.product.updateMany({
-    where: {
-      OR: [
-        { internalSku: { in: modelNumbers, mode: "insensitive" } },
-        { supplierSku: { in: modelNumbers, mode: "insensitive" } },
-      ],
-    },
-    data: { isCrestronHomeCompatible: true },
+  // Fetch all products with SKUs and compare in code (Prisma `in` ignores mode:"insensitive")
+  const products = await prisma.product.findMany({
+    where: { OR: [{ internalSku: { not: null } }, { supplierSku: { not: null } }] },
+    select: { id: true, internalSku: true, supplierSku: true },
   });
+
+  const toMark = products
+    .filter(
+      (p) =>
+        (p.internalSku && modelSet.has(p.internalSku.trim().toUpperCase())) ||
+        (p.supplierSku && modelSet.has(p.supplierSku.trim().toUpperCase()))
+    )
+    .map((p) => p.id);
+
+  await prisma.product.updateMany({ data: { isCrestronHomeCompatible: false } });
+  if (toMark.length > 0) {
+    await prisma.product.updateMany({
+      where: { id: { in: toMark } },
+      data: { isCrestronHomeCompatible: true },
+    });
+  }
 
   revalidatePath("/admin/crestron-home");
   revalidatePath("/admin/products");
-  return { ok: true, matched: matched.count, total: modelNumbers.length };
+  return { ok: true, matched: toMark.length, total: modelSet.size };
 }
 
 const CRESTRON_SEED_DATA = [
