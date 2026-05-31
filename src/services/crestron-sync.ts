@@ -62,6 +62,7 @@ function rawRequestOnce(
 }
 
 // Follows 3xx redirects (GET only) accumulating Set-Cookie headers.
+// Returns finalUrl — the URL that actually served the response (after all redirects).
 // POST stays non-redirecting so we capture the 302 cookies directly.
 async function rawRequest(
   url: string,
@@ -69,7 +70,7 @@ async function rawRequest(
   reqHeaders: Record<string, string>,
   body?: string,
   accCookies: Record<string, string> = {}
-): Promise<RawResponse & { allCookies: Record<string, string> }> {
+): Promise<RawResponse & { allCookies: Record<string, string>; finalUrl: string }> {
   const res = await rawRequestOnce(url, method, reqHeaders, body);
   const newCookies = { ...accCookies, ...parseCookiesRaw(rawSetCookies(res.headers)) };
 
@@ -90,7 +91,7 @@ async function rawRequest(
     );
   }
 
-  return { ...res, allCookies: newCookies };
+  return { ...res, allCookies: newCookies, finalUrl: url };
 }
 
 // ── cookie helpers ────────────────────────────────────────────────────────────
@@ -144,7 +145,8 @@ async function login(): Promise<Record<string, string>> {
     throw new Error("No se pudo obtener el token CSRF del sitio de Crestron.");
   }
 
-  // POST credentials — rawRequestOnce so we get the raw 302 Set-Cookie directly
+  // POST to the final URL after redirects (not necessarily the original /accounts/login/)
+  const loginUrl = getRes.finalUrl;
   const postBody = new URLSearchParams({
     username,
     password,
@@ -153,13 +155,13 @@ async function login(): Promise<Record<string, string>> {
   }).toString();
 
   const postRes = await rawRequestOnce(
-    `${BASE}/accounts/login/`,
+    loginUrl,
     "POST",
     {
       "Content-Type": "application/x-www-form-urlencoded",
       "Content-Length": String(Buffer.byteLength(postBody)),
       Cookie: cookieStrFromMap(initCookies),
-      Referer: `${BASE}/accounts/login/`,
+      Referer: loginUrl,
       "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
       Accept: "text/html",
     },

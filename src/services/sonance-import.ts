@@ -212,6 +212,11 @@ function parseBlaze(ws: XLSX.WorkSheet): SonanceProduct[] {
  * Uses the Box Content API with the BoxApi header — no auth token needed for public links.
  * URL format expected: https://*.app.box.com/s/{sharedToken}/file/{fileId}
  */
+// XLSX/ZIP files start with PK magic bytes (0x50 0x4B)
+function isExcelBuffer(buf: Buffer): boolean {
+  return buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4B;
+}
+
 export async function downloadFromBoxLink(sharedUrl: string): Promise<Buffer> {
   const match = sharedUrl.match(
     /https?:\/\/([^/]+)\/s\/([^/]+)\/file\/(\d+)/
@@ -219,34 +224,42 @@ export async function downloadFromBoxLink(sharedUrl: string): Promise<Buffer> {
   if (!match) throw new Error(`URL de Box inválida: ${sharedUrl}`);
   const [, host, sharedToken, fileId] = match;
 
-  // Preserve the original host — Box validates that shared_link matches the link's domain
   const sharedLink = `https://${host}/s/${sharedToken}`;
+  const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Soundtec-Sync/1.0";
 
-  // Method 1: Box Content API
+  // Method 1: Box Content API (requires public "anyone with link" sharing)
   const apiRes = await fetch(`https://api.box.com/2.0/files/${fileId}/content`, {
-    headers: {
-      BoxApi: `shared_link=${sharedLink}`,
-      "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
-    },
+    headers: { BoxApi: `shared_link=${sharedLink}`, "User-Agent": ua },
     redirect: "follow",
   });
-
   if (apiRes.ok) {
-    return Buffer.from(await apiRes.arrayBuffer());
+    const buf = Buffer.from(await apiRes.arrayBuffer());
+    if (isExcelBuffer(buf)) return buf;
   }
 
-  // Method 2: direct download via the shared link URL (?dl=1 triggers download)
-  const directRes = await fetch(`${sharedLink}/file/${fileId}?dl=1`, {
-    headers: { "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0" },
+  // Method 2: /download path — what the Box web UI "Download" button uses
+  const dlRes = await fetch(`${sharedLink}/file/${fileId}/download`, {
+    headers: { "User-Agent": ua, Accept: "application/octet-stream,*/*" },
     redirect: "follow",
   });
-
-  if (directRes.ok) {
-    return Buffer.from(await directRes.arrayBuffer());
+  if (dlRes.ok) {
+    const buf = Buffer.from(await dlRes.arrayBuffer());
+    if (isExcelBuffer(buf)) return buf;
   }
 
+  // Method 3: ?dl=1 query param
+  const qs1Res = await fetch(`${sharedLink}/file/${fileId}?dl=1`, {
+    headers: { "User-Agent": ua },
+    redirect: "follow",
+  });
+  if (qs1Res.ok) {
+    const buf = Buffer.from(await qs1Res.arrayBuffer());
+    if (isExcelBuffer(buf)) return buf;
+  }
+
+  const statuses = [apiRes.status, dlRes.status, qs1Res.status].join(" / ");
   throw new Error(
-    `Box: no se pudo descargar el archivo (API ${apiRes.status}, directo ${directRes.status}). ` +
+    `Box: no se pudo descargar el archivo como Excel (estados: ${statuses}). ` +
     `Verificá que el link sea accesible para cualquiera con el link y sin contraseña.`
   );
 }
