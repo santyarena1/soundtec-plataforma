@@ -101,6 +101,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               stockStatus: product.stockStatus,
               stockQuantity: product.stockQuantity,
               isCustomizable: product.isCustomizable,
+              isCrestronHomeCompatible: product.isCrestronHomeCompatible,
               kind: product.kind,
               accessoryRequiredWithPrimary: product.accessoryRequiredWithPrimary,
               isActive: product.isActive,

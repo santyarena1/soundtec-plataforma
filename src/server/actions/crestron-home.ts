@@ -74,18 +74,25 @@ export async function matchCrestronProducts(): Promise<{ ok: boolean; matched: n
 
   const modelSet = new Set(devices.map((d) => d.modelNumber.trim().toUpperCase()));
 
-  // Fetch all products with SKUs and compare in code (Prisma `in` ignores mode:"insensitive")
+  // Compare against internalSku, supplierSku AND normalizedName (contains model number)
   const products = await prisma.product.findMany({
-    where: { OR: [{ internalSku: { not: null } }, { supplierSku: { not: null } }] },
-    select: { id: true, internalSku: true, supplierSku: true },
+    select: { id: true, internalSku: true, supplierSku: true, normalizedName: true },
   });
 
   const toMark = products
-    .filter(
-      (p) =>
-        (p.internalSku && modelSet.has(p.internalSku.trim().toUpperCase())) ||
-        (p.supplierSku && modelSet.has(p.supplierSku.trim().toUpperCase()))
-    )
+    .filter((p) => {
+      const sku = p.internalSku?.trim().toUpperCase() ?? "";
+      const ssku = p.supplierSku?.trim().toUpperCase() ?? "";
+      const name = p.normalizedName.trim().toUpperCase();
+      // Direct SKU match
+      if (sku && modelSet.has(sku)) return true;
+      if (ssku && modelSet.has(ssku)) return true;
+      // Model number appears anywhere in the product name
+      for (const model of modelSet) {
+        if (name.includes(model)) return true;
+      }
+      return false;
+    })
     .map((p) => p.id);
 
   await prisma.product.updateMany({ data: { isCrestronHomeCompatible: false } });

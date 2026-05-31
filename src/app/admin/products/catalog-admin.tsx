@@ -476,6 +476,8 @@ export function ProductsCatalogAdmin(props: Props) {
           {props.showPrices ? <option value="set_discount">Aplicar descuento %</option> : null}
           <option value="assign_label">Asignar etiqueta</option>
           <option value="remove_label">Quitar etiqueta</option>
+          <option value="set_crestron">Marcar Crestron Home</option>
+          <option value="unset_crestron">Quitar Crestron Home</option>
           <option value="serper_images">Buscar imágenes (Serper)</option>
         </Select>
         {bulkAction === "set_brand" ? (

@@ -162,6 +162,7 @@ const productSchema = z.object({
   stockStatus: z.enum(["IN_STOCK", "LOW_STOCK", "OUT_OF_STOCK", "ON_REQUEST", "UNKNOWN"]).default("UNKNOWN"),
   stockQuantity: z.coerce.number().int().min(0).optional().nullable(),
   isCustomizable: z.coerce.boolean().optional(),
+  isCrestronHomeCompatible: z.coerce.boolean().optional(),
   kind: z.enum(["PRINCIPAL", "ACCESORIO"]).default("PRINCIPAL"),
   accessoryRequiredWithPrimary: z.coerce.boolean().optional(),
   isActive: z.coerce.boolean().optional(),
@@ -193,6 +194,7 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     stockStatus: formData.get("stockStatus") || "UNKNOWN",
     stockQuantity: formData.get("stockQuantity") || null,
     isCustomizable: formData.get("isCustomizable") === "on" || formData.get("isCustomizable") === "true",
+    isCrestronHomeCompatible: formData.get("isCrestronHomeCompatible") === "on" || formData.get("isCrestronHomeCompatible") === "true",
     kind: formData.get("kind") || "PRINCIPAL",
     accessoryRequiredWithPrimary: formData.get("accessoryRequiredWithPrimary") === "on" || formData.get("accessoryRequiredWithPrimary") === "true",
     isActive: formData.get("isActive") === "on" || formData.get("isActive") === "true",
@@ -222,6 +224,7 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     stockStatus: parsed.data.stockStatus,
     stockQuantity: parsed.data.stockQuantity ?? null,
     isCustomizable: parsed.data.isCustomizable ?? false,
+    isCrestronHomeCompatible: parsed.data.isCrestronHomeCompatible ?? false,
     kind: parsed.data.kind,
     accessoryRequiredWithPrimary: parsed.data.accessoryRequiredWithPrimary ?? false,
     isActive: parsed.data.isActive ?? true,
@@ -263,7 +266,7 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
 
 const bulkSchema = z.object({
   productIds: z.array(z.string()).min(1),
-  action: z.enum(["activate", "deactivate", "set_brand", "set_category", "set_family", "set_discount"]),
+  action: z.enum(["activate", "deactivate", "set_brand", "set_category", "set_family", "set_discount", "set_crestron", "unset_crestron"]),
   brandId: z.string().optional().nullable(),
   categoryId: z.string().optional().nullable(),
   familyId: z.string().optional().nullable(),
@@ -297,6 +300,12 @@ export async function bulkUpdateProducts(input: z.infer<typeof bulkSchema>): Pro
         where,
         data: { discountPercent: parsed.data.discountPercent ?? null },
       });
+      break;
+    case "set_crestron":
+      await prisma.product.updateMany({ where, data: { isCrestronHomeCompatible: true } });
+      break;
+    case "unset_crestron":
+      await prisma.product.updateMany({ where, data: { isCrestronHomeCompatible: false } });
       break;
   }
   revalidatePath("/admin/products");

@@ -33,6 +33,7 @@ interface Props {
     stockStatus: string;
     stockQuantity: number | null;
     isCustomizable: boolean;
+    isCrestronHomeCompatible: boolean;
     kind: "PRINCIPAL" | "ACCESORIO";
     accessoryRequiredWithPrimary: boolean;
     isActive: boolean;
@@ -292,6 +293,10 @@ export function ProductForm({ product, brands, distributors, categories, familie
             defaultChecked={product?.accessoryRequiredWithPrimary}
           />
           Si es accesorio, exigir producto principal compatible
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="isCrestronHomeCompatible" defaultChecked={product?.isCrestronHomeCompatible} />
+          Compatible con Crestron Home
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="isActive" defaultChecked={product ? product.isActive : true} />
