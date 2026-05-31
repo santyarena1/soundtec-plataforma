@@ -307,25 +307,45 @@ function boxRequest(
  *      Authorization: Bearer <access_token> → follow redirect to file content
  */
 export async function downloadFromBoxLink(sharedUrl: string): Promise<Buffer> {
-  const match = sharedUrl.match(/https?:\/\/([^/]+)\/s\/([^/]+)\/file\/(\d+)/);
-  if (!match) throw new Error(`URL de Box inválida: ${sharedUrl}`);
-  const [, host, sharedToken, fileId] = match;
+  // Accept both formats:
+  //   /s/<token>           — single-file shared link, fileId is embedded in the page
+  //   /s/<token>/file/<id> — file inside a shared folder, fileId is in the URL
+  const withFile = sharedUrl.match(/https?:\/\/([^/]+)\/s\/([^/]+)\/file\/(\d+)/);
+  const tokenOnly = sharedUrl.match(/https?:\/\/([^/]+)\/s\/([^/?#]+)/);
+  if (!withFile && !tokenOnly) throw new Error(`URL de Box inválida: ${sharedUrl}`);
+
+  const host = (withFile?.[1] ?? tokenOnly![1]);
+  const sharedToken = (withFile?.[2] ?? tokenOnly![2]);
+  let fileId = withFile?.[3] ?? "";
 
   const sharedLink = `https://${host}/s/${sharedToken}`;
-  const filePageUrl = `${sharedLink}/file/${fileId}`;
   const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36";
 
-  // Step 1: GET the page to capture cookies + requestToken from inline script
-  const pageRes = await boxRequest(filePageUrl, "GET", {
+  // Step 1: GET the page (either folder or file URL) to capture cookies + requestToken + fileId
+  const initialUrl = fileId ? `${sharedLink}/file/${fileId}` : sharedLink;
+  const pageRes = await boxRequest(initialUrl, "GET", {
     "User-Agent": ua,
     Accept: "text/html,application/xhtml+xml,*/*",
   });
   const html = pageRes.body.toString("utf8");
+
   const tokenMatch = html.match(/"requestToken"\s*:\s*"([a-f0-9]+)"/);
   const requestToken = tokenMatch?.[1] ?? "";
   if (!requestToken) {
     throw new Error("No se pudo extraer requestToken del HTML de Box. La página puede haber cambiado de estructura.");
   }
+
+  // For single-file shared links, the file ID is embedded in the page as window.Box.id
+  if (!fileId) {
+    const idMatch = html.match(/"id"\s*:\s*"(\d{10,})"/);
+    fileId = idMatch?.[1] ?? "";
+    if (!fileId) {
+      throw new Error(
+        `Link Box parece ser una carpeta. Pegá el link de un archivo específico (debe terminar en /file/<id>) o un single-file shared link válido.`
+      );
+    }
+  }
+  const filePageUrl = `${sharedLink}/file/${fileId}`;
 
   // Step 2: POST to elements/tokens to get a Bearer access token for this file
   const csrfCookie = pageRes.cookies["csrf-token"] ?? "";
