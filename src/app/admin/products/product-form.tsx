@@ -63,7 +63,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function ProductForm({ product, brands, distributors, categories, families, globalCoefNac = 35 }: Props) {
+export function ProductForm({ product, brands, distributors, categories, families }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -99,12 +99,12 @@ export function ProductForm({ product, brands, distributors, categories, familie
     });
   }
 
-  // Derived pricing values for preview
-  const costoNacUsd = baseCostUsd * (coefNac ?? globalCoefNac);
+  // Derived pricing values — only calculate when the user has entered coefficients
+  const costoNacUsd = coefNac != null ? baseCostUsd * coefNac : null;
   const discountCoef = 1 - (discountPercent ?? 0) / 100;
-  const precioNac = costoNacUsd * (coefVta ?? 1) * discountCoef;
-  const precioNacFinal = precioNac * (1 + (ivaPercent ?? 21) / 100) * (1 + (impIntPercent ?? 0) / 100);
-  const precioVtaFob = coefVtaFob ? baseCostUsd * coefVtaFob : null;
+  const precioNac = costoNacUsd != null && coefVta != null ? costoNacUsd * coefVta * discountCoef : null;
+  const precioNacFinal = precioNac != null ? precioNac * (1 + (ivaPercent ?? 21) / 100) * (1 + (impIntPercent ?? 0) / 100) : null;
+  const precioVtaFob = coefVtaFob != null ? baseCostUsd * coefVtaFob : null;
 
   function fmtUsd(n: number) {
     return n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -333,8 +333,8 @@ export function ProductForm({ product, brands, distributors, categories, familie
             </div>
             <div>
               <Label>COSTO NAC USD</Label>
-              <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm">
-                {fmtUsd(costoNacUsd)}
+              <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm text-muted-foreground">
+                {costoNacUsd != null ? fmtUsd(costoNacUsd) : "—"}
               </div>
             </div>
             <div>
@@ -353,8 +353,8 @@ export function ProductForm({ product, brands, distributors, categories, familie
             </div>
             <div>
               <Label>PRECIO NAC</Label>
-              <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm">
-                {fmtUsd(precioNac)}
+              <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm text-muted-foreground">
+                {precioNac != null ? fmtUsd(precioNac) : "—"}
               </div>
             </div>
           </div>
@@ -394,7 +394,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
             <div>
               <Label>PRECIO NAC FINAL</Label>
               <div className="flex h-9 items-center rounded-md border border-blue-300 bg-blue-50 px-3 font-mono text-sm font-semibold text-blue-900 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-200">
-                {fmtUsd(precioNacFinal)}
+                {precioNacFinal != null ? fmtUsd(precioNacFinal) : "—"}
               </div>
             </div>
           </div>
@@ -419,7 +419,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
             </div>
             <div>
               <Label>PRECIO VTA FOB</Label>
-              <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm">
+              <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm text-muted-foreground">
                 {precioVtaFob != null ? fmtUsd(precioVtaFob) : "—"}
               </div>
             </div>
