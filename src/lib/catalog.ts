@@ -17,6 +17,7 @@ export interface CatalogFilters {
   stock?: "in_stock" | "low_stock" | "on_request" | "any";
   hasDiscount?: boolean;
   favoritesOnly?: boolean;
+  crestronOnly?: boolean;
   kind?: "PRINCIPAL" | "ACCESORIO" | "any";
   minPrice?: number;
   maxPrice?: number;
@@ -122,6 +123,7 @@ async function buildCatalogWhere(
           ? { stockStatus: "ON_REQUEST" }
           : {}),
     ...(filters.hasDiscount ? { discountPercent: { gt: 0 } } : {}),
+    ...(filters.crestronOnly ? { isCrestronHomeCompatible: true } : {}),
     ...(filters.search
       ? {
           OR: [

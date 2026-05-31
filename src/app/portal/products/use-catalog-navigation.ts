@@ -51,6 +51,10 @@ export function useCatalogNavigation() {
         if (patch.favoritesOnly) next.set("fav", "1");
         else next.delete("fav");
       }
+      if (patch.crestronOnly !== undefined) {
+        if (patch.crestronOnly) next.set("crestron", "1");
+        else next.delete("crestron");
+      }
       if (patch.minPrice !== undefined) {
         if (typeof patch.minPrice === "number" && Number.isFinite(patch.minPrice))
           next.set("minPrice", String(patch.minPrice));

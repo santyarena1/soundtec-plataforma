@@ -70,6 +70,7 @@ interface Filters {
   nocat: boolean;
   noimg: boolean;
   nodesc: boolean;
+  crestron: boolean;
   sort: string;
 }
 
@@ -227,7 +228,7 @@ export function ProductsCatalogAdmin(props: Props) {
   type FilterPatch = Partial<{
     q: string; brand: string[]; category: string[]; family: string[];
     distributor: string[]; stock: string[]; active: string; sort: string;
-    nocat: string; noimg: string; nodesc: string; page: string;
+    nocat: string; noimg: string; nodesc: string; crestron: string; page: string;
   }>;
 
   const pushFilters = useCallback(
@@ -242,7 +243,7 @@ export function ProductsCatalogAdmin(props: Props) {
       }
       if (patch.active !== undefined) { patch.active ? sp.set("active", patch.active) : sp.delete("active"); }
       if (patch.sort !== undefined) { patch.sort && patch.sort !== "updated_desc" ? sp.set("sort", patch.sort) : sp.delete("sort"); }
-      for (const key of ["nocat", "noimg", "nodesc"] as const) {
+      for (const key of ["nocat", "noimg", "nodesc", "crestron"] as const) {
         if (patch[key] !== undefined) { patch[key] === "1" ? sp.set(key, "1") : sp.delete(key); }
       }
       sp.set("page", patch.page ?? "1");
@@ -349,6 +350,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const nocatActive = search.get("nocat") === "1";
   const noimgActive = search.get("noimg") === "1";
   const nodescActive = search.get("nodesc") === "1";
+  const crestronActive = search.get("crestron") === "1";
 
   return (
     <>
@@ -444,11 +446,17 @@ export function ProductsCatalogAdmin(props: Props) {
         >
           Sin desc. IA
         </button>
+        <button
+          onClick={() => pushFilters({ crestron: crestronActive ? "" : "1" })}
+          className={`rounded-full border px-3 py-1 text-xs transition-colors ${crestronActive ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-secondary"}`}
+        >
+          Crestron Home
+        </button>
         {(brandIdsFromUrl.length || categoryIdsFromUrl.length || familyIdsFromUrl.length ||
           distributorIdsFromUrl.length || stockFromUrl.length || activeFromUrl ||
-          nocatActive || noimgActive || nodescActive || qFromUrl) ? (
+          nocatActive || noimgActive || nodescActive || crestronActive || qFromUrl) ? (
           <button
-            onClick={() => pushFilters({ q: "", brand: [], category: [], family: [], distributor: [], stock: [], active: "", nocat: "", noimg: "", nodesc: "" })}
+            onClick={() => pushFilters({ q: "", brand: [], category: [], family: [], distributor: [], stock: [], active: "", nocat: "", noimg: "", nodesc: "", crestron: "" })}
             className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" /> Limpiar filtros

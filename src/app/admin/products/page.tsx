@@ -19,6 +19,7 @@ interface SP {
   nocat?: string;
   noimg?: string;
   nodesc?: string;
+  crestron?: string;
   sort?: string;
   page?: string;
   pageSize?: string;
@@ -70,6 +71,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     ...(params.nocat === "1" ? { categoryId: null } : {}),
     ...(params.noimg === "1" ? { images: { none: {} } } : {}),
     ...(params.nodesc === "1" ? { longDescription: null } : {}),
+    ...(params.crestron === "1" ? { isCrestronHomeCompatible: true } : {}),
     ...(params.q
       ? {
           OR: [
@@ -163,7 +165,8 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       activeFilter === undefined &&
       !params.nocat &&
       !params.noimg &&
-      !params.nodesc ? (
+      !params.nodesc &&
+      !params.crestron ? (
         <TableEmpty message="Todavía no hay productos. Creá uno o importá un Excel desde Importaciones." />
       ) : (
         <Suspense fallback={null}>
@@ -185,6 +188,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
               nocat: params.nocat === "1",
               noimg: params.noimg === "1",
               nodesc: params.nodesc === "1",
+              crestron: params.crestron === "1",
               sort: params.sort || "updated_desc",
             }}
             brands={brands}

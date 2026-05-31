@@ -35,6 +35,7 @@ export default async function ProductsPage({
     stock: urlState.stock,
     hasDiscount: urlState.hasDiscount,
     favoritesOnly: urlState.favoritesOnly,
+    crestronOnly: urlState.crestronOnly,
     kind: urlState.kind,
     minPrice: urlState.minPrice,
     maxPrice: urlState.maxPrice,

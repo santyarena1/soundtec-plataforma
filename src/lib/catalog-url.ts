@@ -33,6 +33,7 @@ export function parseCatalogSearchParams(
       stock === "in_stock" || stock === "low_stock" || stock === "on_request" ? stock : "any",
     hasDiscount: params.discount === "1",
     favoritesOnly: params.fav === "1",
+    crestronOnly: params.crestron === "1",
     kind: kind === "PRINCIPAL" || kind === "ACCESORIO" ? kind : "any",
     minPrice: parseNum(typeof params.minPrice === "string" ? params.minPrice : undefined),
     maxPrice: parseNum(typeof params.maxPrice === "string" ? params.maxPrice : undefined),
@@ -55,6 +56,7 @@ export function countActiveCatalogFilters(
   if (state.stock && state.stock !== "any") n += 1;
   if (state.hasDiscount) n += 1;
   if (state.favoritesOnly) n += 1;
+  if (state.crestronOnly) n += 1;
   if (state.kind && state.kind !== "any") n += 1;
   if (state.minPrice != null || state.maxPrice != null) n += 1;
   return n;

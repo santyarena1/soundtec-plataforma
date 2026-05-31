@@ -14,6 +14,7 @@ import {
   ChevronDown,
   FolderTree,
   Heart,
+  Home,
   Layers,
   Percent,
   Search,
@@ -148,6 +149,12 @@ export function CatalogSidebar({ state, meta, className, onCloseMobile }: Props)
             active={!!state.favoritesOnly}
             onClick={() => push({ favoritesOnly: !state.favoritesOnly })}
             icon={<Heart className="h-3.5 w-3.5 text-accent" />}
+          />
+          <StockOption
+            label="Crestron Home"
+            active={!!state.crestronOnly}
+            onClick={() => push({ crestronOnly: !state.crestronOnly })}
+            icon={<Home className="h-3.5 w-3.5 text-primary" />}
           />
         </FilterSection>
 
@@ -483,6 +490,7 @@ function CatalogActiveFilters({ state, meta }: { state: CatalogUrlState; meta: C
   }
   if (state.hasDiscount) chips.push({ key: "disc", label: "Con descuento", clear: () => push({ hasDiscount: false }) });
   if (state.favoritesOnly) chips.push({ key: "fav", label: "Favoritos", clear: () => push({ favoritesOnly: false }) });
+  if (state.crestronOnly) chips.push({ key: "crestron", label: "Crestron Home", clear: () => push({ crestronOnly: false }) });
   if (state.kind && state.kind !== "any") {
     chips.push({
       key: "kind",
