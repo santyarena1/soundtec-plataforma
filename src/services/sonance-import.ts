@@ -205,6 +205,42 @@ function parseBlaze(ws: XLSX.WorkSheet): SonanceProduct[] {
   return products;
 }
 
+// ── Box download ─────────────────────────────────────────────────────────────
+
+/**
+ * Download a file from a public Box shared link.
+ * Uses the Box Content API with the BoxApi header — no auth token needed for public links.
+ * URL format expected: https://*.app.box.com/s/{sharedToken}/file/{fileId}
+ */
+export async function downloadFromBoxLink(sharedUrl: string): Promise<Buffer> {
+  // Extract shared token and file ID from the URL
+  const match = sharedUrl.match(
+    /box\.com\/s\/([^/]+)\/file\/(\d+)/
+  );
+  if (!match) throw new Error(`URL de Box inválida: ${sharedUrl}`);
+  const [, sharedToken, fileId] = match;
+
+  const apiUrl = `https://api.box.com/2.0/files/${fileId}/content`;
+  const sharedLink = `https://app.box.com/s/${sharedToken}`;
+
+  const res = await fetch(apiUrl, {
+    headers: {
+      BoxApi: `shared_link=${sharedLink}`,
+      "User-Agent": "Soundtec-Sync/1.0",
+    },
+    redirect: "follow",
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      `Box API ${res.status} al descargar fileId=${fileId}. Verificá que el link sea público.`
+    );
+  }
+
+  const arrayBuffer = await res.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export function parseSonanceExcel(buffer: Buffer): SonanceParseResult {

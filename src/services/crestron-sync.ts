@@ -1,3 +1,4 @@
+import https from "node:https";
 import { StockStatus } from "@prisma/client";
 import { getSetting } from "@/lib/settings";
 
@@ -20,12 +21,52 @@ export interface CrestronItem {
   OnOrder: number;
 }
 
-function getSetCookies(headers: Headers): string[] {
-  if (typeof (headers as any).getSetCookie === "function") {
-    return (headers as any).getSetCookie() as string[];
-  }
-  const raw = headers.get("set-cookie");
-  return raw ? [raw] : [];
+// ── low-level HTTPS helper ────────────────────────────────────────────────────
+// Uses node:https directly to avoid undici's opaque-redirect limitation which
+// swallows Set-Cookie headers when redirect:"manual" is used with Next.js fetch.
+
+interface RawResponse {
+  status: number;
+  headers: NodeJS.Dict<string | string[]>;
+  body: string;
+}
+
+function rawRequest(
+  url: string,
+  method: string,
+  reqHeaders: Record<string, string>,
+  body?: string
+): Promise<RawResponse> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const req = https.request(
+      {
+        hostname: u.hostname,
+        path: u.pathname + u.search,
+        method,
+        headers: reqHeaders,
+      },
+      (res) => {
+        let data = "";
+        res.setEncoding("utf8");
+        res.on("data", (c) => (data += c));
+        res.on("end", () =>
+          resolve({ status: res.statusCode ?? 0, headers: res.headers, body: data })
+        );
+      }
+    );
+    req.on("error", reject);
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+// ── cookie helpers ────────────────────────────────────────────────────────────
+
+function rawSetCookies(headers: NodeJS.Dict<string | string[]>): string[] {
+  const v = headers["set-cookie"];
+  if (!v) return [];
+  return Array.isArray(v) ? v : [v];
 }
 
 function parseCookies(setCookieHeaders: string[]): Record<string, string> {
@@ -33,9 +74,7 @@ function parseCookies(setCookieHeaders: string[]): Record<string, string> {
   for (const h of setCookieHeaders) {
     const [pair] = h.split(";");
     const eq = pair.indexOf("=");
-    if (eq > 0) {
-      out[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
-    }
+    if (eq > 0) out[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
   }
   return out;
 }
@@ -46,60 +85,77 @@ function cookieStr(cookies: Record<string, string>): string {
     .join("; ");
 }
 
-async function login(): Promise<Record<string, string>> {
-  const username = await getSetting("crestron.username", "comex@soundtec.com.ar");
-  const password = await getSetting("crestron.password", "stecpass23");
+// ── auth ──────────────────────────────────────────────────────────────────────
 
-  // GET login page → grab CSRF token and initial cookie
-  const getRes = await fetch(`${BASE}/accounts/login/`, {
-    headers: { "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0" },
+async function login(): Promise<Record<string, string>> {
+  const username = await getSetting("crestron.username", "");
+  const password = await getSetting("crestron.password", "");
+
+  if (!username || !password) {
+    throw new Error("Credenciales de Crestron no configuradas en el sistema.");
+  }
+
+  // GET login page → CSRF token + initial cookie
+  const getRes = await rawRequest(`${BASE}/accounts/login/`, "GET", {
+    "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
+    Accept: "text/html",
   });
-  const initCookies = parseCookies(getSetCookies(getRes.headers));
-  const html = await getRes.text();
+
+  const initCookies = parseCookies(rawSetCookies(getRes.headers));
 
   const csrfMatch =
-    html.match(/name="csrfmiddlewaretoken"\s+value="([^"]+)"/) ??
-    html.match(/csrfmiddlewaretoken.*?value="([^"]+)"/);
+    getRes.body.match(/name="csrfmiddlewaretoken"\s+value="([^"]+)"/) ??
+    getRes.body.match(/csrfmiddlewaretoken[^>]*value="([^"]+)"/);
   const csrfToken = csrfMatch?.[1] ?? initCookies["csrftoken"] ?? "";
 
-  // POST credentials
-  const postRes = await fetch(`${BASE}/accounts/login/`, {
-    method: "POST",
-    headers: {
+  if (!csrfToken) {
+    throw new Error("No se pudo obtener el token CSRF del sitio de Crestron.");
+  }
+
+  // POST credentials — node:https gives us the raw 302 with its Set-Cookie headers
+  const postBody = new URLSearchParams({
+    username,
+    password,
+    csrfmiddlewaretoken: csrfToken,
+    next: "/clientes/precios",
+  }).toString();
+
+  const postRes = await rawRequest(
+    `${BASE}/accounts/login/`,
+    "POST",
+    {
       "Content-Type": "application/x-www-form-urlencoded",
+      "Content-Length": String(Buffer.byteLength(postBody)),
       Cookie: cookieStr(initCookies),
       Referer: `${BASE}/accounts/login/`,
       "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
+      Accept: "text/html",
     },
-    body: new URLSearchParams({
-      username,
-      password,
-      csrfmiddlewaretoken: csrfToken,
-      next: "/clientes/precios",
-    }).toString(),
-    redirect: "manual",
-  });
+    postBody
+  );
 
   const authCookies = {
     ...initCookies,
-    ...parseCookies(getSetCookies(postRes.headers)),
+    ...parseCookies(rawSetCookies(postRes.headers)),
   };
 
   if (!authCookies["sessionid"]) {
     throw new Error(
-      "Login a Crestron fallido: no se obtuvo sesión. Verificá las credenciales."
+      `Login a Crestron fallido (HTTP ${postRes.status}). Verificá las credenciales configuradas.`
     );
   }
 
   return authCookies;
 }
 
+// ── DataTables API ────────────────────────────────────────────────────────────
+
 const DT_COLUMNS = [
   "ItemCode",
   "ItemName",
   "Price",
   "Discount",
-  "Price", // "Precio final" column reuses Price
+  "Price",
   "Currency",
   "07",
   "11",
@@ -107,7 +163,7 @@ const DT_COLUMNS = [
   "Gpo",
 ];
 
-function buildDtParams(start: number, length: number): string {
+function buildDtBody(start: number, length: number): string {
   const p = new URLSearchParams({
     draw: "1",
     start: String(start),
@@ -130,42 +186,38 @@ async function fetchPage(
   start: number,
   length: number
 ): Promise<{ data: CrestronItem[]; recordsTotal: number }> {
-  const csrf = cookies["csrftoken"] ?? "";
-  const res = await fetch(`${BASE}/api/SBO_PROD_USA/precios-dt`, {
-    method: "POST",
-    headers: {
+  const body = buildDtBody(start, length);
+  const res = await rawRequest(
+    `${BASE}/api/SBO_PROD_USA/precios-dt`,
+    "POST",
+    {
       "Content-Type": "application/x-www-form-urlencoded",
-      "X-CSRFToken": csrf,
+      "Content-Length": String(Buffer.byteLength(body)),
+      "X-CSRFToken": cookies["csrftoken"] ?? "",
       "X-Requested-With": "XMLHttpRequest",
       Cookie: cookieStr(cookies),
       Referer: `${BASE}/clientes/precios`,
       "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
     },
-    body: buildDtParams(start, length),
-  });
+    body
+  );
 
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Crestron API ${res.status}: ${txt.slice(0, 200)}`);
+  if (res.status !== 200) {
+    throw new Error(`Crestron API ${res.status}: ${res.body.slice(0, 200)}`);
   }
 
-  return res.json() as Promise<{ data: CrestronItem[]; recordsTotal: number }>;
+  return JSON.parse(res.body) as { data: CrestronItem[]; recordsTotal: number };
 }
 
-async function fetchAllItems(
-  cookies: Record<string, string>
-): Promise<CrestronItem[]> {
-  // Try fetching all at once (length = 2000, larger than max known)
+async function fetchAllItems(cookies: Record<string, string>): Promise<CrestronItem[]> {
+  // Try fetching all at once first
   try {
     const result = await fetchPage(cookies, 0, 2000);
-    if (Array.isArray(result.data) && result.data.length > 0) {
-      return result.data;
-    }
+    if (Array.isArray(result.data) && result.data.length > 0) return result.data;
   } catch {
     // fall through to paginated fetch
   }
 
-  // Paginate
   const PAGE = 100;
   const first = await fetchPage(cookies, 0, PAGE);
   const total = first.recordsTotal;
@@ -180,14 +232,15 @@ async function fetchAllItems(
   return all;
 }
 
+// ── public API ────────────────────────────────────────────────────────────────
+
 export async function fetchCrestronPriceList(): Promise<CrestronItem[]> {
   const cookies = await login();
   return fetchAllItems(cookies);
 }
 
 export function toCrestronStockStatus(item: CrestronItem): StockStatus {
-  const avail =
-    (item["07_available"] ?? 0) + (item["11_available"] ?? 0);
+  const avail = (item["07_available"] ?? 0) + (item["11_available"] ?? 0);
   if (avail > 5) return StockStatus.IN_STOCK;
   if (avail > 0) return StockStatus.LOW_STOCK;
   if ((item.OnOrder ?? 0) > 0) return StockStatus.ON_REQUEST;

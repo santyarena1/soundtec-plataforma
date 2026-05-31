@@ -32,7 +32,7 @@ function fmtPrice(p: number | null) {
   return `$ ${p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function SonanceImportPanel() {
+export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [state, setState] = useState<
@@ -45,13 +45,35 @@ export function SonanceImportPanel() {
   const [createNew, setCreateNew] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    setFileName(f?.name ?? null);
+  function reset() {
     setPreview(null);
     setState("idle");
     setError(null);
     setApplyResult(null);
+    setShowAll(false);
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    setFileName(f?.name ?? null);
+    reset();
+  }
+
+  async function handleSyncFromBox() {
+    setState("parsing");
+    setError(null);
+    setPreview(null);
+    setApplyResult(null);
+    try {
+      const res = await fetch("/api/admin/sonance-import");
+      const data: SonancePreviewResponse = await res.json();
+      if (!data.ok) throw new Error(data.error ?? "Error al sincronizar");
+      setPreview(data);
+      setState("preview");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error inesperado");
+      setState("error");
+    }
   }
 
   async function handleParse() {
@@ -111,34 +133,66 @@ export function SonanceImportPanel() {
   return (
     <div className="space-y-4">
 
-      {/* Upload card */}
+      {/* Sync card */}
       <Card>
         <CardContent className="p-5 space-y-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                Archivo Excel (.xlsx)
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer h-9 rounded-md border border-dashed border-border bg-background px-3 text-sm text-muted-foreground hover:bg-secondary transition-colors">
-                <FileSpreadsheet className="h-4 w-4 shrink-0" />
-                <span className="truncate">{fileName ?? "Elegir archivo…"}</span>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".xlsx,.xls"
-                  className="sr-only"
-                  onChange={handleFileChange}
-                />
-              </label>
+
+          {/* Auto-sync from Box */}
+          {hasLinks && (
+            <div className="flex items-center justify-between gap-3 rounded-md bg-muted/40 border border-border px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Sincronizar desde Box</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Descarga y procesa automáticamente los archivos configurados.
+                </p>
+              </div>
+              <Button
+                onClick={handleSyncFromBox}
+                disabled={state === "parsing" || state === "applying"}
+                size="sm"
+              >
+                <Upload className={`mr-1.5 h-3.5 w-3.5 ${state === "parsing" ? "animate-bounce" : ""}`} />
+                {state === "parsing" ? "Descargando…" : "Sincronizar"}
+              </Button>
             </div>
-            <Button
-              onClick={handleParse}
-              disabled={!fileName || state === "parsing" || state === "applying"}
-              size="sm"
-            >
-              <Upload className={`mr-1.5 h-3.5 w-3.5 ${state === "parsing" ? "animate-bounce" : ""}`} />
-              {state === "parsing" ? "Procesando…" : "Analizar archivo"}
-            </Button>
+          )}
+
+          {/* Manual upload */}
+          <div>
+            {hasLinks && (
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                O subir manualmente
+              </p>
+            )}
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex-1 min-w-[200px]">
+                {!hasLinks && (
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                    Archivo Excel (.xlsx)
+                  </label>
+                )}
+                <label className="flex items-center gap-2 cursor-pointer h-9 rounded-md border border-dashed border-border bg-background px-3 text-sm text-muted-foreground hover:bg-secondary transition-colors">
+                  <FileSpreadsheet className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{fileName ?? "Elegir archivo…"}</span>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".xlsx,.xls"
+                    className="sr-only"
+                    onChange={handleFileChange}
+                  />
+                </label>
+              </div>
+              <Button
+                onClick={handleParse}
+                disabled={!fileName || state === "parsing" || state === "applying"}
+                size="sm"
+                variant={hasLinks ? "outline" : "secondary"}
+              >
+                <Upload className={`mr-1.5 h-3.5 w-3.5 ${state === "parsing" && fileName ? "animate-bounce" : ""}`} />
+                {state === "parsing" && fileName ? "Procesando…" : "Analizar archivo"}
+              </Button>
+            </div>
           </div>
 
           <div className="text-xs text-muted-foreground space-y-0.5">
