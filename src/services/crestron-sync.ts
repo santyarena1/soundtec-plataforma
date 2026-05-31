@@ -129,7 +129,12 @@ function cookieStrFromMap(cookies: Record<string, string>): string {
 
 // ── auth ──────────────────────────────────────────────────────────────────────
 
-async function login(): Promise<Record<string, string>> {
+interface CrestronSession {
+  cookies: Record<string, string>;
+  cardcode: string;
+}
+
+async function login(): Promise<CrestronSession> {
   const username = await getSetting("crestron.username", "");
   const password = await getSetting("crestron.password", "");
 
@@ -192,8 +197,8 @@ async function login(): Promise<Record<string, string>> {
     );
   }
 
-  // 3. Visit /clientes/precios to "activate" the session — some Django setups
-  // require this before the API will accept the user as authorized.
+  // 3. Visit /clientes/precios — extract the user's cardcode from #selectCardCode hidden input.
+  // The API requires it as a body param; without it Django can't filter prices and returns 500.
   const precioRes = await rawRequest(`${BASE}/clientes/precios`, "GET", {
     Cookie: cookieStrFromMap(authCookies),
     Referer: LOGIN_URL,
@@ -201,50 +206,63 @@ async function login(): Promise<Record<string, string>> {
     Accept: "text/html,*/*",
   }, undefined, authCookies);
 
-  // Merge any new cookies (csrftoken may rotate)
-  return { ...authCookies, ...precioRes.allCookies };
+  const cardcodeMatch =
+    precioRes.body.match(/id=["']selectCardCode["'][^>]*value=["']([^"']+)["']/) ??
+    precioRes.body.match(/value=["']([^"']+)["'][^>]*id=["']selectCardCode["']/);
+  const cardcode = cardcodeMatch?.[1] ?? "";
+
+  if (!cardcode) {
+    throw new Error(
+      "No se pudo extraer el cardcode del usuario desde /clientes/precios. " +
+      "La estructura de la página puede haber cambiado."
+    );
+  }
+
+  return {
+    cookies: { ...authCookies, ...precioRes.allCookies },
+    cardcode,
+  };
 }
 
 // ── DataTables API ────────────────────────────────────────────────────────────
 
-function buildDtBody(start: number, length: number): string {
-  // Minimal DataTables server-side params — no columns array.
-  // Column names like "07"/"11" are not valid Python identifiers and cause
-  // a Django FieldError (→ 500) when the backend tries to use them for ordering.
+function buildDtBody(start: number, length: number, cardcode: string): string {
+  // Matches what the real browser DataTable sends (ordering: false → no order[] params).
+  // cardcode is added by `data: function(d) { d.cardcode = ... }` in the page JS.
   return new URLSearchParams({
     draw: "1",
     start: String(start),
     length: String(length),
     "search[value]": "",
     "search[regex]": "false",
-    "order[0][column]": "0",
-    "order[0][dir]": "asc",
+    cardcode,
   }).toString();
 }
 
 async function fetchPage(
-  cookies: Record<string, string>,
+  session: CrestronSession,
   start: number,
   length: number
 ): Promise<{ data: CrestronItem[]; recordsTotal: number }> {
-  const body = buildDtBody(start, length);
+  const body = buildDtBody(start, length, session.cardcode);
   const res = await rawRequestOnce(
     `${BASE}/api/SBO_PROD_USA/precios-dt`,
     "POST",
     {
       "Content-Type": "application/x-www-form-urlencoded",
       "Content-Length": String(Buffer.byteLength(body)),
-      "X-CSRFToken": cookies["csrftoken"] ?? "",
+      "X-CSRFToken": session.cookies["csrftoken"] ?? "",
       "X-Requested-With": "XMLHttpRequest",
-      Cookie: cookieStrFromMap(cookies),
+      Cookie: cookieStrFromMap(session.cookies),
       Referer: `${BASE}/clientes/precios`,
-      "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
+      Origin: BASE,
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0",
+      Accept: "application/json, text/javascript, */*",
     },
     body
   );
 
   if (res.status !== 200) {
-    // Strip HTML tags for a readable error message
     const detail = res.body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 300);
     throw new Error(`Crestron API ${res.status}: ${detail}`);
   }
@@ -252,23 +270,23 @@ async function fetchPage(
   return JSON.parse(res.body) as { data: CrestronItem[]; recordsTotal: number };
 }
 
-async function fetchAllItems(cookies: Record<string, string>): Promise<CrestronItem[]> {
+async function fetchAllItems(session: CrestronSession): Promise<CrestronItem[]> {
   // Try fetching all at once first
   try {
-    const result = await fetchPage(cookies, 0, 2000);
+    const result = await fetchPage(session, 0, 2000);
     if (Array.isArray(result.data) && result.data.length > 0) return result.data;
   } catch {
     // fall through to paginated fetch
   }
 
   const PAGE = 100;
-  const first = await fetchPage(cookies, 0, PAGE);
+  const first = await fetchPage(session, 0, PAGE);
   const total = first.recordsTotal;
   const all: CrestronItem[] = [...first.data];
 
   const pages = Math.ceil(total / PAGE);
   for (let p = 1; p < pages; p++) {
-    const page = await fetchPage(cookies, p * PAGE, PAGE);
+    const page = await fetchPage(session, p * PAGE, PAGE);
     all.push(...page.data);
   }
 
@@ -278,8 +296,8 @@ async function fetchAllItems(cookies: Record<string, string>): Promise<CrestronI
 // ── public API ────────────────────────────────────────────────────────────────
 
 export async function fetchCrestronPriceList(): Promise<CrestronItem[]> {
-  const cookies = await login();
-  return fetchAllItems(cookies);
+  const session = await login();
+  return fetchAllItems(session);
 }
 
 export function toCrestronStockStatus(item: CrestronItem): StockStatus {

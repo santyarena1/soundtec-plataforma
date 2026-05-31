@@ -196,12 +196,16 @@ export async function GET() {
     steps.push({ step: "3. GET /clientes/precios", error: (e as Error).message, durationMs: Date.now() - t0 });
   }
 
-  // Step 4: POST API
+  // Step 4: POST API — include cardcode extracted from page
   t0 = Date.now();
+  const cardcodeMatch =
+    preciosHtml.match(/id=["']selectCardCode["'][^>]*value=["']([^"']+)["']/) ??
+    preciosHtml.match(/value=["']([^"']+)["'][^>]*id=["']selectCardCode["']/);
+  const cardcode = cardcodeMatch?.[1] ?? "";
   const apiBody = new URLSearchParams({
     draw: "1", start: "0", length: "10",
     "search[value]": "", "search[regex]": "false",
-    "order[0][column]": "0", "order[0][dir]": "asc",
+    cardcode,
   }).toString();
   try {
     const r = await rawRequestOnce(`${BASE}/api/SBO_PROD_USA/precios-dt`, "POST", {
