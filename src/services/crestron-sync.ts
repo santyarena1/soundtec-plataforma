@@ -240,7 +240,9 @@ async function fetchPage(
   );
 
   if (res.status !== 200) {
-    throw new Error(`Crestron API ${res.status}: ${res.body.slice(0, 200)}`);
+    // Strip HTML tags for a readable error message
+    const detail = res.body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 300);
+    throw new Error(`Crestron API ${res.status}: ${detail}`);
   }
 
   return JSON.parse(res.body) as { data: CrestronItem[]; recordsTotal: number };

@@ -1,3 +1,4 @@
+import https from "node:https";
 import * as XLSX from "xlsx";
 
 export type SonanceBrand = "SONANCE" | "IPORT" | "BLAZE by SONANCE";
@@ -212,57 +213,122 @@ function parseBlaze(ws: XLSX.WorkSheet): SonanceProduct[] {
  * Uses the Box Content API with the BoxApi header — no auth token needed for public links.
  * URL format expected: https://*.app.box.com/s/{sharedToken}/file/{fileId}
  */
-// XLSX/ZIP files start with PK magic bytes (0x50 0x4B)
+// ── Box download helpers ──────────────────────────────────────────────────────
+
 function isExcelBuffer(buf: Buffer): boolean {
   return buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4B;
 }
 
+function parseSetCookies(headers: NodeJS.Dict<string | string[]>): Record<string, string> {
+  const raw = headers["set-cookie"];
+  const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const out: Record<string, string> = {};
+  for (const h of list) {
+    const [pair] = h.split(";");
+    const eq = pair.indexOf("=");
+    if (eq > 0) out[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
+  }
+  return out;
+}
+
+function cookieHeader(map: Record<string, string>): string {
+  return Object.entries(map).map(([k, v]) => `${k}=${v}`).join("; ");
+}
+
+// Binary GET with redirect following and cookie accumulation.
+// Uses node:https directly — fetch/undici can mangle the redirect chain for Box URLs.
+function boxGet(
+  url: string,
+  headers: Record<string, string>,
+  cookies: Record<string, string> = {},
+  hops = 12
+): Promise<{ status: number; body: Buffer; cookies: Record<string, string> }> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const req = https.request(
+      { hostname: u.hostname, path: u.pathname + u.search, method: "GET", headers },
+      (res) => {
+        const newCookies = { ...cookies, ...parseSetCookies(res.headers) };
+        const chunks: Buffer[] = [];
+        res.on("data", (c: Buffer) => chunks.push(c));
+        res.on("end", () => {
+          const body = Buffer.concat(chunks);
+          const loc = res.headers["location"] as string | undefined;
+          if (res.statusCode! >= 300 && res.statusCode! < 400 && loc && hops > 0) {
+            const next = loc.startsWith("http") ? loc : new URL(loc, url).toString();
+            boxGet(
+              next,
+              { ...headers, Cookie: cookieHeader(newCookies), Referer: url },
+              newCookies,
+              hops - 1
+            ).then(resolve).catch(reject);
+          } else {
+            resolve({ status: res.statusCode ?? 0, body, cookies: newCookies });
+          }
+        });
+      }
+    );
+    req.on("error", reject);
+    req.end();
+  });
+}
+
 export async function downloadFromBoxLink(sharedUrl: string): Promise<Buffer> {
-  const match = sharedUrl.match(
-    /https?:\/\/([^/]+)\/s\/([^/]+)\/file\/(\d+)/
-  );
+  const match = sharedUrl.match(/https?:\/\/([^/]+)\/s\/([^/]+)\/file\/(\d+)/);
   if (!match) throw new Error(`URL de Box inválida: ${sharedUrl}`);
   const [, host, sharedToken, fileId] = match;
 
   const sharedLink = `https://${host}/s/${sharedToken}`;
-  const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Soundtec-Sync/1.0";
+  const filePageUrl = `${sharedLink}/file/${fileId}`;
+  const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36";
 
-  // Method 1: Box Content API (requires public "anyone with link" sharing)
-  const apiRes = await fetch(`https://api.box.com/2.0/files/${fileId}/content`, {
-    headers: { BoxApi: `shared_link=${sharedLink}`, "User-Agent": ua },
-    redirect: "follow",
-  });
-  if (apiRes.ok) {
-    const buf = Buffer.from(await apiRes.arrayBuffer());
-    if (isExcelBuffer(buf)) return buf;
+  // Method 1: Box Content API — works for "Anyone with the link" sharing
+  for (const sl of [`https://app.box.com/s/${sharedToken}`, sharedLink]) {
+    try {
+      const r = await fetch(`https://api.box.com/2.0/files/${fileId}/content`, {
+        headers: { BoxApi: `shared_link=${sl}`, "User-Agent": ua, Referer: filePageUrl },
+        redirect: "follow",
+      });
+      if (r.ok) {
+        const buf = Buffer.from(await r.arrayBuffer());
+        if (isExcelBuffer(buf)) return buf;
+      }
+    } catch { /* next method */ }
   }
 
-  // Method 2: /download path — what the Box web UI "Download" button uses
-  const dlRes = await fetch(`${sharedLink}/file/${fileId}/download`, {
-    headers: { "User-Agent": ua, Accept: "application/octet-stream,*/*" },
-    redirect: "follow",
-  });
-  if (dlRes.ok) {
-    const buf = Buffer.from(await dlRes.arrayBuffer());
-    if (isExcelBuffer(buf)) return buf;
+  // Method 2: browser-like flow via node:https
+  // Box requires a session cookie obtained from the page before serving the file download.
+  // Step 1: visit the page to get cookies
+  const pageRes = await boxGet(filePageUrl, { "User-Agent": ua, Accept: "text/html,*/*" });
+
+  // Step 2: request download with those cookies
+  const dlRes = await boxGet(
+    `${filePageUrl}?dl=1`,
+    {
+      "User-Agent": ua,
+      Accept: "application/octet-stream,*/*",
+      Referer: filePageUrl,
+      Cookie: cookieHeader(pageRes.cookies),
+    },
+    pageRes.cookies
+  );
+  if (isExcelBuffer(dlRes.body)) return dlRes.body;
+
+  // Step 3: if ?dl=1 returned HTML, look for a dl.boxcloud.com URL embedded in the page
+  const html = dlRes.body.toString("utf8");
+  const cloudMatch = html.match(/https:\/\/dl\.boxcloud\.com\/[^"'\s<>]+/);
+  if (cloudMatch) {
+    const r = await boxGet(
+      cloudMatch[0],
+      { "User-Agent": ua, Referer: filePageUrl, Cookie: cookieHeader(dlRes.cookies) },
+      dlRes.cookies
+    );
+    if (isExcelBuffer(r.body)) return r.body;
   }
 
-  // Method 3: ?dl=1 query param
-  const qs1Res = await fetch(`${sharedLink}/file/${fileId}?dl=1`, {
-    headers: { "User-Agent": ua },
-    redirect: "follow",
-  });
-  if (qs1Res.ok) {
-    const buf = Buffer.from(await qs1Res.arrayBuffer());
-    if (isExcelBuffer(buf)) return buf;
-  }
-
-  const statuses = [apiRes.status, dlRes.status, qs1Res.status].join(" / ");
   throw new Error(
-    `Box: no se pudo descargar el archivo (estados: ${statuses}). ` +
-    `El link requiere autenticación de Box. En Box, abrí el archivo → Share → ` +
-    `"Shared Link Settings" → Access: "People with the link" (no "People in your company"). ` +
-    `Mientras tanto usá la carga manual de archivo.`
+    `Box: no se pudo descargar el archivo. ` +
+    `Verificá en Box → Share → Shared Link → Access: "People with the link".`
   );
 }
 
