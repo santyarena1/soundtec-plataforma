@@ -50,6 +50,7 @@ export function NcmModal({ open, onClose, onSelect }: Props) {
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
+    e.stopPropagation();
     const q = query.trim();
     if (q.length < 3) return;
     setLoading(true);
