@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
 import { getSetting } from "@/lib/settings";
 import { AdminSidebarNav } from "@/components/layout/admin-sidebar-nav";
+import { DolarTicker } from "@/components/layout/dolar-ticker";
 import { getCurrentPermissions } from "@/lib/auth-helpers";
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
@@ -51,6 +52,9 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </Link>
         <AdminSidebarNav allowedScopes={permissions.scopes} fullAccess={permissions.fullAccess} />
+        <div className="border-t border-border p-3">
+          <DolarTicker />
+        </div>
         <div className="border-t border-border p-3 text-xs">
           <p className="font-semibold">{session.user.name}</p>
           <p className="truncate text-muted-foreground">{session.user.email}</p>
@@ -68,25 +72,28 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-h-dvh flex-col lg:pl-64">
-        <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3 lg:hidden">
-          <Link href="/admin" className="flex items-center gap-2">
-            {logoUrl ? (
-              <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
-              </span>
-            ) : (
-              <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">
-                S
-              </span>
-            )}
-            <span className="text-sm font-semibold">{appName} Admin</span>
-          </Link>
-          <form action={handleSignOut}>
-            <button type="submit" className="text-sm text-muted-foreground hover:text-foreground">
-              Salir
-            </button>
-          </form>
+        <header className="flex flex-col gap-1.5 border-b border-border bg-card px-4 py-2 lg:hidden">
+          <div className="flex items-center justify-between">
+            <Link href="/admin" className="flex items-center gap-2">
+              {logoUrl ? (
+                <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
+                </span>
+              ) : (
+                <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">
+                  S
+                </span>
+              )}
+              <span className="text-sm font-semibold">{appName} Admin</span>
+            </Link>
+            <form action={handleSignOut}>
+              <button type="submit" className="text-sm text-muted-foreground hover:text-foreground">
+                Salir
+              </button>
+            </form>
+          </div>
+          <DolarTicker compact />
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-10">{children}</main>
       </div>
