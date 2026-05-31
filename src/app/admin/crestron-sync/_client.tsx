@@ -1,13 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
-import type { SyncPreviewResponse, SyncPreviewItem } from "@/app/api/admin/crestron-sync/route";
+import {
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Languages,
+} from "lucide-react";
+import type {
+  SyncPreviewResponse,
+  CategoryTarget,
+} from "@/app/api/admin/crestron-sync/route";
 
 type Filter = "all" | "changes" | "unmatched";
+
+const TARGET_LABELS: Record<CategoryTarget, string> = {
+  categoria: "Categoría (FK)",
+  familia: "Familia (FK)",
+  rubro: "Rubro (texto familia)",
+  subrubro: "Subrubro (texto tipo)",
+};
+
+const TARGET_HELP: Record<CategoryTarget, string> = {
+  categoria: "Crea o reusa filas en Categorías y la asigna al producto.",
+  familia: "Crea o reusa filas en Familias y la asigna al producto.",
+  rubro: "Escribe el valor traducido directo en el campo libre familia.",
+  subrubro: "Escribe el valor traducido directo en el campo libre tipo.",
+};
 
 function stockBadge(status: string) {
   const map: Record<string, { tone: "success" | "warning" | "destructive" | "muted"; label: string }> = {
@@ -29,10 +53,23 @@ function fmtPrice(p: number | null) {
 export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean }) {
   const [state, setState] = useState<"idle" | "loading" | "preview" | "applying" | "done" | "error">("idle");
   const [preview, setPreview] = useState<SyncPreviewResponse | null>(null);
-  const [applyResult, setApplyResult] = useState<{ updated: number } | null>(null);
+  const [applyResult, setApplyResult] = useState<{ updated: number; categoryWrites: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("changes");
   const [showAll, setShowAll] = useState(false);
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [target, setTarget] = useState<CategoryTarget>("rubro");
+
+  // Hydrate translations and target when a preview arrives
+  useEffect(() => {
+    if (!preview) return;
+    const base: Record<string, string> = { ...(preview.translations ?? {}) };
+    for (const c of preview.uniqueCategories ?? []) {
+      if (!(c in base)) base[c] = "";
+    }
+    setTranslations(base);
+    if (preview.target) setTarget(preview.target);
+  }, [preview]);
 
   async function handlePreview() {
     setState("loading");
@@ -55,10 +92,14 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
     setState("applying");
     setError(null);
     try {
-      const res = await fetch("/api/admin/crestron-sync", { method: "POST" });
+      const res = await fetch("/api/admin/crestron-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ translations, target }),
+      });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error ?? "Error al aplicar");
-      setApplyResult({ updated: data.updated });
+      setApplyResult({ updated: data.updated, categoryWrites: data.categoryWrites ?? 0 });
       setState("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado");
@@ -66,21 +107,35 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
     }
   }
 
-  const filteredItems: SyncPreviewItem[] = (() => {
+  // categoryChanged is computed client-side from translations + target
+  const itemsWithComputed = useMemo(() => {
     if (!preview?.items) return [];
-    if (filter === "changes")
-      return preview.items.filter((i) => i.matched && (i.priceChanged || i.stockChanged || i.categoryChanged));
-    if (filter === "unmatched")
-      return preview.items.filter((i) => !i.matched);
-    return preview.items.filter((i) => i.matched);
-  })();
+    return preview.items.map((i) => {
+      const es = (translations[i.category] ?? "").trim();
+      const categoryChanged =
+        i.matched && es.length > 0 && (i.currentCategoryLabel ?? "").trim() !== es;
+      return { ...i, esCategory: es, categoryChanged };
+    });
+  }, [preview, translations]);
 
-  // Unique products that have any change — a single product can have price + category + stock all changing
-  const productsWithChanges = preview?.items
-    ? preview.items.filter((i) => i.matched && (i.priceChanged || i.stockChanged || i.categoryChanged)).length
-    : 0;
+  const filteredItems = useMemo(() => {
+    if (filter === "changes")
+      return itemsWithComputed.filter(
+        (i) => i.matched && (i.priceChanged || i.stockChanged || i.categoryChanged)
+      );
+    if (filter === "unmatched") return itemsWithComputed.filter((i) => !i.matched);
+    return itemsWithComputed.filter((i) => i.matched);
+  }, [itemsWithComputed, filter]);
+
+  const productsWithChanges = itemsWithComputed.filter(
+    (i) => i.matched && (i.priceChanged || i.stockChanged || i.categoryChanged)
+  ).length;
+  const categoryChanges = itemsWithComputed.filter((i) => i.categoryChanged).length;
 
   const displayedItems = showAll ? filteredItems : filteredItems.slice(0, 50);
+  const untranslatedCount = (preview?.uniqueCategories ?? []).filter(
+    (c) => !translations[c]?.trim()
+  ).length;
 
   return (
     <div className="space-y-4">
@@ -129,7 +184,8 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
           <CardContent className="p-4 flex items-center gap-2 text-success">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <p className="text-sm font-medium">
-              Sincronización aplicada: {applyResult.updated} productos actualizados.
+              Sincronización aplicada: {applyResult.updated} productos actualizados
+              {applyResult.categoryWrites > 0 && ` · ${applyResult.categoryWrites} con categoría escrita`}.
             </p>
           </CardContent>
         </Card>
@@ -139,12 +195,11 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
       {(state === "preview" || state === "applying" || state === "done") && preview && (
         <>
           {/* Summary row */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: "En Crestron", value: preview.total ?? 0, color: "" },
               { label: "Coinciden en BD", value: preview.matchedCount ?? 0, color: "text-success" },
               { label: "Cambios de precio", value: preview.priceChanges ?? 0, color: "text-warning" },
-              { label: "Cambios de categoría", value: preview.categoryChanges ?? 0, color: "text-accent" },
               { label: "Sin coincidencia", value: preview.unmatchedCount ?? 0, color: "text-muted-foreground" },
             ].map((s) => (
               <Card key={s.label}>
@@ -156,13 +211,94 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
             ))}
           </div>
 
+          {/* Categories config */}
+          <Card>
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-start gap-2">
+                <Languages className="h-4 w-4 mt-0.5 text-accent shrink-0" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium">Categorías de Crestron</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Traducí cada grupo al español y elegí dónde guardarlo. Se guarda al aplicar.
+                  </p>
+                </div>
+              </div>
+
+              {/* Target selector */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Guardar como
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(Object.keys(TARGET_LABELS) as CategoryTarget[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTarget(t)}
+                      className={`px-3 py-2 rounded-md border text-left text-xs transition-colors ${
+                        target === t
+                          ? "border-primary bg-primary/8 text-foreground"
+                          : "border-border bg-background text-muted-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      <p className="font-medium">{TARGET_LABELS[t]}</p>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground">{TARGET_HELP[target]}</p>
+              </div>
+
+              {/* Translation table */}
+              {(preview.uniqueCategories ?? []).length > 0 ? (
+                <div className="border border-border rounded-md overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/40 text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium">Original (Crestron · EN)</th>
+                        <th className="px-3 py-2 text-left font-medium">Traducción (ES)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {(preview.uniqueCategories ?? []).map((c) => (
+                        <tr key={c}>
+                          <td className="px-3 py-1.5 font-mono text-muted-foreground">{c}</td>
+                          <td className="px-3 py-1.5">
+                            <input
+                              type="text"
+                              value={translations[c] ?? ""}
+                              onChange={(e) =>
+                                setTranslations((prev) => ({ ...prev, [c]: e.target.value }))
+                              }
+                              placeholder="Escribí la traducción…"
+                              className="h-7 w-full rounded border border-border bg-background px-2 text-xs"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  No se detectaron categorías en los datos de Crestron.
+                </p>
+              )}
+
+              {untranslatedCount > 0 && (
+                <p className="text-[11px] text-warning">
+                  {untranslatedCount} categoría{untranslatedCount === 1 ? "" : "s"} sin traducir — no se escribirán en los productos.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Apply button */}
           {state === "preview" && productsWithChanges > 0 && (
             <div className="flex flex-wrap justify-end items-center gap-3">
               <p className="text-xs text-muted-foreground">
                 {productsWithChanges} producto{productsWithChanges === 1 ? "" : "s"}
                 {" · "}
-                {preview.priceChanges ?? 0} precio · {preview.categoryChanges ?? 0} categoría · {preview.stockChanges ?? 0} stock
+                {preview.priceChanges ?? 0} precio · {categoryChanges} categoría · {preview.stockChanges ?? 0} stock
               </p>
               <Button onClick={handleApply} disabled={state !== "preview"}>
                 Actualizar {productsWithChanges} producto{productsWithChanges === 1 ? "" : "s"}
@@ -170,7 +306,7 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
             </div>
           )}
 
-          {/* Filter tabs */}
+          {/* Table */}
           <Card>
             <CardContent className="p-0">
               <div className="flex border-b border-border px-4 pt-3 gap-3 text-sm">
@@ -208,7 +344,7 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
                           <th className="px-4 py-2.5">SKU</th>
                           <th className="px-4 py-2.5">Nombre Crestron</th>
                           {filter !== "unmatched" && <th className="px-4 py-2.5">Producto en BD</th>}
-                          <th className="px-4 py-2.5">Categoría</th>
+                          <th className="px-4 py-2.5">Categoría (ES)</th>
                           <th className="px-4 py-2.5 text-right">Precio actual</th>
                           <th className="px-4 py-2.5 text-right">Precio nuevo</th>
                           <th className="px-4 py-2.5">Stock LAREDO</th>
@@ -231,10 +367,10 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
                               </td>
                             )}
                             <td className={`px-4 py-2.5 text-xs ${item.categoryChanged ? "text-accent font-medium" : "text-muted-foreground"}`}>
-                              {item.category || "—"}
-                              {item.categoryChanged && item.currentCategory && (
+                              {item.esCategory || (item.category ? <span className="italic text-muted-foreground">sin traducir ({item.category})</span> : "—")}
+                              {item.categoryChanged && item.currentCategoryLabel && (
                                 <span className="block text-[10px] text-muted-foreground line-through">
-                                  {item.currentCategory}
+                                  {item.currentCategoryLabel}
                                 </span>
                               )}
                             </td>
