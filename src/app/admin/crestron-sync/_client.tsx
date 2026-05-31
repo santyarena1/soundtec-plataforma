@@ -12,6 +12,7 @@ import {
   ChevronUp,
   Languages,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import type {
   SyncPreviewResponse,
@@ -350,8 +351,8 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
             </CardContent>
           </Card>
 
-          {/* Apply button */}
-          {state === "preview" && productsWithChanges > 0 && (
+          {/* Apply button + status */}
+          {(state === "preview" || state === "applying") && productsWithChanges > 0 && (
             <div className="flex flex-wrap justify-end items-center gap-3">
               <p className="text-xs text-muted-foreground">
                 {productsWithChanges} producto{productsWithChanges === 1 ? "" : "s"}
@@ -359,9 +360,32 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
                 {preview.priceChanges ?? 0} precio · {categoryChanges} categoría · {preview.stockChanges ?? 0} stock
               </p>
               <Button onClick={handleApply} disabled={state !== "preview"}>
-                Actualizar {productsWithChanges} producto{productsWithChanges === 1 ? "" : "s"}
+                {state === "applying" ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Aplicando cambios…
+                  </>
+                ) : (
+                  <>Actualizar {productsWithChanges} producto{productsWithChanges === 1 ? "" : "s"}</>
+                )}
               </Button>
             </div>
+          )}
+
+          {/* Applying banner */}
+          {state === "applying" && (
+            <Card>
+              <CardContent className="p-4 flex items-center gap-3">
+                <Loader2 className="h-4 w-4 shrink-0 text-primary animate-spin" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Aplicando cambios en Crestron…</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Re-fetching la lista de precios, resolviendo categorías y actualizando {productsWithChanges} producto{productsWithChanges === 1 ? "" : "s"}.
+                    Puede tardar 30–60 segundos. No cierres esta pestaña.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Table */}

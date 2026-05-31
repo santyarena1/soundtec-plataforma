@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileSpreadsheet,
+  Loader2,
 } from "lucide-react";
 import type {
   SonancePreviewResponse,
@@ -257,13 +258,14 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
           )}
 
           {/* Options + Apply */}
-          {state === "preview" && (
+          {(state === "preview" || state === "applying") && (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input
                   type="checkbox"
                   checked={createNew}
                   onChange={(e) => setCreateNew(e.target.checked)}
+                  disabled={state === "applying"}
                   className="h-4 w-4 rounded border-border"
                 />
                 Crear también los {preview.newProducts ?? 0} productos nuevos{" "}
@@ -271,13 +273,37 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
               </label>
               <Button
                 onClick={handleApply}
-                disabled={!hasChanges}
+                disabled={!hasChanges || state === "applying"}
                 size="sm"
               >
-                Aplicar {(preview.priceChanges ?? 0)} cambios de precio
-                {createNew && (preview.newProducts ?? 0) > 0 ? ` + ${preview.newProducts} nuevos` : ""}
+                {state === "applying" ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Aplicando…
+                  </>
+                ) : (
+                  <>
+                    Aplicar {(preview.priceChanges ?? 0)} cambios de precio
+                    {createNew && (preview.newProducts ?? 0) > 0 ? ` + ${preview.newProducts} nuevos` : ""}
+                  </>
+                )}
               </Button>
             </div>
+          )}
+
+          {/* Applying banner */}
+          {state === "applying" && (
+            <Card>
+              <CardContent className="p-4 flex items-center gap-3">
+                <Loader2 className="h-4 w-4 shrink-0 text-primary animate-spin" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Aplicando cambios…</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Actualizando precios{createNew && (preview.newProducts ?? 0) > 0 ? ` y creando ${preview.newProducts} productos nuevos` : ""}. No cierres esta pestaña.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Table */}
