@@ -69,7 +69,7 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
   const filteredItems: SyncPreviewItem[] = (() => {
     if (!preview?.items) return [];
     if (filter === "changes")
-      return preview.items.filter((i) => i.matched && (i.priceChanged || i.stockChanged));
+      return preview.items.filter((i) => i.matched && (i.priceChanged || i.stockChanged || i.categoryChanged));
     if (filter === "unmatched")
       return preview.items.filter((i) => !i.matched);
     return preview.items.filter((i) => i.matched);
@@ -134,11 +134,12 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
       {(state === "preview" || state === "applying" || state === "done") && preview && (
         <>
           {/* Summary row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
               { label: "En Crestron", value: preview.total ?? 0, color: "" },
               { label: "Coinciden en BD", value: preview.matchedCount ?? 0, color: "text-success" },
               { label: "Cambios de precio", value: preview.priceChanges ?? 0, color: "text-warning" },
+              { label: "Cambios de categoría", value: preview.categoryChanges ?? 0, color: "text-accent" },
               { label: "Sin coincidencia", value: preview.unmatchedCount ?? 0, color: "text-muted-foreground" },
             ].map((s) => (
               <Card key={s.label}>
@@ -151,10 +152,10 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
           </div>
 
           {/* Apply button */}
-          {state === "preview" && (preview.priceChanges ?? 0) + (preview.stockChanges ?? 0) > 0 && (
+          {state === "preview" && (preview.priceChanges ?? 0) + (preview.stockChanges ?? 0) + (preview.categoryChanges ?? 0) > 0 && (
             <div className="flex justify-end">
               <Button onClick={handleApply} disabled={state !== "preview"}>
-                Aplicar {(preview.priceChanges ?? 0) + (preview.stockChanges ?? 0)} cambios
+                Aplicar {(preview.priceChanges ?? 0) + (preview.stockChanges ?? 0) + (preview.categoryChanges ?? 0)} cambios
               </Button>
             </div>
           )}
@@ -165,7 +166,7 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
               <div className="flex border-b border-border px-4 pt-3 gap-3 text-sm">
                 {(
                   [
-                    { key: "changes", label: `Con cambios (${(preview.priceChanges ?? 0) + (preview.stockChanges ?? 0)})` },
+                    { key: "changes", label: `Con cambios (${(preview.priceChanges ?? 0) + (preview.stockChanges ?? 0) + (preview.categoryChanges ?? 0)})` },
                     { key: "all", label: `Todos coincidentes (${preview.matchedCount ?? 0})` },
                     { key: "unmatched", label: `Sin coincidencia (${preview.unmatchedCount ?? 0})` },
                   ] as { key: Filter; label: string }[]
@@ -197,6 +198,7 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
                           <th className="px-4 py-2.5">SKU</th>
                           <th className="px-4 py-2.5">Nombre Crestron</th>
                           {filter !== "unmatched" && <th className="px-4 py-2.5">Producto en BD</th>}
+                          <th className="px-4 py-2.5">Categoría</th>
                           <th className="px-4 py-2.5 text-right">Precio actual</th>
                           <th className="px-4 py-2.5 text-right">Precio nuevo</th>
                           <th className="px-4 py-2.5">Stock LAREDO</th>
@@ -218,6 +220,14 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
                                 )}
                               </td>
                             )}
+                            <td className={`px-4 py-2.5 text-xs ${item.categoryChanged ? "text-accent font-medium" : "text-muted-foreground"}`}>
+                              {item.category || "—"}
+                              {item.categoryChanged && item.currentCategory && (
+                                <span className="block text-[10px] text-muted-foreground line-through">
+                                  {item.currentCategory}
+                                </span>
+                              )}
+                            </td>
                             <td className="px-4 py-2.5 text-right tabular-nums text-xs">
                               {fmtPrice(item.currentPrice)}
                             </td>

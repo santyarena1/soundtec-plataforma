@@ -25,9 +25,11 @@ export interface SyncPreviewItem {
   productId: string | null;
   productName: string | null;
   currentPrice: number | null;
+  currentCategory: string | null;
   currentStockStatus: string | null;
   priceChanged: boolean;
   stockChanged: boolean;
+  categoryChanged: boolean;
 }
 
 export interface SyncPreviewResponse {
@@ -39,6 +41,7 @@ export interface SyncPreviewResponse {
   unmatchedCount?: number;
   priceChanges?: number;
   stockChanges?: number;
+  categoryChanges?: number;
   items?: SyncPreviewItem[];
 }
 
@@ -61,6 +64,7 @@ export async function GET() {
         normalizedName: true,
         baseCostUsd: true,
         stockStatus: true,
+        familia: true,
       },
     });
 
@@ -70,13 +74,15 @@ export async function GET() {
       const product = byCode.get(item.ItemCode) ?? null;
       const newPrice = item.Price;
       const newStock = toCrestronStockStatus(item);
+      const newCategory = (item.Gpo ?? "").trim();
       const curPrice = product ? Number(product.baseCostUsd) : null;
+      const curCategory = product?.familia ?? null;
 
       return {
         itemCode: item.ItemCode,
         itemName: item.ItemName,
         currency: item.Currency,
-        category: item.Gpo,
+        category: newCategory,
         laredo: item["07"] ?? "—",
         miami: item["11"] ?? "—",
         factoryInfo: item.U_ETDCUS ?? "",
@@ -86,10 +92,13 @@ export async function GET() {
         productId: product?.id ?? null,
         productName: product?.normalizedName ?? null,
         currentPrice: curPrice,
+        currentCategory: curCategory,
         currentStockStatus: product?.stockStatus ?? null,
         priceChanged: curPrice !== null && curPrice !== newPrice,
         stockChanged:
           product !== null && product.stockStatus !== newStock,
+        categoryChanged:
+          product !== null && newCategory.length > 0 && (curCategory ?? "") !== newCategory,
       };
     });
 
@@ -103,6 +112,7 @@ export async function GET() {
       unmatchedCount: items.length - matched.length,
       priceChanges: matched.filter((i) => i.priceChanged).length,
       stockChanges: matched.filter((i) => i.stockChanged).length,
+      categoryChanges: matched.filter((i) => i.categoryChanged).length,
       items,
     } satisfies SyncPreviewResponse);
   } catch (err) {
@@ -135,11 +145,13 @@ export async function POST() {
       const product = byCode.get(item.ItemCode);
       if (!product) continue;
 
+      const newCategory = (item.Gpo ?? "").trim();
       await prisma.product.update({
         where: { id: product.id },
         data: {
           baseCostUsd: item.Price,
           stockStatus: toCrestronStockStatus(item),
+          ...(newCategory ? { familia: newCategory } : {}),
         },
       });
       updated++;
