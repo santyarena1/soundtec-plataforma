@@ -6,6 +6,10 @@ import { TableEmpty } from "@/components/ui/table";
 import { Plus } from "lucide-react";
 import { Prisma } from "@prisma/client";
 import { ProductsCatalogAdmin } from "./catalog-admin";
+import { ProductCompatList } from "../crestron-home/product-compat-list";
+import { CrestronActionsBar } from "../crestron-home/crestron-actions";
+import { Card, CardContent } from "@/components/ui/card";
+import Link from "next/link";
 import { Suspense } from "react";
 
 interface SP {
@@ -23,6 +27,7 @@ interface SP {
   sort?: string;
   page?: string;
   pageSize?: string;
+  tab?: string;
 }
 
 function multi(value: string | string[] | undefined): string[] {
@@ -48,6 +53,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   await requireAdmin();
   const showPrices = await canSeePrices();
   const params = await searchParams;
+  const tab = params.tab === "crestron" ? "crestron" : "catalog";
   const page = Math.max(1, Number(params.page) || 1);
   const pageSize = [12, 25, 50, 100, 200].includes(Number(params.pageSize))
     ? Number(params.pageSize)
@@ -86,7 +92,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const orderBy: Prisma.ProductOrderByWithRelationInput =
     SORT_MAP[params.sort || ""] ?? { normalizedName: "asc" };
 
-  const [products, total, brands, categories, families, distributors, allLabels] = await Promise.all([
+  const [products, total, brands, categories, families, distributors, allLabels, crestronProducts, compatibleCount] = await Promise.all([
     prisma.product.findMany({
       where,
       orderBy,
@@ -107,6 +113,12 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
+    prisma.product.findMany({
+      where: { isActive: true },
+      orderBy: [{ isCrestronHomeCompatible: "desc" }, { normalizedName: "asc" }],
+      select: { id: true, internalSku: true, normalizedName: true, isCrestronHomeCompatible: true },
+    }),
+    prisma.product.count({ where: { isCrestronHomeCompatible: true } }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -147,15 +159,43 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     <div className="space-y-4">
       <PageHeader
         title="Productos"
-        description={`${total} productos · página ${page} de ${totalPages}`}
+        description={tab === "crestron"
+          ? `${compatibleCount} de ${crestronProducts.length} productos compatibles con Crestron Home`
+          : `${total} productos · página ${page} de ${totalPages}`}
         actions={
-          <ButtonLink href="/admin/products/new">
-            <Plus className="h-4 w-4" /> Nuevo producto
-          </ButtonLink>
+          tab === "crestron" ? (
+            <CrestronActionsBar />
+          ) : (
+            <ButtonLink href="/admin/products/new">
+              <Plus className="h-4 w-4" /> Nuevo producto
+            </ButtonLink>
+          )
         }
       />
 
-      {rows.length === 0 &&
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-lg border border-border bg-card p-1 w-fit">
+        <Link
+          href="/admin/products"
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${tab === "catalog" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+        >
+          Catálogo
+        </Link>
+        <Link
+          href="/admin/products?tab=crestron"
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${tab === "crestron" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+        >
+          Crestron Home
+        </Link>
+      </div>
+
+      {tab === "crestron" ? (
+        <Card>
+          <CardContent className="p-5">
+            <ProductCompatList products={crestronProducts} />
+          </CardContent>
+        </Card>
+      ) : rows.length === 0 &&
       !params.q &&
       brandIds.length === 0 &&
       categoryIds.length === 0 &&
@@ -168,7 +208,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       !params.nodesc &&
       !params.crestron ? (
         <TableEmpty message="Todavía no hay productos. Creá uno o importá un Excel desde Importaciones." />
-      ) : (
+      ) : tab === "catalog" ? (
         <Suspense fallback={null}>
           <ProductsCatalogAdmin
             rows={rows}
@@ -198,7 +238,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
             allLabels={allLabels}
           />
         </Suspense>
-      )}
+      ) : null}
     </div>
   );
 }
