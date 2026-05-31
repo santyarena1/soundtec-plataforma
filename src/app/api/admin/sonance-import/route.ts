@@ -169,11 +169,12 @@ async function buildPreview(buffers: Buffer[]): Promise<SonancePreviewResponse> 
 export async function GET() {
   try {
     await requireAdmin();
-    const [url1, url2] = await Promise.all([
+    const [url1, url2, url3] = await Promise.all([
       getSetting("sonance.box_url_1", ""),
       getSetting("sonance.box_url_2", ""),
+      getSetting("sonance.box_url_3", ""),
     ]);
-    const urls = [url1, url2].filter(Boolean);
+    const urls = [url1, url2, url3].filter(Boolean);
     if (urls.length === 0)
       return NextResponse.json(
         { ok: false, error: "No hay links de Box configurados." },

@@ -12,11 +12,12 @@ export const metadata = { title: "Admin · Importación Sonance / IPORT / BLAZE"
 
 export default async function SonanceImportPage() {
   await requireAdmin();
-  const [url1, url2] = await Promise.all([
+  const [url1, url2, url3] = await Promise.all([
     getSetting("sonance.box_url_1", ""),
     getSetting("sonance.box_url_2", ""),
+    getSetting("sonance.box_url_3", ""),
   ]);
-  const hasLinks = !!(url1 || url2);
+  const hasLinks = !!(url1 || url2 || url3);
 
   return (
     <div className="space-y-6">
@@ -40,10 +41,14 @@ export default async function SonanceImportPage() {
             Pegá los links compartidos de Box tal como están. El sistema descarga los archivos directamente
             replicando el flujo del browser (page → request token → access token → download).
           </p>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <p className="text-xs text-muted-foreground">
+            Cada cuenta de my.sonance.com tiene su propia carpeta Box con su lista de precios.
+            Pegá un link Box por cuenta/marca — el sistema baja todos juntos y los unifica en la preview.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
             <form action={saveSetting} className="space-y-1.5">
               <input type="hidden" name="key" value="sonance.box_url_1" />
-              <Label htmlFor="box-url-1">Link 1 — Sonance + IPORT</Label>
+              <Label htmlFor="box-url-1">Cuenta 1 — Sonance + IPORT</Label>
               <Input
                 id="box-url-1"
                 name="value"
@@ -57,12 +62,26 @@ export default async function SonanceImportPage() {
             </form>
             <form action={saveSetting} className="space-y-1.5">
               <input type="hidden" name="key" value="sonance.box_url_2" />
-              <Label htmlFor="box-url-2">Link 2 — BLAZE by SONANCE</Label>
+              <Label htmlFor="box-url-2">Cuenta 2 — BLAZE by SONANCE</Label>
               <Input
                 id="box-url-2"
                 name="value"
                 type="url"
                 defaultValue={url2}
+                placeholder="https://danainnovations.app.box.com/s/.../file/..."
+              />
+              <div className="flex justify-end">
+                <Button type="submit" size="sm" variant="outline">Guardar</Button>
+              </div>
+            </form>
+            <form action={saveSetting} className="space-y-1.5">
+              <input type="hidden" name="key" value="sonance.box_url_3" />
+              <Label htmlFor="box-url-3">Cuenta 3 — JAMES</Label>
+              <Input
+                id="box-url-3"
+                name="value"
+                type="url"
+                defaultValue={url3}
                 placeholder="https://danainnovations.app.box.com/s/.../file/..."
               />
               <div className="flex justify-end">

@@ -40,6 +40,7 @@ type Tone = "success" | "warning" | "destructive" | "muted" | "accent";
 function brandTone(brand: string): Tone {
   if (brand === "SONANCE") return "accent";
   if (brand === "IPORT") return "success";
+  if (brand === "JAMES") return "destructive";
   if (brand.includes("BLAZE")) return "warning";
   return "muted";
 }

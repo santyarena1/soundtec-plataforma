@@ -1,7 +1,7 @@
 import https from "node:https";
 import * as XLSX from "xlsx";
 
-export type SonanceBrand = "SONANCE" | "IPORT" | "BLAZE by SONANCE";
+export type SonanceBrand = "SONANCE" | "IPORT" | "BLAZE by SONANCE" | "JAMES";
 
 export interface SonanceProduct {
   name: string;
@@ -83,6 +83,13 @@ function parseSonanceIport(ws: XLSX.WorkSheet): SonanceProduct[] {
     // ── Brand switch ──
     if (nameStr === "IPORT" && !colB && !colC) {
       brand = "IPORT";
+      category = "";
+      subcategory = "";
+      lastHeaderDepth = 0;
+      continue;
+    }
+    if ((nameStr === "JAMES" || nameStr === "JAMES LOUDSPEAKER") && !colB && !colC) {
+      brand = "JAMES";
       category = "";
       subcategory = "";
       lastHeaderDepth = 0;
