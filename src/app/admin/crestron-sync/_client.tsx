@@ -75,6 +75,11 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
     return preview.items.filter((i) => i.matched);
   })();
 
+  // Unique products that have any change — a single product can have price + category + stock all changing
+  const productsWithChanges = preview?.items
+    ? preview.items.filter((i) => i.matched && (i.priceChanged || i.stockChanged || i.categoryChanged)).length
+    : 0;
+
   const displayedItems = showAll ? filteredItems : filteredItems.slice(0, 50);
 
   return (
@@ -152,10 +157,15 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
           </div>
 
           {/* Apply button */}
-          {state === "preview" && (preview.priceChanges ?? 0) + (preview.stockChanges ?? 0) + (preview.categoryChanges ?? 0) > 0 && (
-            <div className="flex justify-end">
+          {state === "preview" && productsWithChanges > 0 && (
+            <div className="flex flex-wrap justify-end items-center gap-3">
+              <p className="text-xs text-muted-foreground">
+                {productsWithChanges} producto{productsWithChanges === 1 ? "" : "s"}
+                {" · "}
+                {preview.priceChanges ?? 0} precio · {preview.categoryChanges ?? 0} categoría · {preview.stockChanges ?? 0} stock
+              </p>
               <Button onClick={handleApply} disabled={state !== "preview"}>
-                Aplicar {(preview.priceChanges ?? 0) + (preview.stockChanges ?? 0) + (preview.categoryChanges ?? 0)} cambios
+                Actualizar {productsWithChanges} producto{productsWithChanges === 1 ? "" : "s"}
               </Button>
             </div>
           )}
@@ -166,7 +176,7 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
               <div className="flex border-b border-border px-4 pt-3 gap-3 text-sm">
                 {(
                   [
-                    { key: "changes", label: `Con cambios (${(preview.priceChanges ?? 0) + (preview.stockChanges ?? 0) + (preview.categoryChanges ?? 0)})` },
+                    { key: "changes", label: `Con cambios (${productsWithChanges})` },
                     { key: "all", label: `Todos coincidentes (${preview.matchedCount ?? 0})` },
                     { key: "unmatched", label: `Sin coincidencia (${preview.unmatchedCount ?? 0})` },
                   ] as { key: Filter; label: string }[]
