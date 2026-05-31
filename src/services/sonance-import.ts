@@ -327,8 +327,10 @@ export async function downloadFromBoxLink(sharedUrl: string): Promise<Buffer> {
   }
 
   throw new Error(
-    `Box: no se pudo descargar el archivo. ` +
-    `Verificá en Box → Share → Shared Link → Access: "People with the link".`
+    `Box ya no permite descargas server-side sin OAuth. ` +
+    `Box reemplazó el acceso por shared link header con tokens dinámicos generados por su React app, ` +
+    `imposibles de replicar de forma estable desde el servidor. ` +
+    `Usá la carga manual del archivo (sigue funcionando perfecto).`
   );
 }
 

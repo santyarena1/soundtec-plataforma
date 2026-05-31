@@ -128,10 +128,15 @@ async function login(): Promise<Record<string, string>> {
     throw new Error("Credenciales de Crestron no configuradas en el sistema.");
   }
 
-  // GET login page — follows redirects, accumulates cookies
-  const getRes = await rawRequest(`${BASE}/accounts/login/`, "GET", {
-    "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
-    Accept: "text/html",
+  // Login URL is /login/ — /accounts/login/ redirects there with a bad `next`.
+  // We use ?next=/clientes/precios so Django redirects us correctly after auth.
+  const LOGIN_URL = `${BASE}/login/?next=/clientes/precios`;
+  const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0";
+
+  // 1. GET login page → CSRF token + initial cookies
+  const getRes = await rawRequest(LOGIN_URL, "GET", {
+    "User-Agent": UA,
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
   });
 
   const initCookies = getRes.allCookies;
@@ -145,8 +150,7 @@ async function login(): Promise<Record<string, string>> {
     throw new Error("No se pudo obtener el token CSRF del sitio de Crestron.");
   }
 
-  // POST to the final URL after redirects (not necessarily the original /accounts/login/)
-  const loginUrl = getRes.finalUrl;
+  // 2. POST credentials
   const postBody = new URLSearchParams({
     username,
     password,
@@ -154,19 +158,15 @@ async function login(): Promise<Record<string, string>> {
     next: "/clientes/precios",
   }).toString();
 
-  const postRes = await rawRequestOnce(
-    loginUrl,
-    "POST",
-    {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Content-Length": String(Buffer.byteLength(postBody)),
-      Cookie: cookieStrFromMap(initCookies),
-      Referer: loginUrl,
-      "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
-      Accept: "text/html",
-    },
-    postBody
-  );
+  const postRes = await rawRequestOnce(LOGIN_URL, "POST", {
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Content-Length": String(Buffer.byteLength(postBody)),
+    Cookie: cookieStrFromMap(initCookies),
+    Referer: LOGIN_URL,
+    Origin: BASE,
+    "User-Agent": UA,
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  }, postBody);
 
   const authCookies = {
     ...initCookies,
@@ -174,12 +174,26 @@ async function login(): Promise<Record<string, string>> {
   };
 
   if (!authCookies["sessionid"]) {
+    // No sessionid means wrong credentials (Django re-renders the login page)
+    const bodySnippet = postRes.body
+      .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
     throw new Error(
-      `Login a Crestron fallido (HTTP ${postRes.status}). Verificá las credenciales configuradas.`
+      `Login a Crestron fallido (HTTP ${postRes.status}). ` +
+      `Verificá usuario/contraseña en /admin/crestron-sync. Respuesta: ${bodySnippet}`
     );
   }
 
-  return authCookies;
+  // 3. Visit /clientes/precios to "activate" the session — some Django setups
+  // require this before the API will accept the user as authorized.
+  const precioRes = await rawRequest(`${BASE}/clientes/precios`, "GET", {
+    Cookie: cookieStrFromMap(authCookies),
+    Referer: LOGIN_URL,
+    "User-Agent": UA,
+    Accept: "text/html,*/*",
+  }, undefined, authCookies);
+
+  // Merge any new cookies (csrftoken may rotate)
+  return { ...authCookies, ...precioRes.allCookies };
 }
 
 // ── DataTables API ────────────────────────────────────────────────────────────
