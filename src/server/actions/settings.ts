@@ -22,6 +22,7 @@ export async function saveSetting(formData: FormData): Promise<void> {
   revalidatePath("/admin/branding");
   revalidatePath("/admin/api-keys");
   revalidatePath("/admin/ai");
+  revalidatePath("/admin/crestron-sync");
 }
 
 const bulkSchema = z.record(z.string(), z.string());

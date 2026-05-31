@@ -26,7 +26,7 @@ function fmtPrice(p: number | null) {
   return `$ ${p.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function CrestronSyncPanel() {
+export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean }) {
   const [state, setState] = useState<"idle" | "loading" | "preview" | "applying" | "done" | "error">("idle");
   const [preview, setPreview] = useState<SyncPreviewResponse | null>(null);
   const [applyResult, setApplyResult] = useState<{ updated: number } | null>(null);
@@ -92,13 +92,19 @@ export function CrestronSyncPanel() {
             </div>
             <Button
               onClick={handlePreview}
-              disabled={state === "loading" || state === "applying"}
+              disabled={!hasCredentials || state === "loading" || state === "applying"}
               size="sm"
+              title={!hasCredentials ? "Configurá las credenciales primero" : undefined}
             >
               <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${state === "loading" ? "animate-spin" : ""}`} />
               {state === "loading" ? "Obteniendo datos…" : "Previsualizar sincronización"}
             </Button>
           </div>
+          {!hasCredentials && (
+            <p className="text-xs text-warning">
+              Configurá el usuario y contraseña arriba antes de sincronizar.
+            </p>
+          )}
         </CardContent>
       </Card>
 

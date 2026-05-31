@@ -1,4 +1,5 @@
 import { StockStatus } from "@prisma/client";
+import { getSetting } from "@/lib/settings";
 
 const BASE = "https://crestronlatam.xtrabone.mx";
 
@@ -46,10 +47,8 @@ function cookieStr(cookies: Record<string, string>): string {
 }
 
 async function login(): Promise<Record<string, string>> {
-  const username =
-    process.env.CRESTRON_USERNAME ?? "comex@soundtec.com.ar";
-  const password =
-    process.env.CRESTRON_PASSWORD ?? "stecpass23";
+  const username = await getSetting("crestron.username", "comex@soundtec.com.ar");
+  const password = await getSetting("crestron.password", "stecpass23");
 
   // GET login page → grab CSRF token and initial cookie
   const getRes = await fetch(`${BASE}/accounts/login/`, {
