@@ -54,6 +54,7 @@ interface Row {
   shortDescription: string | null;
   longDescription: string | null;
   aiGeneratedDescription: boolean;
+  isCrestronHomeCompatible: boolean;
   updatedAt: string;
   labels: { id: string; name: string; color: string }[];
 }
@@ -659,9 +660,10 @@ function renderCell(
           <Link href={`/admin/products/${r.id}`} className="font-medium hover:underline">
             {r.name}
           </Link>
-          <p className="text-xs text-muted-foreground">
+          <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
             {r.kind === "ACCESORIO" ? "Accesorio" : "Principal"}
             {r.isCustomizable ? " · Configurable" : ""}
+            {r.isCrestronHomeCompatible ? <Badge tone="primary">Crestron Home</Badge> : null}
           </p>
         </div>
       );

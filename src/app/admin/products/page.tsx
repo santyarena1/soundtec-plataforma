@@ -136,6 +136,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     shortDescription: p.shortDescription || null,
     longDescription: p.longDescription || null,
     aiGeneratedDescription: p.aiGeneratedDescription,
+    isCrestronHomeCompatible: p.isCrestronHomeCompatible,
     updatedAt: p.updatedAt.toISOString(),
     labels: p.labels.map((pl) => pl.label),
   }));

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { upsertCrestronDevice, deleteCrestronDevice } from "@/server/actions/crestron-home";
+import { CrestronActionsBar } from "./crestron-actions";
 
 export const metadata = { title: "Admin · Crestron Home" };
 
@@ -54,11 +55,14 @@ export default async function CrestronHomePage() {
     return acc;
   }, {});
 
+  const compatibleCount = await prisma.product.count({ where: { isCrestronHomeCompatible: true } });
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Crestron Home"
-        description={`Dispositivos compatibles con Crestron Home · ${devices.length} registros`}
+        description={`Dispositivos compatibles con Crestron Home · ${devices.length} modelos · ${compatibleCount} productos marcados`}
+        actions={<CrestronActionsBar />}
       />
 
       <Card>

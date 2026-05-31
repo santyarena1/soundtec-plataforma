@@ -54,6 +54,7 @@ export function CatalogGrid({ items }: { items: CatalogProduct[] }) {
                 </Badge>
               ) : null}
               {p.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : null}
+              {p.isCrestronHomeCompatible ? <Badge tone="primary">Crestron Home</Badge> : null}
             </div>
 
             <div className="mt-auto space-y-1">

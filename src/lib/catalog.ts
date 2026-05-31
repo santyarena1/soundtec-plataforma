@@ -36,6 +36,7 @@ export interface CatalogProduct {
   stockStatus: string;
   stockQuantity: number | null;
   isCustomizable: boolean;
+  isCrestronHomeCompatible: boolean;
   kind: "PRINCIPAL" | "ACCESORIO";
   accessoryRequiredWithPrimary: boolean;
   pricing: PriceBreakdown;
@@ -191,6 +192,7 @@ async function mapProductsToCatalogItems(
     stockStatus: p.stockStatus,
     stockQuantity: p.stockQuantity,
     isCustomizable: p.isCustomizable,
+    isCrestronHomeCompatible: p.isCrestronHomeCompatible,
     kind: p.kind,
     accessoryRequiredWithPrimary: p.accessoryRequiredWithPrimary,
     pricing: prices.get(p.id)!,
