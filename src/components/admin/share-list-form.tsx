@@ -328,7 +328,7 @@ export function ShareListForm({
           <FilterSection title="Marcas" options={brands} selected={brandIds} onToggle={(id) => toggle(setBrandIds, id)} onToggleAll={(ids) => toggleAll(setBrandIds, ids)} />
           <FilterSection title="Categorías" options={categories} selected={categoryIds} onToggle={(id) => toggle(setCategoryIds, id)} onToggleAll={(ids) => toggleAll(setCategoryIds, ids)} />
           <FilterSection title="Familias" options={families} selected={familyIds} onToggle={(id) => toggle(setFamilyIds, id)} onToggleAll={(ids) => toggleAll(setFamilyIds, ids)} />
-          <FilterSection title="Distribuidores" options={distributors} selected={distributorIds} onToggle={(id) => toggle(setDistributorIds, id)} onToggleAll={(ids) => toggleAll(setDistributorIds, ids)} />
+          <FilterSection title="Proveedores" options={distributors} selected={distributorIds} onToggle={(id) => toggle(setDistributorIds, id)} onToggleAll={(ids) => toggleAll(setDistributorIds, ids)} />
           <FilterSection title="Productos específicos" options={products} selected={productIds} onToggle={(id) => toggle(setProductIds, id)} onToggleAll={(ids) => toggleAll(setProductIds, ids)} />
           <FilterSection title="Excluir productos" options={products} selected={excludeProductIds} onToggle={(id) => toggle(setExcludeProductIds, id)} onToggleAll={(ids) => toggleAll(setExcludeProductIds, ids)} />
         </div>

@@ -36,10 +36,15 @@ export async function upsertAccessoryRelation(formData: FormData): Promise<void>
         isRequired: parsed.data.isRequired ?? false,
       },
     }),
-    // Asegura que el producto vinculado tenga tipo accesorio.
+    // El accesorio pasa a tipo ACCESORIO.
     prisma.product.update({
       where: { id: parsed.data.accessoryProductId },
       data: { kind: "ACCESORIO" },
+    }),
+    // El producto principal se marca como configurable.
+    prisma.product.update({
+      where: { id: parsed.data.productId },
+      data: { isCustomizable: true },
     }),
   ]);
 

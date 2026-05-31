@@ -8,7 +8,7 @@ import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/tab
 import { Badge } from "@/components/ui/badge";
 import { upsertDistributor } from "@/server/actions/admin-catalog";
 
-export const metadata = { title: "Admin · Distribuidores" };
+export const metadata = { title: "Admin · Proveedores" };
 
 export default async function AdminDistributorsPage() {
   await requireAdmin();
@@ -19,11 +19,11 @@ export default async function AdminDistributorsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Distribuidores" description="Proveedores y distribuidores asociados." />
+      <PageHeader title="Proveedores" description="Proveedores asociados al catálogo." />
 
       <Card>
         <CardContent className="p-6">
-          <h2 className="heading-3 mb-3">Nuevo distribuidor</h2>
+          <h2 className="heading-3 mb-3">Nuevo proveedor</h2>
           <form action={upsertDistributor} className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="name" required>Nombre</Label>
@@ -38,20 +38,19 @@ export default async function AdminDistributorsPage() {
               Activo
             </label>
             <div className="sm:col-span-2 flex justify-end">
-              <Button type="submit">Crear distribuidor</Button>
+              <Button type="submit">Crear proveedor</Button>
             </div>
           </form>
         </CardContent>
       </Card>
 
       {list.length === 0 ? (
-        <TableEmpty message="Sin distribuidores cargados." />
+        <TableEmpty message="Sin proveedores cargados." />
       ) : (
         <Table>
           <THead>
             <TR>
-              <TH>Distribuidor</TH>
-              <TH>Slug</TH>
+              <TH>Proveedor</TH>
               <TH>Productos</TH>
               <TH>Listas</TH>
               <TH>Estado</TH>
@@ -61,7 +60,6 @@ export default async function AdminDistributorsPage() {
             {list.map((d) => (
               <TR key={d.id}>
                 <TD className="font-medium">{d.name}</TD>
-                <TD className="text-muted-foreground">{d.slug}</TD>
                 <TD>{d._count.products}</TD>
                 <TD>{d._count.priceLists}</TD>
                 <TD>{d.isActive ? <Badge tone="success">Activo</Badge> : <Badge tone="muted">Inactivo</Badge>}</TD>

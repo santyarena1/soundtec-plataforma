@@ -51,7 +51,7 @@ export default async function AdminImportsPage() {
               <Input id="newBrandName" name="newBrandName" placeholder="Ej. Crestron" />
             </div>
             <div>
-              <Label htmlFor="distributorId">Distribuidor existente</Label>
+              <Label htmlFor="distributorId">Proveedor existente</Label>
               <Select id="distributorId" name="distributorId">
                 <option value="">— ninguno —</option>
                 {distributors.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}

@@ -131,13 +131,12 @@ export async function generateLongDescription(input: { name: string; brand?: str
   }
   try {
     const model = await getModel();
+    const customSystemPrompt = await getSetting("ai.prompt.long_description", "");
+    const systemPrompt = customSystemPrompt || "Sos un copywriter técnico B2B para productos audiovisuales profesionales. Escribís en español, neutro, claro, sin marketing barato.";
     const resp = await client.chat.completions.create({
       model,
       messages: [
-        {
-          role: "system",
-          content: "Sos un copywriter técnico B2B para productos audiovisuales profesionales. Escribís en español, neutro, claro, sin marketing barato.",
-        },
+        { role: "system", content: systemPrompt },
         {
           role: "user",
           content: `Generá una descripción larga (4-7 oraciones) para:
@@ -153,6 +152,36 @@ Indicá usos típicos, integración y datos técnicos relevantes sólo si los co
   } catch (error) {
     console.error("OpenAI generateLongDescription error", error);
     return `${input.name} — descripción profesional no disponible en este momento.`;
+  }
+}
+
+export async function generateShortDescription(input: { name: string; brand?: string; category?: string }): Promise<string> {
+  const client = await getClient();
+  if (!client) {
+    return `${input.name}${input.brand ? ` – ${input.brand}` : ""}. Descripción corta pendiente.`;
+  }
+  try {
+    const model = await getModel();
+    const customSystemPrompt = await getSetting("ai.prompt.short_description", "");
+    const systemPrompt = customSystemPrompt || "Sos un copywriter técnico B2B para productos audiovisuales profesionales. Escribís en español, neutro y conciso.";
+    const resp = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `Generá una descripción corta (1-2 oraciones, máximo 120 palabras) para:
+Producto: ${input.name}
+Marca: ${input.brand || "—"}
+Categoría: ${input.category || "—"}
+Sé directo: qué es y para qué sirve. Sin adjetivos vacíos.`,
+        },
+      ],
+    });
+    return resp.choices[0]?.message.content?.trim() || "";
+  } catch (error) {
+    console.error("OpenAI generateShortDescription error", error);
+    return `${input.name} — descripción corta no disponible.`;
   }
 }
 

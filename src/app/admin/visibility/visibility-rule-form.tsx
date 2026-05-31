@@ -132,7 +132,7 @@ export function VisibilityRuleForm({
             }}
           >
             <option value="BRAND">Marcas</option>
-            <option value="DISTRIBUTOR">Distribuidores</option>
+            <option value="DISTRIBUTOR">Proveedores</option>
             <option value="CATEGORY">Categorías</option>
             <option value="FAMILY">Familias</option>
             <option value="PRODUCT">Productos</option>

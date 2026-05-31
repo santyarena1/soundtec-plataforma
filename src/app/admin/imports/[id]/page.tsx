@@ -48,7 +48,7 @@ export default async function ImportDetailPage({ params }: { params: Promise<{ i
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Card><CardContent className="flex items-center gap-3 p-4"><Tag className="h-4 w-4 text-muted-foreground" /><span className="text-sm">Marca: <span className="font-medium">{batch.brand?.name || "—"}</span></span></CardContent></Card>
-        <Card><CardContent className="flex items-center gap-3 p-4"><Truck className="h-4 w-4 text-muted-foreground" /><span className="text-sm">Distribuidor: <span className="font-medium">{batch.distributor?.name || "—"}</span></span></CardContent></Card>
+        <Card><CardContent className="flex items-center gap-3 p-4"><Truck className="h-4 w-4 text-muted-foreground" /><span className="text-sm">Proveedor: <span className="font-medium">{batch.distributor?.name || "—"}</span></span></CardContent></Card>
         <Card><CardContent className="flex items-center gap-3 p-4"><FileSpreadsheet className="h-4 w-4 text-muted-foreground" /><span className="text-sm">Lista: <span className="font-medium">{batch.priceList?.name || "—"}</span></span></CardContent></Card>
       </div>
 

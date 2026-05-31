@@ -13,19 +13,22 @@ export const metadata = { title: "Admin · Márgenes" };
 
 export default async function AdminMarginsPage() {
   await requireAdmin();
-  const [rules, clients, brands, distributors, categories, families, products] = await Promise.all([
-    prisma.marginRule.findMany({ orderBy: [{ priority: "asc" }, { createdAt: "desc" }] }),
-    prisma.client.findMany({
-      where: { isActive: true },
-      orderBy: { companyName: "asc" },
-      select: { id: true, companyName: true, contactName: true },
-    }),
-    prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.product.findMany({ orderBy: { normalizedName: "asc" }, select: { id: true, normalizedName: true } }),
-  ]);
+  const [rules, clients, brands, distributors, categories, families, products] =
+    await Promise.all([
+      prisma.marginRule.findMany({ orderBy: [{ priority: "asc" }, { createdAt: "desc" }] }),
+      prisma.client.findMany({
+        where: { isActive: true },
+        orderBy: { companyName: "asc" },
+        select: { id: true, companyName: true, contactName: true },
+      }),
+      prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+      prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+      prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+      prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+      prisma.product.findMany({ orderBy: { normalizedName: "asc" }, select: { id: true, normalizedName: true } }),
+    ]);
+
+  const clientMap = new Map(clients.map((c) => [c.id, c.companyName || c.contactName || c.id]));
 
   return (
     <div className="space-y-6">
@@ -79,7 +82,9 @@ export default async function AdminMarginsPage() {
                   <Badge tone="primary">{r.scopeType}</Badge>{" "}
                   <span className="text-xs text-muted-foreground">{r.scopeId || "—"}</span>
                 </TD>
-                <TD className="text-xs text-muted-foreground">{r.clientId || "—"}</TD>
+                <TD className="text-xs text-muted-foreground">
+                  {r.clientId ? (clientMap.get(r.clientId) ?? r.clientId.slice(-6)) : "—"}
+                </TD>
                 <TD className="text-right">{Number(r.marginPercent).toFixed(2)}%</TD>
                 <TD>{r.isActive ? <Badge tone="success">Activa</Badge> : <Badge tone="muted">Inactiva</Badge>}</TD>
                 <TD className="text-right">

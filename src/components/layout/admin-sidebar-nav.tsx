@@ -24,6 +24,7 @@ import {
   Truck,
   Users,
   ChevronRight,
+  Home,
 } from "lucide-react";
 import type { PermissionScope } from "@/lib/permissions";
 
@@ -49,7 +50,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view" },
       { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage" },
-      { href: "/admin/distributors", label: "Distribuidores", icon: Truck, scope: "distributors.manage" },
+      { href: "/admin/distributors", label: "Proveedores", icon: Truck, scope: "distributors.manage" },
       { href: "/admin/categories", label: "Categorías", icon: Building2, scope: "categories.manage" },
       { href: "/admin/families", label: "Familias", icon: Building2, scope: "families.manage" },
     ],
@@ -83,6 +84,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/admin/landing", label: "Landing pública", icon: Globe2, scope: "landing.manage" },
       { href: "/admin/ai", label: "IA y feedback", icon: Sparkles, scope: "ai.manage" },
+      { href: "/admin/crestron-home", label: "Crestron Home", icon: Home, scope: "products.view" },
     ],
   },
   {

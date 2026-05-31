@@ -83,6 +83,14 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               discountPercent: product.discountPercent ? Number(product.discountPercent) : null,
               tariffPosition: product.tariffPosition ?? null,
               tariffDutyPercent: product.tariffDutyPercent ? Number(product.tariffDutyPercent) : null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              coefNac: (product as any).coefNac ? Number((product as any).coefNac) : null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ivaPercent: (product as any).ivaPercent ? Number((product as any).ivaPercent) : null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              impIntPercent: (product as any).impIntPercent ? Number((product as any).impIntPercent) : null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              coefVtaFob: (product as any).coefVtaFob ? Number((product as any).coefVtaFob) : null,
               stockStatus: product.stockStatus,
               stockQuantity: product.stockQuantity,
               isCustomizable: product.isCustomizable,

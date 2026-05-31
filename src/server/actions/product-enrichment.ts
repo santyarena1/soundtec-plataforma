@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
-import { generateLongDescription, suggestProductClassification, type ClassificationSuggestion } from "@/services/openai";
+import { generateLongDescription, generateShortDescription, suggestProductClassification, type ClassificationSuggestion } from "@/services/openai";
 import { searchProductImages, type SerperImage } from "@/services/serper";
 
 export async function suggestClassificationAction(
@@ -152,18 +152,83 @@ export async function setPrimaryImage(formData: FormData): Promise<void> {
   revalidatePath(`/portal/products/${productId}`);
 }
 
+export type DescriptionType = "short" | "long" | "both";
+
+export interface BulkDescriptionResult {
+  id: string;
+  name: string;
+  short: string | null;
+  long: string | null;
+  error?: string;
+}
+
 /**
- * Genera descripciones largas con IA para varios productos en lote.
- * Útil desde el bulk-bar (selección de productos en /admin/products).
+ * Genera descripciones en modo PREVIEW (sin guardar) para editar antes de confirmar.
+ */
+export async function previewBulkDescriptions(
+  productIds: string[],
+  type: DescriptionType
+): Promise<{ ok: boolean; results: BulkDescriptionResult[] }> {
+  await requireAdmin();
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    include: { brand: true, category: true },
+  });
+
+  const results: BulkDescriptionResult[] = [];
+  for (const p of products) {
+    try {
+      let short: string | null = null;
+      let long: string | null = null;
+      if (type === "short" || type === "both") {
+        short = await generateShortDescription({ name: p.normalizedName, brand: p.brand?.name, category: p.category?.name });
+      }
+      if (type === "long" || type === "both") {
+        long = await generateLongDescription({ name: p.normalizedName, brand: p.brand?.name, category: p.category?.name, short: p.shortDescription || undefined });
+      }
+      results.push({ id: p.id, name: p.normalizedName, short, long });
+    } catch (e) {
+      results.push({ id: p.id, name: p.normalizedName, short: null, long: null, error: "Error al generar" });
+    }
+  }
+  return { ok: true, results };
+}
+
+/**
+ * Guarda las descripciones revisadas/editadas desde el modal.
+ */
+export async function saveBulkDescriptions(
+  items: Array<{ id: string; short?: string | null; long?: string | null }>
+): Promise<{ ok: boolean; saved: number }> {
+  await requireAdmin();
+  let saved = 0;
+  for (const item of items) {
+    const data: Record<string, unknown> = {};
+    if (item.short !== undefined) data.shortDescription = item.short || null;
+    if (item.long !== undefined) {
+      data.longDescription = item.long || null;
+      data.aiGeneratedDescription = Boolean(item.long);
+      data.aiDescriptionFeedbackStatus = item.long ? "PENDING" : null;
+    }
+    if (Object.keys(data).length) {
+      await prisma.product.update({ where: { id: item.id }, data });
+      saved++;
+    }
+  }
+  revalidatePath("/admin/products");
+  return { ok: true, saved };
+}
+
+/**
+ * Genera descripciones largas con IA para varios productos en lote (modo directo, sin preview).
  */
 export async function bulkGenerateDescriptions(
   productIds: string[]
 ): Promise<{ ok: boolean; processed: number; errors: number }> {
   await requireAdmin();
-  const ids = productIds;
   let processed = 0;
   let errors = 0;
-  for (const id of ids) {
+  for (const id of productIds) {
     try {
       const r = await generateProductDescription(id);
       if (r.ok) processed++;

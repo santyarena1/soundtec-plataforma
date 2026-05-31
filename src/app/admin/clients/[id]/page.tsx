@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Tabs } from "@/components/ui/tabs";
@@ -19,12 +19,13 @@ import {
   deleteClientExtraDiscount,
 } from "@/server/actions/admin-client-detail";
 import { upsertClient } from "@/server/actions/clients";
+import { CreatePortalUserForm } from "@/components/admin/create-portal-user-form";
 import { formatDate, formatUsd } from "@/lib/utils";
 
 function textoAlcance(scope: string) {
   const map: Record<string, string> = {
     BRAND: "Marca",
-    DISTRIBUTOR: "Distribuidor",
+    DISTRIBUTOR: "Proveedor",
     CATEGORY: "Categoría",
     FAMILY: "Familia",
     PRODUCT: "Producto",
@@ -117,9 +118,6 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
         actions={
           <div className="flex items-center gap-2">
             {client.isActive ? <Badge tone="success">Activo</Badge> : <Badge tone="muted">Inactivo</Badge>}
-            <ButtonLink href="/admin/users" variant="outline" size="sm">
-              Crear usuario de portal
-            </ButtonLink>
           </div>
         }
       />
@@ -186,28 +184,27 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
                     </div>
                   </form>
 
-                  <div className="border-t border-border pt-4">
-                    <h4 className="mb-2 text-sm font-semibold">Usuarios de portal vinculados</h4>
-                    {client.portalUsers.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        Sin usuarios. Creá uno en{" "}
-                        <Link href="/admin/users" className="text-accent hover:underline">
-                          Usuarios
-                        </Link>{" "}
-                        y asignale este cliente.
-                      </p>
-                    ) : (
-                      <ul className="space-y-1 text-sm">
+                  <div className="border-t border-border pt-4 space-y-3">
+                    <h4 className="text-sm font-semibold">Usuarios de portal</h4>
+                    {client.portalUsers.length > 0 && (
+                      <ul className="space-y-1 text-sm mb-3">
                         {client.portalUsers.map((u) => (
-                          <li key={u.id}>
+                          <li key={u.id} className="flex items-center gap-2">
                             <Link href={`/admin/users/${u.id}`} className="text-accent hover:underline">
                               {u.name}
-                            </Link>{" "}
-                            · {u.email} {u.isActive ? "" : "(inactivo)"}
+                            </Link>
+                            <span className="text-muted-foreground">· {u.email}</span>
+                            {!u.isActive && <span className="text-xs text-muted-foreground">(inactivo)</span>}
+                            {u.lastLoginAt && (
+                              <span className="text-xs text-muted-foreground">
+                                Último acceso: {formatDate(u.lastLoginAt)}
+                              </span>
+                            )}
                           </li>
                         ))}
                       </ul>
                     )}
+                    <CreatePortalUserForm clientId={client.id} />
                   </div>
                 </CardContent>
               </Card>

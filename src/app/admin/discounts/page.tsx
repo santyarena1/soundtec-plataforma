@@ -27,6 +27,8 @@ export default async function AdminDiscountsPage() {
     prisma.product.findMany({ orderBy: { normalizedName: "asc" }, select: { id: true, normalizedName: true } }),
   ]);
 
+  const clientMap = new Map(clients.map((c) => [c.id, c.companyName || c.contactName || c.id]));
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -79,7 +81,9 @@ export default async function AdminDiscountsPage() {
                   <Badge tone="primary">{r.scopeType}</Badge>{" "}
                   <span className="text-xs text-muted-foreground">{r.scopeId || "—"}</span>
                 </TD>
-                <TD className="text-xs text-muted-foreground">{r.clientId || "—"}</TD>
+                <TD className="text-xs text-muted-foreground">
+                  {r.clientId ? (clientMap.get(r.clientId) ?? r.clientId.slice(-6)) : "—"}
+                </TD>
                 <TD className="text-right">{Number(r.discountPercent).toFixed(2)}%</TD>
                 <TD>{r.isActive ? <Badge tone="success">Activa</Badge> : <Badge tone="muted">Inactiva</Badge>}</TD>
                 <TD className="text-right">

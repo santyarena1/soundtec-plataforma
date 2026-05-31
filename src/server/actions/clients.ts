@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
@@ -56,6 +57,43 @@ export async function upsertClient(formData: FormData): Promise<void> {
     await prisma.client.create({ data });
   }
   revalidatePath("/admin/clients");
+}
+
+const portalUserSchema = z.object({
+  clientId: z.string().min(1),
+  name: z.string().min(2).max(120),
+  email: z.string().email(),
+  password: z.string().min(8).max(120),
+});
+
+export async function createPortalUser(
+  formData: FormData
+): Promise<{ ok: boolean; error?: string }> {
+  await requireAdmin();
+  const parsed = portalUserSchema.safeParse({
+    clientId: formData.get("clientId"),
+    name: formData.get("name"),
+    email: String(formData.get("email") || "").toLowerCase().trim(),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+
+  const exists = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+  if (exists) return { ok: false, error: "Ya existe un usuario con ese email." };
+
+  const hash = await bcrypt.hash(parsed.data.password, 12);
+  await prisma.user.create({
+    data: {
+      name: parsed.data.name,
+      email: parsed.data.email,
+      passwordHash: hash,
+      role: "CLIENT",
+      clientId: parsed.data.clientId,
+      isActive: true,
+    },
+  });
+  revalidatePath(`/admin/clients/${parsed.data.clientId}`);
+  return { ok: true };
 }
 
 export async function toggleClientActive(formData: FormData): Promise<void> {

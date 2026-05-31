@@ -88,7 +88,6 @@ export default async function AdminCategoriesPage() {
             <TR>
               <TH>Categoría</TH>
               <TH>Padre</TH>
-              <TH>Slug</TH>
               <TH>Productos</TH>
             </TR>
           </THead>
@@ -97,7 +96,6 @@ export default async function AdminCategoriesPage() {
               <TR key={c.id}>
                 <TD className="font-medium">{c.name}</TD>
                 <TD>{c.parent?.name || "—"}</TD>
-                <TD className="text-muted-foreground">{c.slug}</TD>
                 <TD>{c._count.products}</TD>
               </TR>
             ))}

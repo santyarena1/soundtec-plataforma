@@ -56,7 +56,6 @@ export default async function AdminBrandsPage() {
           <THead>
             <TR>
               <TH>Marca</TH>
-              <TH>Slug</TH>
               <TH>Productos</TH>
               <TH>Estado</TH>
               <TH></TH>
@@ -66,7 +65,6 @@ export default async function AdminBrandsPage() {
             {brands.map((b) => (
               <TR key={b.id}>
                 <TD className="font-medium">{b.name}</TD>
-                <TD className="text-muted-foreground">{b.slug}</TD>
                 <TD>{b._count.products}</TD>
                 <TD>
                   {b.isActive ? <Badge tone="success">Activa</Badge> : <Badge tone="muted">Inactiva</Badge>}

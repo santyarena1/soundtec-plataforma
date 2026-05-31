@@ -205,6 +205,17 @@ model Product {
   stockQuantity           Int?
 
   discountPercent         Decimal? @db.Decimal(6, 3)
+
+  // Cadena de importación FOB → NAC
+  // COSTO CON ARANCEL = baseCostUsd × (1 + tariffDutyPercent/100)
+  // PRECIO NAC        = COSTO CON ARANCEL × tcVenta × coefNac
+  // PRECIO NAC FINAL  = PRECIO NAC × (1 + ivaPercent/100) × (1 + impIntPercent/100)
+  // PRECIO VTA FOB    = baseCostUsd × coefVtaFob
+  coefNac                 Decimal? @db.Decimal(8, 4)  // coef. venta nacional (null = usar global)
+  ivaPercent              Decimal? @db.Decimal(5, 2)  // IVA % (default 21)
+  impIntPercent           Decimal? @db.Decimal(5, 2)  // Impuesto interno % (default 0)
+  coefVtaFob              Decimal? @db.Decimal(8, 4)  // coef. venta FOB
+
   isCustomizable          Boolean  @default(false)
   kind                    ProductKind @default(PRINCIPAL)
   accessoryRequiredWithPrimary Boolean @default(false)
@@ -702,6 +713,28 @@ model AccountMovement {
 
   @@index([clientId, createdAt])
   @@index([paidAt])
+}
+
+// ---------------------------------------------
+// CRESTRON HOME COMPATIBLE DEVICES
+// ---------------------------------------------
+
+model CrestronHomeDevice {
+  id          String   @id @default(cuid())
+  modelNumber String
+  productName String
+  category    String   // "Audio", "Cameras", "Lighting", etc.
+  subCategory String?  // "In-Ceiling", "Wireless", etc.
+  brand       String?  // "Crestron", "Lutron", "Yale", etc.
+  protocol    String?  // "Cresnet", "infiNET EX", "Ethernet"
+  notes       String?
+  sourceUrl   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([brand])
 }
 
 // ---------------------------------------------

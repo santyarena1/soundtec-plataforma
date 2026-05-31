@@ -27,7 +27,7 @@ export default async function MappingsPage() {
             <TR>
               <TH>Nombre</TH>
               <TH>Marca</TH>
-              <TH>Distribuidor</TH>
+              <TH>Proveedor</TH>
               <TH>Tipo</TH>
               <TH>Actualizado</TH>
             </TR>

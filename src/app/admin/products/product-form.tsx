@@ -26,6 +26,10 @@ interface Props {
     discountPercent: number | null;
     tariffPosition: string | null;
     tariffDutyPercent: number | null;
+    coefNac: number | null;
+    ivaPercent: number | null;
+    impIntPercent: number | null;
+    coefVtaFob: number | null;
     stockStatus: string;
     stockQuantity: number | null;
     isCustomizable: boolean;
@@ -90,7 +94,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
           </Select>
         </div>
         <div>
-          <Label htmlFor="distributorId">Distribuidor</Label>
+          <Label htmlFor="distributorId">Proveedor</Label>
           <Select id="distributorId" name="distributorId" defaultValue={product?.distributorId || ""}>
             <option value="">—</option>
             {distributors.map((d) => (<option key={d.id} value={d.id}>{d.name}</option>))}
@@ -155,13 +159,67 @@ export function ProductForm({ product, brands, distributors, categories, familie
             name="tariffDutyPercent"
             type="number"
             min={0}
-            max={100}
             step="0.01"
             placeholder="Ej. 18"
             defaultValue={product?.tariffDutyPercent ?? ""}
           />
           <p className="mt-1 text-[11px] text-muted-foreground">
             Se suma al costo base antes de aplicar margen. Ej: costo 100 + 18% = costo final 118 antes del margen.
+          </p>
+        </div>
+
+        <div>
+          <Label htmlFor="coefNac">Coef. precio NAC (vacío = global)</Label>
+          <Input
+            id="coefNac"
+            name="coefNac"
+            type="number"
+            min={0}
+            step="0.0001"
+            placeholder="Ej. 3.5"
+            defaultValue={product?.coefNac ?? ""}
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Precio NAC = Costo con arancel × TC × Coef. Si vacío, usa el coef. global.
+          </p>
+        </div>
+        <div>
+          <Label htmlFor="ivaPercent">IVA (%)</Label>
+          <Input
+            id="ivaPercent"
+            name="ivaPercent"
+            type="number"
+            min={0}
+            step="0.01"
+            placeholder="21"
+            defaultValue={product?.ivaPercent ?? ""}
+          />
+        </div>
+        <div>
+          <Label htmlFor="impIntPercent">Imp. Interno (%)</Label>
+          <Input
+            id="impIntPercent"
+            name="impIntPercent"
+            type="number"
+            min={0}
+            step="0.01"
+            placeholder="0"
+            defaultValue={product?.impIntPercent ?? ""}
+          />
+        </div>
+        <div>
+          <Label htmlFor="coefVtaFob">Coef. venta FOB</Label>
+          <Input
+            id="coefVtaFob"
+            name="coefVtaFob"
+            type="number"
+            min={0}
+            step="0.0001"
+            placeholder="Ej. 1.15"
+            defaultValue={product?.coefVtaFob ?? ""}
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Precio venta FOB = Costo base × Coef. FOB.
           </p>
         </div>
 

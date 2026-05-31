@@ -22,7 +22,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { bulkUpdateProducts } from "@/server/actions/admin-catalog";
-import { bulkGenerateDescriptions, bulkSearchImages } from "@/server/actions/product-enrichment";
+import { bulkSearchImages } from "@/server/actions/product-enrichment";
+import { BulkDescriptionsModal } from "@/components/admin/bulk-descriptions-modal";
 
 type Option = { id: string; name: string };
 
@@ -122,7 +123,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "brand", label: "Marca" },
   { key: "category", label: "Categoría" },
   { key: "family", label: "Familia" },
-  { key: "distributor", label: "Distribuidor" },
+  { key: "distributor", label: "Proveedor" },
   { key: "kind", label: "Tipo" },
   { key: "customizable", label: "Configurable" },
   { key: "cost", label: "Costo USD", requiresPrices: true },
@@ -162,6 +163,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const [bulkDiscount, setBulkDiscount] = useState("");
   const [pending, start] = useTransition();
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
+  const [showDescModal, setShowDescModal] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [columnPickerOpen, setColumnPickerOpen] = useState(false);
 
@@ -209,7 +211,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const distributorIdsFromUrl = search.getAll("distributor");
   const stockFromUrl = search.getAll("stock");
   const activeFromUrl = search.get("active") || "";
-  const sortFromUrl = search.get("sort") || "updated_desc";
+  const sortFromUrl = search.get("sort") || "name_asc";
 
   const [qInput, setQInput] = useState(qFromUrl);
   const debouncedQ = useDebouncedValue(qInput, 350);
@@ -301,18 +303,6 @@ export function ProductsCatalogAdmin(props: Props) {
     });
   }
 
-  function aiDescribe() {
-    if (selected.size === 0) return;
-    if (!window.confirm(`Generar descripciones IA para ${selected.size} producto(s)? Esto puede consumir tokens.`)) return;
-    setBulkMsg(null);
-    start(async () => {
-      const r = await bulkGenerateDescriptions([...selected]);
-      setBulkMsg(r.ok ? `Descripciones generadas: ${r.processed} (errores: ${r.errors})` : "Error en generación masiva");
-      setSelected(new Set());
-      router.refresh();
-    });
-  }
-
   function bulkImages() {
     if (selected.size === 0) return;
     if (!window.confirm(`Buscar y adjuntar imagen Serper para ${selected.size} producto(s) sin imágenes?`)) return;
@@ -348,6 +338,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const nodescActive = search.get("nodesc") === "1";
 
   return (
+    <>
     <div className="space-y-3">
       {/* Fila 1: búsqueda + orden */}
       <div className="flex flex-wrap gap-2 rounded-md border border-border bg-card p-3">
@@ -395,7 +386,7 @@ export function ProductsCatalogAdmin(props: Props) {
           onChange={(ids) => pushFilters({ family: ids })}
         />
         <MultiSelectFilter
-          label="Distribuidores"
+          label="Proveedores"
           options={props.distributors}
           values={distributorIdsFromUrl}
           onChange={(ids) => pushFilters({ distributor: ids })}
@@ -499,7 +490,7 @@ export function ProductsCatalogAdmin(props: Props) {
           {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
           Aplicar
         </Button>
-        <Button onClick={aiDescribe} disabled={pending || selected.size === 0} size="sm" variant="outline">
+        <Button onClick={() => setShowDescModal(true)} disabled={selected.size === 0} size="sm" variant="outline">
           <Sparkles className="h-3.5 w-3.5" /> Descripciones IA
         </Button>
         <Button onClick={bulkImages} disabled={pending || selected.size === 0} size="sm" variant="outline">
@@ -609,6 +600,16 @@ export function ProductsCatalogAdmin(props: Props) {
 
       {previewRow ? <ProductPreviewModal row={previewRow} showPrices={props.showPrices} onClose={() => setPreviewId(null)} /> : null}
     </div>
+    {showDescModal && (
+      <BulkDescriptionsModal
+        selectedIds={[...selected]}
+        onClose={() => {
+          setShowDescModal(false);
+          router.refresh();
+        }}
+      />
+    )}
+    </>
   );
 }
 
@@ -759,7 +760,7 @@ function ProductPreviewModal({
               <Info label="Marca" value={row.brand} />
               <Info label="Categoría" value={row.category} />
               <Info label="Familia" value={row.family} />
-              <Info label="Distribuidor" value={row.distributor} />
+              <Info label="Proveedor" value={row.distributor} />
               <Info label="SKU proveedor" value={row.supplierSku || "—"} />
               <Info label="Tipo" value={row.kind === "ACCESORIO" ? "Accesorio" : "Principal"} />
               <Info label="Stock" value={`${row.stockStatus}${row.stockQuantity != null ? ` (${row.stockQuantity})` : ""}`} />

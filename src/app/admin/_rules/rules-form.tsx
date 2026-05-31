@@ -22,7 +22,7 @@ interface Props {
 const scopes = [
   { value: "GLOBAL", label: "Global" },
   { value: "BRAND", label: "Marca" },
-  { value: "DISTRIBUTOR", label: "Distribuidor" },
+  { value: "DISTRIBUTOR", label: "Proveedor" },
   { value: "CATEGORY", label: "Categoría" },
   { value: "FAMILY", label: "Familia" },
   { value: "PRODUCT", label: "Producto" },

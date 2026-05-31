@@ -21,6 +21,7 @@ export async function saveSetting(formData: FormData): Promise<void> {
   revalidatePath("/admin/settings");
   revalidatePath("/admin/branding");
   revalidatePath("/admin/api-keys");
+  revalidatePath("/admin/ai");
 }
 
 const bulkSchema = z.record(z.string(), z.string());
@@ -35,6 +36,7 @@ export async function saveBulkSettings(input: Record<string, string>): Promise<{
   revalidatePath("/admin/settings");
   revalidatePath("/admin/branding");
   revalidatePath("/admin/api-keys");
+  revalidatePath("/admin/ai");
   return { ok: true };
 }
 

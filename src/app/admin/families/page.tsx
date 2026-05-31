@@ -75,7 +75,6 @@ export default async function AdminFamiliesPage() {
           <THead>
             <TR>
               <TH>Familia</TH>
-              <TH>Slug</TH>
               <TH>Productos</TH>
               <TH>Estado</TH>
             </TR>
@@ -84,7 +83,6 @@ export default async function AdminFamiliesPage() {
             {families.map((f) => (
               <TR key={f.id}>
                 <TD className="font-medium">{f.name}</TD>
-                <TD className="text-muted-foreground">{f.slug}</TD>
                 <TD>{f._count.products}</TD>
                 <TD>{f.isActive ? <Badge tone="success">Activa</Badge> : <Badge tone="muted">Inactiva</Badge>}</TD>
               </TR>

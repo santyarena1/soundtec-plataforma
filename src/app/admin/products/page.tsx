@@ -82,7 +82,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   };
 
   const orderBy: Prisma.ProductOrderByWithRelationInput =
-    SORT_MAP[params.sort || ""] ?? { updatedAt: "desc" };
+    SORT_MAP[params.sort || ""] ?? { normalizedName: "asc" };
 
   const [products, total, brands, categories, families, distributors] = await Promise.all([
     prisma.product.findMany({

@@ -9,7 +9,7 @@ const MARGIN_STEPS = [
   { n: 5, label: "Cliente (regla general)", example: "Todo el catálogo de Acme" },
   { n: 6, label: "Producto (sin cliente)", example: "Un SKU puntual" },
   { n: 7, label: "Marca", example: "Toda la marca Shure" },
-  { n: 8, label: "Distribuidor", example: "Importador X" },
+  { n: 8, label: "Proveedor", example: "Importador X" },
   { n: 9, label: "Familia", example: "Consolas digitales" },
   { n: 10, label: "Categoría", example: "Iluminación" },
   { n: 11, label: "Global", example: "Margen por defecto de la plataforma" },

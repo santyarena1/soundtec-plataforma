@@ -12,7 +12,7 @@ export const metadata = { title: "Admin · Visibilidad" };
 
 const scopeLabel: Record<string, string> = {
   BRAND: "Marca",
-  DISTRIBUTOR: "Distribuidor",
+  DISTRIBUTOR: "Proveedor",
   CATEGORY: "Categoría",
   FAMILY: "Familia",
   PRODUCT: "Producto",
