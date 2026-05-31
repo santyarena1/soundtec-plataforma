@@ -35,7 +35,8 @@ function rawRequestOnce(
   url: string,
   method: string,
   reqHeaders: Record<string, string>,
-  body?: string
+  body?: string,
+  timeoutMs = 20000
 ): Promise<RawResponse> {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
@@ -45,6 +46,7 @@ function rawRequestOnce(
         path: u.pathname + u.search,
         method,
         headers: reqHeaders,
+        timeout: timeoutMs,
       },
       (res) => {
         let data = "";
@@ -55,6 +57,10 @@ function rawRequestOnce(
         );
       }
     );
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error(`Timeout (${timeoutMs}ms) en ${method} ${url}`));
+    });
     req.on("error", reject);
     if (body) req.write(body);
     req.end();
@@ -69,7 +75,8 @@ async function rawRequest(
   method: string,
   reqHeaders: Record<string, string>,
   body?: string,
-  accCookies: Record<string, string> = {}
+  accCookies: Record<string, string> = {},
+  hopsLeft = 8
 ): Promise<RawResponse & { allCookies: Record<string, string>; finalUrl: string }> {
   const res = await rawRequestOnce(url, method, reqHeaders, body);
   const newCookies = { ...accCookies, ...parseCookiesRaw(rawSetCookies(res.headers)) };
@@ -78,7 +85,8 @@ async function rawRequest(
     method === "GET" &&
     res.status >= 300 &&
     res.status < 400 &&
-    typeof res.headers["location"] === "string"
+    typeof res.headers["location"] === "string" &&
+    hopsLeft > 0
   ) {
     const location = res.headers["location"] as string;
     const next = location.startsWith("http") ? location : new URL(location, url).toString();
@@ -87,7 +95,8 @@ async function rawRequest(
       "GET",
       { ...reqHeaders, Cookie: cookieStrFromMap(newCookies) },
       undefined,
-      newCookies
+      newCookies,
+      hopsLeft - 1
     );
   }
 

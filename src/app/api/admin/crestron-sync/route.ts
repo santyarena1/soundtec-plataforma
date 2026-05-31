@@ -7,6 +7,10 @@ import {
 } from "@/services/crestron-sync";
 import { revalidatePath } from "next/cache";
 
+// Crestron sync paginates through ~1400 items via DataTables — needs > default 10s
+export const maxDuration = 300;
+export const dynamic = "force-dynamic";
+
 export interface SyncPreviewItem {
   itemCode: string;
   itemName: string;
