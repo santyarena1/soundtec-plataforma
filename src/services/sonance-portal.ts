@@ -374,9 +374,15 @@ export interface PortalSyncResult {
   discoveredBrands: string[]; // category slugs we found
 }
 
+function asStr(v: unknown, fallback = ""): string {
+  if (typeof v === "string") return v;
+  if (v == null) return fallback;
+  return String(v);
+}
+
 function mapPortalToProduct(p: PortalProduct, brand: SonanceBrand): SonanceProduct | null {
-  const sku = (p.productNumber ?? "").trim();
-  const name = (p.productTitle ?? "").trim();
+  const sku = asStr(p.productNumber).trim();
+  const name = asStr(p.productTitle).trim();
   const price = typeof p.unitListPrice === "number" ? p.unitListPrice : NaN;
   if (!sku || !name || !isFinite(price) || price <= 0) return null;
   if (!p.canShowPrice) return null;
@@ -384,9 +390,9 @@ function mapPortalToProduct(p: PortalProduct, brand: SonanceBrand): SonanceProdu
     name,
     supplierSku: sku,
     price,
-    uom: p.customerUnitOfMeasure ?? "EA",
+    uom: asStr(p.customerUnitOfMeasure, "EA").trim() || "EA",
     brand,
-    category: p.productLine ?? "",
+    category: asStr(p.productLine).trim(),
     subcategory: "",
   };
 }

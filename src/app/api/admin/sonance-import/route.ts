@@ -14,6 +14,8 @@ export type CategoryTarget = "categoria" | "familia" | "rubro" | "subrubro";
 
 const TARGET_KEY = "sonance.category_target";
 const TRANSLATIONS_KEY = "sonance.category_translations";
+const CACHED_PAYLOAD_KEY = "sonance.sync_payload";
+const CACHED_STATE_KEY = "sonance.sync_state"; // { createNew, savedAt }
 
 export interface SonancePreviewItem {
   supplierSku: string;
@@ -130,7 +132,7 @@ async function buildPreviewFromProducts(
   const newProducts = items.filter((i) => i.isNew);
   const priceChanges = matched.filter((i) => i.priceChanged);
   const uniqueCategories = Array.from(
-    new Set(products.map((p) => p.category.trim()).filter((c) => c.length > 0))
+    new Set(products.map((p) => String(p.category ?? "").trim()).filter((c) => c.length > 0))
   ).sort();
 
   return {
@@ -149,9 +151,30 @@ async function buildPreviewFromProducts(
 }
 
 // GET — sync from my.sonance.com portal API (única fuente).
-export async function GET() {
+//
+// Default behavior: fetches fresh from portal AND persists to AdminSetting
+// so the user can leave the page and resume without re-fetching.
+// Query param `?cached=1` returns the cached payload if available.
+export async function GET(req: NextRequest) {
   try {
     await requireAdmin();
+    const wantCached = req.nextUrl.searchParams.get("cached") === "1";
+
+    if (wantCached) {
+      const raw = await getSetting(CACHED_PAYLOAD_KEY, "");
+      if (!raw) return NextResponse.json({ ok: false, error: "Sin sync previa." }, { status: 404 });
+      try {
+        const cached = JSON.parse(raw) as SonancePreviewResponse & { savedAt?: string };
+        // Refresh user's current translations + target on top of cached (in case they changed)
+        const [target, translations] = await Promise.all([loadTarget(), loadTranslations()]);
+        cached.target = target;
+        cached.translations = translations;
+        return NextResponse.json(cached);
+      } catch {
+        return NextResponse.json({ ok: false, error: "Cache corrupta." }, { status: 500 });
+      }
+    }
+
     const [user, pass] = await Promise.all([
       getSetting("sonance.portal_username", ""),
       getSetting("sonance.portal_password", ""),
@@ -168,9 +191,20 @@ export async function GET() {
     }
 
     const portal = await fetchFromPortal();
-    return NextResponse.json(
-      await buildPreviewFromProducts(portal.products, portal.brandCounts, "sonance-portal")
+    const preview = await buildPreviewFromProducts(
+      portal.products,
+      portal.brandCounts,
+      "sonance-portal"
     );
+    // Persist the payload so the user can leave/return without re-fetching the catalog
+    try {
+      const withTimestamp = { ...preview, savedAt: new Date().toISOString() };
+      await setSetting(CACHED_PAYLOAD_KEY, JSON.stringify(withTimestamp));
+    } catch (e) {
+      // Best-effort: if persistence fails (size limit, etc.), still return the preview
+      console.error("Failed to persist sync payload", e);
+    }
+    return NextResponse.json(preview);
   } catch (err) {
     const error = err instanceof Error ? err.message : "Error desconocido";
     return NextResponse.json({ ok: false, error } satisfies SonancePreviewResponse, { status: 500 });
@@ -247,7 +281,11 @@ export async function PUT(req: NextRequest) {
       const uniqueEs = Array.from(
         new Set(
           items
-            .map((i) => (translations[(i.category ?? "").trim()] ?? "").trim())
+            .map((i) => {
+              const cat = String(i.category ?? "").trim();
+              const tr = translations[cat];
+              return (typeof tr === "string" ? tr : "").trim();
+            })
             .filter((s) => s.length > 0)
         )
       );
@@ -259,8 +297,10 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    function categoryFieldsFor(rawCategory: string, fallback?: { familia?: string | null; tipo?: string | null }) {
-      const es = (translations[rawCategory.trim()] ?? "").trim();
+    function categoryFieldsFor(rawCategory: unknown, fallback?: { familia?: string | null; tipo?: string | null }) {
+      const cleaned = String(rawCategory ?? "").trim();
+      const tr = translations[cleaned];
+      const es = (typeof tr === "string" ? tr : "").trim();
       const data: Record<string, unknown> = {};
       if (es.length === 0) {
         // No translation provided — only fall back for new product creation
@@ -325,6 +365,13 @@ export async function PUT(req: NextRequest) {
     revalidatePath("/admin/products");
     revalidatePath("/portal/products");
     revalidatePath("/admin/sonance-import");
+
+    // Clear the cached payload — the diff is now stale (changes were applied)
+    try {
+      await setSetting(CACHED_PAYLOAD_KEY, "");
+    } catch (e) {
+      console.error("Failed to clear sync payload", e);
+    }
 
     return NextResponse.json({ ok: true, updated, created, categoryWrites, target });
   } catch (err) {

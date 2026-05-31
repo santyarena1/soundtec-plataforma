@@ -53,6 +53,8 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
   const [state, setState] = useState<
     "idle" | "loading" | "preview" | "applying" | "done" | "error"
   >("idle");
+  const [hydrating, setHydrating] = useState(true);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [preview, setPreview] = useState<SonancePreviewResponse | null>(null);
   const [applyResult, setApplyResult] = useState<{
     updated: number;
@@ -95,7 +97,49 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     }
     setTranslations(base);
     if (preview.target) setTarget(preview.target);
+    const sa = (preview as SonancePreviewResponse & { savedAt?: string }).savedAt;
+    setSavedAt(typeof sa === "string" ? sa : null);
   }, [preview]);
+
+  // On mount: try to load the last saved sync payload so the user can resume
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [pRes, sRes] = await Promise.all([
+          fetch("/api/admin/sonance-import?cached=1"),
+          fetch("/api/admin/sonance-import/state"),
+        ]);
+        if (mounted && pRes.ok) {
+          const data = (await pRes.json()) as SonancePreviewResponse;
+          if (data.ok) {
+            setPreview(data);
+            setState("preview");
+          }
+        }
+        if (mounted && sRes.ok) {
+          const sdata = await sRes.json();
+          if (typeof sdata?.createNew === "boolean") setCreateNew(sdata.createNew);
+        }
+      } catch { /* ignore */ } finally {
+        if (mounted) setHydrating(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // Debounced auto-save of in-flight state to AdminSetting
+  useEffect(() => {
+    if (hydrating || !preview) return;
+    const t = setTimeout(() => {
+      void fetch("/api/admin/sonance-import/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ translations, target, createNew }),
+      });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [translations, target, createNew, hydrating, preview]);
 
   async function handleSync() {
     setState("loading");
@@ -131,6 +175,9 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         created: data.created,
         categoryWrites: data.categoryWrites,
       });
+      // El servidor ya borró el cached payload — limpiar UI también
+      setPreview(null);
+      setSavedAt(null);
       setState("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado");
@@ -231,9 +278,11 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
   const itemsWithComputed = useMemo(() => {
     if (!preview?.items) return [];
     return preview.items.map((i) => {
-      const es = (translations[i.category] ?? "").trim();
-      const categoryChanged =
-        !i.isNew && es.length > 0 && (i.currentCategoryLabel ?? "").trim() !== es;
+      const cleanedCat = String(i.category ?? "").trim();
+      const tr = translations[cleanedCat];
+      const es = (typeof tr === "string" ? tr : "").trim();
+      const currentLabel = String(i.currentCategoryLabel ?? "").trim();
+      const categoryChanged = !i.isNew && es.length > 0 && currentLabel !== es;
       return { ...i, esCategory: es, categoryChanged };
     });
   }, [preview, translations]);
@@ -266,16 +315,20 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
 
   return (
     <div className="space-y-4">
-      {/* Sync trigger */}
+      {/* Paso 1 — Sincronización */}
       <Card>
         <CardContent className="p-5 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium">Fuente: my.sonance.com</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Login automático + paginación de catálogo (SONANCE, IPORT, BLAZE, JAMES, TRUFIG).
-                La preview te muestra qué cambia sin guardar nada.
-              </p>
+            <div className="flex items-start gap-3">
+              <Badge tone="primary">Paso 1</Badge>
+              <div>
+                <p className="text-sm font-medium">Traer catálogo desde my.sonance.com</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Login + paginación de todas las marcas (SONANCE, IPORT, BLAZE, JAMES, TRUFIG).
+                  Esto NO toca IA — solo descarga los productos. La preview queda guardada en BD
+                  para que puedas salir de la página y volver después.
+                </p>
+              </div>
             </div>
             <Button
               onClick={handleSync}
@@ -286,12 +339,28 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
               <RefreshCw
                 className={`mr-1.5 h-3.5 w-3.5 ${state === "loading" ? "animate-spin" : ""}`}
               />
-              {state === "loading" ? "Descargando catálogo…" : "Sincronizar desde portal"}
+              {state === "loading"
+                ? "Descargando catálogo…"
+                : preview
+                ? "Re-sincronizar (descarta el actual)"
+                : "Sincronizar"}
             </Button>
           </div>
           {!hasPortal && (
             <p className="text-xs text-warning">
               Configurá usuario y password arriba antes de sincronizar.
+            </p>
+          )}
+          {hydrating && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Loader2 className="h-3 w-3 animate-spin" /> Cargando última sincronización guardada…
+            </p>
+          )}
+          {!hydrating && preview && savedAt && (
+            <p className="text-xs text-muted-foreground">
+              Última sincronización: {new Date(savedAt).toLocaleString("es-AR")} ·{" "}
+              {preview.totalParsed ?? 0} productos guardados.
+              Tus traducciones y selección se autoguardan a medida que las editás.
             </p>
           )}
         </CardContent>
@@ -363,16 +432,18 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
             </div>
           )}
 
-          {/* Categories config */}
+          {/* Paso 2 — Categorías + traducción IA opcional */}
           <Card>
             <CardContent className="p-5 space-y-4">
               <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div className="flex items-start gap-2 flex-1 min-w-[200px]">
+                <div className="flex items-start gap-3 flex-1 min-w-[200px]">
+                  <Badge tone="primary">Paso 2</Badge>
                   <Languages className="h-4 w-4 mt-0.5 text-accent shrink-0" />
                   <div>
-                    <h3 className="text-sm font-medium">Categorías</h3>
+                    <h3 className="text-sm font-medium">Categorías (traducción + destino)</h3>
                     <p className="text-xs text-muted-foreground">
-                      Traducí cada grupo al español y elegí dónde guardarlo. Se guarda al aplicar.
+                      Traducí manualmente o usá la IA. Elegí dónde guardar la categoría traducida.
+                      Tus ediciones se autoguardan en BD.
                     </p>
                   </div>
                 </div>
@@ -530,13 +601,14 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
             </Card>
           )}
 
-          {/* Enrichment */}
+          {/* Paso 3 (opcional) — Enriquecimiento + traducción IA del detalle */}
           <Card>
             <CardContent className="p-5 space-y-3">
-              <div className="flex items-start gap-2 flex-1 min-w-[260px]">
+              <div className="flex items-start gap-3 flex-1 min-w-[260px]">
+                <Badge tone="primary">Paso 3</Badge>
                 <Sparkles className="h-4 w-4 mt-0.5 text-accent shrink-0" />
                 <div>
-                  <h3 className="text-sm font-medium">Enriquecer productos con datos completos</h3>
+                  <h3 className="text-sm font-medium">Enriquecer productos con datos completos (opcional)</h3>
                   <p className="text-xs text-muted-foreground">
                     Por cada producto baja del portal: imágenes (hasta 10), specs técnicos (25 atributos), datasheets,
                     accesorios y descripción HTML. Opcionalmente traduce todo al español con OpenAI (cache: cada texto se traduce 1 sola vez).
