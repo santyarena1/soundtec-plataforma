@@ -243,6 +243,14 @@ const CRESTRON_SEED_DATA = [
   { modelNumber: "HR-CV-MINI", productName: "Handheld Remote CV Mini", category: "Remotes & Keypads" },
 ];
 
+export async function toggleProductCrestron(productId: string, value: boolean): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  await prisma.product.update({ where: { id: productId }, data: { isCrestronHomeCompatible: value } });
+  revalidatePath("/admin/crestron-home");
+  revalidatePath("/admin/products");
+  return { ok: true };
+}
+
 export async function seedCrestronDevices(): Promise<{ ok: boolean; created: number }> {
   await requireAdmin();
   let created = 0;

@@ -41,6 +41,7 @@ export default async function ProductsPage({
     maxPrice: urlState.maxPrice,
     sort: urlState.sort,
     page: urlState.page,
+    pageSize: urlState.pageSize,
   };
 
   const [{ items, total, page, pageSize }, meta, draft] = await Promise.all([
@@ -54,6 +55,7 @@ export default async function ProductsPage({
   const paginationParams = new URLSearchParams();
   for (const [key, value] of Object.entries(rawParams)) {
     if (key === "page" || value == null) continue;
+    // keep perPage so page navigation preserves the chosen page size
     if (Array.isArray(value)) for (const v of value) paginationParams.append(key, v);
     else paginationParams.set(key, value);
   }

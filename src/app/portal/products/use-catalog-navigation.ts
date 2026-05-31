@@ -67,6 +67,10 @@ export function useCatalogNavigation() {
       }
       if (patch.sort !== undefined) next.set("sort", patch.sort);
       if (patch.view !== undefined) next.set("view", patch.view);
+      if (patch.pageSize !== undefined) {
+        if (patch.pageSize && patch.pageSize !== 24) next.set("perPage", String(patch.pageSize));
+        else next.delete("perPage");
+      }
       if (patch.page !== undefined) {
         if (patch.page > 1) next.set("page", String(patch.page));
         else next.delete("page");

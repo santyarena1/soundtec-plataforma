@@ -39,6 +39,7 @@ export function parseCatalogSearchParams(
     maxPrice: parseNum(typeof params.maxPrice === "string" ? params.maxPrice : undefined),
     sort: (params.sort as CatalogFilters["sort"]) || "name_asc",
     page: params.page ? Number(params.page) : 1,
+    pageSize: params.perPage ? Number(params.perPage) : undefined,
     view: params.view === "table" ? "table" : "grid",
   };
 }

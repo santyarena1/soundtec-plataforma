@@ -49,6 +49,18 @@ export function CatalogToolbar({ state }: { state: CatalogUrlState }) {
           <option value="newest">Más nuevos</option>
         </Select>
 
+        <Select
+          value={String(state.pageSize ?? 24)}
+          onChange={(e) => push({ pageSize: Number(e.target.value) })}
+          className="h-10 w-24 text-sm"
+          aria-label="Productos por página"
+        >
+          <option value="12">12</option>
+          <option value="24">24</option>
+          <option value="48">48</option>
+          <option value="60">60</option>
+        </Select>
+
         <div className="flex rounded-md border border-border bg-card p-0.5 shadow-sm">
           <button
             type="button"
