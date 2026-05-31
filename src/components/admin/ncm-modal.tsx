@@ -7,7 +7,7 @@ import type { NcmResult } from "@/app/api/admin/ncm-search/route";
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSelect: (position: string, dieNumber: number | null) => void;
+  onSelect: (position: string, dieNumber: number | null, aecNumber: number | null, teNumber: number | null) => void;
 }
 
 function RateBadge({ value, color }: { value: string; color: "orange" | "blue" }) {
@@ -65,7 +65,7 @@ export function NcmModal({ open, onClose, onSelect }: Props) {
   }
 
   function handleSelect(item: NcmResult) {
-    onSelect(item.position, item.dieNumber);
+    onSelect(item.position, item.dieNumber, item.aecNumber, item.teNumber);
     onClose();
   }
 

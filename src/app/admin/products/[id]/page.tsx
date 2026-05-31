@@ -83,6 +83,10 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               distributorId: product.distributorId,
               categoryId: product.categoryId,
               familyId: product.familyId,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              familia: (product as any).familia ?? null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              tipo: (product as any).tipo ?? null,
               shortDescription: product.shortDescription,
               longDescription: product.longDescription,
               baseCostUsd: Number(product.baseCostUsd),
@@ -90,7 +94,19 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               tariffPosition: product.tariffPosition ?? null,
               tariffDutyPercent: product.tariffDutyPercent ? Number(product.tariffDutyPercent) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              aecPercent: (product as any).aecPercent ? Number((product as any).aecPercent) : null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              tePercent: (product as any).tePercent ? Number((product as any).tePercent) : null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              coo: (product as any).coo ?? null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              weight: (product as any).weight ? Number((product as any).weight) : null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              volume: (product as any).volume ? Number((product as any).volume) : null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               coefNac: (product as any).coefNac ? Number((product as any).coefNac) : null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              coefVta: (product as any).coefVta ? Number((product as any).coefVta) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ivaPercent: (product as any).ivaPercent ? Number((product as any).ivaPercent) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any

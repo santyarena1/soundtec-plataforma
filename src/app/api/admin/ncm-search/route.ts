@@ -22,6 +22,8 @@ export interface NcmResult {
   re: string | null;
   de: string | null;
   dieNumber: number | null;
+  aecNumber: number | null;
+  teNumber: number | null;
 }
 
 function stripHtml(html: string): string {
@@ -76,6 +78,8 @@ function parseNcmTable(
       re: tax?.re ?? null,
       de: tax?.de ?? null,
       dieNumber: parseDieNumber(tax?.die),
+      aecNumber: parseDieNumber(tax?.aec),
+      teNumber: parseDieNumber(tax?.te),
     });
   }
 

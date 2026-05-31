@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { upsertProduct } from "@/server/actions/admin-catalog";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
-import { PricingPreviewCard } from "@/components/admin/pricing-preview-card";
 import { NcmAutocomplete } from "@/components/admin/ncm-autocomplete";
 import { Loader2 } from "lucide-react";
 
@@ -22,13 +21,21 @@ interface Props {
     distributorId: string | null;
     categoryId: string | null;
     familyId: string | null;
+    familia: string | null;
+    tipo: string | null;
     shortDescription: string | null;
     longDescription: string | null;
     baseCostUsd: number;
     discountPercent: number | null;
     tariffPosition: string | null;
     tariffDutyPercent: number | null;
+    aecPercent: number | null;
+    tePercent: number | null;
+    coo: string | null;
+    weight: number | null;
+    volume: number | null;
     coefNac: number | null;
+    coefVta: number | null;
     ivaPercent: number | null;
     impIntPercent: number | null;
     coefVtaFob: number | null;
@@ -48,17 +55,30 @@ interface Props {
   globalCoefNac?: number;
 }
 
-export function ProductForm({ product, brands, distributors, categories, families, tcVenta = 0, globalCoefNac = 35 }: Props) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      {children}
+    </p>
+  );
+}
+
+export function ProductForm({ product, brands, distributors, categories, families, globalCoefNac = 35 }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // NCM
   const [tariffPosition, setTariffPosition] = useState(product?.tariffPosition ?? "");
-
-  // Live pricing state for the inline preview
-  const [baseCostUsd, setBaseCostUsd] = useState(product?.baseCostUsd ?? 0);
   const [tariffDutyPercent, setTariffDutyPercent] = useState<number | null>(product?.tariffDutyPercent ?? null);
+  const [aecPercent, setAecPercent] = useState<number | null>(product?.aecPercent ?? null);
+  const [tePercent, setTePercent] = useState<number | null>(product?.tePercent ?? null);
+
+  // Pricing
+  const [baseCostUsd, setBaseCostUsd] = useState(product?.baseCostUsd ?? 0);
+  const [discountPercent, setDiscountPercent] = useState<number | null>(product?.discountPercent ?? null);
   const [coefNac, setCoefNac] = useState<number | null>(product?.coefNac ?? null);
+  const [coefVta, setCoefVta] = useState<number | null>(product?.coefVta ?? null);
   const [ivaPercent, setIvaPercent] = useState<number | null>(product?.ivaPercent ?? null);
   const [impIntPercent, setImpIntPercent] = useState<number | null>(product?.impIntPercent ?? null);
   const [coefVtaFob, setCoefVtaFob] = useState<number | null>(product?.coefVtaFob ?? null);
@@ -79,61 +99,94 @@ export function ProductForm({ product, brands, distributors, categories, familie
     });
   }
 
+  // Derived pricing values for preview
+  const costoNacUsd = baseCostUsd * (coefNac ?? globalCoefNac);
+  const discountCoef = 1 - (discountPercent ?? 0) / 100;
+  const precioNac = costoNacUsd * (coefVta ?? 1) * discountCoef;
+  const precioNacFinal = precioNac * (1 + (ivaPercent ?? 21) / 100) * (1 + (impIntPercent ?? 0) / 100);
+  const precioVtaFob = coefVtaFob ? baseCostUsd * coefVtaFob : null;
+
+  function fmtUsd(n: number) {
+    return n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {product?.id ? <input type="hidden" name="id" value={product.id} /> : null}
 
+      {/* Hidden controlled inputs for FormData */}
+      <input type="hidden" name="tariffDutyPercent" value={tariffDutyPercent ?? ""} />
+      <input type="hidden" name="aecPercent" value={aecPercent ?? ""} />
+      <input type="hidden" name="tePercent" value={tePercent ?? ""} />
+      <input type="hidden" name="discountPercent" value={discountPercent ?? ""} />
+      <input type="hidden" name="coefNac" value={coefNac ?? ""} />
+      <input type="hidden" name="coefVta" value={coefVta ?? ""} />
+      <input type="hidden" name="ivaPercent" value={ivaPercent ?? ""} />
+      <input type="hidden" name="impIntPercent" value={impIntPercent ?? ""} />
+      <input type="hidden" name="coefVtaFob" value={coefVtaFob ?? ""} />
+
       {/* ── Identificación ── */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="internalSku" required>COD. TANGO</Label>
-          <Input id="internalSku" name="internalSku" required defaultValue={product?.internalSku || ""} />
-        </div>
-        <div>
-          <Label htmlFor="supplierSku">SKU del proveedor</Label>
-          <Input id="supplierSku" name="supplierSku" defaultValue={product?.supplierSku || ""} />
-        </div>
-        <div className="sm:col-span-2">
-          <Label htmlFor="normalizedName" required>Nombre normalizado</Label>
-          <Input id="normalizedName" name="normalizedName" required defaultValue={product?.normalizedName || ""} />
-        </div>
-        <div className="sm:col-span-2">
-          <Label htmlFor="originalName">Nombre original del proveedor</Label>
-          <Input id="originalName" name="originalName" defaultValue={product?.originalName || ""} />
+      <div>
+        <SectionTitle>Identificación</SectionTitle>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="internalSku" required>COD. TANGO</Label>
+            <Input id="internalSku" name="internalSku" required defaultValue={product?.internalSku || ""} />
+          </div>
+          <div>
+            <Label htmlFor="supplierSku">SKU PROVEEDOR</Label>
+            <Input id="supplierSku" name="supplierSku" defaultValue={product?.supplierSku || ""} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="normalizedName" required>MODELO</Label>
+            <Input id="normalizedName" name="normalizedName" required defaultValue={product?.normalizedName || ""} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="originalName">MODELO PROVEEDOR</Label>
+            <Input id="originalName" name="originalName" defaultValue={product?.originalName || ""} />
+          </div>
         </div>
       </div>
 
       {/* ── Clasificación ── */}
       <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Clasificación</p>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <SectionTitle>Clasificación</SectionTitle>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <Label htmlFor="brandId">Marca</Label>
+            <Label htmlFor="brandId">MARCA</Label>
             <Select id="brandId" name="brandId" defaultValue={product?.brandId || ""}>
               <option value="">—</option>
               {brands.map((b) => (<option key={b.id} value={b.id}>{b.name}</option>))}
             </Select>
           </div>
           <div>
-            <Label htmlFor="distributorId">Proveedor</Label>
+            <Label htmlFor="distributorId">PROVEEDOR</Label>
             <Select id="distributorId" name="distributorId" defaultValue={product?.distributorId || ""}>
               <option value="">—</option>
               {distributors.map((d) => (<option key={d.id} value={d.id}>{d.name}</option>))}
             </Select>
           </div>
           <div>
-            <Label htmlFor="categoryId">Rubro</Label>
+            <Label htmlFor="categoryId">RUBRO</Label>
             <Select id="categoryId" name="categoryId" defaultValue={product?.categoryId || ""}>
               <option value="">—</option>
               {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
             </Select>
           </div>
           <div>
-            <Label htmlFor="familyId">Subrubro</Label>
+            <Label htmlFor="familyId">SUBRUBRO</Label>
             <Select id="familyId" name="familyId" defaultValue={product?.familyId || ""}>
               <option value="">—</option>
               {families.map((f) => (<option key={f.id} value={f.id}>{f.name}</option>))}
             </Select>
+          </div>
+          <div>
+            <Label htmlFor="familia">FAMILIA</Label>
+            <Input id="familia" name="familia" placeholder="Ej: Amplificadores, Micrófonos…" defaultValue={product?.familia || ""} />
+          </div>
+          <div>
+            <Label htmlFor="tipo">TIPO</Label>
+            <Input id="tipo" name="tipo" placeholder="Ej: Pasivo, Activo, Inalámbrico…" defaultValue={product?.tipo || ""} />
           </div>
           <div>
             <Label htmlFor="kind">Tipo de producto</Label>
@@ -145,177 +198,247 @@ export function ProductForm({ product, brands, distributors, categories, familie
         </div>
       </div>
 
-      {/* ── Precios / Importación ── */}
+      {/* ── Posición arancelaria (NCM) ── */}
+      <div className="rounded-xl border border-border bg-muted/30 p-5">
+        <SectionTitle>Posición arancelaria (NCM)</SectionTitle>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="sm:col-span-2 lg:col-span-3">
+            <Label htmlFor="tariffPosition">POSICIÓN ARANCELARIA (NCM)</Label>
+            <NcmAutocomplete
+              value={tariffPosition}
+              onChange={setTariffPosition}
+              onApply={(pos, die, aec, te) => {
+                setTariffPosition(pos);
+                if (die != null) setTariffDutyPercent(die);
+                if (aec != null) setAecPercent(aec);
+                if (te != null) setTePercent(te);
+              }}
+            />
+          </div>
+          <div>
+            <Label htmlFor="aecDisplay">AEC (%)</Label>
+            <input
+              id="aecDisplay"
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Auto desde NCM"
+              value={aecPercent ?? ""}
+              onChange={(e) => setAecPercent(e.target.value ? Number(e.target.value) : null)}
+              className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div>
+            <Label htmlFor="dieDisplay">DIE (%)</Label>
+            <input
+              id="dieDisplay"
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Auto desde NCM"
+              value={tariffDutyPercent ?? ""}
+              onChange={(e) => setTariffDutyPercent(e.target.value ? Number(e.target.value) : null)}
+              className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div>
+            <Label htmlFor="teDisplay">TE (%)</Label>
+            <input
+              id="teDisplay"
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Auto desde NCM"
+              value={tePercent ?? ""}
+              onChange={(e) => setTePercent(e.target.value ? Number(e.target.value) : null)}
+              className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div>
+            <Label htmlFor="coo">COO (País de origen)</Label>
+            <Input id="coo" name="coo" placeholder="Ej: China, USA, Brasil…" defaultValue={product?.coo || ""} />
+          </div>
+          <div>
+            <Label htmlFor="weight">Peso (kg)</Label>
+            <Input id="weight" name="weight" type="number" min={0} step="0.001" placeholder="0.000" defaultValue={product?.weight ?? ""} />
+          </div>
+          <div>
+            <Label htmlFor="volume">Volumen (m³)</Label>
+            <Input id="volume" name="volume" type="number" min={0} step="0.0001" placeholder="0.0000" defaultValue={product?.volume ?? ""} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Cadena de precios ── */}
       <div className="rounded-xl border-2 border-blue-200 bg-blue-50/60 p-5 dark:border-blue-900/50 dark:bg-blue-950/20">
         <div className="mb-4 flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">$</span>
           <div>
-            <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">Precios e importación</p>
-            <p className="text-xs text-blue-700/70 dark:text-blue-400/70">Todos los valores que determinan el costo y precio de venta del producto</p>
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">Cadena de precios</p>
+            <p className="text-xs text-blue-700/70 dark:text-blue-400/70">COSTO NAC USD = COSTO BASE × COEF NAC · PRECIO NAC = COSTO NAC × COEF VTA × DESC ESP</p>
           </div>
         </div>
 
-        {/* Bloque 1: costo origen */}
+        {/* Costo base */}
         <div className="mb-4 rounded-lg bg-white/70 p-4 dark:bg-white/5">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Costo de origen (FOB)</p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Costo base (FOB)</p>
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="baseCostUsd" required>Costo base (USD)</Label>
+              <Label htmlFor="baseCostUsd" required>COSTO BASE USD</Label>
               <Input
                 id="baseCostUsd"
                 name="baseCostUsd"
                 type="number"
                 min={0}
-                step="0.01"
+                step="0.0001"
                 required
                 value={baseCostUsd}
                 onChange={(e) => setBaseCostUsd(Number(e.target.value) || 0)}
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">Precio FOB del proveedor en dólares</p>
             </div>
             <div>
-              <Label htmlFor="discountPercent">Descuento intrínseco (%)</Label>
-              <Input
-                id="discountPercent"
-                name="discountPercent"
+              <Label htmlFor="discountPercentDisplay">DESCUENTO ESPECIAL (%)</Label>
+              <input
+                id="discountPercentDisplay"
                 type="number"
                 min={0}
                 max={100}
                 step="0.1"
                 placeholder="0"
-                defaultValue={product?.discountPercent ?? ""}
+                value={discountPercent ?? ""}
+                onChange={(e) => setDiscountPercent(e.target.value ? Number(e.target.value) : null)}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">Descuento ya incluido en la lista del proveedor</p>
-            </div>
-            <div>
-              <Label htmlFor="tariffPosition">Posición arancelaria (NCM)</Label>
-              <NcmAutocomplete
-                value={tariffPosition}
-                onChange={setTariffPosition}
-                onApply={(pos, die) => {
-                  setTariffPosition(pos);
-                  if (die != null) setTariffDutyPercent(die);
-                }}
-              />
-              <p className="mt-1 text-[11px] text-muted-foreground">Código aduanero · usá el botón para buscar por descripción</p>
-            </div>
-            <div>
-              <Label htmlFor="tariffDutyPercent">Derecho de importación (%)</Label>
-              <Input
-                id="tariffDutyPercent"
-                name="tariffDutyPercent"
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Ej. 18"
-                value={tariffDutyPercent ?? ""}
-                onChange={(e) => setTariffDutyPercent(e.target.value ? Number(e.target.value) : null)}
-              />
-              <p className="mt-1 text-[11px] text-muted-foreground">Arancel que se aplica al ingresar al país</p>
             </div>
           </div>
         </div>
 
-        {/* Bloque 2: precio mercado nacional */}
+        {/* Precio nacional */}
         <div className="mb-4 rounded-lg bg-white/70 p-4 dark:bg-white/5">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Precio mercado nacional (ARS)</p>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Precio mercado nacional</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <Label htmlFor="coefNac">Coeficiente NAC</Label>
-              <Input
-                id="coefNac"
-                name="coefNac"
+              <Label htmlFor="coefNacDisplay">COEF NAC</Label>
+              <input
+                id="coefNacDisplay"
                 type="number"
                 min={0}
                 step="0.0001"
-                placeholder="Vacío = usa el global"
+                placeholder="Vacío = usa global"
                 value={coefNac ?? ""}
                 onChange={(e) => setCoefNac(e.target.value ? Number(e.target.value) : null)}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">Costo USD × TC × Coef → precio ARS. Si está vacío usa el coeficiente global del sistema.</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">COSTO NAC USD = COSTO BASE × COEF NAC</p>
             </div>
             <div>
-              <Label htmlFor="ivaPercent">IVA</Label>
-              <Select
-                id="ivaPercent"
-                name="ivaPercent"
+              <Label>COSTO NAC USD</Label>
+              <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm">
+                {fmtUsd(costoNacUsd)}
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="coefVtaDisplay">COEF VTA (Derecho arancelario)</Label>
+              <input
+                id="coefVtaDisplay"
+                type="number"
+                min={0}
+                step="0.0001"
+                placeholder="Ej. 1.30"
+                value={coefVta ?? ""}
+                onChange={(e) => setCoefVta(e.target.value ? Number(e.target.value) : null)}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">PRECIO NAC = COSTO NAC × COEF VTA × DESC ESP</p>
+            </div>
+            <div>
+              <Label>PRECIO NAC</Label>
+              <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm">
+                {fmtUsd(precioNac)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* IVA + Imp Int */}
+        <div className="mb-4 rounded-lg bg-white/70 p-4 dark:bg-white/5">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Impuestos</p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="ivaPercentDisplay">IVA</Label>
+              <select
+                id="ivaPercentDisplay"
                 value={ivaPercent != null ? String(ivaPercent) : "21"}
                 onChange={(e) => setIvaPercent(Number(e.target.value))}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="0">0% — Exento</option>
                 <option value="10.5">10.5% — Tasa reducida</option>
                 <option value="21">21% — Tasa general</option>
                 <option value="27">27% — Tasa superior</option>
-              </Select>
-              <p className="mt-1 text-[11px] text-muted-foreground">Se suma al precio final. La mayoría de los productos aplica 21%.</p>
+              </select>
             </div>
             <div>
-              <Label htmlFor="impIntPercent">Impuesto interno (%)</Label>
-              <Input
-                id="impIntPercent"
-                name="impIntPercent"
+              <Label htmlFor="impIntPercentDisplay">IMP INT (%)</Label>
+              <input
+                id="impIntPercentDisplay"
                 type="number"
                 min={0}
                 step="0.01"
                 placeholder="0"
                 value={impIntPercent ?? ""}
                 onChange={(e) => setImpIntPercent(e.target.value ? Number(e.target.value) : null)}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">Impuesto interno específico del rubro (ej. electrónica, bebidas, etc.).</p>
+            </div>
+            <div>
+              <Label>PRECIO NAC FINAL</Label>
+              <div className="flex h-9 items-center rounded-md border border-blue-300 bg-blue-50 px-3 font-mono text-sm font-semibold text-blue-900 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-200">
+                {fmtUsd(precioNacFinal)}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Bloque 3: precio venta FOB */}
+        {/* FOB */}
         <div className="mb-4 rounded-lg bg-white/70 p-4 dark:bg-white/5">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Precio venta FOB (USD)</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="coefVtaFob">Coeficiente de venta FOB</Label>
-              <Input
-                id="coefVtaFob"
-                name="coefVtaFob"
+              <Label htmlFor="coefVtaFobDisplay">COEF VTA FOB</Label>
+              <input
+                id="coefVtaFobDisplay"
                 type="number"
                 min={0}
                 step="0.0001"
                 placeholder="Ej. 1.15"
                 value={coefVtaFob ?? ""}
                 onChange={(e) => setCoefVtaFob(e.target.value ? Number(e.target.value) : null)}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">Costo base USD × Coef → precio de venta en dólares para exportación o ventas FOB.</p>
+            </div>
+            <div>
+              <Label>PRECIO VTA FOB</Label>
+              <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm">
+                {precioVtaFob != null ? fmtUsd(precioVtaFob) : "—"}
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Vista previa inline */}
-        {tcVenta > 0 || baseCostUsd > 0 ? (
-          <div className="rounded-lg border border-blue-200/60 bg-white/80 p-4 dark:border-blue-800/40 dark:bg-white/5">
-            <PricingPreviewCard
-              baseCostUsd={baseCostUsd}
-              tariffDutyPercent={tariffDutyPercent}
-              coefNac={coefNac}
-              ivaPercent={ivaPercent}
-              impIntPercent={impIntPercent}
-              coefVtaFob={coefVtaFob}
-              tcVenta={tcVenta}
-              globalCoefNac={globalCoefNac}
-            />
-          </div>
-        ) : null}
       </div>
 
-      {/* ── Stock ── */}
+      {/* ── DISPONIBILIDAD ── */}
       <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Stock</p>
+        <SectionTitle>Disponibilidad</SectionTitle>
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <Label htmlFor="stockStatus">Estado</Label>
+            <Label htmlFor="stockStatus">DISPONIBILIDAD</Label>
             <Select id="stockStatus" name="stockStatus" defaultValue={product?.stockStatus || "UNKNOWN"}>
-              <option value="UNKNOWN">Desconocido</option>
-              <option value="IN_STOCK">En stock</option>
-              <option value="LOW_STOCK">Stock bajo</option>
+              <option value="IN_STOCK">&gt;5 unidades</option>
+              <option value="LOW_STOCK">&lt;5 unidades</option>
+              <option value="ON_REQUEST">CONSULTAR</option>
               <option value="OUT_OF_STOCK">Sin stock</option>
-              <option value="ON_REQUEST">Bajo pedido</option>
+              <option value="UNKNOWN">Desconocido</option>
             </Select>
           </div>
           <div>
@@ -333,19 +456,19 @@ export function ProductForm({ product, brands, distributors, categories, familie
 
       {/* ── Descripción ── */}
       <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Descripción</p>
+        <SectionTitle>Descripción</SectionTitle>
         <div className="grid gap-4">
           <div>
-            <Label htmlFor="shortDescription">Descripción corta</Label>
+            <Label htmlFor="shortDescription">DESCRIPCIÓN CORTA</Label>
             <Textarea id="shortDescription" name="shortDescription" rows={2} defaultValue={product?.shortDescription || ""} />
           </div>
           <div>
-            <Label htmlFor="longDescription">Descripción larga</Label>
+            <Label htmlFor="longDescription">DESCRIPCIÓN LARGA</Label>
             <Textarea id="longDescription" name="longDescription" rows={6} defaultValue={product?.longDescription || ""} />
           </div>
           <div>
             <Label htmlFor="imageUrl">URL de imagen principal (se agrega como nueva)</Label>
-            <Input id="imageUrl" name="imageUrl" type="url" placeholder="https://..." />
+            <Input id="imageUrl" name="imageUrl" type="url" placeholder="https://…" />
           </div>
         </div>
       </div>
@@ -357,11 +480,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
           Producto configurable (con accesorios/opcionales)
         </label>
         <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="accessoryRequiredWithPrimary"
-            defaultChecked={product?.accessoryRequiredWithPrimary}
-          />
+          <input type="checkbox" name="accessoryRequiredWithPrimary" defaultChecked={product?.accessoryRequiredWithPrimary} />
           Si es accesorio, exigir producto principal compatible
         </label>
         <label className="flex items-center gap-2 text-sm">

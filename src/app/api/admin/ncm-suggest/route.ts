@@ -66,7 +66,7 @@ async function searchPcram(q: string): Promise<NcmResult[]> {
       if (!position || !/^\d[\d.]+/.test(position) || !description) continue;
       const isLeaf = /[A-Z]$/.test(position);
       const tax = isLeaf ? taxMap.get(position.replace(/\./g, "").toUpperCase()) : undefined;
-      results.push({ position, description, isLeaf, aec: tax?.aec ?? null, die: tax?.die ?? null, te: tax?.te ?? null, simi: tax?.simi ?? null, re: tax?.re ?? null, de: tax?.de ?? null, dieNumber: parseDieNumber(tax?.die) });
+      results.push({ position, description, isLeaf, aec: tax?.aec ?? null, die: tax?.die ?? null, te: tax?.te ?? null, simi: tax?.simi ?? null, re: tax?.re ?? null, de: tax?.de ?? null, dieNumber: parseDieNumber(tax?.die), aecNumber: parseDieNumber(tax?.aec), teNumber: parseDieNumber(tax?.te) });
     }
     return results;
   } catch {

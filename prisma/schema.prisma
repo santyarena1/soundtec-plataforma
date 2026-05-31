@@ -196,10 +196,20 @@ model Product {
   baseCostUsd             Decimal  @db.Decimal(14, 4)
   currency                String   @default("USD")
 
-  // Posición arancelaria (NCM / partida) cargada manualmente desde admin.
-  // Se aplica como costo extra adicional al baseCost antes del margen.
+  // Clasificación libre (texto)
+  familia                 String?
+  tipo                    String?
+
+  // Posición arancelaria (NCM / partida)
   tariffPosition          String?
-  tariffDutyPercent       Decimal? @db.Decimal(6, 3)
+  tariffDutyPercent       Decimal? @db.Decimal(6, 3)  // DIE %
+  aecPercent              Decimal? @db.Decimal(6, 3)  // AEC %
+  tePercent               Decimal? @db.Decimal(6, 3)  // TE %
+
+  // Logística
+  coo                     String?                     // país de origen
+  weight                  Decimal? @db.Decimal(10, 3) // kg
+  volume                  Decimal? @db.Decimal(10, 4) // m³
 
   stockStatus             StockStatus @default(UNKNOWN)
   stockQuantity           Int?
@@ -207,13 +217,14 @@ model Product {
   discountPercent         Decimal? @db.Decimal(6, 3)
 
   // Cadena de importación FOB → NAC
-  // COSTO CON ARANCEL = baseCostUsd × (1 + tariffDutyPercent/100)
-  // PRECIO NAC        = COSTO CON ARANCEL × tcVenta × coefNac
-  // PRECIO NAC FINAL  = PRECIO NAC × (1 + ivaPercent/100) × (1 + impIntPercent/100)
-  // PRECIO VTA FOB    = baseCostUsd × coefVtaFob
-  coefNac                 Decimal? @db.Decimal(8, 4)  // coef. venta nacional (null = usar global)
+  // COSTO NAC USD  = baseCostUsd × coefNac
+  // PRECIO NAC     = costoNacUsd × coefVta × (1 - discountPercent/100)
+  // PRECIO NAC FINAL = precioNac × (1 + ivaPercent/100) × (1 + impIntPercent/100)
+  // PRECIO VTA FOB = baseCostUsd × coefVtaFob
+  coefNac                 Decimal? @db.Decimal(8, 4)  // coef. nacionalización
+  coefVta                 Decimal? @db.Decimal(8, 4)  // coef. venta nacional
   ivaPercent              Decimal? @db.Decimal(5, 2)  // IVA % (default 21)
-  impIntPercent           Decimal? @db.Decimal(5, 2)  // Impuesto interno % (default 0)
+  impIntPercent           Decimal? @db.Decimal(5, 2)  // Impuesto interno %
   coefVtaFob              Decimal? @db.Decimal(8, 4)  // coef. venta FOB
 
   isCustomizable          Boolean  @default(false)

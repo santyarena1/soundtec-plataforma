@@ -8,16 +8,16 @@ import { NcmModal } from "@/components/admin/ncm-modal";
 interface Props {
   value: string;
   onChange: (position: string) => void;
-  onApply?: (position: string, dieNumber: number | null) => void;
+  onApply?: (position: string, dieNumber: number | null, aecNumber: number | null, teNumber: number | null) => void;
   name?: string;
 }
 
 export function NcmAutocomplete({ value, onChange, onApply, name = "tariffPosition" }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
 
-  function handleSelect(position: string, dieNumber: number | null) {
+  function handleSelect(position: string, dieNumber: number | null, aecNumber: number | null, teNumber: number | null) {
     onChange(position);
-    onApply?.(position, dieNumber);
+    onApply?.(position, dieNumber, aecNumber, teNumber);
   }
 
   return (
