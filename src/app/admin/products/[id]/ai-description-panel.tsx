@@ -21,13 +21,17 @@ export function AiDescriptionPanel({ productId, current, isAi }: Props) {
   function generate() {
     setError(null);
     startTransition(async () => {
-      const r = await generateProductDescription(productId);
-      if (!r.ok) {
-        setError(r.error || "No se pudo generar la descripción.");
-        return;
+      try {
+        const r = await generateProductDescription(productId);
+        if (!r.ok) {
+          setError(r.error || "No se pudo generar la descripción.");
+          return;
+        }
+        setText(r.description || "");
+        setGenerated(true);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Error inesperado al generar la descripción.");
       }
-      setText(r.description || "");
-      setGenerated(true);
     });
   }
 

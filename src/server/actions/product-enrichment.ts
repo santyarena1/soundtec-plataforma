@@ -72,31 +72,36 @@ export async function applyClassificationSuggestion(input: {
 export async function generateProductDescription(
   productId: string
 ): Promise<{ ok: boolean; description?: string; error?: string }> {
-  await requireAdmin();
-  const p = await prisma.product.findUnique({
-    where: { id: productId },
-    include: { brand: true, category: true },
-  });
-  if (!p) return { ok: false, error: "Producto no encontrado." };
+  try {
+    await requireAdmin();
+    const p = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { brand: true, category: true },
+    });
+    if (!p) return { ok: false, error: "Producto no encontrado." };
 
-  const text = await generateLongDescription({
-    name: p.normalizedName,
-    brand: p.brand?.name,
-    category: p.category?.name,
-    short: p.shortDescription || undefined,
-  });
+    const text = await generateLongDescription({
+      name: p.normalizedName,
+      brand: p.brand?.name,
+      category: p.category?.name,
+      short: p.shortDescription || undefined,
+    });
 
-  await prisma.product.update({
-    where: { id: productId },
-    data: {
-      longDescription: text,
-      aiGeneratedDescription: true,
-      aiDescriptionFeedbackStatus: "PENDING",
-    },
-  });
-  revalidatePath(`/admin/products/${productId}`);
-  revalidatePath(`/portal/products/${productId}`);
-  return { ok: true, description: text };
+    await prisma.product.update({
+      where: { id: productId },
+      data: {
+        longDescription: text,
+        aiGeneratedDescription: true,
+        aiDescriptionFeedbackStatus: "PENDING",
+      },
+    });
+    revalidatePath(`/admin/products/${productId}`);
+    revalidatePath(`/portal/products/${productId}`);
+    return { ok: true, description: text };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Error desconocido";
+    return { ok: false, error: msg };
+  }
 }
 
 export async function searchProductImagesAction(
