@@ -156,7 +156,47 @@ export async function GET() {
     });
   }
 
-  // Step 3: POST API
+  // Step 3: GET /clientes/precios — initializes session state and reveals the DataTable config
+  t0 = Date.now();
+  let preciosHtml = "";
+  try {
+    const r = await rawRequestOnce(`${BASE}/clientes/precios`, "GET", {
+      Cookie: cookieStr(cookies),
+      Referer: `${BASE}/login/`,
+      "User-Agent": UA,
+      Accept: "text/html,*/*",
+    });
+    const setCookieInfo = getCookieNames(r.headers);
+    cookies = { ...cookies, ...parseCookies(setCookieInfo.raw) };
+    preciosHtml = r.body;
+
+    // Extract DataTable ajax config & any hidden inputs/data attrs
+    const ajaxConfig = r.body.match(/ajax\s*:\s*[{][\s\S]{0,800}?[}]/)?.[0];
+    const ajaxUrl = r.body.match(/url\s*:\s*["']([^"']+)["']/)?.[1];
+    const ajaxData = r.body.match(/data\s*:\s*function[^{]*{[\s\S]{0,500}?return[^}]+}/)?.[0];
+    const dataAttrs = Array.from(r.body.matchAll(/data-(?:customer|branch|cliente|sucursal|user)[^=]*=["']([^"']+)["']/gi)).map(m => m[0]).slice(0, 5);
+    const hiddenInputs = Array.from(r.body.matchAll(/<input[^>]*type=["']hidden["'][^>]*>/gi)).map(m => m[0].slice(0, 200)).slice(0, 10);
+
+    steps.push({
+      step: "3. GET /clientes/precios",
+      status: r.status,
+      bodyPreview: `len=${r.body.length}, title=${(r.body.match(/<title>([^<]+)</)?.[1] ?? "").slice(0, 60)}`,
+      setCookieRaw: setCookieInfo.raw,
+      cookieNames: setCookieInfo.names,
+      durationMs: Date.now() - t0,
+      headers: {
+        ajaxConfig: (ajaxConfig ?? "(no ajax config block found)").slice(0, 600),
+        ajaxUrl,
+        ajaxData: ajaxData?.slice(0, 400),
+        dataAttrs: dataAttrs.join(" | "),
+        hiddenInputs: hiddenInputs.join(" || "),
+      },
+    });
+  } catch (e) {
+    steps.push({ step: "3. GET /clientes/precios", error: (e as Error).message, durationMs: Date.now() - t0 });
+  }
+
+  // Step 4: POST API
   t0 = Date.now();
   const apiBody = new URLSearchParams({
     draw: "1", start: "0", length: "10",
@@ -175,26 +215,31 @@ export async function GET() {
       "User-Agent": UA,
       Accept: "application/json, text/javascript, */*",
     }, apiBody);
-    const bodyClean = r.body.slice(0, 600).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const bodyClean = r.body.slice(0, 800).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     steps.push({
-      step: "3. POST /api/SBO_PROD_USA/precios-dt",
+      step: "4. POST /api/SBO_PROD_USA/precios-dt",
       status: r.status,
       bodyPreview: bodyClean,
       headers: {
         "content-type": r.headers["content-type"],
-        "x-frame-options": r.headers["x-frame-options"],
         server: r.headers.server,
       },
       durationMs: Date.now() - t0,
     });
   } catch (e) {
-    steps.push({ step: "3. POST API", error: (e as Error).message, durationMs: Date.now() - t0 });
+    steps.push({ step: "4. POST API", error: (e as Error).message, durationMs: Date.now() - t0 });
   }
+
+  // Extra hint: also search the precios HTML for any reference to the API URL with parameters
+  const apiCallHints = preciosHtml
+    ? Array.from(preciosHtml.matchAll(/precios-dt[^"'\s]{0,200}/g)).map(m => m[0]).slice(0, 5).join(" || ")
+    : "";
 
   return NextResponse.json({
     outboundIp,
     credentialsPreview: { user: userPreview, pass: passPreview },
     cookieNamesFinal: Object.keys(cookies),
+    apiCallHintsInHtml: apiCallHints,
     steps,
   });
 }
