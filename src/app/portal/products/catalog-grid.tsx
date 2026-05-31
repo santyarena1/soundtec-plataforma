@@ -6,12 +6,14 @@ import { FavoriteButton } from "./favorite-button";
 import { Settings2 } from "lucide-react";
 import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
+import { SelectableCard } from "./catalog-multi-select";
 
 export function CatalogGrid({ items }: { items: CatalogProduct[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {items.map((p) => (
-        <Card key={p.id} className="group flex flex-col overflow-hidden transition-shadow hover:shadow-elevated">
+        <SelectableCard key={p.id} productId={p.id}>
+        <Card className="group flex flex-col overflow-hidden transition-shadow hover:shadow-elevated">
           <Link href={`/portal/products/${p.id}`} className="block">
             <div className="aspect-[4/3] w-full overflow-hidden bg-white">
               {p.primaryImage ? (
@@ -65,6 +67,7 @@ export function CatalogGrid({ items }: { items: CatalogProduct[] }) {
             <AddToDraftButton productId={p.id} productName={p.normalizedName} />
           </div>
         </Card>
+        </SelectableCard>
       ))}
     </div>
   );

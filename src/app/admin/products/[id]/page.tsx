@@ -12,6 +12,9 @@ import { AiDescriptionPanel } from "./ai-description-panel";
 import { ProductOptionsPanel } from "./options-panel";
 import { AccessoriesPanel } from "./accessories-panel";
 import { AiClassificationPanel } from "./ai-classification-panel";
+import { PricingPreviewCard } from "@/components/admin/pricing-preview-card";
+import { LabelSelector } from "@/components/admin/label-selector";
+import { getSetting } from "@/lib/settings";
 
 export default async function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,11 +32,12 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         },
         orderBy: { createdAt: "desc" },
       },
+      labels: { select: { labelId: true } },
     },
   });
   if (!product) notFound();
 
-  const [brands, distributors, categories, families, accessoryCandidates] = await Promise.all([
+  const [brands, distributors, categories, families, accessoryCandidates, tcVentaStr, globalCoefStr, allLabels] = await Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -44,6 +48,9 @@ export default async function AdminProductEditPage({ params }: { params: Promise
       select: { id: true, normalizedName: true, internalSku: true, kind: true },
       take: 400,
     }),
+    getSetting("pricing.tc_venta", "0"),
+    getSetting("app.global_margin_percent", "35"),
+    prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
   ]);
 
   return (
@@ -102,6 +109,32 @@ export default async function AdminProductEditPage({ params }: { params: Promise
             distributors={distributors}
             categories={categories}
             families={families}
+          />
+        </CardContent>
+      </Card>
+
+      <PricingPreviewCard
+        baseCostUsd={Number(product.baseCostUsd)}
+        tariffDutyPercent={product.tariffDutyPercent ? Number(product.tariffDutyPercent) : null}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        coefNac={(product as any).coefNac ? Number((product as any).coefNac) : null}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ivaPercent={(product as any).ivaPercent ? Number((product as any).ivaPercent) : null}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        impIntPercent={(product as any).impIntPercent ? Number((product as any).impIntPercent) : null}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        coefVtaFob={(product as any).coefVtaFob ? Number((product as any).coefVtaFob) : null}
+        tcVenta={parseFloat(tcVentaStr) || 0}
+        globalCoefNac={parseFloat(globalCoefStr) || 35}
+      />
+
+      <Card>
+        <CardContent className="p-5">
+          <h3 className="mb-3 text-sm font-semibold">Etiquetas</h3>
+          <LabelSelector
+            productId={product.id}
+            allLabels={allLabels}
+            currentLabelIds={product.labels.map((l) => l.labelId)}
           />
         </CardContent>
       </Card>

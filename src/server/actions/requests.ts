@@ -426,6 +426,33 @@ export async function addToDraftRequest(formData: FormData): Promise<{
   };
 }
 
+export async function bulkAddToDraftSimple(
+  productIds: string[]
+): Promise<{ ok: boolean; added: number; error?: string }> {
+  const user = await requireUser();
+  if (!productIds.length) return { ok: false, added: 0, error: "Sin productos seleccionados." };
+
+  const draft = await getOrCreateActiveDraft(user.id, { migrateLegacyCart: true });
+
+  const existing = await prisma.customerRequestItem.findMany({
+    where: { requestId: draft.id, productId: { in: productIds }, isAdminSuggestion: false },
+    select: { productId: true },
+  });
+  const existingSet = new Set(existing.map((e) => e.productId));
+  const toAdd = productIds.filter((id) => !existingSet.has(id));
+
+  if (toAdd.length > 0) {
+    await prisma.customerRequestItem.createMany({
+      data: toAdd.map((productId) => ({ requestId: draft.id, productId, quantity: 1 })),
+      skipDuplicates: true,
+    });
+    await prisma.customerRequest.update({ where: { id: draft.id }, data: { updatedAt: new Date() } });
+  }
+
+  revalidateDraftPaths(draft.id);
+  return { ok: true, added: toAdd.length };
+}
+
 export async function updateDraftItemQuantityForm(formData: FormData): Promise<void> {
   await updateDraftItemQuantity(formData);
 }

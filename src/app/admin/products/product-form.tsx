@@ -70,7 +70,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label htmlFor="internalSku" required>SKU interno</Label>
+          <Label htmlFor="internalSku" required>COD. TANGO</Label>
           <Input id="internalSku" name="internalSku" required defaultValue={product?.internalSku || ""} />
         </div>
         <div>
@@ -101,14 +101,14 @@ export function ProductForm({ product, brands, distributors, categories, familie
           </Select>
         </div>
         <div>
-          <Label htmlFor="categoryId">Categoría</Label>
+          <Label htmlFor="categoryId">Rubro</Label>
           <Select id="categoryId" name="categoryId" defaultValue={product?.categoryId || ""}>
             <option value="">—</option>
             {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
           </Select>
         </div>
         <div>
-          <Label htmlFor="familyId">Familia</Label>
+          <Label htmlFor="familyId">Subrubro</Label>
           <Select id="familyId" name="familyId" defaultValue={product?.familyId || ""}>
             <option value="">—</option>
             {families.map((f) => (<option key={f.id} value={f.id}>{f.name}</option>))}

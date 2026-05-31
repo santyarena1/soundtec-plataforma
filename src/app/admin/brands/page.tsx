@@ -8,6 +8,7 @@ import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/tab
 import { Badge } from "@/components/ui/badge";
 import { upsertBrand, deleteBrand } from "@/server/actions/admin-catalog";
 import { ConfirmSubmit } from "@/components/ui/confirm-button";
+import { BrandDetailPanel } from "./brand-detail-panel";
 
 export const metadata = { title: "Admin · Marcas" };
 
@@ -15,7 +16,14 @@ export default async function AdminBrandsPage() {
   await requireAdmin();
   const brands = await prisma.brand.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { products: true } } },
+    include: {
+      _count: { select: { products: true } },
+      products: {
+        orderBy: { normalizedName: "asc" },
+        take: 200,
+        select: { id: true, normalizedName: true, internalSku: true, isActive: true, kind: true },
+      },
+    },
   });
 
   return (
@@ -69,7 +77,8 @@ export default async function AdminBrandsPage() {
                 <TD>
                   {b.isActive ? <Badge tone="success">Activa</Badge> : <Badge tone="muted">Inactiva</Badge>}
                 </TD>
-                <TD className="text-right">
+                <TD className="text-right space-x-1">
+                  <BrandDetailPanel brand={b} />
                   <form action={deleteBrand} className="inline">
                     <input type="hidden" name="id" value={b.id} />
                     <ConfirmSubmit confirmMessage={`Eliminar la marca "${b.name}"? Los productos vinculados se quedan sin marca.`}>

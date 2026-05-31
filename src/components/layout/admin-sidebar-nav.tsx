@@ -50,6 +50,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view" },
       { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage" },
+      { href: "/admin/labels", label: "Etiquetas", icon: Tags, scope: "brands.manage" },
       { href: "/admin/distributors", label: "Proveedores", icon: Truck, scope: "distributors.manage" },
       { href: "/admin/categories", label: "Categorías", icon: Building2, scope: "categories.manage" },
       { href: "/admin/families", label: "Familias", icon: Building2, scope: "families.manage" },

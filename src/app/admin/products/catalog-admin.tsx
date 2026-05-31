@@ -11,7 +11,6 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { formatUsd } from "@/lib/utils";
 import {
   Eye,
-  ImageIcon,
   Loader2,
   Search,
   Settings2,
@@ -23,6 +22,7 @@ import {
 } from "lucide-react";
 import { bulkUpdateProducts } from "@/server/actions/admin-catalog";
 import { bulkSearchImages } from "@/server/actions/product-enrichment";
+import { bulkSetLabel } from "@/server/actions/labels";
 import { BulkDescriptionsModal } from "@/components/admin/bulk-descriptions-modal";
 
 type Option = { id: string; name: string };
@@ -55,6 +55,7 @@ interface Row {
   longDescription: string | null;
   aiGeneratedDescription: boolean;
   updatedAt: string;
+  labels: { id: string; name: string; color: string }[];
 }
 
 interface Filters {
@@ -83,6 +84,7 @@ interface Props {
   categories: Option[];
   families: Option[];
   distributors: Option[];
+  allLabels: { id: string; name: string; color: string }[];
 }
 
 type ColumnKey =
@@ -104,6 +106,7 @@ type ColumnKey =
   | "active"
   | "shortDesc"
   | "aiDesc"
+  | "labels"
   | "updated"
   | "actions";
 
@@ -118,11 +121,11 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "image", label: "Imagen" },
   { key: "name", label: "Producto", fixed: true },
   { key: "originalName", label: "Nombre original" },
-  { key: "sku", label: "SKU interno" },
+  { key: "sku", label: "COD. TANGO" },
   { key: "supplierSku", label: "SKU proveedor" },
   { key: "brand", label: "Marca" },
-  { key: "category", label: "Categoría" },
-  { key: "family", label: "Familia" },
+  { key: "category", label: "Rubro" },
+  { key: "family", label: "Subrubro" },
   { key: "distributor", label: "Proveedor" },
   { key: "kind", label: "Tipo" },
   { key: "customizable", label: "Configurable" },
@@ -133,6 +136,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "active", label: "Activo" },
   { key: "shortDesc", label: "Descripción corta" },
   { key: "aiDesc", label: "Desc. IA" },
+  { key: "labels", label: "Etiquetas" },
   { key: "updated", label: "Actualizado" },
   { key: "actions", label: "Acciones", fixed: true },
 ];
@@ -161,6 +165,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const [bulkBrandId, setBulkBrandId] = useState("");
   const [bulkCategoryId, setBulkCategoryId] = useState("");
   const [bulkDiscount, setBulkDiscount] = useState("");
+  const [bulkLabelId, setBulkLabelId] = useState("");
   const [pending, start] = useTransition();
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
   const [showDescModal, setShowDescModal] = useState(false);
@@ -283,8 +288,27 @@ export function ProductsCatalogAdmin(props: Props) {
 
   function applyBulk() {
     if (selected.size === 0) return;
-    if (!window.confirm(`Aplicar "${bulkAction}" a ${selected.size} producto(s)?`)) return;
     setBulkMsg(null);
+    if (bulkAction === "serper_images") {
+      start(async () => {
+        const r = await bulkSearchImages([...selected]);
+        setBulkMsg(r.ok ? `Imágenes adjuntadas: ${r.processed} (omitidos: ${r.skipped})` : "Error en búsqueda masiva");
+        setSelected(new Set());
+        router.refresh();
+      });
+      return;
+    }
+    if (bulkAction === "assign_label" || bulkAction === "remove_label") {
+      if (!bulkLabelId) { setBulkMsg("Seleccioná una etiqueta."); return; }
+      start(async () => {
+        const r = await bulkSetLabel([...selected], bulkLabelId, bulkAction === "remove_label");
+        setBulkMsg(r.ok ? `Etiqueta ${bulkAction === "remove_label" ? "quitada" : "asignada"} a ${selected.size} producto(s).` : (r.error || "Error"));
+        setSelected(new Set());
+        router.refresh();
+      });
+      return;
+    }
+    if (!window.confirm(`Aplicar "${bulkAction}" a ${selected.size} producto(s)?`)) return;
     start(async () => {
       const r = await bulkUpdateProducts({
         productIds: [...selected],
@@ -300,18 +324,6 @@ export function ProductsCatalogAdmin(props: Props) {
       } else {
         setBulkMsg(r?.error || "Error");
       }
-    });
-  }
-
-  function bulkImages() {
-    if (selected.size === 0) return;
-    if (!window.confirm(`Buscar y adjuntar imagen Serper para ${selected.size} producto(s) sin imágenes?`)) return;
-    setBulkMsg(null);
-    start(async () => {
-      const r = await bulkSearchImages([...selected]);
-      setBulkMsg(r.ok ? `Imágenes adjuntadas: ${r.processed} (omitidos: ${r.skipped})` : "Error en búsqueda masiva");
-      setSelected(new Set());
-      router.refresh();
     });
   }
 
@@ -451,8 +463,11 @@ export function ProductsCatalogAdmin(props: Props) {
           <option value="activate">Activar</option>
           <option value="deactivate">Desactivar</option>
           <option value="set_brand">Asignar marca</option>
-          <option value="set_category">Asignar categoría</option>
+          <option value="set_category">Asignar rubro</option>
           {props.showPrices ? <option value="set_discount">Aplicar descuento %</option> : null}
+          <option value="assign_label">Asignar etiqueta</option>
+          <option value="remove_label">Quitar etiqueta</option>
+          <option value="serper_images">Buscar imágenes (Serper)</option>
         </Select>
         {bulkAction === "set_brand" ? (
           <Select value={bulkBrandId} onChange={(e) => setBulkBrandId(e.target.value)} className="h-9 w-44 text-xs">
@@ -474,6 +489,14 @@ export function ProductsCatalogAdmin(props: Props) {
             ))}
           </Select>
         ) : null}
+        {(bulkAction === "assign_label" || bulkAction === "remove_label") ? (
+          <Select value={bulkLabelId} onChange={(e) => setBulkLabelId(e.target.value)} className="h-9 w-44 text-xs">
+            <option value="">— Etiqueta —</option>
+            {props.allLabels.map((l) => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </Select>
+        ) : null}
         {bulkAction === "set_discount" && props.showPrices ? (
           <Input
             type="number"
@@ -492,9 +515,6 @@ export function ProductsCatalogAdmin(props: Props) {
         </Button>
         <Button onClick={() => setShowDescModal(true)} disabled={selected.size === 0} size="sm" variant="outline">
           <Sparkles className="h-3.5 w-3.5" /> Descripciones IA
-        </Button>
-        <Button onClick={bulkImages} disabled={pending || selected.size === 0} size="sm" variant="outline">
-          <ImageIcon className="h-3.5 w-3.5" /> Imágenes Serper
         </Button>
         {bulkMsg ? <span className="text-xs text-muted-foreground">{bulkMsg}</span> : null}
 
@@ -671,6 +691,20 @@ function renderCell(
       return <span className="line-clamp-2 max-w-[180px] text-xs">{r.shortDescription || "—"}</span>;
     case "aiDesc":
       return r.aiGeneratedDescription ? <Badge tone="accent">IA</Badge> : <span className="text-xs text-muted-foreground">—</span>;
+    case "labels":
+      return r.labels.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {r.labels.map((l) => (
+            <span
+              key={l.id}
+              className="inline-block rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+              style={{ backgroundColor: l.color }}
+            >
+              {l.name}
+            </span>
+          ))}
+        </div>
+      ) : <span className="text-xs text-muted-foreground">—</span>;
     case "updated":
       return <span className="text-xs text-muted-foreground">{new Date(r.updatedAt).toLocaleDateString("es-AR")}</span>;
     case "cost":

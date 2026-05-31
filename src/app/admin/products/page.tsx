@@ -84,7 +84,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const orderBy: Prisma.ProductOrderByWithRelationInput =
     SORT_MAP[params.sort || ""] ?? { normalizedName: "asc" };
 
-  const [products, total, brands, categories, families, distributors] = await Promise.all([
+  const [products, total, brands, categories, families, distributors, allLabels] = await Promise.all([
     prisma.product.findMany({
       where,
       orderBy,
@@ -94,6 +94,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         family: { select: { id: true, name: true } },
         distributor: { select: { id: true, name: true } },
         images: { where: { isPrimary: true }, take: 1 },
+        labels: { select: { label: { select: { id: true, name: true, color: true } } } },
       },
       take: pageSize,
       skip: (page - 1) * pageSize,
@@ -103,6 +104,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -135,6 +137,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     longDescription: p.longDescription || null,
     aiGeneratedDescription: p.aiGeneratedDescription,
     updatedAt: p.updatedAt.toISOString(),
+    labels: p.labels.map((pl) => pl.label),
   }));
 
   return (
@@ -187,6 +190,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
             categories={categories}
             families={families}
             distributors={distributors}
+            allLabels={allLabels}
           />
         </Suspense>
       )}

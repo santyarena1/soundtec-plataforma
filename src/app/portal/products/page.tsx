@@ -8,6 +8,7 @@ import { CatalogToolbar } from "./catalog-toolbar";
 import { CatalogLayout } from "./catalog-sidebar";
 import { CatalogGrid } from "./catalog-grid";
 import { CatalogTable } from "./catalog-table";
+import { CatalogMultiSelectProvider } from "./catalog-multi-select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Package, Send } from "lucide-react";
 
@@ -74,6 +75,7 @@ export default async function ProductsPage({
         ) : null}
       </div>
 
+      <CatalogMultiSelectProvider productIds={items.map((i) => i.id)}>
       <CatalogLayout state={urlState} meta={meta} total={total} toolbar={<CatalogToolbar state={urlState} />}>
         {items.length === 0 ? (
           <EmptyState
@@ -119,6 +121,7 @@ export default async function ProductsPage({
           </div>
         ) : null}
       </CatalogLayout>
+      </CatalogMultiSelectProvider>
     </div>
   );
 }

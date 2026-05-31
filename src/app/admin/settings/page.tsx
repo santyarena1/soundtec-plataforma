@@ -11,7 +11,9 @@ export const metadata = { title: "Admin · Configuración" };
 const visibleKeys = [
   { key: "app.name", label: "Nombre del portal", placeholder: "Soundtec" },
   { key: "app.currency", label: "Moneda por defecto", placeholder: "USD" },
-  { key: "app.global_margin_percent", label: "Margen global por defecto (%)", placeholder: "35" },
+  { key: "app.global_margin_percent", label: "Margen global (%)", placeholder: "35" },
+  { key: "pricing.tc_venta", label: "Tipo de cambio venta (ARS/USD)", placeholder: "Ej. 1200.50" },
+  { key: "pricing.coef_nac_global", label: "Coeficiente NAC global (FOB→NAC)", placeholder: "Ej. 3.5" },
   { key: "visibility.default_show_all", label: "Mostrar todo por defecto (true/false)", placeholder: "true" },
 ];
 
