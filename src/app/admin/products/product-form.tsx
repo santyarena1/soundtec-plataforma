@@ -6,6 +6,7 @@ import { upsertProduct } from "@/server/actions/admin-catalog";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { PricingPreviewCard } from "@/components/admin/pricing-preview-card";
+import { NcmAutocomplete } from "@/components/admin/ncm-autocomplete";
 import { Loader2 } from "lucide-react";
 
 interface Option { id: string; name: string }
@@ -51,6 +52,8 @@ export function ProductForm({ product, brands, distributors, categories, familie
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const [tariffPosition, setTariffPosition] = useState(product?.tariffPosition ?? "");
 
   // Live pricing state for the inline preview
   const [baseCostUsd, setBaseCostUsd] = useState(product?.baseCostUsd ?? 0);
@@ -186,13 +189,15 @@ export function ProductForm({ product, brands, distributors, categories, familie
             </div>
             <div>
               <Label htmlFor="tariffPosition">Posición arancelaria (NCM)</Label>
-              <Input
-                id="tariffPosition"
-                name="tariffPosition"
-                placeholder="Ej. 8518.21.00"
-                defaultValue={product?.tariffPosition ?? ""}
+              <NcmAutocomplete
+                value={tariffPosition}
+                onChange={setTariffPosition}
+                onApply={(pos, die) => {
+                  setTariffPosition(pos);
+                  if (die != null) setTariffDutyPercent(die);
+                }}
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">Código aduanero del producto</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Código aduanero · usá el botón para buscar por descripción</p>
             </div>
             <div>
               <Label htmlFor="tariffDutyPercent">Derecho de importación (%)</Label>

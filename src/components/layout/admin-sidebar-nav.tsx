@@ -24,6 +24,7 @@ import {
   Truck,
   Users,
   ChevronRight,
+  PackageSearch,
 } from "lucide-react";
 import type { PermissionScope } from "@/lib/permissions";
 
@@ -62,6 +63,7 @@ const groups: NavGroup[] = [
       { href: "/admin/share-lists", label: "Listas compartibles", icon: Share2, scope: "share_lists.manage" },
       { href: "/admin/mappings", label: "Mapeos", icon: ListChecks, scope: "imports.manage" },
       { href: "/admin/scrapers", label: "Scrapers", icon: Hammer, scope: "scrapers.manage" },
+      { href: "/admin/ncm", label: "Posiciones NCM", icon: PackageSearch, scope: "imports.manage" },
     ],
   },
   {
