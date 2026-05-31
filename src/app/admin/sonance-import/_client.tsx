@@ -1,0 +1,334 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  FileSpreadsheet,
+} from "lucide-react";
+import type {
+  SonancePreviewResponse,
+  SonancePreviewItem,
+} from "@/app/api/admin/sonance-import/route";
+
+type Filter = "changes" | "new" | "matched" | "all";
+type Tone = "success" | "warning" | "destructive" | "muted" | "accent";
+
+function brandTone(brand: string): Tone {
+  if (brand === "SONANCE") return "accent";
+  if (brand === "IPORT") return "success";
+  if (brand.includes("BLAZE")) return "warning";
+  return "muted";
+}
+
+function fmtPrice(p: number | null) {
+  if (p == null) return "—";
+  return `$ ${p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export function SonanceImportPanel() {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [state, setState] = useState<
+    "idle" | "parsing" | "preview" | "applying" | "done" | "error"
+  >("idle");
+  const [preview, setPreview] = useState<SonancePreviewResponse | null>(null);
+  const [applyResult, setApplyResult] = useState<{ updated: number; created: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>("changes");
+  const [createNew, setCreateNew] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    setFileName(f?.name ?? null);
+    setPreview(null);
+    setState("idle");
+    setError(null);
+    setApplyResult(null);
+  }
+
+  async function handleParse() {
+    const file = fileRef.current?.files?.[0];
+    if (!file) return;
+    setState("parsing");
+    setError(null);
+    setPreview(null);
+    setApplyResult(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const res = await fetch("/api/admin/sonance-import", { method: "POST", body: fd });
+      const data: SonancePreviewResponse = await res.json();
+      if (!data.ok) throw new Error(data.error ?? "Error al parsear");
+      setPreview(data);
+      setState("preview");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error inesperado");
+      setState("error");
+    }
+  }
+
+  async function handleApply() {
+    if (!preview?.items) return;
+    setState("applying");
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/sonance-import", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: preview.items, createNew }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error ?? "Error al aplicar");
+      setApplyResult({ updated: data.updated, created: data.created });
+      setState("done");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error inesperado");
+      setState("error");
+    }
+  }
+
+  const filteredItems: SonancePreviewItem[] = (() => {
+    if (!preview?.items) return [];
+    switch (filter) {
+      case "changes": return preview.items.filter((i) => !i.isNew && i.priceChanged);
+      case "new":     return preview.items.filter((i) => i.isNew);
+      case "matched": return preview.items.filter((i) => !i.isNew && !i.priceChanged);
+      case "all":     return preview.items;
+    }
+  })();
+
+  const displayed = showAll ? filteredItems : filteredItems.slice(0, 60);
+  const hasChanges = (preview?.priceChanges ?? 0) > 0 || (createNew && (preview?.newProducts ?? 0) > 0);
+
+  return (
+    <div className="space-y-4">
+
+      {/* Upload card */}
+      <Card>
+        <CardContent className="p-5 space-y-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Archivo Excel (.xlsx)
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer h-9 rounded-md border border-dashed border-border bg-background px-3 text-sm text-muted-foreground hover:bg-secondary transition-colors">
+                <FileSpreadsheet className="h-4 w-4 shrink-0" />
+                <span className="truncate">{fileName ?? "Elegir archivo…"}</span>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="sr-only"
+                  onChange={handleFileChange}
+                />
+              </label>
+            </div>
+            <Button
+              onClick={handleParse}
+              disabled={!fileName || state === "parsing" || state === "applying"}
+              size="sm"
+            >
+              <Upload className={`mr-1.5 h-3.5 w-3.5 ${state === "parsing" ? "animate-bounce" : ""}`} />
+              {state === "parsing" ? "Procesando…" : "Analizar archivo"}
+            </Button>
+          </div>
+
+          <div className="text-xs text-muted-foreground space-y-0.5">
+            <p>• <strong>Sonance + IPORT:</strong> <code>Sonance_IPORT Price List_*.xlsx</code> — detecta marcas por sección</p>
+            <p>• <strong>BLAZE by SONANCE:</strong> <code>BLAZE by SONANCE_Price List_*.xlsx</code> — hoja &quot;USD - BLAZE PRICE LIST&quot;</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Error */}
+      {state === "error" && error && (
+        <Card>
+          <CardContent className="p-4 flex items-start gap-2 text-destructive">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <p className="text-sm">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Done */}
+      {state === "done" && applyResult && (
+        <Card>
+          <CardContent className="p-4 flex items-center gap-2 text-success">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <p className="text-sm font-medium">
+              Aplicado: {applyResult.updated} precios actualizados
+              {applyResult.created > 0 ? `, ${applyResult.created} productos creados` : ""}.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Preview */}
+      {(state === "preview" || state === "applying" || state === "done") && preview && (
+        <>
+          {/* Summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Parseados", value: preview.totalParsed ?? 0, color: "" },
+              { label: "Coinciden en BD", value: preview.matched ?? 0, color: "text-success" },
+              { label: "Cambios de precio", value: preview.priceChanges ?? 0, color: "text-warning" },
+              { label: "Nuevos (no en BD)", value: preview.newProducts ?? 0, color: "text-muted-foreground" },
+            ].map((s) => (
+              <Card key={s.label}>
+                <CardContent className="p-4 text-center">
+                  <p className={`text-2xl font-bold tabular-nums ${s.color}`}>{s.value}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Brand breakdown */}
+          {preview.brandCounts && Object.keys(preview.brandCounts).length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(preview.brandCounts).map(([b, n]) => (
+                <Badge key={b} tone={brandTone(b)}>
+                  {b} · {n} productos
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          {/* Options + Apply */}
+          {state === "preview" && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={createNew}
+                  onChange={(e) => setCreateNew(e.target.checked)}
+                  className="h-4 w-4 rounded border-border"
+                />
+                Crear también los {preview.newProducts ?? 0} productos nuevos{" "}
+                <span className="text-xs text-muted-foreground">(quedan inactivos hasta revisión)</span>
+              </label>
+              <Button
+                onClick={handleApply}
+                disabled={!hasChanges}
+                size="sm"
+              >
+                Aplicar {(preview.priceChanges ?? 0)} cambios de precio
+                {createNew && (preview.newProducts ?? 0) > 0 ? ` + ${preview.newProducts} nuevos` : ""}
+              </Button>
+            </div>
+          )}
+
+          {/* Table */}
+          <Card>
+            <CardContent className="p-0">
+              {/* Filter tabs */}
+              <div className="flex border-b border-border px-4 pt-3 gap-4 text-sm overflow-x-auto">
+                {(
+                  [
+                    { key: "changes", label: `Con cambios (${preview.priceChanges ?? 0})` },
+                    { key: "new",     label: `Nuevos (${preview.newProducts ?? 0})` },
+                    { key: "matched", label: `Sin cambios (${(preview.matched ?? 0) - (preview.priceChanges ?? 0)})` },
+                    { key: "all",     label: `Todos (${preview.totalParsed ?? 0})` },
+                  ] as { key: Filter; label: string }[]
+                ).map((t) => (
+                  <button
+                    key={t.key}
+                    onClick={() => { setFilter(t.key); setShowAll(false); }}
+                    className={`shrink-0 pb-2 border-b-2 transition-colors text-xs ${
+                      filter === t.key
+                        ? "border-primary text-foreground font-medium"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {filteredItems.length === 0 ? (
+                <p className="py-10 text-center text-sm text-muted-foreground">
+                  Sin resultados en esta vista.
+                </p>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="border-b border-border bg-muted/40">
+                        <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                          <th className="px-3 py-2.5">SKU</th>
+                          <th className="px-3 py-2.5">Nombre</th>
+                          <th className="px-3 py-2.5">Marca</th>
+                          <th className="px-3 py-2.5">Categoría</th>
+                          <th className="px-3 py-2.5">UoM</th>
+                          <th className="px-3 py-2.5 text-right">Precio actual</th>
+                          <th className="px-3 py-2.5 text-right">Precio nuevo</th>
+                          <th className="px-3 py-2.5">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {displayed.map((item) => (
+                          <tr key={item.supplierSku} className="hover:bg-muted/20">
+                            <td className="px-3 py-2 font-mono text-muted-foreground">{item.supplierSku}</td>
+                            <td className="px-3 py-2 max-w-[200px]">{item.name}</td>
+                            <td className="px-3 py-2">
+                              <Badge tone={brandTone(item.brand)}>{item.brand}</Badge>
+                            </td>
+                            <td className="px-3 py-2 max-w-[160px] text-muted-foreground">
+                              {item.category}
+                              {item.subcategory ? ` › ${item.subcategory}` : ""}
+                            </td>
+                            <td className="px-3 py-2 text-muted-foreground">{item.uom}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              {fmtPrice(item.currentPrice)}
+                            </td>
+                            <td className={`px-3 py-2 text-right tabular-nums font-medium ${item.priceChanged ? "text-warning" : ""}`}>
+                              {fmtPrice(item.newPrice)}
+                            </td>
+                            <td className="px-3 py-2">
+                              {item.isNew ? (
+                                <Badge tone="muted">Nuevo</Badge>
+                              ) : item.priceChanged ? (
+                                <Badge tone="warning">Precio cambia</Badge>
+                              ) : (
+                                <Badge tone="success">Sin cambio</Badge>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {filteredItems.length > 60 && (
+                    <div className="border-t border-border px-4 py-2 flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        Mostrando {displayed.length} de {filteredItems.length}
+                      </p>
+                      <button
+                        onClick={() => setShowAll((v) => !v)}
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      >
+                        {showAll
+                          ? <><ChevronUp className="h-3 w-3" /> Mostrar menos</>
+                          : <><ChevronDown className="h-3 w-3" /> Ver todos ({filteredItems.length})</>
+                        }
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
