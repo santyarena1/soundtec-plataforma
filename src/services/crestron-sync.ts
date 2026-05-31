@@ -184,21 +184,11 @@ async function login(): Promise<Record<string, string>> {
 
 // ── DataTables API ────────────────────────────────────────────────────────────
 
-const DT_COLUMNS = [
-  "ItemCode",
-  "ItemName",
-  "Price",
-  "Discount",
-  "Price",
-  "Currency",
-  "07",
-  "11",
-  "U_ETDCUS",
-  "Gpo",
-];
-
 function buildDtBody(start: number, length: number): string {
-  const p = new URLSearchParams({
+  // Minimal DataTables server-side params — no columns array.
+  // Column names like "07"/"11" are not valid Python identifiers and cause
+  // a Django FieldError (→ 500) when the backend tries to use them for ordering.
+  return new URLSearchParams({
     draw: "1",
     start: String(start),
     length: String(length),
@@ -206,16 +196,7 @@ function buildDtBody(start: number, length: number): string {
     "search[regex]": "false",
     "order[0][column]": "0",
     "order[0][dir]": "asc",
-  });
-  DT_COLUMNS.forEach((col, i) => {
-    p.set(`columns[${i}][data]`, col);
-    p.set(`columns[${i}][name]`, col);
-    p.set(`columns[${i}][searchable]`, "true");
-    p.set(`columns[${i}][orderable]`, "true");
-    p.set(`columns[${i}][search][value]`, "");
-    p.set(`columns[${i}][search][regex]`, "false");
-  });
-  return p.toString();
+  }).toString();
 }
 
 async function fetchPage(
