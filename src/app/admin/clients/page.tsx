@@ -9,7 +9,7 @@ import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/tab
 import { Badge } from "@/components/ui/badge";
 import { upsertClient, toggleClientActive } from "@/server/actions/clients";
 import { formatDate } from "@/lib/utils";
-import { Building2 } from "lucide-react";
+import { Building2, ExternalLink } from "lucide-react";
 
 export const metadata = { title: "Admin · Clientes" };
 
@@ -136,12 +136,20 @@ export default async function AdminClientsPage() {
                     <TD>{c._count.requests}</TD>
                     <TD>{c.isActive ? <Badge tone="success">Activo</Badge> : <Badge tone="muted">Inactivo</Badge>}</TD>
                     <TD className="text-right">
-                      <form action={toggleClientActive} className="inline">
-                        <input type="hidden" name="id" value={c.id} />
-                        <Button type="submit" variant="ghost" size="sm">
-                          {c.isActive ? "Desactivar" : "Activar"}
-                        </Button>
-                      </form>
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/admin/clients/${c.id}`}
+                          className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" /> Ver ficha
+                        </Link>
+                        <form action={toggleClientActive} className="inline">
+                          <input type="hidden" name="id" value={c.id} />
+                          <Button type="submit" variant="ghost" size="sm">
+                            {c.isActive ? "Desactivar" : "Activar"}
+                          </Button>
+                        </form>
+                      </div>
                     </TD>
                   </TR>
                 ))}
