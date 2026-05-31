@@ -573,6 +573,70 @@ Respondé exactamente con:
   }
 }
 
+export interface NcmSuggestion {
+  position: string;
+  confidence: number; // 0-1
+  reasoning: string;
+}
+
+export async function suggestNcmPosition(input: {
+  productName: string;
+  description?: string | null;
+  candidates: Array<{ position: string; description: string; die: string | null; aec: string | null }>;
+}): Promise<NcmSuggestion | null> {
+  const client = await getClient();
+  if (!client || input.candidates.length === 0) return null;
+
+  const candidateList = input.candidates
+    .map((c, i) => `${i + 1}. ${c.position} — ${c.description}${c.die ? ` (DIE: ${c.die})` : ""}${c.aec ? ` (AEC: ${c.aec})` : ""}`)
+    .join("\n");
+
+  try {
+    const model = await getModel();
+    const resp = await client.chat.completions.create({
+      model,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: "Sos un experto en clasificación arancelaria argentina (NCM/MERCOSUR). Respondés solo JSON válido.",
+        },
+        {
+          role: "user",
+          content: `Elegí la posición arancelaria NCM más adecuada para este producto.
+
+Producto: "${input.productName}"
+${input.description ? `Descripción: "${input.description}"` : ""}
+
+Candidatos disponibles:
+${candidateList}
+
+Respondé EXACTAMENTE con este JSON:
+{
+  "position": "<código NCM exacto de uno de los candidatos>",
+  "confidence": <0.0 a 1.0>,
+  "reasoning": "<explicación breve en español de por qué elegiste esa posición>"
+}
+
+Si ningún candidato es adecuado, devolvé confidence: 0.1 y reasoning explicando por qué.`,
+        },
+      ],
+    });
+    const raw = resp.choices[0]?.message.content || "{}";
+    const parsed = JSON.parse(raw) as { position?: string; confidence?: number; reasoning?: string };
+    if (!parsed.position || typeof parsed.position !== "string") return null;
+    const match = input.candidates.find((c) => c.position === parsed.position!.trim());
+    if (!match) return null;
+    return {
+      position: match.position,
+      confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0.5)),
+      reasoning: String(parsed.reasoning || "").trim(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function suggestRequestResponse(context: { project?: string; items: { name: string; quantity: number }[] }): Promise<string> {
   const client = await getClient();
   if (!client) {
