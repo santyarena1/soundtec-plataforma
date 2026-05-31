@@ -8,28 +8,24 @@ import { Input, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { SonanceImportPanel } from "./_client";
 
-export const metadata = { title: "Admin · Importación Sonance / IPORT / BLAZE" };
+export const metadata = { title: "Admin · Sincronización Sonance" };
 
 export default async function SonanceImportPage() {
   await requireAdmin();
-  const [portalUser, portalPass, url1, url2, url3] = await Promise.all([
+  const [portalUser, portalPass] = await Promise.all([
     getSetting("sonance.portal_username", ""),
     getSetting("sonance.portal_password", ""),
-    getSetting("sonance.box_url_1", ""),
-    getSetting("sonance.box_url_2", ""),
-    getSetting("sonance.box_url_3", ""),
   ]);
   const hasPortal = !!(portalUser && portalPass);
-  const hasLinks = hasPortal || !!(url1 || url2 || url3);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Sincronización Sonance / IPORT / BLAZE"
-        description="Configurá los links de Box y sincronizá automáticamente, o subí el Excel manualmente. Preview siempre antes de aplicar."
+        title="Sincronización Sonance / IPORT / BLAZE / JAMES"
+        description="Conecta el portal my.sonance.com con tus credenciales de dealer y sincronizá todas las marcas en una sola corrida."
       />
 
-      {/* Portal (my.sonance.com) credentials — primary sync source */}
+      {/* Portal (my.sonance.com) credentials */}
       <Card>
         <CardContent className="p-5 space-y-4">
           <div className="flex items-center justify-between">
@@ -37,9 +33,8 @@ export default async function SonanceImportPage() {
             {hasPortal ? <Badge tone="success">configuradas</Badge> : <Badge tone="muted">sin configurar</Badge>}
           </div>
           <p className="text-xs text-muted-foreground">
-            Si configurás usuario y password, el sistema sincroniza directo desde la API del portal
-            (datos estructurados: SKU + nombre + precio + marca, todas las cuentas a la vez: SONANCE, IPORT, BLAZE, JAMES, TRUFIG).
-            Es el método preferido — los links de Box quedan como fallback.
+            Usuario y password del portal dealer. Una sola sesión trae todas las marcas (SONANCE, IPORT, BLAZE, JAMES, TRUFIG)
+            con SKU + nombre + precio en USD, listo para previsualizar y aplicar.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <form action={saveSetting} className="space-y-1.5">
@@ -74,73 +69,7 @@ export default async function SonanceImportPage() {
         </CardContent>
       </Card>
 
-      {/* Box links config — fallback */}
-      <Card>
-        <CardContent className="p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="heading-3">Links de Box (fallback)</h2>
-            {!!(url1 || url2 || url3) ? (
-              <Badge tone="success">configurados</Badge>
-            ) : (
-              <Badge tone="muted">sin configurar</Badge>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Pegá los links compartidos de Box tal como están. El sistema descarga los archivos directamente
-            replicando el flujo del browser (page → request token → access token → download).
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Cada cuenta de my.sonance.com tiene su propia carpeta Box con su lista de precios.
-            Pegá un link Box por cuenta/marca — el sistema baja todos juntos y los unifica en la preview.
-          </p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <form action={saveSetting} className="space-y-1.5">
-              <input type="hidden" name="key" value="sonance.box_url_1" />
-              <Label htmlFor="box-url-1">Cuenta 1 — Sonance + IPORT</Label>
-              <Input
-                id="box-url-1"
-                name="value"
-                type="url"
-                defaultValue={url1}
-                placeholder="https://danainnovations.app.box.com/s/.../file/..."
-              />
-              <div className="flex justify-end">
-                <Button type="submit" size="sm" variant="outline">Guardar</Button>
-              </div>
-            </form>
-            <form action={saveSetting} className="space-y-1.5">
-              <input type="hidden" name="key" value="sonance.box_url_2" />
-              <Label htmlFor="box-url-2">Cuenta 2 — BLAZE by SONANCE</Label>
-              <Input
-                id="box-url-2"
-                name="value"
-                type="url"
-                defaultValue={url2}
-                placeholder="https://danainnovations.app.box.com/s/.../file/..."
-              />
-              <div className="flex justify-end">
-                <Button type="submit" size="sm" variant="outline">Guardar</Button>
-              </div>
-            </form>
-            <form action={saveSetting} className="space-y-1.5">
-              <input type="hidden" name="key" value="sonance.box_url_3" />
-              <Label htmlFor="box-url-3">Cuenta 3 — JAMES</Label>
-              <Input
-                id="box-url-3"
-                name="value"
-                type="url"
-                defaultValue={url3}
-                placeholder="https://danainnovations.app.box.com/s/.../file/..."
-              />
-              <div className="flex justify-end">
-                <Button type="submit" size="sm" variant="outline">Guardar</Button>
-              </div>
-            </form>
-          </div>
-        </CardContent>
-      </Card>
-
-      <SonanceImportPanel hasLinks={hasLinks} />
+      <SonanceImportPanel hasPortal={hasPortal} />
     </div>
   );
 }

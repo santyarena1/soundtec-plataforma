@@ -1,19 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Upload,
+  RefreshCw,
   CheckCircle2,
   AlertCircle,
   ChevronDown,
   ChevronUp,
-  FileSpreadsheet,
-  Loader2,
   Languages,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import type {
   SonancePreviewResponse,
@@ -50,16 +49,20 @@ function fmtPrice(p: number | null) {
   return `$ ${p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
+export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
   const [state, setState] = useState<
-    "idle" | "parsing" | "preview" | "applying" | "done" | "error"
+    "idle" | "loading" | "preview" | "applying" | "done" | "error"
   >("idle");
   const [preview, setPreview] = useState<SonancePreviewResponse | null>(null);
-  const [applyResult, setApplyResult] = useState<{ updated: number; created: number; categoryWrites?: number } | null>(null);
+  const [applyResult, setApplyResult] = useState<{
+    updated: number;
+    created: number;
+    categoryWrites?: number;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("changes");
+  const [createNew, setCreateNew] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [target, setTarget] = useState<CategoryTarget>("rubro");
   const [translating, setTranslating] = useState(false);
@@ -83,48 +86,6 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
   const [enrichDone, setEnrichDone] = useState(false);
   const [enrichCancelRef] = useState<{ canceled: boolean }>({ canceled: false });
 
-  async function runEnrich() {
-    setEnriching(true);
-    setEnrichError(null);
-    setEnrichDone(false);
-    setEnrichProgress({ done: 0, total: 0, updated: 0, withImages: 0, withSpecs: 0, withDocs: 0, withAccessories: 0, withTranslations: 0 });
-    enrichCancelRef.canceled = false;
-    try {
-      let offset = 0;
-      let total = 0;
-      const acc = { updated: 0, withImages: 0, withSpecs: 0, withDocs: 0, withAccessories: 0, withTranslations: 0 };
-      while (!enrichCancelRef.canceled) {
-        const res = await fetch("/api/admin/sonance-import/enrich", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ translate: enrichTranslate, force: enrichForce, batchSize: 20, offset }),
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error ?? "Error al enriquecer");
-        total = data.totalTargets ?? 0;
-        acc.updated += data.updated ?? 0;
-        acc.withImages += data.withImages ?? 0;
-        acc.withSpecs += data.withSpecs ?? 0;
-        acc.withDocs += data.withDocs ?? 0;
-        acc.withAccessories += data.withAccessories ?? 0;
-        acc.withTranslations += data.withTranslations ?? 0;
-        const newDone = (data.nextOffset ?? total);
-        setEnrichProgress({ done: newDone, total, ...acc });
-        if (data.done || data.nextOffset === null) break;
-        offset = data.nextOffset;
-      }
-      setEnrichDone(true);
-    } catch (e) {
-      setEnrichError(e instanceof Error ? e.message : "Error inesperado");
-    } finally {
-      setEnriching(false);
-    }
-  }
-
-  function cancelEnrich() {
-    enrichCancelRef.canceled = true;
-  }
-
   // Hydrate translations + target when a preview arrives
   useEffect(() => {
     if (!preview) return;
@@ -135,25 +96,9 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
     setTranslations(base);
     if (preview.target) setTarget(preview.target);
   }, [preview]);
-  const [createNew, setCreateNew] = useState(false);
-  const [showAll, setShowAll] = useState(false);
 
-  function reset() {
-    setPreview(null);
-    setState("idle");
-    setError(null);
-    setApplyResult(null);
-    setShowAll(false);
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    setFileName(f?.name ?? null);
-    reset();
-  }
-
-  async function handleSyncFromBox() {
-    setState("parsing");
+  async function handleSync() {
+    setState("loading");
     setError(null);
     setPreview(null);
     setApplyResult(null);
@@ -161,27 +106,6 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
       const res = await fetch("/api/admin/sonance-import");
       const data: SonancePreviewResponse = await res.json();
       if (!data.ok) throw new Error(data.error ?? "Error al sincronizar");
-      setPreview(data);
-      setState("preview");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error inesperado");
-      setState("error");
-    }
-  }
-
-  async function handleParse() {
-    const file = fileRef.current?.files?.[0];
-    if (!file) return;
-    setState("parsing");
-    setError(null);
-    setPreview(null);
-    setApplyResult(null);
-    const fd = new FormData();
-    fd.append("file", file);
-    try {
-      const res = await fetch("/api/admin/sonance-import", { method: "POST", body: fd });
-      const data: SonancePreviewResponse = await res.json();
-      if (!data.ok) throw new Error(data.error ?? "Error al parsear");
       setPreview(data);
       setState("preview");
     } catch (e) {
@@ -202,7 +126,11 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error ?? "Error al aplicar");
-      setApplyResult({ updated: data.updated, created: data.created, categoryWrites: data.categoryWrites });
+      setApplyResult({
+        updated: data.updated,
+        created: data.created,
+        categoryWrites: data.categoryWrites,
+      });
       setState("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado");
@@ -237,107 +165,135 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
     }
   }
 
-  const filteredItems: SonancePreviewItem[] = (() => {
-    if (!preview?.items) return [];
-    switch (filter) {
-      case "changes": return preview.items.filter((i) => !i.isNew && i.priceChanged);
-      case "new":     return preview.items.filter((i) => i.isNew);
-      case "matched": return preview.items.filter((i) => !i.isNew && !i.priceChanged);
-      case "all":     return preview.items;
+  async function runEnrich() {
+    setEnriching(true);
+    setEnrichError(null);
+    setEnrichDone(false);
+    setEnrichProgress({
+      done: 0,
+      total: 0,
+      updated: 0,
+      withImages: 0,
+      withSpecs: 0,
+      withDocs: 0,
+      withAccessories: 0,
+      withTranslations: 0,
+    });
+    enrichCancelRef.canceled = false;
+    try {
+      let offset = 0;
+      let total = 0;
+      const acc = {
+        updated: 0,
+        withImages: 0,
+        withSpecs: 0,
+        withDocs: 0,
+        withAccessories: 0,
+        withTranslations: 0,
+      };
+      while (!enrichCancelRef.canceled) {
+        const res = await fetch("/api/admin/sonance-import/enrich", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            translate: enrichTranslate,
+            force: enrichForce,
+            batchSize: 20,
+            offset,
+          }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error ?? "Error al enriquecer");
+        total = data.totalTargets ?? 0;
+        acc.updated += data.updated ?? 0;
+        acc.withImages += data.withImages ?? 0;
+        acc.withSpecs += data.withSpecs ?? 0;
+        acc.withDocs += data.withDocs ?? 0;
+        acc.withAccessories += data.withAccessories ?? 0;
+        acc.withTranslations += data.withTranslations ?? 0;
+        const newDone = data.nextOffset ?? total;
+        setEnrichProgress({ done: newDone, total, ...acc });
+        if (data.done || data.nextOffset === null) break;
+        offset = data.nextOffset;
+      }
+      setEnrichDone(true);
+    } catch (e) {
+      setEnrichError(e instanceof Error ? e.message : "Error inesperado");
+    } finally {
+      setEnriching(false);
     }
-  })();
+  }
+
+  function cancelEnrich() {
+    enrichCancelRef.canceled = true;
+  }
+
+  const itemsWithComputed = useMemo(() => {
+    if (!preview?.items) return [];
+    return preview.items.map((i) => {
+      const es = (translations[i.category] ?? "").trim();
+      const categoryChanged =
+        !i.isNew && es.length > 0 && (i.currentCategoryLabel ?? "").trim() !== es;
+      return { ...i, esCategory: es, categoryChanged };
+    });
+  }, [preview, translations]);
+
+  const filteredItems = useMemo(() => {
+    if (filter === "changes")
+      return itemsWithComputed.filter(
+        (i) => !i.isNew && (i.priceChanged || i.categoryChanged)
+      );
+    if (filter === "new") return itemsWithComputed.filter((i) => i.isNew);
+    if (filter === "matched")
+      return itemsWithComputed.filter((i) => !i.isNew && !i.priceChanged && !i.categoryChanged);
+    return itemsWithComputed;
+  }, [itemsWithComputed, filter]);
 
   const displayed = showAll ? filteredItems : filteredItems.slice(0, 60);
 
-  // Category change count: matched products whose current category-target field
-  // differs from the translation of their EN category
-  const categoryChanges = useMemo(() => {
-    if (!preview?.items) return 0;
-    return preview.items.filter((i) => {
-      if (i.isNew) return false;
-      const es = (translations[i.category] ?? "").trim();
-      return es.length > 0 && (i.currentCategoryLabel ?? "").trim() !== es;
-    }).length;
-  }, [preview, translations]);
-
-  const untranslatedCount = (preview?.uniqueCategories ?? []).filter(
-    (c) => !translations[c]?.trim()
+  const productsWithChanges = itemsWithComputed.filter(
+    (i) => !i.isNew && (i.priceChanged || i.categoryChanged)
   ).length;
-
+  const categoryChanges = itemsWithComputed.filter((i) => i.categoryChanged).length;
   const hasChanges =
     (preview?.priceChanges ?? 0) > 0 ||
     categoryChanges > 0 ||
     (createNew && (preview?.newProducts ?? 0) > 0);
 
+  const untranslatedCount = (preview?.uniqueCategories ?? []).filter(
+    (c) => !translations[c]?.trim()
+  ).length;
+
   return (
     <div className="space-y-4">
-
-      {/* Sync card */}
+      {/* Sync trigger */}
       <Card>
-        <CardContent className="p-5 space-y-4">
-
-          {/* Auto-sync from Box */}
-          {hasLinks && (
-            <div className="flex items-center justify-between gap-3 rounded-md bg-muted/40 border border-border px-4 py-3">
-              <div>
-                <p className="text-sm font-medium">Sincronizar desde Box</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Descarga y procesa automáticamente los archivos configurados.
-                </p>
-              </div>
-              <Button
-                onClick={handleSyncFromBox}
-                disabled={state === "parsing" || state === "applying"}
-                size="sm"
-              >
-                <Upload className={`mr-1.5 h-3.5 w-3.5 ${state === "parsing" ? "animate-bounce" : ""}`} />
-                {state === "parsing" ? "Descargando…" : "Sincronizar"}
-              </Button>
-            </div>
-          )}
-
-          {/* Manual upload */}
-          <div>
-            {hasLinks && (
-              <p className="text-xs font-medium text-muted-foreground mb-2">
-                O subir manualmente
+        <CardContent className="p-5 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">Fuente: my.sonance.com</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Login automático + paginación de catálogo (SONANCE, IPORT, BLAZE, JAMES, TRUFIG).
+                La preview te muestra qué cambia sin guardar nada.
               </p>
-            )}
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="flex-1 min-w-[200px]">
-                {!hasLinks && (
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    Archivo Excel (.xlsx)
-                  </label>
-                )}
-                <label className="flex items-center gap-2 cursor-pointer h-9 rounded-md border border-dashed border-border bg-background px-3 text-sm text-muted-foreground hover:bg-secondary transition-colors">
-                  <FileSpreadsheet className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{fileName ?? "Elegir archivo…"}</span>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept=".xlsx,.xls"
-                    className="sr-only"
-                    onChange={handleFileChange}
-                  />
-                </label>
-              </div>
-              <Button
-                onClick={handleParse}
-                disabled={!fileName || state === "parsing" || state === "applying"}
-                size="sm"
-                variant={hasLinks ? "outline" : "secondary"}
-              >
-                <Upload className={`mr-1.5 h-3.5 w-3.5 ${state === "parsing" && fileName ? "animate-bounce" : ""}`} />
-                {state === "parsing" && fileName ? "Procesando…" : "Analizar archivo"}
-              </Button>
             </div>
+            <Button
+              onClick={handleSync}
+              disabled={!hasPortal || state === "loading" || state === "applying"}
+              size="sm"
+              title={!hasPortal ? "Configurá las credenciales primero" : undefined}
+            >
+              <RefreshCw
+                className={`mr-1.5 h-3.5 w-3.5 ${state === "loading" ? "animate-spin" : ""}`}
+              />
+              {state === "loading" ? "Descargando catálogo…" : "Sincronizar desde portal"}
+            </Button>
           </div>
-
-          <div className="text-xs text-muted-foreground space-y-0.5">
-            <p>• <strong>Sonance + IPORT:</strong> <code>Sonance_IPORT Price List_*.xlsx</code> — detecta marcas por sección</p>
-            <p>• <strong>BLAZE by SONANCE:</strong> <code>BLAZE by SONANCE_Price List_*.xlsx</code> — hoja &quot;USD - BLAZE PRICE LIST&quot;</p>
-          </div>
+          {!hasPortal && (
+            <p className="text-xs text-warning">
+              Configurá usuario y password arriba antes de sincronizar.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -359,91 +315,14 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
             <p className="text-sm font-medium">
               Aplicado: {applyResult.updated} productos actualizados
               {applyResult.created > 0 ? `, ${applyResult.created} creados` : ""}
-              {(applyResult.categoryWrites ?? 0) > 0 ? `, ${applyResult.categoryWrites} con categoría` : ""}.
+              {(applyResult.categoryWrites ?? 0) > 0
+                ? `, ${applyResult.categoryWrites} con categoría`
+                : ""}
+              .
             </p>
           </CardContent>
         </Card>
       )}
-
-      {/* Enriquecimiento (rich data: imágenes, specs, docs, accesorios + traducción ES) */}
-      <Card>
-        <CardContent className="p-5 space-y-3">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="flex items-start gap-2 flex-1 min-w-[260px]">
-              <Sparkles className="h-4 w-4 mt-0.5 text-accent shrink-0" />
-              <div>
-                <h3 className="text-sm font-medium">Enriquecer productos Sonance</h3>
-                <p className="text-xs text-muted-foreground">
-                  Baja datos completos del portal por cada producto (imágenes, specs técnicos, datasheets, accesorios, descripciones HTML)
-                  y opcionalmente los traduce al español con OpenAI (con cache: cada texto se traduce 1 sola vez).
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Procesa de a 20 productos por batch — no rompe por timeout. Podés cancelar y reanudar.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-4 text-xs">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enrichTranslate}
-                onChange={(e) => setEnrichTranslate(e.target.checked)}
-                disabled={enriching}
-                className="h-4 w-4 rounded border-border"
-              />
-              Traducir nombres, specs, docs y descripciones al español
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enrichForce}
-                onChange={(e) => setEnrichForce(e.target.checked)}
-                disabled={enriching}
-                className="h-4 w-4 rounded border-border"
-              />
-              Re-procesar productos ya enriquecidos
-            </label>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {!enriching ? (
-              <Button size="sm" onClick={runEnrich}>
-                <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                Iniciar enriquecimiento
-              </Button>
-            ) : (
-              <Button size="sm" variant="outline" onClick={cancelEnrich}>
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                Cancelar (termina batch actual)
-              </Button>
-            )}
-            {enrichProgress && enrichProgress.total > 0 && (
-              <p className="text-xs text-muted-foreground self-center">
-                {enrichProgress.done} / {enrichProgress.total} ·{" "}
-                {enrichProgress.withImages} con imágenes ·{" "}
-                {enrichProgress.withSpecs} con specs ·{" "}
-                {enrichProgress.withDocs} con docs ·{" "}
-                {enrichProgress.withAccessories} con accesorios
-                {enrichProgress.withTranslations > 0 ? ` · ${enrichProgress.withTranslations} traducidos` : ""}
-              </p>
-            )}
-          </div>
-          {enrichProgress && enrichProgress.total > 0 && (
-            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all"
-                style={{ width: `${Math.min(100, (enrichProgress.done / enrichProgress.total) * 100)}%` }}
-              />
-            </div>
-          )}
-          {enrichError && <p className="text-xs text-destructive">{enrichError}</p>}
-          {enrichDone && (
-            <p className="text-xs text-success">
-              ✓ Enriquecimiento completo: {enrichProgress?.updated} productos actualizados.
-            </p>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Preview */}
       {(state === "preview" || state === "applying" || state === "done") && preview && (
@@ -451,10 +330,18 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
           {/* Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Parseados", value: preview.totalParsed ?? 0, color: "" },
+              { label: "Total catálogo", value: preview.totalParsed ?? 0, color: "" },
               { label: "Coinciden en BD", value: preview.matched ?? 0, color: "text-success" },
-              { label: "Cambios de precio", value: preview.priceChanges ?? 0, color: "text-warning" },
-              { label: "Nuevos (no en BD)", value: preview.newProducts ?? 0, color: "text-muted-foreground" },
+              {
+                label: "Cambios de precio",
+                value: preview.priceChanges ?? 0,
+                color: "text-warning",
+              },
+              {
+                label: "Nuevos (no en BD)",
+                value: preview.newProducts ?? 0,
+                color: "text-muted-foreground",
+              },
             ].map((s) => (
               <Card key={s.label}>
                 <CardContent className="p-4 text-center">
@@ -483,7 +370,7 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
                 <div className="flex items-start gap-2 flex-1 min-w-[200px]">
                   <Languages className="h-4 w-4 mt-0.5 text-accent shrink-0" />
                   <div>
-                    <h3 className="text-sm font-medium">Categorías de Sonance</h3>
+                    <h3 className="text-sm font-medium">Categorías</h3>
                     <p className="text-xs text-muted-foreground">
                       Traducí cada grupo al español y elegí dónde guardarlo. Se guarda al aplicar.
                     </p>
@@ -498,7 +385,9 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
                       disabled={translating || untranslatedCount === 0}
                       title="Solo completa las que están vacías"
                     >
-                      <Sparkles className={`mr-1.5 h-3.5 w-3.5 ${translating ? "animate-pulse" : ""}`} />
+                      <Sparkles
+                        className={`mr-1.5 h-3.5 w-3.5 ${translating ? "animate-pulse" : ""}`}
+                      />
                       {translating ? "Traduciendo…" : `Traducir faltantes (${untranslatedCount})`}
                     </Button>
                     <Button
@@ -517,7 +406,9 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
 
               {/* Target selector */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-muted-foreground">Guardar como</label>
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Guardar como
+                </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {(Object.keys(TARGET_LABELS) as CategoryTarget[]).map((t) => (
                     <button
@@ -550,12 +441,16 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
                     <tbody className="divide-y divide-border">
                       {(preview.uniqueCategories ?? []).map((c) => (
                         <tr key={c}>
-                          <td className="px-3 py-1.5 font-mono text-muted-foreground max-w-[260px] truncate">{c}</td>
+                          <td className="px-3 py-1.5 font-mono text-muted-foreground max-w-[260px] truncate">
+                            {c}
+                          </td>
                           <td className="px-3 py-1.5">
                             <input
                               type="text"
                               value={translations[c] ?? ""}
-                              onChange={(e) => setTranslations((prev) => ({ ...prev, [c]: e.target.value }))}
+                              onChange={(e) =>
+                                setTranslations((prev) => ({ ...prev, [c]: e.target.value }))
+                              }
                               placeholder="Escribí la traducción…"
                               className="h-7 w-full rounded border border-border bg-background px-2 text-xs"
                             />
@@ -591,7 +486,9 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
                   className="h-4 w-4 rounded border-border"
                 />
                 Crear también los {preview.newProducts ?? 0} productos nuevos{" "}
-                <span className="text-xs text-muted-foreground">(quedan inactivos hasta revisión)</span>
+                <span className="text-xs text-muted-foreground">
+                  (quedan inactivos hasta revisión)
+                </span>
               </label>
               <Button
                 onClick={handleApply}
@@ -605,16 +502,17 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
                   </>
                 ) : (
                   <>
-                    Aplicar {(preview.priceChanges ?? 0)} precio
+                    Aplicar {preview.priceChanges ?? 0} precio
                     {categoryChanges > 0 ? ` · ${categoryChanges} categoría` : ""}
-                    {createNew && (preview.newProducts ?? 0) > 0 ? ` · ${preview.newProducts} nuevos` : ""}
+                    {createNew && (preview.newProducts ?? 0) > 0
+                      ? ` · ${preview.newProducts} nuevos`
+                      : ""}
                   </>
                 )}
               </Button>
             </div>
           )}
 
-          {/* Applying banner */}
           {state === "applying" && (
             <Card>
               <CardContent className="p-4 flex items-center gap-3">
@@ -622,29 +520,122 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
                 <div className="flex-1">
                   <p className="text-sm font-medium">Aplicando cambios…</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Actualizando precios{createNew && (preview.newProducts ?? 0) > 0 ? ` y creando ${preview.newProducts} productos nuevos` : ""}. No cierres esta pestaña.
+                    Actualizando precios{createNew && (preview.newProducts ?? 0) > 0
+                      ? ` y creando ${preview.newProducts} productos nuevos`
+                      : ""}
+                    . No cierres esta pestaña.
                   </p>
                 </div>
               </CardContent>
             </Card>
           )}
 
+          {/* Enrichment */}
+          <Card>
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-start gap-2 flex-1 min-w-[260px]">
+                <Sparkles className="h-4 w-4 mt-0.5 text-accent shrink-0" />
+                <div>
+                  <h3 className="text-sm font-medium">Enriquecer productos con datos completos</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Por cada producto baja del portal: imágenes (hasta 10), specs técnicos (25 atributos), datasheets,
+                    accesorios y descripción HTML. Opcionalmente traduce todo al español con OpenAI (cache: cada texto se traduce 1 sola vez).
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Procesa de a 20 productos por batch. Cancelable y reanudable.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enrichTranslate}
+                    onChange={(e) => setEnrichTranslate(e.target.checked)}
+                    disabled={enriching}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  Traducir nombres, specs, docs y descripciones al español
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enrichForce}
+                    onChange={(e) => setEnrichForce(e.target.checked)}
+                    disabled={enriching}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  Re-procesar productos ya enriquecidos
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {!enriching ? (
+                  <Button size="sm" onClick={runEnrich} disabled={!hasPortal}>
+                    <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                    Iniciar enriquecimiento
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={cancelEnrich}>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Cancelar (termina batch actual)
+                  </Button>
+                )}
+                {enrichProgress && enrichProgress.total > 0 && (
+                  <p className="text-xs text-muted-foreground self-center">
+                    {enrichProgress.done} / {enrichProgress.total} ·{" "}
+                    {enrichProgress.withImages} con imágenes ·{" "}
+                    {enrichProgress.withSpecs} con specs ·{" "}
+                    {enrichProgress.withDocs} con docs ·{" "}
+                    {enrichProgress.withAccessories} con accesorios
+                    {enrichProgress.withTranslations > 0
+                      ? ` · ${enrichProgress.withTranslations} traducidos`
+                      : ""}
+                  </p>
+                )}
+              </div>
+              {enrichProgress && enrichProgress.total > 0 && (
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all"
+                    style={{
+                      width: `${Math.min(100, (enrichProgress.done / enrichProgress.total) * 100)}%`,
+                    }}
+                  />
+                </div>
+              )}
+              {enrichError && <p className="text-xs text-destructive">{enrichError}</p>}
+              {enrichDone && (
+                <p className="text-xs text-success">
+                  ✓ Enriquecimiento completo: {enrichProgress?.updated} productos actualizados.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Table */}
           <Card>
             <CardContent className="p-0">
-              {/* Filter tabs */}
               <div className="flex border-b border-border px-4 pt-3 gap-4 text-sm overflow-x-auto">
                 {(
                   [
-                    { key: "changes", label: `Con cambios (${preview.priceChanges ?? 0})` },
-                    { key: "new",     label: `Nuevos (${preview.newProducts ?? 0})` },
-                    { key: "matched", label: `Sin cambios (${(preview.matched ?? 0) - (preview.priceChanges ?? 0)})` },
-                    { key: "all",     label: `Todos (${preview.totalParsed ?? 0})` },
+                    {
+                      key: "changes",
+                      label: `Con cambios (${productsWithChanges})`,
+                    },
+                    { key: "new", label: `Nuevos (${preview.newProducts ?? 0})` },
+                    {
+                      key: "matched",
+                      label: `Sin cambios (${(preview.matched ?? 0) - productsWithChanges})`,
+                    },
+                    { key: "all", label: `Todos (${preview.totalParsed ?? 0})` },
                   ] as { key: Filter; label: string }[]
                 ).map((t) => (
                   <button
                     key={t.key}
-                    onClick={() => { setFilter(t.key); setShowAll(false); }}
+                    onClick={() => {
+                      setFilter(t.key);
+                      setShowAll(false);
+                    }}
                     className={`shrink-0 pb-2 border-b-2 transition-colors text-xs ${
                       filter === t.key
                         ? "border-primary text-foreground font-medium"
@@ -679,20 +670,43 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
                       <tbody className="divide-y divide-border">
                         {displayed.map((item) => (
                           <tr key={item.supplierSku} className="hover:bg-muted/20">
-                            <td className="px-3 py-2 font-mono text-muted-foreground">{item.supplierSku}</td>
+                            <td className="px-3 py-2 font-mono text-muted-foreground">
+                              {item.supplierSku}
+                            </td>
                             <td className="px-3 py-2 max-w-[200px]">{item.name}</td>
                             <td className="px-3 py-2">
                               <Badge tone={brandTone(item.brand)}>{item.brand}</Badge>
                             </td>
-                            <td className="px-3 py-2 max-w-[160px] text-muted-foreground">
-                              {item.category}
-                              {item.subcategory ? ` › ${item.subcategory}` : ""}
+                            <td
+                              className={`px-3 py-2 text-xs max-w-[160px] ${
+                                item.categoryChanged
+                                  ? "text-accent font-medium"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {item.esCategory ||
+                                (item.category ? (
+                                  <span className="italic text-muted-foreground">
+                                    sin traducir ({item.category})
+                                  </span>
+                                ) : (
+                                  "—"
+                                ))}
+                              {item.categoryChanged && item.currentCategoryLabel && (
+                                <span className="block text-[10px] text-muted-foreground line-through">
+                                  {item.currentCategoryLabel}
+                                </span>
+                              )}
                             </td>
                             <td className="px-3 py-2 text-muted-foreground">{item.uom}</td>
                             <td className="px-3 py-2 text-right tabular-nums">
                               {fmtPrice(item.currentPrice)}
                             </td>
-                            <td className={`px-3 py-2 text-right tabular-nums font-medium ${item.priceChanged ? "text-warning" : ""}`}>
+                            <td
+                              className={`px-3 py-2 text-right tabular-nums font-medium ${
+                                item.priceChanged ? "text-warning" : ""
+                              }`}
+                            >
                               {fmtPrice(item.newPrice)}
                             </td>
                             <td className="px-3 py-2">
@@ -700,6 +714,8 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
                                 <Badge tone="muted">Nuevo</Badge>
                               ) : item.priceChanged ? (
                                 <Badge tone="warning">Precio cambia</Badge>
+                              ) : item.categoryChanged ? (
+                                <Badge tone="accent">Categoría cambia</Badge>
                               ) : (
                                 <Badge tone="success">Sin cambio</Badge>
                               )}
@@ -719,10 +735,15 @@ export function SonanceImportPanel({ hasLinks }: { hasLinks: boolean }) {
                         onClick={() => setShowAll((v) => !v)}
                         className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                       >
-                        {showAll
-                          ? <><ChevronUp className="h-3 w-3" /> Mostrar menos</>
-                          : <><ChevronDown className="h-3 w-3" /> Ver todos ({filteredItems.length})</>
-                        }
+                        {showAll ? (
+                          <>
+                            <ChevronUp className="h-3 w-3" /> Mostrar menos
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-3 w-3" /> Ver todos ({filteredItems.length})
+                          </>
+                        )}
                       </button>
                     </div>
                   )}

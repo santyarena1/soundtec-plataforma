@@ -3,11 +3,7 @@ import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getSetting, setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
-import {
-  parseSonanceExcel,
-  downloadFromBoxLink,
-  type SonanceProduct,
-} from "@/services/sonance-import";
+import type { SonanceProduct } from "@/services/sonance-import";
 import { fetchFromPortal } from "@/services/sonance-portal";
 import { revalidatePath } from "next/cache";
 
@@ -152,69 +148,29 @@ async function buildPreviewFromProducts(
   };
 }
 
-async function buildPreviewFromBuffers(buffers: Buffer[]): Promise<SonancePreviewResponse> {
-  const allProducts: SonanceProduct[] = [];
-  const brandCounts: Record<string, number> = {};
-  let fileType = "sonance-iport";
-  for (const buf of buffers) {
-    const parsed = parseSonanceExcel(buf);
-    fileType = parsed.fileType;
-    allProducts.push(...parsed.products);
-    for (const [k, v] of Object.entries(parsed.brandCounts)) {
-      brandCounts[k] = (brandCounts[k] ?? 0) + v;
-    }
-  }
-  const bySku = new Map<string, SonanceProduct>();
-  for (const p of allProducts) bySku.set(p.supplierSku, p);
-  return buildPreviewFromProducts(Array.from(bySku.values()), brandCounts, fileType);
-}
-
-// GET — prefer my.sonance.com API; fallback to Box links
+// GET — sync from my.sonance.com portal API (única fuente).
 export async function GET() {
   try {
     await requireAdmin();
-    const [user, pass, url1, url2, url3] = await Promise.all([
+    const [user, pass] = await Promise.all([
       getSetting("sonance.portal_username", ""),
       getSetting("sonance.portal_password", ""),
-      getSetting("sonance.box_url_1", ""),
-      getSetting("sonance.box_url_2", ""),
-      getSetting("sonance.box_url_3", ""),
     ]);
 
-    // Primary: my.sonance.com portal API (structured data: SKU + name + price + brand)
-    if (user && pass) {
-      const portal = await fetchFromPortal();
+    if (!user || !pass) {
       return NextResponse.json(
-        await buildPreviewFromProducts(portal.products, portal.brandCounts, "sonance-portal")
-      );
-    }
-
-    // Fallback: Box shared links → Excel parsing
-    const urls = [url1, url2, url3].filter(Boolean);
-    if (urls.length === 0) {
-      return NextResponse.json(
-        { ok: false, error: "Configurá credenciales de my.sonance.com o links de Box para la sync automática." },
+        {
+          ok: false,
+          error: "Configurá usuario y password de my.sonance.com en la sección de credenciales.",
+        },
         { status: 400 }
       );
     }
-    const buffers = await Promise.all(urls.map(downloadFromBoxLink));
-    return NextResponse.json(await buildPreviewFromBuffers(buffers));
-  } catch (err) {
-    const error = err instanceof Error ? err.message : "Error desconocido";
-    return NextResponse.json({ ok: false, error } satisfies SonancePreviewResponse, { status: 500 });
-  }
-}
 
-// POST — parse uploaded file, return preview
-export async function POST(req: NextRequest) {
-  try {
-    await requireAdmin();
-    const formData = await req.formData();
-    const file = formData.get("file");
-    if (!(file instanceof File))
-      return NextResponse.json({ ok: false, error: "No se recibió archivo" }, { status: 400 });
-    const buffer = Buffer.from(await file.arrayBuffer());
-    return NextResponse.json(await buildPreviewFromBuffers([buffer]));
+    const portal = await fetchFromPortal();
+    return NextResponse.json(
+      await buildPreviewFromProducts(portal.products, portal.brandCounts, "sonance-portal")
+    );
   } catch (err) {
     const error = err instanceof Error ? err.message : "Error desconocido";
     return NextResponse.json({ ok: false, error } satisfies SonancePreviewResponse, { status: 500 });
