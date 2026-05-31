@@ -235,44 +235,70 @@ function cookieHeader(map: Record<string, string>): string {
   return Object.entries(map).map(([k, v]) => `${k}=${v}`).join("; ");
 }
 
-// Binary GET with redirect following and cookie accumulation.
+// Binary HTTP request with optional body, redirect following, cookie accumulation.
 // Uses node:https directly — fetch/undici can mangle the redirect chain for Box URLs.
-function boxGet(
+function boxRequest(
   url: string,
+  method: "GET" | "POST",
   headers: Record<string, string>,
+  body: string | null = null,
   cookies: Record<string, string> = {},
-  hops = 12
-): Promise<{ status: number; body: Buffer; cookies: Record<string, string> }> {
+  hops = 12,
+  timeoutMs = 30000
+): Promise<{ status: number; body: Buffer; cookies: Record<string, string>; finalUrl: string }> {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
+    const finalHeaders = { ...headers };
+    if (body !== null) {
+      finalHeaders["Content-Length"] = String(Buffer.byteLength(body));
+    }
     const req = https.request(
-      { hostname: u.hostname, path: u.pathname + u.search, method: "GET", headers },
+      { hostname: u.hostname, path: u.pathname + u.search, method, headers: finalHeaders, timeout: timeoutMs },
       (res) => {
         const newCookies = { ...cookies, ...parseSetCookies(res.headers) };
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
         res.on("end", () => {
-          const body = Buffer.concat(chunks);
+          const buf = Buffer.concat(chunks);
           const loc = res.headers["location"] as string | undefined;
-          if (res.statusCode! >= 300 && res.statusCode! < 400 && loc && hops > 0) {
+          // Only follow redirects on GET — POST 3xx responses are real responses, not redirects to follow
+          if (method === "GET" && res.statusCode! >= 300 && res.statusCode! < 400 && loc && hops > 0) {
             const next = loc.startsWith("http") ? loc : new URL(loc, url).toString();
-            boxGet(
+            boxRequest(
               next,
+              "GET",
               { ...headers, Cookie: cookieHeader(newCookies), Referer: url },
+              null,
               newCookies,
-              hops - 1
+              hops - 1,
+              timeoutMs
             ).then(resolve).catch(reject);
           } else {
-            resolve({ status: res.statusCode ?? 0, body, cookies: newCookies });
+            resolve({ status: res.statusCode ?? 0, body: buf, cookies: newCookies, finalUrl: url });
           }
         });
       }
     );
+    req.on("timeout", () => { req.destroy(); reject(new Error(`Timeout (${timeoutMs}ms) en ${method} ${url}`)); });
     req.on("error", reject);
+    if (body !== null) req.write(body);
     req.end();
   });
 }
 
+/**
+ * Replicates the Box enduserapp flow used by the browser to download files
+ * from public shared links (folder-based shares).
+ *
+ * 3-step flow (reverse-engineered from observed XHR traffic):
+ *   1. GET the shared file page → cookies (csrf-token, z, ...) + requestToken
+ *      embedded in inline script as `"requestToken":"<64 hex>"`
+ *   2. POST /app-api/enduserapp/elements/tokens with Request-Token header and
+ *      X-Box-EndUser-API: sharedName=<token>. Body: {"fileIDs":["<fileId>"]}
+ *      Returns: {"<fileId>":{"read":"<scoped access token>"}}
+ *   3. GET https://api.box.com/2.0/files/<fileId>/content with
+ *      Authorization: Bearer <access_token> → follow redirect to file content
+ */
 export async function downloadFromBoxLink(sharedUrl: string): Promise<Buffer> {
   const match = sharedUrl.match(/https?:\/\/([^/]+)\/s\/([^/]+)\/file\/(\d+)/);
   if (!match) throw new Error(`URL de Box inválida: ${sharedUrl}`);
@@ -282,56 +308,71 @@ export async function downloadFromBoxLink(sharedUrl: string): Promise<Buffer> {
   const filePageUrl = `${sharedLink}/file/${fileId}`;
   const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36";
 
-  // Method 1: Box Content API — works for "Anyone with the link" sharing
-  for (const sl of [`https://app.box.com/s/${sharedToken}`, sharedLink]) {
-    try {
-      const r = await fetch(`https://api.box.com/2.0/files/${fileId}/content`, {
-        headers: { BoxApi: `shared_link=${sl}`, "User-Agent": ua, Referer: filePageUrl },
-        redirect: "follow",
-      });
-      if (r.ok) {
-        const buf = Buffer.from(await r.arrayBuffer());
-        if (isExcelBuffer(buf)) return buf;
-      }
-    } catch { /* next method */ }
+  // Step 1: GET the page to capture cookies + requestToken from inline script
+  const pageRes = await boxRequest(filePageUrl, "GET", {
+    "User-Agent": ua,
+    Accept: "text/html,application/xhtml+xml,*/*",
+  });
+  const html = pageRes.body.toString("utf8");
+  const tokenMatch = html.match(/"requestToken"\s*:\s*"([a-f0-9]+)"/);
+  const requestToken = tokenMatch?.[1] ?? "";
+  if (!requestToken) {
+    throw new Error("No se pudo extraer requestToken del HTML de Box. La página puede haber cambiado de estructura.");
   }
 
-  // Method 2: browser-like flow via node:https
-  // Box requires a session cookie obtained from the page before serving the file download.
-  // Step 1: visit the page to get cookies
-  const pageRes = await boxGet(filePageUrl, { "User-Agent": ua, Accept: "text/html,*/*" });
-
-  // Step 2: request download with those cookies
-  const dlRes = await boxGet(
-    `${filePageUrl}?dl=1`,
+  // Step 2: POST to elements/tokens to get a Bearer access token for this file
+  const csrfCookie = pageRes.cookies["csrf-token"] ?? "";
+  const tokensRes = await boxRequest(
+    `https://${host}/app-api/enduserapp/elements/tokens`,
+    "POST",
     {
-      "User-Agent": ua,
-      Accept: "application/octet-stream,*/*",
-      Referer: filePageUrl,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Box-Client-Name": "enduserapp",
+      "X-Box-Client-Version": "23.548.0",
+      "X-Box-Priority": "u=2",
+      "Request-Token": requestToken,
+      "X-Request-Token": requestToken,
+      "x-csrf-token": csrfCookie,
+      "X-Box-EndUser-API": `sharedName=${sharedToken}`,
       Cookie: cookieHeader(pageRes.cookies),
+      Referer: filePageUrl,
+      Origin: `https://${host}`,
+      "User-Agent": ua,
     },
+    JSON.stringify({ fileIDs: [fileId] }),
     pageRes.cookies
   );
-  if (isExcelBuffer(dlRes.body)) return dlRes.body;
 
-  // Step 3: if ?dl=1 returned HTML, look for a dl.boxcloud.com URL embedded in the page
-  const html = dlRes.body.toString("utf8");
-  const cloudMatch = html.match(/https:\/\/dl\.boxcloud\.com\/[^"'\s<>]+/);
-  if (cloudMatch) {
-    const r = await boxGet(
-      cloudMatch[0],
-      { "User-Agent": ua, Referer: filePageUrl, Cookie: cookieHeader(dlRes.cookies) },
-      dlRes.cookies
-    );
-    if (isExcelBuffer(r.body)) return r.body;
+  if (tokensRes.status !== 200) {
+    const detail = tokensRes.body.toString("utf8").slice(0, 200);
+    throw new Error(`Box elements/tokens devolvió ${tokensRes.status}: ${detail}`);
   }
 
-  throw new Error(
-    `Box ya no permite descargas server-side sin OAuth. ` +
-    `Box reemplazó el acceso por shared link header con tokens dinámicos generados por su React app, ` +
-    `imposibles de replicar de forma estable desde el servidor. ` +
-    `Usá la carga manual del archivo (sigue funcionando perfecto).`
+  const tokensJson = JSON.parse(tokensRes.body.toString("utf8")) as Record<string, { read?: string }>;
+  const accessToken = tokensJson[fileId]?.read;
+  if (!accessToken) {
+    throw new Error(`Box no devolvió un access token para fileId=${fileId}.`);
+  }
+
+  // Step 3: GET the file content with Bearer auth — Box redirects to dl.boxcloud.com
+  const fileRes = await boxRequest(
+    `https://api.box.com/2.0/files/${fileId}/content`,
+    "GET",
+    {
+      Authorization: `Bearer ${accessToken}`,
+      "User-Agent": ua,
+      Accept: "application/octet-stream,*/*",
+    }
   );
+
+  if (!isExcelBuffer(fileRes.body)) {
+    throw new Error(
+      `Box content devolvió un archivo no-Excel (status=${fileRes.status}, size=${fileRes.body.length}). ` +
+      `Verificá que el link sea de un .xlsx válido.`
+    );
+  }
+  return fileRes.body;
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────

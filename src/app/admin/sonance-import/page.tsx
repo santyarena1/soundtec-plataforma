@@ -37,7 +37,8 @@ export default async function SonanceImportPage() {
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            Pegá los links compartidos de Box tal como están. El sistema descarga los archivos directamente sin necesidad de login.
+            Pegá los links compartidos de Box tal como están. El sistema descarga los archivos directamente
+            replicando el flujo del browser (page → request token → access token → download).
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <form action={saveSetting} className="space-y-1.5">
