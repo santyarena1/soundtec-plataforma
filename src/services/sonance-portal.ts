@@ -1,0 +1,290 @@
+import https from "node:https";
+import { getSetting } from "@/lib/settings";
+import type { SonanceBrand, SonanceProduct } from "./sonance-import";
+
+const BASE = "https://my.sonance.com";
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36";
+
+interface RawResponse {
+  status: number;
+  headers: NodeJS.Dict<string | string[]>;
+  body: string;
+}
+
+function rawRequestOnce(
+  url: string,
+  method: string,
+  reqHeaders: Record<string, string>,
+  body?: string,
+  timeoutMs = 30000
+): Promise<RawResponse> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const req = https.request(
+      {
+        hostname: u.hostname,
+        path: u.pathname + u.search,
+        method,
+        headers: reqHeaders,
+        timeout: timeoutMs,
+      },
+      (res) => {
+        let data = "";
+        res.setEncoding("utf8");
+        res.on("data", (c) => (data += c));
+        res.on("end", () =>
+          resolve({ status: res.statusCode ?? 0, headers: res.headers, body: data })
+        );
+      }
+    );
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error(`Timeout (${timeoutMs}ms) en ${method} ${url}`));
+    });
+    req.on("error", reject);
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+function rawSetCookies(headers: NodeJS.Dict<string | string[]>): string[] {
+  const v = headers["set-cookie"];
+  if (!v) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
+function parseCookiesRaw(setCookieHeaders: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const h of setCookieHeaders) {
+    const [pair] = h.split(";");
+    const eq = pair.indexOf("=");
+    if (eq > 0) out[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
+  }
+  return out;
+}
+
+function cookieStr(cookies: Record<string, string>): string {
+  return Object.entries(cookies)
+    .map(([k, v]) => `${k}=${v}`)
+    .join("; ");
+}
+
+// ── login ─────────────────────────────────────────────────────────────────────
+
+interface Session {
+  cookies: Record<string, string>;
+}
+
+async function login(): Promise<Session> {
+  const username = await getSetting("sonance.portal_username", "");
+  const password = await getSetting("sonance.portal_password", "");
+  if (!username || !password) {
+    throw new Error("Credenciales de my.sonance.com no configuradas en el sistema.");
+  }
+
+  // 1. GET SignIn page to seed cookies (CurrentCurrencyId, etc.)
+  const initRes = await rawRequestOnce(`${BASE}/SignIn`, "GET", {
+    "User-Agent": UA,
+    Accept: "text/html,*/*",
+  });
+  let cookies = parseCookiesRaw(rawSetCookies(initRes.headers));
+
+  // 2. POST /api/v1/sessions with credentials. Optimizely B2B Commerce auth endpoint.
+  const body = JSON.stringify({ userName: username, password });
+  const sessRes = await rawRequestOnce(
+    `${BASE}/api/v1/sessions`,
+    "POST",
+    {
+      "Content-Type": "application/json",
+      "Content-Length": String(Buffer.byteLength(body)),
+      Accept: "application/json",
+      Cookie: cookieStr(cookies),
+      "User-Agent": UA,
+    },
+    body
+  );
+  cookies = { ...cookies, ...parseCookiesRaw(rawSetCookies(sessRes.headers)) };
+
+  if (sessRes.status !== 200 && sessRes.status !== 201) {
+    const snippet = sessRes.body.slice(0, 200).replace(/\s+/g, " ");
+    throw new Error(`Login a my.sonance.com falló (HTTP ${sessRes.status}): ${snippet}`);
+  }
+
+  // Optimizely B2B sets auth cookies (`Authentication` or `.AspNet.Cookies`). Detect them.
+  const hasAuthCookie = Object.keys(cookies).some(
+    (k) => /auth|session|aspnet|spire/i.test(k)
+  );
+  if (!hasAuthCookie) {
+    throw new Error(
+      "Login devolvió 200 pero no se recibieron cookies de sesión. Verificá las credenciales o el formato esperado por el backend."
+    );
+  }
+
+  return { cookies };
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+
+async function apiGet<T = unknown>(session: Session, path: string): Promise<T> {
+  const res = await rawRequestOnce(`${BASE}${path}`, "GET", {
+    Accept: "application/json",
+    Cookie: cookieStr(session.cookies),
+    "User-Agent": UA,
+  });
+  if (res.status !== 200) {
+    throw new Error(`my.sonance.com API ${res.status} en GET ${path}: ${res.body.slice(0, 150)}`);
+  }
+  return JSON.parse(res.body) as T;
+}
+
+// ── categories (brand discovery) ──────────────────────────────────────────────
+
+interface CategoryNode {
+  id: string;
+  name?: string;
+  shortDescription?: string;
+  urlSegment?: string;
+  subCategories?: CategoryNode[];
+}
+
+const BRAND_SLUGS: Record<string, SonanceBrand> = {
+  "pn-sonance": "SONANCE",
+  "pn-iport": "IPORT",
+  "pn-blaze": "BLAZE by SONANCE",
+  "pn-james": "JAMES",
+};
+
+interface BrandCategory {
+  id: string;
+  slug: string;
+  brand: SonanceBrand;
+}
+
+async function fetchBrandCategories(session: Session): Promise<BrandCategory[]> {
+  const data = await apiGet<{ categories?: CategoryNode[] }>(
+    session,
+    "/api/v1/categories/?maxDepth=1"
+  );
+  const cats = data.categories ?? [];
+  const out: BrandCategory[] = [];
+  for (const c of cats) {
+    const slug = (c.urlSegment ?? "").toLowerCase();
+    const brand = BRAND_SLUGS[slug];
+    if (brand) out.push({ id: c.id, slug, brand });
+  }
+  return out;
+}
+
+// ── products ──────────────────────────────────────────────────────────────────
+
+interface PortalProduct {
+  id: string;
+  productNumber?: string;
+  productTitle?: string;
+  unitListPrice?: number;
+  unitListPriceDisplay?: string;
+  canShowPrice?: boolean;
+  isDiscontinued?: boolean;
+  cantBuy?: boolean;
+  quoteRequired?: boolean;
+  brand?: { name?: string } | null;
+  customerUnitOfMeasure?: string | null;
+  customerProductNumber?: string | null;
+  productLine?: string | null;
+  urlSegment?: string;
+}
+
+interface ProductsResponse {
+  products?: PortalProduct[];
+  pagination?: {
+    page?: number;
+    pageSize?: number;
+    totalItemCount?: number;
+    numberOfPages?: number;
+  };
+}
+
+const PAGE_SIZE = 200;
+
+async function fetchProductsForCategory(
+  session: Session,
+  categoryId: string
+): Promise<PortalProduct[]> {
+  const all: PortalProduct[] = [];
+  let page = 1;
+  let totalPages = 1;
+  while (page <= totalPages) {
+    const data = await apiGet<ProductsResponse>(
+      session,
+      `/api/v2/products?categoryId=${categoryId}&pageSize=${PAGE_SIZE}&page=${page}`
+    );
+    const batch = data.products ?? [];
+    all.push(...batch);
+    totalPages = data.pagination?.numberOfPages ?? 1;
+    if (batch.length === 0) break;
+    page++;
+  }
+  return all;
+}
+
+// ── public API ────────────────────────────────────────────────────────────────
+
+export interface PortalSyncResult {
+  products: SonanceProduct[];
+  brandCounts: Record<SonanceBrand, number>;
+  discoveredBrands: string[]; // category slugs we found
+}
+
+function mapPortalToProduct(p: PortalProduct, brand: SonanceBrand): SonanceProduct | null {
+  const sku = (p.productNumber ?? "").trim();
+  const name = (p.productTitle ?? "").trim();
+  const price = typeof p.unitListPrice === "number" ? p.unitListPrice : NaN;
+  if (!sku || !name || !isFinite(price) || price <= 0) return null;
+  if (!p.canShowPrice) return null;
+  return {
+    name,
+    supplierSku: sku,
+    price,
+    uom: p.customerUnitOfMeasure ?? "EA",
+    brand,
+    category: p.productLine ?? "",
+    subcategory: "",
+  };
+}
+
+export async function fetchFromPortal(): Promise<PortalSyncResult> {
+  const session = await login();
+  const brandCats = await fetchBrandCategories(session);
+  if (brandCats.length === 0) {
+    throw new Error(
+      "No se encontraron categorías de marca en my.sonance.com. La estructura del catálogo puede haber cambiado."
+    );
+  }
+
+  const products: SonanceProduct[] = [];
+  const brandCounts: Record<string, number> = {};
+
+  for (const bc of brandCats) {
+    const portalItems = await fetchProductsForCategory(session, bc.id);
+    let added = 0;
+    for (const p of portalItems) {
+      const mapped = mapPortalToProduct(p, bc.brand);
+      if (mapped) {
+        products.push(mapped);
+        added++;
+      }
+    }
+    brandCounts[bc.brand] = (brandCounts[bc.brand] ?? 0) + added;
+  }
+
+  // Deduplicate by SKU (last wins)
+  const bySku = new Map<string, SonanceProduct>();
+  for (const p of products) bySku.set(p.supplierSku, p);
+  const deduped = Array.from(bySku.values());
+
+  return {
+    products: deduped,
+    brandCounts: brandCounts as Record<SonanceBrand, number>,
+    discoveredBrands: brandCats.map((b) => b.slug),
+  };
+}

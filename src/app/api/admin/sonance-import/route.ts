@@ -8,6 +8,7 @@ import {
   downloadFromBoxLink,
   type SonanceProduct,
 } from "@/services/sonance-import";
+import { fetchFromPortal } from "@/services/sonance-portal";
 import { revalidatePath } from "next/cache";
 
 export const maxDuration = 300;
@@ -76,28 +77,14 @@ function categoryLabelFor(target: CategoryTarget, product: {
   return product.tipo;
 }
 
-// ── shared helper ─────────────────────────────────────────────────────────────
+// ── shared helpers ────────────────────────────────────────────────────────────
 
-async function buildPreview(buffers: Buffer[]): Promise<SonancePreviewResponse> {
+async function buildPreviewFromProducts(
+  products: SonanceProduct[],
+  brandCounts: Record<string, number>,
+  fileType: string
+): Promise<SonancePreviewResponse> {
   const [target, translations] = await Promise.all([loadTarget(), loadTranslations()]);
-
-  const allProducts: SonanceProduct[] = [];
-  const brandCounts: Record<string, number> = {};
-  let fileType = "sonance-iport";
-
-  for (const buf of buffers) {
-    const parsed = parseSonanceExcel(buf);
-    fileType = parsed.fileType;
-    allProducts.push(...parsed.products);
-    for (const [k, v] of Object.entries(parsed.brandCounts)) {
-      brandCounts[k] = (brandCounts[k] ?? 0) + v;
-    }
-  }
-
-  // Deduplicate across files (last wins)
-  const bySkuMap = new Map<string, SonanceProduct>();
-  for (const p of allProducts) bySkuMap.set(p.supplierSku, p);
-  const products = Array.from(bySkuMap.values());
 
   const skus = products.map((p) => p.supplierSku);
   const existing = await prisma.product.findMany({
@@ -165,23 +152,53 @@ async function buildPreview(buffers: Buffer[]): Promise<SonancePreviewResponse> 
   };
 }
 
-// GET — fetch from Box links, return preview
+async function buildPreviewFromBuffers(buffers: Buffer[]): Promise<SonancePreviewResponse> {
+  const allProducts: SonanceProduct[] = [];
+  const brandCounts: Record<string, number> = {};
+  let fileType = "sonance-iport";
+  for (const buf of buffers) {
+    const parsed = parseSonanceExcel(buf);
+    fileType = parsed.fileType;
+    allProducts.push(...parsed.products);
+    for (const [k, v] of Object.entries(parsed.brandCounts)) {
+      brandCounts[k] = (brandCounts[k] ?? 0) + v;
+    }
+  }
+  const bySku = new Map<string, SonanceProduct>();
+  for (const p of allProducts) bySku.set(p.supplierSku, p);
+  return buildPreviewFromProducts(Array.from(bySku.values()), brandCounts, fileType);
+}
+
+// GET — prefer my.sonance.com API; fallback to Box links
 export async function GET() {
   try {
     await requireAdmin();
-    const [url1, url2, url3] = await Promise.all([
+    const [user, pass, url1, url2, url3] = await Promise.all([
+      getSetting("sonance.portal_username", ""),
+      getSetting("sonance.portal_password", ""),
       getSetting("sonance.box_url_1", ""),
       getSetting("sonance.box_url_2", ""),
       getSetting("sonance.box_url_3", ""),
     ]);
-    const urls = [url1, url2, url3].filter(Boolean);
-    if (urls.length === 0)
+
+    // Primary: my.sonance.com portal API (structured data: SKU + name + price + brand)
+    if (user && pass) {
+      const portal = await fetchFromPortal();
       return NextResponse.json(
-        { ok: false, error: "No hay links de Box configurados." },
+        await buildPreviewFromProducts(portal.products, portal.brandCounts, "sonance-portal")
+      );
+    }
+
+    // Fallback: Box shared links → Excel parsing
+    const urls = [url1, url2, url3].filter(Boolean);
+    if (urls.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "Configurá credenciales de my.sonance.com o links de Box para la sync automática." },
         { status: 400 }
       );
+    }
     const buffers = await Promise.all(urls.map(downloadFromBoxLink));
-    return NextResponse.json(await buildPreview(buffers));
+    return NextResponse.json(await buildPreviewFromBuffers(buffers));
   } catch (err) {
     const error = err instanceof Error ? err.message : "Error desconocido";
     return NextResponse.json({ ok: false, error } satisfies SonancePreviewResponse, { status: 500 });
@@ -197,7 +214,7 @@ export async function POST(req: NextRequest) {
     if (!(file instanceof File))
       return NextResponse.json({ ok: false, error: "No se recibió archivo" }, { status: 400 });
     const buffer = Buffer.from(await file.arrayBuffer());
-    return NextResponse.json(await buildPreview([buffer]));
+    return NextResponse.json(await buildPreviewFromBuffers([buffer]));
   } catch (err) {
     const error = err instanceof Error ? err.message : "Error desconocido";
     return NextResponse.json({ ok: false, error } satisfies SonancePreviewResponse, { status: 500 });

@@ -12,12 +12,15 @@ export const metadata = { title: "Admin · Importación Sonance / IPORT / BLAZE"
 
 export default async function SonanceImportPage() {
   await requireAdmin();
-  const [url1, url2, url3] = await Promise.all([
+  const [portalUser, portalPass, url1, url2, url3] = await Promise.all([
+    getSetting("sonance.portal_username", ""),
+    getSetting("sonance.portal_password", ""),
     getSetting("sonance.box_url_1", ""),
     getSetting("sonance.box_url_2", ""),
     getSetting("sonance.box_url_3", ""),
   ]);
-  const hasLinks = !!(url1 || url2 || url3);
+  const hasPortal = !!(portalUser && portalPass);
+  const hasLinks = hasPortal || !!(url1 || url2 || url3);
 
   return (
     <div className="space-y-6">
@@ -26,12 +29,57 @@ export default async function SonanceImportPage() {
         description="Configurá los links de Box y sincronizá automáticamente, o subí el Excel manualmente. Preview siempre antes de aplicar."
       />
 
-      {/* Box links config */}
+      {/* Portal (my.sonance.com) credentials — primary sync source */}
       <Card>
         <CardContent className="p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="heading-3">Links de Box (descarga automática)</h2>
-            {hasLinks ? (
+            <h2 className="heading-3">Credenciales my.sonance.com</h2>
+            {hasPortal ? <Badge tone="success">configuradas</Badge> : <Badge tone="muted">sin configurar</Badge>}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Si configurás usuario y password, el sistema sincroniza directo desde la API del portal
+            (datos estructurados: SKU + nombre + precio + marca, todas las cuentas a la vez: SONANCE, IPORT, BLAZE, JAMES, TRUFIG).
+            Es el método preferido — los links de Box quedan como fallback.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <form action={saveSetting} className="space-y-1.5">
+              <input type="hidden" name="key" value="sonance.portal_username" />
+              <Label htmlFor="portal-user">Usuario (email)</Label>
+              <Input
+                id="portal-user"
+                name="value"
+                type="email"
+                defaultValue={portalUser}
+                placeholder="alejandroarena@soundtec.com.ar"
+              />
+              <div className="flex justify-end">
+                <Button type="submit" size="sm" variant="outline">Guardar</Button>
+              </div>
+            </form>
+            <form action={saveSetting} className="space-y-1.5">
+              <input type="hidden" name="key" value="sonance.portal_password" />
+              <Label htmlFor="portal-pass">Password</Label>
+              <Input
+                id="portal-pass"
+                name="value"
+                type="password"
+                defaultValue={portalPass}
+                placeholder="••••••••"
+              />
+              <div className="flex justify-end">
+                <Button type="submit" size="sm" variant="outline">Guardar</Button>
+              </div>
+            </form>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Box links config — fallback */}
+      <Card>
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="heading-3">Links de Box (fallback)</h2>
+            {!!(url1 || url2 || url3) ? (
               <Badge tone="success">configurados</Badge>
             ) : (
               <Badge tone="muted">sin configurar</Badge>
