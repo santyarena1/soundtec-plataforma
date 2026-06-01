@@ -384,8 +384,12 @@ export async function openSession(): Promise<Session> {
 
 export interface PortalSyncResult {
   products: SonanceProduct[];
+  /** Conteos POST-deduplicación. Suma == products.length. */
   brandCounts: Record<SonanceBrand, number>;
   discoveredBrands: string[]; // category slugs we found
+  /** Conteos crudos por categoría del portal (antes de dedup).
+   *  rawCategoryCounts[X] >= brandCounts[X] cuando X comparte SKUs con otras marcas. */
+  rawCategoryCounts?: Record<SonanceBrand, number>;
 }
 
 function asStr(v: unknown, fallback = ""): string {
@@ -482,6 +486,23 @@ export async function buildSkuToIdMap(session: Session): Promise<Map<string, str
   return map;
 }
 
+/**
+ * Prioridad de marca para resolver overlaps cuando un mismo SKU aparece en
+ * múltiples categorías. Más alto = más específico. La submarca específica
+ * gana sobre la marca paraguas.
+ *
+ * Sin esto, productos BLAZE listados también en pn-sonance terminaban
+ * asignados como SONANCE (porque pn-sonance se itera después de pn-blaze
+ * en orden alfabético y last-wins de Map.set sobrescribía).
+ */
+const BRAND_PRIORITY: Record<SonanceBrand, number> = {
+  SONANCE: 1, // marca paraguas — menor prioridad
+  "BLAZE by SONANCE": 10,
+  IPORT: 10,
+  JAMES: 10,
+  TRUFIG: 10,
+};
+
 export async function fetchFromPortal(): Promise<PortalSyncResult> {
   const session = await login();
   const brandCats = await fetchBrandCategories(session);
@@ -491,8 +512,12 @@ export async function fetchFromPortal(): Promise<PortalSyncResult> {
     );
   }
 
+  // Orden de iteración: SONANCE primero (menor prioridad), submarcas después.
+  // Así la última asignación en bySku.set() es la más específica.
+  brandCats.sort((a, b) => BRAND_PRIORITY[a.brand] - BRAND_PRIORITY[b.brand]);
+
   const products: SonanceProduct[] = [];
-  const brandCounts: Record<string, number> = {};
+  const rawCategoryCounts: Record<string, number> = {};
 
   for (const bc of brandCats) {
     const portalItems = await fetchProductsForCategory(session, bc.id);
@@ -504,17 +529,27 @@ export async function fetchFromPortal(): Promise<PortalSyncResult> {
         added++;
       }
     }
-    brandCounts[bc.brand] = (brandCounts[bc.brand] ?? 0) + added;
+    rawCategoryCounts[bc.brand] = (rawCategoryCounts[bc.brand] ?? 0) + added;
   }
 
-  // Deduplicate by SKU (last wins)
+  // Deduplicate by SKU (último gana — gracias al orden por prioridad, las
+  // submarcas específicas ganan sobre SONANCE genérico)
   const bySku = new Map<string, SonanceProduct>();
   for (const p of products) bySku.set(p.supplierSku, p);
   const deduped = Array.from(bySku.values());
+
+  // brandCounts ahora se calcula POST-dedup → la suma cuadra con el total
+  const brandCounts: Record<string, number> = {};
+  for (const p of deduped) {
+    brandCounts[p.brand] = (brandCounts[p.brand] ?? 0) + 1;
+  }
 
   return {
     products: deduped,
     brandCounts: brandCounts as Record<SonanceBrand, number>,
     discoveredBrands: brandCats.map((b) => b.slug),
+    // Para diagnóstico: cuántos productos hay por categoría en el portal
+    // (puede ser > brandCounts[brand] si la marca comparte SKUs con SONANCE)
+    rawCategoryCounts: rawCategoryCounts as Record<SonanceBrand, number>,
   };
 }
