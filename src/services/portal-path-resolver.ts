@@ -90,10 +90,13 @@ export const API_PATHS: PathGroup[] = [
     group: "Precios",
     paths: [
       { path: "unitListPrice", label: "unitListPrice (USD numérico)" },
-      { path: "basicListPrice", label: "basicListPrice" },
-      { path: "basicSalePrice", label: "basicSalePrice (promo)" },
+      { path: "basicListPrice", label: "basicListPrice (V1 — USD numérico) ⭐" },
+      { path: "basicSalePrice", label: "basicSalePrice (USD promo)" },
+      { path: "basicSaleStartDate", label: "basicSaleStartDate (inicio promo)" },
+      { path: "basicSaleEndDate", label: "basicSaleEndDate (fin promo)" },
       { path: "unitListPriceDisplay", label: "unitListPriceDisplay (formateado)" },
       { path: "salePriceLabel", label: "salePriceLabel" },
+      { path: "currencySymbol", label: "currencySymbol" },
       { path: "properties.cadMsrp", label: "properties.cadMsrp (CAD MSRP)" },
       { path: "properties.cadWholesale", label: "properties.cadWholesale (CAD wholesale)" },
     ],
@@ -168,10 +171,25 @@ export const API_PATHS: PathGroup[] = [
   {
     group: "Marca",
     paths: [
-      { path: "brand.name", label: "brand.name" },
+      { path: "brand.name", label: "brand.name ⭐ recomendado para Marca" },
       { path: "brand.urlSegment", label: "brand.urlSegment" },
       { path: "brand.logoSmallImagePath", label: "brand.logoSmallImagePath" },
       { path: "brand.id", label: "brand.id (GUID)" },
+      { path: "attr:Product Brand", label: "attr:Product Brand (alternativa)" },
+    ],
+  },
+  {
+    group: "URLs portal",
+    paths: [
+      { path: "canonicalUrl", label: "canonicalUrl" },
+      { path: "productDetailUrl", label: "productDetailUrl (path relativo, ej. /Product/93785)" },
+      { path: "displayUrl", label: "displayUrl" },
+    ],
+  },
+  {
+    group: "Badges / etiquetas",
+    paths: [
+      { path: "badges", label: "badges (array completo de etiquetas)" },
     ],
   },
   {
@@ -205,7 +223,9 @@ export const API_PATHS: PathGroup[] = [
       { path: "shippingHeight", label: "shippingHeight" },
       { path: "shippingLength", label: "shippingLength" },
       { path: "shippingWidth", label: "shippingWidth" },
-      { path: "shippingWeight", label: "shippingWeight (kg/lb)" },
+      { path: "shippingWeight", label: "shippingWeight (lbs — se convierte a kg automáticamente)" },
+      { path: "attr:Product Weight", label: "Product Weight (con kg en paréntesis) ⭐ recomendado para peso" },
+      { path: "attr:Shipping Weight", label: "Shipping Weight (con kg en paréntesis)" },
       { path: "qtyPerShippingPackage", label: "qtyPerShippingPackage" },
     ],
   },

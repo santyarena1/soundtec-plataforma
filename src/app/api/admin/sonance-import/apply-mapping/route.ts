@@ -110,6 +110,51 @@ async function upsertBrandByName(name: string): Promise<string> {
  * - Strings/booleans/numbers: pasan
  * - Arrays/objects: solo aceptados para campos JSON (specifications, documents, sourceMetadata)
  */
+// Helper: extrae un número de un string que puede tener unidades.
+// Ej. "11.81\" (299.97 mm)" → si pedís 'mm' busca 299.97; si no, 11.81
+function extractNumber(s: string, preferUnit?: "mm" | "cm" | "kg" | "g" | "in" | "lb"): number | null {
+  if (preferUnit) {
+    const re = new RegExp(`\\(?\\s*([\\d.]+)\\s*${preferUnit}\\)?`, "i");
+    const m = s.match(re);
+    if (m) return Number(m[1]);
+  }
+  // Fallback: first number in string
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : null;
+}
+
+// Mapea texto libre de stock a enum StockStatus
+function coerceStockStatus(raw: unknown): { ok: true; value: string } | { ok: false; reason: string } {
+  const upper = String(raw).trim().toUpperCase();
+  const validEnums = ["IN_STOCK", "LOW_STOCK", "OUT_OF_STOCK", "ON_REQUEST", "UNKNOWN"];
+  if (validEnums.includes(upper)) return { ok: true, value: upper };
+  const s = String(raw).toLowerCase();
+  // "Out of Stock - Available TBD" / "Available TBD" → ON_REQUEST (próximamente disponible)
+  if (/tbd|back\s*order|on\s*order|on\s*request|coming\s*soon|a\s*pedido/i.test(s)) {
+    return { ok: true, value: "ON_REQUEST" };
+  }
+  if (/out\s*of\s*stock|sold\s*out|no\s*disponible|unavailable/i.test(s)) {
+    return { ok: true, value: "OUT_OF_STOCK" };
+  }
+  if (/low\s*stock|few\s*left|poco\s*stock/i.test(s)) {
+    return { ok: true, value: "LOW_STOCK" };
+  }
+  if (/in\s*stock|available|now\s*shipping|en\s*stock|disponible/i.test(s)) {
+    return { ok: true, value: "IN_STOCK" };
+  }
+  return { ok: false, reason: `no stock status match for "${s.slice(0, 40)}"` };
+}
+
+// Mapea texto libre a enum ProductKind
+function coerceKind(raw: unknown): { ok: true; value: string } | { ok: false; reason: string } {
+  const upper = String(raw).trim().toUpperCase();
+  if (upper === "PRINCIPAL" || upper === "ACCESORIO") return { ok: true, value: upper };
+  const s = String(raw).toLowerCase();
+  if (/principal|primary|main/i.test(s)) return { ok: true, value: "PRINCIPAL" };
+  if (/accessory|accesorio/i.test(s)) return { ok: true, value: "ACCESORIO" };
+  return { ok: false, reason: "no kind match" };
+}
+
 function coerceForField(
   field: string,
   raw: unknown
@@ -123,15 +168,48 @@ function coerceForField(
     return { ok: true, value: raw };
   }
 
+  // Enums con coerción de texto libre
+  if (field === "stockStatus") return coerceStockStatus(raw);
+  if (field === "kind") return coerceKind(raw);
+
+  // Dimensiones en cm: si el texto tiene mm en paréntesis, convertir mm → cm
+  // (Sonance da "11.81\" (299.97 mm)" → 29.997 cm)
+  const dimensionCmFields = new Set(["widthCm", "heightCm", "depthCm"]);
+  if (dimensionCmFields.has(field)) {
+    const s = typeof raw === "string" ? raw : String(raw);
+    const mm = extractNumber(s, "mm");
+    if (mm != null) return { ok: true, value: mm / 10 };
+    const cm = extractNumber(s, "cm");
+    if (cm != null) return { ok: true, value: cm };
+    // Asumir pulgadas y convertir a cm (1 in = 2.54 cm)
+    const inches = extractNumber(s, "in") ?? extractNumber(s);
+    if (inches != null) return { ok: true, value: inches * 2.54 };
+    return { ok: false, reason: "no dimension found" };
+  }
+
+  // Peso en kg: si el texto tiene kg en paréntesis, usar eso
+  if (field === "weight") {
+    const s = typeof raw === "string" ? raw : String(raw);
+    const kg = extractNumber(s, "kg");
+    if (kg != null) return { ok: true, value: kg };
+    const g = extractNumber(s, "g");
+    if (g != null) return { ok: true, value: g / 1000 };
+    // Asumir lbs y convertir (1 lb = 0.453592 kg)
+    const lb = extractNumber(s, "lb") ?? extractNumber(s);
+    if (lb != null) return { ok: true, value: lb * 0.453592 };
+    return { ok: false, reason: "no weight found" };
+  }
+
   const decimalFields = new Set([
     "baseCostUsd", "tariffDutyPercent", "aecPercent", "tePercent",
-    "weight", "volume", "discountPercent", "coefNac", "coefVta",
-    "ivaPercent", "impIntPercent", "coefVtaFob",
-    "salePriceUsd", "widthCm", "heightCm", "depthCm",
+    "volume", "discountPercent", "coefNac", "coefVta",
+    "ivaPercent", "impIntPercent", "coefVtaFob", "salePriceUsd",
   ]);
   if (decimalFields.has(field)) {
-    const n = typeof raw === "number" ? raw : Number(String(raw).replace(/[^0-9.\-]/g, ""));
-    if (!isFinite(n)) return { ok: false, reason: "not a number" };
+    const n = typeof raw === "number"
+      ? raw
+      : extractNumber(typeof raw === "string" ? raw : String(raw));
+    if (n == null || !isFinite(n)) return { ok: false, reason: "not a number" };
     return { ok: true, value: n };
   }
 
