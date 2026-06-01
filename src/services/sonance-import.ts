@@ -1,7 +1,7 @@
 import https from "node:https";
 import * as XLSX from "xlsx";
 
-export type SonanceBrand = "SONANCE" | "IPORT" | "BLAZE by SONANCE" | "JAMES";
+export type SonanceBrand = "SONANCE" | "IPORT" | "BLAZE by SONANCE" | "JAMES" | "TRUFIG";
 
 export interface SonanceProduct {
   name: string;

@@ -70,6 +70,26 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState<string | null>(null);
 
+  // Verificación de marcas disponibles en mySonance
+  const [brandsCheck, setBrandsCheck] = useState<{
+    brands: Array<{ name: string; urlSegment: string; productCount: number }>;
+    totalAcrossAll: number;
+    knownToSyncCount: number;
+    unmappedBrands: Array<{ name: string; urlSegment: string; count: number }>;
+  } | null>(null);
+  const [checkingBrands, setCheckingBrands] = useState(false);
+
+  async function checkBrands() {
+    setCheckingBrands(true);
+    try {
+      const res = await fetch("/api/admin/sonance-import/brands");
+      const data = await res.json();
+      if (data.ok) setBrandsCheck(data);
+    } catch { /* ignore */ } finally {
+      setCheckingBrands(false);
+    }
+  }
+
   // Sample product para preview de mapping (un producto real del cached payload)
   const [sampleProduct, setSampleProduct] = useState<{
     sku: string;
@@ -675,6 +695,85 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                   }}
                 />
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Verificación de marcas disponibles en mySonance */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-start gap-3 flex-1">
+              <Badge tone="muted">Marcas</Badge>
+              <div>
+                <p className="text-sm font-medium">Marcas disponibles en mySonance</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Te dice cuántos productos hay por marca en el portal, y si alguna marca está
+                  fuera de la sync (no se sincroniza porque su slug no está en el código).
+                </p>
+              </div>
+            </div>
+            <Button onClick={checkBrands} disabled={checkingBrands} size="sm" variant="outline">
+              {checkingBrands ? (
+                <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Consultando…</>
+              ) : brandsCheck ? (
+                "Recargar"
+              ) : (
+                "Verificar marcas"
+              )}
+            </Button>
+          </div>
+          {brandsCheck && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Total productos en mySonance: <strong>{brandsCheck.totalAcrossAll}</strong> ·{" "}
+                Sincronizados por el código: <strong>{brandsCheck.knownToSyncCount}</strong>
+                {brandsCheck.unmappedBrands.length > 0 && (
+                  <span className="text-warning">
+                    {" "}· {brandsCheck.unmappedBrands.length} marca(s) NO sincronizadas
+                  </span>
+                )}
+              </p>
+              <div className="border border-border rounded-md overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40 text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-1.5 text-left font-medium">Marca</th>
+                      <th className="px-3 py-1.5 text-left font-medium">Slug</th>
+                      <th className="px-3 py-1.5 text-right font-medium">Productos</th>
+                      <th className="px-3 py-1.5 text-center font-medium">¿Sincronizada?</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {brandsCheck.brands.map((b) => {
+                      const isKnown = ["pn-sonance", "pn-iport", "pn-blaze", "pn-james", "pn-trufig"].includes(
+                        (b.urlSegment ?? "").toLowerCase()
+                      );
+                      return (
+                        <tr key={b.urlSegment || b.name}>
+                          <td className="px-3 py-1">{b.name}</td>
+                          <td className="px-3 py-1 font-mono text-muted-foreground">{b.urlSegment || "(sin slug)"}</td>
+                          <td className="px-3 py-1 text-right tabular-nums">{b.productCount}</td>
+                          <td className="px-3 py-1 text-center">
+                            {isKnown ? (
+                              <span className="text-success">✓</span>
+                            ) : (
+                              <span className="text-warning">✗</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {brandsCheck.unmappedBrands.length > 0 && (
+                <p className="text-[11px] text-warning">
+                  ⚠️ Las marcas con ✗ no se sincronizan. Si querés incluirlas, agregá su slug a
+                  <code> BRAND_SLUGS</code> en <code>src/services/sonance-portal.ts</code>.
+                </p>
+              )}
             </div>
           )}
         </CardContent>

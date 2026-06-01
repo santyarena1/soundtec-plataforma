@@ -152,6 +152,7 @@ const BRAND_SLUGS: Record<string, SonanceBrand> = {
   "pn-iport": "IPORT",
   "pn-blaze": "BLAZE by SONANCE",
   "pn-james": "JAMES",
+  "pn-trufig": "TRUFIG",
 };
 
 interface BrandCategory {
