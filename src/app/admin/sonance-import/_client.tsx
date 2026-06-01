@@ -83,6 +83,34 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
   } | null>(null);
   const [inspectError, setInspectError] = useState<string | null>(null);
 
+  // DB columns disponibles para mapping
+  const [dbColumns, setDbColumns] = useState<Array<{
+    field: string;
+    type: string;
+    description: string;
+    coveragePercent?: number;
+  }> | null>(null);
+  const [dbColumnsLoading, setDbColumnsLoading] = useState(false);
+
+  async function loadDbColumns() {
+    setDbColumnsLoading(true);
+    try {
+      const res = await fetch("/api/admin/sonance-import/db-columns");
+      const data = await res.json();
+      if (data.ok) setDbColumns(data.columns);
+    } catch { /* ignore */ } finally {
+      setDbColumnsLoading(false);
+    }
+  }
+
+  // Sync full (batched: init listing + N detail batches con progreso)
+  const [fullSync, setFullSync] = useState<{
+    phase: "init" | "detail" | "done";
+    total: number;
+    processed: number;
+  } | null>(null);
+  const [fullSyncCancelRef] = useState<{ canceled: boolean }>({ canceled: false });
+
   async function runInspect() {
     if (!inspectSku.trim()) return;
     setInspecting(true);
@@ -102,9 +130,10 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     }
   }
 
-  // Enriquecimiento (rich data desde my.sonance.com)
+  // Enriquecimiento (rich data desde my.sonance.com).
+  // enrichTranslate default false: la IA solo corre si el usuario tilda explícitamente.
   const [enriching, setEnriching] = useState(false);
-  const [enrichTranslate, setEnrichTranslate] = useState(true);
+  const [enrichTranslate, setEnrichTranslate] = useState(false);
   const [enrichForce, setEnrichForce] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState<{
     done: number;
@@ -178,16 +207,61 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     setError(null);
     setPreview(null);
     setApplyResult(null);
+    setFullSync(null);
+    fullSyncCancelRef.canceled = false;
+
     try {
+      // Fase 1: listing — fetch básico + preview
       const res = await fetch("/api/admin/sonance-import");
       const data: SonancePreviewResponse = await res.json();
       if (!data.ok) throw new Error(data.error ?? "Error al sincronizar");
       setPreview(data);
       setState("preview");
+
+      // Fase 2: detail completo en batches (todos los ~113 campos por producto)
+      // Esto NO usa OpenAI — solo descarga del portal.
+      const initRes = await fetch("/api/admin/sonance-import/sync-full", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ init: true }),
+      });
+      const initData = await initRes.json();
+      if (!initData.ok) {
+        setError(initData.error ?? "Falló la inicialización de detalle");
+        return;
+      }
+      setFullSync({ phase: "init", total: initData.totalProducts ?? 0, processed: 0 });
+
+      // Loop de batches
+      let offset = 0;
+      while (!fullSyncCancelRef.canceled) {
+        const r = await fetch("/api/admin/sonance-import/sync-full", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ offset, batchSize: 25 }),
+        });
+        const d = await r.json();
+        if (!d.ok) {
+          setError(d.error ?? "Falló batch de detalle");
+          break;
+        }
+        const processed = d.processedDetail ?? offset;
+        setFullSync({
+          phase: d.phase,
+          total: d.totalDetail ?? initData.totalProducts ?? 0,
+          processed,
+        });
+        if (d.done || d.nextOffset === null) break;
+        offset = d.nextOffset;
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado");
       setState("error");
     }
+  }
+
+  function cancelFullSync() {
+    fullSyncCancelRef.canceled = true;
   }
 
   async function handleApply() {
@@ -394,6 +468,88 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
               {preview.totalParsed ?? 0} productos guardados.
               Tus traducciones y selección se autoguardan a medida que las editás.
             </p>
+          )}
+          {/* Progreso de descarga del detalle completo (V1 — todos los ~113 campos) */}
+          {fullSync && fullSync.total > 0 && (
+            <div className="space-y-1.5 mt-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  Detalle completo (V1, todas las columnas): {fullSync.processed} / {fullSync.total}
+                  {fullSync.phase === "done" && " · ✓ Completo"}
+                </span>
+                {fullSync.phase !== "done" && (
+                  <button
+                    onClick={cancelFullSync}
+                    className="text-xs text-muted-foreground hover:text-destructive underline"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{
+                    width: `${Math.min(100, (fullSync.processed / Math.max(1, fullSync.total)) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* DB Columns — todos los campos disponibles en tu BD para que mapees */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-start gap-3 flex-1">
+              <Badge tone="muted">BD</Badge>
+              <div>
+                <p className="text-sm font-medium">Columnas disponibles en tu base de datos</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Todos los campos que un Product puede tener en BD, con cobertura actual.
+                  Combinado con el Inspector de API, te sirve para decidir el mapping.
+                </p>
+              </div>
+            </div>
+            <Button onClick={loadDbColumns} disabled={dbColumnsLoading} size="sm" variant="outline">
+              {dbColumnsLoading ? (
+                <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Cargando…</>
+              ) : dbColumns ? (
+                "Recargar"
+              ) : (
+                "Ver columnas BD"
+              )}
+            </Button>
+          </div>
+          {dbColumns && (
+            <div className="border border-border rounded-md overflow-hidden">
+              <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40 text-muted-foreground sticky top-0">
+                    <tr>
+                      <th className="px-3 py-1.5 text-left font-medium">Campo</th>
+                      <th className="px-3 py-1.5 text-left font-medium">Tipo</th>
+                      <th className="px-3 py-1.5 text-left font-medium">Descripción</th>
+                      <th className="px-3 py-1.5 text-right font-medium">Cobertura</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {dbColumns.map((c) => (
+                      <tr key={c.field}>
+                        <td className="px-3 py-1 font-mono">{c.field}</td>
+                        <td className="px-3 py-1 text-muted-foreground">{c.type}</td>
+                        <td className="px-3 py-1 text-muted-foreground">{c.description}</td>
+                        <td className="px-3 py-1 text-right tabular-nums">
+                          {c.coveragePercent != null ? `${c.coveragePercent}%` : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
