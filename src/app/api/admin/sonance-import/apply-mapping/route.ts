@@ -36,6 +36,7 @@ interface ApplyMappingResponse {
   processed: number;
   updated: number;
   created: number;
+  skippedNoDetail: number; // sin V1 detail descargado — se debe re-sync
   totalProducts: number;
   nextOffset: number | null;
   done: boolean;
@@ -303,6 +304,7 @@ export async function POST(req: NextRequest) {
         processed: 0,
         updated: 0,
         created: 0,
+        skippedNoDetail: 0,
         totalProducts: idx.totalProducts,
         nextOffset: null,
         done: true,
@@ -356,13 +358,17 @@ export async function POST(req: NextRequest) {
     // 5. Process each item
     let updated = 0;
     let created = 0;
+    let skippedNoDetail = 0;
 
     for (let i = 0; i < batch.length; i++) {
       const item = batch[i];
       const productPos = offset + i;
       const chunkIdx = Math.floor(productPos / CHUNK_SIZE);
       const detail = chunks.get(chunkIdx)?.[item.sku];
-      if (!detail) continue;
+      if (!detail) {
+        skippedNoDetail++;
+        continue;
+      }
 
       const mapped = applyMapping(detail, mapping);
       const productData: Record<string, unknown> = {};
@@ -510,6 +516,7 @@ export async function POST(req: NextRequest) {
       processed: batch.length,
       updated,
       created,
+      skippedNoDetail,
       totalProducts: idx.totalProducts,
       nextOffset: done ? null : nextOffset,
       done,
@@ -517,7 +524,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const error = err instanceof Error ? err.message : "Error desconocido";
     return NextResponse.json(
-      { ok: false, error, processed: 0, updated: 0, created: 0, totalProducts: 0, nextOffset: null, done: false } as ApplyMappingResponse,
+      { ok: false, error, processed: 0, updated: 0, created: 0, skippedNoDetail: 0, totalProducts: 0, nextOffset: null, done: false } as ApplyMappingResponse,
       { status: 500 }
     );
   }

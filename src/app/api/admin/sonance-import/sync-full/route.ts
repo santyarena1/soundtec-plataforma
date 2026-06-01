@@ -25,6 +25,8 @@ export interface SyncFullRequest {
   offset?: number;
   /** Tamaño de lote (default 25). */
   batchSize?: number;
+  /** Si true, no re-fetchea productos que ya tienen detalle en cache. */
+  skipExisting?: boolean;
 }
 
 export interface SyncFullResponse {
@@ -171,13 +173,31 @@ export async function POST(req: NextRequest) {
     }
 
     const batch = idx.skuToPortalId.slice(offset, offset + batchSize);
+    const skipExisting = body.skipExisting !== false; // default true — no re-fetchar
+
+    // Detectar qué SKUs ya tienen detalle (para skipear y ahorrar requests al portal)
+    const existingDetails = new Map<string, PortalProductDetail>();
+    if (skipExisting) {
+      const chunkIndices = new Set<number>();
+      for (let i = 0; i < batch.length; i++) {
+        chunkIndices.add(Math.floor((offset + i) / CHUNK_SIZE));
+      }
+      for (const ci of chunkIndices) {
+        const c = await loadDetailChunk(ci);
+        for (const [sku, detail] of Object.entries(c)) {
+          existingDetails.set(sku, detail);
+        }
+      }
+    }
+
     const session = await openSession();
 
-    // Fetch V1 detail con concurrency 4
+    // Fetch V1 detail SOLO para los que no tienen detalle. Concurrency 4.
     const CONCURRENCY = 4;
     const results: Array<{ sku: string; detail: PortalProductDetail | null }> = [];
-    for (let i = 0; i < batch.length; i += CONCURRENCY) {
-      const chunk = batch.slice(i, i + CONCURRENCY);
+    const toFetch = batch.filter((item) => !existingDetails.has(item.sku));
+    for (let i = 0; i < toFetch.length; i += CONCURRENCY) {
+      const chunk = toFetch.slice(i, i + CONCURRENCY);
       const chunkResults = await Promise.all(
         chunk.map(async (item) => {
           const detail = await fetchProductDetailRaw(session, item.portalId);
@@ -185,6 +205,13 @@ export async function POST(req: NextRequest) {
         })
       );
       results.push(...chunkResults);
+    }
+    // Agregar los que ya tenían detalle (no re-fetched) al results para que
+    // el bookkeeping refleje que SÍ tienen detalle disponible.
+    for (const item of batch) {
+      if (existingDetails.has(item.sku)) {
+        results.push({ sku: item.sku, detail: existingDetails.get(item.sku)! });
+      }
     }
 
     // Mergear cada detalle en su chunk correspondiente

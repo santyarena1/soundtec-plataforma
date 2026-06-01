@@ -198,6 +198,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     total: number;
     updated: number;
     created: number;
+    skippedNoDetail: number;
   } | null>(null);
   const [applyMappingError, setApplyMappingError] = useState<string | null>(null);
   const [applyMappingCancelRef] = useState<{ canceled: boolean }>({ canceled: false });
@@ -252,11 +253,11 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     setApplyingMapping(true);
     setApplyMappingError(null);
     applyMappingCancelRef.canceled = false;
-    setApplyMappingProgress({ done: 0, total: 0, updated: 0, created: 0 });
+    setApplyMappingProgress({ done: 0, total: 0, updated: 0, created: 0, skippedNoDetail: 0 });
     try {
       let offset = 0;
       let total = 0;
-      const acc = { updated: 0, created: 0 };
+      const acc = { updated: 0, created: 0, skippedNoDetail: 0 };
       while (!applyMappingCancelRef.canceled) {
         const res = await fetch("/api/admin/sonance-import/apply-mapping", {
           method: "POST",
@@ -268,6 +269,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         total = data.totalProducts ?? 0;
         acc.updated += data.updated ?? 0;
         acc.created += data.created ?? 0;
+        acc.skippedNoDetail += data.skippedNoDetail ?? 0;
         const newDone = data.nextOffset ?? total;
         setApplyMappingProgress({ done: newDone, total, ...acc });
         if (data.done || data.nextOffset === null) break;
@@ -394,13 +396,14 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
       }
       setFullSync({ phase: "init", total: initData.totalProducts ?? 0, processed: 0 });
 
-      // Loop de batches
+      // Loop de batches — skipExisting:true reusa detalles ya bajados
+      // (relevante si re-sincronizás para llenar productos que faltaron)
       let offset = 0;
       while (!fullSyncCancelRef.canceled) {
         const r = await fetch("/api/admin/sonance-import/sync-full", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ offset, batchSize: 25 }),
+          body: JSON.stringify({ offset, batchSize: 25, skipExisting: true }),
         });
         const d = await r.json();
         if (!d.ok) {
@@ -933,11 +936,23 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
       {/* Apply mapping success banner */}
       {applyMappingProgress != null && applyMappingProgress.total > 0 && !applyingMapping && applyMappingProgress.done >= applyMappingProgress.total && (
         <Card>
-          <CardContent className="p-4 flex items-center gap-2 text-success">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <p className="text-sm font-medium">
-              Mapping aplicado: {applyMappingProgress.updated} productos actualizados
-              {applyMappingProgress.created > 0 ? `, ${applyMappingProgress.created} creados` : ""}.
+          <CardContent className="p-4 space-y-1.5">
+            <div className="flex items-center gap-2 text-success">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <p className="text-sm font-medium">
+                Mapping aplicado: {applyMappingProgress.updated} actualizados
+                {applyMappingProgress.created > 0 ? `, ${applyMappingProgress.created} creados` : ""}
+                {applyMappingProgress.skippedNoDetail > 0 ? `, ${applyMappingProgress.skippedNoDetail} saltados` : ""}
+                {" "}de {applyMappingProgress.total} totales en el índice.
+              </p>
+            </div>
+            {applyMappingProgress.skippedNoDetail > 0 && (
+              <p className="text-xs text-warning pl-6">
+                ⚠️ {applyMappingProgress.skippedNoDetail} productos se saltaron porque su detalle V1 NO está descargado
+                (su fetch al portal falló o se canceló la sync antes de terminar). Re-sincronizá para completarlos.
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground pl-6">
               Andá a <code>/admin/products</code> para verlos.
             </p>
           </CardContent>
