@@ -201,6 +201,40 @@ model Product {
   enrichedAt              DateTime?             // última vez que se enriqueció con datos completos
   translatedAt            DateTime?             // última vez que se tradujeron campos al ES
 
+  // Identificación alternativa (cualquier vendor puede usarlos)
+  modelNumber             String?               // ej. "AMP-X300"
+  manufacturerItem        String?               // SKU del fabricante (puede diferir del supplierSku)
+  productLine             String?               // línea de producto del proveedor
+
+  // URLs / SEO
+  vendorProductUrl        String?               // URL a la página del producto en el portal del proveedor
+  urlSlug                 String?               // slug que usa el proveedor (ej. "sa68")
+  metaTitle               String?
+  metaDescription         String?
+  metaKeywords            String?
+  videoUrl                String?
+
+  // Sale info
+  salePriceUsd            Decimal? @db.Decimal(14, 4)
+  salePriceStartsAt       DateTime?
+  salePriceEndsAt         DateTime?
+  salePriceLabel          String?
+
+  // Availability
+  availabilityMessage     String?
+  availabilityType        String?               // ej. "INSTOCK" | "BACKORDER" | "OUTOFSTOCK"
+
+  // Dimensiones físicas
+  widthCm                 Decimal? @db.Decimal(10, 2)
+  heightCm                Decimal? @db.Decimal(10, 2)
+  depthCm                 Decimal? @db.Decimal(10, 2)
+
+  // Flags extra
+  requiresQuote           Boolean  @default(false)
+
+  // Badges (NEW / ON SALE / FEATURED / etc.)
+  badges                  Json?                 // [{name, type?}]
+
   baseCostUsd             Decimal  @db.Decimal(14, 4)
   currency                String   @default("USD")
 

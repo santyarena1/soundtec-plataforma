@@ -116,7 +116,9 @@ function coerceForField(
 ): { ok: true; value: unknown } | { ok: false; reason: string } {
   if (raw == null) return { ok: false, reason: "null/undefined" };
 
-  const jsonFields = new Set(["specifications", "documents", "sourceMetadata"]);
+  const jsonFields = new Set([
+    "specifications", "documents", "sourceMetadata", "badges",
+  ]);
   if (jsonFields.has(field)) {
     return { ok: true, value: raw };
   }
@@ -125,6 +127,7 @@ function coerceForField(
     "baseCostUsd", "tariffDutyPercent", "aecPercent", "tePercent",
     "weight", "volume", "discountPercent", "coefNac", "coefVta",
     "ivaPercent", "impIntPercent", "coefVtaFob",
+    "salePriceUsd", "widthCm", "heightCm", "depthCm",
   ]);
   if (decimalFields.has(field)) {
     const n = typeof raw === "number" ? raw : Number(String(raw).replace(/[^0-9.\-]/g, ""));
@@ -142,6 +145,7 @@ function coerceForField(
   const boolFields = new Set([
     "isCustomizable", "isCrestronHomeCompatible", "isActive",
     "accessoryRequiredWithPrimary", "aiGeneratedDescription",
+    "requiresQuote",
   ]);
   if (boolFields.has(field)) {
     if (typeof raw === "boolean") return { ok: true, value: raw };
@@ -149,6 +153,18 @@ function coerceForField(
     if (["true", "1", "yes", "si", "sí"].includes(s)) return { ok: true, value: true };
     if (["false", "0", "no"].includes(s)) return { ok: true, value: false };
     return { ok: false, reason: "not a bool" };
+  }
+
+  const dateFields = new Set([
+    "salePriceStartsAt", "salePriceEndsAt", "enrichedAt", "translatedAt",
+  ]);
+  if (dateFields.has(field)) {
+    if (raw instanceof Date) return { ok: true, value: raw };
+    const s = String(raw);
+    if (!s) return { ok: false, reason: "empty date" };
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return { ok: false, reason: "invalid date" };
+    return { ok: true, value: d };
   }
 
   // Strings — convert array to join, object to JSON string

@@ -88,6 +88,40 @@ const COLUMNS: Omit<ColumnInfo, "coveragePercent" | "sample">[] = [
   { field: "enrichedAt", label: "Última fecha de enriquecimiento", type: "Fecha+hora", description: "Cuándo se enriqueció con datos completos" },
   { field: "translatedAt", label: "Última fecha de traducción al ES", type: "Fecha+hora", description: "Cuándo se tradujeron campos al español" },
 
+  // Identificación alternativa
+  { field: "modelNumber", label: "Número de modelo", type: "texto", description: "Código de modelo del fabricante (ej. AMP-X300)" },
+  { field: "manufacturerItem", label: "SKU del fabricante", type: "texto", description: "SKU del fabricante si difiere del supplierSku" },
+  { field: "productLine", label: "Línea de producto", type: "texto", description: "Línea / serie a la que pertenece el producto" },
+
+  // URLs / SEO
+  { field: "vendorProductUrl", label: "URL del proveedor", type: "URL", description: "Link a la página del producto en el portal del proveedor" },
+  { field: "urlSlug", label: "Slug del proveedor", type: "texto", description: "Identificador de URL usado por el proveedor (ej. 'sa68')" },
+  { field: "metaTitle", label: "Meta title (SEO)", type: "texto", description: "Título para SEO/Open Graph" },
+  { field: "metaDescription", label: "Meta description (SEO)", type: "texto", description: "Descripción para buscadores" },
+  { field: "metaKeywords", label: "Meta keywords (SEO)", type: "texto", description: "Palabras clave" },
+  { field: "videoUrl", label: "Video del producto", type: "URL", description: "Link a video demo / institucional" },
+
+  // Sale info
+  { field: "salePriceUsd", label: "Precio en promoción USD", type: "decimal", description: "Precio cuando está en oferta" },
+  { field: "salePriceStartsAt", label: "Promo desde", type: "Fecha+hora", description: "Inicio de vigencia de la promo" },
+  { field: "salePriceEndsAt", label: "Promo hasta", type: "Fecha+hora", description: "Fin de vigencia de la promo" },
+  { field: "salePriceLabel", label: "Etiqueta de promo", type: "texto", description: "Ej. 'ON SALE', '-20%'" },
+
+  // Availability
+  { field: "availabilityMessage", label: "Mensaje de disponibilidad", type: "texto", description: "Texto que muestra el proveedor (ej. 'In stock', 'On order')" },
+  { field: "availabilityType", label: "Tipo de disponibilidad", type: "texto", description: "INSTOCK / BACKORDER / OUTOFSTOCK / etc." },
+
+  // Dimensiones físicas
+  { field: "widthCm", label: "Ancho (cm)", type: "decimal", description: "Ancho del producto en centímetros" },
+  { field: "heightCm", label: "Alto (cm)", type: "decimal", description: "Alto del producto en centímetros" },
+  { field: "depthCm", label: "Profundidad (cm)", type: "decimal", description: "Profundidad del producto en centímetros" },
+
+  // Flags
+  { field: "requiresQuote", label: "Requiere cotización", type: "booleano", description: "Si el producto solo se vende por cotización" },
+
+  // JSON badges
+  { field: "badges", label: "Badges / etiquetas (JSON)", type: "JSON", description: "Array de etiquetas como NEW / ON SALE / FEATURED" },
+
   // Relaciones de imagen/accesorios (no son campos de Product directos)
   { field: "(rel) images", label: "Imágenes (relación)", type: "tabla relacionada", description: "Crea filas en ProductImage (URL + alt + isPrimary)" },
   { field: "(rel) accessories", label: "Accesorios (relación)", type: "tabla relacionada", description: "Crea filas en AccessoryRelation con los SKUs encontrados" },
