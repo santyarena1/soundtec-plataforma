@@ -6,7 +6,7 @@ import type { PortalProductDetail } from "@/services/sonance-portal";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-const PAYLOAD_KEY = "sonance.sync_payload";
+const PAYLOAD_KEY = "sonance.sync_index";
 const DETAIL_BUCKET_PREFIX = "sonance.sync_details_";
 const CHUNK_SIZE = 50;
 

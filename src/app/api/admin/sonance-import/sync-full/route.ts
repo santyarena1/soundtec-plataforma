@@ -13,7 +13,9 @@ import {
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-const PAYLOAD_KEY = "sonance.sync_payload";
+// sync_index = índice estructurado {skuToPortalId, totalChunks, detailDone}
+// distinto del preview (sync_preview) que guarda el GET sync básico.
+const PAYLOAD_KEY = "sonance.sync_index";
 const DETAIL_BUCKET_PREFIX = "sonance.sync_details_"; // chunked storage
 
 export interface SyncFullRequest {

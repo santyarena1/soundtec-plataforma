@@ -76,13 +76,14 @@ export const API_PATHS: PathGroup[] = [
   {
     group: "Identificación",
     paths: [
-      { path: "productNumber", label: "productNumber (SKU del proveedor)" },
-      { path: "productTitle", label: "productTitle (nombre completo)" },
+      { path: "modelNumber", label: "modelNumber (SKU customer-facing, ej. PPX8) ⭐ recomendado para SKU" },
+      { path: "name", label: "name (SKU corto, mismo que modelNumber en V1)" },
+      { path: "erpNumber", label: "erpNumber (ERP interno Sonance, ej. 93785)" },
+      { path: "productNumber", label: "productNumber (solo V2 listing — vacío en V1)" },
+      { path: "productTitle", label: "productTitle (solo V2 listing — vacío en V1)" },
       { path: "manufacturerItem", label: "manufacturerItem" },
-      { path: "modelNumber", label: "modelNumber" },
-      { path: "erpNumber", label: "erpNumber" },
       { path: "urlSegment", label: "urlSegment (slug)" },
-      { path: "id", label: "id (GUID interno Sonance)" },
+      { path: "id", label: "id (GUID interno Sonance — no recomendado para SKU)" },
     ],
   },
   {

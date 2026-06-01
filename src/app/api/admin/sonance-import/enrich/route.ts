@@ -15,7 +15,7 @@ import {
 import { translateBatchCached, type TranslationContext } from "@/services/translation-cache";
 import { revalidatePath } from "next/cache";
 
-const CACHED_PAYLOAD_KEY = "sonance.sync_payload";
+const CACHED_PAYLOAD_KEY = "sonance.sync_preview"; // enrich consume el preview (con items + skus)
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";

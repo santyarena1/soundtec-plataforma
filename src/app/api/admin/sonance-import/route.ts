@@ -14,7 +14,7 @@ export type CategoryTarget = "categoria" | "familia" | "rubro" | "subrubro";
 
 const TARGET_KEY = "sonance.category_target";
 const TRANSLATIONS_KEY = "sonance.category_translations";
-const CACHED_PAYLOAD_KEY = "sonance.sync_payload";
+const CACHED_PAYLOAD_KEY = "sonance.sync_preview"; // formato preview (SonancePreviewResponse)
 const CACHED_STATE_KEY = "sonance.sync_state"; // { createNew, savedAt }
 
 export interface SonancePreviewItem {

@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-const PAYLOAD_KEY = "sonance.sync_payload";
+const PAYLOAD_KEY = "sonance.sync_index";
 const DETAIL_BUCKET_PREFIX = "sonance.sync_details_";
 const MAPPING_KEY = "sonance.field_mapping";
 const CHUNK_SIZE = 50;
@@ -206,7 +206,15 @@ export async function POST(req: NextRequest) {
     if (!idx) {
       return NextResponse.json({
         ok: false,
-        error: "No hay sincronización guardada. Hacé sync primero.",
+        error:
+          "No hay sincronización guardada. Hacé 'Sincronizar' primero y esperá a que termine la fase 2 (detalle completo).",
+      } as ApplyMappingResponse, { status: 400 });
+    }
+    if (!Array.isArray(idx.skuToPortalId) || idx.skuToPortalId.length === 0) {
+      return NextResponse.json({
+        ok: false,
+        error:
+          "El índice de sincronización está vacío o corrupto. Re-sincronizá desde cero (botón 'Re-sincronizar' en Paso 1).",
       } as ApplyMappingResponse, { status: 400 });
     }
 
