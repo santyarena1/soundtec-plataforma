@@ -583,6 +583,22 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
 
   return (
     <div className="space-y-4">
+      {/* Cómo funciona el flujo */}
+      <Card>
+        <CardContent className="p-4 text-xs space-y-1.5">
+          <p className="text-sm font-medium">🧭 Cómo funciona</p>
+          <ol className="list-decimal pl-5 space-y-0.5 text-muted-foreground">
+            <li><strong>Paso 1 — Sincronizar</strong>: descarga el catálogo Sonance y los detalles completos (~113 campos por producto) al cache + Product.sourceMetadata.</li>
+            <li><strong>Paso 2 — Ver columnas BD</strong>: te muestra la lista de todos los campos que tu Product puede llenar.</li>
+            <li><strong>Paso 3 — Mapeo</strong>: por cada campo BD elegís qué ruta de la API la llena. Tenés preview en vivo con un producto real al lado.</li>
+            <li><strong>Paso 4 — Aplicar mapping</strong>: actualiza/crea todos los productos en tu BD según tu mapeo. Aparecen después en <code>/admin/products</code>.</li>
+          </ol>
+          <p className="text-muted-foreground pt-1">
+            ⚡ Nada usa OpenAI automáticamente. La traducción al ES solo corre cuando vos clickeás explícitamente alguno de los botones que la dispara.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Paso 1 — Sincronización */}
       <Card>
         <CardContent className="p-5 space-y-3">
@@ -914,18 +930,15 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         </Card>
       )}
 
-      {/* Done */}
-      {state === "done" && applyResult && (
+      {/* Apply mapping success banner */}
+      {applyMappingProgress != null && applyMappingProgress.total > 0 && !applyingMapping && applyMappingProgress.done >= applyMappingProgress.total && (
         <Card>
           <CardContent className="p-4 flex items-center gap-2 text-success">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <p className="text-sm font-medium">
-              Aplicado: {applyResult.updated} productos actualizados
-              {applyResult.created > 0 ? `, ${applyResult.created} creados` : ""}
-              {(applyResult.categoryWrites ?? 0) > 0
-                ? `, ${applyResult.categoryWrites} con categoría`
-                : ""}
-              .
+              Mapping aplicado: {applyMappingProgress.updated} productos actualizados
+              {applyMappingProgress.created > 0 ? `, ${applyMappingProgress.created} creados` : ""}.
+              Andá a <code>/admin/products</code> para verlos.
             </p>
           </CardContent>
         </Card>
@@ -969,258 +982,6 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
               ))}
             </div>
           )}
-
-          {/* Paso 2 — Categorías + traducción IA opcional */}
-          <Card>
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div className="flex items-start gap-3 flex-1 min-w-[200px]">
-                  <Badge tone="primary">Paso 2</Badge>
-                  <Languages className="h-4 w-4 mt-0.5 text-accent shrink-0" />
-                  <div>
-                    <h3 className="text-sm font-medium">Categorías (traducción + destino)</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Traducí manualmente o usá la IA. Elegí dónde guardar la categoría traducida.
-                      Tus ediciones se autoguardan en BD.
-                    </p>
-                  </div>
-                </div>
-                {(preview.uniqueCategories?.length ?? 0) > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleAutoTranslate(true)}
-                      disabled={translating || untranslatedCount === 0}
-                      title="Solo completa las que están vacías"
-                    >
-                      <Sparkles
-                        className={`mr-1.5 h-3.5 w-3.5 ${translating ? "animate-pulse" : ""}`}
-                      />
-                      {translating ? "Traduciendo…" : `Traducir faltantes (${untranslatedCount})`}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleAutoTranslate(false)}
-                      disabled={translating}
-                      title="Sobrescribe todas las traducciones"
-                    >
-                      Re-traducir todas
-                    </Button>
-                  </div>
-                )}
-              </div>
-              {translateError && <p className="text-xs text-destructive">{translateError}</p>}
-
-              {/* Target selector */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-muted-foreground">
-                  Guardar como
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {(Object.keys(TARGET_LABELS) as CategoryTarget[]).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setTarget(t)}
-                      className={`px-3 py-2 rounded-md border text-left text-xs transition-colors ${
-                        target === t
-                          ? "border-primary bg-primary/8 text-foreground"
-                          : "border-border bg-background text-muted-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      <p className="font-medium">{TARGET_LABELS[t]}</p>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[11px] text-muted-foreground">{TARGET_HELP[target]}</p>
-              </div>
-
-              {/* Translation table */}
-              {(preview.uniqueCategories ?? []).length > 0 ? (
-                <div className="border border-border rounded-md overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/40 text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2 text-left font-medium">Original (Sonance · EN)</th>
-                        <th className="px-3 py-2 text-left font-medium">Traducción (ES)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {(preview.uniqueCategories ?? []).map((c) => (
-                        <tr key={c}>
-                          <td className="px-3 py-1.5 font-mono text-muted-foreground max-w-[260px] truncate">
-                            {c}
-                          </td>
-                          <td className="px-3 py-1.5">
-                            <input
-                              type="text"
-                              value={translations[c] ?? ""}
-                              onChange={(e) =>
-                                setTranslations((prev) => ({ ...prev, [c]: e.target.value }))
-                              }
-                              placeholder="Escribí la traducción…"
-                              className="h-7 w-full rounded border border-border bg-background px-2 text-xs"
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  No se detectaron categorías en los datos parseados.
-                </p>
-              )}
-
-              {untranslatedCount > 0 && (
-                <p className="text-[11px] text-warning">
-                  {untranslatedCount} categoría{untranslatedCount === 1 ? "" : "s"} sin traducir — no se escribirán en los productos.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Options + Apply */}
-          {(state === "preview" || state === "applying") && (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={createNew}
-                  onChange={(e) => setCreateNew(e.target.checked)}
-                  disabled={state === "applying"}
-                  className="h-4 w-4 rounded border-border"
-                />
-                Crear también los {preview.newProducts ?? 0} productos nuevos{" "}
-                <span className="text-xs text-muted-foreground">
-                  (quedan inactivos hasta revisión)
-                </span>
-              </label>
-              <Button
-                onClick={handleApply}
-                disabled={!hasChanges || state === "applying"}
-                size="sm"
-              >
-                {state === "applying" ? (
-                  <>
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    Aplicando…
-                  </>
-                ) : (
-                  <>
-                    Aplicar {preview.priceChanges ?? 0} precio
-                    {categoryChanges > 0 ? ` · ${categoryChanges} categoría` : ""}
-                    {createNew && (preview.newProducts ?? 0) > 0
-                      ? ` · ${preview.newProducts} nuevos`
-                      : ""}
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-
-          {state === "applying" && (
-            <Card>
-              <CardContent className="p-4 flex items-center gap-3">
-                <Loader2 className="h-4 w-4 shrink-0 text-primary animate-spin" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Aplicando cambios…</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Actualizando precios{createNew && (preview.newProducts ?? 0) > 0
-                      ? ` y creando ${preview.newProducts} productos nuevos`
-                      : ""}
-                    . No cierres esta pestaña.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Paso 3 (opcional) — Enriquecimiento + traducción IA del detalle */}
-          <Card>
-            <CardContent className="p-5 space-y-3">
-              <div className="flex items-start gap-3 flex-1 min-w-[260px]">
-                <Badge tone="primary">Paso 3</Badge>
-                <Sparkles className="h-4 w-4 mt-0.5 text-accent shrink-0" />
-                <div>
-                  <h3 className="text-sm font-medium">Enriquecer productos con datos completos (opcional)</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Por cada producto baja del portal: imágenes (hasta 10), specs técnicos (25 atributos), datasheets,
-                    accesorios y descripción HTML. Opcionalmente traduce todo al español con OpenAI (cache: cada texto se traduce 1 sola vez).
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Procesa de a 20 productos por batch. Cancelable y reanudable.
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-4 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={enrichTranslate}
-                    onChange={(e) => setEnrichTranslate(e.target.checked)}
-                    disabled={enriching}
-                    className="h-4 w-4 rounded border-border"
-                  />
-                  Traducir nombres, specs, docs y descripciones al español
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={enrichForce}
-                    onChange={(e) => setEnrichForce(e.target.checked)}
-                    disabled={enriching}
-                    className="h-4 w-4 rounded border-border"
-                  />
-                  Re-procesar productos ya enriquecidos
-                </label>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {!enriching ? (
-                  <Button size="sm" onClick={runEnrich} disabled={!hasPortal}>
-                    <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                    Iniciar enriquecimiento
-                  </Button>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={cancelEnrich}>
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    Cancelar (termina batch actual)
-                  </Button>
-                )}
-                {enrichProgress && enrichProgress.total > 0 && (
-                  <p className="text-xs text-muted-foreground self-center">
-                    {enrichProgress.done} / {enrichProgress.total} ·{" "}
-                    {enrichProgress.withImages} con imágenes ·{" "}
-                    {enrichProgress.withSpecs} con specs ·{" "}
-                    {enrichProgress.withDocs} con docs ·{" "}
-                    {enrichProgress.withAccessories} con accesorios
-                    {enrichProgress.withTranslations > 0
-                      ? ` · ${enrichProgress.withTranslations} traducidos`
-                      : ""}
-                  </p>
-                )}
-              </div>
-              {enrichProgress && enrichProgress.total > 0 && (
-                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all"
-                    style={{
-                      width: `${Math.min(100, (enrichProgress.done / enrichProgress.total) * 100)}%`,
-                    }}
-                  />
-                </div>
-              )}
-              {enrichError && <p className="text-xs text-destructive">{enrichError}</p>}
-              {enrichDone && (
-                <p className="text-xs text-success">
-                  ✓ Enriquecimiento completo: {enrichProgress?.updated} productos actualizados.
-                </p>
-              )}
-            </CardContent>
-          </Card>
 
           {/* Table */}
           <Card>

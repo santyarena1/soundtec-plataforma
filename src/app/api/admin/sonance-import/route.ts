@@ -366,12 +366,8 @@ export async function PUT(req: NextRequest) {
     revalidatePath("/portal/products");
     revalidatePath("/admin/sonance-import");
 
-    // Clear the cached payload — the diff is now stale (changes were applied)
-    try {
-      await setSetting(CACHED_PAYLOAD_KEY, "");
-    } catch (e) {
-      console.error("Failed to clear sync payload", e);
-    }
+    // NO clear cached payload — el nuevo flujo de mapping necesita
+    // el sync_preview disponible para la tabla y la preview de mapping.
 
     return NextResponse.json({ ok: true, updated, created, categoryWrites, target });
   } catch (err) {
