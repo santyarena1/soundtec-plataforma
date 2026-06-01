@@ -86,6 +86,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
   // DB columns disponibles para mapping
   const [dbColumns, setDbColumns] = useState<Array<{
     field: string;
+    label: string;
     type: string;
     description: string;
     coveragePercent?: number;
@@ -201,7 +202,17 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
       const res = await fetch(
         `/api/admin/sonance-import/inspect?sku=${encodeURIComponent(inspectSku.trim())}`
       );
-      const data = await res.json();
+      // Manejo robusto: si el server devuelve HTML (500 de Vercel, timeout, etc.)
+      // mostramos un mensaje útil en vez de "Unexpected token..." de JSON.parse
+      const ct = res.headers.get("content-type") ?? "";
+      const text = await res.text();
+      if (!ct.includes("application/json")) {
+        throw new Error(
+          `El servidor devolvió HTTP ${res.status} no-JSON (probablemente timeout). ` +
+          `Detalle: ${text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200)}`
+        );
+      }
+      const data = JSON.parse(text);
       if (!data.ok) throw new Error(data.error ?? "Error al inspeccionar");
       setInspectResult(data);
     } catch (e) {
@@ -619,7 +630,10 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                   <tbody className="divide-y divide-border">
                     {dbColumns.map((c) => (
                       <tr key={c.field}>
-                        <td className="px-3 py-1 font-mono">{c.field}</td>
+                        <td className="px-3 py-1">
+                          <div>{c.label}</div>
+                          <code className="text-[10px] text-muted-foreground">{c.field}</code>
+                        </td>
                         <td className="px-3 py-1 text-muted-foreground">{c.type}</td>
                         <td className="px-3 py-1 text-muted-foreground">{c.description}</td>
                         <td className="px-3 py-1 text-right tabular-nums">
@@ -702,10 +716,11 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                     const current = mapping[col.field] ?? "";
                     return (
                       <tr key={col.field}>
-                        <td className="px-3 py-1 font-mono align-top">
-                          {col.field}
+                        <td className="px-3 py-1 align-top max-w-[260px]">
+                          <div className="font-medium">{col.label}</div>
+                          <code className="text-[10px] text-muted-foreground">{col.field}</code>
                           {col.description && (
-                            <div className="text-[10px] text-muted-foreground font-sans mt-0.5 max-w-[260px]">
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
                               {col.description}
                             </div>
                           )}

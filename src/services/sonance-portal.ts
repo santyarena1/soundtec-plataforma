@@ -437,6 +437,34 @@ function mapPortalToProduct(p: PortalProductListing, brand: SonanceBrand): Sonan
 }
 
 /**
+ * Búsqueda rápida de un único SKU. Usa el parámetro search del listing v2
+ * en vez de bajar todo el catálogo de cada marca (mucho más rápido para
+ * resoluciones puntuales).
+ */
+export async function findProductIdBySku(
+  session: Session,
+  sku: string
+): Promise<string | null> {
+  const cleanSku = sku.trim();
+  if (!cleanSku) return null;
+  try {
+    const data = await apiGet<{ products?: Array<{ id: string; productNumber?: string }> }>(
+      session,
+      `/api/v2/products?search=${encodeURIComponent(cleanSku)}&pageSize=20`
+    );
+    const products = data.products ?? [];
+    const upper = cleanSku.toUpperCase();
+    const exact = products.find(
+      (p) => String(p.productNumber ?? "").toUpperCase() === upper
+    );
+    return exact?.id ?? null;
+  } catch (e) {
+    console.error("findProductIdBySku error", e);
+    return null;
+  }
+}
+
+/**
  * Devuelve un mapa SKU → productId del portal, para poder pedir el detalle
  * (V1 endpoint) usando el id de Sonance. Itera todas las marcas conocidas.
  */

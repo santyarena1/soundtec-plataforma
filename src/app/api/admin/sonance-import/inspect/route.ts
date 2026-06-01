@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
-import { openSession, buildSkuToIdMap, fetchProductDetailRaw } from "@/services/sonance-portal";
+import { openSession, findProductIdBySku, fetchProductDetailRaw } from "@/services/sonance-portal";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -29,11 +29,13 @@ export async function GET(req: NextRequest) {
     }
 
     const session = await openSession();
-    const skuToId = await buildSkuToIdMap(session);
-    const productId = skuToId.get(sku);
+    const productId = await findProductIdBySku(session, sku);
     if (!productId) {
       return NextResponse.json(
-        { ok: false, error: `SKU ${sku} no encontrado en el portal.` },
+        {
+          ok: false,
+          error: `SKU "${sku}" no encontrado en my.sonance.com. Probá con un SKU de Sonance/IPORT/BLAZE/JAMES (ej. SA68, IW-525, BPS6.5SST, etc.).`,
+        },
         { status: 404 }
       );
     }

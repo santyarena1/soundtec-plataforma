@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 
 type ColumnInfo = {
   field: string;
+  label: string;
   type: string;
   description: string;
   coveragePercent?: number;
@@ -26,70 +27,70 @@ type ColumnInfo = {
 
 const COLUMNS: Omit<ColumnInfo, "coveragePercent" | "sample">[] = [
   // Identificación
-  { field: "internalSku", type: "string", description: "SKU interno Soundtec (único)" },
-  { field: "supplierSku", type: "string", description: "SKU del proveedor (Sonance: productNumber)" },
-  { field: "normalizedName", type: "string", description: "Nombre que se muestra (preferiblemente en ES)" },
-  { field: "originalName", type: "string", description: "Nombre original del proveedor (EN)" },
+  { field: "internalSku", label: "SKU interno Soundtec", type: "string", description: "Único en la tabla — el que usa internamente Soundtec" },
+  { field: "supplierSku", label: "SKU del proveedor", type: "string", description: "El SKU que viene del proveedor" },
+  { field: "normalizedName", label: "Nombre (display)", type: "string", description: "Lo que se muestra públicamente, idealmente en español" },
+  { field: "originalName", label: "Nombre original (inglés)", type: "string", description: "Nombre crudo del proveedor en inglés" },
 
   // Relaciones
-  { field: "brandId", type: "FK Brand", description: "Marca del producto (SONANCE, IPORT, BLAZE, JAMES…)" },
-  { field: "distributorId", type: "FK Distributor", description: "Distribuidor (si aplica)" },
-  { field: "categoryId", type: "FK Category", description: "Categoría (FK upsert por nombre)" },
-  { field: "familyId", type: "FK ProductFamily", description: "Familia (FK upsert por nombre)" },
+  { field: "brandId", label: "Marca", type: "Marca (FK)", description: "Relación con tabla Marcas — busca por nombre o crea" },
+  { field: "distributorId", label: "Distribuidor", type: "Distribuidor (FK)", description: "Distribuidor / proveedor (FK)" },
+  { field: "categoryId", label: "Categoría", type: "Categoría (FK)", description: "Relación con tabla Categorías — busca por nombre o crea" },
+  { field: "familyId", label: "Familia", type: "Familia (FK)", description: "Relación con tabla Familias — busca por nombre o crea" },
 
   // Descripciones
-  { field: "shortDescription", type: "string", description: "Descripción corta (1-2 líneas)" },
-  { field: "longDescription", type: "string", description: "Descripción larga (texto plano)" },
-  { field: "htmlContent", type: "string", description: "HTML enriquecido (descripción detallada)" },
+  { field: "shortDescription", label: "Descripción corta", type: "texto", description: "1-2 líneas resumen del producto" },
+  { field: "longDescription", label: "Descripción larga (texto plano)", type: "texto", description: "Descripción extensa sin formato" },
+  { field: "htmlContent", label: "Descripción HTML enriquecida", type: "HTML", description: "HTML largo con formato, imágenes y links" },
 
   // Texto libre clasificación
-  { field: "familia", type: "string", description: "Rubro (campo libre)" },
-  { field: "tipo", type: "string", description: "Subrubro (campo libre)" },
+  { field: "familia", label: "Rubro (texto libre)", type: "texto", description: "Campo de texto libre (no FK)" },
+  { field: "tipo", label: "Subrubro (texto libre)", type: "texto", description: "Campo de texto libre (no FK)" },
 
   // Precio + moneda
-  { field: "baseCostUsd", type: "decimal(14,4)", description: "Costo base en USD (Sonance: unitListPrice)" },
-  { field: "currency", type: "string", description: "Moneda (default USD)" },
+  { field: "baseCostUsd", label: "Costo base USD", type: "decimal", description: "Precio base en dólares (numérico, 4 decimales)" },
+  { field: "currency", label: "Moneda", type: "texto", description: "Default USD" },
 
   // Posición arancelaria
-  { field: "tariffPosition", type: "string", description: "Posición NCM" },
-  { field: "tariffDutyPercent", type: "decimal", description: "DIE %" },
-  { field: "aecPercent", type: "decimal", description: "AEC %" },
-  { field: "tePercent", type: "decimal", description: "TE %" },
+  { field: "tariffPosition", label: "Posición NCM", type: "texto", description: "Código arancelario NCM" },
+  { field: "tariffDutyPercent", label: "Derecho de importación (DIE) %", type: "decimal", description: "Alícuota DIE de la NCM" },
+  { field: "aecPercent", label: "AEC %", type: "decimal", description: "Arancel Externo Común" },
+  { field: "tePercent", label: "Tasa Estadística (TE) %", type: "decimal", description: "Tasa Estadística" },
 
   // Logística
-  { field: "coo", type: "string", description: "País de origen (Country Of Origin)" },
-  { field: "weight", type: "decimal", description: "Peso en kg" },
-  { field: "volume", type: "decimal", description: "Volumen en m³" },
+  { field: "coo", label: "País de origen", type: "texto", description: "Country Of Origin" },
+  { field: "weight", label: "Peso (kg)", type: "decimal", description: "Peso del producto en kilos" },
+  { field: "volume", label: "Volumen (m³)", type: "decimal", description: "Volumen en metros cúbicos" },
 
   // Stock + descuentos
-  { field: "stockStatus", type: "enum", description: "IN_STOCK | LOW_STOCK | OUT_OF_STOCK | ON_REQUEST | UNKNOWN" },
-  { field: "stockQuantity", type: "int", description: "Cantidad en stock" },
-  { field: "discountPercent", type: "decimal", description: "Descuento %" },
+  { field: "stockStatus", label: "Estado de stock", type: "enum", description: "En stock / Poco stock / Sin stock / A pedido / Desconocido" },
+  { field: "stockQuantity", label: "Cantidad en stock", type: "entero", description: "Unidades disponibles" },
+  { field: "discountPercent", label: "Descuento %", type: "decimal", description: "Descuento aplicado al precio" },
 
   // Coeficientes nacionalización
-  { field: "coefNac", type: "decimal", description: "Coef. nacionalización" },
-  { field: "coefVta", type: "decimal", description: "Coef. venta nacional" },
-  { field: "ivaPercent", type: "decimal", description: "IVA % (default 21)" },
-  { field: "impIntPercent", type: "decimal", description: "Impuesto interno %" },
-  { field: "coefVtaFob", type: "decimal", description: "Coef. venta FOB" },
+  { field: "coefNac", label: "Coef. nacionalización", type: "decimal", description: "Multiplicador FOB → Costo nacionalizado" },
+  { field: "coefVta", label: "Coef. venta nacional", type: "decimal", description: "Multiplicador Costo NAC → Precio venta NAC" },
+  { field: "ivaPercent", label: "IVA %", type: "decimal", description: "Default 21" },
+  { field: "impIntPercent", label: "Impuesto interno %", type: "decimal", description: "Si aplica" },
+  { field: "coefVtaFob", label: "Coef. venta FOB", type: "decimal", description: "Multiplicador costo FOB → Precio venta FOB" },
 
   // Flags
-  { field: "isCustomizable", type: "boolean", description: "Producto custom/configurable" },
-  { field: "isCrestronHomeCompatible", type: "boolean", description: "Compatible Crestron Home" },
-  { field: "kind", type: "enum", description: "PRINCIPAL | ACCESORIO" },
-  { field: "accessoryRequiredWithPrimary", type: "boolean", description: "Accesorio obligatorio con principal" },
-  { field: "isActive", type: "boolean", description: "Visible en el catálogo público" },
+  { field: "isCustomizable", label: "Customizable / configurable", type: "booleano", description: "Producto con opciones" },
+  { field: "isCrestronHomeCompatible", label: "Compatible con Crestron Home", type: "booleano", description: "Integra con Crestron Home" },
+  { field: "kind", label: "Tipo (principal / accesorio)", type: "enum", description: "PRINCIPAL o ACCESORIO" },
+  { field: "accessoryRequiredWithPrimary", label: "Accesorio obligatorio con principal", type: "booleano", description: "Si requiere venderse junto a su principal" },
+  { field: "isActive", label: "Activo en catálogo", type: "booleano", description: "Visible en el catálogo público" },
 
   // Enriquecimiento desde portales
-  { field: "specifications", type: "Json", description: "Specs técnicos (array de {label, value, etc.})" },
-  { field: "documents", type: "Json", description: "Documentos (datasheets, manuales, planos)" },
-  { field: "sourceMetadata", type: "Json", description: "Raw V1 detail completo del portal (para mapping posterior)" },
-  { field: "enrichedAt", type: "DateTime", description: "Última vez que se enriqueció con datos completos" },
-  { field: "translatedAt", type: "DateTime", description: "Última vez que se tradujeron campos al ES" },
+  { field: "specifications", label: "Especificaciones técnicas (JSON)", type: "JSON", description: "Array de specs (label, value, etc.)" },
+  { field: "documents", label: "Documentos / datasheets (JSON)", type: "JSON", description: "PDFs, manuales, planos" },
+  { field: "sourceMetadata", label: "Datos crudos del portal (JSON)", type: "JSON", description: "Detalle V1 completo de la API — para mapeo posterior" },
+  { field: "enrichedAt", label: "Última fecha de enriquecimiento", type: "Fecha+hora", description: "Cuándo se enriqueció con datos completos" },
+  { field: "translatedAt", label: "Última fecha de traducción al ES", type: "Fecha+hora", description: "Cuándo se tradujeron campos al español" },
 
   // Relaciones de imagen/accesorios (no son campos de Product directos)
-  { field: "(rel) images", type: "ProductImage[]", description: "Imágenes asociadas (URL + alt + isPrimary)" },
-  { field: "(rel) accessories", type: "AccessoryRelation[]", description: "Productos relacionados como accesorios" },
+  { field: "(rel) images", label: "Imágenes (relación)", type: "tabla relacionada", description: "Crea filas en ProductImage (URL + alt + isPrimary)" },
+  { field: "(rel) accessories", label: "Accesorios (relación)", type: "tabla relacionada", description: "Crea filas en AccessoryRelation con los SKUs encontrados" },
 ];
 
 export async function GET() {
