@@ -37,6 +37,10 @@ interface ApplyMappingResponse {
   updated: number;
   created: number;
   skippedNoDetail: number; // sin V1 detail descargado — se debe re-sync
+  withSpecifications: number; // productos a los que se les escribió specifications
+  withDocuments: number; // productos a los que se les escribió documents
+  withImageRels: number; // productos a los que se les escribió imágenes
+  withAccessoryRels: number; // productos a los que se les linkeó al menos 1 accesorio
   totalProducts: number;
   nextOffset: number | null;
   done: boolean;
@@ -305,6 +309,10 @@ export async function POST(req: NextRequest) {
         updated: 0,
         created: 0,
         skippedNoDetail: 0,
+        withSpecifications: 0,
+        withDocuments: 0,
+        withImageRels: 0,
+        withAccessoryRels: 0,
         totalProducts: idx.totalProducts,
         nextOffset: null,
         done: true,
@@ -359,6 +367,10 @@ export async function POST(req: NextRequest) {
     let updated = 0;
     let created = 0;
     let skippedNoDetail = 0;
+    let withSpecifications = 0;
+    let withDocuments = 0;
+    let withImageRels = 0;
+    let withAccessoryRels = 0;
 
     for (let i = 0; i < batch.length; i++) {
       const item = batch[i];
@@ -422,6 +434,8 @@ export async function POST(req: NextRequest) {
         });
         productId = existing.id;
         updated++;
+        if (productData.specifications !== undefined) withSpecifications++;
+        if (productData.documents !== undefined) withDocuments++;
       } else {
         if (!createMissing) continue;
         // Create — Product requires normalizedName + originalName + baseCostUsd
@@ -446,9 +460,12 @@ export async function POST(req: NextRequest) {
         });
         productId = newP.id;
         created++;
+        if (productData.specifications !== undefined) withSpecifications++;
+        if (productData.documents !== undefined) withDocuments++;
       }
 
-      // Relations: images
+      // Relations: images (este SÍ se hace en cada producto — las imágenes
+      // son URLs externas, no dependen de otros productos existiendo)
       if (mapping["(rel) images"]) {
         const urlsRaw = resolvePath(detail, mapping["(rel) images"]);
         const urls = Array.isArray(urlsRaw)
@@ -469,42 +486,61 @@ export async function POST(req: NextRequest) {
                 isPrimary: ix === 0,
               })),
             });
+            withImageRels++;
           } catch (e) {
             console.error("apply-mapping: failed images for", item.sku, e);
           }
         }
       }
 
-      // Relations: accessories (array of SKUs → AccessoryRelation rows)
-      if (mapping["(rel) accessories"]) {
-        const skusRaw = resolvePath(detail, mapping["(rel) accessories"]);
-        const accSkus = Array.isArray(skusRaw)
-          ? skusRaw.filter((s): s is string => typeof s === "string" && s.length > 0)
-          : [];
-        if (accSkus.length > 0) {
-          try {
-            const accProducts = await prisma.product.findMany({
-              where: { supplierSku: { in: accSkus } },
-              select: { id: true, supplierSku: true },
-            });
-            await prisma.accessoryRelation.deleteMany({ where: { productId } });
-            if (accProducts.length > 0) {
-              await prisma.accessoryRelation.createMany({
-                data: accProducts
-                  .filter((p) => p.id !== productId)
-                  .map((p) => ({ productId, accessoryProductId: p.id, isRequired: false })),
-                skipDuplicates: true,
-              });
-            }
-          } catch (e) {
-            console.error("apply-mapping: failed accessories for", item.sku, e);
-          }
-        }
-      }
+      // Relations: accessories — DEFERRED al final pass
+      // Problema: si producto A tiene como accesorio el SKU B, y B se procesa
+      // en un batch posterior, no existe todavía en BD y la relación fallaba.
+      // Solución: linkeamos accesorios en el último batch (done=true) iterando
+      // todos los productos con detail ya bajado.
     }
 
     const nextOffset = offset + batch.length;
     const done = nextOffset >= idx.totalProducts;
+
+    // 6. FINAL PASS — link de accesorios sobre TODOS los productos.
+    // Solo se hace en el último batch (done=true) cuando todos los Product
+    // ya existen en BD y los accessory SKUs pueden ser encontrados.
+    if (done && mapping["(rel) accessories"]) {
+      try {
+        // Iterar todos los SKUs del índice + sus details, linkear accesorios
+        for (let ci = 0; ci < idx.totalChunks; ci++) {
+          const chunkItems = await loadDetailChunk(ci);
+          for (const [sku, sourceDetail] of Object.entries(chunkItems)) {
+            const skusRaw = resolvePath(sourceDetail, mapping["(rel) accessories"]);
+            const accSkus = Array.isArray(skusRaw)
+              ? skusRaw.filter((s): s is string => typeof s === "string" && s.length > 0)
+              : [];
+            if (accSkus.length === 0) continue;
+            // Encontrar producto padre y accesorios en BD
+            const parent = await prisma.product.findFirst({
+              where: { supplierSku: sku },
+              select: { id: true },
+            });
+            if (!parent) continue;
+            const accProducts = await prisma.product.findMany({
+              where: { supplierSku: { in: accSkus } },
+              select: { id: true },
+            });
+            await prisma.accessoryRelation.deleteMany({ where: { productId: parent.id } });
+            const toCreate = accProducts
+              .filter((p) => p.id !== parent.id)
+              .map((p) => ({ productId: parent.id, accessoryProductId: p.id, isRequired: false }));
+            if (toCreate.length > 0) {
+              await prisma.accessoryRelation.createMany({ data: toCreate, skipDuplicates: true });
+              withAccessoryRels++;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("apply-mapping: final accessory pass failed", e);
+      }
+    }
 
     if (done) {
       revalidatePath("/admin/products");
@@ -517,6 +553,10 @@ export async function POST(req: NextRequest) {
       updated,
       created,
       skippedNoDetail,
+      withSpecifications,
+      withDocuments,
+      withImageRels,
+      withAccessoryRels,
       totalProducts: idx.totalProducts,
       nextOffset: done ? null : nextOffset,
       done,
@@ -524,7 +564,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const error = err instanceof Error ? err.message : "Error desconocido";
     return NextResponse.json(
-      { ok: false, error, processed: 0, updated: 0, created: 0, skippedNoDetail: 0, totalProducts: 0, nextOffset: null, done: false } as ApplyMappingResponse,
+      { ok: false, error, processed: 0, updated: 0, created: 0, skippedNoDetail: 0, withSpecifications: 0, withDocuments: 0, withImageRels: 0, withAccessoryRels: 0, totalProducts: 0, nextOffset: null, done: false } as ApplyMappingResponse,
       { status: 500 }
     );
   }

@@ -219,6 +219,10 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     updated: number;
     created: number;
     skippedNoDetail: number;
+    withSpecifications: number;
+    withDocuments: number;
+    withImageRels: number;
+    withAccessoryRels: number;
   } | null>(null);
   const [applyMappingError, setApplyMappingError] = useState<string | null>(null);
   const [applyMappingCancelRef] = useState<{ canceled: boolean }>({ canceled: false });
@@ -273,11 +277,18 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     setApplyingMapping(true);
     setApplyMappingError(null);
     applyMappingCancelRef.canceled = false;
-    setApplyMappingProgress({ done: 0, total: 0, updated: 0, created: 0, skippedNoDetail: 0 });
+    setApplyMappingProgress({
+      done: 0, total: 0,
+      updated: 0, created: 0, skippedNoDetail: 0,
+      withSpecifications: 0, withDocuments: 0, withImageRels: 0, withAccessoryRels: 0,
+    });
     try {
       let offset = 0;
       let total = 0;
-      const acc = { updated: 0, created: 0, skippedNoDetail: 0 };
+      const acc = {
+        updated: 0, created: 0, skippedNoDetail: 0,
+        withSpecifications: 0, withDocuments: 0, withImageRels: 0, withAccessoryRels: 0,
+      };
       while (!applyMappingCancelRef.canceled) {
         const res = await fetch("/api/admin/sonance-import/apply-mapping", {
           method: "POST",
@@ -290,6 +301,10 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         acc.updated += data.updated ?? 0;
         acc.created += data.created ?? 0;
         acc.skippedNoDetail += data.skippedNoDetail ?? 0;
+        acc.withSpecifications += data.withSpecifications ?? 0;
+        acc.withDocuments += data.withDocuments ?? 0;
+        acc.withImageRels += data.withImageRels ?? 0;
+        acc.withAccessoryRels += data.withAccessoryRels ?? 0;
         const newDone = data.nextOffset ?? total;
         setApplyMappingProgress({ done: newDone, total, ...acc });
         if (data.done || data.nextOffset === null) break;
@@ -1042,13 +1057,20 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                 Mapping aplicado: {applyMappingProgress.updated} actualizados
                 {applyMappingProgress.created > 0 ? `, ${applyMappingProgress.created} creados` : ""}
                 {applyMappingProgress.skippedNoDetail > 0 ? `, ${applyMappingProgress.skippedNoDetail} saltados` : ""}
-                {" "}de {applyMappingProgress.total} totales en el índice.
+                {" "}de {applyMappingProgress.total} totales.
               </p>
             </div>
+            <p className="text-xs text-muted-foreground pl-6">
+              Datos escritos por tipo:{" "}
+              <strong>{applyMappingProgress.withSpecifications}</strong> con specs ·{" "}
+              <strong>{applyMappingProgress.withDocuments}</strong> con docs ·{" "}
+              <strong>{applyMappingProgress.withImageRels}</strong> con imágenes ·{" "}
+              <strong>{applyMappingProgress.withAccessoryRels}</strong> con accesorios linkeados.
+            </p>
             {applyMappingProgress.skippedNoDetail > 0 && (
               <p className="text-xs text-warning pl-6">
-                ⚠️ {applyMappingProgress.skippedNoDetail} productos se saltaron porque su detalle V1 NO está descargado
-                (su fetch al portal falló o se canceló la sync antes de terminar). Re-sincronizá para completarlos.
+                ⚠️ {applyMappingProgress.skippedNoDetail} productos se saltaron porque su detalle V1 NO está descargado.
+                Re-sincronizá para completarlos.
               </p>
             )}
             <p className="text-xs text-muted-foreground pl-6">
