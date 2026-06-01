@@ -70,18 +70,101 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState<string | null>(null);
 
-  // Inspector de campos API (qué columnas trae mySonance)
-  const [inspectSku, setInspectSku] = useState("");
-  const [inspecting, setInspecting] = useState(false);
-  const [inspectResult, setInspectResult] = useState<{
-    flat: Array<{ path: string; type: string; sample: string }>;
-    totalPaths: number;
-    attrTypeLabels: Array<{ label: string; values: string[] }>;
-    documentSummary: Array<{ name: string; type: string }>;
-    accessoryTotal: number;
-    accessorySummary: Array<{ sku: string; name: string; price: number | null }>;
+  // Sample product para preview de mapping (un producto real del cached payload)
+  const [sampleProduct, setSampleProduct] = useState<{
+    sku: string;
+    brand: string;
+    productTitle: string;
+    detail: unknown;
   } | null>(null);
-  const [inspectError, setInspectError] = useState<string | null>(null);
+  const [sampleLoading, setSampleLoading] = useState(false);
+  const [sampleError, setSampleError] = useState<string | null>(null);
+
+  async function loadSampleProduct(random: boolean) {
+    setSampleLoading(true);
+    setSampleError(null);
+    try {
+      const url = random
+        ? "/api/admin/sonance-import/sample-product?random=1"
+        : "/api/admin/sonance-import/sample-product";
+      const res = await fetch(url);
+      const ct = res.headers.get("content-type") ?? "";
+      const text = await res.text();
+      if (!ct.includes("application/json")) {
+        throw new Error(`HTTP ${res.status} no-JSON: ${text.replace(/<[^>]+>/g, " ").slice(0, 150)}`);
+      }
+      const data = JSON.parse(text);
+      if (!data.ok) throw new Error(data.error ?? "Error");
+      setSampleProduct({
+        sku: data.sku,
+        brand: data.brand,
+        productTitle: data.productTitle,
+        detail: data.detail,
+      });
+    } catch (e) {
+      setSampleError(e instanceof Error ? e.message : "Error inesperado");
+    } finally {
+      setSampleLoading(false);
+    }
+  }
+
+  // Resolvedor inline (mirror del server portal-path-resolver)
+  function resolvePath(detail: unknown, path: string): unknown {
+    if (!path || detail == null) return null;
+    if (path === "$root" || path === ".") return detail;
+
+    if (path.startsWith("attr:")) {
+      const wanted = path.slice(5).trim().toLowerCase();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const attrs = ((detail as any).attributeTypes ?? []) as Array<any>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const found = attrs.find((a: any) => String(a.label ?? a.name ?? "").toLowerCase() === wanted);
+      if (!found) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const values = (found.attributeValues ?? []).map((v: any) => String(v.valueDisplay ?? v.value ?? "").trim()).filter((s: string) => s.length > 0);
+      return values.length === 0 ? null : values.length === 1 ? values[0] : values;
+    }
+
+    const arrMatch = path.match(/^([^[\]]+)\[\](?:\.(.+))?$/);
+    if (arrMatch) {
+      const [, arrPath, subPath] = arrMatch;
+      const arr = getNested(detail, arrPath);
+      if (!Array.isArray(arr)) return [];
+      if (!subPath) return arr;
+      return arr.map((item) => getNested(item, subPath)).filter((v) => v != null);
+    }
+
+    return getNested(detail, path);
+  }
+  function getNested(obj: unknown, path: string): unknown {
+    if (obj == null) return null;
+    let cur: unknown = obj;
+    for (const part of path.split(".")) {
+      if (cur == null || typeof cur !== "object") return null;
+      cur = (cur as Record<string, unknown>)[part];
+      if (cur === undefined) return null;
+    }
+    return cur ?? null;
+  }
+  function formatSampleValue(v: unknown): string {
+    if (v == null) return "—";
+    if (typeof v === "string") return v.length > 80 ? v.slice(0, 80) + "…" : v;
+    if (typeof v === "number" || typeof v === "boolean") return String(v);
+    if (Array.isArray(v)) {
+      if (v.length === 0) return "[] (vacío)";
+      const primitives = v.filter((x) => typeof x === "string" || typeof x === "number");
+      if (primitives.length === v.length) {
+        const s = primitives.slice(0, 3).join(" · ");
+        return v.length > 3 ? `${s}  +${v.length - 3}` : s;
+      }
+      return `[${v.length} items]`;
+    }
+    if (typeof v === "object") {
+      const keys = Object.keys(v as Record<string, unknown>);
+      return `{${keys.slice(0, 3).join(", ")}${keys.length > 3 ? ", …" : ""}}`;
+    }
+    return String(v);
+  }
 
   // DB columns disponibles para mapping
   const [dbColumns, setDbColumns] = useState<Array<{
@@ -119,7 +202,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
   const [applyMappingError, setApplyMappingError] = useState<string | null>(null);
   const [applyMappingCancelRef] = useState<{ canceled: boolean }>({ canceled: false });
 
-  // Load mapping + API path catalog on mount
+  // Load mapping + API path catalog on mount + sample product para preview
   useEffect(() => {
     (async () => {
       try {
@@ -132,6 +215,22 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
       } catch { /* ignore */ } finally {
         setMappingLoaded(true);
       }
+      // Sample product en paralelo (silenciosamente — sin error si no hay payload aún)
+      try {
+        const res = await fetch("/api/admin/sonance-import/sample-product");
+        const ct = res.headers.get("content-type") ?? "";
+        if (ct.includes("application/json")) {
+          const data = await res.json();
+          if (data.ok) {
+            setSampleProduct({
+              sku: data.sku,
+              brand: data.brand,
+              productTitle: data.productTitle,
+              detail: data.detail,
+            });
+          }
+        }
+      } catch { /* ignore */ }
     })();
   }, []);
 
@@ -192,35 +291,6 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     processed: number;
   } | null>(null);
   const [fullSyncCancelRef] = useState<{ canceled: boolean }>({ canceled: false });
-
-  async function runInspect() {
-    if (!inspectSku.trim()) return;
-    setInspecting(true);
-    setInspectError(null);
-    setInspectResult(null);
-    try {
-      const res = await fetch(
-        `/api/admin/sonance-import/inspect?sku=${encodeURIComponent(inspectSku.trim())}`
-      );
-      // Manejo robusto: si el server devuelve HTML (500 de Vercel, timeout, etc.)
-      // mostramos un mensaje útil en vez de "Unexpected token..." de JSON.parse
-      const ct = res.headers.get("content-type") ?? "";
-      const text = await res.text();
-      if (!ct.includes("application/json")) {
-        throw new Error(
-          `El servidor devolvió HTTP ${res.status} no-JSON (probablemente timeout). ` +
-          `Detalle: ${text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200)}`
-        );
-      }
-      const data = JSON.parse(text);
-      if (!data.ok) throw new Error(data.error ?? "Error al inspeccionar");
-      setInspectResult(data);
-    } catch (e) {
-      setInspectError(e instanceof Error ? e.message : "Error inesperado");
-    } finally {
-      setInspecting(false);
-    }
-  }
 
   // Enriquecimiento (rich data desde my.sonance.com).
   // enrichTranslate default false: la IA solo corre si el usuario tilda explícitamente.
@@ -601,7 +671,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                 <p className="text-sm font-medium">Columnas disponibles en tu base de datos</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Todos los campos que un Product puede tener en BD, con cobertura actual.
-                  Combinado con el Inspector de API, te sirve para decidir el mapping.
+                  El mapeo se hace abajo con preview en vivo sobre un producto real.
                 </p>
               </div>
             </div>
@@ -658,8 +728,9 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
               <div>
                 <p className="text-sm font-medium">Mapeo de campos API → BD</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Por cada columna de tu BD elegí qué campo de la API la llena.
-                  Se autoguarda. Después click "Aplicar mapping" para que se persista a todos los productos.
+                  Por cada columna de tu BD elegí qué campo de la API la llena. El valor de muestra
+                  se calcula en vivo con un producto real del cached payload. Se autoguarda.
+                  Después click "Aplicar mapping" para persistir a todos los productos.
                 </p>
               </div>
             </div>
@@ -681,6 +752,49 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Cancelar
                 </Button>
               )}
+            </div>
+          </div>
+
+          {/* Sample product banner */}
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted/30 px-3 py-2">
+            <div className="flex-1 min-w-[200px]">
+              {sampleProduct ? (
+                <p className="text-xs">
+                  <span className="text-muted-foreground">Producto de ejemplo:</span>{" "}
+                  <code className="font-mono text-foreground">{sampleProduct.sku}</code>{" "}
+                  <span className="text-muted-foreground">·</span>{" "}
+                  <span className="text-foreground">{sampleProduct.productTitle}</span>{" "}
+                  <Badge tone="muted">{sampleProduct.brand}</Badge>
+                </p>
+              ) : sampleLoading ? (
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Cargando producto de ejemplo…
+                </p>
+              ) : sampleError ? (
+                <p className="text-xs text-warning">{sampleError}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Sin producto de ejemplo. Sincronizá primero para cargar el catálogo.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => loadSampleProduct(false)}
+                disabled={sampleLoading}
+              >
+                Primer producto
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => loadSampleProduct(true)}
+                disabled={sampleLoading}
+              >
+                Otro al azar
+              </Button>
             </div>
           </div>
 
@@ -709,14 +823,19 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                     <th className="px-3 py-1.5 text-left font-medium">Campo BD</th>
                     <th className="px-3 py-1.5 text-left font-medium">Tipo</th>
                     <th className="px-3 py-1.5 text-left font-medium">Mapear desde API</th>
+                    <th className="px-3 py-1.5 text-left font-medium">Valor de ejemplo</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {(dbColumns ?? []).map((col) => {
                     const current = mapping[col.field] ?? "";
+                    const sampleValue =
+                      current && sampleProduct
+                        ? formatSampleValue(resolvePath(sampleProduct.detail, current))
+                        : null;
                     return (
                       <tr key={col.field}>
-                        <td className="px-3 py-1 align-top max-w-[260px]">
+                        <td className="px-3 py-1 align-top max-w-[240px]">
                           <div className="font-medium">{col.label}</div>
                           <code className="text-[10px] text-muted-foreground">{col.field}</code>
                           {col.description && (
@@ -737,7 +856,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                                 return next;
                               })
                             }
-                            className="h-7 w-full max-w-[420px] rounded border border-border bg-background px-2 text-xs"
+                            className="h-7 w-full max-w-[360px] rounded border border-border bg-background px-2 text-xs"
                           >
                             <option value="">— sin mapear —</option>
                             {apiPathGroups.map((g) => (
@@ -751,12 +870,25 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                             ))}
                           </select>
                         </td>
+                        <td className="px-3 py-1 align-top max-w-[300px]">
+                          {!current ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : sampleProduct == null ? (
+                            <span className="text-muted-foreground italic">sin sample</span>
+                          ) : sampleValue === "—" ? (
+                            <span className="text-warning">vacío / null</span>
+                          ) : (
+                            <span className="font-mono text-foreground break-words text-[11px]">
+                              {sampleValue}
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
                   {dbColumns == null && (
                     <tr>
-                      <td colSpan={3} className="px-3 py-4 text-center text-muted-foreground text-xs">
+                      <td colSpan={4} className="px-3 py-4 text-center text-muted-foreground text-xs">
                         Click "Ver columnas BD" arriba para cargar la lista de campos.
                       </td>
                     </tr>
@@ -771,159 +903,6 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         </CardContent>
       </Card>
 
-      {/* Inspector — ver todos los campos que trae la API para un SKU */}
-      <Card>
-        <CardContent className="p-5 space-y-3">
-          <div className="flex items-start gap-3">
-            <Badge tone="muted">Inspector</Badge>
-            <div className="flex-1">
-              <p className="text-sm font-medium">Ver todas las columnas que trae la API</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Ingresá un SKU (ej. <code>SA68</code>, <code>AMP-X300</code>) y te muestro
-                <strong> todos los campos disponibles</strong> con un valor de muestra —
-                así sabés exactamente qué hay para mapear.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
-                SKU del portal
-              </label>
-              <input
-                type="text"
-                value={inspectSku}
-                onChange={(e) => setInspectSku(e.target.value)}
-                placeholder="SA68"
-                disabled={inspecting}
-                className="h-9 w-full rounded border border-border bg-background px-3 text-sm font-mono"
-              />
-            </div>
-            <Button onClick={runInspect} disabled={!inspectSku.trim() || inspecting} size="sm">
-              {inspecting ? (
-                <>
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  Inspeccionando…
-                </>
-              ) : (
-                "Ver campos disponibles"
-              )}
-            </Button>
-          </div>
-          {inspectError && <p className="text-xs text-destructive">{inspectError}</p>}
-          {inspectResult && (
-            <div className="space-y-3 mt-2">
-              <p className="text-xs text-muted-foreground">
-                <strong>{inspectResult.totalPaths}</strong> rutas disponibles ·{" "}
-                <strong>{inspectResult.attrTypeLabels.length}</strong> attributeTypes (specs) ·{" "}
-                <strong>{inspectResult.documentSummary.length}</strong> documentos ·{" "}
-                <strong>{inspectResult.accessoryTotal}</strong> accesorios
-              </p>
-
-              {/* Attribute types (specs / categories) */}
-              {inspectResult.attrTypeLabels.length > 0 && (
-                <div className="border border-border rounded-md overflow-hidden">
-                  <div className="bg-muted/40 px-3 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                    attributeTypes (specs técnicos + categorías)
-                  </div>
-                  <div className="overflow-x-auto max-h-[260px] overflow-y-auto">
-                    <table className="w-full text-xs">
-                      <thead className="text-muted-foreground">
-                        <tr>
-                          <th className="px-3 py-1 text-left">Label</th>
-                          <th className="px-3 py-1 text-left">Valores (primeros 3)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {inspectResult.attrTypeLabels.map((a, i) => (
-                          <tr key={i}>
-                            <td className="px-3 py-1 font-mono">{a.label}</td>
-                            <td className="px-3 py-1 text-muted-foreground">
-                              {a.values.join(" · ") || "(vacío)"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Documents */}
-              {inspectResult.documentSummary.length > 0 && (
-                <div className="border border-border rounded-md overflow-hidden">
-                  <div className="bg-muted/40 px-3 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                    documents (datasheets, manuales, planos)
-                  </div>
-                  <div className="overflow-x-auto max-h-[200px] overflow-y-auto">
-                    <table className="w-full text-xs">
-                      <tbody className="divide-y divide-border">
-                        {inspectResult.documentSummary.map((d, i) => (
-                          <tr key={i}>
-                            <td className="px-3 py-1">{d.name}</td>
-                            <td className="px-3 py-1 font-mono text-muted-foreground">{d.type}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Accessories preview */}
-              {inspectResult.accessoryTotal > 0 && (
-                <div className="border border-border rounded-md overflow-hidden">
-                  <div className="bg-muted/40 px-3 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                    accessories (primeros 5 de {inspectResult.accessoryTotal})
-                  </div>
-                  <div className="overflow-x-auto max-h-[200px] overflow-y-auto">
-                    <table className="w-full text-xs">
-                      <tbody className="divide-y divide-border">
-                        {inspectResult.accessorySummary.map((a, i) => (
-                          <tr key={i}>
-                            <td className="px-3 py-1 font-mono">{a.sku}</td>
-                            <td className="px-3 py-1">{a.name}</td>
-                            <td className="px-3 py-1 text-right tabular-nums text-muted-foreground">
-                              {a.price != null ? `$ ${a.price.toFixed(2)}` : "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* All paths (flat) */}
-              <details className="border border-border rounded-md">
-                <summary className="bg-muted/40 px-3 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium cursor-pointer">
-                  TODAS las rutas planas ({inspectResult.flat.length}) — click para expandir
-                </summary>
-                <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="text-muted-foreground sticky top-0 bg-background">
-                      <tr>
-                        <th className="px-3 py-1 text-left">Ruta</th>
-                        <th className="px-3 py-1 text-left">Tipo</th>
-                        <th className="px-3 py-1 text-left">Valor muestra</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {inspectResult.flat.map((f, i) => (
-                        <tr key={i}>
-                          <td className="px-3 py-0.5 font-mono">{f.path || "(root)"}</td>
-                          <td className="px-3 py-0.5 text-muted-foreground">{f.type}</td>
-                          <td className="px-3 py-0.5 max-w-[400px] truncate">{f.sample}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </details>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Error */}
       {state === "error" && error && (
