@@ -103,6 +103,87 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     }
   }
 
+  // Field mapping {dbField: apiPath}
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+  const [apiPathGroups, setApiPathGroups] = useState<Array<{ group: string; paths: Array<{ path: string; label: string }> }>>([]);
+  const [mappingLoaded, setMappingLoaded] = useState(false);
+  const [mappingSaving, setMappingSaving] = useState(false);
+  const [applyingMapping, setApplyingMapping] = useState(false);
+  const [applyMappingProgress, setApplyMappingProgress] = useState<{
+    done: number;
+    total: number;
+    updated: number;
+    created: number;
+  } | null>(null);
+  const [applyMappingError, setApplyMappingError] = useState<string | null>(null);
+  const [applyMappingCancelRef] = useState<{ canceled: boolean }>({ canceled: false });
+
+  // Load mapping + API path catalog on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/sonance-import/mapping");
+        const data = await res.json();
+        if (data.ok) {
+          setMapping(data.mapping ?? {});
+          setApiPathGroups(data.apiPaths ?? []);
+        }
+      } catch { /* ignore */ } finally {
+        setMappingLoaded(true);
+      }
+    })();
+  }, []);
+
+  // Debounced auto-save of mapping
+  useEffect(() => {
+    if (!mappingLoaded) return;
+    const t = setTimeout(() => {
+      setMappingSaving(true);
+      void fetch("/api/admin/sonance-import/mapping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mapping }),
+      }).finally(() => setMappingSaving(false));
+    }, 600);
+    return () => clearTimeout(t);
+  }, [mapping, mappingLoaded]);
+
+  async function runApplyMapping() {
+    setApplyingMapping(true);
+    setApplyMappingError(null);
+    applyMappingCancelRef.canceled = false;
+    setApplyMappingProgress({ done: 0, total: 0, updated: 0, created: 0 });
+    try {
+      let offset = 0;
+      let total = 0;
+      const acc = { updated: 0, created: 0 };
+      while (!applyMappingCancelRef.canceled) {
+        const res = await fetch("/api/admin/sonance-import/apply-mapping", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ offset, batchSize: 25 }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error ?? "Error en apply-mapping");
+        total = data.totalProducts ?? 0;
+        acc.updated += data.updated ?? 0;
+        acc.created += data.created ?? 0;
+        const newDone = data.nextOffset ?? total;
+        setApplyMappingProgress({ done: newDone, total, ...acc });
+        if (data.done || data.nextOffset === null) break;
+        offset = data.nextOffset;
+      }
+    } catch (e) {
+      setApplyMappingError(e instanceof Error ? e.message : "Error inesperado");
+    } finally {
+      setApplyingMapping(false);
+    }
+  }
+
+  function cancelApplyMapping() {
+    applyMappingCancelRef.canceled = true;
+  }
+
   // Sync full (batched: init listing + N detail batches con progreso)
   const [fullSync, setFullSync] = useState<{
     phase: "init" | "detail" | "done";
@@ -551,6 +632,127 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Mapeo de campos API → BD */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-start gap-3 flex-1 min-w-[260px]">
+              <Badge tone="primary">Mapeo</Badge>
+              <div>
+                <p className="text-sm font-medium">Mapeo de campos API → BD</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Por cada columna de tu BD elegí qué campo de la API la llena.
+                  Se autoguarda. Después click "Aplicar mapping" para que se persista a todos los productos.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 items-center">
+              {mappingSaving && (
+                <span className="text-[11px] text-muted-foreground">guardando…</span>
+              )}
+              {!applyingMapping ? (
+                <Button
+                  size="sm"
+                  onClick={runApplyMapping}
+                  disabled={Object.keys(mapping).length === 0}
+                  title={Object.keys(mapping).length === 0 ? "Definí al menos un mapeo primero" : undefined}
+                >
+                  Aplicar mapping a todos los productos
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" onClick={cancelApplyMapping}>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Cancelar
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {applyMappingError && <p className="text-xs text-destructive">{applyMappingError}</p>}
+          {applyMappingProgress && applyMappingProgress.total > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">
+                Aplicando: {applyMappingProgress.done} / {applyMappingProgress.total} ·{" "}
+                {applyMappingProgress.updated} actualizados ·{" "}
+                {applyMappingProgress.created} creados
+              </p>
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: `${Math.min(100, (applyMappingProgress.done / Math.max(1, applyMappingProgress.total)) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="border border-border rounded-md overflow-hidden">
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/40 text-muted-foreground sticky top-0">
+                  <tr>
+                    <th className="px-3 py-1.5 text-left font-medium">Campo BD</th>
+                    <th className="px-3 py-1.5 text-left font-medium">Tipo</th>
+                    <th className="px-3 py-1.5 text-left font-medium">Mapear desde API</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {(dbColumns ?? []).map((col) => {
+                    const current = mapping[col.field] ?? "";
+                    return (
+                      <tr key={col.field}>
+                        <td className="px-3 py-1 font-mono align-top">
+                          {col.field}
+                          {col.description && (
+                            <div className="text-[10px] text-muted-foreground font-sans mt-0.5 max-w-[260px]">
+                              {col.description}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-1 text-muted-foreground align-top">{col.type}</td>
+                        <td className="px-3 py-1 align-top">
+                          <select
+                            value={current}
+                            onChange={(e) =>
+                              setMapping((prev) => {
+                                const next = { ...prev };
+                                if (e.target.value) next[col.field] = e.target.value;
+                                else delete next[col.field];
+                                return next;
+                              })
+                            }
+                            className="h-7 w-full max-w-[420px] rounded border border-border bg-background px-2 text-xs"
+                          >
+                            <option value="">— sin mapear —</option>
+                            {apiPathGroups.map((g) => (
+                              <optgroup key={g.group} label={g.group}>
+                                {g.paths.map((p) => (
+                                  <option key={p.path} value={p.path}>
+                                    {p.label}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {dbColumns == null && (
+                    <tr>
+                      <td colSpan={3} className="px-3 py-4 text-center text-muted-foreground text-xs">
+                        Click "Ver columnas BD" arriba para cargar la lista de campos.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {Object.keys(mapping).length} campos mapeados · Autosave activo · Reemplaza imágenes y accesorios al aplicar.
+          </p>
         </CardContent>
       </Card>
 
