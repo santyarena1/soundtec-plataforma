@@ -14,6 +14,7 @@ import { AccessoriesPanel } from "./accessories-panel";
 import { AiClassificationPanel } from "./ai-classification-panel";
 import { LabelSelector } from "@/components/admin/label-selector";
 import { getSetting } from "@/lib/settings";
+import { PortalDataPanel } from "./portal-data-panel";
 
 export default async function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -182,6 +183,37 @@ export default async function AdminProductEditPage({ params }: { params: Promise
           accessoryProduct: r.accessoryProduct,
         }))}
         candidates={accessoryCandidates}
+      />
+
+      <PortalDataPanel
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        modelNumber={(product as any).modelNumber ?? null}
+        manufacturerItem={(product as any).manufacturerItem ?? null}
+        productLine={(product as any).productLine ?? null}
+        vendorProductUrl={(product as any).vendorProductUrl ?? null}
+        urlSlug={(product as any).urlSlug ?? null}
+        metaTitle={(product as any).metaTitle ?? null}
+        metaDescription={(product as any).metaDescription ?? null}
+        metaKeywords={(product as any).metaKeywords ?? null}
+        videoUrl={(product as any).videoUrl ?? null}
+        salePriceUsd={(product as any).salePriceUsd != null ? Number((product as any).salePriceUsd) : null}
+        salePriceStartsAt={(product as any).salePriceStartsAt ?? null}
+        salePriceEndsAt={(product as any).salePriceEndsAt ?? null}
+        salePriceLabel={(product as any).salePriceLabel ?? null}
+        availabilityMessage={(product as any).availabilityMessage ?? null}
+        availabilityType={(product as any).availabilityType ?? null}
+        widthCm={(product as any).widthCm != null ? Number((product as any).widthCm) : null}
+        heightCm={(product as any).heightCm != null ? Number((product as any).heightCm) : null}
+        depthCm={(product as any).depthCm != null ? Number((product as any).depthCm) : null}
+        requiresQuote={(product as any).requiresQuote ?? false}
+        htmlContent={(product as any).htmlContent ?? null}
+        specifications={(product as any).specifications ?? null}
+        documents={(product as any).documents ?? null}
+        badges={(product as any).badges ?? null}
+        sourceMetadata={(product as any).sourceMetadata ?? null}
+        enrichedAt={(product as any).enrichedAt ?? null}
+        translatedAt={(product as any).translatedAt ?? null}
+        /* eslint-enable @typescript-eslint/no-explicit-any */
       />
     </div>
   );
