@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { getSetting } from "@/lib/settings";
 import {
   openSession,
   buildSkuToIdMap,
@@ -13,6 +14,8 @@ import {
 } from "@/services/sonance-portal";
 import { translateBatchCached, type TranslationContext } from "@/services/translation-cache";
 import { revalidatePath } from "next/cache";
+
+const CACHED_PAYLOAD_KEY = "sonance.sync_payload";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -124,30 +127,120 @@ export async function POST(req: NextRequest) {
     const batchSize = Math.max(1, Math.min(50, body.batchSize ?? 25));
     const offset = Math.max(0, body.offset ?? 0);
 
-    // 1. Build the list of target SKUs
-    let targets: { id: string; supplierSku: string }[];
+    // 1. Build the list of target SKUs.
+    // El enrich es autónomo: trabaja sobre el cached sync_payload
+    // (los productos que vimos al sincronizar) sin necesidad de un apply previo.
+    // Si el producto no existe en BD, lo creamos (inactivo) sobre la marcha.
+    let targetSkus: string[];
+    const skuToCachedItem = new Map<
+      string,
+      { name: string; price: number; brand: string; uom: string; category?: string }
+    >();
+
     if (body.skus && body.skus.length > 0) {
-      const skus = body.skus.filter((s) => typeof s === "string" && s.length > 0);
-      targets = await prisma.product.findMany({
-        where: { supplierSku: { in: skus } },
-        select: { id: true, supplierSku: true },
-      }) as { id: string; supplierSku: string }[];
+      targetSkus = body.skus.filter((s) => typeof s === "string" && s.length > 0);
     } else {
-      // All products with a Sonance brand or that ever came from Sonance feed
-      const sonanceBrands = await prisma.brand.findMany({
-        where: { name: { in: ["SONANCE", "IPORT", "BLAZE by SONANCE", "JAMES", "TRUFIG"] } },
-        select: { id: true },
+      // Read cached payload
+      const raw = await getSetting(CACHED_PAYLOAD_KEY, "");
+      if (!raw) {
+        return NextResponse.json({
+          ok: false,
+          error:
+            "No hay sincronización guardada. Hacé click 'Sincronizar' (Paso 1) primero para que el enrich tenga sobre qué trabajar.",
+        }, { status: 400 });
+      }
+      try {
+        const cached = JSON.parse(raw) as {
+          items?: Array<{
+            supplierSku?: string;
+            name?: string;
+            newPrice?: number;
+            brand?: string;
+            uom?: string;
+            category?: string;
+            currentCategoryLabel?: string | null;
+            productId?: string | null;
+          }>;
+        };
+        const items = Array.isArray(cached.items) ? cached.items : [];
+        targetSkus = [];
+        for (const it of items) {
+          const sku = String(it.supplierSku ?? "").trim();
+          if (!sku) continue;
+          targetSkus.push(sku);
+          skuToCachedItem.set(sku, {
+            name: String(it.name ?? sku),
+            price: typeof it.newPrice === "number" ? it.newPrice : 0,
+            brand: String(it.brand ?? ""),
+            uom: String(it.uom ?? "EA"),
+            category: String(it.category ?? ""),
+          });
+        }
+      } catch {
+        return NextResponse.json(
+          { ok: false, error: "Cached payload corrupto. Re-sincronizá." },
+          { status: 500 }
+        );
+      }
+    }
+
+    // 2. Ensure every target SKU has a DB product (create missing as inactive)
+    const existingProducts = await prisma.product.findMany({
+      where: { supplierSku: { in: targetSkus } },
+      select: { id: true, supplierSku: true, enrichedAt: true },
+    });
+    const existingMap = new Map(
+      existingProducts.filter((p) => !!p.supplierSku).map((p) => [p.supplierSku!, p])
+    );
+
+    // Resolve brand IDs for auto-create
+    const brandNames = Array.from(
+      new Set(Array.from(skuToCachedItem.values()).map((i) => i.brand).filter(Boolean))
+    );
+    const brands = brandNames.length > 0
+      ? await prisma.brand.findMany({
+          where: { name: { in: brandNames } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const brandIdMap = new Map(brands.map((b) => [b.name, b.id]));
+
+    // Filter by !enrichedAt unless force=true
+    let workingSkus = targetSkus;
+    if (!force) {
+      workingSkus = targetSkus.filter((sku) => {
+        const existing = existingMap.get(sku);
+        return !existing || !existing.enrichedAt;
       });
-      const brandIds = sonanceBrands.map((b) => b.id);
-      const where = force
-        ? { brandId: { in: brandIds }, supplierSku: { not: null } }
-        : { brandId: { in: brandIds }, supplierSku: { not: null }, enrichedAt: null };
-      const found = await prisma.product.findMany({
-        where,
-        orderBy: { createdAt: "asc" },
-        select: { id: true, supplierSku: true },
-      });
-      targets = found.filter((p): p is { id: string; supplierSku: string } => !!p.supplierSku);
+    }
+
+    let targets: { id: string; supplierSku: string }[] = [];
+    for (const sku of workingSkus) {
+      const existing = existingMap.get(sku);
+      if (existing) {
+        targets.push({ id: existing.id, supplierSku: sku });
+        continue;
+      }
+      // Auto-create as inactive
+      const cachedItem = skuToCachedItem.get(sku);
+      if (!cachedItem) continue; // No data → skip (shouldn't happen)
+      const brandId = brandIdMap.get(cachedItem.brand) ?? null;
+      try {
+        const created = await prisma.product.create({
+          data: {
+            normalizedName: cachedItem.name,
+            originalName: cachedItem.name,
+            supplierSku: sku,
+            baseCostUsd: cachedItem.price,
+            brandId,
+            isActive: false,
+          },
+          select: { id: true, supplierSku: true },
+        });
+        targets.push({ id: created.id, supplierSku: sku });
+      } catch (e) {
+        console.error(`enrich: failed to auto-create ${sku}`, e);
+      }
     }
 
     const totalTargets = targets.length;

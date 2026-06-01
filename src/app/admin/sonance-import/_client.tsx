@@ -70,6 +70,38 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState<string | null>(null);
 
+  // Inspector de campos API (qué columnas trae mySonance)
+  const [inspectSku, setInspectSku] = useState("");
+  const [inspecting, setInspecting] = useState(false);
+  const [inspectResult, setInspectResult] = useState<{
+    flat: Array<{ path: string; type: string; sample: string }>;
+    totalPaths: number;
+    attrTypeLabels: Array<{ label: string; values: string[] }>;
+    documentSummary: Array<{ name: string; type: string }>;
+    accessoryTotal: number;
+    accessorySummary: Array<{ sku: string; name: string; price: number | null }>;
+  } | null>(null);
+  const [inspectError, setInspectError] = useState<string | null>(null);
+
+  async function runInspect() {
+    if (!inspectSku.trim()) return;
+    setInspecting(true);
+    setInspectError(null);
+    setInspectResult(null);
+    try {
+      const res = await fetch(
+        `/api/admin/sonance-import/inspect?sku=${encodeURIComponent(inspectSku.trim())}`
+      );
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error ?? "Error al inspeccionar");
+      setInspectResult(data);
+    } catch (e) {
+      setInspectError(e instanceof Error ? e.message : "Error inesperado");
+    } finally {
+      setInspecting(false);
+    }
+  }
+
   // Enriquecimiento (rich data desde my.sonance.com)
   const [enriching, setEnriching] = useState(false);
   const [enrichTranslate, setEnrichTranslate] = useState(true);
@@ -362,6 +394,160 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
               {preview.totalParsed ?? 0} productos guardados.
               Tus traducciones y selección se autoguardan a medida que las editás.
             </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Inspector — ver todos los campos que trae la API para un SKU */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <Badge tone="muted">Inspector</Badge>
+            <div className="flex-1">
+              <p className="text-sm font-medium">Ver todas las columnas que trae la API</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Ingresá un SKU (ej. <code>SA68</code>, <code>AMP-X300</code>) y te muestro
+                <strong> todos los campos disponibles</strong> con un valor de muestra —
+                así sabés exactamente qué hay para mapear.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                SKU del portal
+              </label>
+              <input
+                type="text"
+                value={inspectSku}
+                onChange={(e) => setInspectSku(e.target.value)}
+                placeholder="SA68"
+                disabled={inspecting}
+                className="h-9 w-full rounded border border-border bg-background px-3 text-sm font-mono"
+              />
+            </div>
+            <Button onClick={runInspect} disabled={!inspectSku.trim() || inspecting} size="sm">
+              {inspecting ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Inspeccionando…
+                </>
+              ) : (
+                "Ver campos disponibles"
+              )}
+            </Button>
+          </div>
+          {inspectError && <p className="text-xs text-destructive">{inspectError}</p>}
+          {inspectResult && (
+            <div className="space-y-3 mt-2">
+              <p className="text-xs text-muted-foreground">
+                <strong>{inspectResult.totalPaths}</strong> rutas disponibles ·{" "}
+                <strong>{inspectResult.attrTypeLabels.length}</strong> attributeTypes (specs) ·{" "}
+                <strong>{inspectResult.documentSummary.length}</strong> documentos ·{" "}
+                <strong>{inspectResult.accessoryTotal}</strong> accesorios
+              </p>
+
+              {/* Attribute types (specs / categories) */}
+              {inspectResult.attrTypeLabels.length > 0 && (
+                <div className="border border-border rounded-md overflow-hidden">
+                  <div className="bg-muted/40 px-3 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                    attributeTypes (specs técnicos + categorías)
+                  </div>
+                  <div className="overflow-x-auto max-h-[260px] overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="text-muted-foreground">
+                        <tr>
+                          <th className="px-3 py-1 text-left">Label</th>
+                          <th className="px-3 py-1 text-left">Valores (primeros 3)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {inspectResult.attrTypeLabels.map((a, i) => (
+                          <tr key={i}>
+                            <td className="px-3 py-1 font-mono">{a.label}</td>
+                            <td className="px-3 py-1 text-muted-foreground">
+                              {a.values.join(" · ") || "(vacío)"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Documents */}
+              {inspectResult.documentSummary.length > 0 && (
+                <div className="border border-border rounded-md overflow-hidden">
+                  <div className="bg-muted/40 px-3 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                    documents (datasheets, manuales, planos)
+                  </div>
+                  <div className="overflow-x-auto max-h-[200px] overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <tbody className="divide-y divide-border">
+                        {inspectResult.documentSummary.map((d, i) => (
+                          <tr key={i}>
+                            <td className="px-3 py-1">{d.name}</td>
+                            <td className="px-3 py-1 font-mono text-muted-foreground">{d.type}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Accessories preview */}
+              {inspectResult.accessoryTotal > 0 && (
+                <div className="border border-border rounded-md overflow-hidden">
+                  <div className="bg-muted/40 px-3 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                    accessories (primeros 5 de {inspectResult.accessoryTotal})
+                  </div>
+                  <div className="overflow-x-auto max-h-[200px] overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <tbody className="divide-y divide-border">
+                        {inspectResult.accessorySummary.map((a, i) => (
+                          <tr key={i}>
+                            <td className="px-3 py-1 font-mono">{a.sku}</td>
+                            <td className="px-3 py-1">{a.name}</td>
+                            <td className="px-3 py-1 text-right tabular-nums text-muted-foreground">
+                              {a.price != null ? `$ ${a.price.toFixed(2)}` : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* All paths (flat) */}
+              <details className="border border-border rounded-md">
+                <summary className="bg-muted/40 px-3 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium cursor-pointer">
+                  TODAS las rutas planas ({inspectResult.flat.length}) — click para expandir
+                </summary>
+                <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="text-muted-foreground sticky top-0 bg-background">
+                      <tr>
+                        <th className="px-3 py-1 text-left">Ruta</th>
+                        <th className="px-3 py-1 text-left">Tipo</th>
+                        <th className="px-3 py-1 text-left">Valor muestra</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {inspectResult.flat.map((f, i) => (
+                        <tr key={i}>
+                          <td className="px-3 py-0.5 font-mono">{f.path || "(root)"}</td>
+                          <td className="px-3 py-0.5 text-muted-foreground">{f.type}</td>
+                          <td className="px-3 py-0.5 max-w-[400px] truncate">{f.sample}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </div>
           )}
         </CardContent>
       </Card>

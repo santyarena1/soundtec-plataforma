@@ -177,7 +177,7 @@ async function fetchBrandCategories(session: Session): Promise<BrandCategory[]> 
 
 // ── products ──────────────────────────────────────────────────────────────────
 
-interface PortalProduct {
+interface PortalProductListing {
   id: string;
   productNumber?: string;
   productTitle?: string;
@@ -190,12 +190,22 @@ interface PortalProduct {
   brand?: { name?: string } | null;
   customerUnitOfMeasure?: string | null;
   customerProductNumber?: string | null;
-  productLine?: string | null;
+  productLine?: unknown;
   urlSegment?: string;
+  // Disponible con expand=attributes
+  attributeTypes?: Array<{
+    name?: string;
+    label?: string;
+    attributeValues?: Array<{ value?: string; valueDisplay?: string }>;
+  }>;
+  // Imagen principal — útil para el preview
+  smallImagePath?: string;
+  mediumImagePath?: string;
+  largeImagePath?: string;
 }
 
 interface ProductsResponse {
-  products?: PortalProduct[];
+  products?: PortalProductListing[];
   pagination?: {
     page?: number;
     pageSize?: number;
@@ -209,14 +219,17 @@ const PAGE_SIZE = 200;
 async function fetchProductsForCategory(
   session: Session,
   categoryId: string
-): Promise<PortalProduct[]> {
-  const all: PortalProduct[] = [];
+): Promise<PortalProductListing[]> {
+  const all: PortalProductListing[] = [];
   let page = 1;
   let totalPages = 1;
   while (page <= totalPages) {
+    // expand=attributes — necesario para traer attributeTypes (Product Category,
+    // Product Sub Category, specs técnicos) que vienen vacíos sin expand.
+    // detail expande el objeto detail{} con info de modelo, SKU, dimensiones.
     const data = await apiGet<ProductsResponse>(
       session,
-      `/api/v2/products?categoryId=${categoryId}&pageSize=${PAGE_SIZE}&page=${page}`
+      `/api/v2/products?categoryId=${categoryId}&pageSize=${PAGE_SIZE}&page=${page}&expand=attributes,detail`
     );
     const batch = data.products ?? [];
     all.push(...batch);
@@ -380,20 +393,46 @@ function asStr(v: unknown, fallback = ""): string {
   return String(v);
 }
 
-function mapPortalToProduct(p: PortalProduct, brand: SonanceBrand): SonanceProduct | null {
+/** Extrae el primer valor (display o raw) de un attributeType buscando por label/name. */
+function findAttrValue(
+  attrs: PortalProductListing["attributeTypes"],
+  ...labelsOrNames: string[]
+): string {
+  if (!Array.isArray(attrs)) return "";
+  const wanted = labelsOrNames.map((s) => s.toLowerCase());
+  for (const a of attrs) {
+    const lbl = asStr(a.label ?? a.name).toLowerCase();
+    if (!wanted.includes(lbl)) continue;
+    const vals = (a.attributeValues ?? [])
+      .map((v) => asStr(v.valueDisplay ?? v.value).trim())
+      .filter(Boolean);
+    if (vals.length > 0) return vals[0];
+  }
+  return "";
+}
+
+function mapPortalToProduct(p: PortalProductListing, brand: SonanceBrand): SonanceProduct | null {
   const sku = asStr(p.productNumber).trim();
   const name = asStr(p.productTitle).trim();
   const price = typeof p.unitListPrice === "number" ? p.unitListPrice : NaN;
   if (!sku || !name || !isFinite(price) || price <= 0) return null;
   if (!p.canShowPrice) return null;
+
+  // Categoría real: viene en attributeTypes (Product Category / Sub / Super)
+  // con expand=attributes. productLine queda como fallback (suele ser null).
+  const categoryFromAttrs =
+    findAttrValue(p.attributeTypes, "Product Category") ||
+    findAttrValue(p.attributeTypes, "Product Super Category");
+  const subcategoryFromAttrs = findAttrValue(p.attributeTypes, "Product Sub Category");
+
   return {
     name,
     supplierSku: sku,
     price,
     uom: asStr(p.customerUnitOfMeasure, "EA").trim() || "EA",
     brand,
-    category: asStr(p.productLine).trim(),
-    subcategory: "",
+    category: categoryFromAttrs || asStr(p.productLine).trim(),
+    subcategory: subcategoryFromAttrs,
   };
 }
 
