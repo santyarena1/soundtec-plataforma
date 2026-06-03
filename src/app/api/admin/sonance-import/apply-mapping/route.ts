@@ -506,33 +506,81 @@ export async function POST(req: NextRequest) {
     // 6. FINAL PASS — link de accesorios sobre TODOS los productos.
     // Solo se hace en el último batch (done=true) cuando todos los Product
     // ya existen en BD y los accessory SKUs pueden ser encontrados.
+    //
+    // CRITICAL: Construimos DOS maps de resolución para soportar cualquier
+    // estrategia de mapping del usuario:
+    //   a) portalId (GUID Sonance) → dbProductId  → para accessories[].id
+    //   b) supplierSku             → dbProductId  → para accessories[].productNumber/.erpNumber
+    // El path elegido puede dar tokens GUID o SKU; intentamos ambos antes de descartar.
     if (done && mapping["(rel) accessories"]) {
       try {
-        // Iterar todos los SKUs del índice + sus details, linkear accesorios
+        // Resolución por portalId: idx.skuToPortalId tiene (sku, portalId) — y los
+        // products en BD se identifican vía supplierSku (que ahora puede ser otra cosa,
+        // por eso joinemos por sku que es lo que guardamos en sync).
+        const portalIdToSku = new Map<string, string>(
+          idx.skuToPortalId.map((it) => [it.portalId, it.sku])
+        );
+        const allSkus = idx.skuToPortalId.map((it) => it.sku);
+        const dbBySku = new Map<string, string>();
+        // Cargamos en lotes para evitar query gigante
+        const SKU_BATCH = 500;
+        for (let s = 0; s < allSkus.length; s += SKU_BATCH) {
+          const slice = allSkus.slice(s, s + SKU_BATCH);
+          const dbProducts = await prisma.product.findMany({
+            where: { supplierSku: { in: slice } },
+            select: { id: true, supplierSku: true },
+          });
+          for (const p of dbProducts) {
+            if (p.supplierSku) dbBySku.set(p.supplierSku, p.id);
+          }
+        }
+
+        function resolveToken(token: string): string | null {
+          // ¿Es un portalId conocido?
+          const skuFromPortal = portalIdToSku.get(token);
+          if (skuFromPortal) {
+            const id = dbBySku.get(skuFromPortal);
+            if (id) return id;
+          }
+          // ¿Coincide directo con supplierSku?
+          const direct = dbBySku.get(token);
+          if (direct) return direct;
+          return null;
+        }
+
         for (let ci = 0; ci < idx.totalChunks; ci++) {
           const chunkItems = await loadDetailChunk(ci);
           for (const [sku, sourceDetail] of Object.entries(chunkItems)) {
-            const skusRaw = resolvePath(sourceDetail, mapping["(rel) accessories"]);
-            const accSkus = Array.isArray(skusRaw)
-              ? skusRaw.filter((s): s is string => typeof s === "string" && s.length > 0)
+            const rawTokens = resolvePath(sourceDetail, mapping["(rel) accessories"]);
+            const tokens = Array.isArray(rawTokens)
+              ? rawTokens.filter((s): s is string => typeof s === "string" && s.length > 0)
               : [];
-            if (accSkus.length === 0) continue;
-            // Encontrar producto padre y accesorios en BD
-            const parent = await prisma.product.findFirst({
-              where: { supplierSku: sku },
-              select: { id: true },
-            });
-            if (!parent) continue;
-            const accProducts = await prisma.product.findMany({
-              where: { supplierSku: { in: accSkus } },
-              select: { id: true },
-            });
-            await prisma.accessoryRelation.deleteMany({ where: { productId: parent.id } });
-            const toCreate = accProducts
-              .filter((p) => p.id !== parent.id)
-              .map((p) => ({ productId: parent.id, accessoryProductId: p.id, isRequired: false }));
-            if (toCreate.length > 0) {
-              await prisma.accessoryRelation.createMany({ data: toCreate, skipDuplicates: true });
+            if (tokens.length === 0) continue;
+
+            const parentId = dbBySku.get(sku);
+            if (!parentId) continue;
+
+            const resolvedAccessoryIds = tokens
+              .map((t) => resolveToken(t))
+              .filter((id): id is string => id !== null && id !== parentId);
+            const uniqueAccessoryIds = Array.from(new Set(resolvedAccessoryIds));
+
+            await prisma.accessoryRelation.deleteMany({ where: { productId: parentId } });
+            if (uniqueAccessoryIds.length > 0) {
+              await prisma.accessoryRelation.createMany({
+                data: uniqueAccessoryIds.map((accId) => ({
+                  productId: parentId,
+                  accessoryProductId: accId,
+                  isRequired: false,
+                })),
+                skipDuplicates: true,
+              });
+              // Auto-marcar como configurable: si tiene accesorios linkeados, el
+              // usuario podrá seleccionar combinaciones en la ficha.
+              await prisma.product.update({
+                where: { id: parentId },
+                data: { isCustomizable: true },
+              });
               withAccessoryRels++;
             }
           }

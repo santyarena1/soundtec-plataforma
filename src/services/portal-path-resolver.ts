@@ -162,12 +162,14 @@ export const API_PATHS: PathGroup[] = [
   {
     group: "Accesorios / relacionados",
     paths: [
-      { path: "accessories[].productNumber", label: "accessories[] · productNumber (model SKU, ej. PPX8) ⭐ si mapeaste supplierSku ← modelNumber" },
-      { path: "accessories[].erpNumber", label: "accessories[] · erpNumber (ID ERP, ej. 93785) ⭐ si mapeaste supplierSku ← erpNumber" },
+      { path: "accessories[].id", label: "accessories[] · id (GUID Sonance) ⭐ RECOMENDADO — funciona con cualquier supplierSku" },
+      { path: "accessories[].productNumber", label: "accessories[] · productNumber (model SKU, ej. PPX8)" },
+      { path: "accessories[].erpNumber", label: "accessories[] · erpNumber (ID ERP, ej. 93785)" },
       { path: "accessories[].name", label: "accessories[] · name (alternativa V1)" },
       { path: "accessories[]", label: "accessories[] (productos completos)" },
+      { path: "crossSells[].id", label: "crossSells[] · id (GUID) ⭐" },
       { path: "crossSells[].productNumber", label: "crossSells[] · productNumber" },
-      { path: "crossSells[].erpNumber", label: "crossSells[] · erpNumber" },
+      { path: "alsoPurchasedProducts[].id", label: "alsoPurchased[] · id (GUID) ⭐" },
       { path: "alsoPurchasedProducts[].productNumber", label: "alsoPurchased[] · productNumber" },
     ],
   },

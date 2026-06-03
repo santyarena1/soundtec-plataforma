@@ -321,6 +321,43 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     applyMappingCancelRef.canceled = true;
   }
 
+  // Preset de mapeo recomendado Sonance
+  const [loadingPreset, setLoadingPreset] = useState(false);
+  async function applyRecommendedMapping() {
+    setLoadingPreset(true);
+    try {
+      const res = await fetch("/api/admin/sonance-import/preset-mapping");
+      const data = await res.json();
+      if (data.ok && data.mapping) {
+        setMapping(data.mapping);
+      }
+    } catch { /* ignore */ } finally {
+      setLoadingPreset(false);
+    }
+  }
+
+  // Diagnóstico de marcas/accesorios/configurables en BD
+  const [diag, setDiag] = useState<{
+    summary: { totalProducts: number; activeProducts: number; productsWithImages: number; productsWithoutBrand: number };
+    brands: Array<{
+      id: string; name: string; slug: string; isActive: boolean;
+      totalProducts: number; activeProducts: number; activeWithImages: number; willShowInSidebar: boolean;
+    }>;
+    accessories: { totalRelations: number; productsWithAccessories: number; productsAsAccessory: number };
+    configurable: { totalCustomizable: number; customizableWithoutOptions: number };
+  } | null>(null);
+  const [diagLoading, setDiagLoading] = useState(false);
+  async function loadDiag() {
+    setDiagLoading(true);
+    try {
+      const res = await fetch("/api/admin/sonance-import/diagnostic");
+      const data = await res.json();
+      if (data.ok) setDiag(data);
+    } catch { /* ignore */ } finally {
+      setDiagLoading(false);
+    }
+  }
+
   // Sync full (batched: init listing + N detail batches con progreso)
   const [fullSync, setFullSync] = useState<{
     phase: "init" | "detail" | "done";
@@ -794,6 +831,136 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         </CardContent>
       </Card>
 
+      {/* Diagnóstico BD — qué hay efectivamente en la base */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-start gap-3 flex-1">
+              <Badge tone="warning">Diagnóstico</Badge>
+              <div>
+                <p className="text-sm font-medium">Estado actual de la base de datos</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Te muestra cuántos productos hay por marca, cuántos tienen accesorios linkeados
+                  y cuántos están marcados como configurables. Útil para ver qué falta y qué inconsistencias hay.
+                </p>
+              </div>
+            </div>
+            <Button onClick={loadDiag} disabled={diagLoading} size="sm" variant="outline">
+              {diagLoading ? (
+                <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Cargando…</>
+              ) : diag ? (
+                "Recargar"
+              ) : (
+                "Ver diagnóstico"
+              )}
+            </Button>
+          </div>
+          {diag && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <div className="rounded-md border border-border bg-muted/30 p-2">
+                  <p className="text-muted-foreground">Total productos</p>
+                  <p className="text-lg font-semibold tabular-nums">{diag.summary.totalProducts}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/30 p-2">
+                  <p className="text-muted-foreground">Activos</p>
+                  <p className="text-lg font-semibold tabular-nums text-success">{diag.summary.activeProducts}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/30 p-2">
+                  <p className="text-muted-foreground">Con imágenes</p>
+                  <p className="text-lg font-semibold tabular-nums">{diag.summary.productsWithImages}</p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/30 p-2">
+                  <p className="text-muted-foreground">Sin marca</p>
+                  <p className={`text-lg font-semibold tabular-nums ${diag.summary.productsWithoutBrand > 0 ? "text-warning" : ""}`}>
+                    {diag.summary.productsWithoutBrand}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium mb-1.5">Marcas en BD</p>
+                <div className="border border-border rounded-md overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/40 text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-1.5 text-left font-medium">Marca</th>
+                        <th className="px-3 py-1.5 text-center font-medium">Activa</th>
+                        <th className="px-3 py-1.5 text-right font-medium">Total</th>
+                        <th className="px-3 py-1.5 text-right font-medium">Activos</th>
+                        <th className="px-3 py-1.5 text-right font-medium">Con imágenes</th>
+                        <th className="px-3 py-1.5 text-center font-medium">¿Aparece en sidebar?</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {diag.brands.map((b) => (
+                        <tr key={b.id} className={!b.willShowInSidebar ? "bg-warning/5" : ""}>
+                          <td className="px-3 py-1">
+                            <div>{b.name}</div>
+                            <code className="text-[10px] text-muted-foreground">{b.slug}</code>
+                          </td>
+                          <td className="px-3 py-1 text-center">
+                            {b.isActive ? (
+                              <span className="text-success">✓</span>
+                            ) : (
+                              <span className="text-warning">✗</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-1 text-right tabular-nums">{b.totalProducts}</td>
+                          <td className="px-3 py-1 text-right tabular-nums">{b.activeProducts}</td>
+                          <td className="px-3 py-1 text-right tabular-nums">{b.activeWithImages}</td>
+                          <td className="px-3 py-1 text-center">
+                            {b.willShowInSidebar ? (
+                              <span className="text-success">✓ Sí</span>
+                            ) : (
+                              <span className="text-warning">✗ No</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {diag.brands.some((b) => !b.willShowInSidebar) && (
+                  <p className="text-[11px] text-warning mt-1.5">
+                    ⚠️ Marcas con fondo amarillo no aparecen en el sidebar del catálogo. Razones posibles:
+                    isActive=false, o cero productos activos linkeados a esa marca.
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
+                  <p className="text-xs font-medium">Accesorios</p>
+                  <p className="text-xs text-muted-foreground">
+                    Relaciones totales: <strong className="text-foreground">{diag.accessories.totalRelations}</strong>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Productos con accesorios: <strong className="text-foreground">{diag.accessories.productsWithAccessories}</strong>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Productos usados como accesorio: <strong className="text-foreground">{diag.accessories.productsAsAccessory}</strong>
+                  </p>
+                </div>
+                <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
+                  <p className="text-xs font-medium">Configurables</p>
+                  <p className="text-xs text-muted-foreground">
+                    Total marcados configurables: <strong className="text-foreground">{diag.configurable.totalCustomizable}</strong>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Configurables sin opciones ni accesorios:{" "}
+                    <strong className={diag.configurable.customizableWithoutOptions > 0 ? "text-warning" : "text-foreground"}>
+                      {diag.configurable.customizableWithoutOptions}
+                    </strong>
+                    {diag.configurable.customizableWithoutOptions > 0 && " (sospechosos)"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* DB Columns — todos los campos disponibles en tu BD para que mapees */}
       <Card>
         <CardContent className="p-5 space-y-3">
@@ -871,6 +1038,19 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
               {mappingSaving && (
                 <span className="text-[11px] text-muted-foreground">guardando…</span>
               )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={applyRecommendedMapping}
+                disabled={loadingPreset || applyingMapping}
+                title="Carga el mapeo recomendado por defecto para Sonance (35+ campos)"
+              >
+                {loadingPreset ? (
+                  <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Cargando…</>
+                ) : (
+                  <><Sparkles className="mr-1.5 h-3.5 w-3.5" />Aplicar mapeo recomendado</>
+                )}
+              </Button>
               {!applyingMapping ? (
                 <Button
                   size="sm"
