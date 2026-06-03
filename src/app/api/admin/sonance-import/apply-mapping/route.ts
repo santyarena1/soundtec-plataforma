@@ -5,7 +5,101 @@ import { getSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import { applyMapping, resolvePath } from "@/services/portal-path-resolver";
 import type { PortalProductDetail } from "@/services/sonance-portal";
+import { openSession } from "@/services/sonance-portal";
 import { revalidatePath } from "next/cache";
+
+/**
+ * Llama al API en vivo de mySonance para obtener TODOS los productNumbers
+ * que están listados en cada categoría top-level pn-* y los asigna a la marca
+ * correcta. Esto corre como post-procesamiento del apply-mapping cuando
+ * done=true, para que el resultado final sea consistente aun si el índice
+ * persistido es viejo o si el __sourceBrand del usuario apunta a la marca
+ * paraguas en vez de la específica.
+ */
+async function reassignBrandsFromSonanceApi(): Promise<{
+  perBrand: Record<string, { found: number; updated: number }>;
+}> {
+  const session = await openSession();
+  const baseHeaders = {
+    Accept: "application/json",
+    Cookie: Object.entries(session.cookies)
+      .map(([k, v]) => `${k}=${v}`)
+      .join("; "),
+    "User-Agent": "Mozilla/5.0 Soundtec-Sync/1.0",
+  };
+
+  const catsRes = await fetch("https://my.sonance.com/api/v1/categories/?maxDepth=1", {
+    headers: baseHeaders,
+  });
+  if (!catsRes.ok) return { perBrand: {} };
+  const catsData = (await catsRes.json()) as {
+    categories?: Array<{ id: string; name?: string; shortDescription?: string; urlSegment?: string }>;
+  };
+  const cats = (catsData.categories ?? []).filter((c) =>
+    (c.urlSegment ?? "").toLowerCase().startsWith("pn-")
+  );
+  // Paraguas (pn-sonance) primero para que sub-marcas ganen via last-write
+  cats.sort((a, b) => {
+    const aIs = (a.urlSegment ?? "").toLowerCase() === "pn-sonance" ? 0 : 1;
+    const bIs = (b.urlSegment ?? "").toLowerCase() === "pn-sonance" ? 0 : 1;
+    return aIs - bIs;
+  });
+
+  const perBrand: Record<string, { found: number; updated: number }> = {};
+  for (const cat of cats) {
+    const brandName = String(
+      cat.shortDescription ?? cat.name ?? (cat.urlSegment ?? "").replace(/^pn-/i, "").toUpperCase()
+    ).trim();
+    if (!brandName) continue;
+
+    // Ensure brand exists con nombre lindo
+    let brand = await prisma.brand.findFirst({
+      where: { name: { equals: brandName, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (!brand) {
+      brand = await prisma.brand.create({
+        data: { name: brandName, slug: slugify(brandName) },
+        select: { id: true },
+      });
+    }
+    const brandId = brand.id;
+
+    const allSkus: string[] = [];
+    let page = 1;
+    const PAGE_SIZE = 200;
+    while (true) {
+      const r = await fetch(
+        `https://my.sonance.com/api/v2/products?categoryId=${cat.id}&pageSize=${PAGE_SIZE}&page=${page}`,
+        { headers: baseHeaders }
+      );
+      if (!r.ok) break;
+      const data = (await r.json()) as {
+        products?: Array<{ productNumber?: string }>;
+        pagination?: { totalItemCount?: number };
+      };
+      const numbers = (data.products ?? [])
+        .map((p) => p.productNumber)
+        .filter((s): s is string => typeof s === "string" && s.length > 0);
+      allSkus.push(...numbers);
+      const total = data.pagination?.totalItemCount ?? numbers.length;
+      if (page * PAGE_SIZE >= total || numbers.length === 0) break;
+      page++;
+    }
+    perBrand[brandName] = { found: allSkus.length, updated: 0 };
+
+    const BATCH = 500;
+    for (let s = 0; s < allSkus.length; s += BATCH) {
+      const slice = allSkus.slice(s, s + BATCH);
+      const r = await prisma.product.updateMany({
+        where: { supplierSku: { in: slice }, NOT: { brandId } },
+        data: { brandId },
+      });
+      perBrand[brandName].updated += r.count;
+    }
+  }
+  return { perBrand };
+}
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -49,6 +143,8 @@ interface ApplyMappingResponse {
   withAccessoryRels: number; // productos a los que se les linkeó al menos 1 accesorio
   withCrossSellRels: number; // productos con al menos 1 cross-sell linkeado
   withAlsoPurchasedRels: number; // productos con al menos 1 also-purchased linkeado
+  /** Reasignación final de marcas vs API en vivo. Solo en done=true. */
+  brandReassignment?: Record<string, { found: number; updated: number }> | null;
   totalProducts: number;
   nextOffset: number | null;
   done: boolean;
@@ -701,7 +797,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    let brandReassignment: Record<string, { found: number; updated: number }> | null = null;
     if (done) {
+      // Post-procesamiento: ir al API en vivo de mySonance y re-asignar marcas
+      // según la categoría top-level pn-*. Esto fixea casos donde el índice
+      // persistido tenía SONANCE como marca para productos que en realidad
+      // son BLAZE BY SONANCE / TRUFIG / APPAREL / etc.
+      try {
+        const r = await reassignBrandsFromSonanceApi();
+        brandReassignment = r.perBrand;
+      } catch (e) {
+        console.error("apply-mapping: brand reassignment failed", e);
+      }
       revalidatePath("/admin/products");
       revalidatePath("/portal/products");
     }
@@ -718,6 +825,7 @@ export async function POST(req: NextRequest) {
       withAccessoryRels,
       withCrossSellRels,
       withAlsoPurchasedRels,
+      brandReassignment,
       totalProducts: idx.totalProducts,
       nextOffset: done ? null : nextOffset,
       done,
