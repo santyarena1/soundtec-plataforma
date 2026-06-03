@@ -5,6 +5,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Bookmark, Heart, LayoutDashboard, Package, Send } from "lucide-react";
 import { getSetting } from "@/lib/settings";
 import { DraftMiniCart } from "@/components/portal/draft-mini-cart";
+import { PortalToaster } from "@/components/portal/portal-toaster";
 import { getActiveDraftSummary } from "@/lib/draft-request";
 
 const navItems = [
@@ -103,6 +104,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
       </footer>
 
       <DraftMiniCart draft={draftSummary} />
+      <PortalToaster />
     </div>
   );
 }

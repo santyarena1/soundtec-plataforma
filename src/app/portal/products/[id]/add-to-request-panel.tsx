@@ -12,6 +12,7 @@ import { AccessoryWarningBlock } from "@/components/portal/accessory-warning";
 import type { CompatiblePrimary } from "@/lib/accessory-context";
 import { requestTypeLabel } from "@/lib/request-labels";
 import { formatUsd } from "@/lib/utils";
+import { showToast } from "@/components/portal/portal-toaster";
 
 interface AccessoryContext {
   showWarning: boolean;
@@ -85,6 +86,11 @@ export function AddToRequestPanel({
       }
       if (!result.ok) {
         setError(result.error || "No se pudo agregar.");
+        showToast({
+          type: "error",
+          title: "No se pudo agregar",
+          description: result.error || "Reintentá en unos segundos.",
+        });
         return;
       }
       setPendingAck(false);
@@ -95,6 +101,14 @@ export function AddToRequestPanel({
           unitsTotal: result.detail.unitsTotal,
         });
       }
+      showToast({
+        type: "success",
+        title: `Agregaste ${result.detail?.addedQty ?? quantity} u. de «${productName || "este producto"}»`,
+        description: "Quedó cargado en tu solicitud en armado.",
+        requestId: draftRequestId,
+        itemsTotal: result.detail?.itemsTotal,
+        unitsTotal: result.detail?.unitsTotal,
+      });
       router.refresh();
     });
   }

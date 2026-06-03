@@ -11,6 +11,7 @@ import { formatUsd } from "@/lib/utils";
 import { addToDraftRequest } from "@/server/actions/requests";
 import { AccessoryWarningBlock } from "@/components/portal/accessory-warning";
 import type { CompatiblePrimary } from "@/lib/accessory-context";
+import { showToast } from "@/components/portal/portal-toaster";
 
 interface Option {
   id: string;
@@ -120,9 +121,22 @@ export function ProductConfigurator({
       }
       if (!r?.ok) {
         setError(r?.error || "No se pudo agregar.");
+        showToast({
+          type: "error",
+          title: "No se pudo agregar",
+          description: r?.error || "Reintentá en unos segundos.",
+        });
         return;
       }
       setDone(true);
+      showToast({
+        type: "success",
+        title: `Producto configurado agregado (${r.detail?.addedQty ?? 1} u.)`,
+        description: "Quedó cargado en tu solicitud en armado.",
+        requestId: r.requestId,
+        itemsTotal: r.detail?.itemsTotal,
+        unitsTotal: r.detail?.unitsTotal,
+      });
       router.refresh();
     });
   }
