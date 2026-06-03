@@ -4,9 +4,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { upsertProduct } from "@/server/actions/admin-catalog";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { Input, Label, Select } from "@/components/ui/input";
 import { NcmAutocomplete } from "@/components/admin/ncm-autocomplete";
 import { Loader2 } from "lucide-react";
+import { DescriptionsSection } from "./descriptions-section";
 
 interface Option { id: string; name: string }
 
@@ -454,23 +455,15 @@ export function ProductForm({ product, brands, distributors, categories, familie
         </div>
       </div>
 
-      {/* ── Descripción ── */}
+      {/* ── Descripciones (con generación IA inline) ── */}
       <div>
-        <SectionTitle>Descripción</SectionTitle>
-        <div className="grid gap-4">
-          <div>
-            <Label htmlFor="shortDescription">DESCRIPCIÓN CORTA</Label>
-            <Textarea id="shortDescription" name="shortDescription" rows={2} defaultValue={product?.shortDescription || ""} />
-          </div>
-          <div>
-            <Label htmlFor="longDescription">DESCRIPCIÓN LARGA</Label>
-            <Textarea id="longDescription" name="longDescription" rows={6} defaultValue={product?.longDescription || ""} />
-          </div>
-          <div>
-            <Label htmlFor="imageUrl">URL de imagen principal (se agrega como nueva)</Label>
-            <Input id="imageUrl" name="imageUrl" type="url" placeholder="https://…" />
-          </div>
-        </div>
+        <SectionTitle>Descripciones</SectionTitle>
+        <DescriptionsSection
+          productId={product?.id ?? null}
+          initialShort={product?.shortDescription ?? ""}
+          initialLong={product?.longDescription ?? ""}
+          isAi={false}
+        />
       </div>
 
       {/* ── Opciones ── */}

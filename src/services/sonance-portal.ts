@@ -147,13 +147,12 @@ interface CategoryNode {
   subCategories?: CategoryNode[];
 }
 
-const BRAND_SLUGS: Record<string, SonanceBrand> = {
-  "pn-sonance": "SONANCE",
-  "pn-iport": "IPORT",
-  "pn-blaze": "BLAZE by SONANCE",
-  "pn-james": "JAMES",
-  "pn-trufig": "TRUFIG",
-};
+/**
+ * Marca paraguas. Cuando un SKU aparece tanto en pn-sonance como en una sub-marca
+ * (pn-blaze, pn-trufig, pn-iport, pn-james), la sub-marca gana — pn-sonance es
+ * el catálogo general que contiene a casi todos.
+ */
+const UMBRELLA_BRAND_SLUG = "pn-sonance";
 
 interface BrandCategory {
   id: string;
@@ -161,6 +160,14 @@ interface BrandCategory {
   brand: SonanceBrand;
 }
 
+/**
+ * Descubre TODAS las top-level categorías que representan una marca en mySonance.
+ * Cualquier categoría con slug "pn-*" se considera una marca. La display name
+ * se toma del campo `name` de la categoría (ej. "BLAZE BY SONANCE", "APPAREL").
+ *
+ * Esto reemplaza el mapeo hardcoded — si Sonance agrega una nueva marca con slug
+ * pn-X, automáticamente entra al sync sin tener que tocar el código.
+ */
 async function fetchBrandCategories(session: Session): Promise<BrandCategory[]> {
   const data = await apiGet<{ categories?: CategoryNode[] }>(
     session,
@@ -170,8 +177,10 @@ async function fetchBrandCategories(session: Session): Promise<BrandCategory[]> 
   const out: BrandCategory[] = [];
   for (const c of cats) {
     const slug = (c.urlSegment ?? "").toLowerCase();
-    const brand = BRAND_SLUGS[slug];
-    if (brand) out.push({ id: c.id, slug, brand });
+    if (!slug.startsWith("pn-")) continue; // categorías que no son marcas
+    const displayName = String(c.name ?? slug.replace(/^pn-/, "").toUpperCase()).trim();
+    if (!displayName) continue;
+    out.push({ id: c.id, slug, brand: displayName });
   }
   return out;
 }
@@ -486,22 +495,11 @@ export async function buildSkuToIdMap(session: Session): Promise<Map<string, str
   return map;
 }
 
-/**
- * Prioridad de marca para resolver overlaps cuando un mismo SKU aparece en
- * múltiples categorías. Más alto = más específico. La submarca específica
- * gana sobre la marca paraguas.
- *
- * Sin esto, productos BLAZE listados también en pn-sonance terminaban
- * asignados como SONANCE (porque pn-sonance se itera después de pn-blaze
- * en orden alfabético y last-wins de Map.set sobrescribía).
- */
-const BRAND_PRIORITY: Record<SonanceBrand, number> = {
-  SONANCE: 1, // marca paraguas — menor prioridad
-  "BLAZE by SONANCE": 10,
-  IPORT: 10,
-  JAMES: 10,
-  TRUFIG: 10,
-};
+function brandPriority(slug: string): number {
+  // pn-sonance es el catálogo paraguas — debe iterarse PRIMERO para que las
+  // sub-marcas (que aparecen también ahí) ganen via last-wins en el dedup.
+  return slug === UMBRELLA_BRAND_SLUG ? 1 : 10;
+}
 
 export async function fetchFromPortal(): Promise<PortalSyncResult> {
   const session = await login();
@@ -512,9 +510,9 @@ export async function fetchFromPortal(): Promise<PortalSyncResult> {
     );
   }
 
-  // Orden de iteración: SONANCE primero (menor prioridad), submarcas después.
+  // Orden de iteración: paraguas primero (prio 1), sub-marcas después (prio 10).
   // Así la última asignación en bySku.set() es la más específica.
-  brandCats.sort((a, b) => BRAND_PRIORITY[a.brand] - BRAND_PRIORITY[b.brand]);
+  brandCats.sort((a, b) => brandPriority(a.slug) - brandPriority(b.slug));
 
   const products: SonanceProduct[] = [];
   const rawCategoryCounts: Record<string, number> = {};

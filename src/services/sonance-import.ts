@@ -1,7 +1,12 @@
 import https from "node:https";
 import * as XLSX from "xlsx";
 
-export type SonanceBrand = "SONANCE" | "IPORT" | "BLAZE by SONANCE" | "JAMES" | "TRUFIG";
+/**
+ * Nombre de marca de Sonance. Originalmente era un union literal, pero pasó a
+ * `string` para soportar descubrimiento dinámico de marcas desde mySonance
+ * (cualquier categoría top-level con slug pn-* se considera una marca nueva).
+ */
+export type SonanceBrand = string;
 
 export interface SonanceProduct {
   name: string;

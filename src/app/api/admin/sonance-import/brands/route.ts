@@ -85,10 +85,11 @@ export async function GET() {
     );
 
     const totalAcrossAll = enriched.reduce((sum, b) => sum + b.productCount, 0);
-    const known = ["pn-sonance", "pn-iport", "pn-blaze", "pn-james", "pn-trufig"];
-    const knownCount = enriched
-      .filter((b) => known.includes(b.urlSegment.toLowerCase()))
-      .reduce((sum, b) => sum + b.productCount, 0);
+    // Ahora todas las categorías top-level con slug pn-* se sincronizan
+    // dinámicamente — no hay marcas hardcoded. La única que se excluye es la
+    // que no tenga slug pn-* (ej. categorías de blog o landing).
+    const synchronizable = enriched.filter((b) => b.urlSegment.toLowerCase().startsWith("pn-"));
+    const knownCount = synchronizable.reduce((sum, b) => sum + b.productCount, 0);
 
     return NextResponse.json({
       ok: true,
@@ -96,7 +97,7 @@ export async function GET() {
       totalAcrossAll,
       knownToSyncCount: knownCount,
       unmappedBrands: enriched
-        .filter((b) => b.urlSegment && !known.includes(b.urlSegment.toLowerCase()))
+        .filter((b) => b.urlSegment && !b.urlSegment.toLowerCase().startsWith("pn-"))
         .map((b) => ({ name: b.name, urlSegment: b.urlSegment, count: b.productCount })),
     });
   } catch (err) {

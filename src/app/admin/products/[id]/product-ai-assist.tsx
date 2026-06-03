@@ -6,11 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
-import { Sparkles, Loader2, Wand2, FileText, Tag, Settings2, CheckCircle2, Plus } from "lucide-react";
+import { Sparkles, Loader2, CheckCircle2, Plus } from "lucide-react";
 import {
-  generateProductDescription,
-  generateProductShortDescription,
-  saveProductDescriptions,
   suggestClassificationAction,
   applyClassificationSuggestion,
   loadAiPrompts,
@@ -35,31 +32,18 @@ interface Props {
   productId: string;
   productName: string;
   brandName: string | null;
-  currentShort: string | null;
-  currentLong: string | null;
-  isAi: boolean;
 }
 
-export function ProductAiAssist({
-  productId,
-  productName,
-  brandName,
-  currentShort,
-  currentLong,
-  isAi,
-}: Props) {
+/**
+ * Asistente IA con dos áreas:
+ *  - Clasificación: sugerencias de marca/categoría/familia (con creación de nuevas).
+ *  - Editar prompts: prompts de sistema para descripciones (se aplican a TODOS los productos).
+ *
+ * Las descripciones cortas y largas se editan DENTRO del ProductForm (sección
+ * "Descripciones"), no acá — esto evita duplicación de campos.
+ */
+export function ProductAiAssist({ productId, productName, brandName }: Props) {
   const router = useRouter();
-
-  // ── Descripciones ──
-  const [genShort, setGenShort] = useState<string | null>(null);
-  const [genLong, setGenLong] = useState<string | null>(null);
-  const [shortEdited, setShortEdited] = useState<string>(currentShort ?? "");
-  const [longEdited, setLongEdited] = useState<string>(currentLong ?? "");
-  const [descError, setDescError] = useState<string | null>(null);
-  const [descSaved, setDescSaved] = useState<string | null>(null);
-  const [pendingShort, startShort] = useTransition();
-  const [pendingLong, startLong] = useTransition();
-  const [pendingSave, startSave] = useTransition();
 
   // ── Clasificación ──
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
@@ -92,56 +76,6 @@ export function ProductAiAssist({
       }
     })();
   }, []);
-
-  function generateShort() {
-    setDescError(null);
-    setDescSaved(null);
-    startShort(async () => {
-      const r = await generateProductShortDescription(productId);
-      if (!r.ok) {
-        setDescError(r.error || "No se pudo generar la descripción corta.");
-        return;
-      }
-      setGenShort(r.description || "");
-      setShortEdited(r.description || "");
-      setDescSaved("Descripción corta generada y guardada. Podés editarla acá abajo.");
-      router.refresh();
-    });
-  }
-
-  function generateLong() {
-    setDescError(null);
-    setDescSaved(null);
-    startLong(async () => {
-      const r = await generateProductDescription(productId);
-      if (!r.ok) {
-        setDescError(r.error || "No se pudo generar la descripción larga.");
-        return;
-      }
-      setGenLong(r.description || "");
-      setLongEdited(r.description || "");
-      setDescSaved("Descripción larga generada y guardada. Podés editarla acá abajo.");
-      router.refresh();
-    });
-  }
-
-  function saveEdits() {
-    setDescError(null);
-    setDescSaved(null);
-    startSave(async () => {
-      const r = await saveProductDescriptions({
-        productId,
-        short: shortEdited,
-        long: longEdited,
-      });
-      if (!r.ok) {
-        setDescError(r.error || "No se pudieron guardar los cambios.");
-        return;
-      }
-      setDescSaved("Cambios guardados.");
-      router.refresh();
-    });
-  }
 
   function fetchSuggestion() {
     setClassError(null);
@@ -224,78 +158,6 @@ export function ProductAiAssist({
   }
 
   // ── Render ──
-
-  const descriptionsTab = (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" onClick={generateShort} disabled={pendingShort || pendingLong}>
-          {pendingShort ? (
-            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Wand2 className="mr-1.5 h-3.5 w-3.5" />
-          )}
-          {currentShort ? "Regenerar corta" : "Generar corta"}
-        </Button>
-        <Button size="sm" onClick={generateLong} disabled={pendingShort || pendingLong}>
-          {pendingLong ? (
-            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Wand2 className="mr-1.5 h-3.5 w-3.5" />
-          )}
-          {currentLong ? "Regenerar larga" : "Generar larga"}
-        </Button>
-        {(isAi || genLong != null) && <Badge tone="accent">Larga generada con IA</Badge>}
-      </div>
-      <p className="text-[11px] text-muted-foreground">
-        Las descripciones se generan con OpenAI y se guardan automáticamente. Podés
-        editarlas abajo y guardarlas manualmente — eso pisa el contenido generado.
-      </p>
-
-      {descError ? <p className="text-xs text-destructive">{descError}</p> : null}
-      {descSaved ? (
-        <p className="text-xs text-success flex items-center gap-1">
-          <CheckCircle2 className="h-3 w-3" />
-          {descSaved}
-        </p>
-      ) : null}
-
-      <div className="space-y-2">
-        <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Descripción corta {genShort != null ? <Badge tone="accent">Recién generada</Badge> : null}
-        </label>
-        <textarea
-          rows={2}
-          value={shortEdited}
-          onChange={(e) => setShortEdited(e.target.value)}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-          placeholder="Sin descripción corta. Generala arriba o escribila acá."
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Descripción larga {genLong != null ? <Badge tone="accent">Recién generada</Badge> : null}
-        </label>
-        <textarea
-          rows={6}
-          value={longEdited}
-          onChange={(e) => setLongEdited(e.target.value)}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed"
-          placeholder="Sin descripción larga. Generala arriba o escribila acá."
-        />
-      </div>
-
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] text-muted-foreground">
-          Lo que escribís en estos campos pisa cualquier cosa anterior al hacer clic en Guardar.
-        </p>
-        <Button size="sm" onClick={saveEdits} disabled={pendingSave}>
-          {pendingSave ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-          Guardar cambios
-        </Button>
-      </div>
-    </div>
-  );
 
   const classificationTab = (
     <div className="space-y-3">
@@ -457,16 +319,12 @@ export function ProductAiAssist({
             {brandName ? <Badge tone="muted">{brandName}</Badge> : null}
           </div>
           <p className="text-xs text-muted-foreground">
-            Generá descripciones y clasificá. Todo se guarda automáticamente.
+            Sugiere clasificación y deja editar los prompts. Las descripciones se generan
+            arriba en la sección Descripciones del formulario.
           </p>
         </div>
         <Tabs
           tabs={[
-            {
-              id: "descriptions",
-              label: "Descripciones",
-              content: descriptionsTab,
-            },
             {
               id: "classification",
               label: "Clasificación",
@@ -478,7 +336,7 @@ export function ProductAiAssist({
               content: promptsTab,
             },
           ]}
-          defaultTab="descriptions"
+          defaultTab="classification"
         />
       </CardContent>
     </Card>
@@ -536,6 +394,3 @@ function SuggestionCard({
     </div>
   );
 }
-
-// Re-exports para que el page.tsx no tenga que importar todos los iconos por separado.
-export const ProductAiAssistIcons = { FileText, Tag, Settings2 };

@@ -817,16 +817,15 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {brandsCheck.brands.map((b) => {
-                      const isKnown = ["pn-sonance", "pn-iport", "pn-blaze", "pn-james", "pn-trufig"].includes(
-                        (b.urlSegment ?? "").toLowerCase()
-                      );
+                      // Toda categoría con slug "pn-*" se sincroniza dinámicamente.
+                      const isSynchronizable = (b.urlSegment ?? "").toLowerCase().startsWith("pn-");
                       return (
                         <tr key={b.urlSegment || b.name}>
                           <td className="px-3 py-1">{b.name}</td>
                           <td className="px-3 py-1 font-mono text-muted-foreground">{b.urlSegment || "(sin slug)"}</td>
                           <td className="px-3 py-1 text-right tabular-nums">{b.productCount}</td>
                           <td className="px-3 py-1 text-center">
-                            {isKnown ? (
+                            {isSynchronizable ? (
                               <span className="text-success">✓</span>
                             ) : (
                               <span className="text-warning">✗</span>
@@ -840,8 +839,9 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
               </div>
               {brandsCheck.unmappedBrands.length > 0 && (
                 <p className="text-[11px] text-warning">
-                  ⚠️ Las marcas con ✗ no se sincronizan. Si querés incluirlas, agregá su slug a
-                  <code> BRAND_SLUGS</code> en <code>src/services/sonance-portal.ts</code>.
+                  ⚠️ Las categorías con ✗ no son marcas (su slug no empieza con <code>pn-</code>),
+                  por eso quedan fuera. Cualquier marca nueva con slug <code>pn-*</code> se
+                  sincroniza automáticamente, sin tocar código.
                 </p>
               )}
             </div>

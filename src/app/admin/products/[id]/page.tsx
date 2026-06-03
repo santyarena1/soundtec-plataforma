@@ -137,9 +137,6 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         productId={product.id}
         productName={product.normalizedName}
         brandName={product.brand?.name ?? null}
-        currentShort={product.shortDescription}
-        currentLong={product.longDescription}
-        isAi={product.aiGeneratedDescription}
       />
 
       <Card>
