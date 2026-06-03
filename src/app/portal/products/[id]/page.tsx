@@ -11,6 +11,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { FavoriteButton } from "../favorite-button";
 import { StockBadge } from "../catalog-grid";
 import { AddToRequestPanel } from "./add-to-request-panel";
+import { ProductBundleProvider, BundleStagingPanel } from "./product-bundle";
 import { getOrCreateActiveDraft } from "@/lib/draft-request";
 import { AiContentNotice } from "./ai-content-notice";
 import { ProductConfigurator } from "./configurator";
@@ -209,6 +210,15 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         />
       ) : null}
 
+      <ProductBundleProvider
+        mainProduct={{
+          id: product.id,
+          name: product.normalizedName,
+          unitPriceUsd: pricing.finalPriceUsd,
+          imageUrl: product.images[0]?.url ?? null,
+        }}
+        draftRequestId={activeDraft.id}
+      >
       <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-start">
         <div className="space-y-3 lg:sticky lg:top-6">
           <div className="aspect-[4/3] overflow-hidden rounded-xl border border-border bg-white shadow-sm">
@@ -301,14 +311,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </CardContent>
           </Card>
 
-          <AddToRequestPanel
-            productId={product.id}
-            draftRequestId={activeDraft.id}
-            draftType={activeDraft.type}
+          <BundleStagingPanel
             draftItemCount={activeDraft.itemCount}
-            productName={product.normalizedName}
-            unitPriceUsd={pricing.finalPriceUsd}
-            accessoryContext={accessoryContext}
+            draftRequestId={activeDraft.id}
           />
         </div>
       </div>
@@ -356,6 +361,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           variant="ALSO_PURCHASED"
         />
       ) : null}
+      </ProductBundleProvider>
 
       <ProductRichInfo
         /* eslint-disable @typescript-eslint/no-explicit-any */

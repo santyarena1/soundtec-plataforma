@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatUsd } from "@/lib/utils";
 import { StockBadge } from "../catalog-grid";
 import { AddToDraftButton } from "../add-to-draft-button";
+import { BundleAddAccessoryButton, useProductBundle } from "./product-bundle";
 import { Package } from "lucide-react";
 
 export interface CompatibleAccessoryItem {
@@ -100,7 +101,7 @@ export function CompatibleAccessoriesSection({ parentProductName, items, variant
                   {item.kind === "ACCESORIO" ? <Badge tone="muted">Accesorio</Badge> : null}
                 </div>
                 <p className="text-base font-semibold">{formatUsd(item.finalPriceUsd)}</p>
-                <AddToDraftButton productId={item.productId} productName={item.name} compact />
+                <AccessoryAddButton item={item} variant={variant} />
               </div>
             </article>
           ))}
@@ -108,4 +109,33 @@ export function CompatibleAccessoriesSection({ parentProductName, items, variant
       </CardContent>
     </Card>
   );
+}
+
+/**
+ * Botón "agregar accesorio": si la sección está dentro de un ProductBundleProvider
+ * (variant=ACCESSORY en la ficha del producto principal), usa el flujo de
+ * staging local (BundleAddAccessoryButton). En cualquier otro caso —
+ * cross-sells, also-purchased, o cuando el componente se reusa fuera de un
+ * provider— cae al flujo directo de AddToDraftButton.
+ */
+function AccessoryAddButton({
+  item,
+  variant,
+}: {
+  item: CompatibleAccessoryItem;
+  variant?: "ACCESSORY" | "CROSS_SELL" | "ALSO_PURCHASED";
+}) {
+  const bundle = useProductBundle();
+  if (bundle && variant === "ACCESSORY") {
+    return (
+      <BundleAddAccessoryButton
+        productId={item.productId}
+        productName={item.name}
+        unitPriceUsd={item.finalPriceUsd}
+        imageUrl={item.imageUrl}
+        compact
+      />
+    );
+  }
+  return <AddToDraftButton productId={item.productId} productName={item.name} compact />;
 }

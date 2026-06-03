@@ -426,6 +426,113 @@ export async function addToDraftRequest(formData: FormData): Promise<{
   };
 }
 
+/**
+ * Agrega un conjunto de productos al borrador activo en una sola llamada.
+ *
+ * Pensado para el "armado" en la ficha del producto principal: el usuario
+ * elige cantidad del producto principal + qué accesorios sumar, y al final
+ * un solo submit los lleva todos al draft.
+ *
+ * Cada item se upserta (suma cantidades si ya estaba). Productos sin
+ * visibilidad para el usuario se omiten silenciosamente.
+ */
+export async function addItemsToDraftBundle(input: {
+  items: { productId: string; quantity: number; userNotes?: string | null }[];
+  primaryProductId?: string | null;
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  requestId?: string;
+  added: number;
+  itemsTotal: number;
+  unitsTotal: number;
+}> {
+  const user = await requireUser();
+  if (!input.items || input.items.length === 0) {
+    return { ok: false, error: "Sin items para agregar.", added: 0, itemsTotal: 0, unitsTotal: 0 };
+  }
+  // Sanitize: dropear duplicados (suma local) y cantidades inválidas
+  const byProduct = new Map<string, { quantity: number; userNotes: string | null }>();
+  for (const it of input.items) {
+    if (!it.productId || !Number.isFinite(it.quantity) || it.quantity <= 0) continue;
+    const prev = byProduct.get(it.productId);
+    if (prev) {
+      prev.quantity += it.quantity;
+      if (it.userNotes) {
+        prev.userNotes = [prev.userNotes, it.userNotes].filter(Boolean).join(" | ");
+      }
+    } else {
+      byProduct.set(it.productId, {
+        quantity: it.quantity,
+        userNotes: it.userNotes ?? null,
+      });
+    }
+  }
+  if (byProduct.size === 0) {
+    return { ok: false, error: "Sin items válidos.", added: 0, itemsTotal: 0, unitsTotal: 0 };
+  }
+
+  const draft = await getOrCreateActiveDraft(user.id, { migrateLegacyCart: true });
+  let added = 0;
+
+  for (const [productId, info] of byProduct) {
+    const visible = await assertVisible(productId, user.id, user.role);
+    if (!visible) continue;
+
+    const noteParts: string[] = [];
+    if (info.userNotes) noteParts.push(info.userNotes);
+    if (input.primaryProductId && productId !== input.primaryProductId) {
+      noteParts.push(`Accesorio asociado a producto principal: ${input.primaryProductId}`);
+    }
+
+    const existing = await prisma.customerRequestItem.findFirst({
+      where: { requestId: draft.id, productId, isAdminSuggestion: false },
+    });
+
+    if (existing) {
+      await prisma.customerRequestItem.update({
+        where: { id: existing.id },
+        data: {
+          quantity: existing.quantity + info.quantity,
+          userNotes: noteParts.length
+            ? [existing.userNotes, ...noteParts].filter(Boolean).join(" | ")
+            : existing.userNotes,
+        },
+      });
+    } else {
+      await prisma.customerRequestItem.create({
+        data: {
+          requestId: draft.id,
+          productId,
+          quantity: info.quantity,
+          userNotes: noteParts.length ? noteParts.join(" | ") : null,
+        },
+      });
+    }
+    added++;
+  }
+
+  await prisma.customerRequest.update({
+    where: { id: draft.id },
+    data: { updatedAt: new Date() },
+  });
+
+  const items = await prisma.customerRequestItem.findMany({
+    where: { requestId: draft.id, isAdminSuggestion: false },
+    select: { quantity: true },
+  });
+
+  revalidateDraftPaths(draft.id);
+
+  return {
+    ok: true,
+    requestId: draft.id,
+    added,
+    itemsTotal: items.length,
+    unitsTotal: items.reduce((a, i) => a + i.quantity, 0),
+  };
+}
+
 export async function bulkAddToDraftSimple(
   productIds: string[]
 ): Promise<{ ok: boolean; added: number; error?: string }> {
