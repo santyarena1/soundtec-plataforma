@@ -1,8 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+
+/** Auth alternativo: admite el setup token como header X-Setup-Token, además
+ * del requireAdmin normal. Permite que un script externo (sin cookie) corra
+ * el backfill una sola vez sin tener que login con NextAuth. */
+function isAuthorizedBySetupToken(req: NextRequest): boolean {
+  const token = req.headers.get("x-setup-token");
+  const expected = process.env.SETUP_TOKEN;
+  return !!expected && token === expected;
+}
 
 /**
  * Backfill de kind=ACCESORIO sobre productos ya linkeados.
@@ -18,9 +27,11 @@ export const dynamic = "force-dynamic";
  * a venderse con un principal compatible". El kind solo dice "es accesorio
  * por naturaleza, aunque podría venderse solo".
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    await requireAdmin();
+    if (!isAuthorizedBySetupToken(req)) {
+      await requireAdmin();
+    }
 
     const relations = await prisma.accessoryRelation.findMany({
       where: { kind: "ACCESSORY" },
