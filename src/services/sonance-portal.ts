@@ -169,7 +169,7 @@ interface BrandCategory {
  * pn-X, automáticamente entra al sync sin tener que tocar el código.
  */
 async function fetchBrandCategories(session: Session): Promise<BrandCategory[]> {
-  const data = await apiGet<{ categories?: CategoryNode[] }>(
+  const data = await apiGet<{ categories?: Array<CategoryNode & { shortDescription?: string }> }>(
     session,
     "/api/v1/categories/?maxDepth=1"
   );
@@ -177,8 +177,12 @@ async function fetchBrandCategories(session: Session): Promise<BrandCategory[]> 
   const out: BrandCategory[] = [];
   for (const c of cats) {
     const slug = (c.urlSegment ?? "").toLowerCase();
-    if (!slug.startsWith("pn-")) continue; // categorías que no son marcas
-    const displayName = String(c.name ?? slug.replace(/^pn-/, "").toUpperCase()).trim();
+    if (!slug.startsWith("pn-")) continue;
+    // El display name "lindo" viene en shortDescription (ej. "BLAZE BY SONANCE").
+    // c.name suele venir con underscore (ej. "pn_blaze") — fallback final.
+    const displayName = String(
+      c.shortDescription ?? c.name ?? slug.replace(/^pn-/, "").toUpperCase()
+    ).trim();
     if (!displayName) continue;
     out.push({ id: c.id, slug, brand: displayName });
   }

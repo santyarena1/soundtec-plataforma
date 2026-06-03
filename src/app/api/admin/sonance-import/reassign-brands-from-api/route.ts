@@ -29,6 +29,7 @@ async function ensureBrandId(name: string): Promise<string> {
 interface PortalCategory {
   id: string;
   name?: string;
+  shortDescription?: string;
   urlSegment?: string;
 }
 
@@ -93,9 +94,18 @@ export async function POST(req: NextRequest) {
     });
 
     for (const cat of cats) {
-      const brandName = String(cat.name ?? cat.urlSegment ?? "").trim();
+      // Display name "lindo": shortDescription > name > slug-fallback
+      const brandName = String(
+        cat.shortDescription ?? cat.name ?? (cat.urlSegment ?? "").replace(/^pn-/i, "").toUpperCase()
+      ).trim();
       if (!brandName) continue;
       const brandId = await ensureBrandId(brandName);
+      // Si la brand ya existía con el slug feo (ej. "pn_blaze"), la renombramos
+      // a la versión linda y le actualizamos el slug.
+      await prisma.brand.update({
+        where: { id: brandId },
+        data: { name: brandName, slug: slugify(brandName) },
+      });
       perBrand[brandName] = { found: 0, updated: 0, brandId };
 
       // Paginar todos los productos de esta categoría
