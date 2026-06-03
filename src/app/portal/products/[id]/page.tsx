@@ -16,8 +16,9 @@ import { AiContentNotice } from "./ai-content-notice";
 import { ProductConfigurator } from "./configurator";
 import { CompatibleAccessoriesSection } from "./compatible-accessories";
 import { AccessoryInfoBanner } from "@/components/portal/accessory-warning";
+import { ProductRichInfo, SaleBanner } from "./product-rich-info";
 import { formatUsd, formatPercent } from "@/lib/utils";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, FileText } from "lucide-react";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -255,17 +256,30 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           </div>
 
           <Card className="border-primary/10 bg-gradient-to-br from-card to-primary/5">
-            <CardContent className="p-5">
+            <CardContent className="p-5 space-y-3">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {(product as any).salePriceUsd != null && Number((product as any).salePriceUsd) > 0 ? (
+                <SaleBanner
+                  /* eslint-disable @typescript-eslint/no-explicit-any */
+                  saleUsd={Number((product as any).salePriceUsd)}
+                  baseUsd={pricing.finalPriceUsd}
+                  startsAt={(product as any).salePriceStartsAt ?? null}
+                  endsAt={(product as any).salePriceEndsAt ?? null}
+                  label={(product as any).salePriceLabel ?? null}
+                  /* eslint-enable @typescript-eslint/no-explicit-any */
+                />
+              ) : null}
+
               {pricing.discountPercent > 0 ? (
                 <p className="text-sm text-muted-foreground line-through">
                   {formatUsd(pricing.priceBeforeDiscountUsd)}
                 </p>
               ) : null}
               <p className="text-3xl font-semibold tracking-tight">{formatUsd(pricing.finalPriceUsd)}</p>
-              <p className="muted-text mt-1 text-sm">Precio final en USD · tu lista de precios</p>
+              <p className="muted-text text-sm">Precio final en USD · tu lista de precios</p>
 
               {isAdmin ? (
-                <div className="mt-4 rounded-md border border-dashed border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
+                <div className="rounded-md border border-dashed border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
                   <p className="font-semibold text-foreground">Vista administrativa</p>
                   <ul className="mt-2 space-y-1">
                     <li>Costo base: {formatUsd(pricing.baseCostUsd)}</li>
@@ -276,7 +290,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 </div>
               ) : null}
 
-              <div className="mt-5 flex flex-wrap items-center gap-2">
+              <div className="pt-2 flex flex-wrap items-center gap-2">
                 <FavoriteButton productId={product.id} isFavorite={!!favItem} label />
                 {product.isCustomizable && product.options.length > 0 ? (
                   <a href="#configurador" className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-secondary">
@@ -341,9 +355,28 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         />
       ) : null}
 
+      <ProductRichInfo
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        specifications={(product as any).specifications ?? null}
+        documents={(product as any).documents ?? null}
+        badges={(product as any).badges ?? null}
+        videoUrl={(product as any).videoUrl ?? null}
+        htmlContent={(product as any).htmlContent ?? null}
+        widthCm={(product as any).widthCm != null ? Number((product as any).widthCm) : null}
+        heightCm={(product as any).heightCm != null ? Number((product as any).heightCm) : null}
+        depthCm={(product as any).depthCm != null ? Number((product as any).depthCm) : null}
+        weight={(product as any).weight != null ? Number((product as any).weight) : null}
+        modelNumber={(product as any).modelNumber ?? null}
+        manufacturerItem={(product as any).manufacturerItem ?? null}
+        productLine={(product as any).productLine ?? null}
+        /* eslint-enable @typescript-eslint/no-explicit-any */
+        isCrestronHomeCompatible={product.isCrestronHomeCompatible}
+      />
+
       <Card>
         <CardContent className="space-y-3 p-6">
           <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-accent" />
             <CardTitle>Descripción técnica</CardTitle>
             {product.aiGeneratedDescription ? (
               <Badge tone="accent">

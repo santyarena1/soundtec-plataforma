@@ -14,7 +14,8 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { formatDate, formatUsd } from "@/lib/utils";
 import { postRequestMessage } from "@/server/actions/requests";
 import { DraftRequestEditor } from "./draft-request-editor";
-import { ArrowLeft, MessageSquare, Sparkles, Package } from "lucide-react";
+import { RequestStatusTimeline } from "./request-status-timeline";
+import { ArrowLeft, MessageSquare, Sparkles, Package, FileText, ClipboardList } from "lucide-react";
 
 const statusMap: Record<string, { tone: "muted" | "primary" | "accent" | "success" | "warning" | "destructive"; label: string }> = {
   DRAFT: { tone: "muted", label: "Borrador" },
@@ -79,12 +80,22 @@ function RequestItemsTable({
                       </Badge>
                     ) : null}
                   </div>
-                  {i.userNotes ? <p className="mt-1 text-xs text-muted-foreground">Nota tuya: {i.userNotes}</p> : null}
+                  {i.userNotes ? (
+                    <div className="mt-2 rounded-md border border-border bg-secondary/50 px-2 py-1.5 text-xs">
+                      <span className="font-medium text-muted-foreground">Tu nota:</span>{" "}
+                      <span>{i.userNotes}</span>
+                    </div>
+                  ) : null}
                   {i.adminNotes ? (
-                    <p className="mt-1 text-xs text-primary">Comentario del equipo: {i.adminNotes}</p>
+                    <div className="mt-2 rounded-md border-l-2 border-primary bg-primary/5 px-2 py-1.5 text-xs">
+                      <span className="font-medium text-primary inline-flex items-center gap-1">
+                        <MessageSquare className="h-3 w-3" /> Comentario del equipo Soundtec:
+                      </span>{" "}
+                      <span className="text-foreground">{i.adminNotes}</span>
+                    </div>
                   ) : null}
                   {i.adminAlternativeProductId ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-[11px] text-muted-foreground italic">
                       Propuesta como alternativa a otro ítem de tu solicitud.
                     </p>
                   ) : null}
@@ -167,6 +178,14 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
         actions={<Badge tone={status.tone}>{status.label}</Badge>}
       />
 
+      {/* Timeline visual del flujo, salvo para borrador */}
+      {!isDraft ? (
+        <RequestStatusTimeline
+          status={request.status as Parameters<typeof RequestStatusTimeline>[0]["status"]}
+          updatedAt={request.updatedAt}
+        />
+      ) : null}
+
       {isDraft ? (
         <DraftRequestEditor
           requestId={request.id}
@@ -182,33 +201,52 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
       ) : null}
 
       {!isDraft && hasStaffReply ? (
-        <Card className="border-primary/30 bg-primary/5">
+        <Card className="border-2 border-primary/40 bg-gradient-to-br from-primary/10 to-primary/5 shadow-sm">
           <CardContent className="space-y-4 p-6">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-primary" />
-              <CardTitle>Respuesta del equipo Soundtec</CardTitle>
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shrink-0">
+                <MessageSquare className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <CardTitle className="text-base">Respuesta del equipo Soundtec</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Última actualización: {formatDate(request.updatedAt)}
+                </p>
+              </div>
             </div>
             {request.adminResponse?.trim() ? (
-              <div className="rounded-md border border-border bg-card p-4">
-                <p className="text-xs font-medium text-muted-foreground">Mensaje principal</p>
-                <div className="mt-2 whitespace-pre-wrap text-sm text-foreground">{request.adminResponse}</div>
-                <p className="mt-2 text-xs text-muted-foreground">Actualizado: {formatDate(request.updatedAt)}</p>
+              <div className="rounded-md border border-primary/20 bg-card p-4 shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-primary mb-2">
+                  Mensaje principal
+                </p>
+                <div className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">
+                  {request.adminResponse}
+                </div>
               </div>
             ) : null}
             {staffMessages.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Historial de mensajes</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Historial de mensajes ({staffMessages.length})
+                </p>
                 {staffMessages.map((m) => (
-                  <div key={m.id} className="rounded-md border border-primary/15 bg-card p-3 text-sm">
-                    <p className="text-xs text-muted-foreground">
-                      {m.sender.name} · Soundtec · {formatDate(m.createdAt)}
+                  <div
+                    key={m.id}
+                    className="rounded-md border border-primary/15 bg-card p-3 text-sm shadow-sm"
+                  >
+                    <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-foreground">{m.sender.name}</span>
+                      <span>·</span>
+                      <span>Soundtec</span>
+                      <span>·</span>
+                      <span>{formatDate(m.createdAt)}</span>
                       {m.isAiGenerated ? (
-                        <Badge tone="accent" className="ml-2">
+                        <Badge tone="accent">
                           <Sparkles className="h-3 w-3" /> IA
                         </Badge>
                       ) : null}
                     </p>
-                    <p className="mt-1 whitespace-pre-wrap">{m.message}</p>
+                    <p className="mt-1.5 whitespace-pre-wrap">{m.message}</p>
                   </div>
                 ))}
               </div>
@@ -217,8 +255,20 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
         </Card>
       ) : !isDraft && request.status !== "SENT" ? (
         <Card className="border-dashed">
-          <CardContent className="p-4 text-sm text-muted-foreground">
-            Tu solicitud está en estado «{status.label}». El equipo aún no publicó una respuesta escrita.
+          <CardContent className="p-4 flex items-center gap-3 text-sm text-muted-foreground">
+            <ClipboardList className="h-4 w-4 shrink-0" />
+            <span>
+              Tu solicitud está en estado <strong>«{status.label}»</strong>. El equipo aún no publicó una respuesta escrita.
+            </span>
+          </CardContent>
+        </Card>
+      ) : !isDraft && request.status === "SENT" ? (
+        <Card className="border-dashed border-accent/40 bg-accent/5">
+          <CardContent className="p-4 flex items-center gap-3 text-sm">
+            <ClipboardList className="h-4 w-4 text-accent shrink-0" />
+            <span className="text-foreground">
+              Tu solicitud ya llegó al equipo Soundtec. Vamos a revisarla y responderte por acá mismo.
+            </span>
           </CardContent>
         </Card>
       ) : null}

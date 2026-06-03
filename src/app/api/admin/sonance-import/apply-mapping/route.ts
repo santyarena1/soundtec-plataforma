@@ -119,6 +119,35 @@ async function upsertBrandByName(name: string): Promise<string> {
 }
 
 /**
+ * Heurística de fallback para sub-marcas Sonance.
+ *
+ * Sonance tiene varias sub-marcas (BLAZE BY SONANCE, TRUFIG, APPAREL) que
+ * comparten el catálogo "pn-sonance" como paraguas. A veces el listing top-level
+ * NO las incluye en su slug específico (pn-blaze, pn-trufig, pn-apparel), o el
+ * V1 detail devuelve brand.name="SONANCE" para todas.
+ *
+ * Esta función mira el nombre + SKU + modelNumber + manufacturerItem buscando
+ * keywords que delaten la sub-marca real. Si encuentra match, devuelve el
+ * nombre canónico de la sub-marca.
+ */
+const BRAND_KEYWORDS: Array<{ test: RegExp; brand: string }> = [
+  { test: /\bblaze\b/i, brand: "BLAZE BY SONANCE" },
+  { test: /\btrufig\b/i, brand: "TRUFIG" },
+  { test: /\bapparel\b/i, brand: "APPAREL" },
+  { test: /\biport\b/i, brand: "IPORT" },
+  { test: /\bjames\b/i, brand: "JAMES" },
+];
+
+function inferBrandFromKeywords(textFields: Array<string | null | undefined>): string | null {
+  const haystack = textFields.filter(Boolean).join(" ").toLowerCase();
+  if (!haystack) return null;
+  for (const { test, brand } of BRAND_KEYWORDS) {
+    if (test.test(haystack)) return brand;
+  }
+  return null;
+}
+
+/**
  * Convierte un valor "crudo" del mapping a algo que Prisma acepta para un campo.
  * - Strings/booleans/numbers: pasan
  * - Arrays/objects: solo aceptados para campos JSON (specifications, documents, sourceMetadata)
@@ -367,6 +396,9 @@ export async function POST(req: NextRequest) {
         if (typeof name === "string" && name.trim()) familyNamesNeeded.add(name.trim());
       }
     }
+    // Aseguramos que las sub-marcas conocidas estén siempre en el set para
+    // que el fallback de keywords tenga su id listo cuando lo necesite.
+    for (const { brand } of BRAND_KEYWORDS) brandNamesNeeded.add(brand);
     const brandIdByName = new Map<string, string>();
     for (const n of brandNamesNeeded) brandIdByName.set(n, await upsertBrandByName(n));
     const categoryIdByName = new Map<string, string>();
@@ -451,6 +483,26 @@ export async function POST(req: NextRequest) {
       // Esto cubre el caso típico: el V1 devuelve isActive=false para muchos
       // productos del portal y el admin igual los quiere visibles en su catálogo.
       if (forceActive) productData.isActive = true;
+
+      // Override de marca por keyword: si el nombre/SKU/modelo contiene alguna
+      // de las palabras clave (blaze, trufig, apparel, iport, james), forzamos
+      // la sub-marca correspondiente — gana sobre lo que haya mapeado el usuario.
+      // Esto fixea el caso del catálogo paraguas (pn-sonance) que mete TODO
+      // dentro de "SONANCE" cuando en realidad son sub-marcas.
+      const fieldsForBrandHeuristic: Array<string | null | undefined> = [
+        typeof mapped.normalizedName === "string" ? mapped.normalizedName : null,
+        typeof mapped.originalName === "string" ? mapped.originalName : null,
+        typeof mapped.modelNumber === "string" ? mapped.modelNumber : null,
+        typeof mapped.manufacturerItem === "string" ? mapped.manufacturerItem : null,
+        typeof mapped.supplierSku === "string" ? mapped.supplierSku : item.sku,
+        typeof mapped.productLine === "string" ? mapped.productLine : null,
+        item.sku,
+      ];
+      const inferred = inferBrandFromKeywords(fieldsForBrandHeuristic);
+      if (inferred) {
+        const inferredId = brandIdByName.get(inferred);
+        if (inferredId) productData.brandId = inferredId;
+      }
 
       // Find existing product
       const existing = await prisma.product.findFirst({
