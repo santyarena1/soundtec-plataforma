@@ -124,7 +124,12 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
     include: {
       items: {
         include: {
-          product: { include: { brand: true } },
+          product: {
+            include: {
+              brand: true,
+              images: { where: { isPrimary: true }, take: 1 },
+            },
+          },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -194,7 +199,14 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
           items={originalItems.map((i) => ({
             id: i.id,
             quantity: i.quantity,
-            product: i.product,
+            userNotes: i.userNotes,
+            product: {
+              id: i.product.id,
+              normalizedName: i.product.normalizedName,
+              kind: i.product.kind as "PRINCIPAL" | "ACCESORIO",
+              brand: i.product.brand?.name ?? null,
+              imageUrl: i.product.images[0]?.url ?? null,
+            },
             unitPrice: prices.get(i.product.id)?.finalPriceUsd ?? 0,
           }))}
         />

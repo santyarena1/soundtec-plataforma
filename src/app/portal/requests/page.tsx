@@ -6,7 +6,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatUsd } from "@/lib/utils";
 import { createRequestDraft } from "@/server/actions/requests";
 import { ShoppingBag } from "lucide-react";
 
@@ -67,8 +67,11 @@ export default async function RequestsPage() {
               <div>
                 <p className="font-semibold">Tu solicitud en armado</p>
                 <p className="text-sm text-muted-foreground">
-                  {activeDraft.itemCount} producto(s) · {activeDraft.unitCount} unidad(es) · actualizada{" "}
-                  {formatDate(activeDraft.updatedAt)}
+                  {activeDraft.itemCount} producto(s) · {activeDraft.unitCount} unidad(es) ·{" "}
+                  <span className="text-success font-medium tabular-nums">
+                    {formatUsd(activeDraft.subtotalUsd)}
+                  </span>{" "}
+                  estimado · actualizada {formatDate(activeDraft.updatedAt)}
                 </p>
               </div>
             </div>

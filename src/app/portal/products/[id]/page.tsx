@@ -306,6 +306,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             draftRequestId={activeDraft.id}
             draftType={activeDraft.type}
             draftItemCount={activeDraft.itemCount}
+            productName={product.normalizedName}
+            unitPriceUsd={pricing.finalPriceUsd}
             accessoryContext={accessoryContext}
           />
         </div>

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
 import { Bookmark, Heart, LayoutDashboard, Package, Send } from "lucide-react";
 import { getSetting } from "@/lib/settings";
+import { DraftMiniCart } from "@/components/portal/draft-mini-cart";
+import { getActiveDraftSummary } from "@/lib/draft-request";
 
 const navItems = [
   { href: "/portal", label: "Inicio", icon: LayoutDashboard },
@@ -16,9 +18,10 @@ const navItems = [
 export async function PortalShell({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/portal");
-  const [logoUrl, appName] = await Promise.all([
+  const [logoUrl, appName, draftSummary] = await Promise.all([
     getSetting("branding.logo_url", ""),
     getSetting("app.name", "Soundtec"),
+    getActiveDraftSummary(session.user.id),
   ]);
 
   async function handleSignOut() {
@@ -98,6 +101,8 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
           <span>{session.user.email}</span>
         </div>
       </footer>
+
+      <DraftMiniCart draft={draftSummary} />
     </div>
   );
 }
