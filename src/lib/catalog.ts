@@ -275,20 +275,40 @@ function passesPriceFilter(item: CatalogProduct, filters: CatalogFilters) {
 
 function sortCatalogItems(items: CatalogProduct[], sort: CatalogFilters["sort"]) {
   const copy = [...items];
+  // Comparador secundario: PRINCIPAL siempre antes que ACCESORIO. El criterio
+  // primario sigue siendo el sort que pidió el usuario.
+  const kindWeight = (k: string | null | undefined) => (k === "ACCESORIO" ? 1 : 0);
   switch (sort) {
     case "price_asc":
-      copy.sort((a, b) => a.pricing.finalPriceUsd - b.pricing.finalPriceUsd);
+      copy.sort(
+        (a, b) =>
+          kindWeight(a.kind) - kindWeight(b.kind) ||
+          a.pricing.finalPriceUsd - b.pricing.finalPriceUsd
+      );
       break;
     case "price_desc":
-      copy.sort((a, b) => b.pricing.finalPriceUsd - a.pricing.finalPriceUsd);
+      copy.sort(
+        (a, b) =>
+          kindWeight(a.kind) - kindWeight(b.kind) ||
+          b.pricing.finalPriceUsd - a.pricing.finalPriceUsd
+      );
       break;
     case "name_desc":
-      copy.sort((a, b) => b.normalizedName.localeCompare(a.normalizedName, "es"));
+      copy.sort(
+        (a, b) =>
+          kindWeight(a.kind) - kindWeight(b.kind) ||
+          b.normalizedName.localeCompare(a.normalizedName, "es")
+      );
       break;
     case "newest":
+      copy.sort((a, b) => kindWeight(a.kind) - kindWeight(b.kind));
       break;
     default:
-      copy.sort((a, b) => a.normalizedName.localeCompare(b.normalizedName, "es"));
+      copy.sort(
+        (a, b) =>
+          kindWeight(a.kind) - kindWeight(b.kind) ||
+          a.normalizedName.localeCompare(b.normalizedName, "es")
+      );
   }
   return copy;
 }
@@ -315,11 +335,19 @@ export async function getCatalog(
     filters.sort === "price_asc" ||
     filters.sort === "price_desc";
 
+  // ORDEN PRIMARIO: kind ASC → PRINCIPAL sale primero, ACCESORIO después.
+  // Esto asegura que en cualquier vista (búsqueda, navegación por filtros,
+  // categoría puntual) los productos principales aparezcan arriba y los
+  // accesorios al final. El usuario tiene que ver los items "que vende"
+  // primero, no los complementos.
   if (needsPricePipeline) {
     const products = await prisma.product.findMany({
       where,
       take: CATALOG_FETCH_CAP,
-      orderBy: filters.sort === "newest" ? { createdAt: "desc" } : { normalizedName: "asc" },
+      orderBy:
+        filters.sort === "newest"
+          ? [{ kind: "asc" }, { createdAt: "desc" }]
+          : [{ kind: "asc" }, { normalizedName: "asc" }],
       include: productInclude,
     });
 
@@ -331,12 +359,12 @@ export async function getCatalog(
     return { items: items.slice(start, start + pageSize), total, page, pageSize };
   }
 
-  const orderBy: Prisma.ProductOrderByWithRelationInput =
+  const orderBy: Prisma.ProductOrderByWithRelationInput[] =
     filters.sort === "name_desc"
-      ? { normalizedName: "desc" }
+      ? [{ kind: "asc" }, { normalizedName: "desc" }]
       : filters.sort === "newest"
-        ? { createdAt: "desc" }
-        : { normalizedName: "asc" };
+        ? [{ kind: "asc" }, { createdAt: "desc" }]
+        : [{ kind: "asc" }, { normalizedName: "asc" }];
 
   const [total, products] = await Promise.all([
     prisma.product.count({ where }),
