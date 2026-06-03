@@ -376,6 +376,33 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     }
   }
 
+  // Backfill kind=ACCESORIO sobre productos ya linkeados como accesorio.
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillMsg, setBackfillMsg] = useState<string | null>(null);
+  async function runBackfillAccessoryKind() {
+    if (!window.confirm("Re-clasificar todos los productos que ya están linkeados como accesorio con kind=ACCESORIO. ¿Confirmás?")) {
+      return;
+    }
+    setBackfilling(true);
+    setBackfillMsg(null);
+    try {
+      const res = await fetch("/api/admin/sonance-import/backfill-accessory-kind", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setBackfillMsg(data.message || `${data.updated} productos actualizados.`);
+        await loadDiag();
+      } else {
+        setBackfillMsg(`Error: ${data.error || "desconocido"}`);
+      }
+    } catch (e) {
+      setBackfillMsg(`Error: ${e instanceof Error ? e.message : "fetch"}`);
+    } finally {
+      setBackfilling(false);
+    }
+  }
+
   // Sync full (batched: init listing + N detail batches con progreso)
   const [fullSync, setFullSync] = useState<{
     phase: "init" | "detail" | "done";
@@ -965,6 +992,30 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                   <p className="text-xs text-muted-foreground pt-1 border-t border-border/50">
                     Productos usados como accesorio (acumulado): <strong className="text-foreground">{diag.accessories.productsAsAccessory}</strong>
                   </p>
+                  <div className="pt-2 border-t border-border/50">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={runBackfillAccessoryKind}
+                      disabled={backfilling}
+                      className="w-full"
+                    >
+                      {backfilling ? (
+                        <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Re-clasificando…</>
+                      ) : (
+                        "Re-clasificar como kind=ACCESORIO"
+                      )}
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Pisa kind=PRINCIPAL → ACCESORIO en los {diag.accessories.productsAsAccessory} productos
+                      que ya están linkeados como accesorio de otro. Idempotente.
+                    </p>
+                    {backfillMsg && (
+                      <p className={`text-[11px] mt-1 ${backfillMsg.startsWith("Error") ? "text-destructive" : "text-success"}`}>
+                        {backfillMsg}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
                   <p className="text-xs font-medium">Configurables</p>
