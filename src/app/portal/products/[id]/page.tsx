@@ -12,6 +12,7 @@ import { FavoriteButton } from "../favorite-button";
 import { StockBadge } from "../catalog-grid";
 import { AddToRequestPanel } from "./add-to-request-panel";
 import { ProductBundleProvider, BundleStagingPanel } from "./product-bundle";
+import { ProductGallery } from "./product-gallery";
 import { getOrCreateActiveDraft } from "@/lib/draft-request";
 import { AiContentNotice } from "./ai-content-notice";
 import { ProductConfigurator } from "./configurator";
@@ -220,27 +221,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         draftRequestId={activeDraft.id}
       >
       <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-start">
-        <div className="space-y-3 lg:sticky lg:top-6">
-          <div className="aspect-[4/3] overflow-hidden rounded-xl border border-border bg-white shadow-sm">
-            {product.images[0] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.images[0].url} alt={product.normalizedName} className="h-full w-full object-contain" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                Producto sin imagen
-              </div>
-            )}
-          </div>
-          {product.images.length > 1 ? (
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.slice(0, 8).map((img) => (
-                <div key={img.id} className="aspect-square overflow-hidden rounded-md border border-border bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt={img.alt || ""} className="h-full w-full object-contain" />
-                </div>
-              ))}
-            </div>
-          ) : null}
+        <div className="lg:sticky lg:top-6">
+          <ProductGallery
+            images={product.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt }))}
+            productName={product.normalizedName}
+          />
         </div>
 
         <div className="space-y-5">

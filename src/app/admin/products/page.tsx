@@ -81,11 +81,39 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     ...(params.crestron === "1" ? { isCrestronHomeCompatible: true } : {}),
     ...(params.q
       ? {
-          OR: [
-            { normalizedName: { contains: params.q, mode: "insensitive" } },
-            { internalSku: { contains: params.q, mode: "insensitive" } },
-            { supplierSku: { contains: params.q, mode: "insensitive" } },
-          ],
+          // Búsqueda extendida tipo "Google": tokeniza por espacios, exige que
+          // TODOS los tokens matcheen en al menos un campo (AND entre tokens,
+          // OR entre campos). Buscamos en nombre + SKUs + descripciones +
+          // brand/category/family/distributor + identificadores del fabricante.
+          AND: params.q
+            .split(/\s+/)
+            .map((t) => t.trim())
+            .filter(Boolean)
+            .map((t) => {
+              const c = { contains: t, mode: "insensitive" as const };
+              return {
+                OR: [
+                  { normalizedName: c },
+                  { originalName: c },
+                  { internalSku: c },
+                  { supplierSku: c },
+                  { shortDescription: c },
+                  { longDescription: c },
+                  { tariffPosition: c },
+                  { coo: c },
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  { modelNumber: c } as any,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  { manufacturerItem: c } as any,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  { productLine: c } as any,
+                  { brand: { name: c } },
+                  { category: { name: c } },
+                  { family: { name: c } },
+                  { distributor: { name: c } },
+                ],
+              };
+            }),
         }
       : {}),
   };

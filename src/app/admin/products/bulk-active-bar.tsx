@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ToggleRight, ToggleLeft, CheckCircle2 } from "lucide-react";
+import {
+  Loader2,
+  ToggleRight,
+  ToggleLeft,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+} from "lucide-react";
 import { bulkSetActiveByFilter } from "@/server/actions/admin-catalog";
 
 interface Props {
@@ -27,6 +35,9 @@ export function BulkActiveBar({ matchingCount, filters, brands }: Props) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string>("");
+  // Colapsado por default — son acciones que pisan estado de muchos productos,
+  // no queremos que estén a un click de distancia accidental.
+  const [open, setOpen] = useState(false);
 
   function doBulk(isActive: boolean, useFilters: boolean) {
     const label = isActive ? "ACTIVAR" : "DESACTIVAR";
@@ -70,13 +81,37 @@ export function BulkActiveBar({ matchingCount, filters, brands }: Props) {
     (filters.q ?? "").length > 0;
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge tone="warning">Acción masiva</Badge>
-          <p className="text-sm font-medium">Activar / desactivar productos sin tener que seleccionarlos uno a uno</p>
-        </div>
+    <Card className={open ? "border-warning/40" : "border-dashed"}>
+      <CardContent className="p-3 space-y-3">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center justify-between gap-3 text-left rounded-md hover:bg-muted/30 px-2 py-1.5 transition-colors"
+          aria-expanded={open}
+        >
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge tone="warning">
+              <AlertTriangle className="h-3 w-3" />
+              Acción masiva
+            </Badge>
+            <span className="text-sm font-medium">
+              Activar / desactivar productos sin seleccionarlos uno a uno
+            </span>
+            {!open && msg ? (
+              <span className="text-[11px] text-success ml-2 flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                {msg}
+              </span>
+            ) : null}
+          </div>
+          {open ? (
+            <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+          )}
+        </button>
 
+        {!open ? null : (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-md border border-border p-3 space-y-2">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -163,8 +198,9 @@ export function BulkActiveBar({ matchingCount, filters, brands }: Props) {
             </div>
           </div>
         </div>
+        )}
 
-        {msg ? (
+        {open && msg ? (
           <p className="text-xs text-success flex items-center gap-1">
             <CheckCircle2 className="h-3 w-3" />
             {msg}

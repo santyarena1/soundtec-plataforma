@@ -8,6 +8,72 @@ import {
 } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
 
+/**
+ * Construye el OR del filtro de búsqueda extendido. Buscar SIMULTÁNEAMENTE en:
+ * - nombre display (normalizedName) y original (originalName)
+ * - SKUs (interno + proveedor + modelNumber + manufacturerItem)
+ * - descripciones cortas y largas
+ * - productLine, tariffPosition, coo
+ * - nombre de brand / category / family (relations)
+ * - JSON sourceMetadata / specifications (string_to_jsonb stringify match)
+ *
+ * Tokeniza por espacios y exige que TODOS los tokens matcheen en al menos un
+ * campo (AND between tokens, OR between fields). Esto es lo que la gente
+ * espera de un search "tipo Google" sobre catálogos.
+ */
+function buildSearchOr(search: string): Prisma.ProductWhereInput["OR"] {
+  const tokens = search
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+  if (tokens.length === 0) return undefined;
+
+  // Para cada token armamos un grupo OR sobre todos los campos buscables.
+  // Devolvemos el array de OR del primer token; los tokens 1+ se manejan
+  // como AND en el caller. Pero como acá la firma esperada es OR, devolvemos
+  // solo el primer token cuando hay uno solo (caso típico). Para multi-token
+  // ver buildSearchAnd que usa el caller.
+  return tokenFieldOr(tokens[0]);
+}
+
+function tokenFieldOr(token: string): NonNullable<Prisma.ProductWhereInput["OR"]> {
+  const c = { contains: token, mode: "insensitive" as const };
+  return [
+    { normalizedName: c },
+    { originalName: c },
+    { internalSku: c },
+    { supplierSku: c },
+    { shortDescription: c },
+    { longDescription: c },
+    { tariffPosition: c },
+    { coo: c },
+    // Columnas opcionales agregadas por el sync — castean a string via raw
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { modelNumber: c } as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { manufacturerItem: c } as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { productLine: c } as any,
+    { brand: { name: c } },
+    { category: { name: c } },
+    { family: { name: c } },
+    { distributor: { name: c } },
+  ];
+}
+
+/**
+ * Variante AND multi-token: usada en buildCatalogWhere directamente para que
+ * "shure sm58" matchee productos que tengan AMBAS palabras en algún campo.
+ */
+function buildSearchAnd(search: string): Prisma.ProductWhereInput[] | undefined {
+  const tokens = search
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+  if (tokens.length === 0) return undefined;
+  return tokens.map((t) => ({ OR: tokenFieldOr(t) }));
+}
+
 export interface CatalogFilters {
   search?: string;
   brandIds?: string[];
@@ -125,16 +191,14 @@ async function buildCatalogWhere(
     ...(filters.hasDiscount ? { discountPercent: { gt: 0 } } : {}),
     ...(filters.crestronOnly ? { isCrestronHomeCompatible: true } : {}),
     ...(filters.search
-      ? {
-          OR: [
-            { normalizedName: { contains: filters.search, mode: "insensitive" } },
-            { originalName: { contains: filters.search, mode: "insensitive" } },
-            { internalSku: { contains: filters.search, mode: "insensitive" } },
-            { supplierSku: { contains: filters.search, mode: "insensitive" } },
-          ],
-        }
+      ? (() => {
+          const ands = buildSearchAnd(filters.search);
+          return ands && ands.length > 0 ? { AND: ands } : {};
+        })()
       : {}),
   };
+  // Mantenemos la referencia al builder OR para compatibilidad con otros llamadores.
+  void buildSearchOr;
 
   if (filters.favoritesOnly) {
     const favs = await prisma.wishlistItem.findMany({

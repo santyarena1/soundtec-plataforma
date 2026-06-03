@@ -332,13 +332,39 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
 
   // Preset de mapeo recomendado Sonance
   const [loadingPreset, setLoadingPreset] = useState(false);
-  async function applyRecommendedMapping() {
+  /**
+   * Aplicar preset:
+   * - mode="merge" (default): solo llena los slots que el usuario aún no mapeó.
+   *   Preserva todo lo personalizado. Es lo que el usuario espera 99% del tiempo.
+   * - mode="replace": pisa el mapping completo con el preset. Requiere confirmación.
+   */
+  async function applyRecommendedMapping(mode: "merge" | "replace" = "merge") {
+    if (mode === "replace") {
+      const customCount = Object.keys(mapping).length;
+      if (customCount > 0) {
+        const ok = window.confirm(
+          `Esto va a reemplazar tus ${customCount} mapeos actuales con el preset recomendado. ¿Continuar?`
+        );
+        if (!ok) return;
+      }
+    }
     setLoadingPreset(true);
     try {
       const res = await fetch("/api/admin/sonance-import/preset-mapping");
       const data = await res.json();
       if (data.ok && data.mapping) {
-        setMapping(data.mapping);
+        if (mode === "replace") {
+          setMapping(data.mapping);
+        } else {
+          // Merge: la preset solo escribe en slots vacíos
+          setMapping((prev) => {
+            const next: Record<string, string> = { ...prev };
+            for (const [field, path] of Object.entries(data.mapping as Record<string, string>)) {
+              if (!next[field]) next[field] = path;
+            }
+            return next;
+          });
+        }
       }
     } catch { /* ignore */ } finally {
       setLoadingPreset(false);
@@ -1127,15 +1153,25 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={applyRecommendedMapping}
+                onClick={() => applyRecommendedMapping("merge")}
                 disabled={loadingPreset || applyingMapping}
-                title="Carga el mapeo recomendado por defecto para Sonance (35+ campos)"
+                title="Solo llena los slots que aún no mapeaste — preserva tus customizaciones"
               >
                 {loadingPreset ? (
                   <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Cargando…</>
                 ) : (
-                  <><Sparkles className="mr-1.5 h-3.5 w-3.5" />Aplicar mapeo recomendado</>
+                  <><Sparkles className="mr-1.5 h-3.5 w-3.5" />Completar con preset</>
                 )}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => applyRecommendedMapping("replace")}
+                disabled={loadingPreset || applyingMapping || Object.keys(mapping).length === 0}
+                title="Reemplaza TODO el mapping con el preset — requiere confirmación"
+                className="text-xs text-muted-foreground hover:text-destructive"
+              >
+                Reemplazar todo
               </Button>
               {!applyingMapping ? (
                 <Button
