@@ -54,7 +54,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             },
           },
         },
-        orderBy: { createdAt: "asc" },
+        // ACCESSORY primero (más importantes en la UI), luego CROSS_SELL, luego ALSO_PURCHASED
+        orderBy: [{ kind: "asc" }, { createdAt: "asc" }],
       },
       accessoryFor: {
         include: {
@@ -128,11 +129,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         }
       : null;
 
+  // Filtramos por activos y visibilidad del cliente UNA VEZ — luego separamos por kind.
   const activeAccessoriesRaw = product.accessories.filter((r) => r.accessoryProduct.isActive);
-  const activeAccessories: typeof activeAccessoriesRaw = [];
+  const visibleRelations: typeof activeAccessoriesRaw = [];
   for (const r of activeAccessoriesRaw) {
     if (isAdminViewer) {
-      activeAccessories.push(r);
+      visibleRelations.push(r);
       continue;
     }
     const vis = await isProductVisibleToClient(
@@ -145,44 +147,50 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       },
       commercialClientId!
     );
-    if (vis) activeAccessories.push(r);
+    if (vis) visibleRelations.push(r);
   }
+  const activeAccessories = visibleRelations.filter((r) => r.kind === "ACCESSORY");
+  const crossSellRelations = visibleRelations.filter((r) => r.kind === "CROSS_SELL");
+  const alsoPurchasedRelations = visibleRelations.filter((r) => r.kind === "ALSO_PURCHASED");
 
-  const accessoryPrices =
-    activeAccessories.length > 0 && (commercialClientId || isAdminViewer)
+  // Precios calculados UNA vez para todas las relaciones visibles
+  const allRelationProducts = visibleRelations.map((r) => r.accessoryProduct);
+  const relationPrices =
+    allRelationProducts.length > 0 && (commercialClientId || isAdminViewer)
       ? await calculatePricesForProducts(
-          activeAccessories.map((r) => ({
-            productId: r.accessoryProduct.id,
-            baseCostUsd: Number(r.accessoryProduct.baseCostUsd),
-            brandId: r.accessoryProduct.brandId,
-            distributorId: r.accessoryProduct.distributorId,
-            categoryId: r.accessoryProduct.categoryId,
-            familyId: r.accessoryProduct.familyId,
-            productDiscountPercent: r.accessoryProduct.discountPercent
-              ? Number(r.accessoryProduct.discountPercent)
-              : null,
-            tariffDutyPercent: r.accessoryProduct.tariffDutyPercent
-              ? Number(r.accessoryProduct.tariffDutyPercent)
-              : null,
+          allRelationProducts.map((p) => ({
+            productId: p.id,
+            baseCostUsd: Number(p.baseCostUsd),
+            brandId: p.brandId,
+            distributorId: p.distributorId,
+            categoryId: p.categoryId,
+            familyId: p.familyId,
+            productDiscountPercent: p.discountPercent ? Number(p.discountPercent) : null,
+            tariffDutyPercent: p.tariffDutyPercent ? Number(p.tariffDutyPercent) : null,
           })),
           commercialClientId,
           globalMargin
         )
       : new Map();
 
-  const compatibleAccessoryItems = activeAccessories.map((r) => ({
-    relationId: r.id,
-    productId: r.accessoryProduct.id,
-    name: r.accessoryProduct.normalizedName,
-    shortDescription: r.accessoryProduct.shortDescription,
-    imageUrl: r.accessoryProduct.images[0]?.url ?? null,
-    stockStatus: r.accessoryProduct.stockStatus,
-    stockQuantity: r.accessoryProduct.stockQuantity,
-    isRequired: r.isRequired,
-    finalPriceUsd: accessoryPrices.get(r.accessoryProduct.id)?.finalPriceUsd ?? 0,
-    kind: r.accessoryProduct.kind as "PRINCIPAL" | "ACCESORIO",
-    accessoryRequiredWithPrimary: r.accessoryProduct.accessoryRequiredWithPrimary,
-  }));
+  function relationToItem(r: (typeof visibleRelations)[number]) {
+    return {
+      relationId: r.id,
+      productId: r.accessoryProduct.id,
+      name: r.accessoryProduct.normalizedName,
+      shortDescription: r.accessoryProduct.shortDescription,
+      imageUrl: r.accessoryProduct.images[0]?.url ?? null,
+      stockStatus: r.accessoryProduct.stockStatus,
+      stockQuantity: r.accessoryProduct.stockQuantity,
+      isRequired: r.isRequired,
+      finalPriceUsd: relationPrices.get(r.accessoryProduct.id)?.finalPriceUsd ?? 0,
+      kind: r.accessoryProduct.kind as "PRINCIPAL" | "ACCESORIO",
+      accessoryRequiredWithPrimary: r.accessoryProduct.accessoryRequiredWithPrimary,
+    };
+  }
+  const compatibleAccessoryItems = activeAccessories.map(relationToItem);
+  const crossSellItems = crossSellRelations.map(relationToItem);
+  const alsoPurchasedItems = alsoPurchasedRelations.map(relationToItem);
 
   return (
     <div className="space-y-6">
@@ -313,6 +321,23 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         <CompatibleAccessoriesSection
           parentProductName={product.normalizedName}
           items={compatibleAccessoryItems}
+          variant="ACCESSORY"
+        />
+      ) : null}
+
+      {crossSellItems.length > 0 ? (
+        <CompatibleAccessoriesSection
+          parentProductName={product.normalizedName}
+          items={crossSellItems}
+          variant="CROSS_SELL"
+        />
+      ) : null}
+
+      {alsoPurchasedItems.length > 0 ? (
+        <CompatibleAccessoriesSection
+          parentProductName={product.normalizedName}
+          items={alsoPurchasedItems}
+          variant="ALSO_PURCHASED"
         />
       ) : null}
 

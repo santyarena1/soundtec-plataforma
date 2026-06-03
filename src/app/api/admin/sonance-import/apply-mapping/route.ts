@@ -41,6 +41,8 @@ interface ApplyMappingResponse {
   withDocuments: number; // productos a los que se les escribió documents
   withImageRels: number; // productos a los que se les escribió imágenes
   withAccessoryRels: number; // productos a los que se les linkeó al menos 1 accesorio
+  withCrossSellRels: number; // productos con al menos 1 cross-sell linkeado
+  withAlsoPurchasedRels: number; // productos con al menos 1 also-purchased linkeado
   totalProducts: number;
   nextOffset: number | null;
   done: boolean;
@@ -313,6 +315,8 @@ export async function POST(req: NextRequest) {
         withDocuments: 0,
         withImageRels: 0,
         withAccessoryRels: 0,
+        withCrossSellRels: 0,
+        withAlsoPurchasedRels: 0,
         totalProducts: idx.totalProducts,
         nextOffset: null,
         done: true,
@@ -371,6 +375,8 @@ export async function POST(req: NextRequest) {
     let withDocuments = 0;
     let withImageRels = 0;
     let withAccessoryRels = 0;
+    let withCrossSellRels = 0;
+    let withAlsoPurchasedRels = 0;
 
     for (let i = 0; i < batch.length; i++) {
       const item = batch[i];
@@ -412,7 +418,12 @@ export async function POST(req: NextRequest) {
           continue;
         }
         // Relations handled separately below — skip from productData
-        if (field === "(rel) images" || field === "(rel) accessories") continue;
+        if (
+          field === "(rel) images" ||
+          field === "(rel) accessories" ||
+          field === "(rel) crossSells" ||
+          field === "(rel) alsoPurchased"
+        ) continue;
 
         const coerced = coerceForField(field, rawValue);
         if (!coerced.ok) continue;
@@ -503,26 +514,37 @@ export async function POST(req: NextRequest) {
     const nextOffset = offset + batch.length;
     const done = nextOffset >= idx.totalProducts;
 
-    // 6. FINAL PASS — link de accesorios sobre TODOS los productos.
+    // 6. FINAL PASS — link de relaciones producto-producto.
     // Solo se hace en el último batch (done=true) cuando todos los Product
-    // ya existen en BD y los accessory SKUs pueden ser encontrados.
+    // ya existen en BD y los SKUs/GUIDs referenciados pueden ser encontrados.
     //
-    // CRITICAL: Construimos DOS maps de resolución para soportar cualquier
-    // estrategia de mapping del usuario:
-    //   a) portalId (GUID Sonance) → dbProductId  → para accessories[].id
-    //   b) supplierSku             → dbProductId  → para accessories[].productNumber/.erpNumber
-    // El path elegido puede dar tokens GUID o SKU; intentamos ambos antes de descartar.
-    if (done && mapping["(rel) accessories"]) {
+    // Soporta 3 tipos de relación:
+    //   - (rel) accessories   → ACCESSORY      (compatible/required, marca isCustomizable)
+    //   - (rel) crossSells    → CROSS_SELL     (alternativa o complemento)
+    //   - (rel) alsoPurchased → ALSO_PURCHASED (upsell)
+    //
+    // Cada tipo se procesa por separado contra el mismo map dbBySku + portalIdToSku
+    // para soportar cualquier estrategia de supplierSku.
+    const relationMappings: Array<{
+      mappingKey: string;
+      kind: "ACCESSORY" | "CROSS_SELL" | "ALSO_PURCHASED";
+      counter: () => void;
+      setsCustomizable: boolean;
+    }> = [
+      { mappingKey: "(rel) accessories", kind: "ACCESSORY", counter: () => { withAccessoryRels++; }, setsCustomizable: true },
+      { mappingKey: "(rel) crossSells", kind: "CROSS_SELL", counter: () => { withCrossSellRels++; }, setsCustomizable: false },
+      { mappingKey: "(rel) alsoPurchased", kind: "ALSO_PURCHASED", counter: () => { withAlsoPurchasedRels++; }, setsCustomizable: false },
+    ];
+    const anyRelationMapped = relationMappings.some((r) => mapping[r.mappingKey]);
+
+    if (done && anyRelationMapped) {
       try {
-        // Resolución por portalId: idx.skuToPortalId tiene (sku, portalId) — y los
-        // products en BD se identifican vía supplierSku (que ahora puede ser otra cosa,
-        // por eso joinemos por sku que es lo que guardamos en sync).
+        // Resolución por portalId: idx.skuToPortalId tiene (sku, portalId).
         const portalIdToSku = new Map<string, string>(
           idx.skuToPortalId.map((it) => [it.portalId, it.sku])
         );
         const allSkus = idx.skuToPortalId.map((it) => it.sku);
         const dbBySku = new Map<string, string>();
-        // Cargamos en lotes para evitar query gigante
         const SKU_BATCH = 500;
         for (let s = 0; s < allSkus.length; s += SKU_BATCH) {
           const slice = allSkus.slice(s, s + SKU_BATCH);
@@ -536,57 +558,62 @@ export async function POST(req: NextRequest) {
         }
 
         function resolveToken(token: string): string | null {
-          // ¿Es un portalId conocido?
           const skuFromPortal = portalIdToSku.get(token);
           if (skuFromPortal) {
             const id = dbBySku.get(skuFromPortal);
             if (id) return id;
           }
-          // ¿Coincide directo con supplierSku?
           const direct = dbBySku.get(token);
           if (direct) return direct;
           return null;
         }
 
+        // Iterar todos los chunks una sola vez y procesar las 3 relaciones.
         for (let ci = 0; ci < idx.totalChunks; ci++) {
           const chunkItems = await loadDetailChunk(ci);
           for (const [sku, sourceDetail] of Object.entries(chunkItems)) {
-            const rawTokens = resolvePath(sourceDetail, mapping["(rel) accessories"]);
-            const tokens = Array.isArray(rawTokens)
-              ? rawTokens.filter((s): s is string => typeof s === "string" && s.length > 0)
-              : [];
-            if (tokens.length === 0) continue;
-
             const parentId = dbBySku.get(sku);
             if (!parentId) continue;
 
-            const resolvedAccessoryIds = tokens
-              .map((t) => resolveToken(t))
-              .filter((id): id is string => id !== null && id !== parentId);
-            const uniqueAccessoryIds = Array.from(new Set(resolvedAccessoryIds));
+            for (const rel of relationMappings) {
+              const path = mapping[rel.mappingKey];
+              if (!path) continue;
+              const rawTokens = resolvePath(sourceDetail, path);
+              const tokens = Array.isArray(rawTokens)
+                ? rawTokens.filter((s): s is string => typeof s === "string" && s.length > 0)
+                : [];
+              const resolvedIds = tokens
+                .map((t) => resolveToken(t))
+                .filter((id): id is string => id !== null && id !== parentId);
+              const uniqueIds = Array.from(new Set(resolvedIds));
 
-            await prisma.accessoryRelation.deleteMany({ where: { productId: parentId } });
-            if (uniqueAccessoryIds.length > 0) {
+              // Reemplazamos las relaciones SOLO de este tipo (no tocamos las otras kind)
+              await prisma.accessoryRelation.deleteMany({
+                where: { productId: parentId, kind: rel.kind },
+              });
+              if (uniqueIds.length === 0) continue;
+
               await prisma.accessoryRelation.createMany({
-                data: uniqueAccessoryIds.map((accId) => ({
+                data: uniqueIds.map((accId) => ({
                   productId: parentId,
                   accessoryProductId: accId,
                   isRequired: false,
+                  kind: rel.kind,
                 })),
                 skipDuplicates: true,
               });
-              // Auto-marcar como configurable: si tiene accesorios linkeados, el
-              // usuario podrá seleccionar combinaciones en la ficha.
-              await prisma.product.update({
-                where: { id: parentId },
-                data: { isCustomizable: true },
-              });
-              withAccessoryRels++;
+              if (rel.setsCustomizable) {
+                await prisma.product.update({
+                  where: { id: parentId },
+                  data: { isCustomizable: true },
+                });
+              }
+              rel.counter();
             }
           }
         }
       } catch (e) {
-        console.error("apply-mapping: final accessory pass failed", e);
+        console.error("apply-mapping: final relations pass failed", e);
       }
     }
 
@@ -605,6 +632,8 @@ export async function POST(req: NextRequest) {
       withDocuments,
       withImageRels,
       withAccessoryRels,
+      withCrossSellRels,
+      withAlsoPurchasedRels,
       totalProducts: idx.totalProducts,
       nextOffset: done ? null : nextOffset,
       done,
@@ -612,7 +641,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const error = err instanceof Error ? err.message : "Error desconocido";
     return NextResponse.json(
-      { ok: false, error, processed: 0, updated: 0, created: 0, skippedNoDetail: 0, withSpecifications: 0, withDocuments: 0, withImageRels: 0, withAccessoryRels: 0, totalProducts: 0, nextOffset: null, done: false } as ApplyMappingResponse,
+      { ok: false, error, processed: 0, updated: 0, created: 0, skippedNoDetail: 0, withSpecifications: 0, withDocuments: 0, withImageRels: 0, withAccessoryRels: 0, withCrossSellRels: 0, withAlsoPurchasedRels: 0, totalProducts: 0, nextOffset: null, done: false } as ApplyMappingResponse,
       { status: 500 }
     );
   }

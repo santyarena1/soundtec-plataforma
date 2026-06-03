@@ -223,6 +223,8 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     withDocuments: number;
     withImageRels: number;
     withAccessoryRels: number;
+    withCrossSellRels: number;
+    withAlsoPurchasedRels: number;
   } | null>(null);
   const [applyMappingError, setApplyMappingError] = useState<string | null>(null);
   const [applyMappingCancelRef] = useState<{ canceled: boolean }>({ canceled: false });
@@ -280,14 +282,16 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     setApplyMappingProgress({
       done: 0, total: 0,
       updated: 0, created: 0, skippedNoDetail: 0,
-      withSpecifications: 0, withDocuments: 0, withImageRels: 0, withAccessoryRels: 0,
+      withSpecifications: 0, withDocuments: 0, withImageRels: 0,
+      withAccessoryRels: 0, withCrossSellRels: 0, withAlsoPurchasedRels: 0,
     });
     try {
       let offset = 0;
       let total = 0;
       const acc = {
         updated: 0, created: 0, skippedNoDetail: 0,
-        withSpecifications: 0, withDocuments: 0, withImageRels: 0, withAccessoryRels: 0,
+        withSpecifications: 0, withDocuments: 0, withImageRels: 0,
+        withAccessoryRels: 0, withCrossSellRels: 0, withAlsoPurchasedRels: 0,
       };
       while (!applyMappingCancelRef.canceled) {
         const res = await fetch("/api/admin/sonance-import/apply-mapping", {
@@ -305,6 +309,8 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         acc.withDocuments += data.withDocuments ?? 0;
         acc.withImageRels += data.withImageRels ?? 0;
         acc.withAccessoryRels += data.withAccessoryRels ?? 0;
+        acc.withCrossSellRels += data.withCrossSellRels ?? 0;
+        acc.withAlsoPurchasedRels += data.withAlsoPurchasedRels ?? 0;
         const newDone = data.nextOffset ?? total;
         setApplyMappingProgress({ done: newDone, total, ...acc });
         if (data.done || data.nextOffset === null) break;
@@ -343,7 +349,16 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
       id: string; name: string; slug: string; isActive: boolean;
       totalProducts: number; activeProducts: number; activeWithImages: number; willShowInSidebar: boolean;
     }>;
-    accessories: { totalRelations: number; productsWithAccessories: number; productsAsAccessory: number };
+    accessories: {
+      totalRelations: number;
+      accessoryRels: number;
+      crossSellRels: number;
+      alsoPurchasedRels: number;
+      productsWithAccessories: number;
+      productsWithCrossSells: number;
+      productsWithAlsoPurchased: number;
+      productsAsAccessory: number;
+    };
     configurable: { totalCustomizable: number; customizableWithoutOptions: number };
   } | null>(null);
   const [diagLoading, setDiagLoading] = useState(false);
@@ -931,15 +946,21 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
-                  <p className="text-xs font-medium">Accesorios</p>
+                  <p className="text-xs font-medium">Relaciones producto-producto</p>
                   <p className="text-xs text-muted-foreground">
-                    Relaciones totales: <strong className="text-foreground">{diag.accessories.totalRelations}</strong>
+                    Accesorios: <strong className="text-foreground">{diag.accessories.accessoryRels}</strong> rels
+                    {" · "}<strong className="text-foreground">{diag.accessories.productsWithAccessories}</strong> productos
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Productos con accesorios: <strong className="text-foreground">{diag.accessories.productsWithAccessories}</strong>
+                    Cross-sells: <strong className="text-foreground">{diag.accessories.crossSellRels}</strong> rels
+                    {" · "}<strong className="text-foreground">{diag.accessories.productsWithCrossSells}</strong> productos
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Productos usados como accesorio: <strong className="text-foreground">{diag.accessories.productsAsAccessory}</strong>
+                    Also-purchased: <strong className="text-foreground">{diag.accessories.alsoPurchasedRels}</strong> rels
+                    {" · "}<strong className="text-foreground">{diag.accessories.productsWithAlsoPurchased}</strong> productos
+                  </p>
+                  <p className="text-xs text-muted-foreground pt-1 border-t border-border/50">
+                    Productos usados como accesorio (acumulado): <strong className="text-foreground">{diag.accessories.productsAsAccessory}</strong>
                   </p>
                 </div>
                 <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
@@ -1244,8 +1265,13 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
               Datos escritos por tipo:{" "}
               <strong>{applyMappingProgress.withSpecifications}</strong> con specs ·{" "}
               <strong>{applyMappingProgress.withDocuments}</strong> con docs ·{" "}
-              <strong>{applyMappingProgress.withImageRels}</strong> con imágenes ·{" "}
-              <strong>{applyMappingProgress.withAccessoryRels}</strong> con accesorios linkeados.
+              <strong>{applyMappingProgress.withImageRels}</strong> con imágenes.
+            </p>
+            <p className="text-xs text-muted-foreground pl-6">
+              Relaciones producto-producto:{" "}
+              <strong>{applyMappingProgress.withAccessoryRels}</strong> con accesorios ·{" "}
+              <strong>{applyMappingProgress.withCrossSellRels}</strong> con cross-sells ·{" "}
+              <strong>{applyMappingProgress.withAlsoPurchasedRels}</strong> con also-purchased.
             </p>
             {applyMappingProgress.skippedNoDetail > 0 && (
               <p className="text-xs text-warning pl-6">

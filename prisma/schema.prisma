@@ -298,6 +298,12 @@ model Product {
   @@index([isActive])
 }
 
+enum ProductRelationKind {
+  ACCESSORY       // Accesorio compatible (mount, bracket, requerido por instalación)
+  CROSS_SELL      // Producto alternativo o complementario sugerido (otra línea)
+  ALSO_PURCHASED  // "Otros también compraron" (upsell del cart)
+}
+
 model AccessoryRelation {
   id                String   @id @default(cuid())
   productId         String
@@ -305,11 +311,13 @@ model AccessoryRelation {
   accessoryProductId String
   accessoryProduct  Product  @relation("AccessoryTarget", fields: [accessoryProductId], references: [id], onDelete: Cascade)
   isRequired        Boolean  @default(false)
+  kind              ProductRelationKind @default(ACCESSORY)
   createdAt         DateTime @default(now())
 
-  @@unique([productId, accessoryProductId])
+  @@unique([productId, accessoryProductId, kind])
   @@index([productId])
   @@index([accessoryProductId])
+  @@index([kind])
 }
 
 model ProductImage {

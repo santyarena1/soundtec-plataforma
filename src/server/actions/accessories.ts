@@ -24,9 +24,10 @@ export async function upsertAccessoryRelation(formData: FormData): Promise<void>
   await prisma.$transaction([
     prisma.accessoryRelation.upsert({
       where: {
-        productId_accessoryProductId: {
+        productId_accessoryProductId_kind: {
           productId: parsed.data.productId,
           accessoryProductId: parsed.data.accessoryProductId,
+          kind: "ACCESSORY",
         },
       },
       update: { isRequired: parsed.data.isRequired ?? false },
@@ -34,6 +35,7 @@ export async function upsertAccessoryRelation(formData: FormData): Promise<void>
         productId: parsed.data.productId,
         accessoryProductId: parsed.data.accessoryProductId,
         isRequired: parsed.data.isRequired ?? false,
+        kind: "ACCESSORY",
       },
     }),
     // El accesorio pasa a tipo ACCESORIO.

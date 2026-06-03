@@ -413,10 +413,11 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        // Accessory relations: only link if accessory product exists in DB
+        // Accessory relations: only link if accessory product exists in DB.
+        // Scoped to kind=ACCESSORY para no pisar CROSS_SELL/ALSO_PURCHASED.
         if (accSkus.length > 0) {
           await tx.accessoryRelation.deleteMany({
-            where: { productId: product.id },
+            where: { productId: product.id, kind: "ACCESSORY" },
           });
           const toCreate = accSkus
             .map((sku) => accessorySkuToId.get(sku))
@@ -425,6 +426,7 @@ export async function POST(req: NextRequest) {
               productId: product.id,
               accessoryProductId,
               isRequired: false,
+              kind: "ACCESSORY" as const,
             }));
           if (toCreate.length > 0) {
             await tx.accessoryRelation.createMany({

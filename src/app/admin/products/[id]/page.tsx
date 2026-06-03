@@ -25,6 +25,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
       images: true,
       options: true,
       accessories: {
+        where: { kind: "ACCESSORY" },
         include: {
           accessoryProduct: {
             select: { id: true, normalizedName: true, internalSku: true, kind: true },

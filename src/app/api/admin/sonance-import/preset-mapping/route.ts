@@ -69,6 +69,8 @@ const RECOMMENDED_MAPPING: Record<string, string> = {
   // Relaciones
   "(rel) images": "productImages[].largeImagePath",
   "(rel) accessories": "accessories[].id",
+  "(rel) crossSells": "crossSells[].id",
+  "(rel) alsoPurchased": "alsoPurchasedProducts[].id",
 };
 
 export async function GET() {

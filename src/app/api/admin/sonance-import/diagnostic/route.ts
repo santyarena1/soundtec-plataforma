@@ -52,10 +52,21 @@ export async function GET() {
       where: { isActive: true, brandId: null },
     });
 
-    // Accesorios
-    const totalRels = await prisma.accessoryRelation.count();
+    // Relaciones producto-producto separadas por kind
+    const [accessoryRels, crossSellRels, alsoPurchasedRels] = await Promise.all([
+      prisma.accessoryRelation.count({ where: { kind: "ACCESSORY" } }),
+      prisma.accessoryRelation.count({ where: { kind: "CROSS_SELL" } }),
+      prisma.accessoryRelation.count({ where: { kind: "ALSO_PURCHASED" } }),
+    ]);
+    const totalRels = accessoryRels + crossSellRels + alsoPurchasedRels;
     const productsWithAccessories = await prisma.product.count({
-      where: { accessories: { some: {} } },
+      where: { accessories: { some: { kind: "ACCESSORY" } } },
+    });
+    const productsWithCrossSells = await prisma.product.count({
+      where: { accessories: { some: { kind: "CROSS_SELL" } } },
+    });
+    const productsWithAlsoPurchased = await prisma.product.count({
+      where: { accessories: { some: { kind: "ALSO_PURCHASED" } } },
     });
     const productsAsAccessory = await prisma.product.count({
       where: { accessoryFor: { some: {} } },
@@ -92,7 +103,12 @@ export async function GET() {
       brands: brandStats,
       accessories: {
         totalRelations: totalRels,
+        accessoryRels,
+        crossSellRels,
+        alsoPurchasedRels,
         productsWithAccessories,
+        productsWithCrossSells,
+        productsWithAlsoPurchased,
         productsAsAccessory,
       },
       configurable: {

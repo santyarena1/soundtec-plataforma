@@ -25,10 +25,31 @@ export interface CompatibleAccessoryItem {
 interface Props {
   parentProductName: string;
   items: CompatibleAccessoryItem[];
+  /** Cambia el título y el copy según el tipo de relación. Default "ACCESSORY". */
+  variant?: "ACCESSORY" | "CROSS_SELL" | "ALSO_PURCHASED";
 }
 
-export function CompatibleAccessoriesSection({ parentProductName, items }: Props) {
+const VARIANT_LABELS: Record<NonNullable<Props["variant"]>, { title: string; subtitle: (parent: string) => string }> = {
+  ACCESSORY: {
+    title: "Accesorios compatibles",
+    subtitle: (parent) =>
+      `Productos vinculados a ${parent} desde administración. Podés sumarlos a tu solicitud o ver su ficha.`,
+  },
+  CROSS_SELL: {
+    title: "Productos alternativos",
+    subtitle: (parent) =>
+      `Productos sugeridos como alternativa o complemento a ${parent}.`,
+  },
+  ALSO_PURCHASED: {
+    title: "Otros clientes también compraron",
+    subtitle: (parent) =>
+      `Productos que clientes adquirieron junto a ${parent}.`,
+  },
+};
+
+export function CompatibleAccessoriesSection({ parentProductName, items, variant = "ACCESSORY" }: Props) {
   if (items.length === 0) return null;
+  const labels = VARIANT_LABELS[variant];
 
   return (
     <Card>
@@ -36,11 +57,15 @@ export function CompatibleAccessoriesSection({ parentProductName, items }: Props
         <div>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-4 w-4 text-accent" />
-            Accesorios compatibles ({items.length})
+            {labels.title} ({items.length})
           </CardTitle>
           <p className="muted-text mt-1">
-            Productos vinculados a <strong className="font-medium text-foreground">{parentProductName}</strong> desde
-            administración. Podés sumarlos a tu solicitud o ver su ficha.
+            {labels.subtitle(parentProductName).split(parentProductName).map((chunk, i, arr) => (
+              <span key={i}>
+                {chunk}
+                {i < arr.length - 1 ? <strong className="font-medium text-foreground">{parentProductName}</strong> : null}
+              </span>
+            ))}
           </p>
         </div>
 

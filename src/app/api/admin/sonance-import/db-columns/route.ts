@@ -122,9 +122,11 @@ const COLUMNS: Omit<ColumnInfo, "coveragePercent" | "sample">[] = [
   // JSON badges
   { field: "badges", label: "Badges / etiquetas (JSON)", type: "JSON", description: "Array de etiquetas como NEW / ON SALE / FEATURED" },
 
-  // Relaciones de imagen/accesorios (no son campos de Product directos)
+  // Relaciones (no son campos de Product directos — crean filas en tablas relacionadas)
   { field: "(rel) images", label: "Imágenes (relación)", type: "tabla relacionada", description: "Crea filas en ProductImage (URL + alt + isPrimary)" },
-  { field: "(rel) accessories", label: "Accesorios (relación)", type: "tabla relacionada", description: "Crea filas en AccessoryRelation con los SKUs encontrados" },
+  { field: "(rel) accessories", label: "Accesorios compatibles (relación)", type: "tabla relacionada", description: "Productos compatibles / requeridos. Marca el padre como configurable." },
+  { field: "(rel) crossSells", label: "Cross-sells / alternativas (relación)", type: "tabla relacionada", description: "Productos alternativos o complementarios sugeridos." },
+  { field: "(rel) alsoPurchased", label: "También compraron (relación)", type: "tabla relacionada", description: "Otros productos que compraron clientes — upsell." },
 ];
 
 export async function GET() {
