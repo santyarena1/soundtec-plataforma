@@ -8,10 +8,9 @@ import { ProductForm } from "../product-form";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
 import { ProductImagesPanel } from "./images-panel";
-import { AiDescriptionPanel } from "./ai-description-panel";
 import { ProductOptionsPanel } from "./options-panel";
 import { AccessoriesPanel } from "./accessories-panel";
-import { AiClassificationPanel } from "./ai-classification-panel";
+import { ProductAiAssist } from "./product-ai-assist";
 import { LabelSelector } from "@/components/admin/label-selector";
 import { getSetting } from "@/lib/settings";
 import { PortalDataPanel } from "./portal-data-panel";
@@ -22,6 +21,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
   const product = await prisma.product.findUnique({
     where: { id },
     include: {
+      brand: { select: { name: true } },
       images: true,
       options: true,
       accessories: {
@@ -133,6 +133,15 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         </CardContent>
       </Card>
 
+      <ProductAiAssist
+        productId={product.id}
+        productName={product.normalizedName}
+        brandName={product.brand?.name ?? null}
+        currentShort={product.shortDescription}
+        currentLong={product.longDescription}
+        isAi={product.aiGeneratedDescription}
+      />
+
       <Card>
         <CardContent className="p-5">
           <h3 className="mb-3 text-sm font-semibold">Etiquetas</h3>
@@ -143,14 +152,6 @@ export default async function AdminProductEditPage({ params }: { params: Promise
           />
         </CardContent>
       </Card>
-
-      <AiClassificationPanel productId={product.id} />
-
-      <AiDescriptionPanel
-        productId={product.id}
-        current={product.longDescription}
-        isAi={product.aiGeneratedDescription}
-      />
 
       <ProductImagesPanel
         productId={product.id}

@@ -5,6 +5,50 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { generateLongDescription, generateShortDescription, suggestProductClassification, type ClassificationSuggestion } from "@/services/openai";
 import { searchProductImages, type SerperImage } from "@/services/serper";
+import { getSetting, setSetting } from "@/lib/settings";
+import { slugify } from "@/lib/utils";
+
+// ── AI prompt settings (editables por el admin desde la ficha de producto) ──
+
+const PROMPT_KEYS = {
+  short: "ai.prompt.short_description",
+  long: "ai.prompt.long_description",
+} as const;
+
+export async function loadAiPrompts(): Promise<{
+  short: string;
+  long: string;
+  defaults: { short: string; long: string };
+}> {
+  await requireAdmin();
+  const defaults = {
+    short: "Sos un copywriter técnico B2B para productos audiovisuales profesionales. Escribís en español, neutro y conciso.",
+    long: "Sos un copywriter técnico B2B para productos audiovisuales profesionales. Escribís en español, neutro, claro, sin marketing barato.",
+  };
+  const [shortP, longP] = await Promise.all([
+    getSetting(PROMPT_KEYS.short, ""),
+    getSetting(PROMPT_KEYS.long, ""),
+  ]);
+  return { short: shortP, long: longP, defaults };
+}
+
+export async function saveAiPrompts(input: {
+  short?: string;
+  long?: string;
+}): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  if (typeof input.short === "string") {
+    await setSetting(PROMPT_KEYS.short, input.short.trim(), {
+      description: "Prompt de sistema para generar descripciones cortas con IA",
+    });
+  }
+  if (typeof input.long === "string") {
+    await setSetting(PROMPT_KEYS.long, input.long.trim(), {
+      description: "Prompt de sistema para generar descripciones largas con IA",
+    });
+  }
+  return { ok: true };
+}
 
 export async function suggestClassificationAction(
   productId: string
@@ -34,12 +78,18 @@ export async function applyClassificationSuggestion(input: {
   brandName?: string | null;
   categoryName?: string | null;
   familyName?: string | null;
-}): Promise<{ ok: boolean; error?: string }> {
+  /** Si true, categoría y familia se crean si no existen. */
+  createIfMissing?: boolean;
+}): Promise<{ ok: boolean; error?: string; createdCategory?: boolean; createdFamily?: boolean }> {
   await requireAdmin();
   const data: { brandId?: string | null; categoryId?: string | null; familyId?: string | null } = {};
+  let createdCategory = false;
+  let createdFamily = false;
 
   if (input.brandName !== undefined) {
     if (input.brandName) {
+      // Marcas no se crean automáticamente (precaución: brand es una entidad
+      // con datos comerciales). Solo se aplica si existe.
       const b = await prisma.brand.findFirst({ where: { name: { equals: input.brandName, mode: "insensitive" } } });
       data.brandId = b?.id ?? null;
     } else {
@@ -48,7 +98,13 @@ export async function applyClassificationSuggestion(input: {
   }
   if (input.categoryName !== undefined) {
     if (input.categoryName) {
-      const c = await prisma.category.findFirst({ where: { name: { equals: input.categoryName, mode: "insensitive" } } });
+      let c = await prisma.category.findFirst({ where: { name: { equals: input.categoryName, mode: "insensitive" } } });
+      if (!c && input.createIfMissing) {
+        c = await prisma.category.create({
+          data: { name: input.categoryName.trim(), slug: slugify(input.categoryName.trim()) },
+        });
+        createdCategory = true;
+      }
       data.categoryId = c?.id ?? null;
     } else {
       data.categoryId = null;
@@ -56,7 +112,13 @@ export async function applyClassificationSuggestion(input: {
   }
   if (input.familyName !== undefined) {
     if (input.familyName) {
-      const f = await prisma.productFamily.findFirst({ where: { name: { equals: input.familyName, mode: "insensitive" } } });
+      let f = await prisma.productFamily.findFirst({ where: { name: { equals: input.familyName, mode: "insensitive" } } });
+      if (!f && input.createIfMissing) {
+        f = await prisma.productFamily.create({
+          data: { name: input.familyName.trim(), slug: slugify(input.familyName.trim()) },
+        });
+        createdFamily = true;
+      }
       data.familyId = f?.id ?? null;
     } else {
       data.familyId = null;
@@ -66,7 +128,72 @@ export async function applyClassificationSuggestion(input: {
   await prisma.product.update({ where: { id: input.productId }, data });
   revalidatePath(`/admin/products/${input.productId}`);
   revalidatePath(`/admin/products`);
-  return { ok: true };
+  return { ok: true, createdCategory, createdFamily };
+}
+
+/**
+ * Genera la descripción corta y la persiste. Marca aiGeneratedDescription=true
+ * porque el corto también es contenido IA (incluso si el largo no lo es).
+ */
+export async function generateProductShortDescription(
+  productId: string
+): Promise<{ ok: boolean; description?: string; error?: string }> {
+  try {
+    await requireAdmin();
+    const p = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { brand: true, category: true },
+    });
+    if (!p) return { ok: false, error: "Producto no encontrado." };
+
+    const text = await generateShortDescription({
+      name: p.normalizedName,
+      brand: p.brand?.name,
+      category: p.category?.name,
+    });
+
+    await prisma.product.update({
+      where: { id: productId },
+      data: { shortDescription: text },
+    });
+    revalidatePath(`/admin/products/${productId}`);
+    revalidatePath(`/portal/products/${productId}`);
+    return { ok: true, description: text };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Error desconocido";
+    return { ok: false, error: msg };
+  }
+}
+
+/**
+ * Guarda manualmente un texto (típicamente luego de generarlo con IA y editarlo).
+ * Es útil cuando el usuario quiere ajustar el resultado antes de persistir.
+ */
+export async function saveProductDescriptions(input: {
+  productId: string;
+  short?: string;
+  long?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+    const data: Record<string, unknown> = {};
+    if (typeof input.short === "string") data.shortDescription = input.short || null;
+    if (typeof input.long === "string") {
+      data.longDescription = input.long || null;
+      if (input.long) {
+        data.aiGeneratedDescription = true;
+        data.aiDescriptionFeedbackStatus = "PENDING";
+      }
+    }
+    if (Object.keys(data).length === 0) return { ok: true };
+    await prisma.product.update({ where: { id: input.productId }, data });
+    revalidatePath(`/admin/products/${input.productId}`);
+    revalidatePath(`/portal/products/${input.productId}`);
+    return { ok: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Error desconocido";
+    return { ok: false, error: msg };
+  }
 }
 
 export async function generateProductDescription(
