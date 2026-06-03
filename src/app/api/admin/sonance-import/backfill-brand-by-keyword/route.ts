@@ -12,12 +12,17 @@ function isAuthorizedBySetupToken(req: NextRequest): boolean {
   return !!expected && token === expected;
 }
 
+/**
+ * Substring match (sin word boundaries) — el usuario quiere que cualquier
+ * mención a estas palabras en un campo importante asigne la marca.
+ * Orden importa: las más específicas primero.
+ */
 const BRAND_KEYWORDS: Array<{ test: RegExp; brand: string }> = [
-  { test: /\bblaze\b/i, brand: "BLAZE BY SONANCE" },
-  { test: /\btrufig\b/i, brand: "TRUFIG" },
-  { test: /\bapparel\b/i, brand: "APPAREL" },
-  { test: /\biport\b/i, brand: "IPORT" },
-  { test: /\bjames\b/i, brand: "JAMES" },
+  { test: /blaze/i, brand: "BLAZE BY SONANCE" },
+  { test: /trufig/i, brand: "TRUFIG" },
+  { test: /apparel/i, brand: "APPAREL" },
+  { test: /iport/i, brand: "IPORT" },
+  { test: /james/i, brand: "JAMES" },
 ];
 
 async function ensureBrandId(name: string): Promise<string> {

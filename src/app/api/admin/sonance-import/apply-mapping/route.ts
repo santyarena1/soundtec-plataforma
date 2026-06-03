@@ -130,12 +130,14 @@ async function upsertBrandByName(name: string): Promise<string> {
  * keywords que delaten la sub-marca real. Si encuentra match, devuelve el
  * nombre canónico de la sub-marca.
  */
+// Substring match — cualquier mención de estas palabras en nombre/SKU/etc
+// fuerza la sub-marca correspondiente. Orden importa: más específico primero.
 const BRAND_KEYWORDS: Array<{ test: RegExp; brand: string }> = [
-  { test: /\bblaze\b/i, brand: "BLAZE BY SONANCE" },
-  { test: /\btrufig\b/i, brand: "TRUFIG" },
-  { test: /\bapparel\b/i, brand: "APPAREL" },
-  { test: /\biport\b/i, brand: "IPORT" },
-  { test: /\bjames\b/i, brand: "JAMES" },
+  { test: /blaze/i, brand: "BLAZE BY SONANCE" },
+  { test: /trufig/i, brand: "TRUFIG" },
+  { test: /apparel/i, brand: "APPAREL" },
+  { test: /iport/i, brand: "IPORT" },
+  { test: /james/i, brand: "JAMES" },
 ];
 
 function inferBrandFromKeywords(textFields: Array<string | null | undefined>): string | null {
