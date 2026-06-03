@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { slugify } from "@/lib/utils";
@@ -334,6 +335,57 @@ export async function bulkUpdateProducts(input: z.infer<typeof bulkSchema>): Pro
   }
   revalidatePath("/admin/products");
   return { ok: true };
+}
+
+/**
+ * Activa o desactiva productos por filtro (sin requerir selección manual).
+ *
+ * Pensado para casos como "activar todos los productos de SONANCE" después
+ * de un import donde quedaron inactivos sin querer. Los filtros usan la misma
+ * forma que la página /admin/products (brandIds, etc.).
+ */
+const bulkByFilterSchema = z.object({
+  isActive: z.boolean(),
+  brandIds: z.array(z.string()).optional(),
+  categoryIds: z.array(z.string()).optional(),
+  familyIds: z.array(z.string()).optional(),
+  q: z.string().optional(),
+  onlyInactive: z.boolean().optional(),
+  onlyActive: z.boolean().optional(),
+});
+
+export async function bulkSetActiveByFilter(
+  input: z.infer<typeof bulkByFilterSchema>
+): Promise<{ ok: boolean; affected: number; error?: string }> {
+  await requireAdmin();
+  const parsed = bulkByFilterSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, affected: 0, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+
+  const where: Prisma.ProductWhereInput = {
+    ...(parsed.data.brandIds?.length ? { brandId: { in: parsed.data.brandIds } } : {}),
+    ...(parsed.data.categoryIds?.length ? { categoryId: { in: parsed.data.categoryIds } } : {}),
+    ...(parsed.data.familyIds?.length ? { familyId: { in: parsed.data.familyIds } } : {}),
+    ...(parsed.data.q
+      ? {
+          OR: [
+            { normalizedName: { contains: parsed.data.q, mode: "insensitive" } },
+            { internalSku: { contains: parsed.data.q, mode: "insensitive" } },
+            { supplierSku: { contains: parsed.data.q, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+    // Evitamos updates innecesarios — actualizamos solo los que cambiarían.
+    ...(parsed.data.onlyInactive ? { isActive: false } : {}),
+    ...(parsed.data.onlyActive ? { isActive: true } : {}),
+  };
+
+  const result = await prisma.product.updateMany({
+    where,
+    data: { isActive: parsed.data.isActive },
+  });
+  revalidatePath("/admin/products");
+  return { ok: true, affected: result.count };
 }
 
 const userSchema = z.object({

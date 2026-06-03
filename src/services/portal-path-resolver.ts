@@ -176,7 +176,8 @@ export const API_PATHS: PathGroup[] = [
   {
     group: "Marca",
     paths: [
-      { path: "brand.name", label: "brand.name ⭐ recomendado para Marca" },
+      { path: "__sourceBrand", label: "__sourceBrand (slug top-level del listing — BLAZE / TRUFIG / IPORT / JAMES) ⭐ RECOMENDADO" },
+      { path: "brand.name", label: "brand.name (V1 brand — siempre devuelve 'SONANCE' para sub-marcas)" },
       { path: "brand.urlSegment", label: "brand.urlSegment" },
       { path: "brand.logoSmallImagePath", label: "brand.logoSmallImagePath" },
       { path: "brand.id", label: "brand.id (GUID)" },

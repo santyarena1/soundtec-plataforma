@@ -43,7 +43,10 @@ const RECOMMENDED_MAPPING: Record<string, string> = {
   salePriceLabel: "salePriceLabel",
 
   // Categorización
-  brandId: "brand.name",
+  // brandId usa __sourceBrand (slug top-level del listing) porque brand.name del
+  // V1 devuelve "SONANCE" para todas las sub-marcas. El slug del listing es la
+  // única fuente que distingue BLAZE/TRUFIG/IPORT/JAMES/SONANCE correctamente.
+  brandId: "__sourceBrand",
   categoryId: "attr:Product Category",
   familyId: "attr:Product Sub Category",
 

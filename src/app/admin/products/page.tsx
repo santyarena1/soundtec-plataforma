@@ -6,6 +6,7 @@ import { TableEmpty } from "@/components/ui/table";
 import { Plus } from "lucide-react";
 import { Prisma } from "@prisma/client";
 import { ProductsCatalogAdmin } from "./catalog-admin";
+import { BulkActiveBar } from "./bulk-active-bar";
 import { ProductCompatList } from "../crestron-home/product-compat-list";
 import { CrestronActionsBar } from "../crestron-home/crestron-actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -108,7 +109,10 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       skip: (page - 1) * pageSize,
     }),
     prisma.product.count({ where }),
-    prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.brand.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, _count: { select: { products: true } } },
+    }),
     prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -209,35 +213,42 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       !params.crestron ? (
         <TableEmpty message="Todavía no hay productos. Creá uno o importá un Excel desde Importaciones." />
       ) : tab === "catalog" ? (
-        <Suspense fallback={null}>
-          <ProductsCatalogAdmin
-            rows={rows}
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            totalPages={totalPages}
-            showPrices={showPrices}
-            filters={{
-              q: params.q || "",
-              brandIds,
-              categoryIds,
-              familyIds,
-              distributorIds,
-              stockStatuses,
-              active: params.active || "",
-              nocat: params.nocat === "1",
-              noimg: params.noimg === "1",
-              nodesc: params.nodesc === "1",
-              crestron: params.crestron === "1",
-              sort: params.sort || "updated_desc",
-            }}
-            brands={brands}
-            categories={categories}
-            families={families}
-            distributors={distributors}
-            allLabels={allLabels}
+        <>
+          <BulkActiveBar
+            matchingCount={total}
+            filters={{ brandIds, categoryIds, familyIds, q: params.q }}
+            brands={brands.map((b) => ({ id: b.id, name: b.name, productCount: b._count.products }))}
           />
-        </Suspense>
+          <Suspense fallback={null}>
+            <ProductsCatalogAdmin
+              rows={rows}
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              totalPages={totalPages}
+              showPrices={showPrices}
+              filters={{
+                q: params.q || "",
+                brandIds,
+                categoryIds,
+                familyIds,
+                distributorIds,
+                stockStatuses,
+                active: params.active || "",
+                nocat: params.nocat === "1",
+                noimg: params.noimg === "1",
+                nodesc: params.nodesc === "1",
+                crestron: params.crestron === "1",
+                sort: params.sort || "updated_desc",
+              }}
+              brands={brands.map((b) => ({ id: b.id, name: b.name }))}
+              categories={categories}
+              families={families}
+              distributors={distributors}
+              allLabels={allLabels}
+            />
+          </Suspense>
+        </>
       ) : null}
     </div>
   );

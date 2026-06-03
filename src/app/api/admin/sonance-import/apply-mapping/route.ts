@@ -28,6 +28,12 @@ interface ApplyMappingRequest {
   setActive?: boolean;
   /** Si true, crea productos faltantes en BD. Default true. */
   createMissing?: boolean;
+  /**
+   * Si true (default), siempre escribe isActive=true ignorando lo que diga el
+   * mapping o el V1 detail. Pensado para que el admin no quede con catálogos
+   * inactivos sin querer luego del import.
+   */
+  forceActive?: boolean;
 }
 
 interface ApplyMappingResponse {
@@ -272,6 +278,7 @@ export async function POST(req: NextRequest) {
     const offset = Math.max(0, body.offset ?? 0);
     const setActive = body.setActive !== false;
     const createMissing = body.createMissing !== false;
+    const forceActive = body.forceActive !== false;
 
     // 1. Load mapping
     const mappingRaw = await getSetting(MAPPING_KEY, "{}");
@@ -388,6 +395,16 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Inyectamos campos derivados del índice (no vienen del V1 detail). El
+      // motivo: V1 devuelve brand.name="SONANCE" para todas las sub-marcas
+      // (BLAZE, TRUFIG, IPORT, JAMES), pero el slug del listing top-level sí
+      // distingue. Exponemos esos valores bajo un prefijo "__source_" para
+      // que el usuario los pueda mapear desde la UI.
+      const detailRecord = detail as unknown as Record<string, unknown>;
+      detailRecord.__sourceBrand = item.brand;
+      detailRecord.__sourcePortalId = item.portalId;
+      detailRecord.__sourceSku = item.sku;
+
       const mapped = applyMapping(detail, mapping);
       const productData: Record<string, unknown> = {};
 
@@ -429,6 +446,11 @@ export async function POST(req: NextRequest) {
         if (!coerced.ok) continue;
         productData[field] = coerced.value;
       }
+
+      // Sobrescribimos isActive antes de tocar la BD si forceActive está activo.
+      // Esto cubre el caso típico: el V1 devuelve isActive=false para muchos
+      // productos del portal y el admin igual los quiere visibles en su catálogo.
+      if (forceActive) productData.isActive = true;
 
       // Find existing product
       const existing = await prisma.product.findFirst({

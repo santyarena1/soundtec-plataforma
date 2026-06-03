@@ -228,6 +228,9 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
   } | null>(null);
   const [applyMappingError, setApplyMappingError] = useState<string | null>(null);
   const [applyMappingCancelRef] = useState<{ canceled: boolean }>({ canceled: false });
+  // Default true: el caso típico es que el admin quiera ver los productos en su
+  // catálogo público inmediatamente después del import.
+  const [forceActive, setForceActive] = useState(true);
 
   // Load mapping + API path catalog on mount + sample product para preview
   useEffect(() => {
@@ -297,7 +300,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         const res = await fetch("/api/admin/sonance-import/apply-mapping", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ offset, batchSize: 25 }),
+          body: JSON.stringify({ offset, batchSize: 25, forceActive }),
         });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error ?? "Error en apply-mapping");
@@ -1059,6 +1062,17 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
               {mappingSaving && (
                 <span className="text-[11px] text-muted-foreground">guardando…</span>
               )}
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-md px-2 py-1 cursor-pointer hover:bg-muted/30">
+                <input
+                  type="checkbox"
+                  checked={forceActive}
+                  onChange={(e) => setForceActive(e.target.checked)}
+                  className="h-3 w-3"
+                />
+                <span>
+                  Dejar productos <strong className="text-foreground">activos</strong>
+                </span>
+              </label>
               <Button
                 size="sm"
                 variant="outline"
