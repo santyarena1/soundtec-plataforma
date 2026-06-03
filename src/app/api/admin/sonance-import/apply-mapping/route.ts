@@ -629,6 +629,14 @@ export async function POST(req: NextRequest) {
                   where: { id: parentId },
                   data: { isCustomizable: true },
                 });
+                // Marca también a cada accesorio con kind=ACCESORIO. Esto NO
+                // impide que se vendan standalone (accessoryRequiredWithPrimary
+                // controla eso), pero da la información visual de que están
+                // pensados como complemento.
+                await prisma.product.updateMany({
+                  where: { id: { in: uniqueIds } },
+                  data: { kind: "ACCESORIO" },
+                });
               }
               rel.counter();
             }
