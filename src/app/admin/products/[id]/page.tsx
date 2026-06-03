@@ -6,7 +6,16 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductForm } from "../product-form";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft,
+  FileText,
+  Sparkles,
+  Tags,
+  ImageIcon,
+  Sliders,
+  Package,
+  Database,
+} from "lucide-react";
 import { ProductImagesPanel } from "./images-panel";
 import { ProductOptionsPanel } from "./options-panel";
 import { AccessoriesPanel } from "./accessories-panel";
@@ -14,6 +23,53 @@ import { ProductAiAssist } from "./product-ai-assist";
 import { LabelSelector } from "@/components/admin/label-selector";
 import { getSetting } from "@/lib/settings";
 import { PortalDataPanel } from "./portal-data-panel";
+
+interface SectionRef {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const SECTIONS: SectionRef[] = [
+  { id: "datos", label: "Datos generales", icon: FileText },
+  { id: "etiquetas", label: "Etiquetas", icon: Tags },
+  { id: "ia", label: "Asistente IA", icon: Sparkles },
+  { id: "imagenes", label: "Imágenes", icon: ImageIcon },
+  { id: "opciones", label: "Opciones configurables", icon: Sliders },
+  { id: "accesorios", label: "Accesorios compatibles", icon: Package },
+  { id: "proveedor", label: "Datos del proveedor", icon: Database },
+];
+
+function SectionHeader({
+  id,
+  icon: Icon,
+  title,
+  description,
+}: {
+  id: string;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 mb-4">
+      <div
+        id={id}
+        className="-mt-20 pt-20 sr-only"
+        aria-hidden="true"
+      />
+      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent/10 shrink-0 mt-0.5">
+        <Icon className="h-4 w-4 text-accent" />
+      </div>
+      <div>
+        <h2 className="text-base font-semibold">{title}</h2>
+        {description ? (
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 export default async function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -56,12 +112,16 @@ export default async function AdminProductEditPage({ params }: { params: Promise
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/products" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Volver
+      <Link
+        href="/admin/products"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" /> Volver al catálogo
       </Link>
+
       <PageHeader
         title={product.normalizedName}
-        description={`SKU: ${product.internalSku || "—"}`}
+        description={`SKU: ${product.internalSku || "—"}${product.supplierSku ? ` · Proveedor: ${product.supplierSku}` : ""}`}
         actions={
           <>
             {product.isActive ? <Badge tone="success">Activo</Badge> : <Badge tone="muted">Inactivo</Badge>}
@@ -72,8 +132,33 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         }
       />
 
+      {/* ── Navegación rápida por sección ── */}
+      <Card>
+        <CardContent className="p-3">
+          <div className="flex flex-wrap gap-1.5">
+            {SECTIONS.map((s) => (
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent/10 hover:text-foreground transition-colors"
+              >
+                <s.icon className="h-3 w-3" />
+                {s.label}
+              </a>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── 1. Datos generales (form principal) ── */}
       <Card>
         <CardContent className="p-6">
+          <SectionHeader
+            id="datos"
+            icon={FileText}
+            title="Datos generales"
+            description="Identificación, clasificación, descripciones, precios, NCM y disponibilidad. Se guardan con el botón al final."
+          />
           <ProductForm
             product={{
               id: product.id,
@@ -133,15 +218,15 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         </CardContent>
       </Card>
 
-      <ProductAiAssist
-        productId={product.id}
-        productName={product.normalizedName}
-        brandName={product.brand?.name ?? null}
-      />
-
+      {/* ── 2. Etiquetas ── */}
       <Card>
-        <CardContent className="p-5">
-          <h3 className="mb-3 text-sm font-semibold">Etiquetas</h3>
+        <CardContent className="p-6">
+          <SectionHeader
+            id="etiquetas"
+            icon={Tags}
+            title="Etiquetas"
+            description="Asignación de labels para filtros y agrupaciones del catálogo."
+          />
           <LabelSelector
             productId={product.id}
             allLabels={allLabels}
@@ -150,6 +235,16 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         </CardContent>
       </Card>
 
+      {/* ── 3. Asistente IA ── */}
+      <div id="ia" className="-mt-20 pt-20 sr-only" aria-hidden="true" />
+      <ProductAiAssist
+        productId={product.id}
+        productName={product.normalizedName}
+        brandName={product.brand?.name ?? null}
+      />
+
+      {/* ── 4. Imágenes ── */}
+      <div id="imagenes" className="-mt-20 pt-20 sr-only" aria-hidden="true" />
       <ProductImagesPanel
         productId={product.id}
         productName={product.normalizedName}
@@ -162,6 +257,8 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         }))}
       />
 
+      {/* ── 5. Opciones configurables ── */}
+      <div id="opciones" className="-mt-20 pt-20 sr-only" aria-hidden="true" />
       <ProductOptionsPanel
         productId={product.id}
         options={product.options.map((o) => ({
@@ -174,6 +271,8 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         }))}
       />
 
+      {/* ── 6. Accesorios compatibles ── */}
+      <div id="accesorios" className="-mt-20 pt-20 sr-only" aria-hidden="true" />
       <AccessoriesPanel
         productId={product.id}
         relations={product.accessories.map((r) => ({
@@ -184,6 +283,8 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         candidates={accessoryCandidates}
       />
 
+      {/* ── 7. Datos del proveedor (Sonance / portal) ── */}
+      <div id="proveedor" className="-mt-20 pt-20 sr-only" aria-hidden="true" />
       <PortalDataPanel
         /* eslint-disable @typescript-eslint/no-explicit-any */
         modelNumber={(product as any).modelNumber ?? null}

@@ -22,6 +22,7 @@
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "^5.22.0",
     "@tanstack/react-table": "^8.20.5",
+    "@vercel/blob": "^2.4.0",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.460.0",

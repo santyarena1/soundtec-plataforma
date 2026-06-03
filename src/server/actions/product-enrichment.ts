@@ -7,6 +7,7 @@ import { generateLongDescription, generateShortDescription, suggestProductClassi
 import { searchProductImages, type SerperImage } from "@/services/serper";
 import { getSetting, setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
+import { put } from "@vercel/blob";
 
 // ── AI prompt settings (editables por el admin desde la ficha de producto) ──
 
@@ -247,6 +248,91 @@ export async function searchProductImagesAction(
     : [p.brand?.name, p.normalizedName].filter(Boolean).join(" ");
   const images = await searchProductImages(q, 8);
   return { ok: true, images };
+}
+
+/**
+ * Sube un archivo de imagen a Vercel Blob y lo adjunta al producto.
+ * Tope de tamaño: 8 MB. Tipos aceptados: image/*.
+ *
+ * Devuelve el id del producto para que el cliente pueda hacer router.refresh()
+ * inmediato y ver la imagen en la galería.
+ */
+const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif"];
+
+export async function uploadProductImageFile(
+  formData: FormData
+): Promise<{ ok: boolean; error?: string; url?: string }> {
+  try {
+    await requireAdmin();
+    const productId = String(formData.get("productId") || "");
+    const file = formData.get("file");
+    const alt = String(formData.get("alt") || "");
+    const isPrimary =
+      formData.get("isPrimary") === "true" || formData.get("isPrimary") === "on";
+
+    if (!productId) return { ok: false, error: "Falta el productId." };
+    if (!(file instanceof File)) return { ok: false, error: "No se recibió ningún archivo." };
+    if (file.size === 0) return { ok: false, error: "El archivo está vacío." };
+    if (file.size > MAX_IMAGE_SIZE) {
+      return {
+        ok: false,
+        error: `El archivo pesa ${(file.size / 1024 / 1024).toFixed(1)} MB. El tope es ${MAX_IMAGE_SIZE / 1024 / 1024} MB.`,
+      };
+    }
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return {
+        ok: false,
+        error: `Tipo no soportado (${file.type}). Aceptamos PNG, JPEG, WebP, GIF, AVIF.`,
+      };
+    }
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      return {
+        ok: false,
+        error:
+          "Falta configurar Vercel Blob. Vincula el storage en Vercel y agregá BLOB_READ_WRITE_TOKEN al entorno.",
+      };
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, internalSku: true, normalizedName: true },
+    });
+    if (!product) return { ok: false, error: "Producto no encontrado." };
+
+    // Path determinístico: products/<id>/<timestamp>-<sluggified-filename>
+    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+    const baseName = slugify(file.name.replace(/\.[^.]+$/, "")) || "image";
+    const pathname = `products/${productId}/${Date.now()}-${baseName}.${ext}`;
+
+    const blob = await put(pathname, file, {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: file.type,
+    });
+
+    if (isPrimary) {
+      await prisma.productImage.updateMany({
+        where: { productId },
+        data: { isPrimary: false },
+      });
+    }
+    await prisma.productImage.create({
+      data: {
+        productId,
+        url: blob.url,
+        alt: alt || product.normalizedName || null,
+        source: "upload",
+        isPrimary,
+      },
+    });
+    revalidatePath(`/admin/products/${productId}`);
+    revalidatePath(`/portal/products/${productId}`);
+    return { ok: true, url: blob.url };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Error desconocido al subir el archivo.";
+    return { ok: false, error: msg };
+  }
 }
 
 export async function attachProductImage(formData: FormData): Promise<void> {
