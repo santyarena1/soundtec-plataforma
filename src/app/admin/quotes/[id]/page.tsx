@@ -13,7 +13,7 @@ import {
   toggleQuoteSectionLock,
   updateQuoteSection,
 } from "@/server/actions/quotes";
-import { quoteIssueCheck } from "@/server/actions/quote-export";
+import { quoteIssueCheck } from "@/lib/quote-issue";
 import { deleteQuoteAsset } from "@/server/actions/quote-images";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
