@@ -3,32 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { Prisma, QuoteLayoutKey, QuoteNodeSource, QuoteSectionOrigin } from "@prisma/client";
+import { Prisma, QuoteAssetKind, QuoteLayoutKey, QuoteNodeSource, QuoteSectionOrigin, QuoteStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireQuotePermission, loadQuoteForUser } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { allocateQuoteNumber, getQuoteNumberingConfig, QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
-import { ensureQuoteProfiles, LETTER_OPEN_TEMPLATE, resolveDefaultProfileId } from "@/lib/quote-defaults";
-import { getSetting } from "@/lib/settings";
+import { ensureQuoteProfiles, QUOTE_MODULES, resolveDefaultProfileId, resolveQuoteModuleBodies } from "@/lib/quote-defaults";
+import { ensureQuoteCatalogImage } from "@/lib/quote-product-images";
+import { getSetting, setSetting, getGlobalMarginPercent } from "@/lib/settings";
 import { calculatePricesForProducts } from "@/lib/pricing";
-import { getGlobalMarginPercent } from "@/lib/settings";
-
-const SECTION_TITLES: Record<string, string> = {
-  letter_open: "Apertura",
-  corporate_intro: "Presentación Soundtec",
-  brands: "Marcas",
-  proposal: "Nuestra propuesta",
-  design_criteria: "Criterios de diseño",
-  key_products: "Productos clave",
-  functionality: "Funcionalidad e instalación",
-  products_table: "Productos y servicios",
-  installation: "Instalación del sistema",
-  staff: "Personal técnico",
-  commercial_terms: "Condiciones comerciales",
-  warranty: "Garantía",
-  iso: "Calidad certificada ISO 9001",
-  closing: "Cierre",
-};
+import { storeQuoteBlob } from "@/server/actions/quote-images";
 
 async function defaultTerms() {
   return {
@@ -105,7 +89,12 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
     (layoutSetting === "COMPACT" || layoutSetting === "EDITORIAL" ? layoutSetting : "STANDARD");
   const showDelivery = (await getSetting(QUOTE_SETTING_KEYS.showDeliveryDefault, "true")) !== "false";
   const terms = await defaultTerms();
-  const sectionKeys = Array.isArray(profile?.sectionKeys) ? (profile!.sectionKeys as string[]) : ["letter_open", "products_table", "commercial_terms", "closing"];
+  const enabled = new Set(
+    Array.isArray(profile?.sectionKeys)
+      ? (profile!.sectionKeys as string[])
+      : QUOTE_MODULES.filter((m) => m.defaultOn.includes("tecnico")).map((m) => m.key)
+  );
+  const bodies = await resolveQuoteModuleBodies();
 
   const quote = await prisma.quote.create({
     data: {
@@ -142,13 +131,22 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
       },
       terms: { create: terms },
       sections: {
-        create: sectionKeys.map((type, i) => ({
-          type,
-          title: SECTION_TITLES[type] || type,
-          body: type === "letter_open" ? LETTER_OPEN_TEMPLATE : "",
-          origin: type.startsWith("corporate") || type === "iso" || type === "warranty" ? QuoteSectionOrigin.CORPORATE : QuoteSectionOrigin.PROJECT,
+        create: QUOTE_MODULES.map((mod, i) => ({
+          type: mod.key,
+          title: mod.title,
+          body: bodies[mod.key] || mod.body,
+          origin:
+            mod.kind === "fixed"
+              ? QuoteSectionOrigin.CORPORATE
+              : mod.kind === "table"
+                ? QuoteSectionOrigin.TEMPLATE
+                : QuoteSectionOrigin.PROJECT,
           source: QuoteNodeSource.TEMPLATE,
+          locked: mod.kind === "fixed",
+          included: enabled.has(mod.key),
           sortOrder: i,
+          sourceBlockKey: mod.key,
+          sourceBlockVersion: 1,
         })),
       },
       revisions: {
@@ -157,8 +155,36 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
     },
   });
 
+  const planFiles = formData.getAll("plans");
+  let planSort = 0;
+  for (const file of planFiles) {
+    if (!(file instanceof File) || file.size === 0) continue;
+    const stored = await storeQuoteBlob(
+      `quotes/${quote.id}/plan-${Date.now()}-${file.name}`,
+      await file.arrayBuffer(),
+      file.type || "application/octet-stream"
+    );
+    if (!stored) continue;
+    await prisma.quoteAsset.create({
+      data: {
+        quoteId: quote.id,
+        kind: QuoteAssetKind.PLAN,
+        url: stored,
+        caption: file.name,
+        aiGenerated: false,
+        source: QuoteNodeSource.MANUAL,
+        sortOrder: planSort,
+      },
+    });
+    planSort += 1;
+  }
+
   revalidatePath("/admin/quotes");
-  redirect(`/admin/quotes/${quote.id}`);
+  const brief = (parsed.data.brief || "").trim();
+  if (brief.length >= 12) {
+    redirect(`/admin/quotes/${quote.id}?paso=2&autogen=1`);
+  }
+  redirect(`/admin/quotes/${quote.id}?paso=2`);
 }
 
 export async function searchProductsForQuote(query: string) {
@@ -251,8 +277,13 @@ export async function addProductToQuote(formData: FormData): Promise<{ ok: boole
       sortOrder: maxSort + 1,
     },
   });
+  await ensureQuoteCatalogImage({ quoteId, productId: product.id, caption: desc });
   revalidatePath(`/admin/quotes/${quoteId}`);
   return { ok: true };
+}
+
+export async function addQuoteAccessory(formData: FormData): Promise<void> {
+  await addProductToQuote(formData);
 }
 
 export async function updateQuoteItem(formData: FormData): Promise<void> {
@@ -296,6 +327,17 @@ export async function toggleQuoteItemLock(formData: FormData): Promise<void> {
   const loaded = await loadQuoteForUser(item.quoteId);
   if (!loaded.quote) return;
   await prisma.quoteItem.update({ where: { id }, data: { locked: !item.locked } });
+  revalidatePath(`/admin/quotes/${item.quoteId}`);
+}
+
+export async function toggleQuoteItemOptional(formData: FormData): Promise<void> {
+  await requireQuotePermission("quotes.edit");
+  const id = String(formData.get("itemId") || "");
+  const item = await prisma.quoteItem.findUnique({ where: { id } });
+  if (!item) return;
+  const loaded = await loadQuoteForUser(item.quoteId);
+  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  await prisma.quoteItem.update({ where: { id }, data: { optional: !item.optional } });
   revalidatePath(`/admin/quotes/${item.quoteId}`);
 }
 
@@ -345,19 +387,72 @@ export async function saveQuoteMeta(formData: FormData): Promise<void> {
     layoutRaw === "COMPACT" || layoutRaw === "EDITORIAL" || layoutRaw === "STANDARD"
       ? layoutRaw
       : loaded.quote.layoutKey;
+  const isHeader = formData.get("metaKind") === "header";
   await prisma.quote.update({
     where: { id },
     data: {
-      reference: String(formData.get("reference") || "") || null,
-      contactName: String(formData.get("contactName") || "") || null,
-      clientId: String(formData.get("clientId") || "") || null,
-      brief: String(formData.get("brief") || "") || null,
+      ...(formData.has("reference") ? { reference: String(formData.get("reference") || "") || null } : {}),
+      ...(formData.has("contactName") ? { contactName: String(formData.get("contactName") || "") || null } : {}),
+      ...(formData.has("clientId") ? { clientId: String(formData.get("clientId") || "") || null } : {}),
+      ...(formData.has("brief") ? { brief: String(formData.get("brief") || "") || null } : {}),
       layoutKey,
-      alternativesEnabled: formData.get("alternativesEnabled") === "on",
-      showDeliveryColumn: formData.get("showDeliveryColumn") === "on",
+      ...(isHeader
+        ? {
+            alternativesEnabled: formData.get("alternativesEnabled") === "on",
+            showDeliveryColumn: formData.get("showDeliveryColumn") === "on",
+          }
+        : {}),
     },
   });
   revalidatePath(`/admin/quotes/${id}`);
+  if (isHeader) redirect(`/admin/quotes/${id}?paso=2`);
+}
+
+export async function saveQuoteTerms(formData: FormData): Promise<void> {
+  await requireQuotePermission("quotes.edit");
+  const id = String(formData.get("quoteId") || "");
+  const loaded = await loadQuoteForUser(id);
+  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  const sourceRaw = String(formData.get("termsSource") || "SYSTEM");
+  const termsSource = sourceRaw === "CLIENT_PREVIOUS" || sourceRaw === "CUSTOM" ? sourceRaw : "SYSTEM";
+  await prisma.quote.update({
+    where: { id },
+    data: { termsSource },
+  });
+  await prisma.quoteCommercialTerms.upsert({
+    where: { quoteId: id },
+    create: {
+      quoteId: id,
+      paymentTerms: String(formData.get("paymentTerms") || "") || null,
+      paymentReference: String(formData.get("paymentReference") || "") || null,
+      deliveryText: String(formData.get("deliveryText") || "") || null,
+      validityDays: Number(formData.get("validityDays") || "5") || 5,
+      productWarranty: String(formData.get("productWarranty") || "") || null,
+    },
+    update: {
+      paymentTerms: String(formData.get("paymentTerms") || "") || null,
+      paymentReference: String(formData.get("paymentReference") || "") || null,
+      deliveryText: String(formData.get("deliveryText") || "") || null,
+      validityDays: Number(formData.get("validityDays") || "5") || 5,
+      productWarranty: String(formData.get("productWarranty") || "") || null,
+    },
+  });
+  revalidatePath(`/admin/quotes/${id}`);
+}
+
+export async function toggleQuoteModule(formData: FormData): Promise<void> {
+  await requireQuotePermission("quotes.edit");
+  const id = String(formData.get("sectionId") || "");
+  const section = await prisma.quoteSection.findUnique({ where: { id } });
+  if (!section) return;
+  const loaded = await loadQuoteForUser(section.quoteId);
+  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  if (section.type === "products_table") return;
+  await prisma.quoteSection.update({
+    where: { id },
+    data: { included: !section.included },
+  });
+  revalidatePath(`/admin/quotes/${section.quoteId}`);
 }
 
 export async function previewQuoteNumber(): Promise<string> {
@@ -365,3 +460,244 @@ export async function previewQuoteNumber(): Promise<string> {
   const cfg = await getQuoteNumberingConfig();
   return (await import("@/lib/quote-settings")).formatQuoteNumber({ ...cfg, sequence: cfg.nextSequence });
 }
+
+const QUOTE_STATUSES = new Set<QuoteStatus>([
+  "DRAFT",
+  "IN_REVIEW",
+  "READY",
+  "ISSUED",
+  "SUPERSEDED",
+  "ARCHIVED",
+]);
+
+export async function setQuoteStatus(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  await requireQuotePermission("quotes.edit");
+  const id = String(formData.get("quoteId") || "");
+  const statusRaw = String(formData.get("status") || "");
+  if (!QUOTE_STATUSES.has(statusRaw as QuoteStatus)) return { ok: false, error: "Estado inválido." };
+  const status = statusRaw as QuoteStatus;
+  const loaded = await loadQuoteForUser(id);
+  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+
+  if (status === "ISSUED") {
+    if (!permissionsHave(loaded.permissions, "quotes.issue") && !loaded.permissions.fullAccess) {
+      return { ok: false, error: "Sin permiso para emitir." };
+    }
+    if (!loaded.quote.clientId) return { ok: false, error: "Asigná un cliente antes de emitir." };
+    if (loaded.quote.items.length === 0) return { ok: false, error: "Agregá al menos un ítem." };
+    if (loaded.quote.showDeliveryColumn && loaded.quote.items.some((i) => !i.deliveryKey && !i.excluded)) {
+      return { ok: false, error: "Completá la entrega en todas las filas (o desactivá la columna)." };
+    }
+  }
+
+  await prisma.quote.update({
+    where: { id },
+    data: {
+      status,
+      issuedAt: status === "ISSUED" ? loaded.quote.issuedAt ?? new Date() : status === "DRAFT" ? null : loaded.quote.issuedAt,
+      issuedById:
+        status === "ISSUED"
+          ? loaded.quote.issuedById ?? loaded.user.id
+          : status === "DRAFT"
+            ? null
+            : loaded.quote.issuedById,
+    },
+  });
+  await prisma.quoteRevision.create({
+    data: { quoteId: id, actorId: loaded.user.id, summary: `Estado: ${loaded.quote.status} → ${status}` },
+  });
+  revalidatePath("/admin/quotes");
+  revalidatePath(`/admin/quotes/${id}`);
+  return { ok: true };
+}
+
+export async function deleteQuote(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  await requireQuotePermission("quotes.edit");
+  const id = String(formData.get("quoteId") || "");
+  const loaded = await loadQuoteForUser(id);
+  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  await prisma.quote.delete({ where: { id } });
+  revalidatePath("/admin/quotes");
+  return { ok: true };
+}
+
+export async function saveQuoteSignature(formData: FormData): Promise<void> {
+  const { user } = await requireQuotePermission("quotes.edit");
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      quoteSignName: String(formData.get("quoteSignName") || "").trim() || null,
+      quoteSignTitle: String(formData.get("quoteSignTitle") || "").trim() || null,
+    },
+  });
+  const quoteId = String(formData.get("quoteId") || "");
+  if (quoteId) revalidatePath(`/admin/quotes/${quoteId}`);
+}
+
+export async function duplicateQuote(formData: FormData): Promise<void> {
+  await requireQuotePermission("quotes.create");
+  const id = String(formData.get("quoteId") || "");
+  const loaded = await loadQuoteForUser(id);
+  if (!loaded.quote) return;
+  const src = await prisma.quote.findUnique({
+    where: { id },
+    include: {
+      alternatives: true,
+      items: true,
+      sections: true,
+      assets: true,
+      context: true,
+      terms: true,
+    },
+  });
+  if (!src) return;
+  const number = await allocateQuoteNumber();
+  const created = await prisma.quote.create({
+    data: {
+      number,
+      ownerId: loaded.user.id,
+      clientId: src.clientId,
+      reference: src.reference ? `${src.reference} (copia)` : src.number,
+      contactName: src.contactName,
+      layoutKey: src.layoutKey,
+      contentProfileId: src.contentProfileId,
+      alternativesEnabled: src.alternativesEnabled,
+      showDeliveryColumn: src.showDeliveryColumn,
+      projectType: src.projectType,
+      brief: src.brief,
+      advancedIntake: src.advancedIntake ?? undefined,
+      status: "DRAFT",
+      termsSource: src.termsSource,
+    },
+  });
+  const altMap = new Map<string, string>();
+  for (const alt of src.alternatives) {
+    const n = await prisma.quoteAlternative.create({
+      data: {
+        quoteId: created.id,
+        key: alt.key,
+        name: alt.name,
+        purpose: alt.purpose,
+        isDefault: alt.isDefault,
+        sortOrder: alt.sortOrder,
+      },
+    });
+    altMap.set(alt.id, n.id);
+  }
+  for (const item of src.items) {
+    await prisma.quoteItem.create({
+      data: {
+        quoteId: created.id,
+        alternativeId: item.alternativeId ? altMap.get(item.alternativeId) ?? null : null,
+        kind: item.kind,
+        productId: item.productId,
+        serviceType: item.serviceType,
+        quantity: item.quantity,
+        unit: item.unit,
+        description: item.description,
+        unitPriceUsd: item.unitPriceUsd,
+        lineTotalUsd: item.lineTotalUsd,
+        ivaRate: item.ivaRate,
+        deliveryKey: item.deliveryKey,
+        optional: item.optional,
+        source: "MANUAL",
+        sortOrder: item.sortOrder,
+      },
+    });
+  }
+  for (const section of src.sections) {
+    await prisma.quoteSection.create({
+      data: {
+        quoteId: created.id,
+        alternativeId: section.alternativeId ? altMap.get(section.alternativeId) ?? null : null,
+        type: section.type,
+        title: section.title,
+        body: section.body,
+        origin: section.origin,
+        source: section.source,
+        locked: section.locked,
+        included: section.included,
+        sortOrder: section.sortOrder,
+        sourceBlockKey: section.sourceBlockKey,
+        sourceBlockVersion: section.sourceBlockVersion,
+      },
+    });
+  }
+  for (const asset of src.assets) {
+    await prisma.quoteAsset.create({
+      data: {
+        quoteId: created.id,
+        kind: asset.kind,
+        url: asset.url,
+        caption: asset.caption,
+        aiGenerated: asset.aiGenerated,
+        source: asset.source,
+        productId: asset.productId,
+        sortOrder: asset.sortOrder,
+      },
+    });
+  }
+  if (src.context) {
+    await prisma.quoteContext.create({
+      data: {
+        quoteId: created.id,
+        facts: src.context.facts ?? undefined,
+        assumptions: src.context.assumptions ?? undefined,
+        questions: src.context.questions ?? undefined,
+        risks: src.context.risks ?? undefined,
+        notes: src.context.notes,
+      },
+    });
+  }
+  if (src.terms) {
+    await prisma.quoteCommercialTerms.create({
+      data: {
+        quoteId: created.id,
+        pricesIn: src.terms.pricesIn,
+        paymentReference: src.terms.paymentReference,
+        paymentTerms: src.terms.paymentTerms,
+        validityDays: src.terms.validityDays,
+        deliveryText: src.terms.deliveryText,
+        productWarranty: src.terms.productWarranty,
+      },
+    });
+  }
+  await prisma.quoteRevision.create({
+    data: { quoteId: created.id, actorId: loaded.user.id, summary: `Copia de ${src.number}` },
+  });
+  revalidatePath("/admin/quotes");
+  redirect(`/admin/quotes/${created.id}?paso=2`);
+}
+
+const QUOTE_CONFIG_KEYS = new Set<string>(
+  Object.values(QUOTE_SETTING_KEYS).filter((k) => k.startsWith("quotes."))
+);
+
+export async function saveQuoteModuleSetting(formData: FormData): Promise<void> {
+  const { permissions } = await requireQuotePermission("quotes.manage_library");
+  if (!permissions.fullAccess && !permissionsHave(permissions, "quotes.manage_library")) return;
+  const key = String(formData.get("key") || "");
+  const value = String(formData.get("value") || "");
+  if (!QUOTE_CONFIG_KEYS.has(key)) return;
+  await setSetting(key, value, { description: "Configuración del módulo de cotizaciones" });
+  revalidatePath("/admin/quotes/config");
+  revalidatePath("/admin/quotes");
+}
+
+export async function saveQuoteBlockTemplate(formData: FormData): Promise<void> {
+  const { permissions } = await requireQuotePermission("quotes.manage_library");
+  if (!permissions.fullAccess && !permissionsHave(permissions, "quotes.manage_library")) return;
+  const id = String(formData.get("blockId") || "");
+  const title = String(formData.get("title") || "").trim();
+  const body = String(formData.get("body") || "");
+  if (!id) return;
+  await prisma.quoteBlock.update({
+    where: { id },
+    data: {
+      ...(title ? { title } : {}),
+      body,
+    },
+  });
+  revalidatePath("/admin/quotes/config");
+}
+

@@ -11,7 +11,7 @@ const setSchema = z.object({
   isSecret: z.string().optional(),
 });
 
-const SECRET_PREFIXES = ["openai.", "serper.", "anthropic.", "gemini.", "images.api"];
+const SECRET_PREFIXES = ["openai.", "serper.", "anthropic.", "gemini.", "images.api", "higgsfield."];
 
 export async function saveSetting(formData: FormData): Promise<void> {
   await requireAdmin();
@@ -30,6 +30,7 @@ export async function saveSetting(formData: FormData): Promise<void> {
   revalidatePath("/admin/ai");
   revalidatePath("/admin/crestron-sync");
   revalidatePath("/admin/quotes");
+  revalidatePath("/admin/quotes/config");
 }
 
 const bulkSchema = z.record(z.string(), z.string());

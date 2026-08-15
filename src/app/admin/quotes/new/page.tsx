@@ -102,6 +102,12 @@ export default async function NewQuotePage() {
               />
             </div>
 
+            <div>
+              <Label htmlFor="plans">Planos y fotos de obra</Label>
+              <FieldHint>PDF o imágenes. Varios. La IA los lee al generar. Si no hay Blob token, adjuntá después en la COT.</FieldHint>
+              <Input id="plans" name="plans" type="file" accept="image/*,.pdf" multiple />
+            </div>
+
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="alternativesEnabled" className="h-4 w-4" />
               Esta COT tiene alternativas (A/B)
@@ -110,8 +116,7 @@ export default async function NewQuotePage() {
             <QuoteAdvancedFields />
 
             <p className="text-xs text-muted-foreground">
-              La generación completa con IA (planos, BOM sugerido, redacción) usa las claves de Configuración → API Keys.
-              Si no hay clave, se crea el borrador vacío para armarlo a mano.
+              Al crear entras a Brief y planos, con plantilla precargada y vista previa al lado. La planilla se edita como tabla.
             </p>
 
             <div className="flex justify-end gap-2">

@@ -34,7 +34,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-secondary/30">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-64 border-r border-border bg-card lg:flex lg:flex-col">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-64 border-r border-border bg-card print:hidden lg:flex lg:flex-col">
         <Link href="/admin" className="flex items-center gap-2 border-b border-border p-4">
           {logoUrl ? (
             <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-md">
@@ -71,8 +71,8 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-h-dvh flex-col lg:pl-64">
-        <header className="flex flex-col gap-1.5 border-b border-border bg-card px-4 py-2 lg:hidden">
+      <div className="flex min-h-dvh flex-col lg:pl-64 print:pl-0">
+        <header className="flex flex-col gap-1.5 border-b border-border bg-card px-4 py-2 print:hidden lg:hidden">
           <div className="flex items-center justify-between">
             <Link href="/admin" className="flex items-center gap-2">
               {logoUrl ? (
@@ -95,7 +95,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
           <DolarTicker compact />
         </header>
-        <main className="flex-1 p-4 sm:p-6 lg:p-10">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-10 print:p-0 print:bg-white">{children}</main>
       </div>
     </div>
   );

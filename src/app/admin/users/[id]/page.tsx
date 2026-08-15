@@ -146,6 +146,14 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               <Label htmlFor="userPhone">Teléfono</Label>
               <Input id="userPhone" name="phone" defaultValue={user.phone || ""} />
             </div>
+            <div>
+              <Label htmlFor="quoteSignName">Firma en cotizaciones (nombre)</Label>
+              <Input id="quoteSignName" name="quoteSignName" defaultValue={user.quoteSignName || ""} placeholder={user.name} />
+            </div>
+            <div>
+              <Label htmlFor="quoteSignTitle">Firma en cotizaciones (cargo)</Label>
+              <Input id="quoteSignTitle" name="quoteSignTitle" defaultValue={user.quoteSignTitle || ""} placeholder="Gerente comercial" />
+            </div>
             <div className="sm:col-span-2">
               <Label htmlFor="userPassword">Nueva contraseña</Label>
               <Input id="userPassword" name="password" type="password" placeholder="Dejar vacío para no cambiar" />

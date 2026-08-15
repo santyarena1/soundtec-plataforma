@@ -90,7 +90,11 @@ async function main() {
     { key: "openai.api_key", value: "", isSecret: true, description: "API key de OpenAI." },
     { key: "openai.model", value: process.env.OPENAI_MODEL || "gpt-4o-mini", description: "Modelo OpenAI por defecto." },
     { key: "serper.api_key", value: "", isSecret: true, description: "API key de Serper para búsqueda de imágenes." },
-    { key: "visibility.default_show_all", value: "true", description: "Si está en true, los clientes ven todo el catálogo salvo reglas explícitas que oculten." },
+    { key: "quotes.company.tagline", value: "integramos tecnología", description: "Tagline de cotizaciones." },
+    { key: "quotes.company.address", value: "Av. Donato Álvarez 1526, CABA", description: "Pie de cotización." },
+    { key: "quotes.company.email", value: "info@soundtec.com.ar", description: "Mail de cotizaciones." },
+    { key: "quotes.company.web", value: "www.soundtec.com.ar", description: "Web de cotizaciones." },
+    { key: "quotes.number.next_sequence", value: "14544", description: "Siguiente correlativo COT." },
   ];
 
   for (const setting of settings) {

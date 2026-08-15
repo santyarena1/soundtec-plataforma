@@ -32,7 +32,7 @@ export async function loadQuoteForUser(id: string) {
     where: { id },
     include: {
       client: { select: { id: true, companyName: true, tradeName: true } },
-      owner: { select: { id: true, name: true, email: true } },
+      owner: { select: { id: true, name: true, email: true, quoteSignName: true, quoteSignTitle: true } },
       contentProfile: true,
       alternatives: { orderBy: { sortOrder: "asc" } },
       items: { orderBy: { sortOrder: "asc" } },

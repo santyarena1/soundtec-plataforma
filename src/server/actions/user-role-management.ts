@@ -135,6 +135,8 @@ const updateUserFullSchema = z.object({
   clientId: z.string().optional().nullable(),
   companyName: z.string().max(160).optional().nullable(),
   phone: z.string().max(60).optional().nullable(),
+  quoteSignName: z.string().max(160).optional().nullable(),
+  quoteSignTitle: z.string().max(160).optional().nullable(),
   isActive: z.coerce.boolean().optional(),
 });
 
@@ -150,6 +152,8 @@ export async function updateUserFull(formData: FormData): Promise<void> {
     clientId: formData.get("clientId") || null,
     companyName: formData.get("companyName") || null,
     phone: formData.get("phone") || null,
+    quoteSignName: formData.get("quoteSignName") || null,
+    quoteSignTitle: formData.get("quoteSignTitle") || null,
     isActive: formData.get("isActive") === "on" || formData.get("isActive") === "true",
   });
   if (!parsed.success) return;
@@ -163,6 +167,8 @@ export async function updateUserFull(formData: FormData): Promise<void> {
     clientId: string | null;
     companyName: string | null;
     phone: string | null;
+    quoteSignName: string | null;
+    quoteSignTitle: string | null;
     isActive: boolean;
     passwordHash?: string;
   } = {
@@ -173,6 +179,8 @@ export async function updateUserFull(formData: FormData): Promise<void> {
     clientId: parsed.data.role === "CLIENT" ? parsed.data.clientId || null : null,
     companyName: parsed.data.companyName || null,
     phone: parsed.data.phone || null,
+    quoteSignName: parsed.data.quoteSignName || null,
+    quoteSignTitle: parsed.data.quoteSignTitle || null,
     isActive: parsed.data.isActive ?? true,
   };
 

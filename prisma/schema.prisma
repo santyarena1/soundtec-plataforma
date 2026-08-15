@@ -1100,6 +1100,7 @@ model QuoteSection {
   source          QuoteNodeSource     @default(MANUAL)
   locked          Boolean             @default(false)
   stale           Boolean             @default(false)
+  included        Boolean             @default(true)
   sortOrder       Int                 @default(0)
   sourceBlockKey  String?
   sourceBlockVersion Int?

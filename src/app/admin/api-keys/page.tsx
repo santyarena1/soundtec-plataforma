@@ -10,18 +10,19 @@ import { Badge } from "@/components/ui/badge";
 export const metadata = { title: "Admin · API Keys" };
 
 const keys = [
-  { key: "openai.api_key", label: "OpenAI API Key", description: "Redacción, visión de planos y generación si el proveedor de imágenes es OpenAI. Vacía = mock." },
-  { key: "serper.api_key", label: "Serper API Key", description: "Búsqueda de fotos de producto/aplicación. Vacía = placeholder." },
-  { key: "anthropic.api_key", label: "Anthropic API Key", description: "Opcional. Si está, se puede usar como proveedor del copiloto." },
-  { key: "gemini.api_key", label: "Google Gemini API Key", description: "Opcional. Visión / redacción. También lee GEMINI_API_KEY del entorno." },
-  { key: "images.api_key", label: "API Key de imágenes", description: "Generación de esquemas/conceptuales. Si está vacía no se generan imágenes." },
+  { key: "openai.api_key", label: "OpenAI API Key", description: "Imprescindible: redacción de COT, visión de planos y DALL·E para esquemas conceptuales." },
+  { key: "serper.api_key", label: "Serper API Key", description: "Fotos reales de producto/aplicación. El vendedor elige; no se pegan solas en el PDF." },
+  { key: "images.api_key", label: "API Key de imágenes (opcional)", description: "Si está vacía se usa la de OpenAI. DALL·E 3 para esquemas, siempre etiquetados como conceptuales." },
+  { key: "higgsfield.api_key", label: "Higgsfield API Key (opcional)", description: "No es el motor del módulo. Sólo si más adelante cambiás el proveedor a Higgsfield." },
+  { key: "anthropic.api_key", label: "Anthropic API Key", description: "Opcional. Reserva para otro redactor." },
+  { key: "gemini.api_key", label: "Google Gemini API Key", description: "Opcional. También lee GEMINI_API_KEY del entorno." },
 ];
 
 const modelFields = [
   { key: "openai.model", label: "Modelo OpenAI por defecto", options: ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4-turbo"] },
   { key: "quotes.ai.writer_model", label: "Modelo redactor de cotizaciones", options: ["", "gpt-4o-mini", "gpt-4o", "gpt-4.1"] },
   { key: "quotes.ai.vision_model", label: "Modelo visión (planos)", options: ["", "gpt-4o", "gpt-4.1"] },
-  { key: "images.provider", label: "Proveedor de imágenes", options: ["openai", "none"] },
+  { key: "images.provider", label: "Proveedor de esquemas", options: ["openai", "none", "higgsfield"] },
 ];
 
 function mask(value: string) {
@@ -41,7 +42,7 @@ export default async function AdminApiKeysPage() {
     <div className="space-y-6">
       <PageHeader
         title="API Keys"
-        description="Las claves se guardan en la tabla AdminSetting marcadas como secretas. Para producción es preferible usar variables de entorno y dejar este formulario sólo para overrides."
+        description="OpenAI + Serper son las que hacen andar el copiloto de cotizaciones. Higgsfield queda como reserva, no como motor principal."
       />
       <div className="space-y-3">
         {keys.map((k) => {
