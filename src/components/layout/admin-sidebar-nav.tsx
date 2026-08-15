@@ -44,6 +44,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, scope: "dashboard" },
       { href: "/admin/requests", label: "Solicitudes", icon: ListChecks, scope: "requests.view" },
+      { href: "/admin/quotes", label: "Cotizaciones", icon: FileSpreadsheet, scope: "quotes.view_own" },
     ],
   },
   {

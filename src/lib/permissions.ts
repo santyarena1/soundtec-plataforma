@@ -38,7 +38,15 @@ export type PermissionScope =
   | "tickets.manage"
   | "portal.catalog"
   | "portal.requests"
-  | "portal.cart";
+  | "portal.cart"
+  | "quotes.view_own"
+  | "quotes.view_all"
+  | "quotes.create"
+  | "quotes.edit"
+  | "quotes.issue"
+  | "quotes.submit_review"
+  | "quotes.approve"
+  | "quotes.manage_library";
 
 export interface Permissions {
   scopes: PermissionScope[];
@@ -89,6 +97,19 @@ export const PERMISSION_GROUPS: Array<{
       { scope: "margins.manage", label: "Márgenes" },
       { scope: "discounts.manage", label: "Descuentos" },
       { scope: "visibility.manage", label: "Visibilidad por cliente" },
+    ],
+  },
+  {
+    title: "Cotizaciones",
+    items: [
+      { scope: "quotes.view_own", label: "Ver propias cotizaciones" },
+      { scope: "quotes.view_all", label: "Ver cotizaciones de todos", help: "Los admin lo tienen. Un vendedor no, salvo que se lo marques." },
+      { scope: "quotes.create", label: "Crear cotizaciones" },
+      { scope: "quotes.edit", label: "Editar cotizaciones" },
+      { scope: "quotes.submit_review", label: "Enviar a revisión (si no puede emitir)" },
+      { scope: "quotes.issue", label: "Emitir PDF oficial sin consultar" },
+      { scope: "quotes.approve", label: "Aprobar cotizaciones de otros" },
+      { scope: "quotes.manage_library", label: "Biblioteca, numeración y perfiles" },
     ],
   },
   {
@@ -166,6 +187,10 @@ export const PRESET_COMMERCIAL_SENIOR: Permissions = {
     "discounts.manage",
     "visibility.manage",
     "share_lists.manage",
+    "quotes.view_own",
+    "quotes.create",
+    "quotes.edit",
+    "quotes.issue",
   ],
 };
 

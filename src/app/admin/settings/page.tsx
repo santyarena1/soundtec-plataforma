@@ -15,6 +15,17 @@ const visibleKeys = [
   { key: "pricing.tc_venta", label: "Tipo de cambio venta (ARS/USD)", placeholder: "Ej. 1200.50" },
   { key: "pricing.coef_nac_global", label: "Coeficiente NAC global (FOB→NAC)", placeholder: "Ej. 3.5" },
   { key: "visibility.default_show_all", label: "Mostrar todo por defecto (true/false)", placeholder: "true" },
+  { key: "quotes.number.prefix", label: "Cotizaciones · prefijo", placeholder: "COT" },
+  { key: "quotes.number.include_date", label: "Cotizaciones · incluir fecha (true/false)", placeholder: "false" },
+  { key: "quotes.number.date_token", label: "Cotizaciones · token de fecha (YYYY / YY / YYYYMM / YYYYMMDD)", placeholder: "YYYY" },
+  { key: "quotes.number.separator", label: "Cotizaciones · separador del número", placeholder: "- o vacío" },
+  { key: "quotes.number.padding", label: "Cotizaciones · dígitos del correlativo", placeholder: "5" },
+  { key: "quotes.number.next_sequence", label: "Cotizaciones · siguiente número", placeholder: "14544" },
+  { key: "quotes.default_layout", label: "Cotizaciones · layout default (COMPACT/STANDARD/EDITORIAL)", placeholder: "STANDARD" },
+  { key: "quotes.default_iva", label: "Cotizaciones · IVA default (%)", placeholder: "21" },
+  { key: "quotes.show_delivery_default", label: "Cotizaciones · mostrar columna entrega (true/false)", placeholder: "true" },
+  { key: "quotes.delivery_options", label: "Cotizaciones · opciones de entrega (una por línea)", placeholder: "Inmediata" },
+  { key: "quotes.terms.validity_days", label: "Cotizaciones · vigencia default (días)", placeholder: "5" },
 ];
 
 export default async function AdminSettingsPage() {
