@@ -8,7 +8,13 @@ import { prisma } from "@/lib/prisma";
 import { requireQuotePermission, loadQuoteForUser } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { allocateQuoteNumber, getQuoteNumberingConfig, QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
-import { ensureQuoteProfiles, QUOTE_MODULES, resolveDefaultProfileId, resolveQuoteModuleBodies } from "@/lib/quote-defaults";
+import {
+  ensureQuoteProfiles,
+  moduleVersion,
+  QUOTE_MODULES,
+  resolveDefaultProfileId,
+  resolveQuoteModuleBodies,
+} from "@/lib/quote-defaults";
 import { ensureQuoteCatalogImage } from "@/lib/quote-product-images";
 import { getSetting, setSetting, getGlobalMarginPercent } from "@/lib/settings";
 import { calculatePricesForProducts } from "@/lib/pricing";
@@ -146,7 +152,7 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
           included: enabled.has(mod.key),
           sortOrder: i,
           sourceBlockKey: mod.key,
-          sourceBlockVersion: 1,
+          sourceBlockVersion: moduleVersion(mod),
         })),
       },
       revisions: {
@@ -681,6 +687,7 @@ export async function saveQuoteModuleSetting(formData: FormData): Promise<void> 
   if (!QUOTE_CONFIG_KEYS.has(key)) return;
   await setSetting(key, value, { description: "Configuración del módulo de cotizaciones" });
   revalidatePath("/admin/quotes/config");
+  revalidatePath("/admin/settings/quotes");
   revalidatePath("/admin/quotes");
 }
 
@@ -699,5 +706,6 @@ export async function saveQuoteBlockTemplate(formData: FormData): Promise<void> 
     },
   });
   revalidatePath("/admin/quotes/config");
+  revalidatePath("/admin/settings/quotes");
 }
 

@@ -30,7 +30,17 @@ export type QuoteModuleDef = {
   description: string;
   body: string;
   defaultOn: ("resumido" | "tecnico" | "premium")[];
+  /**
+   * Se sube cuando el texto fijo cambia en el código. Al subirlo, los bloques y
+   * las secciones que todavía vienen de plantilla se refrescan solos; lo que el
+   * usuario haya editado a mano queda intacto.
+   */
+  templateVersion?: number;
 };
+
+export function moduleVersion(mod: QuoteModuleDef) {
+  return mod.templateVersion ?? 1;
+}
 
 export const LETTER_OPEN_TEMPLATE = `De nuestra consideración:
 De acuerdo a lo solicitado se extiende para su evaluación la presente cotización por la provisión de equipamiento y/o servicios para el sistema de la referencia.`;
@@ -69,6 +79,7 @@ Nuestro personal técnico y comercial está certificado y/o calificado por los f
 
 SOUNDTEC, con más de 35 años de trayectoria, es hoy la única compañía argentina que puede ofrecer sus servicios en materia audiovisual con el respaldo que dan las grandes marcas que comercializa y a la vez con el respaldo y seriedad que implica tener todos sus procedimientos certificados bajo normas de calidad internacionales ISO 9001.`,
     defaultOn: ["tecnico", "premium"],
+    templateVersion: 2,
   },
   {
     key: "disciplines",
@@ -87,6 +98,7 @@ SOUNDTEC, con más de 35 años de trayectoria, es hoy la única compañía argen
 
 … entre otras más de 70 marcas.`,
     defaultOn: ["tecnico", "premium"],
+    templateVersion: 2,
   },
   {
     key: "proposal",
@@ -154,6 +166,7 @@ El personal técnico de SOUNDTEC no realizará tareas en condiciones de riesgo n
 RESPONSABLE POR PARTE DEL CLIENTE
 El cliente deberá designar a una persona responsable para la coordinación general de los trabajos, incluyendo: ingreso de personal, movimiento de materiales, recepción de mercadería, gestión de horarios y cualquier otra necesidad operativa relacionada con la instalación.`,
     defaultOn: ["tecnico", "premium"],
+    templateVersion: 2,
   },
   {
     key: "staff",
@@ -170,6 +183,7 @@ Nuestro personal técnico se presenta uniformado, cumple con la normativa labora
 
 Cada técnico asignado ha sido entrenado en metodologías de trabajo seguro y utiliza los elementos de protección personal adecuados a cada tarea. En SOUNDTEC, la seguridad es una práctica activa que garantiza la integridad de nuestro equipo y de las instalaciones donde intervenimos.`,
     defaultOn: ["tecnico", "premium"],
+    templateVersion: 2,
   },
   {
     key: "commercial_terms",
@@ -191,6 +205,7 @@ La presente oferta se mantiene vigente por un período de cinco (5) días corrid
 PLAZO DE ENTREGA
 El plazo de entrega será confirmado una vez recibida la orden de compra formal. En la última columna de la planilla de cotización se indica la disponibilidad tentativa del equipamiento cotizado, sujeta a confirmación y salvo venta previa. Los plazos comenzarán a contarse a partir del cumplimiento efectivo de las condiciones comerciales acordadas.`,
     defaultOn: ["resumido", "tecnico", "premium"],
+    templateVersion: 2,
   },
   {
     key: "warranty",
@@ -199,6 +214,7 @@ El plazo de entrega será confirmado una vez recibida la orden de compra formal.
     description: "12 meses salvo indicación en la planilla.",
     body: `Salvo indicación en contrario dentro de la planilla de cotización, todos los productos incluidos en esta propuesta gozarán de una garantía de 12 meses a partir de la fecha de su facturación, contra vicios de fabricación, y de acuerdo con el certificado de garantía entregado con cada equipo.`,
     defaultOn: ["resumido", "tecnico", "premium"],
+    templateVersion: 2,
   },
   {
     key: "satisfaction",
@@ -225,6 +241,7 @@ Ventas y alquileres; servicio técnico; eventos; diseño, realización y manteni
 NUESTRA POLÍTICA DE CALIDAD
 SOUNDTEC s.r.l. es una empresa orientada a lograr altos niveles de satisfacción de sus clientes, acercando las innovaciones tecnológicas y proponiendo soluciones integrales, cumpliendo con los requisitos acordados para sus prestaciones. Nuestra organización se compromete a mejorar de forma continua la eficacia del Sistema de Gestión de la Calidad, demostrando así su compromiso con la excelencia en todos los niveles de la empresa.`,
     defaultOn: ["tecnico", "premium"],
+    templateVersion: 2,
   },
   {
     key: "closing",
@@ -320,17 +337,24 @@ export async function ensureQuoteProfiles() {
     });
   }
   for (const m of QUOTE_MODULES) {
+    const version = moduleVersion(m);
+    // El body sólo se escribe al crear la versión: si la editaste desde la
+    // configuración del módulo, tu texto manda hasta que suba la versión.
     await prisma.quoteBlock.upsert({
-      where: { key_version: { key: m.key, version: 1 } },
+      where: { key_version: { key: m.key, version } },
       update: { title: m.title, category: m.kind, isActive: true },
-      create: { key: m.key, version: 1, title: m.title, category: m.kind, body: m.body, isActive: true },
+      create: { key: m.key, version, title: m.title, category: m.kind, body: m.body, isActive: true },
+    });
+    await prisma.quoteBlock.updateMany({
+      where: { key: m.key, version: { not: version }, isActive: true },
+      data: { isActive: false },
     });
   }
 }
 
 export async function resolveQuoteModuleBodies(): Promise<Record<string, string>> {
   await ensureQuoteProfiles();
-  const blocks = await prisma.quoteBlock.findMany({ where: { version: 1, isActive: true } });
+  const blocks = await prisma.quoteBlock.findMany({ where: { isActive: true } });
   const byKey = new Map(blocks.map((b) => [b.key, b.body]));
   const out: Record<string, string> = {};
   for (const m of QUOTE_MODULES) {
@@ -367,12 +391,22 @@ export async function ensureQuoteSections(quoteId: string, profileKey = "tecnico
   for (const section of quote.sections) {
     const def = moduleByKey(section.type);
     const nextBody = bodies[section.type] || "";
-    if (section.body.trim()) continue;
     if (!nextBody.trim()) continue;
-    if (def?.kind === "ai" && section.body.trim()) continue;
+
+    if (!section.body.trim()) {
+      await prisma.quoteSection.update({ where: { id: section.id }, data: { body: nextBody } });
+      continue;
+    }
+
+    // La sección tiene texto. Sólo se reemplaza si sigue siendo el de plantilla
+    // y esa plantilla quedó vieja: lo escrito a mano o por IA no se toca.
+    if (!def || def.kind === "ai") continue;
+    if (section.source !== "TEMPLATE") continue;
+    const version = moduleVersion(def);
+    if ((section.sourceBlockVersion ?? 1) >= version) continue;
     await prisma.quoteSection.update({
       where: { id: section.id },
-      data: { body: nextBody },
+      data: { title: def.title, body: nextBody, sourceBlockVersion: version },
     });
   }
   let sort = quote.sections.reduce((m, s) => Math.max(m, s.sortOrder), -1);
@@ -391,7 +425,7 @@ export async function ensureQuoteSections(quoteId: string, profileKey = "tecnico
         included: enabled.has(mod.key),
         sortOrder: sort,
         sourceBlockKey: mod.key,
-        sourceBlockVersion: 1,
+        sourceBlockVersion: moduleVersion(mod),
       },
     });
   }
