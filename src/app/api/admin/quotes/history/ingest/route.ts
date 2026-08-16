@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { parseHistoricalWorkbookFromBytes } from "@/lib/quote-history-parse";
+import {
+  parseHistoricalWorkbookFromBytes,
+  type ParsedHistoricalSheet,
+} from "@/lib/quote-history-parse";
 import {
   authorizeHistoryIngest,
   ingestFail,
@@ -43,9 +46,19 @@ export async function POST(req: Request) {
       if (!body || !Array.isArray(body.sheets)) {
         return jsonResult(ingestFail("No se recibieron hojas para ingestar."));
       }
+      const sheets: ParsedHistoricalSheet[] = body.sheets.map((sheet) => ({
+        sheetName: String(sheet?.sheetName || "").trim(),
+        lines: Array.isArray(sheet?.lines)
+          ? sheet.lines.map((line) => ({
+              description: String(line?.description || "").trim(),
+              quantity:
+                typeof line?.quantity === "number" && Number.isFinite(line.quantity) ? line.quantity : null,
+            }))
+          : [],
+      }));
       const result = await persistHistoricalSheets(
         body.sourceFile || "Planillas de Cotizacion.xlsx",
-        body.sheets,
+        sheets,
         { resetSource: body.resetSource === true }
       );
       return jsonResult(result, result.ok ? 200 : 400);
