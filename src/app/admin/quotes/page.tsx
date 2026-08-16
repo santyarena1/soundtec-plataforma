@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate, formatUsd } from "@/lib/utils";
 import { QuoteRowActions } from "./quote-row-actions";
 import { Settings } from "lucide-react";
+import { requestShortId } from "@/lib/request-quote-link";
 
 export const metadata = { title: "Admin · Cotizaciones" };
 
@@ -217,6 +218,11 @@ export default async function AdminQuotesPage({
                     <Link href={`/admin/quotes/${row.id}`} className="font-medium text-primary hover:underline">
                       {row.number}
                     </Link>
+                    {row.sourceRequestId ? (
+                      <p className="mt-0.5">
+                        <Badge tone="accent">Importada #{requestShortId(row.sourceRequestId)}</Badge>
+                      </p>
+                    ) : null}
                   </TD>
                   <TD>{row.client?.companyName || "—"}</TD>
                   <TD className="max-w-[220px] truncate">{row.reference || "—"}</TD>

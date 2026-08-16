@@ -1,6 +1,7 @@
 "use client";
 
 import { QuoteRevisePanel } from "./revise-panel";
+import { QuoteLinePhoto } from "@/components/quotes/quote-line-photo";
 import { addServiceToQuote } from "@/server/actions/quote-export";
 import {
   deleteQuoteItem,
@@ -19,6 +20,8 @@ export type QuoteBomRow = {
   quantity: number;
   unit: string;
   description: string;
+  name: string;
+  blurb: string | null;
   unitPriceUsd: number;
   lineTotalUsd: number;
   ivaRate: number;
@@ -26,6 +29,7 @@ export type QuoteBomRow = {
   optional: boolean;
   locked: boolean;
   photoUrl: string | null;
+  productId: string | null;
 };
 
 function saveRow(form: HTMLFormElement | null) {
@@ -104,14 +108,24 @@ export function QuoteBomTable({
                 return (
                   <tr key={item.id} className="border-b border-border align-top odd:bg-white even:bg-[#f6f7f9]">
                     <td className="px-3 py-2">
-                      <div className="flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-md border border-border bg-white">
-                        {item.photoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.photoUrl} alt="" className="h-full w-full object-contain p-1" />
-                        ) : (
-                          <span className="px-1 text-center text-[9px] leading-tight text-muted-foreground">Sin foto</span>
-                        )}
-                      </div>
+                      {item.productId ? (
+                        <QuoteLinePhoto
+                          quoteId={quoteId}
+                          productId={item.productId}
+                          caption={item.name}
+                          photoUrl={item.photoUrl}
+                          issued={issued}
+                        />
+                      ) : (
+                        <div className="flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-md border border-border bg-white">
+                          {item.photoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={item.photoUrl} alt="" className="h-full w-full object-contain p-1" />
+                          ) : (
+                            <span className="px-1 text-center text-[9px] leading-tight text-muted-foreground">Sin foto</span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="px-2 py-2">
                       <form id={formId} action={updateQuoteItem} onInput={(e) => (e.currentTarget.dataset.dirty = "1")} />
@@ -127,13 +141,19 @@ export function QuoteBomTable({
                     </td>
                     <td className="px-2 py-3 text-muted-foreground">{item.unit}</td>
                     <td className="px-2 py-2 min-w-[280px]">
+                      <p className="mb-1 text-sm font-bold leading-snug">{item.name}</p>
+                      {item.blurb ? (
+                        <p className="mb-2 text-xs leading-snug text-foreground/80" style={{ textAlign: "justify" }}>
+                          {item.blurb}
+                        </p>
+                      ) : null}
                       <Textarea
                         form={formId}
                         name="description"
                         defaultValue={item.description}
-                        rows={3}
+                        rows={2}
                         disabled={locked}
-                        className="min-h-[72px] leading-snug"
+                        className="min-h-[56px] leading-snug"
                         onBlur={(e) => saveRow(e.currentTarget.form)}
                       />
                     </td>

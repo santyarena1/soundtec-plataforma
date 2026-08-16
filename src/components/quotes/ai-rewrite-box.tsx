@@ -62,7 +62,7 @@ export function AiRewriteBox({
             className="h-8 min-w-[160px] flex-1 rounded-md border border-border bg-white px-2 text-xs"
           />
           <Button type="button" size="sm" disabled={pending || instruction.trim().length < 3} onClick={() => apply()}>
-            {pending ? "…" : "Aplicar"}
+            {pending ? "…" : "Generar con IA"}
           </Button>
         </div>
         {warning ? <p className="text-[11px] font-medium text-amber-800">{warning}</p> : null}
@@ -103,7 +103,7 @@ export function AiRewriteBox({
         disabled={pending}
       />
       <Button type="button" size="sm" disabled={pending || instruction.trim().length < 3} onClick={() => apply()}>
-        {pending ? "Reescribiendo…" : "Aplicar instrucción"}
+        {pending ? "Generando…" : "Generar con IA"}
       </Button>
       {message ? <p className="text-xs text-muted-foreground">{message}</p> : null}
     </div>

@@ -6,6 +6,7 @@ import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { getQuoteOpenAI } from "@/lib/quote-llm";
 import { generateQuoteProposal, rewriteQuoteNode, rewriteQuoteTemplateBlock } from "@/services/quote-orchestrator";
+import { fillMissingShortDescription } from "@/lib/product-short-description";
 import { revalidatePath } from "next/cache";
 
 export async function generateQuoteFromBrief(quoteId: string): Promise<{ ok: boolean; error?: string; message?: string }> {
@@ -92,6 +93,40 @@ export async function reviseQuoteTemplateBlock(input: {
       message: "Plantilla maestra actualizada. Las cotizaciones ya creadas no se tocan.",
     };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "No se pudo reescribir la plantilla." };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "No se pudo reescribir la plantilla.",
+    };
   }
+}
+
+export async function ensureQuoteProductShortDescriptions(
+  quoteId: string
+): Promise<{ ok: boolean; filled?: number; error?: string }> {
+  const loaded = await loadQuoteForUser(quoteId);
+  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const productIds = [
+    ...new Set(loaded.quote.items.map((item) => item.productId).filter((id): id is string => Boolean(id))),
+  ];
+  if (productIds.length === 0) return { ok: true, filled: 0 };
+
+  const missing = await prisma.product.findMany({
+    where: {
+      id: { in: productIds },
+      OR: [{ shortDescription: null }, { shortDescription: "" }],
+    },
+    select: { id: true },
+  });
+
+  let filled = 0;
+  for (const product of missing) {
+    try {
+      const text = await fillMissingShortDescription(product.id);
+      if (text) filled += 1;
+    } catch {
+      /* sigue con el resto */
+    }
+  }
+  if (filled > 0) revalidatePath(`/admin/quotes/${quoteId}`);
+  return { ok: true, filled };
 }

@@ -971,3 +971,64 @@ export async function removeRequestItem(formData: FormData): Promise<{ ok: boole
   revalidateDraftPaths(item.requestId);
   return { ok: true };
 }
+
+export async function attachQuoteAsRequestResponse(input: {
+  requestId: string;
+  quoteId: string;
+}): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const request = await prisma.customerRequest.findUnique({
+    where: { id: input.requestId },
+    select: { id: true, status: true, adminResponse: true, userId: true },
+  });
+  if (!request) return { ok: false, error: "La solicitud ya no existe." };
+
+  const quote = await prisma.quote.findUnique({
+    where: { id: input.quoteId },
+    select: { id: true, number: true, sourceRequestId: true },
+  });
+  if (!quote) return { ok: false, error: "La cotización ya no existe." };
+  if (quote.sourceRequestId && quote.sourceRequestId !== request.id) {
+    return { ok: false, error: "Esta cotización pertenece a otra solicitud." };
+  }
+
+  if (!quote.sourceRequestId) {
+    await prisma.quote.update({ where: { id: quote.id }, data: { sourceRequestId: request.id } });
+  }
+
+  const already = await prisma.requestMessage.findFirst({
+    where: { requestId: request.id, message: { contains: quote.number } },
+  });
+  if (already) {
+    return { ok: true };
+  }
+
+  const message = `Adjuntamos la cotización ${quote.number} para tu evaluación. Podés abrirla desde el enlace de esta conversación.`;
+  await prisma.requestMessage.create({
+    data: {
+      requestId: request.id,
+      senderId: admin.id,
+      message,
+      attachments: [{ kind: "quote", quoteId: quote.id, number: quote.number }],
+    },
+  });
+
+  const line = `Cotización ${quote.number} adjunta.`;
+  const nextResponse = request.adminResponse?.includes(quote.number)
+    ? request.adminResponse
+    : request.adminResponse?.trim()
+      ? `${request.adminResponse.trim()}\n\n${line}`
+      : line;
+  const nextStatus =
+    request.status === "SENT" || request.status === "IN_REVIEW" ? "ANSWERED" : request.status;
+
+  await prisma.customerRequest.update({
+    where: { id: request.id },
+    data: { adminResponse: nextResponse, status: nextStatus },
+  });
+
+  revalidateRequest(request.id);
+  revalidatePath(`/admin/quotes/${quote.id}`);
+  revalidatePath("/admin/quotes");
+  return { ok: true };
+}

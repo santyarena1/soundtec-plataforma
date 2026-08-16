@@ -10,6 +10,7 @@ import {
 } from "@/lib/quote-defaults";
 import { isRichText, sanitizeQuoteHtml, splitParagraphs } from "@/lib/quote-richtext";
 import { formatUsd } from "@/lib/utils";
+import { quoteItemDisplay } from "@/lib/quote-product-line";
 
 export const dynamic = "force-dynamic";
 
@@ -103,17 +104,22 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     .join("");
 
   const rows = visibleItems
-    .map(
-      (item, index) =>
-        `<tr style="background:${index % 2 ? "#f3f5f8" : "#ffffff"}">
+    .map((item, index) => {
+      const line = quoteItemDisplay(item);
+      const detail = `<strong>${escapeHtml(line.name)}</strong>${
+        line.blurb
+          ? `<br/><span style="font-size:9pt;font-weight:normal;text-align:justify">${escapeHtml(line.blurb)}</span>`
+          : ""
+      }${item.optional ? " <i>(opcional)</i>" : ""}`;
+      return `<tr style="background:${index % 2 ? "#f3f5f8" : "#ffffff"}">
 <td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.quantity)}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.unit)}</td>
-<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.description).replaceAll("\n", "<br/>")}${item.optional ? " <i>(opcional)</i>" : ""}</td>
+<td style="border:.5pt solid #c9d0d8;padding:4pt">${detail}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${formatUsd(Number(item.unitPriceUsd))}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right;font-weight:bold">${formatUsd(Number(item.lineTotalUsd))}</td>
 ${showDelivery ? `<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.deliveryKey || "")}</td>` : ""}
-</tr>`
-    )
+</tr>`;
+    })
     .join("");
 
   const html = `<!DOCTYPE html>

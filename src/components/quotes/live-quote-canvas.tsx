@@ -4,6 +4,8 @@ import { useRef, useState, useTransition } from "react";
 import { Sparkles, Table2 } from "lucide-react";
 import { AiRewriteBox } from "@/components/quotes/ai-rewrite-box";
 import { LiveRichText } from "@/components/quotes/live-rich-text";
+import { QuoteLinePhoto } from "@/components/quotes/quote-line-photo";
+import { QuotePreviewZoom } from "@/components/quotes/quote-preview-zoom";
 import { ResizableQuoteImage } from "@/components/quotes/resizable-quote-image";
 import { toEditorHtml } from "@/lib/quote-richtext";
 import {
@@ -51,12 +53,15 @@ export type LiveTableItem = {
   qty: number;
   unit: string;
   detail: string;
+  name?: string;
+  blurb?: string | null;
   unitPrice: number;
   lineTotal: number;
   ivaRate?: number;
   optional?: boolean;
   deliveryKey?: string;
   photoUrl?: string | null;
+  productId?: string | null;
 };
 
 export type LiveTerms = {
@@ -70,6 +75,8 @@ const SAMPLE_ITEMS: LiveTableItem[] = [
     id: "s1",
     qty: 4,
     unit: "u",
+    name: "Parlante de embutir 6,5″",
+    blurb: "Altavoz de techo con transformador de línea 70/100 V para sonido ambiental uniforme.",
     detail: "Parlante de embutir 6,5″ con transformador de línea 70/100 V",
     unitPrice: 182,
     lineTotal: 728,
@@ -78,6 +85,8 @@ const SAMPLE_ITEMS: LiveTableItem[] = [
     id: "s2",
     qty: 1,
     unit: "u",
+    name: "Amplificador de línea 240 W",
+    blurb: "Amplificador de zona con entrada auxiliar para impulsar parlantes de techo en 70/100 V.",
     detail: "Amplificador de línea 240 W con entrada auxiliar y control de zona",
     unitPrice: 940,
     lineTotal: 940,
@@ -86,15 +95,24 @@ const SAMPLE_ITEMS: LiveTableItem[] = [
     id: "s3",
     qty: 1,
     unit: "gl",
+    name: "Instalación y puesta en marcha",
+    blurb: "Montaje, cableado, puesta en marcha y capacitación básica al personal designado.",
     detail: "Instalación, cableado, puesta en marcha y capacitación al personal",
     unitPrice: 610,
     lineTotal: 610,
   },
 ];
 
+function ModuleKindBadge({ kind }: { kind?: LiveModuleKind }) {
+  if (kind === "ai") return <span className="quote-doc__live-kind quote-doc__live-kind--ai">IA</span>;
+  if (kind === "fixed") return <span className="quote-doc__live-kind">Texto fijo</span>;
+  return null;
+}
+
 function ModuleChrome({
   label,
   hint,
+  kind,
   focused,
   saving,
   children,
@@ -102,6 +120,7 @@ function ModuleChrome({
 }: {
   label: string;
   hint: string;
+  kind?: LiveModuleKind;
   focused?: boolean;
   saving?: boolean;
   children: React.ReactNode;
@@ -111,6 +130,7 @@ function ModuleChrome({
     <section className={`quote-doc__block quote-doc__live-module mt-[7mm] ${focused ? "quote-doc__live-module--focus" : ""}`}>
       <div className="quote-doc__live-chrome print:hidden">
         <span className="quote-doc__live-chip">{label}</span>
+        <ModuleKindBadge kind={kind} />
         <span className="quote-doc__live-hint">{hint}</span>
         {saving ? <span className="quote-doc__live-hint">Guardando…</span> : null}
       </div>
@@ -156,15 +176,19 @@ function ProductsTable({
   color,
   showDelivery,
   sample,
+  quoteId,
+  issued,
 }: {
   items: LiveTableItem[];
   color: string;
   showDelivery?: boolean;
   sample?: boolean;
+  quoteId?: string;
+  issued?: boolean;
 }) {
   const visible = items;
   const total = visible.filter((item) => !item.optional).reduce((sum, item) => sum + item.lineTotal, 0);
-  const anyPhoto = visible.some((item) => item.photoUrl);
+  const anyPhoto = Boolean(quoteId) || visible.some((item) => item.photoUrl);
   const cols = 4 + (anyPhoto ? 1 : 0) + 2 + (sample ? 0 : 1) + (showDelivery ? 1 : 0);
 
   if (visible.length === 0) {
@@ -209,7 +233,16 @@ function ProductsTable({
             </td>
             {anyPhoto ? (
               <td className="border-b border-neutral-200 px-[1.5mm] py-[1.5mm]">
-                {item.photoUrl ? (
+                {item.productId && quoteId ? (
+                  <QuoteLinePhoto
+                    quoteId={quoteId}
+                    productId={item.productId}
+                    caption={item.name || item.detail}
+                    photoUrl={item.photoUrl || null}
+                    issued={issued}
+                    compact
+                  />
+                ) : item.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={item.photoUrl} alt="" className="h-[16mm] w-[16mm] object-contain" />
                 ) : null}
@@ -218,7 +251,8 @@ function ProductsTable({
             <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm] text-right tabular-nums">{item.qty}</td>
             <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm]">{item.unit}</td>
             <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm] leading-[1.35]">
-              <span className="whitespace-pre-line">{item.detail}</span>
+              <span className="quote-product-name">{item.name || item.detail}</span>
+              {item.blurb ? <p className="quote-product-blurb">{item.blurb}</p> : null}
               {item.optional ? (
                 <span className="ml-1 text-[7.5pt] font-semibold uppercase tracking-wide text-neutral-500">
                   Opcional
@@ -454,7 +488,7 @@ export function LiveQuoteCanvas({
         </p>
       ) : null}
 
-      <div className="overflow-x-auto bg-neutral-300/40 p-6">
+      <QuotePreviewZoom>
         <table className="quote-doc">
           <thead className="quote-doc__header">
             <tr>
@@ -511,6 +545,7 @@ export function LiveQuoteCanvas({
                     return (
                       <ModuleChrome
                         key={mod.key}
+                        kind={mod.kind}
                         label={title}
                         hint={scope === "template" ? "Se arma con los equipos de cada cotización" : "Planilla de esta cotización"}
                       >
@@ -520,6 +555,8 @@ export function LiveQuoteCanvas({
                           color={color}
                           showDelivery={scope === "quote" ? showDelivery : false}
                           sample={scope === "template"}
+                          quoteId={scope === "quote" ? quoteId : undefined}
+                          issued={issued}
                         />
                         {scope === "template" ? (
                           <p className="mt-[2mm] flex items-center gap-1.5 text-[11px] text-muted-foreground print:hidden">
@@ -533,7 +570,7 @@ export function LiveQuoteCanvas({
 
                   if (mod.kind === "ai" && scope === "template") {
                     return (
-                      <ModuleChrome key={mod.key} label={title} hint="Lo redacta la IA en cada cotización">
+                      <ModuleChrome key={mod.key} kind={mod.kind} label={title} hint="Lo redacta la IA en cada cotización">
                         <SectionTitle value={title} color={color} editable={false} />
                         <p className="flex items-start gap-1.5 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-[10pt] text-muted-foreground">
                           <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -547,6 +584,7 @@ export function LiveQuoteCanvas({
                     return (
                       <ModuleChrome
                         key={mod.key}
+                        kind={mod.kind}
                         label={title}
                         hint={scope === "template" ? "Texto fijo" : "Texto de esta cotización"}
                         focused={focusedKey === mod.key}
@@ -562,6 +600,7 @@ export function LiveQuoteCanvas({
                     return (
                       <ModuleChrome
                         key={mod.key}
+                        kind={mod.kind}
                         label={title}
                         hint="Franja de disciplinas"
                         focused={focusedKey === mod.key}
@@ -581,6 +620,7 @@ export function LiveQuoteCanvas({
                   return (
                     <ModuleChrome
                       key={mod.key}
+                      kind={mod.kind}
                       label={title}
                       hint={mod.kind === "ai" ? "Texto de proyecto" : scope === "template" ? "Texto fijo" : "Texto de esta cotización"}
                       focused={focusedKey === mod.key}
@@ -672,7 +712,7 @@ export function LiveQuoteCanvas({
             </tr>
           </tbody>
         </table>
-      </div>
+      </QuotePreviewZoom>
     </div>
   );
 }

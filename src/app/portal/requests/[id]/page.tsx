@@ -16,6 +16,7 @@ import { postRequestMessage } from "@/server/actions/requests";
 import { DraftRequestEditor } from "./draft-request-editor";
 import { RequestStatusTimeline } from "./request-status-timeline";
 import { ArrowLeft, MessageSquare, Sparkles, Package, FileText, ClipboardList } from "lucide-react";
+import { parseQuoteAttachments } from "@/lib/request-quote-link";
 
 const statusMap: Record<string, { tone: "muted" | "primary" | "accent" | "success" | "warning" | "destructive"; label: string }> = {
   DRAFT: { tone: "muted", label: "Borrador" },
@@ -166,6 +167,11 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   const suggestionsItems = request.items.filter((i) => i.isAdminSuggestion);
   const originalItems = request.items.filter((i) => !i.isAdminSuggestion);
   const hasStaffReply = Boolean(request.adminResponse?.trim()) || staffMessages.length > 0;
+  const attachedQuotes = [
+    ...new Map(
+      request.messages.flatMap((m) => parseQuoteAttachments(m.attachments)).map((att) => [att.quoteId, att])
+    ).values(),
+  ];
 
   return (
     <div className="space-y-6">
@@ -236,6 +242,21 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                 </div>
               </div>
             ) : null}
+            {attachedQuotes.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Cotizaciones adjuntas</p>
+                {attachedQuotes.map((att) => (
+                  <Link
+                    key={att.quoteId}
+                    href={`/portal/requests/${request.id}/quote/${att.quoteId}`}
+                    className="flex items-center gap-2 rounded-md border border-primary/20 bg-card px-3 py-2 text-sm font-medium hover:bg-primary/5"
+                  >
+                    <FileText className="h-4 w-4 text-accent" />
+                    Abrir {att.number}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
             {staffMessages.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -259,6 +280,16 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                       ) : null}
                     </p>
                     <p className="mt-1.5 whitespace-pre-wrap">{m.message}</p>
+                    {parseQuoteAttachments(m.attachments).map((att) => (
+                      <Link
+                        key={att.quoteId}
+                        href={`/portal/requests/${request.id}/quote/${att.quoteId}`}
+                        className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        Abrir cotización {att.number}
+                      </Link>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -361,6 +392,16 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                     <span>{formatDate(m.createdAt)}</span>
                   </p>
                   <p className="mt-1 whitespace-pre-wrap">{m.message}</p>
+                  {parseQuoteAttachments(m.attachments).map((att) => (
+                    <Link
+                      key={att.quoteId}
+                      href={`/portal/requests/${request.id}/quote/${att.quoteId}`}
+                      className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Abrir cotización {att.number}
+                    </Link>
+                  ))}
                 </div>
               ))
             )}

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { adminSendRequestMessage } from "@/server/actions/requests";
+import type { QuoteMessageAttachment } from "@/lib/request-quote-link";
 
 export interface ConversationMessage {
   id: string;
@@ -16,6 +17,7 @@ export interface ConversationMessage {
   fromClient: boolean;
   isAiGenerated: boolean;
   sentAtLabel: string;
+  quoteAttachments?: QuoteMessageAttachment[];
 }
 
 interface Props {
@@ -79,6 +81,19 @@ export function RequestConversation({ requestId, messages, clientName }: Props) 
                   <span className="ml-auto shrink-0">{m.sentAtLabel}</span>
                 </div>
                 <p className="mt-1 whitespace-pre-wrap text-sm">{m.message}</p>
+                {m.quoteAttachments?.length ? (
+                  <div className="mt-2 space-y-1">
+                    {m.quoteAttachments.map((att) => (
+                      <a
+                        key={att.quoteId}
+                        href={`/admin/quotes/${att.quoteId}`}
+                        className="block text-xs font-medium text-accent hover:underline"
+                      >
+                        Abrir cotización {att.number}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}

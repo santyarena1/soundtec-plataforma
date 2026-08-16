@@ -8,12 +8,17 @@ import {
   type ImagePlacement,
 } from "@/lib/quote-defaults";
 import { QuoteBody } from "@/components/quotes/quote-body";
-import type { Quote, QuoteItem, QuoteSection, QuoteAsset, Client, User, QuoteCommercialTerms } from "@prisma/client";
+import { quoteItemDisplay } from "@/lib/quote-product-line";
+import type { Quote, QuoteItem, QuoteSection, QuoteAsset, Client, User, QuoteCommercialTerms, Product } from "@prisma/client";
+
+type QuoteItemWithProduct = QuoteItem & {
+  product?: (Pick<Product, "normalizedName" | "shortDescription"> & { brand?: { name: string } | null }) | null;
+};
 
 type DocQuote = Quote & {
   client: Pick<Client, "id" | "companyName" | "tradeName"> | null;
   owner: Pick<User, "id" | "name" | "email" | "quoteSignName" | "quoteSignTitle">;
-  items: QuoteItem[];
+  items: QuoteItemWithProduct[];
   sections: QuoteSection[];
   assets: QuoteAsset[];
   terms: QuoteCommercialTerms | null;
@@ -117,8 +122,9 @@ function ProductsTable({
           </tr>
         </thead>
         <tbody>
-          {visible.map((item, index) => {
+          {          visible.map((item, index) => {
             const photo = item.productId ? photos.get(item.productId) : undefined;
+            const line = quoteItemDisplay(item);
             return (
               <tr key={item.id} className="align-top" style={{ background: index % 2 ? "#f3f5f8" : "#fff" }}>
                 <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm] text-right tabular-nums text-neutral-500">
@@ -137,7 +143,8 @@ function ProductsTable({
                 </td>
                 <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm]">{item.unit}</td>
                 <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm] leading-[1.35]">
-                  <span className="whitespace-pre-line">{item.description}</span>
+                  <span className="quote-product-name">{line.name}</span>
+                  {line.blurb ? <p className="quote-product-blurb">{line.blurb}</p> : null}
                   {item.optional ? (
                     <span className="ml-1 text-[7.5pt] font-semibold uppercase tracking-wide text-neutral-500">
                       Opcional

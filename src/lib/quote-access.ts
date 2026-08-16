@@ -35,7 +35,19 @@ export async function loadQuoteForUser(id: string) {
       owner: { select: { id: true, name: true, email: true, quoteSignName: true, quoteSignTitle: true } },
       contentProfile: true,
       alternatives: { orderBy: { sortOrder: "asc" } },
-      items: { orderBy: { sortOrder: "asc" } },
+      items: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          product: {
+            select: {
+              id: true,
+              normalizedName: true,
+              shortDescription: true,
+              brand: { select: { name: true } },
+            },
+          },
+        },
+      },
       sections: { orderBy: { sortOrder: "asc" } },
       assets: { orderBy: { sortOrder: "asc" } },
       context: true,

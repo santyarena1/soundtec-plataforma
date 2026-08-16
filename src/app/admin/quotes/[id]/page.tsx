@@ -30,6 +30,10 @@ import { QuoteDocument } from "@/components/quotes/quote-document";
 import { QuoteProductPhotos } from "./product-photos";
 import { QuoteBomTable } from "./quote-bom-table";
 import { QuoteMediaRail } from "./media-rail";
+import { FillMissingShortDescriptions } from "@/components/quotes/fill-missing-short-descriptions";
+import { QuotePreviewZoom } from "@/components/quotes/quote-preview-zoom";
+import { quoteItemDisplay } from "@/lib/quote-product-line";
+import { requestShortId } from "@/lib/request-quote-link";
 
 export const metadata = { title: "Admin · Cotización" };
 
@@ -131,11 +135,14 @@ export default async function QuoteEditorPage({
   const extraImages = quote.assets.filter((a) => a.kind !== "PLAN" && a.kind !== "CORPORATE");
   const bomRows = quote.items.map((i) => {
     const asset = i.productId ? quote.assets.find((a) => a.productId === i.productId && a.kind === "PRODUCT") : null;
+    const line = quoteItemDisplay(i);
     return {
       id: i.id,
       quantity: Number(i.quantity),
       unit: i.unit,
       description: i.description,
+      name: line.name,
+      blurb: line.blurb,
       unitPriceUsd: Number(i.unitPriceUsd),
       lineTotalUsd: Number(i.lineTotalUsd),
       ivaRate: Number(i.ivaRate),
@@ -143,8 +150,12 @@ export default async function QuoteEditorPage({
       optional: i.optional,
       locked: i.locked,
       photoUrl: asset?.url || (i.productId ? catalogByProduct.get(i.productId) || null : null),
+      productId: i.productId,
     };
   });
+  const needsShortDescriptions = quote.items.some(
+    (item) => item.productId && !item.product?.shortDescription?.trim()
+  );
 
   const canEditImages = permissions.fullAccess || permissionsHave(permissions, "quotes.manage_library");
   const showFullLive = step === 3 && !issued;
@@ -182,17 +193,21 @@ export default async function QuoteEditorPage({
           const asset = item.productId
             ? quote.assets.find((a) => a.productId === item.productId && a.kind === "PRODUCT")
             : null;
+          const line = quoteItemDisplay(item);
           return {
             id: item.id,
             qty: Number(item.quantity),
             unit: item.unit,
             detail: item.description,
+            name: line.name,
+            blurb: line.blurb,
             unitPrice: Number(item.unitPriceUsd),
             lineTotal: Number(item.lineTotalUsd),
             ivaRate: Number(item.ivaRate),
             optional: item.optional,
             deliveryKey: item.deliveryKey || "",
             photoUrl: asset?.url || (item.productId ? catalogByProduct.get(item.productId) || null : null),
+            productId: item.productId,
           };
         })}
       showDelivery={quote.showDeliveryColumn}
@@ -235,6 +250,9 @@ export default async function QuoteEditorPage({
         }
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
+            {quote.sourceRequestId ? (
+              <Badge tone="accent">Importada de solicitud #{requestShortId(quote.sourceRequestId)}</Badge>
+            ) : null}
             <Badge tone={issued ? "success" : quote.status === "IN_REVIEW" ? "warning" : "muted"}>
               {issued ? "Emitida" : quote.status === "IN_REVIEW" ? "En revisión" : "Borrador"}
             </Badge>
@@ -246,6 +264,7 @@ export default async function QuoteEditorPage({
       />
       <QuoteWizardNav quoteId={quote.id} step={step} />
       <QuoteMediaRail quoteId={quote.id} planCount={plans.length} imageCount={extraImages.length} />
+      {!issued ? <FillMissingShortDescriptions quoteId={quote.id} needed={needsShortDescriptions} /> : null}
 
       <div className={showFullLive ? "space-y-4" : "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(380px,42%)]"}>
         <div className="min-w-0 space-y-4">
@@ -611,9 +630,9 @@ export default async function QuoteEditorPage({
               </div>
               <div className="max-h-[calc(100vh-8rem)] overflow-auto bg-neutral-300/40 p-3">
                 {issued ? (
-                  <div className="quote-preview">
+                  <QuotePreviewZoom>
                     <QuoteDocument quote={quote} />
-                  </div>
+                  </QuotePreviewZoom>
                 ) : (
                   <div className="quote-preview quote-preview--live">{liveCanvas}</div>
                 )}

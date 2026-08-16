@@ -156,33 +156,43 @@ Indicá usos típicos, integración y datos técnicos relevantes sólo si los co
   }
 }
 
-export async function generateShortDescription(input: { name: string; brand?: string; category?: string }): Promise<string> {
+export async function generateShortDescription(input: {
+  name: string;
+  brand?: string;
+  category?: string;
+  compact?: boolean;
+}): Promise<string> {
+  const fallback = `${input.brand ? `${input.brand} ` : ""}${input.name}: solución ${
+    input.category || "audiovisual profesional"
+  }.`;
   const client = await getClient();
-  if (!client) {
-    return `${input.name}${input.brand ? ` – ${input.brand}` : ""}. Descripción corta pendiente.`;
-  }
+  if (!client) return fallback;
   try {
     const model = await getModel();
     const customSystemPrompt = await getSetting("ai.prompt.short_description", "");
-    const systemPrompt = customSystemPrompt || "Sos un copywriter técnico B2B para productos audiovisuales profesionales. Escribís en español, neutro y conciso.";
+    const systemPrompt =
+      customSystemPrompt ||
+      "Sos un copywriter técnico B2B para productos audiovisuales profesionales. Escribís en español, neutro y conciso.";
+    const lengthRule = input.compact
+      ? "El resultado DEBE tener entre 15 y 20 palabras: una sola frase, qué es y para qué sirve. Sin adjetivos vacíos ni preguntas."
+      : "Generá una descripción corta (1-2 oraciones, máximo 120 palabras). Sé directo: qué es y para qué sirve. Sin adjetivos vacíos.";
     const resp = await client.chat.completions.create({
       model,
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: `${systemPrompt}\n${input.compact ? lengthRule : ""}`.trim() },
         {
           role: "user",
-          content: `Generá una descripción corta (1-2 oraciones, máximo 120 palabras) para:
+          content: `${lengthRule}
 Producto: ${input.name}
 Marca: ${input.brand || "—"}
-Categoría: ${input.category || "—"}
-Sé directo: qué es y para qué sirve. Sin adjetivos vacíos.`,
+Categoría: ${input.category || "—"}`,
         },
       ],
     });
-    return resp.choices[0]?.message.content?.trim() || "";
+    return resp.choices[0]?.message.content?.trim() || fallback;
   } catch (error) {
     console.error("OpenAI generateShortDescription error", error);
-    return `${input.name} — descripción corta no disponible.`;
+    return fallback;
   }
 }
 

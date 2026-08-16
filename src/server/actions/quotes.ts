@@ -20,6 +20,8 @@ import { ensureQuoteCatalogImage } from "@/lib/quote-product-images";
 import { getSetting, setSetting, getGlobalMarginPercent } from "@/lib/settings";
 import { calculatePricesForProducts } from "@/lib/pricing";
 import { storeQuoteBlob } from "@/server/actions/quote-images";
+import { resolveCommercialClientId } from "@/lib/client-context";
+import { fillMissingShortDescription } from "@/lib/product-short-description";
 
 async function defaultTerms() {
   return {
@@ -241,58 +243,75 @@ function buildRequestBrief(input: {
   typeLabel: string;
   clientName: string;
   projectDescription: string | null;
-  adminResponse: string | null;
-  items: Array<{
-    quantity: number;
-    name: string;
-    isAdminSuggestion: boolean;
-    replacesName: string | null;
-    notes: string | null;
-  }>;
-  messages: Array<{ fromClient: boolean; senderName: string; message: string }>;
+  items: Array<{ name: string; isAdminSuggestion: boolean }>;
 }) {
-  const requested = input.items.filter((i) => !i.isAdminSuggestion);
-  const suggested = input.items.filter((i) => i.isAdminSuggestion);
-  const parts: string[] = [
-    `Solicitud #${input.shortId} (${input.typeLabel}) de ${input.clientName}.`,
-  ];
-  if (input.projectDescription?.trim()) {
-    parts.push(`Descripción del proyecto:\n${input.projectDescription.trim()}`);
+  const names = [...new Set(input.items.map((i) => i.name).filter(Boolean))];
+  const problem =
+    input.projectDescription?.trim() ||
+    `Pedido de ${input.typeLabel.toLowerCase()} de ${input.clientName}.`;
+  const parts = [`Qué hay que resolver:\n${problem}`];
+  if (names.length) {
+    parts.push(`Productos:\n${names.map((name) => `- ${name}`).join("\n")}`);
   }
-  if (requested.length) {
-    parts.push(
-      `Productos que pidió el cliente:\n${requested
-        .map((i) => `- ${i.quantity} × ${i.name}${i.notes ? ` (${i.notes})` : ""}`)
-        .join("\n")}`
-    );
+  return parts.join("\n\n").slice(0, 4000);
+}
+
+async function resolveClientIdForRequestQuote(request: {
+  id: string;
+  clientId: string | null;
+  userId: string;
+  user: {
+    clientId: string | null;
+    companyName: string | null;
+    email: string | null;
+    name: string | null;
+  };
+}) {
+  const candidates = [request.clientId, request.user.clientId, await resolveCommercialClientId(request.userId)].filter(
+    (id): id is string => Boolean(id)
+  );
+
+  for (const id of candidates) {
+    const client = await prisma.client.findUnique({ where: { id }, select: { id: true } });
+    if (client) {
+      await backfillRequestClient(request, client.id);
+      return client.id;
+    }
   }
-  if (suggested.length) {
-    parts.push(
-      `Sugerencias del equipo Soundtec:\n${suggested
-        .map((i) => {
-          const extra = [
-            i.replacesName ? `reemplaza ${i.replacesName}` : null,
-            i.notes,
-          ]
-            .filter(Boolean)
-            .join("; ");
-          return `- ${i.quantity} × ${i.name}${extra ? ` (${extra})` : ""}`;
-        })
-        .join("\n")}`
-    );
+
+  const companyName = request.user.companyName?.trim();
+  if (companyName) {
+    const byName = await prisma.client.findFirst({
+      where: { companyName: { equals: companyName, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (byName) {
+      await backfillRequestClient(request, byName.id);
+      return byName.id;
+    }
   }
-  if (input.adminResponse?.trim()) {
-    parts.push(`Respuesta ya enviada al cliente:\n${input.adminResponse.trim()}`);
+
+  const created = await prisma.client.create({
+    data: {
+      companyName: companyName || request.user.name || request.user.email || "Cliente",
+      contactName: request.user.name || null,
+      email: request.user.email || null,
+    },
+  });
+  await backfillRequestClient(request, created.id);
+  return created.id;
+}
+
+async function backfillRequestClient(
+  request: { id: string; clientId: string | null; userId: string; user: { clientId: string | null } },
+  clientId: string
+) {
+  if (!request.clientId) {
+    await prisma.customerRequest.update({ where: { id: request.id }, data: { clientId } });
   }
-  if (input.messages.length) {
-    const last = input.messages.slice(-8);
-    parts.push(
-      `Conversación reciente:\n${last
-        .map((m) => `${m.fromClient ? m.senderName : `${m.senderName} (Soundtec)`}: ${m.message}`)
-        .join("\n")}`
-    );
+  if (!request.user.clientId) {
+    await prisma.user.update({ where: { id: request.userId }, data: { clientId } });
   }
-  return parts.join("\n\n").slice(0, 20000);
 }
 
 /**
@@ -347,7 +366,7 @@ export async function createQuoteFromRequest(input: {
     });
     if (!request) return { ok: false, error: "La solicitud ya no existe." };
 
-    const clientId = request.clientId || request.user.clientId || null;
+    const clientId = await resolveClientIdForRequestQuote(request);
     const clientName = request.user.companyName || request.user.name || request.user.email || "Cliente";
     const shortId = request.id.slice(-6).toUpperCase();
     const typeLabel =
@@ -373,13 +392,7 @@ export async function createQuoteFromRequest(input: {
       typeLabel,
       clientName,
       projectDescription: request.projectDescription,
-      adminResponse: request.adminResponse,
       items: briefItems,
-      messages: request.messages.map((m) => ({
-        fromClient: m.sender.role === "CLIENT",
-        senderName: m.sender.name || "Sin nombre",
-        message: m.message,
-      })),
     });
 
     const shellInput = {
@@ -571,6 +584,11 @@ export async function addProductToQuote(formData: FormData): Promise<{ ok: boole
     },
   });
   await ensureQuoteCatalogImage({ quoteId, productId: product.id, caption: desc });
+  try {
+    await fillMissingShortDescription(product.id);
+  } catch {
+    /* la planilla se completa igual */
+  }
   revalidatePath(`/admin/quotes/${quoteId}`);
   return { ok: true };
 }

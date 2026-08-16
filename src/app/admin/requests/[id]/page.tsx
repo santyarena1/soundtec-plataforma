@@ -24,6 +24,7 @@ import { ResponseComposer } from "./response-composer";
 import { RequestConversation, type ConversationMessage } from "./request-conversation";
 import { RequestItemsPanel, type RequestItemRow } from "./request-items-panel";
 import { CreateQuoteCard, type QuotePreviewLine } from "./create-quote-card";
+import { parseQuoteAttachments } from "@/lib/request-quote-link";
 
 export default async function AdminRequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -94,6 +95,10 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
       : null,
   }));
 
+  const attachedQuoteIds = new Set(
+    request.messages.flatMap((m) => parseQuoteAttachments(m.attachments).map((a) => a.quoteId))
+  );
+
   const messages: ConversationMessage[] = request.messages.map((m) => ({
     id: m.id,
     message: m.message,
@@ -101,6 +106,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
     fromClient: m.sender.role === "CLIENT",
     isAiGenerated: m.isAiGenerated,
     sentAtLabel: formatDate(m.createdAt),
+    quoteAttachments: parseQuoteAttachments(m.attachments),
   }));
 
   const replacedProductNames = new Set(
@@ -283,6 +289,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
               number: q.number,
               status: q.status,
               createdAtLabel: formatDate(q.createdAt),
+              attached: attachedQuoteIds.has(q.id),
             }))}
           />
 

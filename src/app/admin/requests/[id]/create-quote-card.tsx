@@ -10,6 +10,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Modal } from "@/components/ui/dialog";
 import { formatUsd } from "@/lib/utils";
 import { createQuoteFromRequest } from "@/server/actions/quotes";
+import { attachQuoteAsRequestResponse } from "@/server/actions/requests";
 
 export type QuotePreviewLine = {
   role: "main" | "optional";
@@ -24,6 +25,7 @@ export type LinkedQuote = {
   number: string;
   status: string;
   createdAtLabel: string;
+  attached?: boolean;
 };
 
 const QUOTE_STATUS: Record<string, string> = {
@@ -87,6 +89,32 @@ export function CreateQuoteCard({ requestId, canCreate, lines, existingQuotes }:
                       {q.number}
                     </ButtonLink>
                     <p className="text-xs text-muted-foreground">{q.createdAtLabel}</p>
+                    {q.attached ? (
+                      <p className="text-[11px] text-accent">Ya está adjunta como respuesta</p>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="mt-1 h-7"
+                        disabled={pending}
+                        onClick={() =>
+                          start(async () => {
+                            const r = await attachQuoteAsRequestResponse({ requestId, quoteId: q.id });
+                            if (!r.ok) {
+                              toast.error(r.error || "No se pudo adjuntar.");
+                              return;
+                            }
+                            toast.success(`Cotización ${q.number} adjunta`, {
+                              description: "El cliente la ve en el hilo de la solicitud.",
+                            });
+                            router.refresh();
+                          })
+                        }
+                      >
+                        Adjuntar cotización como respuesta
+                      </Button>
+                    )}
                   </div>
                   <Badge tone={q.status === "ISSUED" ? "success" : "muted"}>{QUOTE_STATUS[q.status] || q.status}</Badge>
                 </li>
