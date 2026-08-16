@@ -106,7 +106,6 @@ function ZoneTable({
           ) : (
             items.map((item) => {
               const formId = `bom-${item.id}`;
-              const locked = issued || item.locked;
               return (
                 <tr key={item.id} className="border-b border-border align-top odd:bg-white even:bg-[#f6f7f9]">
                   <td className="px-3 py-2">
@@ -136,14 +135,31 @@ function ZoneTable({
                       form={formId}
                       name="quantity"
                       defaultValue={item.quantity}
-                      disabled={locked}
+                      disabled={issued}
                       className="h-9 w-[4.25rem] text-right tabular-nums"
                       onBlur={(e) => saveRow(e.currentTarget.form)}
                     />
                   </td>
-                  <td className="px-2 py-3 text-muted-foreground">{item.unit}</td>
+                  <td className="px-2 py-2">
+                    <Input
+                      form={formId}
+                      name="unit"
+                      defaultValue={item.unit}
+                      disabled={issued}
+                      className="h-9 w-[3.25rem]"
+                      onBlur={(e) => saveRow(e.currentTarget.form)}
+                    />
+                  </td>
                   <td className="px-2 py-2 min-w-[280px]">
-                    <p className="mb-1 text-sm font-bold leading-snug">{item.name}</p>
+                    <Textarea
+                      form={formId}
+                      name="description"
+                      defaultValue={item.description || item.name}
+                      rows={2}
+                      disabled={issued}
+                      className="mb-1 min-h-[40px] font-bold leading-snug"
+                      onBlur={(e) => saveRow(e.currentTarget.form)}
+                    />
                     {item.blurb ? (
                       <p className="mb-1 text-xs leading-snug text-foreground/80" style={{ textAlign: "justify" }}>
                         {item.blurb}
@@ -154,22 +170,13 @@ function ZoneTable({
                     {item.productId && !issued ? (
                       <RegenerateShortDescription quoteId={quoteId} productId={item.productId} />
                     ) : null}
-                    <Textarea
-                      form={formId}
-                      name="description"
-                      defaultValue={item.description}
-                      rows={2}
-                      disabled={locked}
-                      className="min-h-[56px] leading-snug"
-                      onBlur={(e) => saveRow(e.currentTarget.form)}
-                    />
                   </td>
                   <td className="px-2 py-2">
                     <Input
                       form={formId}
                       name="unitPriceUsd"
                       defaultValue={item.unitPriceUsd}
-                      disabled={locked}
+                      disabled={issued}
                       className="h-9 w-[7rem] text-right tabular-nums"
                       onBlur={(e) => saveRow(e.currentTarget.form)}
                     />
@@ -180,7 +187,7 @@ function ZoneTable({
                       form={formId}
                       name="ivaRate"
                       defaultValue={item.ivaRate}
-                      disabled={locked}
+                      disabled={issued}
                       className="h-9 w-14 text-right tabular-nums"
                       onBlur={(e) => saveRow(e.currentTarget.form)}
                     />
@@ -191,7 +198,7 @@ function ZoneTable({
                         form={formId}
                         name="deliveryKey"
                         defaultValue={item.deliveryKey}
-                        disabled={locked}
+                        disabled={issued}
                         className="h-9 min-w-[8rem]"
                         onChange={(e) => {
                           const form = e.currentTarget.form;
@@ -245,18 +252,22 @@ function ZoneTable({
                         </form>
                         <form action={toggleQuoteItemLock}>
                           <input type="hidden" name="itemId" value={item.id} />
-                          <Button type="submit" size="sm" variant="ghost" className="w-full">
-                            {item.locked ? "Desfijar" : "Fijar"}
+                          <Button
+                            type="submit"
+                            size="sm"
+                            variant="ghost"
+                            className="w-full"
+                            title="Evita que la IA reescriba este ítem. Vos podés editarlo igual."
+                          >
+                            {item.locked ? "Desfijar IA" : "Fijar IA"}
                           </Button>
                         </form>
-                        {!item.locked ? (
-                          <form action={deleteQuoteItem}>
-                            <input type="hidden" name="itemId" value={item.id} />
-                            <Button type="submit" size="sm" variant="ghost" className="w-full">
-                              Quitar
-                            </Button>
-                          </form>
-                        ) : null}
+                        <form action={deleteQuoteItem}>
+                          <input type="hidden" name="itemId" value={item.id} />
+                          <Button type="submit" size="sm" variant="ghost" className="w-full">
+                            Quitar
+                          </Button>
+                        </form>
                         <QuoteRevisePanel quoteId={quoteId} nodeId={item.id} kind="item" />
                       </div>
                     ) : null}
@@ -314,8 +325,8 @@ export function QuoteBomTable({
           <h2 className="text-base font-semibold tracking-tight">Planilla de productos y servicios</h2>
           <p className="text-xs text-muted-foreground">
             {multi
-              ? "Cada ambiente tiene su texto y su tabla. Los opcionales no suman al total."
-              : "Celdas editables. Si la obra tiene varios ambientes, agregá una zona."}
+              ? "Cada ambiente tiene su texto y su tabla. Lo importado del cliente es una referencia: podés editar cantidad, título, unidad, precio, IVA y entrega. Los opcionales no suman al total."
+              : "Lo que pidió el cliente es una referencia: podés cambiar cantidad, título, unidad, precio, IVA y entrega. Fijar IA solo evita que la IA lo pise."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

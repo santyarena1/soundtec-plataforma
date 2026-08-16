@@ -184,7 +184,6 @@ export function ModuleLayoutMedia({
                       const result = await attachSerperImage({
                         quoteId,
                         url: hit.url,
-                        caption: hit.title,
                         sectionId,
                       });
                       refresh(result.ok, result.error, "Foto agregada.");

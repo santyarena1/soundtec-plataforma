@@ -34,6 +34,7 @@ import { FillMissingShortDescriptions } from "@/components/quotes/fill-missing-s
 import { AddCustomModule, RemoveCustomModule } from "@/components/quotes/add-custom-module";
 import { QuotePreviewZoom } from "@/components/quotes/quote-preview-zoom";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
+import { displayImageCaption } from "@/lib/quote-image-caption";
 import { requestShortId } from "@/lib/request-quote-link";
 import { isCustomSectionType, parseQuoteModuleLayout } from "@/lib/quote-module-layout";
 import { listQuoteClassifiers } from "@/lib/quote-classifiers";
@@ -580,7 +581,11 @@ export default async function QuoteEditorPage({
                           <figure key={a.id} className="overflow-hidden rounded-md border border-border">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={a.url} alt={a.caption || ""} className="h-28 w-full object-contain" />
-                            <figcaption className="truncate p-1 text-[10px] text-muted-foreground">{a.caption}</figcaption>
+                            {displayImageCaption(a.caption) ? (
+                              <figcaption className="truncate p-1 text-[10px] text-muted-foreground">
+                                {displayImageCaption(a.caption)}
+                              </figcaption>
+                            ) : null}
                           </figure>
                         ))}
                     </div>
@@ -599,7 +604,7 @@ export default async function QuoteEditorPage({
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={a.url} alt={a.caption || ""} className="h-28 w-full object-cover" />
                             <figcaption className="flex items-center justify-between gap-1 p-1 text-[10px] text-muted-foreground">
-                              <span className="truncate">{a.caption || a.kind}</span>
+                              <span className="truncate">{displayImageCaption(a.caption) || a.kind}</span>
                               {!issued && !a.locked ? (
                                 <form action={deleteQuoteAsset}>
                                   <input type="hidden" name="assetId" value={a.id} />
