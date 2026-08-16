@@ -107,9 +107,42 @@
 
 /* Red de contención para los módulos que no entran en una hoja: el corte cae
    entre párrafos y nunca deja un subtítulo separado de su texto. */
-.quote-doc__para {
+.quote-doc__para,
+.quote-doc__rt > * {
   break-inside: avoid;
   page-break-inside: avoid;
+}
+
+/* Texto escrito desde el editor visual. Mismo aspecto que el texto plano. */
+.quote-doc__rt p {
+  margin: 0 0 3mm;
+  text-align: justify;
+}
+.quote-doc__rt p:last-child {
+  margin-bottom: 0;
+}
+.quote-doc__rt h3 {
+  margin: 0 0 1mm;
+  font-size: inherit;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+.quote-doc__rt ul,
+.quote-doc__rt ol {
+  margin: 0 0 3mm;
+  padding-left: 6mm;
+  list-style-position: outside;
+}
+.quote-doc__rt ul {
+  list-style-type: disc;
+}
+.quote-doc__rt ol {
+  list-style-type: decimal;
+}
+.quote-doc__rt li {
+  margin-bottom: 1mm;
 }
 
 .quote-doc__newpage {

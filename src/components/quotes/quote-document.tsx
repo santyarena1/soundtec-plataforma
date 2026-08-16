@@ -1,5 +1,6 @@
 import { formatUsd } from "@/lib/utils";
-import { AI_SECTION_STUB, getCompanyIdentity } from "@/lib/quote-defaults";
+import { AI_SECTION_STUB, getCompanyIdentity, type ImagePlacement } from "@/lib/quote-defaults";
+import { QuoteBody } from "@/components/quotes/quote-body";
 import type { Quote, QuoteItem, QuoteSection, QuoteAsset, Client, User, QuoteCommercialTerms } from "@prisma/client";
 
 type DocQuote = Quote & {
@@ -23,38 +24,20 @@ function longDate(value: Date | null) {
   return date.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
 }
 
-/** Convierte "TITULO\ntexto" en párrafos, respetando los subtítulos en mayúsculas de las condiciones. */
-function paragraphs(body: string) {
-  return body
-    .split(/\n{2,}/)
-    .map((chunk) => chunk.trim())
-    .filter(Boolean);
-}
+const Paragraphs = QuoteBody;
 
-function isHeading(line: string) {
-  return line.length <= 60 && line === line.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(line);
-}
-
-function Paragraphs({ body }: { body: string }) {
+/** Imagen que fluye con el texto: se controla ancho y alineación, nunca posición libre. */
+function PlacedImage({ src, alt, placement }: { src: string; alt: string; placement: ImagePlacement }) {
+  const margin =
+    placement.align === "center" ? "0 auto" : placement.align === "right" ? "0 0 0 auto" : "0 auto 0 0";
   return (
-    <>
-      {paragraphs(body).map((chunk, index) => {
-        const [first, ...rest] = chunk.split("\n");
-        if (isHeading(first) && rest.length > 0) {
-          return (
-            <div key={index} className="quote-doc__para mb-[3mm]">
-              <p className="font-semibold tracking-[0.04em]">{first}</p>
-              <p className="whitespace-pre-line text-justify">{rest.join("\n")}</p>
-            </div>
-          );
-        }
-        return (
-          <p key={index} className="quote-doc__para mb-[3mm] whitespace-pre-line text-justify last:mb-0">
-            {chunk}
-          </p>
-        );
-      })}
-    </>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      className="mt-[3mm] block"
+      style={{ width: `${placement.width}%`, margin }}
+    />
   );
 }
 
@@ -247,8 +230,11 @@ function SectionBlock({
       <div className={`quote-doc__block ${spacing}`}>
         <SectionTitle color={color}>{section.title}</SectionTitle>
         {hasBody(section) ? <Paragraphs body={section.body} /> : null}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={identity.brandsUrl} alt="Marcas representadas por SOUNDTEC" className="mt-[3mm] w-full" />
+        <PlacedImage
+          src={identity.brandsUrl}
+          alt="Marcas representadas por SOUNDTEC"
+          placement={identity.brands}
+        />
       </div>
     );
   }
@@ -258,8 +244,7 @@ function SectionBlock({
       <div className={`quote-doc__block ${spacing}`}>
         <SectionTitle color={color}>{section.title}</SectionTitle>
         {hasBody(section) ? <Paragraphs body={section.body} /> : null}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={identity.isoUrl} alt="ISO 9001 · IRAM · IQNet" className="mx-auto mt-[4mm] w-[55mm]" />
+        <PlacedImage src={identity.isoUrl} alt="ISO 9001 · IRAM · IQNet" placement={identity.iso} />
       </div>
     );
   }

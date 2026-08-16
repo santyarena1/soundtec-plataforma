@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadQuoteForUser } from "@/lib/quote-access";
-import { AI_SECTION_STUB, getCompanyIdentity } from "@/lib/quote-defaults";
+import { AI_SECTION_STUB, getCompanyIdentity, type ImagePlacement } from "@/lib/quote-defaults";
+import { isRichText, sanitizeQuoteHtml, splitParagraphs } from "@/lib/quote-richtext";
 import { formatUsd } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -17,10 +18,10 @@ function escapeHtml(value: string) {
 }
 
 function paragraphs(body: string) {
-  return body
-    .split(/\n{2,}/)
-    .map((chunk) => chunk.trim())
-    .filter(Boolean)
+  // El editor visual guarda HTML acotado; Word lo entiende tal cual con los
+  // estilos del <style> de la cabecera.
+  if (isRichText(body)) return `<div class="rt">${sanitizeQuoteHtml(body)}</div>`;
+  return splitParagraphs(body)
     .map(
       (chunk) =>
         `<p style="margin:0 0 8pt;text-align:justify;font-size:10.5pt;line-height:1.45;page-break-inside:avoid">${escapeHtml(chunk).replaceAll("\n", "<br/>")}</p>`
@@ -51,6 +52,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     year: "numeric",
   });
 
+  // Word no entiende anchos en %, hay que resolverlos contra el ancho útil.
+  const placedImage = (url: string, placement: ImagePlacement) =>
+    `<p style="margin:8pt 0;text-align:${placement.align}"><img src="${escapeHtml(abs(url))}" width="${Math.round((CONTENT_WIDTH * placement.width) / 100)}"/></p>`;
+
   // page-break-after:avoid evita que el título quede solo al pie de una hoja.
   const heading = (text: string) =>
     `<p style="margin:16pt 0 5pt;padding-bottom:2pt;border-bottom:1pt solid ${color};font-size:11pt;font-weight:bold;color:${color};text-transform:uppercase;letter-spacing:.5pt;page-break-after:avoid">${escapeHtml(text)}</p>`;
@@ -72,10 +77,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
           : "";
       }
       if (section.type === "brands") {
-        return `${heading(section.title)}${hasBody ? paragraphs(body) : ""}<p style="margin:8pt 0"><img src="${escapeHtml(abs(identity.brandsUrl))}" width="${CONTENT_WIDTH}"/></p>`;
+        return `${heading(section.title)}${hasBody ? paragraphs(body) : ""}${placedImage(identity.brandsUrl, identity.brands)}`;
       }
       if (section.type === "iso") {
-        return `${heading(section.title)}${hasBody ? paragraphs(body) : ""}<p style="margin:8pt 0"><img src="${escapeHtml(abs(identity.isoUrl))}" width="170"/></p>`;
+        return `${heading(section.title)}${hasBody ? paragraphs(body) : ""}${placedImage(identity.isoUrl, identity.iso)}`;
       }
       if (!hasBody) return "";
       return `${heading(section.title)}${paragraphs(body)}`;
@@ -104,6 +109,10 @@ ${showDelivery ? `<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml
 div.WordSection1 { page: WordSection1; }
 body { font-family: Calibri, Arial, sans-serif; color: #16212f; font-size: 10.5pt; }
 table { border-collapse: collapse; }
+.rt p { margin: 0 0 8pt; font-size: 10.5pt; line-height: 1.45; page-break-inside: avoid; }
+.rt h3 { margin: 0 0 3pt; font-size: 10.5pt; font-weight: bold; page-break-after: avoid; }
+.rt ul, .rt ol { margin: 0 0 8pt 18pt; }
+.rt li { margin-bottom: 2pt; font-size: 10.5pt; line-height: 1.45; }
 </style>
 </head>
 <body>

@@ -288,8 +288,34 @@ export const PROFILES = [
   },
 ] as const;
 
+export type ImagePlacement = { width: number; align: "left" | "center" | "right" };
+
+/** El ancho va en % del ancho útil de la hoja, así la imagen sigue fluyendo con el texto. */
+function parsePlacement(width: string, align: string, fallbackWidth: number): ImagePlacement {
+  const parsed = Number(width);
+  const safeWidth = Number.isFinite(parsed) && parsed >= 10 && parsed <= 100 ? parsed : fallbackWidth;
+  const safeAlign = align === "left" || align === "right" ? align : "center";
+  return { width: safeWidth, align: safeAlign };
+}
+
 export async function getCompanyIdentity() {
-  const [name, tagline, address, phone, email, web, logoUrl, headerUrl, brandsUrl, isoUrl, primary] = await Promise.all([
+  const [
+    name,
+    tagline,
+    address,
+    phone,
+    email,
+    web,
+    logoUrl,
+    headerUrl,
+    brandsUrl,
+    isoUrl,
+    primary,
+    brandsWidth,
+    brandsAlign,
+    isoWidth,
+    isoAlign,
+  ] = await Promise.all([
     getSetting("app.name", "SOUNDTEC"),
     getSetting(QUOTE_SETTING_KEYS.companyTagline, "integramos tecnología"),
     getSetting(QUOTE_SETTING_KEYS.companyAddress, "Av. Donato Alvarez 1526 (C1416BTR) C.A.B.A."),
@@ -301,6 +327,10 @@ export async function getCompanyIdentity() {
     getSetting(QUOTE_SETTING_KEYS.companyBrandsUrl, QUOTE_CORPORATE_ASSETS.brands),
     getSetting(QUOTE_SETTING_KEYS.companyIsoUrl, QUOTE_CORPORATE_ASSETS.iso),
     getSetting("branding.primary_color", "#1e3553"),
+    getSetting(QUOTE_SETTING_KEYS.brandsWidth, "100"),
+    getSetting(QUOTE_SETTING_KEYS.brandsAlign, "center"),
+    getSetting(QUOTE_SETTING_KEYS.isoWidth, "30"),
+    getSetting(QUOTE_SETTING_KEYS.isoAlign, "center"),
   ]);
   return {
     name,
@@ -314,6 +344,8 @@ export async function getCompanyIdentity() {
     brandsUrl: brandsUrl || QUOTE_CORPORATE_ASSETS.brands,
     isoUrl: isoUrl || QUOTE_CORPORATE_ASSETS.iso,
     primary,
+    brands: parsePlacement(brandsWidth, brandsAlign, 100),
+    iso: parsePlacement(isoWidth, isoAlign, 30),
   };
 }
 

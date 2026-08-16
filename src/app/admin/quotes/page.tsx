@@ -129,7 +129,7 @@ export default async function AdminQuotesPage({
           <div className="flex flex-wrap gap-2">
             {(permissions.fullAccess || permissionsHave(permissions, "quotes.manage_library")) && (
               <>
-                <ButtonLink href="/admin/settings/quotes" variant="outline" size="icon" aria-label="Configuración de cotizaciones">
+                <ButtonLink href="/admin/settings/quotes/plantilla" variant="outline" size="icon" aria-label="Editor de plantilla de cotizaciones">
                   <Settings className="h-4 w-4" />
                 </ButtonLink>
                 <ButtonLink href="/admin/quotes/history" variant="outline">

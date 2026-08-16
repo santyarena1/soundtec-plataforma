@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureQuoteProfiles, QUOTE_CORPORATE_ASSETS } from "@/lib/quote-defaults";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { getSetting } from "@/lib/settings";
-import { saveQuoteBlockTemplate, saveQuoteModuleSetting } from "@/server/actions/quotes";
+import { saveQuoteModuleSetting } from "@/server/actions/quotes";
 import { SettingsSectionHeader } from "@/components/admin/settings-section-header";
 import { withCurrentValueOption, type SettingOption } from "@/components/admin/setting-field";
 import { Card, CardContent } from "@/components/ui/card";
@@ -157,11 +157,31 @@ export default async function SettingsQuotesPage() {
       <SettingsSectionHeader
         href="/admin/settings/quotes"
         actions={
-          <ButtonLink href="/admin/quotes" variant="outline" size="sm">
-            Ir a cotizaciones
-          </ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/admin/settings/quotes/plantilla" size="sm">
+              Editar plantilla visual
+            </ButtonLink>
+            <ButtonLink href="/admin/quotes" variant="outline" size="sm">
+              Ir a cotizaciones
+            </ButtonLink>
+          </div>
         }
       />
+
+      <Card>
+        <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Textos e imágenes de la plantilla</h3>
+            <p className="muted-text mt-0.5">
+              Se editan sobre un presupuesto de muestra, módulo por módulo, con negrita, justificado y tamaño de
+              imagen. Lo que cambies ahí se copia a las cotizaciones nuevas.
+            </p>
+          </div>
+          <ButtonLink href="/admin/settings/quotes/plantilla" size="sm">
+            Abrir editor
+          </ButtonLink>
+        </CardContent>
+      </Card>
 
       <QuoteSettingsCard
         title="Numeración"
@@ -339,43 +359,24 @@ export default async function SettingsQuotesPage() {
       <Card>
         <CardContent className="p-5">
           <div>
-            <h3 className="text-sm font-semibold">Textos de plantilla</h3>
+            <h3 className="text-sm font-semibold">Módulos de la plantilla</h3>
             <p className="muted-text mt-0.5">
-              Se copian a cada cotización nueva. Los bloques de tipo fixed no los reescribe la IA.
+              {blocks.length} bloques activos. El texto se edita en el presupuesto de muestra, no acá.
             </p>
           </div>
-          <div className="mt-4 space-y-3">
+          <ul className="mt-3 divide-y divide-border/70 text-sm">
             {blocks.map((block) => (
-              <details key={block.id} className="rounded-md border border-border/70">
-                <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+              <li key={block.id} className="flex items-center justify-between gap-3 py-2">
+                <span>
                   {block.title}
-                  <span className="ml-2 text-xs font-normal uppercase tracking-wide text-muted-foreground">
-                    {block.key} · {block.category}
-                  </span>
-                </summary>
-                <form action={saveQuoteBlockTemplate} className="space-y-3 border-t border-border/70 p-4">
-                  <input type="hidden" name="blockId" value={block.id} />
-                  <div>
-                    <Label htmlFor={`title-${block.id}`}>Título</Label>
-                    <Input id={`title-${block.id}`} name="title" defaultValue={block.title} className="mt-1.5" />
-                  </div>
-                  <div>
-                    <Label htmlFor={`body-${block.id}`}>Texto</Label>
-                    <Textarea
-                      id={`body-${block.id}`}
-                      name="body"
-                      rows={8}
-                      defaultValue={block.body}
-                      className="mt-1.5 min-h-[140px]"
-                    />
-                  </div>
-                  <Button type="submit" variant="outline" size="sm">
-                    Guardar bloque
-                  </Button>
-                </form>
-              </details>
+                  <span className="ml-2 text-xs uppercase tracking-wide text-muted-foreground">{block.category}</span>
+                </span>
+                <ButtonLink href="/admin/settings/quotes/plantilla" variant="ghost" size="sm">
+                  Editar
+                </ButtonLink>
+              </li>
             ))}
-          </div>
+          </ul>
         </CardContent>
       </Card>
     </div>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadQuoteForUser } from "@/lib/quote-access";
 import { getDeliveryOptions } from "@/lib/quote-settings";
@@ -11,7 +12,6 @@ import {
   saveQuoteTerms,
   toggleQuoteModule,
   toggleQuoteSectionLock,
-  updateQuoteSection,
 } from "@/server/actions/quotes";
 import { quoteIssueCheck } from "@/lib/quote-issue";
 import { deleteQuoteAsset } from "@/server/actions/quote-images";
@@ -29,7 +29,7 @@ import { QuoteDocument } from "@/components/quotes/quote-document";
 import { QuoteProductPhotos } from "./product-photos";
 import { QuoteBomTable } from "./quote-bom-table";
 import { QuoteMediaRail } from "./media-rail";
-import { QuoteRevisePanel } from "./revise-panel";
+import { QuoteRevisePanel, QuoteSectionWorkbench } from "./revise-panel";
 import { QuoteSectionEditor } from "@/components/quotes/quote-section-editor";
 
 export const metadata = { title: "Admin · Cotización" };
@@ -283,11 +283,11 @@ export default async function QuoteEditorPage({
           {step === 3 ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Textos e imágenes fijos de las COT Word. Tildá lo que va y editá el texto de esta cotización con el
-                engranaje. La IA no los reescribe.{" "}
-                <a href="/admin/settings/quotes/plantilla" className="underline">
+                Textos e imágenes fijos de las COT Word. Tildá lo que va, editá con el engranaje o pedile a la IA
+                un ajuste (más largo, más claro, más institucional). Generar la propuesta no los pisa.{" "}
+                <Link href="/admin/settings/quotes/plantilla" className="underline">
                   Editar la plantilla maestra
-                </a>
+                </Link>
                 .
               </p>
               {templateSections.map((section) => {
@@ -312,12 +312,23 @@ export default async function QuoteEditorPage({
                         )}
                       </div>
                       {section.type !== "products_table" ? (
-                        <QuoteSectionEditor
-                          sectionId={section.id}
-                          title={section.title}
-                          body={section.body}
-                          issued={issued}
-                        />
+                        <>
+                          <QuoteSectionEditor
+                            sectionId={section.id}
+                            title={section.title}
+                            body={section.body}
+                            issued={issued}
+                          />
+                          {!issued ? (
+                            <QuoteRevisePanel
+                              quoteId={quote.id}
+                              nodeId={section.id}
+                              kind="section"
+                              alwaysOpen
+                              warning="Sólo esta cotización. La plantilla maestra no cambia."
+                            />
+                          ) : null}
+                        </>
                       ) : null}
                     </CardContent>
                   </Card>
@@ -383,14 +394,14 @@ export default async function QuoteEditorPage({
                       issued={issued}
                     />
                     {!issued ? (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="space-y-2">
                         <form action={toggleQuoteSectionLock}>
                           <input type="hidden" name="sectionId" value={section.id} />
                           <Button type="submit" size="sm" variant="ghost">
                             {section.locked ? "Desfijar" : "Fijar"}
                           </Button>
                         </form>
-                        <QuoteRevisePanel quoteId={quote.id} nodeId={section.id} kind="section" />
+                        <QuoteRevisePanel quoteId={quote.id} nodeId={section.id} kind="section" alwaysOpen />
                       </div>
                     ) : null}
                   </CardContent>
