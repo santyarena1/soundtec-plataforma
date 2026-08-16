@@ -42,14 +42,14 @@ function Paragraphs({ body }: { body: string }) {
         const [first, ...rest] = chunk.split("\n");
         if (isHeading(first) && rest.length > 0) {
           return (
-            <div key={index} className="mb-[3mm]">
+            <div key={index} className="quote-doc__para mb-[3mm]">
               <p className="font-semibold tracking-[0.04em]">{first}</p>
               <p className="whitespace-pre-line text-justify">{rest.join("\n")}</p>
             </div>
           );
         }
         return (
-          <p key={index} className="mb-[3mm] whitespace-pre-line text-justify last:mb-0">
+          <p key={index} className="quote-doc__para mb-[3mm] whitespace-pre-line text-justify last:mb-0">
             {chunk}
           </p>
         );
@@ -276,7 +276,7 @@ function SectionBlock({
   if (section.type === "commercial_terms") {
     if (!hasBody(section) && !quote.terms) return null;
     return (
-      <div className={spacing}>
+      <div className={`quote-doc__block ${spacing}`}>
         <SectionTitle color={color}>{section.title}</SectionTitle>
         {hasBody(section) ? <Paragraphs body={section.body} /> : null}
         <TermsDetail quote={quote} color={color} />

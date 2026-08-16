@@ -23,7 +23,7 @@ function paragraphs(body: string) {
     .filter(Boolean)
     .map(
       (chunk) =>
-        `<p style="margin:0 0 8pt;text-align:justify;font-size:10.5pt;line-height:1.45">${escapeHtml(chunk).replaceAll("\n", "<br/>")}</p>`
+        `<p style="margin:0 0 8pt;text-align:justify;font-size:10.5pt;line-height:1.45;page-break-inside:avoid">${escapeHtml(chunk).replaceAll("\n", "<br/>")}</p>`
     )
     .join("");
 }
@@ -51,8 +51,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     year: "numeric",
   });
 
+  // page-break-after:avoid evita que el título quede solo al pie de una hoja.
   const heading = (text: string) =>
-    `<p style="margin:16pt 0 5pt;padding-bottom:2pt;border-bottom:1pt solid ${color};font-size:11pt;font-weight:bold;color:${color};text-transform:uppercase;letter-spacing:.5pt">${escapeHtml(text)}</p>`;
+    `<p style="margin:16pt 0 5pt;padding-bottom:2pt;border-bottom:1pt solid ${color};font-size:11pt;font-weight:bold;color:${color};text-transform:uppercase;letter-spacing:.5pt;page-break-after:avoid">${escapeHtml(text)}</p>`;
 
   const sections = quote.sections
     .filter((section) => section.included !== false)

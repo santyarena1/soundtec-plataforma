@@ -2,8 +2,9 @@
  * Servicio OpenAI desacoplado.
  *
  * Si OPENAI_API_KEY no está configurada, devuelve mocks razonables
- * para no romper el flujo. Una vez que se configure (en /admin/api-keys
- * o variable de entorno), las mismas funciones llaman al modelo real.
+ * para no romper el flujo. Una vez que se configure (en
+ * /admin/settings/integrations o variable de entorno), las mismas
+ * funciones llaman al modelo real.
  *
  * Decisión: las claves se prefieren desde AdminSetting (DB) para que el
  * admin pueda rotarlas desde la UI sin redeploy. Si no existe, se cae

@@ -51,7 +51,7 @@ export default async function AdminDashboardPage() {
     { label: "Clientes activos", value: totalUsers, icon: Users, tone: "accent" as const, href: "/admin/users" },
     { label: "Solicitudes a responder", value: activeRequests, icon: Send, tone: "warning" as const, href: "/admin/requests" },
     { label: "Importaciones pendientes", value: pendingImports, icon: FileSpreadsheet, tone: "primary" as const, href: "/admin/imports" },
-    { label: "Feedback IA con errores", value: pendingFeedback, icon: Sparkles, tone: "destructive" as const, href: "/admin/ai" },
+    { label: "Feedback IA con errores", value: pendingFeedback, icon: Sparkles, tone: "destructive" as const, href: "/admin/feedback" },
     { label: "Tickets abiertos", value: openTickets, icon: LifeBuoy, tone: "muted" as const, href: "/admin/tickets" },
   ];
 

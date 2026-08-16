@@ -138,10 +138,18 @@ export const PERMISSION_GROUPS: Array<{
     title: "Contenido y configuración",
     items: [
       { scope: "landing.manage", label: "Landing pública" },
-      { scope: "ai.manage", label: "IA y feedback" },
-      { scope: "settings.manage", label: "Configuración general" },
-      { scope: "branding.manage", label: "Branding y logo" },
-      { scope: "api_keys.manage", label: "API Keys" },
+      {
+        scope: "ai.manage",
+        label: "IA: prompts, modelos y feedback",
+        help: "Da acceso a la configuración de IA y a la pantalla de feedback de los usuarios.",
+      },
+      {
+        scope: "settings.manage",
+        label: "Configuración general y de precios",
+        help: "Nombre del portal, moneda, margen global, tipo de cambio y visibilidad por defecto.",
+      },
+      { scope: "branding.manage", label: "Marca y apariencia" },
+      { scope: "api_keys.manage", label: "Integraciones y API keys" },
       { scope: "tickets.manage", label: "Tickets internos" },
     ],
   },

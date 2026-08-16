@@ -98,7 +98,16 @@
   padding: 8mm 14mm 10mm;
 }
 
+/* Un módulo entero no se parte: si no entra, pasa completo a la hoja siguiente
+   aunque queden espacios vacíos. */
 .quote-doc__block {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Red de contención para los módulos que no entran en una hoja: el corte cae
+   entre párrafos y nunca deja un subtítulo separado de su texto. */
+.quote-doc__para {
   break-inside: avoid;
   page-break-inside: avoid;
 }

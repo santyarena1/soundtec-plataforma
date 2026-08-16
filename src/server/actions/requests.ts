@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser, requireAdmin } from "@/lib/auth-helpers";
-import { isProductVisibleToClient } from "@/lib/pricing";
+import { calculatePricesForProducts, isProductVisibleToClient } from "@/lib/pricing";
+import { getGlobalMarginPercent } from "@/lib/settings";
 import { requireCommercialClientId, resolveCommercialClientId } from "@/lib/client-context";
 import { accessoryAckNote, evaluateAccessoryPolicy } from "@/lib/accessory-context";
 import { getOrCreateActiveDraft } from "@/lib/draft-request";
@@ -646,46 +647,202 @@ export async function postRequestMessage(formData: FormData): Promise<void> {
   revalidatePath(`/admin/requests/${request.id}`);
 }
 
+/* ------------------------------------------------------------------ *
+ * Acciones del panel admin
+ *
+ * Todas devuelven `{ ok, error? }` para que la UI pueda mostrar un toast
+ * de confirmación o de error en vez de recargar en silencio.
+ * ------------------------------------------------------------------ */
+
+type ActionResult = { ok: boolean; error?: string };
+
+const ADMIN_STATUSES = ["IN_REVIEW", "ANSWERED", "CONFIRMED", "REJECTED", "CLOSED"] as const;
+
+function revalidateRequest(requestId: string) {
+  revalidatePath("/admin/requests");
+  revalidatePath(`/admin/requests/${requestId}`);
+  revalidatePath("/portal/requests");
+  revalidatePath(`/portal/requests/${requestId}`);
+}
+
+/** Cliente comercial al que hay que facturarle, para calcular precios como los ve él. */
+async function commercialClientIdForRequest(request: { clientId: string | null; userId: string }) {
+  return request.clientId ?? (await resolveCommercialClientId(request.userId));
+}
+
 const adminRespondSchema = z.object({
   requestId: z.string().min(1),
-  status: z.enum(["IN_REVIEW", "ANSWERED", "CONFIRMED", "REJECTED", "CLOSED"]),
+  status: z.enum(ADMIN_STATUSES),
   adminResponse: z.string().max(10000).optional().nullable(),
 });
 
-export async function adminUpdateRequest(formData: FormData): Promise<void> {
+/**
+ * Guarda la respuesta visible para el cliente y mueve el estado.
+ * El texto se publica además como mensaje en la conversación.
+ */
+export async function adminRespondRequest(input: {
+  requestId: string;
+  status: string;
+  adminResponse?: string | null;
+}): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const parsed = adminRespondSchema.safeParse({
-    requestId: formData.get("requestId"),
-    status: formData.get("status") || "IN_REVIEW",
-    adminResponse: formData.get("adminResponse") || null,
+  const parsed = adminRespondSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Revisá el estado y la respuesta antes de guardar." };
+
+  const request = await prisma.customerRequest.findUnique({
+    where: { id: parsed.data.requestId },
+    select: { id: true, status: true },
   });
-  if (!parsed.success) return;
+  if (!request) return { ok: false, error: "La solicitud ya no existe." };
 
   const responseText = parsed.data.adminResponse?.trim() || "";
+
   await prisma.customerRequest.update({
-    where: { id: parsed.data.requestId },
+    where: { id: request.id },
     data: {
       status: parsed.data.status,
       ...(responseText ? { adminResponse: responseText } : {}),
     },
   });
+
   if (responseText) {
     await prisma.requestMessage.create({
-      data: {
-        requestId: parsed.data.requestId,
-        senderId: admin.id,
-        message: responseText,
-      },
+      data: { requestId: request.id, senderId: admin.id, message: responseText },
     });
   }
-  revalidatePath(`/admin/requests/${parsed.data.requestId}`);
-  revalidatePath(`/portal/requests/${parsed.data.requestId}`);
+
+  revalidateRequest(request.id);
+  return { ok: true };
+}
+
+/** Cambio de estado suelto, sin escribir respuesta (botones de acción rápida). */
+export async function adminSetRequestStatus(input: { requestId: string; status: string }): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = z
+    .object({ requestId: z.string().min(1), status: z.enum(ADMIN_STATUSES) })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Estado inválido." };
+
+  const request = await prisma.customerRequest.findUnique({
+    where: { id: parsed.data.requestId },
+    select: { id: true },
+  });
+  if (!request) return { ok: false, error: "La solicitud ya no existe." };
+
+  await prisma.customerRequest.update({
+    where: { id: request.id },
+    data: { status: parsed.data.status },
+  });
+
+  revalidateRequest(request.id);
+  return { ok: true };
+}
+
+/** Mensaje en la conversación, desde el panel admin. */
+export async function adminSendRequestMessage(input: {
+  requestId: string;
+  message: string;
+}): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const parsed = messageSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "El mensaje no puede estar vacío." };
+
+  const request = await prisma.customerRequest.findUnique({
+    where: { id: parsed.data.requestId },
+    select: { id: true },
+  });
+  if (!request) return { ok: false, error: "La solicitud ya no existe." };
+
+  await prisma.requestMessage.create({
+    data: { requestId: request.id, senderId: admin.id, message: parsed.data.message },
+  });
+
+  revalidateRequest(request.id);
+  return { ok: true };
 }
 
 /**
- * Sugerencia admin → cliente: agrega un producto a la solicitud marcado como
- * sugerencia del admin (no es lo que pidió el cliente). El cliente lo verá
- * destacado como "Sugerencia del equipo Soundtec".
+ * Buscador de productos para sugerir, con el precio que vería este cliente.
+ * Reemplaza al `<select>` con cientos de opciones precargadas.
+ */
+export async function adminSearchProductsForRequest(input: {
+  requestId: string;
+  query: string;
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  products: Array<{ id: string; name: string; sku: string | null; brand: string | null; priceUsd: number | null }>;
+}> {
+  await requireAdmin();
+  const query = (input.query || "").trim();
+  if (query.length < 2) return { ok: true, products: [] };
+
+  const request = await prisma.customerRequest.findUnique({
+    where: { id: input.requestId },
+    select: { id: true, userId: true, clientId: true },
+  });
+  if (!request) return { ok: false, error: "La solicitud ya no existe.", products: [] };
+
+  const found = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { normalizedName: { contains: query, mode: "insensitive" } },
+        { originalName: { contains: query, mode: "insensitive" } },
+        { internalSku: { contains: query, mode: "insensitive" } },
+        { supplierSku: { contains: query, mode: "insensitive" } },
+        { modelNumber: { contains: query, mode: "insensitive" } },
+      ],
+    },
+    orderBy: { normalizedName: "asc" },
+    take: 25,
+    select: {
+      id: true,
+      normalizedName: true,
+      internalSku: true,
+      baseCostUsd: true,
+      brandId: true,
+      distributorId: true,
+      categoryId: true,
+      familyId: true,
+      discountPercent: true,
+      tariffDutyPercent: true,
+      brand: { select: { name: true } },
+    },
+  });
+
+  const clientId = await commercialClientIdForRequest(request);
+  const globalMargin = await getGlobalMarginPercent();
+  const prices = await calculatePricesForProducts(
+    found.map((p) => ({
+      productId: p.id,
+      baseCostUsd: Number(p.baseCostUsd),
+      brandId: p.brandId,
+      distributorId: p.distributorId,
+      categoryId: p.categoryId,
+      familyId: p.familyId,
+      productDiscountPercent: p.discountPercent ? Number(p.discountPercent) : null,
+      tariffDutyPercent: p.tariffDutyPercent ? Number(p.tariffDutyPercent) : null,
+    })),
+    clientId,
+    globalMargin
+  );
+
+  return {
+    ok: true,
+    products: found.map((p) => ({
+      id: p.id,
+      name: p.normalizedName,
+      sku: p.internalSku,
+      brand: p.brand?.name ?? null,
+      priceUsd: prices.get(p.id)?.finalPriceUsd ?? null,
+    })),
+  };
+}
+
+/**
+ * Sugerencia admin → cliente: agrega un producto marcado como propuesta del
+ * equipo (no es lo que pidió el cliente). El cliente lo ve destacado.
  */
 const adminSuggestionSchema = z.object({
   requestId: z.string().min(1),
@@ -693,53 +850,104 @@ const adminSuggestionSchema = z.object({
   quantity: z.coerce.number().int().min(1).max(9999).default(1),
   adminNotes: z.string().max(2000).optional().nullable(),
   replacesItemId: z.string().optional().nullable(),
+  announce: z.boolean().default(true),
 });
 
-export async function addAdminSuggestion(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+export async function addAdminSuggestion(input: {
+  requestId: string;
+  productId: string;
+  quantity?: number | string;
+  adminNotes?: string | null;
+  replacesItemId?: string | null;
+  announce?: boolean;
+}): Promise<ActionResult> {
   const admin = await requireAdmin();
   const parsed = adminSuggestionSchema.safeParse({
-    requestId: formData.get("requestId"),
-    productId: formData.get("productId"),
-    quantity: formData.get("quantity") || 1,
-    adminNotes: formData.get("adminNotes") || null,
-    replacesItemId: formData.get("replacesItemId") || null,
+    ...input,
+    quantity: input.quantity ?? 1,
+    announce: input.announce ?? true,
   });
-  if (!parsed.success) return { ok: false, error: "Datos inválidos" };
+  if (!parsed.success) return { ok: false, error: "Datos inválidos." };
 
   const request = await prisma.customerRequest.findUnique({ where: { id: parsed.data.requestId } });
-  if (!request) return { ok: false, error: "Solicitud no encontrada" };
+  if (!request) return { ok: false, error: "La solicitud ya no existe." };
 
-  const product = await prisma.product.findUnique({ where: { id: parsed.data.productId } });
-  if (!product) return { ok: false, error: "Producto no encontrado" };
+  const product = await prisma.product.findUnique({
+    where: { id: parsed.data.productId },
+    select: { id: true, normalizedName: true },
+  });
+  if (!product) return { ok: false, error: "El producto no existe o fue dado de baja." };
+
+  const replaced = parsed.data.replacesItemId
+    ? await prisma.customerRequestItem.findUnique({
+        where: { id: parsed.data.replacesItemId },
+        select: { productId: true, product: { select: { normalizedName: true } } },
+      })
+    : null;
 
   await prisma.customerRequestItem.create({
     data: {
-      requestId: parsed.data.requestId,
-      productId: parsed.data.productId,
+      requestId: request.id,
+      productId: product.id,
       quantity: parsed.data.quantity,
       isAdminSuggestion: true,
-      adminNotes: parsed.data.adminNotes || null,
-      adminAlternativeProductId: parsed.data.replacesItemId
-        ? (
-            await prisma.customerRequestItem.findUnique({
-              where: { id: parsed.data.replacesItemId },
-              select: { productId: true },
-            })
-          )?.productId ?? null
-        : null,
+      adminNotes: parsed.data.adminNotes?.trim() || null,
+      adminAlternativeProductId: replaced?.productId ?? null,
     },
   });
 
-  await prisma.requestMessage.create({
-    data: {
-      requestId: parsed.data.requestId,
-      senderId: admin.id,
-      message: `Sugerencia: agregar ${parsed.data.quantity} × ${product.normalizedName}${parsed.data.adminNotes ? `\nNota: ${parsed.data.adminNotes}` : ""}`,
-    },
+  if (parsed.data.announce) {
+    const lines = [
+      replaced
+        ? `Te propongo reemplazar ${replaced.product.normalizedName} por ${parsed.data.quantity} × ${product.normalizedName}.`
+        : `Te sumo una sugerencia: ${parsed.data.quantity} × ${product.normalizedName}.`,
+    ];
+    if (parsed.data.adminNotes?.trim()) lines.push(parsed.data.adminNotes.trim());
+    await prisma.requestMessage.create({
+      data: { requestId: request.id, senderId: admin.id, message: lines.join("\n") },
+    });
+  }
+
+  revalidateRequest(request.id);
+  return { ok: true };
+}
+
+/** Ajuste de cantidad de un ítem desde el panel admin. */
+export async function adminUpdateRequestItem(input: {
+  itemId: string;
+  quantity: number | string;
+}): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = z
+    .object({ itemId: z.string().min(1), quantity: z.coerce.number().int().min(1).max(9999) })
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, error: "La cantidad debe ser un número entre 1 y 9999." };
+
+  const item = await prisma.customerRequestItem.findUnique({
+    where: { id: parsed.data.itemId },
+    select: { id: true, requestId: true },
+  });
+  if (!item) return { ok: false, error: "El ítem ya no existe." };
+
+  await prisma.customerRequestItem.update({
+    where: { id: item.id },
+    data: { quantity: parsed.data.quantity },
   });
 
-  revalidatePath(`/admin/requests/${parsed.data.requestId}`);
-  revalidatePath(`/portal/requests/${parsed.data.requestId}`);
+  revalidateRequest(item.requestId);
+  return { ok: true };
+}
+
+export async function adminRemoveRequestItem(input: { itemId: string }): Promise<ActionResult> {
+  await requireAdmin();
+  const item = await prisma.customerRequestItem.findUnique({
+    where: { id: input.itemId },
+    select: { id: true, requestId: true },
+  });
+  if (!item) return { ok: false, error: "El ítem ya no existe." };
+
+  await prisma.customerRequestItem.delete({ where: { id: item.id } });
+  revalidateRequest(item.requestId);
   return { ok: true };
 }
 

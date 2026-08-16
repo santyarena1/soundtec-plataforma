@@ -1,51 +1,50 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft, Building2, MessagesSquare, PenLine, ShoppingCart } from "lucide-react";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
-import { adminUpdateRequest, postRequestMessage, removeRequestItemForm } from "@/server/actions/requests";
-import { Button } from "@/components/ui/button";
-import { Textarea, Label, Select } from "@/components/ui/input";
-import { ArrowLeft, Sparkles } from "lucide-react";
 import { formatDate, formatUsd } from "@/lib/utils";
 import { calculatePricesForProducts } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
-import { AiSuggestResponseButton } from "./ai-suggest";
-import { AddSuggestionPanel } from "./add-suggestion";
+import { resolveCommercialClientId } from "@/lib/client-context";
+import {
+  REQUEST_STATUS_META,
+  formatRelative,
+  statusTone,
+  typeLabel,
+  type RequestStatus,
+} from "@/lib/request-status";
+import { StatusStepper } from "./status-stepper";
+import { StatusActions } from "./status-actions";
+import { ResponseComposer } from "./response-composer";
+import { RequestConversation, type ConversationMessage } from "./request-conversation";
+import { RequestItemsPanel, type RequestItemRow } from "./request-items-panel";
 
 export default async function AdminRequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await requireAdmin();
 
-  const [request, productsForSuggestion] = await Promise.all([
-    prisma.customerRequest.findUnique({
-      where: { id },
-      include: {
-        user: true,
-        items: {
-          include: { product: { include: { brand: true } } },
-          orderBy: { createdAt: "asc" },
-        },
-        messages: { include: { sender: { select: { name: true, role: true } } }, orderBy: { createdAt: "asc" } },
+  const request = await prisma.customerRequest.findUnique({
+    where: { id },
+    include: {
+      user: true,
+      items: {
+        include: { product: { include: { brand: true } } },
+        orderBy: { createdAt: "asc" },
       },
-    }),
-    prisma.product.findMany({
-      where: { isActive: true },
-      orderBy: { normalizedName: "asc" },
-      select: {
-        id: true,
-        normalizedName: true,
-        internalSku: true,
-        brand: { select: { name: true } },
+      messages: {
+        include: { sender: { select: { name: true, role: true } } },
+        orderBy: { createdAt: "asc" },
       },
-      take: 800,
-    }),
-  ]);
+    },
+  });
   if (!request) notFound();
 
+  // Precios con el cliente comercial real, para que el admin vea lo mismo que ve el cliente.
+  const commercialClientId = request.clientId ?? (await resolveCommercialClientId(request.userId));
   const globalMargin = await getGlobalMarginPercent();
   const prices = await calculatePricesForProducts(
     request.items.map((i) => ({
@@ -58,213 +57,223 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
       productDiscountPercent: i.product.discountPercent ? Number(i.product.discountPercent) : null,
       tariffDutyPercent: i.product.tariffDutyPercent ? Number(i.product.tariffDutyPercent) : null,
     })),
-    request.userId,
+    commercialClientId,
     globalMargin
   );
 
-  const total = request.items.reduce(
-    (acc, i) => acc + (prices.get(i.product.id)?.finalPriceUsd ?? 0) * i.quantity,
-    0
-  );
+  // Las sugerencias guardan el productId reemplazado; lo mapeamos a un nombre legible.
+  const productNameById = new Map(request.items.map((i) => [i.product.id, i.product.normalizedName]));
+
+  const items: RequestItemRow[] = request.items.map((i) => ({
+    id: i.id,
+    productId: i.product.id,
+    productName: i.product.normalizedName,
+    brand: i.product.brand?.name ?? null,
+    quantity: i.quantity,
+    unitPriceUsd: prices.get(i.product.id)?.finalPriceUsd ?? 0,
+    userNotes: i.userNotes,
+    adminNotes: i.adminNotes,
+    isAdminSuggestion: i.isAdminSuggestion,
+    replacesProductName: i.adminAlternativeProductId
+      ? productNameById.get(i.adminAlternativeProductId) ?? null
+      : null,
+  }));
+
+  const messages: ConversationMessage[] = request.messages.map((m) => ({
+    id: m.id,
+    message: m.message,
+    senderName: m.sender.name ?? "Sin nombre",
+    fromClient: m.sender.role === "CLIENT",
+    isAiGenerated: m.isAiGenerated,
+    sentAtLabel: formatDate(m.createdAt),
+  }));
+
+  const requestedTotal = items
+    .filter((i) => !i.isAdminSuggestion)
+    .reduce((acc, i) => acc + i.unitPriceUsd * i.quantity, 0);
+  const suggestedTotal = items
+    .filter((i) => i.isAdminSuggestion)
+    .reduce((acc, i) => acc + i.unitPriceUsd * i.quantity, 0);
+  const totalUnits = items.reduce((acc, i) => acc + i.quantity, 0);
+
+  const status = request.status as RequestStatus;
+  const statusMeta = REQUEST_STATUS_META[status];
+  const StatusIcon = statusMeta.icon;
+  const clientName = request.user.companyName || request.user.name || request.user.email || "el cliente";
+  const lastMessage = request.messages[request.messages.length - 1];
+  const waitingOnUs = status === "SENT" || lastMessage?.sender.role === "CLIENT";
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/requests" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        href="/admin/requests"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="h-4 w-4" /> Volver a solicitudes
       </Link>
 
       <PageHeader
         title={`Solicitud #${request.id.slice(-6).toUpperCase()}`}
-        description={`${request.user.companyName || request.user.name} · ${request.user.email}`}
+        description={`${typeLabel(request.type)} de ${clientName} · recibida ${formatRelative(request.createdAt)}`}
         actions={
-          <Badge>
-            {request.status === "DRAFT"
-              ? "Borrador"
-              : request.status === "SENT"
-                ? "Enviada"
-                : request.status === "IN_REVIEW"
-                  ? "En revisión"
-                  : request.status === "ANSWERED"
-                    ? "Respondida"
-                    : request.status === "CONFIRMED"
-                      ? "Confirmada"
-                      : request.status === "REJECTED"
-                        ? "Rechazada"
-                        : request.status === "CLOSED"
-                          ? "Cerrada"
-                          : request.status}
+          <Badge tone={statusTone(status)}>
+            <StatusIcon className="h-3.5 w-3.5" />
+            {statusMeta.label}
           </Badge>
         }
       />
 
-      {request.projectDescription ? (
-        <Card>
-          <CardContent className="p-6">
-            <CardTitle>Descripción del proyecto</CardTitle>
-            <p className="muted-text mt-2 whitespace-pre-wrap">{request.projectDescription}</p>
-          </CardContent>
-        </Card>
+      <StatusStepper status={status} />
+
+      {waitingOnUs && status !== "REJECTED" && status !== "CLOSED" ? (
+        <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/15 text-warning">
+            <PenLine className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Te toca a vos</p>
+            <p className="text-xs text-muted-foreground">
+              {status === "SENT"
+                ? "Nadie tomó esta solicitud todavía. Revisá los productos y respondele al cliente."
+                : `${lastMessage?.sender.name ?? "El cliente"} escribió último y está esperando respuesta.`}
+            </p>
+          </div>
+        </div>
       ) : null}
 
-      <Card>
-        <CardContent className="p-6">
-          <CardTitle>Productos solicitados</CardTitle>
-          <div className="mt-4 overflow-x-auto">
-            <Table>
-              <THead>
-                <TR>
-                  <TH>Producto</TH>
-                  <TH>Marca</TH>
-                  <TH>Cantidad</TH>
-                  <TH className="text-right">Precio U.</TH>
-                  <TH className="text-right">Subtotal</TH>
-                  <TH></TH>
-                </TR>
-              </THead>
-              <TBody>
-                {request.items.map((i) => {
-                  const unit = prices.get(i.product.id)?.finalPriceUsd ?? 0;
-                  return (
-                    <TR
-                      key={i.id}
-                      className={i.isAdminSuggestion ? "bg-accent/10" : ""}
-                    >
-                      <TD>
-                        <Link href={`/admin/products/${i.product.id}`} className="hover:underline">
-                          {i.product.normalizedName}
-                        </Link>
-                        {i.isAdminSuggestion ? (
-                          <Badge tone="accent" className="ml-2">
-                            <Sparkles className="h-3 w-3" /> Sugerencia
-                          </Badge>
-                        ) : null}
-                        {i.userNotes ? <p className="text-xs text-muted-foreground">📝 {i.userNotes}</p> : null}
-                        {i.adminNotes ? (
-                          <p className="text-xs text-accent">💬 {i.adminNotes}</p>
-                        ) : null}
-                      </TD>
-                      <TD>{i.product.brand?.name || "—"}</TD>
-                      <TD>{i.quantity}</TD>
-                      <TD className="text-right">{formatUsd(unit)}</TD>
-                      <TD className="text-right">{formatUsd(unit * i.quantity)}</TD>
-                      <TD className="text-right">
-                        <form action={removeRequestItemForm}>
-                          <input type="hidden" name="itemId" value={i.id} />
-                          <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                            Quitar
-                          </Button>
-                        </form>
-                      </TD>
-                    </TR>
-                  );
-                })}
-              </TBody>
-            </Table>
-          </div>
-          <div className="mt-3 flex justify-end text-sm">
-            <span className="text-muted-foreground">Total estimado:&nbsp;</span>
-            <span className="font-semibold">{formatUsd(total)}</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <AddSuggestionPanel
-            requestId={request.id}
-            products={productsForSuggestion.map((p) => ({
-              id: p.id,
-              name: p.normalizedName,
-              sku: p.internalSku,
-              brand: p.brand?.name ?? null,
-            }))}
-            existingItems={request.items
-              .filter((i) => !i.isAdminSuggestion)
-              .map((i) => ({ id: i.id, productName: i.product.normalizedName }))}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <CardTitle>Respuesta al cliente</CardTitle>
-            <AiSuggestResponseButton requestId={request.id} />
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            El texto de «Respuesta al cliente» y las sugerencias de productos arriba son visibles en el portal del cliente.
-            Si marcás «Confirmada» sin escribir respuesta, el cliente solo verá el cambio de estado.
-          </p>
-          <form action={adminUpdateRequest} className="mt-3 space-y-3">
-            <input type="hidden" name="requestId" value={request.id} />
-            <div className="grid gap-2 sm:grid-cols-[200px_1fr]">
-              <div>
-                <Label htmlFor="status">Estado</Label>
-                <Select id="status" name="status" defaultValue={request.status === "DRAFT" ? "ANSWERED" : request.status}>
-                  <option value="IN_REVIEW">En revisión</option>
-                  <option value="ANSWERED">Respondida (recomendado al contestar)</option>
-                  <option value="CONFIRMED">Confirmada</option>
-                  <option value="REJECTED">Rechazada</option>
-                  <option value="CLOSED">Cerrada</option>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="adminResponse" required>
-                  Respuesta visible al cliente
-                </Label>
-                <Textarea
-                  id="adminResponse"
-                  name="adminResponse"
-                  rows={8}
-                  required
-                  defaultValue={request.adminResponse || request.aiSuggestedResponse || ""}
-                  placeholder="Hola, gracias por la consulta. Te confirmamos disponibilidad y alternativas..."
-                />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Button type="submit">Guardar y notificar al cliente</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <CardTitle>Mensajes</CardTitle>
-          <div className="mt-3 space-y-2">
-            {request.messages.map((m) => (
-              <div
-                key={m.id}
-                className={`rounded-md border p-3 text-sm ${
-                  m.sender.role === "CLIENT" ? "border-border bg-card" : "border-primary/20 bg-primary/5"
-                }`}
-              >
-                <p className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    {m.sender.name} {m.sender.role !== "CLIENT" ? "· Soundtec" : ""}
-                    {m.isAiGenerated ? (
-                      <Badge tone="accent" className="ml-2">
-                        <Sparkles className="h-3 w-3" /> IA
-                      </Badge>
-                    ) : null}
-                  </span>
-                  <span>{formatDate(m.createdAt)}</span>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-6">
+          <Card>
+            <CardContent className="p-6 pt-6">
+              <CardTitle>Qué pidió el cliente</CardTitle>
+              {request.projectDescription ? (
+                <p className="mt-3 whitespace-pre-wrap text-sm">{request.projectDescription}</p>
+              ) : (
+                <p className="mt-3 text-sm text-muted-foreground">
+                  No escribió una descripción del proyecto. Guiate por los productos y la conversación.
                 </p>
-                <p className="mt-1 whitespace-pre-wrap">{m.message}</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6 pt-6">
+              <div className="mb-4 flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                <CardTitle>Productos</CardTitle>
               </div>
-            ))}
-          </div>
-          <form action={postRequestMessage} className="mt-3 space-y-2">
-            <input type="hidden" name="requestId" value={request.id} />
-            <Label htmlFor="message">Mensaje interno o al cliente</Label>
-            <Textarea id="message" name="message" rows={3} required />
-            <div className="flex justify-end">
-              <Button type="submit">Enviar mensaje</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+              <RequestItemsPanel requestId={request.id} items={items} />
+            </CardContent>
+          </Card>
+
+          <Card className="border-primary/30">
+            <CardContent className="p-6 pt-6">
+              <CardTitle>Responder al cliente</CardTitle>
+              <p className="mb-4 mt-1 text-xs text-muted-foreground">
+                Este es el paso principal: el texto queda como respuesta oficial en el portal del cliente y también se
+                publica en la conversación.
+              </p>
+              <ResponseComposer
+                requestId={request.id}
+                currentStatus={request.status}
+                savedResponse={request.adminResponse ?? ""}
+                storedAiSuggestion={request.aiSuggestedResponse ?? ""}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6 pt-6">
+              <div className="mb-4 flex items-center gap-2">
+                <MessagesSquare className="h-4 w-4 text-muted-foreground" />
+                <CardTitle>Conversación</CardTitle>
+                <Badge tone="muted">{messages.length}</Badge>
+              </div>
+              <RequestConversation requestId={request.id} messages={messages} clientName={clientName} />
+            </CardContent>
+          </Card>
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+          <Card>
+            <CardContent className="p-5 pt-5">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle>Cliente</CardTitle>
+              </div>
+              <p className="mt-3 text-sm font-medium">{clientName}</p>
+              {request.user.companyName && request.user.name ? (
+                <p className="text-xs text-muted-foreground">Contacto: {request.user.name}</p>
+              ) : null}
+              <a href={`mailto:${request.user.email}`} className="mt-1 block break-all text-xs text-accent hover:underline">
+                {request.user.email}
+              </a>
+              {request.clientId ? (
+                <Link
+                  href={`/admin/clients/${request.clientId}`}
+                  className="mt-3 inline-block text-xs text-accent hover:underline"
+                >
+                  Ver ficha del cliente →
+                </Link>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-5 pt-5">
+              <CardTitle>Resumen</CardTitle>
+              <dl className="mt-3 space-y-2 text-sm">
+                <Row label="Tipo" value={typeLabel(request.type)} />
+                <Row label="Productos" value={`${items.length} (${totalUnits} u.)`} />
+                <Row label="Pedido del cliente" value={formatUsd(requestedTotal)} />
+                {suggestedTotal > 0 ? (
+                  <Row label="Sugerencias" value={formatUsd(suggestedTotal)} accent />
+                ) : null}
+                <div className="border-t border-border pt-2">
+                  <Row label="Total estimado" value={formatUsd(requestedTotal + suggestedTotal)} strong />
+                </div>
+              </dl>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Precios con el margen y los descuentos de este cliente. Es lo mismo que ve él en el portal.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-5 pt-5">
+              <CardTitle>Cambiar estado</CardTitle>
+              <p className="mb-3 mt-1 text-xs text-muted-foreground">Ahora está en «{statusMeta.label}».</p>
+              <StatusActions requestId={request.id} currentStatus={request.status} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-5 pt-5">
+              <CardTitle>Actividad</CardTitle>
+              <dl className="mt-3 space-y-2 text-sm">
+                <Row label="Creada" value={formatDate(request.createdAt)} />
+                <Row label="Última actualización" value={formatRelative(request.updatedAt)} />
+                <Row label="Mensajes" value={String(messages.length)} />
+              </dl>
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value, strong, accent }: { label: string; value: string; strong?: boolean; accent?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd
+        className={`text-right tabular-nums ${strong ? "text-base font-semibold" : "text-sm"} ${
+          accent ? "text-accent" : ""
+        }`}
+      >
+        {value}
+      </dd>
     </div>
   );
 }

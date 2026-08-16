@@ -12,14 +12,13 @@ import {
   LayoutDashboard,
   LifeBuoy,
   ListChecks,
+  MessageSquare,
   Package,
-  Palette,
   Percent,
   Receipt,
   Share2,
   Settings2,
   ShieldCheck,
-  Sparkles,
   Tags,
   Truck,
   Users,
@@ -28,6 +27,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { PermissionScope } from "@/lib/permissions";
+import { SETTINGS_SECTIONS } from "@/lib/settings-sections";
 
 type NavItem = {
   href: string;
@@ -35,6 +35,8 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
   scope?: PermissionScope;
+  /** Visible si el usuario tiene al menos uno de estos scopes. */
+  anyScope?: PermissionScope[];
 };
 type NavGroup = { title: string; items: NavItem[] };
 
@@ -45,6 +47,7 @@ const groups: NavGroup[] = [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, scope: "dashboard" },
       { href: "/admin/requests", label: "Solicitudes", icon: ListChecks, scope: "requests.view" },
       { href: "/admin/quotes", label: "Cotizaciones", icon: FileSpreadsheet, scope: "quotes.view_own" },
+      { href: "/admin/feedback", label: "Feedback de IA", icon: MessageSquare, scope: "ai.manage" },
     ],
   },
   {
@@ -86,18 +89,15 @@ const groups: NavGroup[] = [
     ],
   },
   {
-    title: "Contenido",
+    title: "Sitio y sistema",
     items: [
       { href: "/admin/landing", label: "Landing pública", icon: Globe2, scope: "landing.manage" },
-      { href: "/admin/ai", label: "IA y feedback", icon: Sparkles, scope: "ai.manage" },
-    ],
-  },
-  {
-    title: "Sistema",
-    items: [
-      { href: "/admin/settings", label: "Configuración", icon: Settings2, scope: "settings.manage" },
-      { href: "/admin/branding", label: "Branding", icon: Palette, scope: "branding.manage" },
-      { href: "/admin/api-keys", label: "API Keys", icon: ShieldCheck, scope: "api_keys.manage" },
+      {
+        href: "/admin/settings",
+        label: "Configuración",
+        icon: Settings2,
+        anyScope: SETTINGS_SECTIONS.map((s) => s.scope),
+      },
       { href: "/admin/tickets", label: "Tickets al dev", icon: LifeBuoy, scope: "tickets.manage" },
     ],
   },
@@ -119,39 +119,39 @@ export function AdminSidebarNav({ allowedScopes, fullAccess }: Props) {
   const pathname = usePathname();
 
   const allowSet = useMemo(() => new Set(allowedScopes), [allowedScopes]);
-  const canSee = (scope?: PermissionScope) => {
-    if (fullAccess) return true;
-    if (!scope) return true;
-    return allowSet.has(scope);
-  };
 
   const filteredGroups = useMemo(() => {
+    const canSee = (item: NavItem) => {
+      if (fullAccess) return true;
+      if (item.anyScope) return item.anyScope.some((s) => allowSet.has(s));
+      if (!item.scope) return true;
+      return allowSet.has(item.scope);
+    };
     return groups
-      .map((g) => ({ ...g, items: g.items.filter((i) => canSee(i.scope)) }))
+      .map((g) => ({ ...g, items: g.items.filter(canSee) }))
       .filter((g) => g.items.length > 0);
   }, [allowSet, fullAccess]);
 
-  const activeByGroup = useMemo(() => {
-    return Object.fromEntries(
-      filteredGroups.map((g) => [g.title, g.items.some((i) => isActive(pathname, i))])
-    ) as Record<string, boolean>;
-  }, [pathname, filteredGroups]);
-
-  // Todo colapsado por defecto; el usuario abre el grupo que necesite.
-  const [open, setOpen] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(filteredGroups.map((g) => [g.title, false]))
+  const activeGroupTitle = useMemo(
+    () => filteredGroups.find((g) => g.items.some((i) => isActive(pathname, i)))?.title,
+    [pathname, filteredGroups]
   );
+
+  // Sólo se guardan los grupos que el usuario abrió o cerró a mano;
+  // el resto sigue al grupo activo, así la sección donde estás nunca aparece colapsada.
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
 
   return (
     <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
       {filteredGroups.map((group) => {
-        const opened = open[group.title] ?? false;
-        const groupActive = activeByGroup[group.title];
+        const groupActive = group.title === activeGroupTitle;
+        const opened = overrides[group.title] ?? groupActive;
         return (
           <div key={group.title} className="">
             <button
               type="button"
-              onClick={() => setOpen((s) => ({ ...s, [group.title]: !opened }))}
+              aria-expanded={opened}
+              onClick={() => setOverrides((s) => ({ ...s, [group.title]: !opened }))}
               className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors hover:bg-secondary/50 ${
                 groupActive ? "text-foreground" : "text-muted-foreground/80"
               }`}

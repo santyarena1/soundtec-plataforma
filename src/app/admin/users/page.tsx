@@ -49,7 +49,7 @@ export default async function AdminUsersPage() {
             <ButtonLink href="/admin/clients" variant="outline">
               Gestionar clientes
             </ButtonLink>
-            <ButtonLink href="/admin/users/roles" variant="outline">
+            <ButtonLink href="/admin/settings/roles" variant="outline">
               <ShieldCheck className="h-4 w-4" /> Roles personalizados
             </ButtonLink>
           </div>
