@@ -173,8 +173,8 @@ export default async function SettingsQuotesPage() {
           <div>
             <h3 className="text-sm font-semibold">Textos e imágenes de la plantilla</h3>
             <p className="muted-text mt-0.5">
-              Se editan sobre un presupuesto de muestra, módulo por módulo, con negrita, justificado y tamaño de
-              imagen. Lo que cambies ahí se copia a las cotizaciones nuevas.
+              Se editan sobre un presupuesto de muestra: clickeá el texto y escribí. Lo que cambies ahí se copia a
+              las cotizaciones nuevas.
             </p>
           </div>
           <ButtonLink href="/admin/settings/quotes/plantilla" size="sm">

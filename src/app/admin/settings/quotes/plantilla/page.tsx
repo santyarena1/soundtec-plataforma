@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
@@ -40,7 +39,7 @@ export default async function QuoteTemplateEditorPage() {
     <div className="space-y-4">
       <PageHeader
         title="Editor de plantilla"
-        description="El presupuesto de muestra con los textos fijos reales. Editá con el lápiz o pedile a la IA un ajuste: eso cambia la plantilla maestra de las cotizaciones nuevas. Las ya creadas no se tocan."
+        description="El presupuesto de muestra. Clickeá un módulo y escribí encima, como en Word. Eso cambia la plantilla maestra de las cotizaciones nuevas. Las ya creadas no se tocan."
         actions={
           <div className="flex gap-2">
             <ButtonLink href="/admin/settings/quotes" variant="outline" size="sm">
@@ -56,11 +55,7 @@ export default async function QuoteTemplateEditorPage() {
 
       <p className="muted-text">
         Los módulos que redacta la IA y la planilla de equipos se muestran con datos de ejemplo, porque se completan
-        en cada cotización. Para cambiar textos de una cotización puntual, editala desde{" "}
-        <Link href="/admin/quotes" className="underline">
-          su propio paso de Textos
-        </Link>
-        .
+        en cada cotización. Para cambiar textos de una cotización puntual, abrí esa COT y escribí sobre el documento.
       </p>
 
       <QuoteTemplateEditor modules={modules} identity={identity} />

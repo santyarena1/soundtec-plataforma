@@ -113,6 +113,99 @@
   page-break-inside: avoid;
 }
 
+/* Editor en vivo: el contenido vive en el flujo del documento. El canvas
+   puede ser más alto que una hoja A4; eso es correcto. Nunca recortar. */
+.quote-doc__live-module {
+  position: static;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  outline: 1px solid rgba(30, 53, 83, 0.2);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.quote-doc__live-module--focus {
+  outline-color: rgba(30, 53, 83, 0.55);
+  outline-width: 2px;
+}
+.quote-doc__live-chrome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2mm;
+  height: auto;
+}
+.quote-doc__live-footer {
+  margin-top: 3mm;
+  height: auto;
+}
+.quote-doc__live-chip {
+  border-radius: 2px;
+  background: #1e3553;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  padding: 2px 6px;
+  text-transform: uppercase;
+}
+.quote-doc__live-hint {
+  border-radius: 2px;
+  background: #eef1f5;
+  color: #5b6573;
+  font-size: 10px;
+  padding: 2px 6px;
+}
+.quote-doc__live-body,
+.quote-doc__editor,
+.quote-doc__editor .ProseMirror,
+.quote-doc__rt.ProseMirror {
+  position: static;
+  display: block;
+  height: auto;
+  min-height: 1.6em;
+  max-height: none;
+  overflow: visible;
+}
+.quote-doc__editor .ProseMirror {
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.quote-doc__live-image {
+  position: relative;
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+.quote-doc__live-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.quote-doc__live-handle {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 10px;
+  height: 28px;
+  margin-top: -14px;
+  border: 0;
+  border-radius: 2px;
+  background: #1e3553;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.quote-doc__live-handle--east {
+  right: 0;
+  transform: translateX(50%);
+}
+.quote-doc__live-handle--west {
+  left: 0;
+  transform: translateX(-50%);
+}
+
 /* Texto escrito desde el editor visual. Mismo aspecto que el texto plano. */
 .quote-doc__rt p {
   margin: 0 0 3mm;
@@ -179,6 +272,9 @@
   .quote-preview {
     zoom: 0.54;
   }
+  .quote-preview--live {
+    zoom: 0.72;
+  }
 }
 
 @media print {
@@ -198,6 +294,14 @@
   }
   .quote-doc thead {
     display: table-header-group;
+  }
+  .quote-doc__live-chrome,
+  .quote-doc__live-toolbar,
+  .quote-doc__live-image-tools {
+    display: none !important;
+  }
+  .quote-doc__live-module {
+    outline: none;
   }
   @page {
     size: A4;

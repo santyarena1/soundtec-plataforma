@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadQuoteForUser } from "@/lib/quote-access";
 import { getDeliveryOptions } from "@/lib/quote-settings";
-import { ensureQuoteSections, moduleByKey, parseQuoteStep, QUOTE_STEPS } from "@/lib/quote-defaults";
+import { Settings } from "lucide-react";
+import { ensureQuoteSections, getCompanyIdentity, moduleByKey, parseQuoteStep, QUOTE_STEPS } from "@/lib/quote-defaults";
+import { LiveQuoteCanvas } from "@/components/quotes/live-quote-canvas";
 import { prisma } from "@/lib/prisma";
 import { permissionsHave } from "@/lib/permissions";
 import {
@@ -29,7 +30,6 @@ import { QuoteDocument } from "@/components/quotes/quote-document";
 import { QuoteProductPhotos } from "./product-photos";
 import { QuoteBomTable } from "./quote-bom-table";
 import { QuoteMediaRail } from "./media-rail";
-import { QuoteSectionWorkbench } from "./revise-panel";
 
 export const metadata = { title: "Admin · Cotización" };
 
@@ -64,7 +64,7 @@ export default async function QuoteEditorPage({
   if (!quote) notFound();
 
   const productIds = quote.items.map((i) => i.productId).filter((pid): pid is string => Boolean(pid));
-  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms] = await Promise.all([
+  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms, identity] = await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
       orderBy: { companyName: "asc" },
@@ -97,6 +97,7 @@ export default async function QuoteEditorPage({
           include: { terms: true },
         })
       : Promise.resolve(null),
+    getCompanyIdentity(),
   ]);
 
   const issued = quote.status === "ISSUED";
@@ -145,6 +146,76 @@ export default async function QuoteEditorPage({
     };
   });
 
+  const canEditImages = permissions.fullAccess || permissionsHave(permissions, "quotes.manage_library");
+  const showFullLive = step === 3 && !issued;
+  const liveCanvas = (
+    <LiveQuoteCanvas
+      scope="quote"
+      quoteId={quote.id}
+      issued={issued}
+      identity={identity}
+      header={{
+        dateLabel: `Buenos Aires, ${(quote.issuedAt ?? new Date()).toLocaleDateString("es-AR", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })}`,
+        clientName: quote.client?.companyName || "[Cliente a confirmar]",
+        contactName: quote.contactName,
+        reference: quote.reference || "[Referencia a confirmar]",
+        number: quote.number,
+      }}
+      modules={[...quote.sections]
+        .filter((section) => section.included !== false)
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((section) => ({
+          key: section.type,
+          kind: moduleByKey(section.type)?.kind ?? "fixed",
+          title: section.title,
+          description: moduleByKey(section.type)?.description ?? "",
+          body: section.body,
+          persistId: section.id,
+        }))}
+      items={quote.items
+        .filter((item) => !item.excluded)
+        .map((item) => {
+          const asset = item.productId
+            ? quote.assets.find((a) => a.productId === item.productId && a.kind === "PRODUCT")
+            : null;
+          return {
+            id: item.id,
+            qty: Number(item.quantity),
+            unit: item.unit,
+            detail: item.description,
+            unitPrice: Number(item.unitPriceUsd),
+            lineTotal: Number(item.lineTotalUsd),
+            ivaRate: Number(item.ivaRate),
+            optional: item.optional,
+            deliveryKey: item.deliveryKey || "",
+            photoUrl: asset?.url || (item.productId ? catalogByProduct.get(item.productId) || null : null),
+          };
+        })}
+      showDelivery={quote.showDeliveryColumn}
+      terms={quote.terms}
+      signature={{
+        name: quote.owner.quoteSignName || quote.owner.name || "",
+        title: quote.owner.quoteSignTitle || "",
+      }}
+      plans={plans
+        .filter((plan) => !/\.pdf($|\?)/i.test(plan.url))
+        .map((plan) => ({ id: plan.id, url: plan.url, caption: plan.caption }))}
+      gallery={quote.assets
+        .filter((asset) => asset.kind !== "PRODUCT" && asset.kind !== "CORPORATE" && asset.kind !== "PLAN")
+        .map((asset) => ({
+          id: asset.id,
+          url: asset.url,
+          caption: asset.caption,
+          aiGenerated: asset.aiGenerated,
+        }))}
+      canEditImages={canEditImages}
+    />
+  );
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -176,7 +247,7 @@ export default async function QuoteEditorPage({
       <QuoteWizardNav quoteId={quote.id} step={step} />
       <QuoteMediaRail quoteId={quote.id} planCount={plans.length} imageCount={extraImages.length} />
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(380px,42%)]">
+      <div className={showFullLive ? "space-y-4" : "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(380px,42%)]"}>
         <div className="min-w-0 space-y-4">
           {step === 1 ? (
             <form action={saveQuoteMeta} className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2">
@@ -285,19 +356,21 @@ export default async function QuoteEditorPage({
 
           {step === 3 ? (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Textos e imágenes fijos de las COT Word. Tildá lo que va, editá con el engranaje o pedile a la IA
-                un ajuste (más largo, más claro, más institucional). Generar la propuesta no los pisa.{" "}
-                <Link href="/admin/settings/quotes/plantilla" className="underline">
-                  Editar la plantilla maestra
-                </Link>
-                .
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-muted-foreground">
+                  Tildá qué módulos van. El texto se edita en el documento: clickeá y escribí. Generar la propuesta no
+                  pisa los módulos fijos.
+                </p>
+                <ButtonLink href="/admin/settings/quotes/plantilla" size="sm" variant="outline">
+                  <Settings className="mr-1 h-3.5 w-3.5" />
+                  Plantilla maestra
+                </ButtonLink>
+              </div>
               {templateSections.map((section) => {
                 const def = moduleByKey(section.type);
                 return (
                   <Card key={section.id}>
-                    <CardContent className="space-y-2 p-4">
+                    <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h3 className="font-medium">{section.title}</h3>
@@ -314,20 +387,11 @@ export default async function QuoteEditorPage({
                           </form>
                         )}
                       </div>
-                      {section.type !== "products_table" ? (
-                        <QuoteSectionWorkbench
-                          quoteId={quote.id}
-                          sectionId={section.id}
-                          title={section.title}
-                          body={section.body}
-                          issued={issued}
-                          warning="Sólo esta cotización. La plantilla maestra no cambia."
-                        />
-                      ) : null}
                     </CardContent>
                   </Card>
                 );
               })}
+              {showFullLive ? liveCanvas : null}
             </div>
           ) : null}
 
@@ -370,7 +434,9 @@ export default async function QuoteEditorPage({
 
           {step === 5 ? (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Sólo textos de proyecto. Lo institucional está en Plantilla.</p>
+              <p className="text-sm text-muted-foreground">
+                Textos de proyecto. Editá en el documento de la derecha. Fijar evita que Generar propuesta los pise.
+              </p>
               {aiSections.map((section) => (
                 <Card key={section.id}>
                   <CardContent className="space-y-2 p-5">
@@ -381,13 +447,6 @@ export default async function QuoteEditorPage({
                       </div>
                       {section.included ? <Badge tone="success">En el documento</Badge> : <Badge tone="muted">Apagado</Badge>}
                     </div>
-                    <QuoteSectionWorkbench
-                      quoteId={quote.id}
-                      sectionId={section.id}
-                      title={section.title}
-                      body={section.body}
-                      issued={issued}
-                    />
                     {!issued ? (
                       <form action={toggleQuoteSectionLock}>
                         <input type="hidden" name="sectionId" value={section.id} />
@@ -541,19 +600,27 @@ export default async function QuoteEditorPage({
           ) : null}
         </div>
 
-        <aside className="xl:sticky xl:top-4">
-          <div className="overflow-hidden rounded-xl border border-border bg-neutral-200/60 shadow-sm">
-            <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vista previa</p>
-              <span className="text-[11px] text-muted-foreground">{quote.items.length} ítems</span>
-            </div>
-            <div className="max-h-[calc(100vh-8rem)] overflow-auto bg-neutral-300/40 p-3">
-              <div className="quote-preview">
-                <QuoteDocument quote={quote} />
+        {showFullLive ? null : (
+          <aside className="xl:sticky xl:top-4">
+            <div className="overflow-auto rounded-xl border border-border bg-neutral-200/60 shadow-sm">
+              <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {issued ? "Vista previa" : "Documento editable"}
+                </p>
+                <span className="text-[11px] text-muted-foreground">{quote.items.length} ítems</span>
+              </div>
+              <div className="max-h-[calc(100vh-8rem)] overflow-auto bg-neutral-300/40 p-3">
+                {issued ? (
+                  <div className="quote-preview">
+                    <QuoteDocument quote={quote} />
+                  </div>
+                ) : (
+                  <div className="quote-preview quote-preview--live">{liveCanvas}</div>
+                )}
               </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        )}
       </div>
     </div>
   );
