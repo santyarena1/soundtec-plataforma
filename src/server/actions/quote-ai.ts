@@ -2,9 +2,10 @@
 
 import { QuoteAiCapability } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { loadQuoteForUser } from "@/lib/quote-access";
+import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
+import { permissionsHave } from "@/lib/permissions";
 import { getQuoteOpenAI } from "@/lib/quote-llm";
-import { generateQuoteProposal, rewriteQuoteNode } from "@/services/quote-orchestrator";
+import { generateQuoteProposal, rewriteQuoteNode, rewriteQuoteTemplateBlock } from "@/services/quote-orchestrator";
 import { revalidatePath } from "next/cache";
 
 export async function generateQuoteFromBrief(quoteId: string): Promise<{ ok: boolean; error?: string; message?: string }> {
@@ -26,7 +27,7 @@ export async function reviseQuoteNode(input: {
   nodeId: string;
   kind: "item" | "section";
   instruction: string;
-}): Promise<{ ok: boolean; error?: string; message?: string }> {
+}): Promise<{ ok: boolean; error?: string; message?: string; body?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
   if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
@@ -38,7 +39,7 @@ export async function reviseQuoteNode(input: {
     return { ok: false, error: "Cargá OpenAI API Key en Admin → API Keys." };
   }
   try {
-    await rewriteQuoteNode(input);
+    const body = await rewriteQuoteNode({ ...input, instruction });
     await prisma.quoteAiRun.create({
       data: {
         quoteId: input.quoteId,
@@ -52,8 +53,45 @@ export async function reviseQuoteNode(input: {
       },
     });
     revalidatePath(`/admin/quotes/${input.quoteId}`);
-    return { ok: true, message: "Pieza reescrita. Si no cierra, fijala o volvé a pedir con otra instrucción." };
+    return {
+      ok: true,
+      body,
+      message:
+        input.kind === "section"
+          ? "Módulo reescrito. Sólo esta cotización; la plantilla maestra no cambia."
+          : "Pieza reescrita. Si no cierra, fijala o volvé a pedir con otra instrucción.",
+    };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "No se pudo reescribir." };
+  }
+}
+
+export async function reviseQuoteTemplateBlock(input: {
+  blockId: string;
+  instruction: string;
+}): Promise<{ ok: boolean; error?: string; message?: string; body?: string }> {
+  const { permissions } = await requireQuotePermission("quotes.manage_library");
+  if (!permissions.fullAccess && !permissionsHave(permissions, "quotes.manage_library")) {
+    return { ok: false, error: "No tenés permiso para editar la plantilla." };
+  }
+  const instruction = input.instruction.trim();
+  if (instruction.length < 3) return { ok: false, error: "Escribí una instrucción." };
+  if (!input.blockId) return { ok: false, error: "Módulo inválido." };
+
+  const oa = await getQuoteOpenAI();
+  if (!oa) {
+    return { ok: false, error: "Cargá OpenAI API Key en Admin → API Keys." };
+  }
+  try {
+    const body = await rewriteQuoteTemplateBlock({ blockId: input.blockId, instruction });
+    revalidatePath("/admin/settings/quotes/plantilla");
+    revalidatePath("/admin/settings/quotes");
+    return {
+      ok: true,
+      body,
+      message: "Plantilla maestra actualizada. Las cotizaciones ya creadas no se tocan.",
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo reescribir la plantilla." };
   }
 }

@@ -3,10 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { calculatePricesForProducts } from "@/lib/pricing";
 import { getGlobalMarginPercent, getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
-import { AI_MODULE_KEYS } from "@/lib/quote-defaults";
+import { AI_MODULE_KEYS, FIXED_MODULE_KEYS } from "@/lib/quote-defaults";
 import { fillMissingQuoteProductImages } from "@/lib/quote-product-images";
 import { suggestHistoricalCompanions } from "@/server/actions/quote-history";
 import { SOUNDTEC_VOICE, quoteChatJson, quoteChatText, getQuoteOpenAI, describeQuotePlanImage } from "@/lib/quote-llm";
+import { isRichText, sanitizeQuoteHtml } from "@/lib/quote-richtext";
 
 type GenOut = {
   reference?: string;
@@ -258,6 +259,7 @@ No pongas precios. No inventes productos que no estén en el catálogo; si falta
 
   const sectionBodies = new Map((gen.sections || []).map((s) => [s.type, s.body]));
   for (const section of quote.sections) {
+    // locked = no pisar en generate. Un revise explícito sí puede tocar fijos.
     if (section.locked) continue;
     if (!section.included) continue;
     if (!AI_MODULE_KEYS.includes(section.type)) continue;
@@ -312,6 +314,40 @@ No pongas precios. No inventes productos que no estén en el catálogo; si falta
   return { ok: true as const };
 }
 
+const CORPORATE_REVISE_RULES = `Este bloque es texto institucional, legal o comercial de SOUNDTEC.
+Conservá TODOS los hechos: BNA (dólar oficial tipo vendedor), IVA, vigencia de la oferta, garantía de 12 meses, ISO 9001, IRAM, IQNet, partner autorizado, ART, seguro de vida, alcance de instalación y exclusiones (canalizaciones, gremios), certificación desde 2006.
+No inventes precios, SKU, watts, protocolos ni plazos nuevos.
+No elimines cláusulas ni datos legales o comerciales.
+Tono institucional, serio, rioplatense formal.
+Aplicá SOLO la instrucción del usuario (largo, claridad, formalidad, etc.).`;
+
+function stripCodeFences(text: string) {
+  return text.replace(/^```(?:html)?\s*/i, "").replace(/\s*```$/i, "").trim();
+}
+
+export async function rewriteSectionBody(input: {
+  title: string;
+  type: string;
+  body: string;
+  instruction: string;
+}) {
+  const html = isRichText(input.body);
+  const corporate = FIXED_MODULE_KEYS.includes(input.type);
+  const text = await quoteChatText(
+    `${SOUNDTEC_VOICE}\n${corporate ? CORPORATE_REVISE_RULES : "Conservá hechos. No inventes specs ni precios."}`,
+    `Reescribí SOLO este bloque «${input.title}» (${input.type}) según la instrucción.
+${html ? "El texto está en HTML acotado (p, h3, strong, em, ul, ol, li, br). Devolvé HTML del mismo tipo, sin markdown ni fences." : "Devolvé texto plano, sin markdown."}
+
+Instrucción: ${input.instruction}
+
+Texto actual:
+${input.body}`
+  );
+  const cleaned = stripCodeFences(text);
+  if (!cleaned) throw new Error("La IA no devolvió texto.");
+  return html || isRichText(cleaned) ? sanitizeQuoteHtml(cleaned) : cleaned;
+}
+
 export async function rewriteQuoteNode(input: {
   quoteId: string;
   nodeId: string;
@@ -320,14 +356,22 @@ export async function rewriteQuoteNode(input: {
 }) {
   if (input.kind === "section") {
     const section = await prisma.quoteSection.findUnique({ where: { id: input.nodeId } });
-    if (!section || section.locked) throw new Error("Sección no editable.");
-    const text = await quoteChatText(
-      SOUNDTEC_VOICE,
-      `Reescribí SOLO este bloque de cotización Soundtec según la instrucción. Conservá hechos. No inventes specs.\n\nInstrucción: ${input.instruction}\n\nTexto actual:\n${section.body}`
-    );
+    if (!section) throw new Error("Sección no encontrada.");
+    // locked sólo bloquea generateProposal. Un revise explícito sí reescribe fijos.
+    const text = await rewriteSectionBody({
+      title: section.title,
+      type: section.type,
+      body: section.body,
+      instruction: input.instruction,
+    });
     await prisma.quoteSection.update({
       where: { id: section.id },
-      data: { body: text, lastInstruction: input.instruction, source: QuoteNodeSource.GENERATED, stale: false },
+      data: {
+        body: text,
+        lastInstruction: input.instruction,
+        source: QuoteNodeSource.GENERATED,
+        stale: false,
+      },
     });
     return text;
   }
@@ -349,4 +393,20 @@ export async function rewriteQuoteNode(input: {
     },
   });
   return out.description;
+}
+
+export async function rewriteQuoteTemplateBlock(input: { blockId: string; instruction: string }) {
+  const block = await prisma.quoteBlock.findUnique({ where: { id: input.blockId } });
+  if (!block) throw new Error("Módulo de plantilla no encontrado.");
+  const text = await rewriteSectionBody({
+    title: block.title,
+    type: block.key,
+    body: block.body,
+    instruction: input.instruction,
+  });
+  await prisma.quoteBlock.update({
+    where: { id: block.id },
+    data: { body: text },
+  });
+  return text;
 }

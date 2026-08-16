@@ -39,7 +39,6 @@ const SAMPLE_ITEMS = [
   { qty: 1, unit: "gl", detail: "Instalación, cableado, puesta en marcha y capacitación al personal", unit_price: 610 },
 ];
 
-/** Envoltorio que marca dónde empieza y termina cada módulo mientras se edita. */
 function TemplateReviseBox({
   blockId,
   onRewritten,
@@ -69,6 +68,7 @@ function TemplateReviseBox({
   );
 }
 
+/** Envoltorio que marca dónde empieza y termina cada módulo mientras se edita. */
 function ModuleShell({
   label,
   hint,

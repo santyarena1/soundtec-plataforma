@@ -29,8 +29,7 @@ import { QuoteDocument } from "@/components/quotes/quote-document";
 import { QuoteProductPhotos } from "./product-photos";
 import { QuoteBomTable } from "./quote-bom-table";
 import { QuoteMediaRail } from "./media-rail";
-import { QuoteRevisePanel, QuoteSectionWorkbench } from "./revise-panel";
-import { QuoteSectionEditor } from "@/components/quotes/quote-section-editor";
+import { QuoteSectionWorkbench } from "./revise-panel";
 
 export const metadata = { title: "Admin · Cotización" };
 
@@ -312,23 +311,14 @@ export default async function QuoteEditorPage({
                         )}
                       </div>
                       {section.type !== "products_table" ? (
-                        <>
-                          <QuoteSectionEditor
-                            sectionId={section.id}
-                            title={section.title}
-                            body={section.body}
-                            issued={issued}
-                          />
-                          {!issued ? (
-                            <QuoteRevisePanel
-                              quoteId={quote.id}
-                              nodeId={section.id}
-                              kind="section"
-                              alwaysOpen
-                              warning="Sólo esta cotización. La plantilla maestra no cambia."
-                            />
-                          ) : null}
-                        </>
+                        <QuoteSectionWorkbench
+                          quoteId={quote.id}
+                          sectionId={section.id}
+                          title={section.title}
+                          body={section.body}
+                          issued={issued}
+                          warning="Sólo esta cotización. La plantilla maestra no cambia."
+                        />
                       ) : null}
                     </CardContent>
                   </Card>
@@ -387,22 +377,20 @@ export default async function QuoteEditorPage({
                       </div>
                       {section.included ? <Badge tone="success">En el documento</Badge> : <Badge tone="muted">Apagado</Badge>}
                     </div>
-                    <QuoteSectionEditor
+                    <QuoteSectionWorkbench
+                      quoteId={quote.id}
                       sectionId={section.id}
                       title={section.title}
                       body={section.body}
                       issued={issued}
                     />
                     {!issued ? (
-                      <div className="space-y-2">
-                        <form action={toggleQuoteSectionLock}>
-                          <input type="hidden" name="sectionId" value={section.id} />
-                          <Button type="submit" size="sm" variant="ghost">
-                            {section.locked ? "Desfijar" : "Fijar"}
-                          </Button>
-                        </form>
-                        <QuoteRevisePanel quoteId={quote.id} nodeId={section.id} kind="section" alwaysOpen />
-                      </div>
+                      <form action={toggleQuoteSectionLock}>
+                        <input type="hidden" name="sectionId" value={section.id} />
+                        <Button type="submit" size="sm" variant="ghost">
+                          {section.locked ? "Desfijar" : "Fijar"}
+                        </Button>
+                      </form>
                     ) : null}
                   </CardContent>
                 </Card>

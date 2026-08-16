@@ -3,8 +3,16 @@
 import * as XLSX from "xlsx";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireQuotePermission } from "@/lib/quote-access";
+import { auth } from "@/lib/auth";
+import { permissionsHave } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
+
+export type IngestHistoricalResult = {
+  ok: boolean;
+  error?: string;
+  sheets?: number;
+  lines?: number;
+};
 
 function cellText(v: unknown) {
   if (v == null) return "";
@@ -15,24 +23,59 @@ function looksLibre(name: string) {
   return /^libre/i.test(name.trim());
 }
 
-export async function ingestHistoricalWorkbook(formData: FormData): Promise<{ ok: boolean; error?: string; sheets?: number; lines?: number }> {
-  await requireQuotePermission("quotes.manage_library");
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Subí el Excel de planillas." };
-  if (file.size > 40 * 1024 * 1024) {
-    return { ok: false, error: "El archivo supera los 40 MB. Dividí el Excel y subilo por partes." };
-  }
+function ingestFail(error: string, sheets = 0, lines = 0): IngestHistoricalResult {
+  return { ok: false, error, sheets, lines };
+}
 
+function isNextRedirect(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest?: unknown }).digest === "string" &&
+    String((error as { digest: string }).digest).startsWith("NEXT_REDIRECT")
+  );
+}
+
+export async function ingestHistoricalWorkbook(formData: FormData): Promise<IngestHistoricalResult> {
   let sheets = 0;
   let lines = 0;
 
   try {
-    const buf = Buffer.from(await file.arrayBuffer());
-    const wb = XLSX.read(buf, { type: "buffer" });
+    const session = await auth();
+    if (!session?.user?.id) {
+      return ingestFail("Sesión expirada. Volvé a iniciar sesión.");
+    }
+    const permissions = session.user.perms;
+    if (!permissions?.fullAccess && !permissionsHave(permissions, "quotes.manage_library")) {
+      return ingestFail("No tenés permiso para ingestar planillas históricas.");
+    }
 
-    for (const sheetName of wb.SheetNames) {
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      return ingestFail("Subí el Excel de planillas.");
+    }
+    if (file.size > 40 * 1024 * 1024) {
+      return ingestFail("El archivo supera los 40 MB. Dividí el Excel y subilo por partes.");
+    }
+
+    let wb: XLSX.WorkBook;
+    try {
+      const buf = Buffer.from(await file.arrayBuffer());
+      wb = XLSX.read(buf, { type: "buffer" });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "archivo ilegible";
+      return ingestFail(`No se pudo leer el Excel (${detail}). Verificá que sea .xlsx o .xls válido.`);
+    }
+
+    const sheetNames = Array.isArray(wb.SheetNames) ? wb.SheetNames : [];
+    if (sheetNames.length === 0) {
+      return ingestFail("El Excel no tiene hojas.");
+    }
+
+    for (const sheetName of sheetNames) {
       if (looksLibre(sheetName)) continue;
-      const ws = wb.Sheets[sheetName];
+      const ws = wb.Sheets?.[sheetName];
       if (!ws) continue;
       const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(ws, { header: 1, defval: "" });
       const parsed: { description: string; quantity: number | null }[] = [];
@@ -71,17 +114,25 @@ export async function ingestHistoricalWorkbook(formData: FormData): Promise<{ ok
       sheets += 1;
       lines += capped.length;
     }
+
+    if (sheets === 0) {
+      return ingestFail("No se encontraron hojas con planillas reconocibles en el archivo.", sheets, lines);
+    }
+
+    try {
+      revalidatePath("/admin/quotes/history");
+    } catch {
+      // La revalidación no debe tapar un ingest exitoso.
+    }
+    return { ok: true, sheets, lines };
   } catch (error) {
     console.error("ingestHistoricalWorkbook", error);
+    if (isNextRedirect(error)) {
+      return ingestFail("No tenés permiso para ingestar planillas históricas.", sheets, lines);
+    }
     const detail = error instanceof Error ? error.message : "error desconocido";
-    return { ok: false, error: `No se pudo leer el Excel (${detail}). Verificá que sea .xlsx o .xls válido.`, sheets, lines };
+    return ingestFail(`No se pudo ingestar el Excel (${detail}).`, sheets, lines);
   }
-
-  revalidatePath("/admin/quotes/history");
-  if (sheets === 0) {
-    return { ok: false, error: "No se encontraron hojas con planillas reconocibles en el archivo.", sheets, lines };
-  }
-  return { ok: true, sheets, lines };
 }
 
 export async function suggestHistoricalCompanions(productIds: string[]) {

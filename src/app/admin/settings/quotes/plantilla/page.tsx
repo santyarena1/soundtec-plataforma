@@ -40,7 +40,7 @@ export default async function QuoteTemplateEditorPage() {
     <div className="space-y-4">
       <PageHeader
         title="Editor de plantilla"
-        description="El presupuesto de muestra con los textos fijos reales. Pasá el mouse por encima de cualquier módulo y tocá el lápiz para editarlo. Lo que cambies acá se copia a las cotizaciones nuevas; las ya creadas no se tocan."
+        description="El presupuesto de muestra con los textos fijos reales. Editá con el lápiz o pedile a la IA un ajuste: eso cambia la plantilla maestra de las cotizaciones nuevas. Las ya creadas no se tocan."
         actions={
           <div className="flex gap-2">
             <ButtonLink href="/admin/settings/quotes" variant="outline" size="sm">
