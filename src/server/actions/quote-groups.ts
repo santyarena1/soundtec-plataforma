@@ -78,7 +78,6 @@ export async function moveQuoteItemToGroup(input: {
   const loaded = await loadQuoteForUser(item.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
   if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
-  if (item.locked) return { ok: false, error: "Ese ítem está fijado." };
 
   if (input.groupId) {
     const group = await prisma.quoteItemGroup.findFirst({

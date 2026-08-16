@@ -10,6 +10,7 @@ import {
 import { QuoteBody } from "@/components/quotes/quote-body";
 import { ModuleMediaLayout } from "@/components/quotes/module-media-layout";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
+import { displayImageCaption } from "@/lib/quote-image-caption";
 import { buildQuoteZones } from "@/lib/quote-item-groups";
 import type { Quote, QuoteItem, QuoteSection, QuoteAsset, Client, User, QuoteCommercialTerms, Product } from "@prisma/client";
 
@@ -427,9 +428,9 @@ function DocumentBody({
               <figure key={plan.id} className="quote-doc__block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={plan.url} alt={plan.caption || "Plano"} className="max-h-[150mm] w-full object-contain" />
-                {plan.caption ? (
+                {plan.caption && displayImageCaption(plan.caption) ? (
                   <figcaption className="mt-[1.5mm] text-center text-[8.5pt] text-neutral-600">
-                    {plan.caption}
+                    {displayImageCaption(plan.caption)}
                   </figcaption>
                 ) : null}
               </figure>
@@ -442,15 +443,18 @@ function DocumentBody({
         <div className="quote-doc__newpage">
           <SectionTitle color={color}>Imágenes de referencia</SectionTitle>
           <div className="grid grid-cols-2 gap-[5mm]">
-            {gallery.map((asset) => (
-              <figure key={asset.id} className="quote-doc__block">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={asset.url} alt={asset.caption || ""} className="h-[62mm] w-full bg-neutral-50 object-contain" />
-                <figcaption className="mt-[1.5mm] text-[8.5pt] text-neutral-600">
-                  {asset.caption || (asset.aiGenerated ? "Imagen conceptual" : "")}
-                </figcaption>
-              </figure>
-            ))}
+            {gallery.map((asset) => {
+              const caption = displayImageCaption(asset.caption, asset.aiGenerated ? "Imagen conceptual" : "");
+              return (
+                <figure key={asset.id} className="quote-doc__block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={asset.url} alt={caption || ""} className="h-[62mm] w-full bg-neutral-50 object-contain" />
+                  {caption ? (
+                    <figcaption className="mt-[1.5mm] text-[8.5pt] text-neutral-600">{caption}</figcaption>
+                  ) : null}
+                </figure>
+              );
+            })}
           </div>
         </div>
       ) : null}

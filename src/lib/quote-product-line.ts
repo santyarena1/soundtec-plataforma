@@ -11,7 +11,8 @@ export function quoteItemDisplay(input: {
   product?: QuoteLineProduct;
 }): { name: string; blurb: string | null } {
   const fromProduct = [input.product?.brand?.name, input.product?.normalizedName].filter(Boolean).join(" — ");
-  const name = fromProduct || input.description.split("\n")[0]?.trim() || input.description;
+  const fromDescription = input.description.split("\n")[0]?.trim() || "";
+  const name = fromDescription || fromProduct || input.description;
   const blurb = input.product?.shortDescription?.trim() || null;
   return { name, blurb };
 }

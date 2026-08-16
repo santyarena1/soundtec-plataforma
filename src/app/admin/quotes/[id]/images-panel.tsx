@@ -64,7 +64,7 @@ export function QuoteImagesPanel({ quoteId }: { quoteId: string }) {
               className="overflow-hidden rounded-md border border-border text-left"
               onClick={() =>
                 start(async () => {
-                  const r = await attachSerperImage({ quoteId, url: h.url, caption: h.title });
+                  const r = await attachSerperImage({ quoteId, url: h.url });
                   setMsg(r.error || "Imagen agregada");
                 })
               }

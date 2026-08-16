@@ -15,6 +15,7 @@ import {
   type ImagePlacement,
 } from "@/lib/quote-defaults";
 import { formatUsd } from "@/lib/utils";
+import { displayImageCaption } from "@/lib/quote-image-caption";
 import { buildQuoteZones } from "@/lib/quote-item-groups";
 import { QuoteBody } from "@/components/quotes/quote-body";
 import { saveQuoteImagePlacement, saveQuoteSectionBody, saveQuoteTemplateBlock } from "@/server/actions/quotes";
@@ -743,9 +744,9 @@ export function LiveQuoteCanvas({
                         <figure key={plan.id} className="quote-doc__block">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={plan.url} alt={plan.caption || "Plano"} className="max-h-[150mm] w-full object-contain" />
-                          {plan.caption ? (
+                          {displayImageCaption(plan.caption) ? (
                             <figcaption className="mt-[1.5mm] text-center text-[8.5pt] text-neutral-600">
-                              {plan.caption}
+                              {displayImageCaption(plan.caption)}
                             </figcaption>
                           ) : null}
                         </figure>
@@ -758,19 +759,25 @@ export function LiveQuoteCanvas({
                   <ModuleChrome label="Galería" hint="Imágenes de esta cotización">
                     <SectionTitle value="Imágenes de referencia" color={color} editable={false} />
                     <div className="grid grid-cols-2 gap-[5mm]">
-                      {gallery.map((asset) => (
-                        <figure key={asset.id} className="quote-doc__block">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={asset.url}
-                            alt={asset.caption || ""}
-                            className="h-[62mm] w-full bg-neutral-50 object-contain"
-                          />
-                          <figcaption className="mt-[1.5mm] text-[8.5pt] text-neutral-600">
-                            {asset.caption || (asset.aiGenerated ? "Imagen conceptual" : "")}
-                          </figcaption>
-                        </figure>
-                      ))}
+                      {gallery.map((asset) => {
+                        const caption = displayImageCaption(
+                          asset.caption,
+                          asset.aiGenerated ? "Imagen conceptual" : ""
+                        );
+                        return (
+                          <figure key={asset.id} className="quote-doc__block">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={asset.url}
+                              alt={caption || ""}
+                              className="h-[62mm] w-full bg-neutral-50 object-contain"
+                            />
+                            {caption ? (
+                              <figcaption className="mt-[1.5mm] text-[8.5pt] text-neutral-600">{caption}</figcaption>
+                            ) : null}
+                          </figure>
+                        );
+                      })}
                     </div>
                   </ModuleChrome>
                 ) : null}

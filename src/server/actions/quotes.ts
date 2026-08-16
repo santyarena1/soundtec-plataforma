@@ -471,7 +471,7 @@ export async function createQuoteFromRequest(input: {
             optional: replaced,
             notes: notes || null,
             source: QuoteNodeSource.BRIEF,
-            locked: !replaced,
+            locked: false,
             sortOrder: sort,
           },
         });
@@ -603,6 +603,7 @@ export async function addQuoteAccessory(formData: FormData): Promise<void> {
   await addProductToQuote(formData);
 }
 
+/** Edición humana de un ítem. El candado sólo le dice a la IA que no lo pise. */
 export async function updateQuoteItem(formData: FormData): Promise<void> {
   await requireQuotePermission("quotes.edit");
   const id = String(formData.get("itemId") || "");
@@ -610,11 +611,11 @@ export async function updateQuoteItem(formData: FormData): Promise<void> {
   if (!item) return;
   const loaded = await loadQuoteForUser(item.quoteId);
   if (!loaded.quote) return;
-  if (item.locked) return;
   if (loaded.quote.status === "ISSUED") return;
 
   const quantity = Number(formData.get("quantity") ?? item.quantity);
   const description = String(formData.get("description") ?? item.description);
+  const unit = String(formData.get("unit") ?? item.unit).trim() || item.unit;
   const deliveryKey = String(formData.get("deliveryKey") || "") || null;
   const ivaRate = Number(formData.get("ivaRate") ?? item.ivaRate);
   const unitPrice = Number(formData.get("unitPriceUsd") ?? item.unitPriceUsd);
@@ -624,6 +625,7 @@ export async function updateQuoteItem(formData: FormData): Promise<void> {
     where: { id },
     data: {
       quantity: new Prisma.Decimal(quantity),
+      unit,
       description,
       deliveryKey,
       ivaRate: new Prisma.Decimal(ivaRate),
@@ -662,7 +664,7 @@ export async function deleteQuoteItem(formData: FormData): Promise<void> {
   await requireQuotePermission("quotes.edit");
   const id = String(formData.get("itemId") || "");
   const item = await prisma.quoteItem.findUnique({ where: { id } });
-  if (!item || item.locked) return;
+  if (!item) return;
   const loaded = await loadQuoteForUser(item.quoteId);
   if (!loaded.quote || loaded.quote.status === "ISSUED") return;
   await prisma.quoteItem.delete({ where: { id } });

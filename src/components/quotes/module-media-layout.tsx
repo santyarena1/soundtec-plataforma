@@ -1,4 +1,5 @@
 import { parseQuoteModuleLayout, type QuoteModuleLayout } from "@/lib/quote-module-layout";
+import { displayImageCaption } from "@/lib/quote-image-caption";
 
 export type ModuleLayoutImage = {
   id: string;
@@ -7,12 +8,13 @@ export type ModuleLayoutImage = {
 };
 
 function Figure({ image, className }: { image: ModuleLayoutImage; className?: string }) {
+  const caption = displayImageCaption(image.caption);
   return (
     <figure className={className}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={image.url} alt={image.caption || ""} className="w-full bg-neutral-50 object-contain" />
-      {image.caption ? (
-        <figcaption className="mt-[1mm] text-center text-[8pt] text-neutral-600">{image.caption}</figcaption>
+      <img src={image.url} alt={caption || ""} className="w-full bg-neutral-50 object-contain" />
+      {caption ? (
+        <figcaption className="mt-[1mm] text-center text-[8pt] text-neutral-600">{caption}</figcaption>
       ) : null}
     </figure>
   );

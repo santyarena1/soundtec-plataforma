@@ -9,6 +9,7 @@ import { searchProductImages } from "@/services/serper";
 import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { revalidatePath } from "next/cache";
+import { sanitizeQuoteImageCaption } from "@/lib/quote-image-caption";
 import {
   catalogPrimaryImage,
   fillMissingQuoteProductImages,
@@ -58,12 +59,13 @@ export async function attachSerperImage(input: {
   } catch {
     /* keep remote url */
   }
+  const caption = sanitizeQuoteImageCaption(input.caption);
   if (input.productId) {
     await upsertQuoteProductImage({
       quoteId: input.quoteId,
       productId: input.productId,
       url,
-      caption: input.caption,
+      caption,
       source: QuoteNodeSource.SUGGESTED,
     });
   } else {
@@ -73,7 +75,7 @@ export async function attachSerperImage(input: {
         quoteId: input.quoteId,
         kind: QuoteAssetKind.APPLICATION,
         url,
-        caption: input.caption || "",
+        caption,
         aiGenerated: false,
         source: QuoteNodeSource.SUGGESTED,
         sortOrder: sort,
