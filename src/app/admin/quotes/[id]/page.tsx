@@ -524,8 +524,8 @@ export default async function QuoteEditorPage({
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vista previa</p>
               <span className="text-[11px] text-muted-foreground">{quote.items.length} ítems</span>
             </div>
-            <div className="max-h-[calc(100vh-8rem)] overflow-y-auto bg-neutral-300/40 p-3">
-              <div className="rounded-md bg-white p-5 shadow-md">
+            <div className="max-h-[calc(100vh-8rem)] overflow-auto bg-neutral-300/40 p-3">
+              <div className="quote-preview">
                 <QuoteDocument quote={quote} />
               </div>
             </div>

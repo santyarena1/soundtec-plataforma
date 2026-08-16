@@ -14,8 +14,16 @@ export function HistoryIngestForm() {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
         start(async () => {
-          const r = await ingestHistoricalWorkbook(fd);
-          setMsg(r.error || `Ingestadas ${r.sheets} hojas / ${r.lines} líneas. Los precios viejos no se usan.`);
+          try {
+            const r = await ingestHistoricalWorkbook(fd);
+            setMsg(r.error || `Ingestadas ${r.sheets} hojas / ${r.lines} líneas. Los precios viejos no se usan.`);
+          } catch (error) {
+            setMsg(
+              error instanceof Error
+                ? `No se pudo ingestar: ${error.message}`
+                : "No se pudo ingestar el Excel. Probá con un archivo más chico."
+            );
+          }
         });
       }}
     >

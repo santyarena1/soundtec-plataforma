@@ -19,50 +19,68 @@ export async function ingestHistoricalWorkbook(formData: FormData): Promise<{ ok
   await requireQuotePermission("quotes.manage_library");
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Subí el Excel de planillas." };
-  const buf = Buffer.from(await file.arrayBuffer());
-  const wb = XLSX.read(buf, { type: "buffer" });
+  if (file.size > 40 * 1024 * 1024) {
+    return { ok: false, error: "El archivo supera los 40 MB. Dividí el Excel y subilo por partes." };
+  }
+
   let sheets = 0;
   let lines = 0;
 
-  for (const sheetName of wb.SheetNames) {
-    if (looksLibre(sheetName)) continue;
-    const ws = wb.Sheets[sheetName];
-    if (!ws) continue;
-    const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(ws, { header: 1, defval: "" });
-    const parsed: { description: string; quantity: number | null }[] = [];
-    for (const row of rows) {
-      const cells = Array.isArray(row) ? row.map(cellText) : [];
-      const qtyCell = cells.find((c) => /^\d+([.,]\d+)?$/.test(c) && Number(c.replace(",", ".")) > 0 && Number(c.replace(",", ".")) < 10000);
-      const desc = cells
-        .filter((c) => c.length > 8 && !/^\d+([.,]\d+)?$/.test(c))
-        .sort((a, b) => b.length - a.length)[0];
-      if (!desc) continue;
-      if (/cantidad|descripcion|detalle|unitario|total|sku/i.test(desc) && desc.length < 40) continue;
-      parsed.push({
-        description: desc.slice(0, 2000),
-        quantity: qtyCell ? Number(qtyCell.replace(",", ".")) : null,
-      });
-    }
-    if (parsed.length < 2) continue;
-    sheets += 1;
-    const sheet = await prisma.historicalQuoteSheet.create({
-      data: {
-        sheetName,
-        sourceFile: file.name || "Planillas de Cotizacion 5.0.xlsx",
-        projectHint: sheetName,
-        lines: {
-          create: parsed.slice(0, 200).map((p) => ({
-            description: p.description,
-            quantity: p.quantity != null ? new Prisma.Decimal(p.quantity) : null,
-          })),
+  try {
+    const buf = Buffer.from(await file.arrayBuffer());
+    const wb = XLSX.read(buf, { type: "buffer" });
+
+    for (const sheetName of wb.SheetNames) {
+      if (looksLibre(sheetName)) continue;
+      const ws = wb.Sheets[sheetName];
+      if (!ws) continue;
+      const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(ws, { header: 1, defval: "" });
+      const parsed: { description: string; quantity: number | null }[] = [];
+      for (const row of rows) {
+        const cells = Array.isArray(row) ? row.map(cellText) : [];
+        const qtyCell = cells.find(
+          (c) => /^\d+([.,]\d+)?$/.test(c) && Number(c.replace(",", ".")) > 0 && Number(c.replace(",", ".")) < 10000
+        );
+        const desc = cells
+          .filter((c) => c.length > 8 && !/^\d+([.,]\d+)?$/.test(c))
+          .sort((a, b) => b.length - a.length)[0];
+        if (!desc) continue;
+        if (/cantidad|descripcion|detalle|unitario|total|sku/i.test(desc) && desc.length < 40) continue;
+        parsed.push({
+          description: desc.slice(0, 2000),
+          quantity: qtyCell ? Number(qtyCell.replace(",", ".")) : null,
+        });
+      }
+      if (parsed.length < 2) continue;
+
+      const capped = parsed.slice(0, 200);
+      const sheet = await prisma.historicalQuoteSheet.create({
+        data: {
+          sheetName,
+          sourceFile: file.name || "Planillas de Cotizacion.xlsx",
+          projectHint: sheetName,
         },
-      },
-    });
-    lines += parsed.length;
-    void sheet;
+      });
+      await prisma.historicalQuoteLine.createMany({
+        data: capped.map((p) => ({
+          sheetId: sheet.id,
+          description: p.description,
+          quantity: p.quantity != null ? new Prisma.Decimal(p.quantity) : null,
+        })),
+      });
+      sheets += 1;
+      lines += capped.length;
+    }
+  } catch (error) {
+    console.error("ingestHistoricalWorkbook", error);
+    const detail = error instanceof Error ? error.message : "error desconocido";
+    return { ok: false, error: `No se pudo leer el Excel (${detail}). Verificá que sea .xlsx o .xls válido.`, sheets, lines };
   }
 
   revalidatePath("/admin/quotes/history");
+  if (sheets === 0) {
+    return { ok: false, error: "No se encontraron hojas con planillas reconocibles en el archivo.", sheets, lines };
+  }
   return { ok: true, sheets, lines };
 }
 

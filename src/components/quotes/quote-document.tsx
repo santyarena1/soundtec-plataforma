@@ -1,5 +1,4 @@
 import { formatUsd } from "@/lib/utils";
-import { prisma } from "@/lib/prisma";
 import { AI_SECTION_STUB, getCompanyIdentity } from "@/lib/quote-defaults";
 import type { Quote, QuoteItem, QuoteSection, QuoteAsset, Client, User, QuoteCommercialTerms } from "@prisma/client";
 
@@ -12,211 +11,435 @@ type DocQuote = Quote & {
   terms: QuoteCommercialTerms | null;
 };
 
-function isOn(section: QuoteSection) {
-  return section.included !== false && (section.type === "products_table" || section.body.trim().length > 0 || section.type === "brands" || section.type === "iso" || section.type === "disciplines");
+type Identity = Awaited<ReturnType<typeof getCompanyIdentity>>;
+
+function hasBody(section: QuoteSection) {
+  const body = section.body.trim();
+  return body.length > 0 && body !== AI_SECTION_STUB;
+}
+
+function longDate(value: Date | null) {
+  const date = value ?? new Date();
+  return date.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/** Convierte "TITULO\ntexto" en párrafos, respetando los subtítulos en mayúsculas de las condiciones. */
+function paragraphs(body: string) {
+  return body
+    .split(/\n{2,}/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+}
+
+function isHeading(line: string) {
+  return line.length <= 60 && line === line.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(line);
+}
+
+function Paragraphs({ body }: { body: string }) {
+  return (
+    <>
+      {paragraphs(body).map((chunk, index) => {
+        const [first, ...rest] = chunk.split("\n");
+        if (isHeading(first) && rest.length > 0) {
+          return (
+            <div key={index} className="mb-[3mm]">
+              <p className="font-semibold tracking-[0.04em]">{first}</p>
+              <p className="whitespace-pre-line text-justify">{rest.join("\n")}</p>
+            </div>
+          );
+        }
+        return (
+          <p key={index} className="mb-[3mm] whitespace-pre-line text-justify last:mb-0">
+            {chunk}
+          </p>
+        );
+      })}
+    </>
+  );
+}
+
+/** Los títulos de la COT Word terminan con guion largo. */
+function SectionTitle({ children, color }: { children: React.ReactNode; color: string }) {
+  return (
+    <h2
+      className="mb-[2.5mm] border-b pb-[1mm] text-[11pt] font-bold uppercase tracking-[0.08em]"
+      style={{ color, borderColor: color }}
+    >
+      {children} <span className="font-normal">–</span>
+    </h2>
+  );
+}
+
+function ProductsTable({
+  quote,
+  photos,
+  color,
+}: {
+  quote: DocQuote;
+  photos: Map<string, QuoteAsset>;
+  color: string;
+}) {
+  const visible = quote.items.filter((item) => !item.excluded);
+  const total = visible.filter((item) => !item.optional).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+  const showDelivery = quote.showDeliveryColumn;
+  const anyPhoto = visible.some((item) => item.productId && photos.has(item.productId));
+
+  if (visible.length === 0) {
+    return (
+      <p className="border border-dashed border-neutral-300 px-[6mm] py-[10mm] text-center text-[10pt] text-neutral-500">
+        Todavía no hay equipos cargados. Completá la planilla o generá la propuesta desde Brief y planos.
+      </p>
+    );
+  }
+
+  const cols = 4 + (anyPhoto ? 1 : 0) + 2 + 1 + (showDelivery ? 1 : 0);
+
+  return (
+    <>
+      <table className="w-full table-fixed border-collapse text-[9pt]">
+        <colgroup>
+          <col style={{ width: "8mm" }} />
+          {anyPhoto ? <col style={{ width: "20mm" }} /> : null}
+          <col style={{ width: "12mm" }} />
+          <col style={{ width: "9mm" }} />
+          <col />
+          <col style={{ width: "21mm" }} />
+          <col style={{ width: "23mm" }} />
+          <col style={{ width: "11mm" }} />
+          {showDelivery ? <col style={{ width: "21mm" }} /> : null}
+        </colgroup>
+        <thead>
+          <tr style={{ background: color, color: "#fff" }}>
+            <th className="px-[2mm] py-[1.6mm] text-right font-semibold">#</th>
+            {anyPhoto ? <th className="px-[2mm] py-[1.6mm] text-left font-semibold">Foto</th> : null}
+            <th className="px-[2mm] py-[1.6mm] text-right font-semibold">Cant.</th>
+            <th className="px-[2mm] py-[1.6mm] text-left font-semibold">U</th>
+            <th className="px-[2mm] py-[1.6mm] text-left font-semibold">Detalle</th>
+            <th className="px-[2mm] py-[1.6mm] text-right font-semibold">Unit.</th>
+            <th className="px-[2mm] py-[1.6mm] text-right font-semibold">Total</th>
+            <th className="px-[2mm] py-[1.6mm] text-right font-semibold">IVA</th>
+            {showDelivery ? <th className="px-[2mm] py-[1.6mm] text-left font-semibold">Entrega</th> : null}
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((item, index) => {
+            const photo = item.productId ? photos.get(item.productId) : undefined;
+            return (
+              <tr key={item.id} className="align-top" style={{ background: index % 2 ? "#f3f5f8" : "#fff" }}>
+                <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm] text-right tabular-nums text-neutral-500">
+                  {index + 1}
+                </td>
+                {anyPhoto ? (
+                  <td className="border-b border-neutral-200 px-[1.5mm] py-[1.5mm]">
+                    {photo?.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={photo.url} alt="" className="h-[16mm] w-[16mm] object-contain" />
+                    ) : null}
+                  </td>
+                ) : null}
+                <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm] text-right tabular-nums">
+                  {Number(item.quantity)}
+                </td>
+                <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm]">{item.unit}</td>
+                <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm] leading-[1.35]">
+                  <span className="whitespace-pre-line">{item.description}</span>
+                  {item.optional ? (
+                    <span className="ml-1 text-[7.5pt] font-semibold uppercase tracking-wide text-neutral-500">
+                      Opcional
+                    </span>
+                  ) : null}
+                </td>
+                <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm] text-right tabular-nums">
+                  {formatUsd(Number(item.unitPriceUsd))}
+                </td>
+                <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm] text-right font-semibold tabular-nums">
+                  {formatUsd(Number(item.lineTotalUsd))}
+                </td>
+                <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm] text-right tabular-nums">
+                  {Number(item.ivaRate)}
+                </td>
+                {showDelivery ? (
+                  <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm]">{item.deliveryKey || "—"}</td>
+                ) : null}
+              </tr>
+            );
+          })}
+          <tr style={{ background: color, color: "#fff" }}>
+            <td className="px-[2mm] py-[2mm] text-right font-bold uppercase tracking-[0.08em]" colSpan={cols - 3}>
+              Total
+            </td>
+            <td className="px-[2mm] py-[2mm] text-right text-[10.5pt] font-bold tabular-nums">{formatUsd(total)}</td>
+            <td colSpan={showDelivery ? 2 : 1} />
+          </tr>
+        </tbody>
+      </table>
+
+      <p className="quote-doc__block mt-[2.5mm] text-[8.5pt] leading-snug text-neutral-600">
+        Precios expresados en DÓLARES billete según tipo de cambio vendedor del BNA. No incluyen IVA.
+        {visible.some((item) => item.optional) ? " Los ítems marcados como opcionales no se suman al total." : ""}
+      </p>
+    </>
+  );
+}
+
+function TermsDetail({ quote, color }: { quote: DocQuote; color: string }) {
+  const terms = quote.terms;
+  if (!terms) return null;
+  const rows: [string, string][] = [];
+  if (terms.paymentTerms) rows.push(["Forma de pago", terms.paymentTerms]);
+  if (terms.deliveryText) rows.push(["Plazo de entrega", terms.deliveryText]);
+  rows.push(["Mantenimiento de la oferta", `${terms.validityDays} días corridos`]);
+  if (rows.length === 0) return null;
+  return (
+    <table className="mt-[3mm] w-full border-collapse text-[9.5pt]">
+      <tbody>
+        {rows.map(([label, value]) => (
+          <tr key={label}>
+            <td
+              className="w-[52mm] border-b border-neutral-200 py-[1.4mm] pr-[3mm] align-top font-semibold"
+              style={{ color }}
+            >
+              {label}
+            </td>
+            <td className="border-b border-neutral-200 py-[1.4mm] align-top">{value}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function SectionBlock({
+  section,
+  quote,
+  identity,
+  photos,
+}: {
+  section: QuoteSection;
+  quote: DocQuote;
+  identity: Identity;
+  photos: Map<string, QuoteAsset>;
+}) {
+  const color = identity.primary;
+  const spacing = "mt-[7mm]";
+
+  if (section.type === "letter_open") {
+    return (
+      <div className="quote-doc__block mt-[7mm]">
+        <Paragraphs body={section.body} />
+      </div>
+    );
+  }
+
+  if (section.type === "disciplines") {
+    return (
+      <div
+        className="quote-doc__block mt-[7mm] px-[4mm] py-[2.5mm] text-center text-[10pt] font-semibold uppercase tracking-[0.14em] text-white"
+        style={{ background: color }}
+      >
+        {section.body}
+      </div>
+    );
+  }
+
+  if (section.type === "brands") {
+    return (
+      <div className={`quote-doc__block ${spacing}`}>
+        <SectionTitle color={color}>{section.title}</SectionTitle>
+        {hasBody(section) ? <Paragraphs body={section.body} /> : null}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={identity.brandsUrl} alt="Marcas representadas por SOUNDTEC" className="mt-[3mm] w-full" />
+      </div>
+    );
+  }
+
+  if (section.type === "iso") {
+    return (
+      <div className={`quote-doc__block ${spacing}`}>
+        <SectionTitle color={color}>{section.title}</SectionTitle>
+        {hasBody(section) ? <Paragraphs body={section.body} /> : null}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={identity.isoUrl} alt="ISO 9001 · IRAM · IQNet" className="mx-auto mt-[4mm] w-[55mm]" />
+      </div>
+    );
+  }
+
+  if (section.type === "products_table") {
+    return (
+      <div className={spacing}>
+        <SectionTitle color={color}>Planilla de equipamiento y servicios</SectionTitle>
+        <ProductsTable quote={quote} photos={photos} color={color} />
+      </div>
+    );
+  }
+
+  if (section.type === "commercial_terms") {
+    if (!hasBody(section) && !quote.terms) return null;
+    return (
+      <div className={spacing}>
+        <SectionTitle color={color}>{section.title}</SectionTitle>
+        {hasBody(section) ? <Paragraphs body={section.body} /> : null}
+        <TermsDetail quote={quote} color={color} />
+      </div>
+    );
+  }
+
+  if (section.type === "closing") {
+    if (!hasBody(section)) return null;
+    return (
+      <div className="quote-doc__block mt-[7mm]">
+        <Paragraphs body={section.body} />
+      </div>
+    );
+  }
+
+  if (!hasBody(section)) return null;
+
+  return (
+    <div className={`quote-doc__block ${spacing}`}>
+      <SectionTitle color={color}>{section.title}</SectionTitle>
+      <Paragraphs body={section.body} />
+    </div>
+  );
+}
+
+function DocumentBody({
+  quote,
+  identity,
+  photos,
+  plans,
+  gallery,
+}: {
+  quote: DocQuote;
+  identity: Identity;
+  photos: Map<string, QuoteAsset>;
+  plans: QuoteAsset[];
+  gallery: QuoteAsset[];
+}) {
+  const color = identity.primary;
+  const sections = [...quote.sections]
+    .filter((section) => section.included !== false)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const signName = quote.owner.quoteSignName || quote.owner.name || "";
+  const signTitle = quote.owner.quoteSignTitle || "";
+
+  return (
+    <>
+      <p className="text-right text-[10pt] text-neutral-700">Buenos Aires, {longDate(quote.issuedAt)}</p>
+
+      <div className="quote-doc__block mt-[6mm]">
+        <p className="font-semibold" style={{ color }}>
+          A
+        </p>
+        <p className="text-[12pt] font-bold uppercase">{quote.client?.companyName || "[Cliente a confirmar]"}</p>
+        {quote.contactName ? <p className="text-[10pt]">At.: {quote.contactName}</p> : null}
+        <p className="mt-[3mm]">
+          <span className="font-semibold" style={{ color }}>
+            Ref:
+          </span>{" "}
+          {quote.reference || "[Referencia a confirmar]"}
+        </p>
+        <p>
+          <span className="font-semibold" style={{ color }}>
+            Presupuesto:
+          </span>{" "}
+          <span className="font-bold tracking-wide" style={{ color }}>
+            {quote.number}
+          </span>
+        </p>
+      </div>
+
+      {sections.map((section) => (
+        <SectionBlock key={section.id} section={section} quote={quote} identity={identity} photos={photos} />
+      ))}
+
+      <div className="quote-doc__block quote-doc__keep mt-[9mm]">
+        <p className="font-semibold">{signName}</p>
+        {signTitle ? <p className="text-[10pt]">{signTitle}</p> : null}
+        <p className="text-[10pt] font-semibold tracking-[0.35em]" style={{ color }}>
+          {identity.name} s.r.l.
+        </p>
+      </div>
+
+      {plans.length > 0 ? (
+        <div className="quote-doc__newpage">
+          <SectionTitle color={color}>Planos y relevamiento</SectionTitle>
+          <div className="grid grid-cols-1 gap-[5mm]">
+            {plans.map((plan) => (
+              <figure key={plan.id} className="quote-doc__block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={plan.url} alt={plan.caption || "Plano"} className="max-h-[150mm] w-full object-contain" />
+                {plan.caption ? (
+                  <figcaption className="mt-[1.5mm] text-center text-[8.5pt] text-neutral-600">
+                    {plan.caption}
+                  </figcaption>
+                ) : null}
+              </figure>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {gallery.length > 0 ? (
+        <div className="quote-doc__newpage">
+          <SectionTitle color={color}>Imágenes de referencia</SectionTitle>
+          <div className="grid grid-cols-2 gap-[5mm]">
+            {gallery.map((asset) => (
+              <figure key={asset.id} className="quote-doc__block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={asset.url} alt={asset.caption || ""} className="h-[62mm] w-full bg-neutral-50 object-contain" />
+                <figcaption className="mt-[1.5mm] text-[8.5pt] text-neutral-600">
+                  {asset.caption || (asset.aiGenerated ? "Imagen conceptual" : "")}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
 }
 
 export async function QuoteDocument({ quote }: { quote: DocQuote }) {
   const identity = await getCompanyIdentity();
-  const primary = identity.primary;
-  const logo = identity.logoUrl;
-  const productIds = quote.items.map((i) => i.productId).filter((id): id is string => Boolean(id));
-  const [itemBrands, catalogBrands] = await Promise.all([
-    productIds.length
-      ? prisma.product.findMany({
-          where: { id: { in: productIds } },
-          select: { brand: { select: { id: true, name: true, logoUrl: true } } },
-        })
-      : Promise.resolve([]),
-    prisma.brand.findMany({
-      where: { isActive: true, logoUrl: { not: null } },
-      take: 18,
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, logoUrl: true },
-    }),
-  ]);
-  const fromItems = itemBrands.map((p) => p.brand).filter((b): b is NonNullable<typeof b> => Boolean(b?.logoUrl));
-  const brandLogos = (fromItems.length ? fromItems : catalogBrands).filter(
-    (b, i, arr) => arr.findIndex((x) => x.id === b.id) === i
+
+  const photos = new Map(
+    quote.assets
+      .filter((asset) => asset.kind === "PRODUCT" && asset.productId)
+      .map((asset) => [asset.productId as string, asset])
+  );
+  const plans = quote.assets.filter((asset) => asset.kind === "PLAN" && !/\.pdf($|\?)/i.test(asset.url));
+  const gallery = quote.assets.filter(
+    (asset) => asset.kind !== "PRODUCT" && asset.kind !== "CORPORATE" && asset.kind !== "PLAN"
   );
 
-  const total = quote.items.reduce((s, i) => s + Number(i.lineTotalUsd), 0);
-  const compact = quote.layoutKey === "COMPACT";
-  const editorial = quote.layoutKey === "EDITORIAL";
-  const sign = quote.owner.quoteSignName || quote.owner.name || "";
-  const title = quote.owner.quoteSignTitle || "";
-  const visible = quote.sections.filter((s) => s.included !== false);
-
-  const contactLine = [identity.address, identity.phone, identity.email, identity.web].filter(Boolean).join(" · ");
-
+  // thead/tfoot es la única forma fiable de que las bandas corporativas
+  // se repitan en todas las hojas al imprimir.
   return (
-    <article
-      className={`mx-auto bg-white text-[#111] ${compact ? "max-w-[720px] text-[12px]" : "max-w-[860px] text-[13px]"} ${editorial ? "leading-relaxed" : "leading-snug"}`}
-      style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-    >
-      <header className="flex items-start justify-between border-b-2 pb-4" style={{ borderColor: primary }}>
-        <div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logo} alt="SOUNDTEC · integramos tecnología" className="h-16 w-auto max-w-[280px] object-contain" />
-        </div>
-        <div className="text-right">
-          <p className="text-lg font-semibold" style={{ color: primary }}>
-            {quote.number}
-          </p>
-          <p className="text-[12px]">{quote.client?.companyName}</p>
-          {quote.contactName ? <p className="text-[12px] text-neutral-600">{quote.contactName}</p> : null}
-          {quote.issuedAt ? (
-            <p className="text-[11px] text-neutral-500">{new Date(quote.issuedAt).toLocaleDateString("es-AR")}</p>
-          ) : (
-            <p className="text-[11px] text-neutral-500">Borrador</p>
-          )}
-        </div>
-      </header>
-
-      {quote.reference ? (
-        <p className="mt-5 text-[15px] font-medium" style={{ color: primary }}>
-          Ref.: {quote.reference}
-        </p>
-      ) : null}
-
-      {visible.map((s) => {
-        if (s.type === "products_table") {
-          const photos = new Map(
-            quote.assets.filter((a) => a.kind === "PRODUCT" && a.productId).map((a) => [a.productId as string, a])
-          );
-          return (
-            <section key={s.id} className="mt-8">
-              <h2 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em]" style={{ color: primary }}>
-                Productos y servicios
-              </h2>
-              <div className="overflow-hidden rounded-md border" style={{ borderColor: `${primary}33` }}>
-                <table className="w-full border-collapse" style={{ fontFamily: "Calibri, 'Segoe UI', sans-serif", fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ background: primary, color: "#fff" }}>
-                      <th className="w-[72px] px-2 py-2 text-left font-semibold">Foto</th>
-                      <th className="w-12 px-2 py-2 text-right font-semibold">Cant</th>
-                      <th className="w-10 px-2 py-2 text-left font-semibold">U</th>
-                      <th className="px-2 py-2 text-left font-semibold">Detalle</th>
-                      <th className="w-[92px] px-2 py-2 text-right font-semibold">Unit. USD</th>
-                      <th className="w-[92px] px-2 py-2 text-right font-semibold">Total USD</th>
-                      {quote.showDeliveryColumn ? <th className="w-24 px-2 py-2 text-left font-semibold">Entrega</th> : null}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {quote.items.length === 0 ? (
-                      <tr>
-                        <td colSpan={quote.showDeliveryColumn ? 7 : 6} className="px-3 py-10 text-center text-[13px] text-neutral-500">
-                          Todavía no hay equipos. Cargalos en Planilla o generá la propuesta desde Brief y planos.
-                        </td>
-                      </tr>
-                    ) : (
-                      quote.items.map((i, idx) => {
-                        const photo = i.productId ? photos.get(i.productId) : undefined;
-                        return (
-                          <tr key={i.id} className="align-top" style={{ background: idx % 2 ? "#f7f8fa" : "#fff" }}>
-                            <td className="border-b border-neutral-200 p-2">
-                              <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded border border-neutral-200 bg-white">
-                                {photo?.url ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img src={photo.url} alt="" className="h-full w-full object-contain p-0.5" />
-                                ) : (
-                                  <span className="text-[9px] text-neutral-400">—</span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="border-b border-neutral-200 px-2 py-2 text-right tabular-nums">{Number(i.quantity)}</td>
-                            <td className="border-b border-neutral-200 px-2 py-2 text-neutral-600">{i.unit}</td>
-                            <td className="border-b border-neutral-200 px-2 py-2 leading-snug">
-                              <span className="whitespace-pre-wrap">{i.description}</span>
-                              {i.optional ? <span className="ml-1 text-[10px] uppercase tracking-wide text-neutral-500">(opcional)</span> : null}
-                            </td>
-                            <td className="border-b border-neutral-200 px-2 py-2 text-right tabular-nums">{formatUsd(Number(i.unitPriceUsd))}</td>
-                            <td className="border-b border-neutral-200 px-2 py-2 text-right font-medium tabular-nums">{formatUsd(Number(i.lineTotalUsd))}</td>
-                            {quote.showDeliveryColumn ? (
-                              <td className="border-b border-neutral-200 px-2 py-2 text-neutral-600">{i.deliveryKey || "—"}</td>
-                            ) : null}
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {quote.items.length > 0 ? (
-                <div className="mt-3 flex justify-end border-t pt-2" style={{ borderColor: primary, fontFamily: "Calibri, 'Segoe UI', sans-serif" }}>
-                  <div className="text-right">
-                    <p className="text-[15px] font-semibold" style={{ color: primary }}>
-                      Total neto {formatUsd(total)}
-                    </p>
-                    <p className="text-[11px] text-neutral-500">Precios en USD. No incluyen IVA salvo indicación.</p>
-                  </div>
-                </div>
-              ) : null}
-            </section>
-          );
-        }
-        if (!isOn(s) && s.type !== "brands" && s.type !== "iso" && s.type !== "disciplines") return null;
-        return (
-          <section key={s.id} className="mt-5">
-            <h2 className="mb-1 text-[13px] font-semibold uppercase tracking-wide" style={{ color: primary }}>
-              {s.title}
-            </h2>
-            {s.type === "disciplines" ? (
-              <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: primary }}>
-                {s.body}
-              </p>
-            ) : s.body.trim() && s.body.trim() !== AI_SECTION_STUB ? (
-              <p className="whitespace-pre-wrap">{s.body}</p>
-            ) : null}
-            {s.type === "brands" ? (
-              <div className="mt-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={identity.brandsUrl} alt="Marcas representadas" className="w-full object-contain" />
-                {brandLogos.length > 0 ? (
-                  <div className="mt-3 grid grid-cols-4 gap-3 sm:grid-cols-6">
-                    {brandLogos.map((b) => (
-                      <div key={b.id} className="flex h-12 items-center justify-center border border-neutral-200 bg-white p-1">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={b.logoUrl || ""} alt={b.name} className="max-h-10 max-w-full object-contain" />
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-            {s.type === "iso" ? (
-              <div className="mt-3 flex items-center gap-4">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={identity.isoUrl} alt="ISO 9001 IRAM IQNet" className="h-24 w-auto object-contain" />
-              </div>
-            ) : null}
-          </section>
-        );
-      })}
-
-      {quote.assets.filter((a) => a.kind !== "PLAN" && a.kind !== "PRODUCT" && a.kind !== "CORPORATE").length > 0 ? (
-        <section className="mt-6 grid grid-cols-2 gap-3">
-          {quote.assets
-            .filter((a) => a.kind !== "PLAN" && a.kind !== "PRODUCT" && a.kind !== "CORPORATE")
-            .map((a) => (
-              <figure key={a.id}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={a.url} alt={a.caption || ""} className="max-h-48 w-full object-contain bg-neutral-50" />
-                <figcaption className="mt-1 text-[10px] text-neutral-500">
-                  {a.caption || (a.aiGenerated ? "Imagen conceptual" : "")}
-                </figcaption>
-              </figure>
-            ))}
-        </section>
-      ) : null}
-
-      <footer className="mt-10 border-t pt-4 text-[12px]" style={{ borderColor: primary }}>
-        <p className="font-medium">{sign}</p>
-        {title ? <p>{title}</p> : null}
-        <p>SOUNDTEC S.R.L.</p>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={identity.headerUrl} alt={contactLine} className="mt-4 w-full object-contain" />
-      </footer>
-    </article>
+    <table className="quote-doc">
+      <thead className="quote-doc__header">
+        <tr>
+          <td>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={identity.logoUrl} alt={`${identity.name} · ${identity.tagline}`} className="quote-doc__band" />
+          </td>
+        </tr>
+      </thead>
+      <tfoot className="quote-doc__footer">
+        <tr>
+          <td>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={identity.headerUrl} alt={identity.address} className="quote-doc__band" />
+          </td>
+        </tr>
+      </tfoot>
+      <tbody>
+        <tr>
+          <td className="quote-doc__inner">
+            <DocumentBody quote={quote} identity={identity} photos={photos} plans={plans} gallery={gallery} />
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }

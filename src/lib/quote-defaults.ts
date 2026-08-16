@@ -61,25 +61,31 @@ export const QUOTE_MODULES: QuoteModuleDef[] = [
     title: "Presentación Soundtec",
     kind: "fixed",
     description: "Quiénes somos. Logo y texto institucional.",
-    body: `SOUNDTEC es partner autorizado y distribuidor para la República Argentina de los fabricantes de los productos objeto de este presupuesto. El personal técnico y comercial está certificado y/o calificado por los fabricantes para las especialidades que cada marca requiere.
+    body: `SOUNDTEC es PARTNER AUTORIZADO y distribuidor para todo el territorio de la República Argentina de los fabricantes de los productos que son objeto de este presupuesto, por ende, contamos con su autorización para la comercialización, instalación, y servicio técnico.
 
-SOUNDTEC, con más de 35 años de trayectoria, ofrece servicios audiovisuales con el respaldo de las marcas que representa y con certificación ISO 9001.`,
+Nuestro personal técnico y comercial está certificado y/o calificado por los fabricantes de los productos cotizados para cada una de las distintas especialidades y soluciones que brinda cada marca.
+
+¿Cuántas compañías con Especialización Audiovisual y a la vez CERTIFICACIÓN ISO 9001 hay en Argentina? …sólo una.
+
+SOUNDTEC, con más de 35 años de trayectoria, es hoy la única compañía argentina que puede ofrecer sus servicios en materia audiovisual con el respaldo que dan las grandes marcas que comercializa y a la vez con el respaldo y seriedad que implica tener todos sus procedimientos certificados bajo normas de calidad internacionales ISO 9001.`,
     defaultOn: ["tecnico", "premium"],
   },
   {
     key: "disciplines",
     title: "Disciplinas",
     kind: "fixed",
-    description: "Franja Audio · Video · Iluminación · UC · Control.",
+    description: "Franja opcional Audio · Video · Iluminación · UC · Control. No está en la COT Word.",
     body: "Audio profesional · Video · Iluminación · Unified Communications · Control e integración.",
-    defaultOn: ["tecnico", "premium"],
+    defaultOn: [],
   },
   {
     key: "brands",
     title: "Marcas",
     kind: "fixed",
     description: "Collage institucional de marcas (fijo de plantilla Word).",
-    body: "Las marcas incluidas en esta propuesta son aquellas efectivamente cotizadas. SOUNDTEC representa más de 70 marcas de audio, video, iluminación, UC y control.",
+    body: `SOUNDTEC es también Partner certificado de las siguientes marcas:
+
+… entre otras más de 70 marcas.`,
     defaultOn: ["tecnico", "premium"],
   },
   {
@@ -124,22 +130,45 @@ SOUNDTEC, con más de 35 años de trayectoria, ofrece servicios audiovisuales co
   },
   {
     key: "installation",
-    title: "Instalación del sistema",
+    title: "Condiciones generales de servicio",
     kind: "fixed",
-    description: "Texto de obra estándar Soundtec.",
-    body: `La instalación contempla el montaje del equipamiento y la distribución de señal según cada zona. El tendido se ejecuta con cableado profesional, canalizaciones discretas y fijaciones adecuadas.
+    description: "Alcance de obra, materiales, supuestos y responsabilidades. Texto fijo de la COT Word.",
+    body: `ALCANCE DE LOS TRABAJOS
+Esta propuesta incluye la provisión de personal técnico especializado de SOUNDTEC S.R.L. para el montaje, instalación y puesta en marcha del sistema, durante el período que resulte necesario para completar los trabajos. El cronograma de tareas será acordado previamente con el responsable designado por el cliente. Durante la instalación, el personal deberá contar con acceso libre y sin restricciones dentro de los horarios establecidos.
 
-Se prioriza calidad técnica, discreción visual, durabilidad, confiabilidad y seguridad. El sistema se verifica, ajusta y deja en funcionamiento.
+Se contempla la presencia de un supervisor de SOUNDTEC para definir detalles de instalación y realizar el seguimiento presencial del avance de los trabajos durante todo el proceso.
 
-Cualquier intervención fuera de estos supuestos es responsabilidad del cliente.`,
+MATERIALES DE INSTALACIÓN
+Se incluyen de manera estimativa todos los materiales e insumos necesarios para la correcta instalación del sistema, tales como cables, conectores, accesorios específicos e insumos menores.
+
+CONSIDERACIONES GENERALES DE INSTALACIÓN
+La instalación se realizará considerando las características arquitectónicas del edificio y siguiendo los estándares profesionales del rubro. Esta etapa incluye también el entrenamiento básico al personal designado por el cliente sobre el uso y funcionamiento del sistema.
+
+La instalación no incluye canalizaciones, ni trabajos de gremios (mampostería, carpintería, pintura, herrería, etc.), salvo que hayan sido expresamente acordados.
+
+Se asume que las cañerías existentes están en condiciones adecuadas y con capacidad suficiente para el tendido de cables, y que los cielorrasos y superficies donde se deba fijar equipamiento están aptos estructuralmente para dicha tarea. Cualquier intervención adicional requerida por fuera de estos supuestos será responsabilidad del cliente.
+
+CONDICIONES DE SEGURIDAD Y OPERATIVAS
+El personal técnico de SOUNDTEC no realizará tareas en condiciones de riesgo ni bajo condiciones climáticas adversas. La imposibilidad de brindar el servicio por estas causas será considerada ajena a SOUNDTEC.
+
+RESPONSABLE POR PARTE DEL CLIENTE
+El cliente deberá designar a una persona responsable para la coordinación general de los trabajos, incluyendo: ingreso de personal, movimiento de materiales, recepción de mercadería, gestión de horarios y cualquier otra necesidad operativa relacionada con la instalación.`,
     defaultOn: ["tecnico", "premium"],
   },
   {
     key: "staff",
     title: "Personal técnico",
     kind: "fixed",
-    description: "Staff, ART, uniforme, certificaciones.",
-    body: `El staff técnico se forma de manera permanente y cuenta con certificaciones de fabricantes. SOUNDTEC está certificada bajo ISO 9001. El personal se presenta uniformado, con ART y seguro de vida obligatorio.`,
+    description: "Staff, ART, uniforme, certificaciones. Texto fijo de la COT Word.",
+    body: `La capacitación continua y la idoneidad de nuestro equipo técnico constituyen un factor diferencial clave de SOUNDTEC.
+
+Todo el staff técnico se forma de manera permanente en tecnologías y metodologías específicas, cumpliendo con certificaciones oficiales de fabricantes y organismos internacionales como AVIXA, CEDIA, AUDINATE, CRESTRON, SOUNDTUBE, ATLONA, entre otros.
+
+SOUNDTEC es la única empresa integradora de servicios audiovisuales del país certificada bajo norma ISO 9001, con alcance efectivo sobre todos sus procesos de servicio y producción. Esta certificación se mantiene en forma ininterrumpida desde 2006, con auditorías y renovaciones anuales.
+
+Nuestro personal técnico se presenta uniformado, cumple con la normativa laboral vigente y cuenta con ART y Seguro de Vida Obligatorio.
+
+Cada técnico asignado ha sido entrenado en metodologías de trabajo seguro y utiliza los elementos de protección personal adecuados a cada tarea. En SOUNDTEC, la seguridad es una práctica activa que garantiza la integridad de nuestro equipo y de las instalaciones donde intervenimos.`,
     defaultOn: ["tecnico", "premium"],
   },
   {
@@ -148,35 +177,53 @@ Cualquier intervención fuera de estos supuestos es responsabilidad del cliente.
     kind: "fixed",
     description: "Precio, BNA, forma de pago, vigencia. Campos de empresa.",
     body: `PRECIO
-Los precios están expresados en dólares estadounidenses (Dólar Oficial) y no incluyen IVA.
+Los precios detallados en esta propuesta están expresados en dólares estadounidenses (Dólar Oficial) y no incluyen IVA.
 
 REFERENCIA DE PAGO
-El pago podrá efectuarse en pesos argentinos, según cotización billete tipo vendedor del Banco de la Nación Argentina (BNA) vigente al día de la cancelación efectiva de la factura.
+El pago podrá efectuarse en pesos argentinos, utilizando como referencia la cotización del tipo de cambio billete, tipo vendedor del Banco de la Nación Argentina (BNA) vigente al día de la cancelación efectiva de la factura.
 
 FORMA DE PAGO
-A convenir.
+Para la presente propuesta comercial se ha considerado la siguiente condición de pago: A CONVENIR.
 
 MANTENIMIENTO DE LA OFERTA
-La oferta se mantiene vigente por el plazo indicado en las condiciones de esta cotización.
+La presente oferta se mantiene vigente por un período de cinco (5) días corridos a partir de la fecha de emisión, para los valores indicados.
 
 PLAZO DE ENTREGA
-Se confirma con la orden de compra. La columna de entrega es tentativa y sujeta a stock.`,
+El plazo de entrega será confirmado una vez recibida la orden de compra formal. En la última columna de la planilla de cotización se indica la disponibilidad tentativa del equipamiento cotizado, sujeta a confirmación y salvo venta previa. Los plazos comenzarán a contarse a partir del cumplimiento efectivo de las condiciones comerciales acordadas.`,
     defaultOn: ["resumido", "tecnico", "premium"],
   },
   {
     key: "warranty",
-    title: "Garantía",
+    title: "Garantía de productos",
     kind: "fixed",
     description: "12 meses salvo indicación en la planilla.",
-    body: `Salvo indicación en contrario en la planilla, los productos gozan de garantía de 12 meses a partir de la facturación, contra vicios de fabricación, de acuerdo con las condiciones del fabricante.`,
+    body: `Salvo indicación en contrario dentro de la planilla de cotización, todos los productos incluidos en esta propuesta gozarán de una garantía de 12 meses a partir de la fecha de su facturación, contra vicios de fabricación, y de acuerdo con el certificado de garantía entregado con cada equipo.`,
     defaultOn: ["resumido", "tecnico", "premium"],
+  },
+  {
+    key: "satisfaction",
+    title: "Garantía de satisfacción",
+    kind: "fixed",
+    description: "Referencias de clientes. Texto fijo de la COT Word.",
+    body: `Nuestra mejor carta de presentación son nuestros clientes, quienes dan crédito a nuestras palabras, no sólo porque nos eligieron, sino porque nos siguen eligiendo.
+
+Ponemos a su disposición nuestra carpeta de presentación en la cual adjuntamos un listado de nuestros principales clientes.`,
+    defaultOn: ["tecnico", "premium"],
   },
   {
     key: "iso",
     title: "Calidad certificada ISO 9001",
     kind: "fixed",
     description: "Sellos IRAM / IQNet y texto de certificación.",
-    body: `SOUNDTEC S.R.L. es la primera empresa argentina del sector sonido, iluminación, video y videoconferencia profesional en certificar su sistema de gestión de la calidad conforme a ISO 9001, con alcance en ventas y alquileres, servicio técnico, eventos, diseño, realización y mantenimiento de instalaciones.`,
+    body: `SOUNDTEC S.R.L. es la primera y única empresa argentina del sector sonido, iluminación, video y videoconferencia profesional en obtener la certificación de su Sistema de Gestión de la Calidad conforme a las normas internacionales ISO 9001, avalada por el Instituto Argentino de Normalización y Certificación (IRAM).
+
+En el año 2006 obtuvo su primera certificación bajo la norma ISO 9001:2000, y desde entonces ha mantenido su sistema actualizado a las versiones vigentes.
+
+ALCANCE DE LA CERTIFICACIÓN
+Ventas y alquileres; servicio técnico; eventos; diseño, realización y mantenimiento de instalaciones de equipos y sistemas de sonido, video, iluminación y videoconferencia para todo tipo de aplicación.
+
+NUESTRA POLÍTICA DE CALIDAD
+SOUNDTEC s.r.l. es una empresa orientada a lograr altos niveles de satisfacción de sus clientes, acercando las innovaciones tecnológicas y proponiendo soluciones integrales, cumpliendo con los requisitos acordados para sus prestaciones. Nuestra organización se compromete a mejorar de forma continua la eficacia del Sistema de Gestión de la Calidad, demostrando así su compromiso con la excelencia en todos los niveles de la empresa.`,
     defaultOn: ["tecnico", "premium"],
   },
   {

@@ -75,3 +75,90 @@
   background: hsl(var(--accent) / 0.18);
   color: hsl(var(--foreground));
 }
+
+/* Documento de cotización: hoja A4 real, banda superior e inferior de la COT Word */
+.quote-doc {
+  width: 210mm;
+  margin: 0 auto;
+  border-spacing: 0;
+  background: #fff;
+  color: #16212f;
+  font-family: Calibri, "Segoe UI", Arial, Helvetica, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.5;
+}
+
+.quote-doc__band {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.quote-doc__inner {
+  padding: 8mm 14mm 10mm;
+}
+
+.quote-doc__block {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.quote-doc__newpage {
+  break-before: page;
+  page-break-before: always;
+}
+
+/* Un título nunca queda solo al pie de una hoja */
+.quote-doc h2 {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* La firma acompaña al párrafo de cierre */
+.quote-doc__keep {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+.quote-doc table {
+  break-inside: auto;
+}
+
+.quote-doc tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+@media screen {
+  .quote-doc {
+    box-shadow: 0 12px 34px rgba(15, 28, 45, 0.18);
+  }
+  /* La vista previa del editor achica la hoja sin deformarla */
+  .quote-preview {
+    zoom: 0.54;
+  }
+}
+
+@media print {
+  .quote-doc {
+    width: auto;
+    box-shadow: none;
+  }
+  .quote-doc__inner {
+    padding: 0;
+  }
+  /* La banda de logo y la de contacto se repiten en todas las hojas */
+  .quote-doc__header {
+    display: table-header-group;
+  }
+  .quote-doc__footer {
+    display: table-footer-group;
+  }
+  .quote-doc thead {
+    display: table-header-group;
+  }
+  @page {
+    size: A4;
+    margin: 10mm 14mm;
+  }
+}

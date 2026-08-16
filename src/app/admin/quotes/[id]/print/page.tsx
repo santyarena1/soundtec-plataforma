@@ -19,7 +19,9 @@ export default async function QuotePrintPage({ params }: { params: Promise<{ id:
         </Link>
         <PrintQuoteButton />
       </div>
-      <QuoteDocument quote={quote} />
+      <div className="overflow-x-auto bg-neutral-300/40 p-6 print:overflow-visible print:bg-transparent print:p-0">
+        <QuoteDocument quote={quote} />
+      </div>
     </div>
   );
 }
