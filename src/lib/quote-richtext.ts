@@ -1,5 +1,3 @@
-import DOMPurify from "isomorphic-dompurify";
-
 /**
  * Los cuerpos de los módulos conviven en dos formatos: el texto plano original
  * (párrafos separados por línea en blanco, subtítulos en mayúsculas) y el HTML
@@ -9,20 +7,36 @@ import DOMPurify from "isomorphic-dompurify";
  * El set de tags es cerrado a propósito: todo lo que se pueda escribir acá tiene
  * que sobrevivir igual en pantalla, en el PDF y en el export a Word, y Word sólo
  * renderiza bien un subconjunto chico de HTML.
+ *
+ * No usamos isomorphic-dompurify: arrastra jsdom y en Vercel explota con
+ * ERR_REQUIRE_ESM (@exodus/bytes). Este sanitizer cubre el HTML que TipTap genera.
  */
-const ALLOWED_TAGS = ["p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "h3"];
-const ALLOWED_ATTR = ["style"];
+const ALLOWED_TAGS = new Set(["p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "h3"]);
+const VOID_TAGS = new Set(["br"]);
+const ALIGN = /text-align\s*:\s*(left|right|center|justify)/i;
 
 export function isRichText(body: string) {
   return /^\s*<(p|ul|ol|h3)[\s>]/i.test(body);
 }
 
+function sanitizeStyle(value: string) {
+  const match = value.match(ALIGN);
+  return match ? `text-align: ${match[1].toLowerCase()}` : "";
+}
+
 export function sanitizeQuoteHtml(html: string) {
-  try {
-    return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });
-  } catch {
-    return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
-  }
+  return html
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<\/?([a-z][a-z0-9]*)\b([^>]*)>/gi, (full, rawTag: string, rawAttrs: string) => {
+      const tag = rawTag.toLowerCase();
+      const closing = full.startsWith("</");
+      if (!ALLOWED_TAGS.has(tag)) return "";
+      if (closing) return VOID_TAGS.has(tag) ? "" : `</${tag}>`;
+      if (VOID_TAGS.has(tag)) return "<br />";
+      const styleMatch = rawAttrs.match(/\sstyle\s*=\s*("([^"]*)"|'([^']*)')/i);
+      const style = styleMatch ? sanitizeStyle(styleMatch[2] || styleMatch[3] || "") : "";
+      return style ? `<${tag} style="${style}">` : `<${tag}>`;
+    });
 }
 
 export function splitParagraphs(body: string) {
