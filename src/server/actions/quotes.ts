@@ -15,6 +15,7 @@ import {
   resolveDefaultProfileId,
   resolveQuoteModuleBodies,
 } from "@/lib/quote-defaults";
+import { sanitizeQuoteHtml } from "@/lib/quote-richtext";
 import { ensureQuoteCatalogImage } from "@/lib/quote-product-images";
 import { getSetting, setSetting, getGlobalMarginPercent } from "@/lib/settings";
 import { calculatePricesForProducts } from "@/lib/pricing";
@@ -35,6 +36,102 @@ async function defaultTerms() {
     ),
     deliveryText: "El plazo de entrega será confirmado una vez recibida la orden de compra formal.",
   };
+}
+
+type QuoteShellInput = {
+  ownerId: string;
+  clientId?: string | null;
+  reference?: string | null;
+  contactName?: string | null;
+  brief?: string | null;
+  projectType?: string | null;
+  layoutKey?: QuoteLayoutKey;
+  profileKey?: string | null;
+  alternativesEnabled?: boolean;
+  notes?: string | null;
+  advancedIntake?: Prisma.InputJsonValue;
+  sourceRequestId?: string | null;
+  revisionSummary?: string;
+};
+
+/** Crea el cascarón de una COT: número, plantilla fija, términos y alternativa default. */
+async function createQuoteShell(input: QuoteShellInput) {
+  await ensureQuoteProfiles();
+  const profile =
+    (input.profileKey
+      ? await prisma.quoteContentProfile.findUnique({ where: { key: input.profileKey } })
+      : null) ??
+    (await prisma.quoteContentProfile.findUnique({
+      where: { id: (await resolveDefaultProfileId()) || "" },
+    }));
+
+  const number = await allocateQuoteNumber();
+  const layoutSetting = await getSetting(QUOTE_SETTING_KEYS.defaultLayout, "STANDARD");
+  const layoutKey =
+    input.layoutKey ||
+    (layoutSetting === "COMPACT" || layoutSetting === "EDITORIAL" ? layoutSetting : "STANDARD");
+  const showDelivery = (await getSetting(QUOTE_SETTING_KEYS.showDeliveryDefault, "true")) !== "false";
+  const terms = await defaultTerms();
+  const enabled = new Set(
+    Array.isArray(profile?.sectionKeys)
+      ? (profile!.sectionKeys as string[])
+      : QUOTE_MODULES.filter((m) => m.defaultOn.includes("tecnico")).map((m) => m.key)
+  );
+  const bodies = await resolveQuoteModuleBodies();
+
+  return prisma.quote.create({
+    data: {
+      number,
+      ownerId: input.ownerId,
+      clientId: input.clientId || null,
+      reference: input.reference || input.projectType || null,
+      contactName: input.contactName || null,
+      layoutKey,
+      contentProfileId: profile?.id ?? null,
+      alternativesEnabled: Boolean(input.alternativesEnabled),
+      showDeliveryColumn: showDelivery,
+      projectType: input.projectType || null,
+      brief: input.brief || null,
+      advancedIntake: input.advancedIntake ?? undefined,
+      sourceRequestId: input.sourceRequestId || null,
+      alternatives: {
+        create: { key: "default", name: "Solución", isDefault: true, sortOrder: 0 },
+      },
+      context: {
+        create: {
+          notes: input.notes || null,
+          facts: [],
+          assumptions: [],
+          questions: [],
+          risks: [],
+        },
+      },
+      terms: { create: terms },
+      sections: {
+        create: QUOTE_MODULES.map((mod, i) => ({
+          type: mod.key,
+          title: mod.title,
+          body: bodies[mod.key] || mod.body,
+          origin:
+            mod.kind === "fixed"
+              ? QuoteSectionOrigin.CORPORATE
+              : mod.kind === "table"
+                ? QuoteSectionOrigin.TEMPLATE
+                : QuoteSectionOrigin.PROJECT,
+          source: QuoteNodeSource.TEMPLATE,
+          locked: mod.kind === "fixed",
+          included: enabled.has(mod.key),
+          sortOrder: i,
+          sourceBlockKey: mod.key,
+          sourceBlockVersion: moduleVersion(mod),
+        })),
+      },
+      revisions: {
+        create: { actorId: input.ownerId, summary: input.revisionSummary || `Alta ${number}` },
+      },
+    },
+    include: { alternatives: true },
+  });
 }
 
 export async function createQuoteFromBrief(formData: FormData): Promise<void> {
@@ -79,86 +176,26 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
 
   if (!parsed.success) redirect("/admin/quotes/new");
 
-  await ensureQuoteProfiles();
-  const profile =
-    (parsed.data.profileKey
-      ? await prisma.quoteContentProfile.findUnique({ where: { key: parsed.data.profileKey } })
-      : null) ??
-    (await prisma.quoteContentProfile.findUnique({
-      where: { id: (await resolveDefaultProfileId()) || "" },
-    }));
-
-  const number = await allocateQuoteNumber();
-  const layoutSetting = await getSetting(QUOTE_SETTING_KEYS.defaultLayout, "STANDARD");
-  const layoutKey =
-    parsed.data.layoutKey ||
-    (layoutSetting === "COMPACT" || layoutSetting === "EDITORIAL" ? layoutSetting : "STANDARD");
-  const showDelivery = (await getSetting(QUOTE_SETTING_KEYS.showDeliveryDefault, "true")) !== "false";
-  const terms = await defaultTerms();
-  const enabled = new Set(
-    Array.isArray(profile?.sectionKeys)
-      ? (profile!.sectionKeys as string[])
-      : QUOTE_MODULES.filter((m) => m.defaultOn.includes("tecnico")).map((m) => m.key)
-  );
-  const bodies = await resolveQuoteModuleBodies();
-
-  const quote = await prisma.quote.create({
-    data: {
-      number,
-      ownerId: user.id,
-      clientId: parsed.data.clientId || null,
-      reference: parsed.data.reference || parsed.data.projectType || null,
-      contactName: parsed.data.contactName || null,
-      layoutKey,
-      contentProfileId: profile?.id ?? null,
-      alternativesEnabled: parsed.data.alternativesEnabled === "on" || parsed.data.alternativesEnabled === "true",
-      showDeliveryColumn: showDelivery,
-      projectType: parsed.data.projectType || null,
-      brief: parsed.data.brief || null,
-      advancedIntake: {
-        notes: parsed.data.notes,
-        areaM2: parsed.data.areaM2,
-        people: parsed.data.people,
-        budgetUsd: parsed.data.budgetUsd,
-        brandPref: parsed.data.brandPref,
-        brandAvoid: parsed.data.brandAvoid,
-      },
-      alternatives: {
-        create: { key: "default", name: "Solución", isDefault: true, sortOrder: 0 },
-      },
-      context: {
-        create: {
-          notes: parsed.data.notes || null,
-          facts: [],
-          assumptions: [],
-          questions: [],
-          risks: [],
-        },
-      },
-      terms: { create: terms },
-      sections: {
-        create: QUOTE_MODULES.map((mod, i) => ({
-          type: mod.key,
-          title: mod.title,
-          body: bodies[mod.key] || mod.body,
-          origin:
-            mod.kind === "fixed"
-              ? QuoteSectionOrigin.CORPORATE
-              : mod.kind === "table"
-                ? QuoteSectionOrigin.TEMPLATE
-                : QuoteSectionOrigin.PROJECT,
-          source: QuoteNodeSource.TEMPLATE,
-          locked: mod.kind === "fixed",
-          included: enabled.has(mod.key),
-          sortOrder: i,
-          sourceBlockKey: mod.key,
-          sourceBlockVersion: moduleVersion(mod),
-        })),
-      },
-      revisions: {
-        create: { actorId: user.id, summary: `Alta ${number}` },
-      },
+  const quote = await createQuoteShell({
+    ownerId: user.id,
+    clientId: parsed.data.clientId || null,
+    reference: parsed.data.reference || parsed.data.projectType || null,
+    contactName: parsed.data.contactName || null,
+    brief: parsed.data.brief || null,
+    projectType: parsed.data.projectType || null,
+    layoutKey: parsed.data.layoutKey,
+    profileKey: parsed.data.profileKey || null,
+    alternativesEnabled: parsed.data.alternativesEnabled === "on" || parsed.data.alternativesEnabled === "true",
+    notes: parsed.data.notes || null,
+    advancedIntake: {
+      notes: parsed.data.notes,
+      areaM2: parsed.data.areaM2,
+      people: parsed.data.people,
+      budgetUsd: parsed.data.budgetUsd,
+      brandPref: parsed.data.brandPref,
+      brandAvoid: parsed.data.brandAvoid,
     },
+    revisionSummary: undefined,
   });
 
   const planFiles = formData.getAll("plans");
@@ -191,6 +228,217 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
     redirect(`/admin/quotes/${quote.id}?paso=2&autogen=1`);
   }
   redirect(`/admin/quotes/${quote.id}?paso=2`);
+}
+
+const REQUEST_TYPE_PROJECT: Record<string, string> = {
+  QUOTE: "audio_comercial",
+  ORDER: "audio_comercial",
+  CONSULTATION: "otro",
+};
+
+function buildRequestBrief(input: {
+  shortId: string;
+  typeLabel: string;
+  clientName: string;
+  projectDescription: string | null;
+  adminResponse: string | null;
+  items: Array<{
+    quantity: number;
+    name: string;
+    isAdminSuggestion: boolean;
+    replacesName: string | null;
+    notes: string | null;
+  }>;
+  messages: Array<{ fromClient: boolean; senderName: string; message: string }>;
+}) {
+  const requested = input.items.filter((i) => !i.isAdminSuggestion);
+  const suggested = input.items.filter((i) => i.isAdminSuggestion);
+  const parts: string[] = [
+    `Solicitud #${input.shortId} (${input.typeLabel}) de ${input.clientName}.`,
+  ];
+  if (input.projectDescription?.trim()) {
+    parts.push(`Descripción del proyecto:\n${input.projectDescription.trim()}`);
+  }
+  if (requested.length) {
+    parts.push(
+      `Productos que pidió el cliente:\n${requested
+        .map((i) => `- ${i.quantity} × ${i.name}${i.notes ? ` (${i.notes})` : ""}`)
+        .join("\n")}`
+    );
+  }
+  if (suggested.length) {
+    parts.push(
+      `Sugerencias del equipo Soundtec:\n${suggested
+        .map((i) => {
+          const extra = [
+            i.replacesName ? `reemplaza ${i.replacesName}` : null,
+            i.notes,
+          ]
+            .filter(Boolean)
+            .join("; ");
+          return `- ${i.quantity} × ${i.name}${extra ? ` (${extra})` : ""}`;
+        })
+        .join("\n")}`
+    );
+  }
+  if (input.adminResponse?.trim()) {
+    parts.push(`Respuesta ya enviada al cliente:\n${input.adminResponse.trim()}`);
+  }
+  if (input.messages.length) {
+    const last = input.messages.slice(-8);
+    parts.push(
+      `Conversación reciente:\n${last
+        .map((m) => `${m.fromClient ? m.senderName : `${m.senderName} (Soundtec)`}: ${m.message}`)
+        .join("\n")}`
+    );
+  }
+  return parts.join("\n\n").slice(0, 20000);
+}
+
+/**
+ * Arma un borrador de COT a partir de una solicitud:
+ * productos (con reemplazos resueltos), plantilla fija y brief para que la IA
+ * complete textos / accesorios sin pisar lo que ya acordamos.
+ */
+export async function createQuoteFromRequest(input: {
+  requestId: string;
+  fillAiTexts?: boolean;
+}): Promise<{ ok: boolean; error?: string; quoteId?: string; quoteNumber?: string; fillAiTexts?: boolean }> {
+  const { user, permissions } = await requireQuotePermission("quotes.create");
+  if (!permissionsHave(permissions, "quotes.create") && !permissions.fullAccess) {
+    return { ok: false, error: "No tenés permiso para crear cotizaciones." };
+  }
+
+  const request = await prisma.customerRequest.findUnique({
+    where: { id: input.requestId },
+    include: {
+      user: { select: { name: true, companyName: true, email: true, clientId: true } },
+      items: {
+        include: { product: { include: { brand: true } } },
+        orderBy: { createdAt: "asc" },
+      },
+      messages: {
+        include: { sender: { select: { name: true, role: true } } },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+  if (!request) return { ok: false, error: "La solicitud ya no existe." };
+
+  const clientId = request.clientId || request.user.clientId || null;
+  const clientName = request.user.companyName || request.user.name || request.user.email || "Cliente";
+  const shortId = request.id.slice(-6).toUpperCase();
+  const typeLabel =
+    request.type === "ORDER" ? "Pedido" : request.type === "CONSULTATION" ? "Consulta" : "Cotización";
+
+  const nameByProductId = new Map(request.items.map((i) => [i.product.id, i.product.normalizedName]));
+  const replacedProductIds = new Set(
+    request.items.filter((i) => i.isAdminSuggestion && i.adminAlternativeProductId).map((i) => i.adminAlternativeProductId as string)
+  );
+
+  const briefItems = request.items.map((i) => ({
+    quantity: i.quantity,
+    name: i.product.normalizedName,
+    isAdminSuggestion: i.isAdminSuggestion,
+    replacesName: i.adminAlternativeProductId ? nameByProductId.get(i.adminAlternativeProductId) ?? null : null,
+    notes: i.adminNotes || i.userNotes,
+  }));
+
+  const brief = buildRequestBrief({
+    shortId,
+    typeLabel,
+    clientName,
+    projectDescription: request.projectDescription,
+    adminResponse: request.adminResponse,
+    items: briefItems,
+    messages: request.messages.map((m) => ({
+      fromClient: m.sender.role === "CLIENT",
+      senderName: m.sender.name || "Sin nombre",
+      message: m.message,
+    })),
+  });
+
+  const quote = await createQuoteShell({
+    ownerId: user.id,
+    clientId,
+    reference: request.projectDescription?.trim().slice(0, 80) || `Solicitud #${shortId}`,
+    contactName: request.user.name || null,
+    brief,
+    projectType: REQUEST_TYPE_PROJECT[request.type] || null,
+    sourceRequestId: request.id,
+    notes: `Generada desde la solicitud #${shortId}.`,
+    advancedIntake: { source: "customer_request", requestId: request.id },
+    revisionSummary: `Alta desde solicitud #${shortId}`,
+  });
+
+  const altId = quote.alternatives.find((a) => a.isDefault)?.id ?? quote.alternatives[0]?.id;
+  const defaultIva = Number(await getSetting(QUOTE_SETTING_KEYS.defaultIva, "21")) || 21;
+  const global = await getGlobalMarginPercent();
+  const prices = await calculatePricesForProducts(
+    request.items.map((i) => ({
+      productId: i.product.id,
+      baseCostUsd: Number(i.product.baseCostUsd),
+      brandId: i.product.brandId,
+      distributorId: i.product.distributorId,
+      categoryId: i.product.categoryId,
+      familyId: i.product.familyId,
+      productDiscountPercent: i.product.discountPercent != null ? Number(i.product.discountPercent) : null,
+      tariffDutyPercent: i.product.tariffDutyPercent != null ? Number(i.product.tariffDutyPercent) : null,
+    })),
+    clientId,
+    global
+  );
+
+  let sort = 0;
+  for (const item of request.items) {
+    const replaced = !item.isAdminSuggestion && replacedProductIds.has(item.product.id);
+    const unit = prices.get(item.product.id)?.finalPriceUsd ?? Number(item.product.salePriceUsd ?? 0);
+    const qty = item.quantity;
+    const desc = [item.product.brand?.name, item.product.normalizedName].filter(Boolean).join(" — ");
+    const replacesName = item.adminAlternativeProductId
+      ? nameByProductId.get(item.adminAlternativeProductId) ?? null
+      : null;
+    const notes = [
+      item.isAdminSuggestion ? "Sugerencia del equipo" : null,
+      replacesName ? `En reemplazo de ${replacesName}` : null,
+      replaced ? "El cliente lo pidió; el equipo propuso una alternativa." : null,
+      item.adminNotes || item.userNotes,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    await prisma.quoteItem.create({
+      data: {
+        quoteId: quote.id,
+        alternativeId: altId,
+        kind: "PRODUCT",
+        productId: item.product.id,
+        quantity: new Prisma.Decimal(qty),
+        unit: "u",
+        description: desc,
+        unitPriceUsd: new Prisma.Decimal(unit),
+        lineTotalUsd: new Prisma.Decimal(unit * qty),
+        ivaRate: new Prisma.Decimal(item.product.ivaPercent != null ? Number(item.product.ivaPercent) : defaultIva),
+        optional: replaced,
+        notes: notes || null,
+        source: QuoteNodeSource.BRIEF,
+        locked: !replaced,
+        sortOrder: sort,
+      },
+    });
+    await ensureQuoteCatalogImage({ quoteId: quote.id, productId: item.product.id, caption: desc });
+    sort += 1;
+  }
+
+  revalidatePath("/admin/quotes");
+  revalidatePath(`/admin/quotes/${quote.id}`);
+  revalidatePath(`/admin/requests/${request.id}`);
+  return {
+    ok: true,
+    quoteId: quote.id,
+    quoteNumber: quote.number,
+    fillAiTexts: Boolean(input.fillAiTexts),
+  };
 }
 
 export async function searchProductsForQuote(query: string) {
@@ -364,14 +612,32 @@ export async function updateQuoteSection(formData: FormData): Promise<void> {
   const body = String(formData.get("body") || "");
   const section = await prisma.quoteSection.findUnique({ where: { id } });
   if (!section) return;
-  if (section.locked) return;
   const loaded = await loadQuoteForUser(section.quoteId);
-  if (!loaded.quote) return;
+  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
   await prisma.quoteSection.update({
     where: { id },
-    data: { body, source: QuoteNodeSource.MANUAL, stale: false },
+    data: { body: sanitizeQuoteHtml(body), source: QuoteNodeSource.MANUAL, stale: false },
   });
   revalidatePath(`/admin/quotes/${section.quoteId}`);
+}
+
+/** Edición humana de un módulo. El candado sólo le dice a la IA que no lo reescriba. */
+export async function saveQuoteSectionBody(input: {
+  sectionId: string;
+  body: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  await requireQuotePermission("quotes.edit");
+  const section = await prisma.quoteSection.findUnique({ where: { id: input.sectionId } });
+  if (!section) return { ok: false, error: "El módulo ya no existe." };
+  const loaded = await loadQuoteForUser(section.quoteId);
+  if (!loaded.quote) return { ok: false, error: "Sin acceso a esta cotización." };
+  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
+  await prisma.quoteSection.update({
+    where: { id: section.id },
+    data: { body: sanitizeQuoteHtml(input.body), source: QuoteNodeSource.MANUAL, stale: false },
+  });
+  revalidatePath(`/admin/quotes/${section.quoteId}`);
+  return { ok: true };
 }
 
 export async function toggleQuoteSectionLock(formData: FormData): Promise<void> {
@@ -707,5 +973,54 @@ export async function saveQuoteBlockTemplate(formData: FormData): Promise<void> 
   });
   revalidatePath("/admin/quotes/config");
   revalidatePath("/admin/settings/quotes");
+}
+
+/**
+ * Guarda un módulo desde el editor visual. Cambia la plantilla, o sea todas las
+ * cotizaciones futuras: las ya creadas conservan su texto.
+ */
+export async function saveQuoteTemplateBlock(input: {
+  blockId: string;
+  title?: string;
+  body: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { permissions } = await requireQuotePermission("quotes.manage_library");
+  if (!permissions.fullAccess && !permissionsHave(permissions, "quotes.manage_library")) {
+    return { ok: false, error: "No tenés permiso para editar la plantilla." };
+  }
+  if (!input.blockId) return { ok: false, error: "Módulo inválido." };
+  const title = (input.title || "").trim();
+  await prisma.quoteBlock.update({
+    where: { id: input.blockId },
+    data: {
+      ...(title ? { title } : {}),
+      body: sanitizeQuoteHtml(input.body),
+    },
+  });
+  revalidatePath("/admin/settings/quotes/plantilla");
+  revalidatePath("/admin/settings/quotes");
+  return { ok: true };
+}
+
+export async function saveQuoteImagePlacement(input: {
+  target: "brands" | "iso";
+  width: number;
+  align: "left" | "center" | "right";
+}): Promise<{ ok: boolean; error?: string }> {
+  const { permissions } = await requireQuotePermission("quotes.manage_library");
+  if (!permissions.fullAccess && !permissionsHave(permissions, "quotes.manage_library")) {
+    return { ok: false, error: "No tenés permiso para editar la plantilla." };
+  }
+  const width = Math.min(100, Math.max(10, Math.round(input.width)));
+  const align = input.align === "left" || input.align === "right" ? input.align : "center";
+  const keys =
+    input.target === "brands"
+      ? [QUOTE_SETTING_KEYS.brandsWidth, QUOTE_SETTING_KEYS.brandsAlign]
+      : [QUOTE_SETTING_KEYS.isoWidth, QUOTE_SETTING_KEYS.isoAlign];
+  await setSetting(keys[0], String(width), { description: "Ancho de imagen en la cotización" });
+  await setSetting(keys[1], align, { description: "Alineación de imagen en la cotización" });
+  revalidatePath("/admin/settings/quotes/plantilla");
+  revalidatePath("/admin/settings/quotes");
+  return { ok: true };
 }
 

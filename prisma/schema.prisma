@@ -623,6 +623,7 @@ model CustomerRequest {
 
   items    CustomerRequestItem[]
   messages RequestMessage[]
+  quotes   Quote[]
 
   @@index([userId])
   @@index([clientId])
@@ -1017,6 +1018,8 @@ model Quote {
   docxBlobUrl            String?
   xlsxBlobUrl            String?
   supersededById         String?
+  sourceRequestId        String?
+  sourceRequest          CustomerRequest?  @relation(fields: [sourceRequestId], references: [id], onDelete: SetNull)
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
@@ -1035,6 +1038,7 @@ model Quote {
   @@index([clientId])
   @@index([ownerId])
   @@index([createdAt])
+  @@index([sourceRequestId])
 }
 
 model QuoteAlternative {

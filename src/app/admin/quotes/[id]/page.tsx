@@ -30,6 +30,7 @@ import { QuoteProductPhotos } from "./product-photos";
 import { QuoteBomTable } from "./quote-bom-table";
 import { QuoteMediaRail } from "./media-rail";
 import { QuoteRevisePanel } from "./revise-panel";
+import { QuoteSectionEditor } from "@/components/quotes/quote-section-editor";
 
 export const metadata = { title: "Admin · Cotización" };
 
@@ -145,7 +146,19 @@ export default async function QuoteEditorPage({
     <div className="space-y-4">
       <PageHeader
         title={quote.number}
-        description={`${current.title} · ${quote.reference || "Sin referencia"}`}
+        description={
+          <>
+            {current.title} · {quote.reference || "Sin referencia"}
+            {quote.sourceRequestId ? (
+              <>
+                {" · "}
+                <a href={`/admin/requests/${quote.sourceRequestId}`} className="text-accent hover:underline">
+                  Ver solicitud de origen
+                </a>
+              </>
+            ) : null}
+          </>
+        }
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Badge tone={issued ? "success" : quote.status === "IN_REVIEW" ? "warning" : "muted"}>
@@ -270,7 +283,12 @@ export default async function QuoteEditorPage({
           {step === 3 ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Textos e imágenes fijos de las COT Word. Tildá lo que va. La IA no los reescribe.
+                Textos e imágenes fijos de las COT Word. Tildá lo que va y editá el texto de esta cotización con el
+                engranaje. La IA no los reescribe.{" "}
+                <a href="/admin/settings/quotes/plantilla" className="underline">
+                  Editar la plantilla maestra
+                </a>
+                .
               </p>
               {templateSections.map((section) => {
                 const def = moduleByKey(section.type);
@@ -293,8 +311,13 @@ export default async function QuoteEditorPage({
                           </form>
                         )}
                       </div>
-                      {section.body ? (
-                        <p className="whitespace-pre-wrap rounded-md bg-secondary/40 p-3 text-xs text-muted-foreground">{section.body}</p>
+                      {section.type !== "products_table" ? (
+                        <QuoteSectionEditor
+                          sectionId={section.id}
+                          title={section.title}
+                          body={section.body}
+                          issued={issued}
+                        />
                       ) : null}
                     </CardContent>
                   </Card>
@@ -353,15 +376,12 @@ export default async function QuoteEditorPage({
                       </div>
                       {section.included ? <Badge tone="success">En el documento</Badge> : <Badge tone="muted">Apagado</Badge>}
                     </div>
-                    <form action={updateQuoteSection} className="space-y-2">
-                      <input type="hidden" name="sectionId" value={section.id} />
-                      <Textarea name="body" rows={7} defaultValue={section.body} disabled={issued || section.locked} className="min-h-[140px]" />
-                      {!issued && !section.locked ? (
-                        <Button type="submit" size="sm" variant="outline">
-                          Guardar texto
-                        </Button>
-                      ) : null}
-                    </form>
+                    <QuoteSectionEditor
+                      sectionId={section.id}
+                      title={section.title}
+                      body={section.body}
+                      issued={issued}
+                    />
                     {!issued ? (
                       <div className="flex flex-wrap gap-2">
                         <form action={toggleQuoteSectionLock}>

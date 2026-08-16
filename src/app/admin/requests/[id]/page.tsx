@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Building2, MessagesSquare, PenLine, ShoppingCart } from "lucide-react";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { getCurrentPermissions, requireAdmin } from "@/lib/auth-helpers";
+import { permissionsHave } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
@@ -22,25 +23,35 @@ import { StatusActions } from "./status-actions";
 import { ResponseComposer } from "./response-composer";
 import { RequestConversation, type ConversationMessage } from "./request-conversation";
 import { RequestItemsPanel, type RequestItemRow } from "./request-items-panel";
+import { CreateQuoteCard, type QuotePreviewLine } from "./create-quote-card";
 
 export default async function AdminRequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await requireAdmin();
+  const { permissions } = await getCurrentPermissions();
+  const canCreateQuote = permissions.fullAccess || permissionsHave(permissions, "quotes.create");
 
-  const request = await prisma.customerRequest.findUnique({
-    where: { id },
-    include: {
-      user: true,
-      items: {
-        include: { product: { include: { brand: true } } },
-        orderBy: { createdAt: "asc" },
+  const [request, existingQuotes] = await Promise.all([
+    prisma.customerRequest.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        items: {
+          include: { product: { include: { brand: true } } },
+          orderBy: { createdAt: "asc" },
+        },
+        messages: {
+          include: { sender: { select: { name: true, role: true } } },
+          orderBy: { createdAt: "asc" },
+        },
       },
-      messages: {
-        include: { sender: { select: { name: true, role: true } } },
-        orderBy: { createdAt: "asc" },
-      },
-    },
-  });
+    }),
+    prisma.quote.findMany({
+      where: { sourceRequestId: id },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, number: true, status: true, createdAt: true },
+    }),
+  ]);
   if (!request) notFound();
 
   // Precios con el cliente comercial real, para que el admin vea lo mismo que ve el cliente.
@@ -87,6 +98,26 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
     isAiGenerated: m.isAiGenerated,
     sentAtLabel: formatDate(m.createdAt),
   }));
+
+  const replacedProductNames = new Set(
+    items.filter((i) => i.isAdminSuggestion && i.replacesProductName).map((i) => i.replacesProductName as string)
+  );
+  const quotePreviewLines: QuotePreviewLine[] = items.map((i) => {
+    const replaced = !i.isAdminSuggestion && replacedProductNames.has(i.productName);
+    return {
+      role: replaced ? "optional" : "main",
+      name: i.productName,
+      quantity: i.quantity,
+      unitPriceUsd: i.unitPriceUsd,
+      note: replaced
+        ? "Queda opcional: el equipo propuso una alternativa."
+        : i.replacesProductName
+          ? `En reemplazo de ${i.replacesProductName}`
+          : i.isAdminSuggestion
+            ? "Sugerencia del equipo"
+            : null,
+    };
+  });
 
   const requestedTotal = items
     .filter((i) => !i.isAdminSuggestion)
@@ -238,6 +269,18 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
               </p>
             </CardContent>
           </Card>
+
+          <CreateQuoteCard
+            requestId={request.id}
+            canCreate={canCreateQuote}
+            lines={quotePreviewLines}
+            existingQuotes={existingQuotes.map((q) => ({
+              id: q.id,
+              number: q.number,
+              status: q.status,
+              createdAtLabel: formatDate(q.createdAt),
+            }))}
+          />
 
           <Card>
             <CardContent className="p-5 pt-5">

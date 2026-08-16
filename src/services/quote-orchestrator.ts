@@ -135,10 +135,7 @@ export async function generateQuoteProposal(quoteId: string, userId: string) {
     )
     .join("\n");
 
-  const existing = quote.items
-    .filter((i) => i.locked || i.source === "MANUAL")
-    .map((i) => `${i.quantity} x ${i.description}`)
-    .join("\n");
+  const existing = quote.items.map((i) => `${i.quantity} x ${i.description}`).join("\n");
 
   const gen = await quoteChatJson<GenOut>(
     `${SOUNDTEC_VOICE}
@@ -202,7 +199,7 @@ No pongas precios. No inventes productos que no estén en el catálogo; si falta
     }
     const product = await matchProduct(row.search);
     if (!product) continue;
-    if (quote.items.some((i) => i.productId === product.id && i.locked)) continue;
+    if (quote.items.some((i) => i.productId === product.id)) continue;
     let unit = Number(product.salePriceUsd ?? 0);
     if (quote.clientId) {
       const prices = await calculatePricesForProducts(
