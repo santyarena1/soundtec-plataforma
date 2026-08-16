@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
 export default auth((req) => {
+  // Server Actions POST al URL de la página. Un 302 acá hace que
+  // `await action()` resuelva a undefined y el cliente reviente en `.error`.
+  if (req.method === "POST" && req.headers.get("next-action")) {
+    return NextResponse.next();
+  }
+
   const { pathname } = req.nextUrl;
   const isLogged = !!req.auth?.user;
   const role = req.auth?.user?.role;

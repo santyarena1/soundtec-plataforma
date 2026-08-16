@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { HistoryIngestForm } from "./ingest-form";
 
 export const metadata = { title: "Admin · Memoria histórica de COT" };
+export const maxDuration = 60;
 
 export default async function QuoteHistoryPage() {
   await requireQuotePermission("quotes.manage_library");
