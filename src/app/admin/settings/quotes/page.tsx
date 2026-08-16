@@ -161,6 +161,9 @@ export default async function SettingsQuotesPage() {
             <ButtonLink href="/admin/settings/quotes/plantilla" size="sm">
               Editar plantilla visual
             </ButtonLink>
+            <ButtonLink href="/admin/settings/quotes/modulos" size="sm" variant="outline">
+              Borradores de módulos
+            </ButtonLink>
             <ButtonLink href="/admin/quotes" variant="outline" size="sm">
               Ir a cotizaciones
             </ButtonLink>
@@ -179,6 +182,20 @@ export default async function SettingsQuotesPage() {
           </div>
           <ButtonLink href="/admin/settings/quotes/plantilla" size="sm">
             Abrir editor
+          </ButtonLink>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Borradores de módulos extra</h3>
+            <p className="muted-text mt-0.5">
+              Título, texto y fotos que se insertan a pedido. No se agregan solos a cada cotización nueva.
+            </p>
+          </div>
+          <ButtonLink href="/admin/settings/quotes/modulos" size="sm" variant="outline">
+            Ver borradores
           </ButtonLink>
         </CardContent>
       </Card>

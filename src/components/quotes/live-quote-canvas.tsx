@@ -15,10 +15,17 @@ import {
   type ImagePlacement,
 } from "@/lib/quote-defaults";
 import { formatUsd } from "@/lib/utils";
+import { buildQuoteZones } from "@/lib/quote-item-groups";
+import { QuoteBody } from "@/components/quotes/quote-body";
 import { saveQuoteImagePlacement, saveQuoteSectionBody, saveQuoteTemplateBlock } from "@/server/actions/quotes";
 import { reviseQuoteNode, reviseQuoteTemplateBlock } from "@/server/actions/quote-ai";
+import { ModuleMediaLayout } from "@/components/quotes/module-media-layout";
+import { ModuleLayoutMedia } from "@/components/quotes/module-layout-media";
+import { parseQuoteModuleLayout, type QuoteModuleLayout } from "@/lib/quote-module-layout";
 
-export type LiveModuleKind = "fixed" | "ai" | "table";
+export type LiveModuleKind = "fixed" | "ai" | "table" | "custom";
+
+export type LiveModuleImage = { id: string; url: string; caption?: string | null };
 
 export type LiveModule = {
   key: string;
@@ -27,6 +34,8 @@ export type LiveModule = {
   description: string;
   body: string;
   persistId: string | null;
+  layout?: QuoteModuleLayout;
+  images?: LiveModuleImage[];
 };
 
 export type LiveIdentity = {
@@ -62,6 +71,7 @@ export type LiveTableItem = {
   deliveryKey?: string;
   photoUrl?: string | null;
   productId?: string | null;
+  groupId?: string | null;
 };
 
 export type LiveTerms = {
@@ -105,8 +115,14 @@ const SAMPLE_ITEMS: LiveTableItem[] = [
 
 function ModuleKindBadge({ kind }: { kind?: LiveModuleKind }) {
   if (kind === "ai") return <span className="quote-doc__live-kind quote-doc__live-kind--ai">IA</span>;
+  if (kind === "custom") return <span className="quote-doc__live-kind quote-doc__live-kind--ai">Módulo extra</span>;
   if (kind === "fixed") return <span className="quote-doc__live-kind">Texto fijo</span>;
   return null;
+}
+
+function canPlaceMedia(mod: LiveModule) {
+  if (mod.kind === "table") return false;
+  return !["letter_open", "closing", "disciplines", "brands", "iso"].includes(mod.key);
 }
 
 function ModuleChrome({
@@ -178,6 +194,7 @@ function ProductsTable({
   sample,
   quoteId,
   issued,
+  totalLabel = "Total",
 }: {
   items: LiveTableItem[];
   color: string;
@@ -185,6 +202,7 @@ function ProductsTable({
   sample?: boolean;
   quoteId?: string;
   issued?: boolean;
+  totalLabel?: string;
 }) {
   const visible = items;
   const total = visible.filter((item) => !item.optional).reduce((sum, item) => sum + item.lineTotal, 0);
@@ -277,7 +295,7 @@ function ProductsTable({
         ))}
         <tr style={{ background: color, color: "#fff" }}>
           <td className="px-[2mm] py-[2mm] text-right font-bold uppercase tracking-[0.08em]" colSpan={cols - (sample ? 1 : 3)}>
-            Total
+            {totalLabel}
           </td>
           <td className="px-[2mm] py-[2mm] text-right text-[10.5pt] font-bold tabular-nums">{formatUsd(total)}</td>
           {!sample ? <td colSpan={showDelivery ? 2 : 1} /> : null}
@@ -323,12 +341,14 @@ export function LiveQuoteCanvas({
   issued = false,
   canEditImages = false,
   quoteId,
+  itemGroups = [],
 }: {
   scope: "template" | "quote";
   identity: LiveIdentity;
   header: LiveHeader;
   modules: LiveModule[];
   items?: LiveTableItem[];
+  itemGroups?: { id: string; title: string; body: string; sortOrder: number }[];
   showDelivery?: boolean;
   terms?: LiveTerms | null;
   signature: { name: string; title: string };
@@ -355,6 +375,11 @@ export function LiveQuoteCanvas({
   const [aiPendingKey, setAiPendingKey] = useState<string | null>(null);
 
   const tableItems = scope === "template" ? SAMPLE_ITEMS : items ?? [];
+  const tableZones =
+    scope === "template"
+      ? [{ id: null, title: "Planilla de equipamiento y servicios", body: "", items: SAMPLE_ITEMS }]
+      : buildQuoteZones(tableItems, itemGroups);
+  const multiTables = tableZones.length > 1 || itemGroups.length > 0;
   const imageEditable = canEditImages && !issued;
 
   function persistBody(mod: LiveModule, body = draftsRef.current[mod.key] ?? "", title = titlesRef.current[mod.key]) {
@@ -427,25 +452,37 @@ export function LiveQuoteCanvas({
     return mod.key !== "letter_open" && mod.key !== "closing" && mod.key !== "disciplines";
   }
 
-  function aiFooter(mod: LiveModule) {
+  function moduleFooter(mod: LiveModule) {
     if (!canEdit(mod)) return null;
     return (
-      <AiRewriteBox
-        compact
-        pending={aiPendingKey === mod.key || pending}
-        message={aiMessage[mod.key]}
-        warning={
-          scope === "template"
-            ? "Cambia la plantilla maestra. Las cotizaciones ya creadas no se tocan."
-            : "Sólo esta cotización. La plantilla maestra no cambia."
-        }
-        placeholder={
-          scope === "template"
-            ? "Hacelo más largo, más claro… actualiza el texto de las COT nuevas."
-            : "Hacelo más largo, más claro… sólo esta cotización."
-        }
-        onApply={(instruction) => rewrite(mod, instruction)}
-      />
+      <>
+        {scope === "quote" && quoteId && mod.persistId && canPlaceMedia(mod) ? (
+          <ModuleLayoutMedia
+            quoteId={quoteId}
+            sectionId={mod.persistId}
+            layout={parseQuoteModuleLayout(mod.layout)}
+            images={mod.images || []}
+            issued={issued}
+            showLibrarySave={mod.kind === "custom"}
+          />
+        ) : null}
+        <AiRewriteBox
+          compact
+          pending={aiPendingKey === mod.key || pending}
+          message={aiMessage[mod.key]}
+          warning={
+            scope === "template"
+              ? "Cambia la plantilla maestra. Las cotizaciones ya creadas no se tocan."
+              : "Sólo esta cotización. La plantilla maestra no cambia."
+          }
+          placeholder={
+            scope === "template"
+              ? "Hacelo más largo, más claro… actualiza el texto de las COT nuevas."
+              : "Hacelo más largo, más claro… sólo esta cotización."
+          }
+          onApply={(instruction) => rewrite(mod, instruction)}
+        />
+      </>
     );
   }
 
@@ -540,24 +577,43 @@ export function LiveQuoteCanvas({
                 {modules.map((mod) => {
                   const editable = canEdit(mod);
                   const title = titles[mod.key] || mod.title;
+                  const chromeKey = mod.persistId || mod.key;
 
                   if (mod.kind === "table") {
                     return (
                       <ModuleChrome
-                        key={mod.key}
+                        key={chromeKey}
                         kind={mod.kind}
                         label={title}
                         hint={scope === "template" ? "Se arma con los equipos de cada cotización" : "Planilla de esta cotización"}
                       >
-                        <SectionTitle value="Planilla de equipamiento y servicios" color={color} editable={false} />
-                        <ProductsTable
-                          items={tableItems}
-                          color={color}
-                          showDelivery={scope === "quote" ? showDelivery : false}
-                          sample={scope === "template"}
-                          quoteId={scope === "quote" ? quoteId : undefined}
-                          issued={issued}
-                        />
+                        {tableZones.map((zone) => (
+                          <div key={zone.id || "general"} className="quote-doc__block">
+                            <SectionTitle value={zone.title} color={color} editable={false} />
+                            {zone.body.trim() ? (
+                              <div className="mb-[3mm]">
+                                <QuoteBody body={zone.body} />
+                              </div>
+                            ) : null}
+                            <ProductsTable
+                              items={zone.items}
+                              color={color}
+                              showDelivery={scope === "quote" ? showDelivery : false}
+                              sample={scope === "template"}
+                              quoteId={scope === "quote" ? quoteId : undefined}
+                              issued={issued}
+                              totalLabel={multiTables ? `Subtotal ${zone.title}` : "Total"}
+                            />
+                          </div>
+                        ))}
+                        {multiTables ? (
+                          <p className="mt-[3mm] text-right text-[11pt] font-bold" style={{ color }}>
+                            Total neto{" "}
+                            {formatUsd(
+                              tableItems.filter((item) => !item.optional).reduce((sum, item) => sum + item.lineTotal, 0)
+                            )}
+                          </p>
+                        ) : null}
                         {scope === "template" ? (
                           <p className="mt-[2mm] flex items-center gap-1.5 text-[11px] text-muted-foreground print:hidden">
                             <Table2 className="h-3 w-3" /> Datos de ejemplo. En cada cotización se completa con los
@@ -570,7 +626,7 @@ export function LiveQuoteCanvas({
 
                   if (mod.kind === "ai" && scope === "template") {
                     return (
-                      <ModuleChrome key={mod.key} kind={mod.kind} label={title} hint="Lo redacta la IA en cada cotización">
+                      <ModuleChrome key={chromeKey} kind={mod.kind} label={title} hint="Lo redacta la IA en cada cotización">
                         <SectionTitle value={title} color={color} editable={false} />
                         <p className="flex items-start gap-1.5 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-[10pt] text-muted-foreground">
                           <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -583,13 +639,13 @@ export function LiveQuoteCanvas({
                   if (mod.key === "letter_open" || mod.key === "closing") {
                     return (
                       <ModuleChrome
-                        key={mod.key}
+                        key={chromeKey}
                         kind={mod.kind}
                         label={title}
                         hint={scope === "template" ? "Texto fijo" : "Texto de esta cotización"}
                         focused={focusedKey === mod.key}
                         saving={savingKey === mod.key}
-                        footer={aiFooter(mod)}
+                        footer={moduleFooter(mod)}
                       >
                         {renderEditor(mod)}
                       </ModuleChrome>
@@ -599,13 +655,13 @@ export function LiveQuoteCanvas({
                   if (mod.key === "disciplines") {
                     return (
                       <ModuleChrome
-                        key={mod.key}
+                        key={chromeKey}
                         kind={mod.kind}
                         label={title}
                         hint="Franja de disciplinas"
                         focused={focusedKey === mod.key}
                         saving={savingKey === mod.key}
-                        footer={aiFooter(mod)}
+                        footer={moduleFooter(mod)}
                       >
                         <div
                           className="px-[4mm] py-[2.5mm] text-center text-[10pt] font-semibold uppercase tracking-[0.14em] text-white"
@@ -619,13 +675,21 @@ export function LiveQuoteCanvas({
 
                   return (
                     <ModuleChrome
-                      key={mod.key}
+                      key={mod.persistId || mod.key}
                       kind={mod.kind}
                       label={title}
-                      hint={mod.kind === "ai" ? "Texto de proyecto" : scope === "template" ? "Texto fijo" : "Texto de esta cotización"}
+                      hint={
+                        mod.kind === "custom"
+                          ? "Módulo extra · no entra solo en las COT nuevas"
+                          : mod.kind === "ai"
+                            ? "Texto de proyecto"
+                            : scope === "template"
+                              ? "Texto fijo"
+                              : "Texto de esta cotización"
+                      }
                       focused={focusedKey === mod.key}
                       saving={savingKey === mod.key}
-                      footer={aiFooter(mod)}
+                      footer={moduleFooter(mod)}
                     >
                       {showsTitle(mod) ? (
                         <SectionTitle
@@ -635,7 +699,9 @@ export function LiveQuoteCanvas({
                           onSave={(next) => persistTitle(mod, next)}
                         />
                       ) : null}
-                      {renderEditor(mod)}
+                      <ModuleMediaLayout layout={mod.layout} images={mod.images || []}>
+                        {renderEditor(mod)}
+                      </ModuleMediaLayout>
                       {mod.key === "brands" ? (
                         <ResizableQuoteImage
                           src={identity.brandsUrl}

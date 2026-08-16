@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
 import { richTextToPlain } from "@/lib/quote-richtext";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
 import { formatUsd } from "@/lib/utils";
+import { buildQuoteZones } from "@/lib/quote-item-groups";
 
 type PdfQuote = {
   number: string;
@@ -20,8 +21,10 @@ type PdfQuote = {
     optional: boolean;
     excluded: boolean;
     deliveryKey: string | null;
+    groupId?: string | null;
     product?: { normalizedName: string; shortDescription: string | null; brand?: { name: string } | null } | null;
   }>;
+  itemGroups?: Array<{ id: string; title: string; body: string; sortOrder: number }>;
   sections: Array<{ type: string; title: string; body: string; included: boolean; sortOrder: number }>;
 };
 
@@ -112,21 +115,32 @@ export async function buildQuotePdf(quote: PdfQuote): Promise<Uint8Array> {
     y -= 6;
   }
 
-  write("PLANILLA DE EQUIPAMIENTO Y SERVICIOS", { font: bold, size: 11, color });
-  y -= 4;
   const visible = quote.items.filter((item) => !item.excluded);
+  const zones = buildQuoteZones(visible, quote.itemGroups ?? []);
   const total = visible.filter((item) => !item.optional).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+  const multi = (quote.itemGroups?.length ?? 0) > 0;
 
-  for (const [index, item] of visible.entries()) {
-    const line = quoteItemDisplay(item);
-    const qty = Number(item.quantity);
-    write(`${index + 1}. ${qty} ${item.unit}  ${line.name}`, { font: bold, size: 10 });
-    if (line.blurb) write(line.blurb, { size: 9, color: muted });
-    write(`${formatUsd(Number(item.unitPriceUsd))}  ·  ${formatUsd(Number(item.lineTotalUsd))}${item.optional ? "  (opcional)" : ""}`, {
-      size: 9,
-    });
-    if (quote.showDeliveryColumn && item.deliveryKey) write(`Entrega: ${item.deliveryKey}`, { size: 9, color: muted });
-    y -= 6;
+  for (const zone of zones) {
+    write(zone.title.toUpperCase(), { font: bold, size: 11, color });
+    y -= 4;
+    if (zone.body.trim()) {
+      write(richTextToPlain(zone.body).replace(/\n/g, " "), { size: 9, color: muted });
+      y -= 4;
+    }
+    const zoneTotal = zone.items.filter((item) => !item.optional).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+    for (const [index, item] of zone.items.entries()) {
+      const line = quoteItemDisplay(item);
+      const qty = Number(item.quantity);
+      write(`${index + 1}. ${qty} ${item.unit}  ${line.name}`, { font: bold, size: 10 });
+      if (line.blurb) write(line.blurb, { size: 9, color: muted });
+      write(`${formatUsd(Number(item.unitPriceUsd))}  ·  ${formatUsd(Number(item.lineTotalUsd))}${item.optional ? "  (opcional)" : ""}`, {
+        size: 9,
+      });
+      if (quote.showDeliveryColumn && item.deliveryKey) write(`Entrega: ${item.deliveryKey}`, { size: 9, color: muted });
+      y -= 6;
+    }
+    if (multi) write(`Subtotal ${zone.title} ${formatUsd(zoneTotal)}`, { font: bold, size: 10 });
+    y -= 8;
   }
 
   write(`Total neto ${formatUsd(total)}`, { font: bold, size: 12, color });

@@ -11,6 +11,7 @@ import {
 import { isRichText, sanitizeQuoteHtml, splitParagraphs } from "@/lib/quote-richtext";
 import { formatUsd } from "@/lib/utils";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
+import { buildQuoteZones } from "@/lib/quote-item-groups";
 
 export const dynamic = "force-dynamic";
 
@@ -98,20 +99,24 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       if (section.type === "iso") {
         return `${heading(section.title)}${hasBody ? paragraphs(body) : ""}${placedImage(identity.isoUrl, identity.iso)}`;
       }
-      if (!hasBody) return "";
-      return `${heading(section.title)}${paragraphs(body)}`;
+      const sectionImages = quote.assets
+        .filter((asset) => asset.sectionId === section.id)
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((asset) => placedImage(asset.url, { width: section.layout === "images_row" ? 48 : 62, align: "center" }))
+        .join("");
+      if (!hasBody && !sectionImages) return "";
+      return `${heading(section.title)}${hasBody ? paragraphs(body) : ""}${sectionImages}`;
     })
     .join("");
 
-  const rows = visibleItems
-    .map((item, index) => {
-      const line = quoteItemDisplay(item);
-      const detail = `<strong>${escapeHtml(line.name)}</strong>${
-        line.blurb
-          ? `<br/><span style="font-size:9pt;font-weight:normal;text-align:justify">${escapeHtml(line.blurb)}</span>`
-          : ""
-      }${item.optional ? " <i>(opcional)</i>" : ""}`;
-      return `<tr style="background:${index % 2 ? "#f3f5f8" : "#ffffff"}">
+  const itemRow = (item: (typeof visibleItems)[number], index: number) => {
+    const line = quoteItemDisplay(item);
+    const detail = `<strong>${escapeHtml(line.name)}</strong>${
+      line.blurb
+        ? `<br/><span style="font-size:9pt;font-weight:normal;text-align:justify">${escapeHtml(line.blurb)}</span>`
+        : ""
+    }${item.optional ? " <i>(opcional)</i>" : ""}`;
+    return `<tr style="background:${index % 2 ? "#f3f5f8" : "#ffffff"}">
 <td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.quantity)}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.unit)}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt">${detail}</td>
@@ -119,8 +124,27 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 <td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right;font-weight:bold">${formatUsd(Number(item.lineTotalUsd))}</td>
 ${showDelivery ? `<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.deliveryKey || "")}</td>` : ""}
 </tr>`;
+  };
+  const tableHead = `<table style="width:100%;font-size:9pt">
+<tr style="background:${color};color:#fff">
+<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Cant.</th>
+<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Un.</th>
+<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Descripción</th>
+<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Unitario</th>
+<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Total</th>
+${showDelivery ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Entrega</th>` : ""}
+</tr>`;
+  const zones = buildQuoteZones(visibleItems, quote.itemGroups ?? []);
+  const multiTables = (quote.itemGroups?.length ?? 0) > 0;
+  const equipmentHtml = zones
+    .map((zone) => {
+      const subtotal = zone.items.filter((item) => !item.optional).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+      return `${heading(zone.title)}${zone.body.trim() ? paragraphs(zone.body) : ""}${tableHead}
+${zone.items.map(itemRow).join("")}
+</table>
+${multiTables ? `<p style="margin:8pt 0 0;text-align:right;font-size:10.5pt;font-weight:bold">Subtotal ${escapeHtml(zone.title)} ${formatUsd(subtotal)}</p>` : ""}`;
     })
-    .join("");
+    .join("<br/>");
 
   const html = `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
@@ -153,18 +177,7 @@ ${quote.contactName ? `<tr><td style="font-weight:bold;color:${color};padding:1p
 ${sections}
 
 <br style="page-break-before:always"/>
-${heading("Planilla de equipamiento y servicios")}
-<table style="width:100%;font-size:9pt">
-<tr style="background:${color};color:#fff">
-<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Cant.</th>
-<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Un.</th>
-<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Descripción</th>
-<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Unitario</th>
-<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Total</th>
-${showDelivery ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Entrega</th>` : ""}
-</tr>
-${rows}
-</table>
+${equipmentHtml}
 <p style="margin:10pt 0 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total neto ${formatUsd(total)}</p>
 <p style="margin:2pt 0 0;text-align:right;font-size:8pt;color:#556">Precios en dólares estadounidenses, IVA no incluido.</p>
 

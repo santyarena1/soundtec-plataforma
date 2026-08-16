@@ -16,6 +16,7 @@ export async function generateAndStoreQuotePdf(quoteId: string, actorId: string)
           },
         },
       },
+      itemGroups: { orderBy: { sortOrder: "asc" } },
       sections: { orderBy: { sortOrder: "asc" } },
     },
   });

@@ -8,7 +8,9 @@ import {
   type ImagePlacement,
 } from "@/lib/quote-defaults";
 import { QuoteBody } from "@/components/quotes/quote-body";
+import { ModuleMediaLayout } from "@/components/quotes/module-media-layout";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
+import { buildQuoteZones } from "@/lib/quote-item-groups";
 import type { Quote, QuoteItem, QuoteSection, QuoteAsset, Client, User, QuoteCommercialTerms, Product } from "@prisma/client";
 
 type QuoteItemWithProduct = QuoteItem & {
@@ -19,6 +21,7 @@ type DocQuote = Quote & {
   client: Pick<Client, "id" | "companyName" | "tradeName"> | null;
   owner: Pick<User, "id" | "name" | "email" | "quoteSignName" | "quoteSignTitle">;
   items: QuoteItemWithProduct[];
+  itemGroups?: { id: string; title: string; body: string; sortOrder: number }[];
   sections: QuoteSection[];
   assets: QuoteAsset[];
   terms: QuoteCommercialTerms | null;
@@ -74,12 +77,18 @@ function ProductsTable({
   quote,
   photos,
   color,
+  items,
+  totalLabel = "Total",
+  showNote = true,
 }: {
   quote: DocQuote;
   photos: Map<string, QuoteAsset>;
   color: string;
+  items?: QuoteItemWithProduct[];
+  totalLabel?: string;
+  showNote?: boolean;
 }) {
-  const visible = quote.items.filter((item) => !item.excluded);
+  const visible = (items ?? quote.items).filter((item) => !item.excluded);
   const total = visible.filter((item) => !item.optional).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
   const showDelivery = quote.showDeliveryColumn;
   const anyPhoto = visible.some((item) => item.productId && photos.has(item.productId));
@@ -168,7 +177,7 @@ function ProductsTable({
           })}
           <tr style={{ background: color, color: "#fff" }}>
             <td className="px-[2mm] py-[2mm] text-right font-bold uppercase tracking-[0.08em]" colSpan={cols - 3}>
-              Total
+              {totalLabel}
             </td>
             <td className="px-[2mm] py-[2mm] text-right text-[10.5pt] font-bold tabular-nums">{formatUsd(total)}</td>
             <td colSpan={showDelivery ? 2 : 1} />
@@ -176,10 +185,12 @@ function ProductsTable({
         </tbody>
       </table>
 
-      <p className="quote-doc__block mt-[2.5mm] text-[8.5pt] leading-snug text-neutral-600">
-        Precios expresados en DÓLARES billete según tipo de cambio vendedor del BNA. No incluyen IVA.
-        {visible.some((item) => item.optional) ? " Los ítems marcados como opcionales no se suman al total." : ""}
-      </p>
+      {showNote ? (
+        <p className="quote-doc__block mt-[2.5mm] text-[8.5pt] leading-snug text-neutral-600">
+          Precios expresados en DÓLARES billete según tipo de cambio vendedor del BNA. No incluyen IVA.
+          {visible.some((item) => item.optional) ? " Los ítems marcados como opcionales no se suman al total." : ""}
+        </p>
+      ) : null}
     </>
   );
 }
@@ -275,10 +286,40 @@ function SectionBlock({
   }
 
   if (section.type === "products_table") {
+    const zones = buildQuoteZones(
+      quote.items.filter((item) => !item.excluded),
+      quote.itemGroups ?? []
+    );
+    const multi = (quote.itemGroups?.length ?? 0) > 0;
+    const grand = quote.items
+      .filter((item) => !item.excluded && !item.optional)
+      .reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
     return (
       <div className={spacing}>
-        <SectionTitle color={color}>Planilla de equipamiento y servicios</SectionTitle>
-        <ProductsTable quote={quote} photos={photos} color={color} />
+        {zones.map((zone) => (
+          <div key={zone.id || "general"} className="quote-doc__block mt-[7mm] first:mt-0">
+            <SectionTitle color={color}>{zone.title}</SectionTitle>
+            {zone.body.trim() ? <Paragraphs body={zone.body} /> : null}
+            <ProductsTable
+              quote={quote}
+              photos={photos}
+              color={color}
+              items={zone.items}
+              totalLabel={multi ? `Subtotal ${zone.title}` : "Total"}
+              showNote={!multi}
+            />
+          </div>
+        ))}
+        {multi ? (
+          <>
+            <p className="mt-[4mm] text-right text-[12pt] font-bold" style={{ color }}>
+              Total neto {formatUsd(grand)}
+            </p>
+            <p className="quote-doc__block mt-[2.5mm] text-[8.5pt] leading-snug text-neutral-600">
+              Precios expresados en DÓLARES billete según tipo de cambio vendedor del BNA. No incluyen IVA.
+            </p>
+          </>
+        ) : null}
       </div>
     );
   }
@@ -303,12 +344,19 @@ function SectionBlock({
     );
   }
 
-  if (!hasBody(section)) return null;
+  if (!hasBody(section) && !quote.assets.some((asset) => asset.sectionId === section.id)) return null;
+
+  const images = quote.assets
+    .filter((asset) => asset.sectionId === section.id)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((asset) => ({ id: asset.id, url: asset.url, caption: asset.caption }));
 
   return (
     <div className={`quote-doc__block ${spacing}`}>
       <SectionTitle color={color}>{section.title}</SectionTitle>
-      <Paragraphs body={section.body} />
+      <ModuleMediaLayout layout={section.layout} images={images}>
+        {hasBody(section) ? <Paragraphs body={section.body} /> : null}
+      </ModuleMediaLayout>
     </div>
   );
 }
@@ -426,7 +474,11 @@ export async function QuoteDocument({ quote }: { quote: DocQuote }) {
   );
   const plans = quote.assets.filter((asset) => asset.kind === "PLAN" && !/\.pdf($|\?)/i.test(asset.url));
   const gallery = quote.assets.filter(
-    (asset) => asset.kind !== "PRODUCT" && asset.kind !== "CORPORATE" && asset.kind !== "PLAN"
+    (asset) =>
+      asset.kind !== "PRODUCT" &&
+      asset.kind !== "CORPORATE" &&
+      asset.kind !== "PLAN" &&
+      !asset.sectionId
   );
 
   // thead/tfoot es la única forma fiable de que las bandas corporativas

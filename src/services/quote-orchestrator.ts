@@ -451,6 +451,26 @@ export async function rewriteQuoteNode(input: {
   return out.description;
 }
 
+export async function draftCustomModuleBody(input: {
+  title: string;
+  prompt: string;
+  brief?: string | null;
+}) {
+  const text = await quoteChatText(
+    `${SOUNDTEC_VOICE}
+Escribís un módulo extra de cotización. 2 a 4 párrafos, frases cortas, sin adjetivos vacíos.
+No inventes precios, marcas ni equipos que no estén en el brief. No copies cláusulas legales de plantilla.`,
+    `Título del módulo: ${input.title}
+Pedido del usuario:
+${input.prompt}
+${input.brief?.trim() ? `Brief de esta cotización:\n${input.brief.trim()}` : "No hay brief cargado."}
+Devolvé texto plano, sin markdown ni títulos repetidos.`
+  );
+  const cleaned = stripCodeFences(text).trim();
+  if (!cleaned) throw new Error("La IA no devolvió texto.");
+  return isRichText(cleaned) ? sanitizeQuoteHtml(cleaned) : cleaned;
+}
+
 export async function rewriteQuoteTemplateBlock(input: { blockId: string; instruction: string }) {
   const block = await prisma.quoteBlock.findUnique({ where: { id: input.blockId } });
   if (!block) throw new Error("Módulo de plantilla no encontrado.");

@@ -989,6 +989,31 @@ model QuoteBlock {
   @@unique([key, version])
 }
 
+// Borrador reutilizable: no entra solo en las COT nuevas; se inserta a pedido.
+model QuoteModuleLibrary {
+  id          String   @id @default(cuid())
+  title       String
+  body        String   @db.Text
+  prompt      String?  @db.Text
+  layout      String   @default("text_only")
+  isActive    Boolean  @default(true)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  images      QuoteModuleLibraryImage[]
+}
+
+model QuoteModuleLibraryImage {
+  id          String         @id @default(cuid())
+  libraryId   String
+  library     QuoteModuleLibrary @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+  url         String
+  caption     String?
+  sortOrder   Int            @default(0)
+  source      QuoteNodeSource @default(MANUAL)
+  aiGenerated Boolean        @default(false)
+}
+
 model Quote {
   id                     String            @id @default(cuid())
   number                 String            @unique
@@ -1025,6 +1050,7 @@ model Quote {
 
   alternatives QuoteAlternative[]
   items        QuoteItem[]
+  itemGroups   QuoteItemGroup[]
   sections     QuoteSection[]
   assets       QuoteAsset[]
   context      QuoteContext?
@@ -1057,10 +1083,26 @@ model QuoteAlternative {
   @@unique([quoteId, key])
 }
 
+model QuoteItemGroup {
+  id        String   @id @default(cuid())
+  quoteId   String
+  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  title     String
+  body      String   @db.Text @default("")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  items     QuoteItem[]
+
+  @@index([quoteId])
+}
+
 model QuoteItem {
   id                 String          @id @default(cuid())
   quoteId            String
   quote              Quote           @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  groupId            String?
+  group              QuoteItemGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   alternativeId      String?
   alternative        QuoteAlternative? @relation(fields: [alternativeId], references: [id], onDelete: SetNull)
   kind               QuoteItemKind   @default(PRODUCT)
@@ -1111,10 +1153,13 @@ model QuoteSection {
   dependencyKeys  Json?
   lastInstruction String?
   lastAiRunId     String?
+  layout          String              @default("text_only")
+  libraryId       String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
   @@index([quoteId])
+  @@index([libraryId])
 }
 
 model QuoteAsset {
@@ -1129,8 +1174,11 @@ model QuoteAsset {
   locked          Boolean        @default(false)
   lastInstruction String?
   productId       String?
+  sectionId       String?
   sortOrder       Int            @default(0)
   createdAt       DateTime       @default(now())
+
+  @@index([sectionId])
 }
 
 model QuoteContext {

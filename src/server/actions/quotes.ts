@@ -567,9 +567,11 @@ export async function addProductToQuote(formData: FormData): Promise<{ ok: boole
 
   const maxSort = loaded.quote.items.reduce((m, i) => Math.max(m, i.sortOrder), -1);
   const desc = [product.brand?.name, product.normalizedName].filter(Boolean).join(" — ");
+  const groupId = String(formData.get("groupId") || "").trim() || null;
   await prisma.quoteItem.create({
     data: {
       quoteId,
+      groupId,
       alternativeId: loaded.quote.alternatives.find((a) => a.isDefault)?.id ?? loaded.quote.alternatives[0]?.id,
       kind: "PRODUCT",
       productId: product.id,

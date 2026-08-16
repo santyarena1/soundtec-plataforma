@@ -38,6 +38,7 @@ export async function attachSerperImage(input: {
   url: string;
   caption?: string;
   productId?: string;
+  sectionId?: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
@@ -76,6 +77,7 @@ export async function attachSerperImage(input: {
         aiGenerated: false,
         source: QuoteNodeSource.SUGGESTED,
         sortOrder: sort,
+        sectionId: input.sectionId || null,
       },
     });
   }
@@ -96,6 +98,7 @@ export async function attachSerperImage(input: {
 export async function generateQuoteConceptImage(input: {
   quoteId: string;
   prompt: string;
+  sectionId?: string;
 }): Promise<{ ok: boolean; error?: string; message?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
@@ -147,6 +150,7 @@ export async function generateQuoteConceptImage(input: {
       aiGenerated: true,
       source: QuoteNodeSource.GENERATED,
       sortOrder: loaded.quote.assets.length,
+      sectionId: input.sectionId || null,
     },
   });
   await prisma.quoteAiRun.create({
@@ -288,6 +292,7 @@ export async function uploadQuoteContextImage(formData: FormData): Promise<{ ok:
   if (!stored) {
     return { ok: false, error: "Para subir archivos hace falta BLOB_READ_WRITE_TOKEN." };
   }
+  const sectionId = String(formData.get("sectionId") || "").trim() || null;
   await prisma.quoteAsset.create({
     data: {
       quoteId,
@@ -297,6 +302,7 @@ export async function uploadQuoteContextImage(formData: FormData): Promise<{ ok:
       aiGenerated: false,
       source: QuoteNodeSource.MANUAL,
       sortOrder: loaded.quote.assets.length,
+      sectionId,
     },
   });
   revalidatePath(`/admin/quotes/${quoteId}`);

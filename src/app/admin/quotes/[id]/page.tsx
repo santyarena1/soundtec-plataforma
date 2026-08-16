@@ -31,9 +31,11 @@ import { QuoteProductPhotos } from "./product-photos";
 import { QuoteBomTable } from "./quote-bom-table";
 import { QuoteMediaRail } from "./media-rail";
 import { FillMissingShortDescriptions } from "@/components/quotes/fill-missing-short-descriptions";
+import { AddCustomModule, RemoveCustomModule } from "@/components/quotes/add-custom-module";
 import { QuotePreviewZoom } from "@/components/quotes/quote-preview-zoom";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
 import { requestShortId } from "@/lib/request-quote-link";
+import { isCustomSectionType, parseQuoteModuleLayout } from "@/lib/quote-module-layout";
 
 export const metadata = { title: "Admin · Cotización" };
 
@@ -132,7 +134,7 @@ export default async function QuoteEditorPage({
       };
     });
   const plans = quote.assets.filter((a) => a.kind === "PLAN");
-  const extraImages = quote.assets.filter((a) => a.kind !== "PLAN" && a.kind !== "CORPORATE");
+  const extraImages = quote.assets.filter((a) => a.kind !== "PLAN" && a.kind !== "CORPORATE" && !a.sectionId);
   const bomRows = quote.items.map((i) => {
     const asset = i.productId ? quote.assets.find((a) => a.productId === i.productId && a.kind === "PRODUCT") : null;
     const line = quoteItemDisplay(i);
@@ -151,6 +153,7 @@ export default async function QuoteEditorPage({
       locked: i.locked,
       photoUrl: asset?.url || (i.productId ? catalogByProduct.get(i.productId) || null : null),
       productId: i.productId,
+      groupId: i.groupId,
     };
   });
   const needsShortDescriptions = quote.items.some(
@@ -161,6 +164,7 @@ export default async function QuoteEditorPage({
   const showFullLive = step === 3 && !issued;
   const liveCanvas = (
     <LiveQuoteCanvas
+      key={quote.sections.map((section) => `${section.id}:${section.layout}:${section.updatedAt.toISOString()}`).join("|")}
       scope="quote"
       quoteId={quote.id}
       issued={issued}
@@ -180,12 +184,19 @@ export default async function QuoteEditorPage({
         .filter((section) => section.included !== false)
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((section) => ({
-          key: section.type,
-          kind: moduleByKey(section.type)?.kind ?? "fixed",
+          key: isCustomSectionType(section.type) ? `custom:${section.id}` : section.type,
+          kind: isCustomSectionType(section.type) ? "custom" : moduleByKey(section.type)?.kind ?? "fixed",
           title: section.title,
-          description: moduleByKey(section.type)?.description ?? "",
+          description: isCustomSectionType(section.type)
+            ? "Módulo extra. No entra solo en las cotizaciones nuevas."
+            : moduleByKey(section.type)?.description ?? "",
           body: section.body,
           persistId: section.id,
+          layout: parseQuoteModuleLayout(section.layout),
+          images: quote.assets
+            .filter((asset) => asset.sectionId === section.id)
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((asset) => ({ id: asset.id, url: asset.url, caption: asset.caption })),
         }))}
       items={quote.items
         .filter((item) => !item.excluded)
@@ -208,8 +219,15 @@ export default async function QuoteEditorPage({
             deliveryKey: item.deliveryKey || "",
             photoUrl: asset?.url || (item.productId ? catalogByProduct.get(item.productId) || null : null),
             productId: item.productId,
+            groupId: item.groupId,
           };
         })}
+      itemGroups={quote.itemGroups.map((group) => ({
+        id: group.id,
+        title: group.title,
+        body: group.body,
+        sortOrder: group.sortOrder,
+      }))}
       showDelivery={quote.showDeliveryColumn}
       terms={quote.terms}
       signature={{
@@ -220,7 +238,7 @@ export default async function QuoteEditorPage({
         .filter((plan) => !/\.pdf($|\?)/i.test(plan.url))
         .map((plan) => ({ id: plan.id, url: plan.url, caption: plan.caption }))}
       gallery={quote.assets
-        .filter((asset) => asset.kind !== "PRODUCT" && asset.kind !== "CORPORATE" && asset.kind !== "PLAN")
+        .filter((asset) => asset.kind !== "PRODUCT" && asset.kind !== "CORPORATE" && asset.kind !== "PLAN" && !asset.sectionId)
         .map((asset) => ({
           id: asset.id,
           url: asset.url,
@@ -377,23 +395,32 @@ export default async function QuoteEditorPage({
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm text-muted-foreground">
-                  Tildá qué módulos van. El texto se edita en el documento: clickeá y escribí. Generar la propuesta no
-                  pisa los módulos fijos.
+                  Tildá qué módulos van. El texto fijo no se reescribe solo. Los módulos extra se insertan a pedido y
+                  quedan como borrador si los guardás.
                 </p>
-                <ButtonLink href="/admin/settings/quotes/plantilla" size="sm" variant="outline">
-                  <Settings className="mr-1 h-3.5 w-3.5" />
-                  Plantilla maestra
-                </ButtonLink>
+                <div className="flex flex-wrap gap-2">
+                  <AddCustomModule quoteId={quote.id} issued={issued} />
+                  <ButtonLink href="/admin/settings/quotes/plantilla" size="sm" variant="outline">
+                    <Settings className="mr-1 h-3.5 w-3.5" />
+                    Plantilla maestra
+                  </ButtonLink>
+                </div>
               </div>
               {templateSections.map((section) => {
                 const def = moduleByKey(section.type);
+                const custom = isCustomSectionType(section.type);
                 return (
                   <Card key={section.id}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h3 className="font-medium">{section.title}</h3>
-                          <p className="text-xs text-muted-foreground">{def?.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {custom
+                              ? "Módulo extra. No entra solo en las cotizaciones nuevas."
+                              : def?.description}
+                          </p>
+                          {custom ? <RemoveCustomModule sectionId={section.id} issued={issued} /> : null}
                         </div>
                         {section.type === "products_table" ? (
                           <Badge tone="success">Siempre</Badge>
@@ -419,6 +446,11 @@ export default async function QuoteEditorPage({
               <QuoteBomTable
                 quoteId={quote.id}
                 items={bomRows}
+                groups={quote.itemGroups.map((group) => ({
+                  id: group.id,
+                  title: group.title,
+                  body: group.body,
+                }))}
                 deliveryOptions={deliveryOptions}
                 showDelivery={quote.showDeliveryColumn}
                 issued={issued}

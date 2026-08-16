@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 
 type Hit = Awaited<ReturnType<typeof searchProductsForQuote>>[number];
 
-export function QuoteProductPicker({ quoteId }: { quoteId: string }) {
+export function QuoteProductPicker({ quoteId, groupId }: { quoteId: string; groupId?: string | null }) {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
   const [pending, start] = useTransition();
@@ -50,6 +50,7 @@ export function QuoteProductPicker({ quoteId }: { quoteId: string }) {
                   fd.set("quoteId", quoteId);
                   fd.set("productId", p.id);
                   fd.set("quantity", "1");
+                  if (groupId) fd.set("groupId", groupId);
                   await addProductToQuote(fd);
                   setHits([]);
                   setQ("");

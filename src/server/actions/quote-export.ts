@@ -104,8 +104,9 @@ export async function buildQuoteWorkbook(quoteId: string): Promise<{ bytes: Uint
     ["Cliente", loaded.quote.client?.companyName || ""],
     ["Referencia", loaded.quote.reference || ""],
     [],
-    ["Cant", "U", "Detalle", "Unitario USD", "Total USD", "IVA %", "Entrega"],
+    ["Ambiente", "Cant", "U", "Detalle", "Unitario USD", "Total USD", "IVA %", "Entrega"],
     ...loaded.quote.items.map((i) => [
+      loaded.quote.itemGroups.find((group) => group.id === i.groupId)?.title || "General",
       Number(i.quantity),
       i.unit,
       i.description,
@@ -135,9 +136,11 @@ export async function addServiceToQuote(formData: FormData): Promise<void> {
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote || loaded.quote.status === "ISSUED") return;
   const sort = loaded.quote.items.reduce((m, i) => Math.max(m, i.sortOrder), -1) + 1;
+  const groupId = String(formData.get("groupId") || "").trim() || null;
   await prisma.quoteItem.create({
     data: {
       quoteId,
+      groupId,
       alternativeId: loaded.quote.alternatives.find((a) => a.isDefault)?.id,
       kind: "SERVICE",
       serviceType: "servicio",
