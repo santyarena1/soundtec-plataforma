@@ -55,7 +55,11 @@ export default async function QuoteEditorPage({
   const { quote: raw, forbidden, permissions, user } = await loadQuoteForUser(id);
   if (forbidden) notFound();
   if (!raw) notFound();
-  await ensureQuoteSections(id);
+  try {
+    await ensureQuoteSections(id);
+  } catch (error) {
+    console.error("[QuoteEditor] no se pudieron sincronizar secciones", error);
+  }
   const { quote } = await loadQuoteForUser(id);
   if (!quote) notFound();
 

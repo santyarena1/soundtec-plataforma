@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { loadQuoteForUser } from "@/lib/quote-access";
-import { AI_SECTION_STUB, getCompanyIdentity, type ImagePlacement } from "@/lib/quote-defaults";
+import {
+  AI_SECTION_STUB,
+  DEFAULT_BRANDS_PLACEMENT,
+  DEFAULT_ISO_PLACEMENT,
+  getCompanyIdentity,
+  resolveImagePlacement,
+  type ImagePlacement,
+} from "@/lib/quote-defaults";
 import { isRichText, sanitizeQuoteHtml, splitParagraphs } from "@/lib/quote-richtext";
 import { formatUsd } from "@/lib/utils";
 
@@ -34,10 +41,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const { quote } = await loadQuoteForUser(id);
   if (!quote) return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
 
-  const identity = await getCompanyIdentity();
+  const rawIdentity = await getCompanyIdentity();
+  const identity = {
+    ...rawIdentity,
+    primary: rawIdentity.primary || "#1e3553",
+    brands: resolveImagePlacement(rawIdentity.brands, DEFAULT_BRANDS_PLACEMENT),
+    iso: resolveImagePlacement(rawIdentity.iso, DEFAULT_ISO_PLACEMENT),
+  };
   const origin = new URL(req.url).origin;
   const abs = (path: string) => (path.startsWith("http") ? path : `${origin}${path}`);
-  const color = identity.primary || "#1e3553";
+  const color = identity.primary;
 
   const visibleItems = quote.items.filter((item) => !item.excluded);
   const total = visibleItems
@@ -53,8 +66,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   });
 
   // Word no entiende anchos en %, hay que resolverlos contra el ancho útil.
-  const placedImage = (url: string, placement: ImagePlacement) =>
-    `<p style="margin:8pt 0;text-align:${placement.align}"><img src="${escapeHtml(abs(url))}" width="${Math.round((CONTENT_WIDTH * placement.width) / 100)}"/></p>`;
+  const placedImage = (url: string, placement?: ImagePlacement | null) => {
+    const safe = resolveImagePlacement(placement, DEFAULT_BRANDS_PLACEMENT);
+    return `<p style="margin:8pt 0;text-align:${safe.align}"><img src="${escapeHtml(abs(url))}" width="${Math.round((CONTENT_WIDTH * safe.width) / 100)}"/></p>`;
+  };
 
   // page-break-after:avoid evita que el título quede solo al pie de una hoja.
   const heading = (text: string) =>
@@ -65,7 +80,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((section) => {
       if (section.type === "products_table") return "";
-      const body = section.body.trim();
+      const body = (section.body ?? "").trim();
       const hasBody = body.length > 0 && body !== AI_SECTION_STUB;
 
       if (section.type === "letter_open" || section.type === "closing") {

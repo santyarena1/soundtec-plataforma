@@ -18,7 +18,11 @@ export function isRichText(body: string) {
 }
 
 export function sanitizeQuoteHtml(html: string) {
-  return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });
+  try {
+    return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });
+  } catch {
+    return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+  }
 }
 
 export function splitParagraphs(body: string) {

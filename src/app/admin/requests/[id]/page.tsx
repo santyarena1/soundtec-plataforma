@@ -31,28 +31,32 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
   const { permissions } = await getCurrentPermissions();
   const canCreateQuote = permissions.fullAccess || permissionsHave(permissions, "quotes.create");
 
-  const [request, existingQuotes] = await Promise.all([
-    prisma.customerRequest.findUnique({
-      where: { id },
-      include: {
-        user: true,
-        items: {
-          include: { product: { include: { brand: true } } },
-          orderBy: { createdAt: "asc" },
-        },
-        messages: {
-          include: { sender: { select: { name: true, role: true } } },
-          orderBy: { createdAt: "asc" },
-        },
+  const request = await prisma.customerRequest.findUnique({
+    where: { id },
+    include: {
+      user: true,
+      items: {
+        include: { product: { include: { brand: true } } },
+        orderBy: { createdAt: "asc" },
       },
-    }),
-    prisma.quote.findMany({
+      messages: {
+        include: { sender: { select: { name: true, role: true } } },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+  if (!request) notFound();
+
+  let existingQuotes: { id: string; number: string; status: string; createdAt: Date }[] = [];
+  try {
+    existingQuotes = await prisma.quote.findMany({
       where: { sourceRequestId: id },
       orderBy: { createdAt: "desc" },
       select: { id: true, number: true, status: true, createdAt: true },
-    }),
-  ]);
-  if (!request) notFound();
+    });
+  } catch (error) {
+    console.error("[AdminRequestDetail] no se pudieron listar cotizaciones de la solicitud", error);
+  }
 
   // Precios con el cliente comercial real, para que el admin vea lo mismo que ve el cliente.
   const commercialClientId = request.clientId ?? (await resolveCommercialClientId(request.userId));

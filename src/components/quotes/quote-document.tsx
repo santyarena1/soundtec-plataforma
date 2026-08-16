@@ -1,5 +1,12 @@
 import { formatUsd } from "@/lib/utils";
-import { AI_SECTION_STUB, getCompanyIdentity, type ImagePlacement } from "@/lib/quote-defaults";
+import {
+  AI_SECTION_STUB,
+  DEFAULT_BRANDS_PLACEMENT,
+  DEFAULT_ISO_PLACEMENT,
+  getCompanyIdentity,
+  resolveImagePlacement,
+  type ImagePlacement,
+} from "@/lib/quote-defaults";
 import { QuoteBody } from "@/components/quotes/quote-body";
 import type { Quote, QuoteItem, QuoteSection, QuoteAsset, Client, User, QuoteCommercialTerms } from "@prisma/client";
 
@@ -15,7 +22,7 @@ type DocQuote = Quote & {
 type Identity = Awaited<ReturnType<typeof getCompanyIdentity>>;
 
 function hasBody(section: QuoteSection) {
-  const body = section.body.trim();
+  const body = (section.body ?? "").trim();
   return body.length > 0 && body !== AI_SECTION_STUB;
 }
 
@@ -27,17 +34,22 @@ function longDate(value: Date | null) {
 const Paragraphs = QuoteBody;
 
 /** Imagen que fluye con el texto: se controla ancho y alineación, nunca posición libre. */
-function PlacedImage({ src, alt, placement }: { src: string; alt: string; placement: ImagePlacement }) {
-  const margin =
-    placement.align === "center" ? "0 auto" : placement.align === "right" ? "0 0 0 auto" : "0 auto 0 0";
+function PlacedImage({
+  src,
+  alt,
+  placement,
+  fallback = DEFAULT_BRANDS_PLACEMENT,
+}: {
+  src: string;
+  alt: string;
+  placement?: ImagePlacement | null;
+  fallback?: ImagePlacement;
+}) {
+  const safe = resolveImagePlacement(placement, fallback);
+  const margin = safe.align === "center" ? "0 auto" : safe.align === "right" ? "0 0 0 auto" : "0 auto 0 0";
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={alt}
-      className="mt-[3mm] block"
-      style={{ width: `${placement.width}%`, margin }}
-    />
+    <img src={src} alt={alt} className="mt-[3mm] block" style={{ width: `${safe.width}%`, margin }} />
   );
 }
 
@@ -203,7 +215,7 @@ function SectionBlock({
   identity: Identity;
   photos: Map<string, QuoteAsset>;
 }) {
-  const color = identity.primary;
+  const color = identity.primary || "#1e3553";
   const spacing = "mt-[7mm]";
 
   if (section.type === "letter_open") {
@@ -234,6 +246,7 @@ function SectionBlock({
           src={identity.brandsUrl}
           alt="Marcas representadas por SOUNDTEC"
           placement={identity.brands}
+          fallback={DEFAULT_BRANDS_PLACEMENT}
         />
       </div>
     );
@@ -244,7 +257,12 @@ function SectionBlock({
       <div className={`quote-doc__block ${spacing}`}>
         <SectionTitle color={color}>{section.title}</SectionTitle>
         {hasBody(section) ? <Paragraphs body={section.body} /> : null}
-        <PlacedImage src={identity.isoUrl} alt="ISO 9001 · IRAM · IQNet" placement={identity.iso} />
+        <PlacedImage
+          src={identity.isoUrl}
+          alt="ISO 9001 · IRAM · IQNet"
+          placement={identity.iso}
+          fallback={DEFAULT_ISO_PLACEMENT}
+        />
       </div>
     );
   }
@@ -301,7 +319,7 @@ function DocumentBody({
   plans: QuoteAsset[];
   gallery: QuoteAsset[];
 }) {
-  const color = identity.primary;
+  const color = identity.primary || "#1e3553";
   const sections = [...quote.sections]
     .filter((section) => section.included !== false)
     .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -386,7 +404,13 @@ function DocumentBody({
 }
 
 export async function QuoteDocument({ quote }: { quote: DocQuote }) {
-  const identity = await getCompanyIdentity();
+  const rawIdentity = await getCompanyIdentity();
+  const identity = {
+    ...rawIdentity,
+    primary: rawIdentity.primary || "#1e3553",
+    brands: resolveImagePlacement(rawIdentity.brands, DEFAULT_BRANDS_PLACEMENT),
+    iso: resolveImagePlacement(rawIdentity.iso, DEFAULT_ISO_PLACEMENT),
+  };
 
   const photos = new Map(
     quote.assets

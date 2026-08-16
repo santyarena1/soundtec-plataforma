@@ -93,7 +93,7 @@ async function createQuoteShell(input: QuoteShellInput) {
       projectType: input.projectType || null,
       brief: input.brief || null,
       advancedIntake: input.advancedIntake ?? undefined,
-      sourceRequestId: input.sourceRequestId || null,
+      ...(input.sourceRequestId ? { sourceRequestId: input.sourceRequestId } : {}),
       alternatives: {
         create: { key: "default", name: "Solución", isDefault: true, sortOrder: 0 },
       },
@@ -300,6 +300,27 @@ function buildRequestBrief(input: {
  * productos (con reemplazos resueltos), plantilla fija y brief para que la IA
  * complete textos / accesorios sin pisar lo que ya acordamos.
  */
+function isMissingColumnError(error: unknown, column: string) {
+  const message = error instanceof Error ? error.message : String(error);
+  const code =
+    typeof error === "object" && error && "code" in error ? String((error as { code: unknown }).code) : "";
+  return (
+    code === "P2022" ||
+    (message.includes(column) && /does not exist|Unknown argument|Unknown field|column/i.test(message))
+  );
+}
+
+function createQuoteErrorMessage(error: unknown) {
+  if (isMissingColumnError(error, "sourceRequestId")) {
+    return "Falta la columna sourceRequestId en la base. Corré `npx prisma db push` y reintentá.";
+  }
+  if (error instanceof Error && error.message.trim()) {
+    const compact = error.message.replace(/\s+/g, " ").slice(0, 220);
+    return `No se pudo crear la cotización: ${compact}`;
+  }
+  return "No se pudo crear la cotización.";
+}
+
 export async function createQuoteFromRequest(input: {
   requestId: string;
   fillAiTexts?: boolean;
@@ -309,136 +330,154 @@ export async function createQuoteFromRequest(input: {
     return { ok: false, error: "No tenés permiso para crear cotizaciones." };
   }
 
-  const request = await prisma.customerRequest.findUnique({
-    where: { id: input.requestId },
-    include: {
-      user: { select: { name: true, companyName: true, email: true, clientId: true } },
-      items: {
-        include: { product: { include: { brand: true } } },
-        orderBy: { createdAt: "asc" },
-      },
-      messages: {
-        include: { sender: { select: { name: true, role: true } } },
-        orderBy: { createdAt: "asc" },
-      },
-    },
-  });
-  if (!request) return { ok: false, error: "La solicitud ya no existe." };
-
-  const clientId = request.clientId || request.user.clientId || null;
-  const clientName = request.user.companyName || request.user.name || request.user.email || "Cliente";
-  const shortId = request.id.slice(-6).toUpperCase();
-  const typeLabel =
-    request.type === "ORDER" ? "Pedido" : request.type === "CONSULTATION" ? "Consulta" : "Cotización";
-
-  const nameByProductId = new Map(request.items.map((i) => [i.product.id, i.product.normalizedName]));
-  const replacedProductIds = new Set(
-    request.items.filter((i) => i.isAdminSuggestion && i.adminAlternativeProductId).map((i) => i.adminAlternativeProductId as string)
-  );
-
-  const briefItems = request.items.map((i) => ({
-    quantity: i.quantity,
-    name: i.product.normalizedName,
-    isAdminSuggestion: i.isAdminSuggestion,
-    replacesName: i.adminAlternativeProductId ? nameByProductId.get(i.adminAlternativeProductId) ?? null : null,
-    notes: i.adminNotes || i.userNotes,
-  }));
-
-  const brief = buildRequestBrief({
-    shortId,
-    typeLabel,
-    clientName,
-    projectDescription: request.projectDescription,
-    adminResponse: request.adminResponse,
-    items: briefItems,
-    messages: request.messages.map((m) => ({
-      fromClient: m.sender.role === "CLIENT",
-      senderName: m.sender.name || "Sin nombre",
-      message: m.message,
-    })),
-  });
-
-  const quote = await createQuoteShell({
-    ownerId: user.id,
-    clientId,
-    reference: request.projectDescription?.trim().slice(0, 80) || `Solicitud #${shortId}`,
-    contactName: request.user.name || null,
-    brief,
-    projectType: REQUEST_TYPE_PROJECT[request.type] || null,
-    sourceRequestId: request.id,
-    notes: `Generada desde la solicitud #${shortId}.`,
-    advancedIntake: { source: "customer_request", requestId: request.id },
-    revisionSummary: `Alta desde solicitud #${shortId}`,
-  });
-
-  const altId = quote.alternatives.find((a) => a.isDefault)?.id ?? quote.alternatives[0]?.id;
-  const defaultIva = Number(await getSetting(QUOTE_SETTING_KEYS.defaultIva, "21")) || 21;
-  const global = await getGlobalMarginPercent();
-  const prices = await calculatePricesForProducts(
-    request.items.map((i) => ({
-      productId: i.product.id,
-      baseCostUsd: Number(i.product.baseCostUsd),
-      brandId: i.product.brandId,
-      distributorId: i.product.distributorId,
-      categoryId: i.product.categoryId,
-      familyId: i.product.familyId,
-      productDiscountPercent: i.product.discountPercent != null ? Number(i.product.discountPercent) : null,
-      tariffDutyPercent: i.product.tariffDutyPercent != null ? Number(i.product.tariffDutyPercent) : null,
-    })),
-    clientId,
-    global
-  );
-
-  let sort = 0;
-  for (const item of request.items) {
-    const replaced = !item.isAdminSuggestion && replacedProductIds.has(item.product.id);
-    const unit = prices.get(item.product.id)?.finalPriceUsd ?? Number(item.product.salePriceUsd ?? 0);
-    const qty = item.quantity;
-    const desc = [item.product.brand?.name, item.product.normalizedName].filter(Boolean).join(" — ");
-    const replacesName = item.adminAlternativeProductId
-      ? nameByProductId.get(item.adminAlternativeProductId) ?? null
-      : null;
-    const notes = [
-      item.isAdminSuggestion ? "Sugerencia del equipo" : null,
-      replacesName ? `En reemplazo de ${replacesName}` : null,
-      replaced ? "El cliente lo pidió; el equipo propuso una alternativa." : null,
-      item.adminNotes || item.userNotes,
-    ]
-      .filter(Boolean)
-      .join(" ");
-
-    await prisma.quoteItem.create({
-      data: {
-        quoteId: quote.id,
-        alternativeId: altId,
-        kind: "PRODUCT",
-        productId: item.product.id,
-        quantity: new Prisma.Decimal(qty),
-        unit: "u",
-        description: desc,
-        unitPriceUsd: new Prisma.Decimal(unit),
-        lineTotalUsd: new Prisma.Decimal(unit * qty),
-        ivaRate: new Prisma.Decimal(item.product.ivaPercent != null ? Number(item.product.ivaPercent) : defaultIva),
-        optional: replaced,
-        notes: notes || null,
-        source: QuoteNodeSource.BRIEF,
-        locked: !replaced,
-        sortOrder: sort,
+  try {
+    const request = await prisma.customerRequest.findUnique({
+      where: { id: input.requestId },
+      include: {
+        user: { select: { name: true, companyName: true, email: true, clientId: true } },
+        items: {
+          include: { product: { include: { brand: true } } },
+          orderBy: { createdAt: "asc" },
+        },
+        messages: {
+          include: { sender: { select: { name: true, role: true } } },
+          orderBy: { createdAt: "asc" },
+        },
       },
     });
-    await ensureQuoteCatalogImage({ quoteId: quote.id, productId: item.product.id, caption: desc });
-    sort += 1;
-  }
+    if (!request) return { ok: false, error: "La solicitud ya no existe." };
 
-  revalidatePath("/admin/quotes");
-  revalidatePath(`/admin/quotes/${quote.id}`);
-  revalidatePath(`/admin/requests/${request.id}`);
-  return {
-    ok: true,
-    quoteId: quote.id,
-    quoteNumber: quote.number,
-    fillAiTexts: Boolean(input.fillAiTexts),
-  };
+    const clientId = request.clientId || request.user.clientId || null;
+    const clientName = request.user.companyName || request.user.name || request.user.email || "Cliente";
+    const shortId = request.id.slice(-6).toUpperCase();
+    const typeLabel =
+      request.type === "ORDER" ? "Pedido" : request.type === "CONSULTATION" ? "Consulta" : "Cotización";
+
+    const nameByProductId = new Map(request.items.map((i) => [i.product.id, i.product.normalizedName]));
+    const replacedProductIds = new Set(
+      request.items
+        .filter((i) => i.isAdminSuggestion && i.adminAlternativeProductId)
+        .map((i) => i.adminAlternativeProductId as string)
+    );
+
+    const briefItems = request.items.map((i) => ({
+      quantity: i.quantity,
+      name: i.product.normalizedName,
+      isAdminSuggestion: i.isAdminSuggestion,
+      replacesName: i.adminAlternativeProductId ? nameByProductId.get(i.adminAlternativeProductId) ?? null : null,
+      notes: i.adminNotes || i.userNotes,
+    }));
+
+    const brief = buildRequestBrief({
+      shortId,
+      typeLabel,
+      clientName,
+      projectDescription: request.projectDescription,
+      adminResponse: request.adminResponse,
+      items: briefItems,
+      messages: request.messages.map((m) => ({
+        fromClient: m.sender.role === "CLIENT",
+        senderName: m.sender.name || "Sin nombre",
+        message: m.message,
+      })),
+    });
+
+    const shellInput = {
+      ownerId: user.id,
+      clientId,
+      reference: request.projectDescription?.trim().slice(0, 80) || `Solicitud #${shortId}`,
+      contactName: request.user.name || null,
+      brief,
+      projectType: REQUEST_TYPE_PROJECT[request.type] || null,
+      notes: `Generada desde la solicitud #${shortId}.`,
+      advancedIntake: { source: "customer_request", requestId: request.id },
+      revisionSummary: `Alta desde solicitud #${shortId}`,
+    };
+
+    let quote;
+    try {
+      quote = await createQuoteShell({ ...shellInput, sourceRequestId: request.id });
+    } catch (error) {
+      if (!isMissingColumnError(error, "sourceRequestId")) throw error;
+      quote = await createQuoteShell(shellInput);
+    }
+
+    const altId = quote.alternatives.find((a) => a.isDefault)?.id ?? quote.alternatives[0]?.id;
+    const defaultIva = Number(await getSetting(QUOTE_SETTING_KEYS.defaultIva, "21")) || 21;
+    const global = await getGlobalMarginPercent();
+    const prices = await calculatePricesForProducts(
+      request.items.map((i) => ({
+        productId: i.product.id,
+        baseCostUsd: Number(i.product.baseCostUsd),
+        brandId: i.product.brandId,
+        distributorId: i.product.distributorId,
+        categoryId: i.product.categoryId,
+        familyId: i.product.familyId,
+        productDiscountPercent: i.product.discountPercent != null ? Number(i.product.discountPercent) : null,
+        tariffDutyPercent: i.product.tariffDutyPercent != null ? Number(i.product.tariffDutyPercent) : null,
+      })),
+      clientId,
+      global
+    );
+
+    let sort = 0;
+    for (const item of request.items) {
+      const replaced = !item.isAdminSuggestion && replacedProductIds.has(item.product.id);
+      const unit = prices.get(item.product.id)?.finalPriceUsd ?? Number(item.product.salePriceUsd ?? 0);
+      const qty = item.quantity;
+      const desc = [item.product.brand?.name, item.product.normalizedName].filter(Boolean).join(" — ");
+      const replacesName = item.adminAlternativeProductId
+        ? nameByProductId.get(item.adminAlternativeProductId) ?? null
+        : null;
+      const notes = [
+        item.isAdminSuggestion ? "Sugerencia del equipo" : null,
+        replacesName ? `En reemplazo de ${replacesName}` : null,
+        replaced ? "El cliente lo pidió; el equipo propuso una alternativa." : null,
+        item.adminNotes || item.userNotes,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      try {
+        await prisma.quoteItem.create({
+          data: {
+            quoteId: quote.id,
+            alternativeId: altId,
+            kind: "PRODUCT",
+            productId: item.product.id,
+            quantity: new Prisma.Decimal(qty),
+            unit: "u",
+            description: desc,
+            unitPriceUsd: new Prisma.Decimal(Number.isFinite(unit) ? unit : 0),
+            lineTotalUsd: new Prisma.Decimal(Number.isFinite(unit) ? unit * qty : 0),
+            ivaRate: new Prisma.Decimal(item.product.ivaPercent != null ? Number(item.product.ivaPercent) : defaultIva),
+            optional: replaced,
+            notes: notes || null,
+            source: QuoteNodeSource.BRIEF,
+            locked: !replaced,
+            sortOrder: sort,
+          },
+        });
+        await ensureQuoteCatalogImage({ quoteId: quote.id, productId: item.product.id, caption: desc });
+      } catch (error) {
+        console.error("[createQuoteFromRequest] ítem no copiado", item.product.id, error);
+      }
+      sort += 1;
+    }
+
+    revalidatePath("/admin/quotes");
+    revalidatePath(`/admin/quotes/${quote.id}`);
+    revalidatePath(`/admin/requests/${request.id}`);
+    return {
+      ok: true,
+      quoteId: quote.id,
+      quoteNumber: quote.number,
+      fillAiTexts: Boolean(input.fillAiTexts),
+    };
+  } catch (error) {
+    console.error("[createQuoteFromRequest]", error);
+    return { ok: false, error: createQuoteErrorMessage(error) };
+  }
 }
 
 export async function searchProductsForQuote(query: string) {
@@ -625,6 +664,7 @@ export async function updateQuoteSection(formData: FormData): Promise<void> {
 export async function saveQuoteSectionBody(input: {
   sectionId: string;
   body: string;
+  title?: string;
 }): Promise<{ ok: boolean; error?: string }> {
   await requireQuotePermission("quotes.edit");
   const section = await prisma.quoteSection.findUnique({ where: { id: input.sectionId } });
@@ -632,9 +672,15 @@ export async function saveQuoteSectionBody(input: {
   const loaded = await loadQuoteForUser(section.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso a esta cotización." };
   if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
+  const title = (input.title || "").trim();
   await prisma.quoteSection.update({
     where: { id: section.id },
-    data: { body: sanitizeQuoteHtml(input.body), source: QuoteNodeSource.MANUAL, stale: false },
+    data: {
+      body: sanitizeQuoteHtml(input.body),
+      ...(title ? { title } : {}),
+      source: QuoteNodeSource.MANUAL,
+      stale: false,
+    },
   });
   revalidatePath(`/admin/quotes/${section.quoteId}`);
   return { ok: true };

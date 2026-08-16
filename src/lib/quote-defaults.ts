@@ -290,12 +290,23 @@ export const PROFILES = [
 
 export type ImagePlacement = { width: number; align: "left" | "center" | "right" };
 
+export const DEFAULT_BRANDS_PLACEMENT: ImagePlacement = { width: 100, align: "center" };
+export const DEFAULT_ISO_PLACEMENT: ImagePlacement = { width: 30, align: "center" };
+
 /** El ancho va en % del ancho útil de la hoja, así la imagen sigue fluyendo con el texto. */
 function parsePlacement(width: string, align: string, fallbackWidth: number): ImagePlacement {
   const parsed = Number(width);
   const safeWidth = Number.isFinite(parsed) && parsed >= 10 && parsed <= 100 ? parsed : fallbackWidth;
   const safeAlign = align === "left" || align === "right" ? align : "center";
   return { width: safeWidth, align: safeAlign };
+}
+
+export function resolveImagePlacement(
+  placement: ImagePlacement | null | undefined,
+  fallback: ImagePlacement
+): ImagePlacement {
+  if (!placement || typeof placement.width !== "number") return fallback;
+  return parsePlacement(String(placement.width), placement.align || fallback.align, fallback.width);
 }
 
 export async function getCompanyIdentity() {
@@ -343,9 +354,9 @@ export async function getCompanyIdentity() {
     headerUrl: headerUrl || QUOTE_CORPORATE_ASSETS.header,
     brandsUrl: brandsUrl || QUOTE_CORPORATE_ASSETS.brands,
     isoUrl: isoUrl || QUOTE_CORPORATE_ASSETS.iso,
-    primary,
-    brands: parsePlacement(brandsWidth, brandsAlign, 100),
-    iso: parsePlacement(isoWidth, isoAlign, 30),
+    primary: primary || "#1e3553",
+    brands: parsePlacement(brandsWidth, brandsAlign, DEFAULT_BRANDS_PLACEMENT.width),
+    iso: parsePlacement(isoWidth, isoAlign, DEFAULT_ISO_PLACEMENT.width),
   };
 }
 
