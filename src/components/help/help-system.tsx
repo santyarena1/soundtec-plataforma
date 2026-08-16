@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -12,16 +12,21 @@ import {
   ChevronRight,
   CircleHelp,
   Compass,
+  Loader2,
+  Send,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/dialog";
 import { createTicketQuick } from "@/server/actions/tickets";
-import { getTour, resolveTourId, type TourDef } from "@/lib/help/tours";
+import { askHelpChat } from "@/server/actions/help-chat";
+import { moduleForPath } from "@/lib/help/modules";
+import { resolveTour, type TourDef } from "@/lib/help/tours";
 
 type ReportContext = {
   title: string;
+  description?: string;
   tourId?: string;
   tourStep?: string;
   tourTarget?: string;
@@ -256,7 +261,7 @@ function ReportModal({
   useEffect(() => {
     if (!open) return;
     setTitle(context?.title || "");
-    setDescription("");
+    setDescription(context?.description || "");
   }, [open, context]);
 
   return (
@@ -337,33 +342,42 @@ function ReportModal({
   );
 }
 
+type ChatMsg = { role: "user" | "assistant"; content: string };
+
+function welcomeFor(pathname: string): ChatMsg {
+  const mod = moduleForPath(pathname);
+  return {
+    role: "assistant",
+    content: `Estás en ${mod.title}. ${mod.simple}\n\nPreguntame cualquier campo, pedime recorrer la pantalla o decime si algo no anda y armo el ticket al dev.`,
+  };
+}
+
 export function HelpDock() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const paso = searchParams.get("paso");
   const autoTour = searchParams.get("tour") === "1";
-  const tourId = useMemo(() => resolveTourId(pathname, paso), [pathname, paso]);
-  const tour = useMemo(() => getTour(tourId), [tourId]);
+  const tour = useMemo(() => resolveTour(pathname, paso), [pathname, paso]);
+  const screen = useMemo(() => moduleForPath(pathname), [pathname]);
 
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [tourIndex, setTourIndex] = useState<number | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportCtx, setReportCtx] = useState<ReportContext | null>(null);
+  const [messages, setMessages] = useState<ChatMsg[]>(() => [welcomeFor("/admin")]);
+  const [draft, setDraft] = useState("");
+  const [pending, start] = useTransition();
+  const [suggestTicket, setSuggestTicket] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const startTour = useCallback(() => {
-    if (!tour) {
-      toast.message("No hay recorrido para esta pantalla", {
-        description: "Abrí el tutorial o reportá el error si algo no anda.",
-      });
-      return;
-    }
-    setMenuOpen(false);
+    if (!tour) return;
+    setOpen(false);
     setTourIndex(0);
   }, [tour]);
 
   useEffect(() => {
     setTourIndex(null);
-    setMenuOpen(false);
   }, [pathname, paso]);
 
   useEffect(() => {
@@ -371,85 +385,165 @@ export function HelpDock() {
     setTourIndex(0);
   }, [autoTour, tour, pathname, paso]);
 
+  useEffect(() => {
+    setMessages((prev) => (prev.length <= 1 ? [welcomeFor(pathname)] : prev));
+  }, [pathname]);
+
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, open]);
+
   function openReport(ctx?: ReportContext) {
-    setReportCtx(ctx || { title: "", tourId: tour?.id });
-    setMenuOpen(false);
+    const lastUser = [...messages].reverse().find((msg) => msg.role === "user");
+    const lastAssistant = [...messages].reverse().find((msg) => msg.role === "assistant");
+    setReportCtx({
+      title: ctx?.title || (lastUser ? lastUser.content.slice(0, 80) : ""),
+      description:
+        ctx?.description ||
+        [lastUser ? `El usuario dijo: ${lastUser.content}` : "", lastAssistant ? `El asistente: ${lastAssistant.content}` : ""]
+          .filter(Boolean)
+          .join("\n\n"),
+      tourId: ctx?.tourId || tour?.id,
+      tourStep: ctx?.tourStep,
+      tourTarget: ctx?.tourTarget,
+    });
+    setOpen(false);
     setReportOpen(true);
+  }
+
+  function send(text: string) {
+    const message = text.trim();
+    if (!message || pending) return;
+    const next = [...messages, { role: "user" as const, content: message }];
+    setMessages(next);
+    setDraft("");
+    start(async () => {
+      const result = await askHelpChat({
+        message,
+        pathname,
+        history: next.slice(-10).map((msg) => ({ role: msg.role, content: msg.content })),
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        setMessages((prev) => [...prev, { role: "assistant", content: result.error }]);
+        return;
+      }
+      setSuggestTicket(result.suggestTicket);
+      setMessages((prev) => [...prev, { role: "assistant", content: result.answer }]);
+    });
   }
 
   return (
     <>
       <div className="fixed bottom-4 right-4 z-[70] print:hidden">
-        {menuOpen ? (
-          <div className="mb-2 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b border-border px-3 py-2">
-              <p className="text-sm font-semibold">Ayuda</p>
+        {open ? (
+          <div className="mb-2 flex h-[min(560px,calc(100dvh-6rem))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+            <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
+              <div>
+                <p className="text-sm font-semibold">Asistente de ayuda</p>
+                <p className="text-[11px] text-muted-foreground">{screen.title}</p>
+              </div>
               <button
                 type="button"
-                onClick={() => setMenuOpen(false)}
+                onClick={() => setOpen(false)}
                 className="rounded-md p-1 text-muted-foreground hover:bg-secondary"
-                aria-label="Cerrar menú de ayuda"
+                aria-label="Cerrar ayuda"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex flex-col p-1.5">
-              <Link
-                href="/admin/ayuda?v=simple"
-                className="flex items-start gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-secondary"
-                onClick={() => setMenuOpen(false)}
+
+            <div className="flex flex-wrap gap-1 border-b border-border px-2 py-1.5">
+              <button
+                type="button"
+                className="rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                onClick={() => send("¿Qué hace esta pantalla y qué se puede editar?")}
               >
-                <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span>
-                  <span className="font-medium">Tutorial simple</span>
-                  <span className="block text-xs text-muted-foreground">El flujo en una página.</span>
-                </span>
-              </Link>
+                Esta pantalla
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                onClick={startTour}
+              >
+                <Compass className="h-3 w-3" />
+                Recorrer
+              </button>
               <Link
                 href="/admin/ayuda?v=detallado"
-                className="flex items-start gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-secondary"
-                onClick={() => setMenuOpen(false)}
+                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                onClick={() => setOpen(false)}
               >
-                <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span>
-                  <span className="font-medium">Tutorial detallado</span>
-                  <span className="block text-xs text-muted-foreground">Cada campo, qué se edita y qué no.</span>
-                </span>
+                <BookOpen className="h-3 w-3" />
+                Tutorial
               </Link>
               <button
                 type="button"
-                className="flex items-start gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-secondary disabled:opacity-50"
-                onClick={startTour}
-                disabled={!tour}
-              >
-                <Compass className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span>
-                  <span className="font-medium">Recorrer esta pantalla</span>
-                  <span className="block text-xs text-muted-foreground">
-                    {tour ? `Oscurece y señala: ${tour.title}.` : "Esta pantalla todavía no tiene recorrido."}
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="flex items-start gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-secondary"
+                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
                 onClick={() => openReport()}
               >
-                <Bug className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span>
-                  <span className="font-medium">Reportar al dev</span>
-                  <span className="block text-xs text-muted-foreground">Ticket rápido con la URL de ahora.</span>
-                </span>
+                <Bug className="h-3 w-3" />
+                Ticket al dev
               </button>
             </div>
+
+            <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
+              {messages.map((msg, index) => (
+                <div
+                  key={`${msg.role}-${index}`}
+                  className={`max-w-[92%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
+                    msg.role === "user" ? "ml-auto bg-primary text-primary-foreground" : "bg-secondary text-foreground"
+                  }`}
+                >
+                  {msg.content}
+                </div>
+              ))}
+              {pending ? (
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Leyendo la documentación…
+                </p>
+              ) : null}
+              {suggestTicket ? (
+                <Button type="button" size="sm" variant="outline" onClick={() => openReport({ title: "Error en pantalla" })}>
+                  <Bug className="h-3.5 w-3.5" />
+                  Crear ticket con esta conversación
+                </Button>
+              ) : null}
+            </div>
+
+            <form
+              className="flex items-end gap-2 border-t border-border p-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                send(draft);
+              }}
+            >
+              <Textarea
+                rows={2}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Preguntá por un campo, un flujo o un error…"
+                className="min-h-[44px] resize-none text-sm"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    send(draft);
+                  }
+                }}
+              />
+              <Button type="submit" size="icon" disabled={pending || draft.trim().length < 2} aria-label="Enviar">
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
           </div>
         ) : null}
         <Button
           type="button"
           size="md"
           className="shadow-lg"
-          onClick={() => setMenuOpen((open) => !open)}
-          aria-expanded={menuOpen}
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
           aria-label="Abrir ayuda"
         >
           <CircleHelp className="h-4 w-4" />
@@ -470,7 +564,18 @@ export function HelpDock() {
         />
       ) : null}
 
-      <ReportModal open={reportOpen} context={reportCtx} onClose={() => setReportOpen(false)} />
+      <ReportModal
+        open={reportOpen}
+        context={
+          reportCtx
+            ? {
+                ...reportCtx,
+                title: reportCtx.title,
+              }
+            : null
+        }
+        onClose={() => setReportOpen(false)}
+      />
     </>
   );
 }

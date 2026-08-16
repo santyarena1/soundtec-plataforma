@@ -15,7 +15,7 @@ export default async function AdminSettingsHubPage() {
   })).filter((g) => g.items.length > 0);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-tour="settings-hub">
       {groups.map((group) => (
         <section key={group.title} className="space-y-3">
           <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">

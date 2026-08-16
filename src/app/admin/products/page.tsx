@@ -206,7 +206,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       />
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-lg border border-border bg-card p-1 w-fit">
+      <div className="flex w-fit gap-1 rounded-lg border border-border bg-card p-1" data-tour="products-tabs">
         <Link
           href="/admin/products"
           className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${tab === "catalog" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}

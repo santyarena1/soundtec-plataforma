@@ -12,7 +12,7 @@ export function SettingsSectionHeader({ href, actions }: Props) {
   if (!section) return null;
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div data-tour="page-header" className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
           <section.icon className="h-4 w-4" />
@@ -22,7 +22,11 @@ export function SettingsSectionHeader({ href, actions }: Props) {
           <p className="muted-text mt-0.5 max-w-xl">{section.description}</p>
         </div>
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? (
+        <div data-tour="page-actions" className="flex shrink-0 flex-wrap items-center gap-2">
+          {actions}
+        </div>
+      ) : null}
     </div>
   );
 }

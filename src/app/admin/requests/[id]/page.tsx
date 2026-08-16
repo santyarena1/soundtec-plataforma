@@ -207,7 +207,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
             </CardContent>
           </Card>
 
-          <Card className="border-primary/30">
+          <Card className="border-primary/30" data-tour="request-reply">
             <CardContent className="p-6 pt-6">
               <CardTitle>Responder al cliente</CardTitle>
               <p className="mb-4 mt-1 text-xs text-muted-foreground">
@@ -280,6 +280,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
             </CardContent>
           </Card>
 
+          <div data-tour="request-quote">
           <CreateQuoteCard
             requestId={request.id}
             canCreate={canCreateQuote}
@@ -292,6 +293,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
               attached: attachedQuoteIds.has(q.id),
             }))}
           />
+          </div>
 
           <Card>
             <CardContent className="p-5 pt-5">

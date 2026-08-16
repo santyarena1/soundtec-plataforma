@@ -79,6 +79,37 @@ export const TUTORIAL_SIMPLE: TutorialArticle[] = [
     ],
   },
   {
+    id: "modulos",
+    title: "Todos los módulos",
+    summary: "Qué hay en el menú, en una línea.",
+    blocks: [
+      {
+        title: "Operación",
+        body: [
+          "Dashboard: números del día.",
+          "Solicitudes: el cliente pide; vos respondés y podés adjuntar PDF de COT.",
+          "Cotizaciones: el editor interno. El cliente no entra.",
+          "Feedback de IA: errores reportados sobre textos generados.",
+        ],
+      },
+      {
+        title: "Catálogo y precios",
+        body: [
+          "Productos, marcas, etiquetas, proveedores, categorías, familias.",
+          "Importaciones, Crestron, Sonance, listas compartibles, mapeos, scrapers, NCM.",
+          "Márgenes, descuentos, visibilidad por cliente. El PVP no se tipea: se calcula.",
+        ],
+      },
+      {
+        title: "Cuentas y sistema",
+        body: [
+          "Clientes = empresas. Usuarios = logins. Roles en Configuración.",
+          "Landing pública, settings, tickets al dev, esta Ayuda.",
+        ],
+      },
+    ],
+  },
+  {
     id: "tour-y-ticket",
     title: "Recorrido en pantalla y ticket al dev",
     summary: "La pantalla se oscurece y señala cada botón.",
@@ -359,6 +390,51 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
     ],
   },
   {
+    id: "modulos-admin",
+    title: "Mapa de todos los módulos",
+    summary: "Documentación operativa de cada pantalla del admin.",
+    blocks: [
+      {
+        title: "Operación",
+        body: [
+          "Dashboard: atajos. No se edita.",
+          "Solicitudes: bandeja del portal. Adentro: responder, crear COT, adjuntar PDF (el cliente solo descarga PDF).",
+          "Cotizaciones: 7 pasos + documento. Clasificadores internos, IA, ambientes, módulos extra.",
+          "Memoria histórica: Excel 5.0 sin precios. Sugiere qué se cotizó junto.",
+          "Feedback IA: veredictos de usuarios sobre contenido generado.",
+        ],
+      },
+      {
+        title: "Catálogo",
+        body: [
+          "Productos: ficha = fuente de verdad. Descripción corta se reusa en COT. Regenerar la guarda en el producto.",
+          "Marcas / categorías / familias / proveedores / etiquetas: taxonomía. Márgenes pueden colgar de ellas.",
+          "Importaciones: Excel → mapeo → revisión → aplicar. Mapeos se reutilizan.",
+          "Crestron / Sonance: flujos de marca. Listas compartibles: link público con precios de un cliente.",
+          "NCM: arancel que entra al precio de nacionalización.",
+        ],
+      },
+      {
+        title: "Precios y cuentas",
+        body: [
+          "Márgenes: sobre costo. Gana la regla más específica. No es descuento.",
+          "Descuentos: bajan lo que ve el cliente. Visibilidad: qué ve en el portal.",
+          "Clientes = empresa comercial (hace falta para emitir COT). Usuarios = quién entra.",
+          "Roles: scopes. hidePrices oculta costos. SUPER_ADMIN siempre full access.",
+        ],
+      },
+      {
+        title: "Configuración",
+        body: [
+          "General y branding de la app (logo del menú ≠ logo del PDF de COT).",
+          "Precios: margen global, FX, coeficiente NCM.",
+          "Cotizaciones: numeración, plantilla visual, clasificadores, borradores.",
+          "IA y claves: sin openai.api_key no hay propuesta, descripciones ni este chatbot con modelo.",
+        ],
+      },
+    ],
+  },
+  {
     id: "recorrido",
     title: "Recorrido interactivo",
     summary: "La pantalla se oscurece y señala el control.",
@@ -382,8 +458,8 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
       {
         title: "Pantallas con recorrido",
         body: [
-          "Lista de COT, nueva COT, cada paso del editor (datos, brief, plantilla, planilla, textos, imágenes, emitir).",
-          "Configuración de cotizaciones, clasificadores, borradores de módulos, y esta página de Ayuda.",
+          "Todas las del admin: el título se señala siempre. Cotizaciones, solicitudes, productos y settings tienen pasos extra.",
+          "Si un botón no está (permiso o COT emitida), el globo lo dice. El chatbot explica el módulo aunque no haya globo.",
         ],
       },
     ],

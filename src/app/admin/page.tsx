@@ -59,7 +59,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-6">
       <PageHeader title={`Hola, ${(user.name || "Admin").split(" ")[0]}`} description="Vista general del sistema." />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-tour="dash-stats">
         {stats.map((s) => (
           <Link key={s.label} href={s.href}>
             <Card className="h-full transition-shadow hover:shadow-elevated">

@@ -171,7 +171,11 @@ export default async function AdminRequestsPage({
         })}
       </div>
 
-      <form method="get" className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">
+      <form
+        method="get"
+        data-tour="requests-filters"
+        className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6"
+      >
         {status ? <input type="hidden" name="status" value={status} /> : null}
         <div className="lg:col-span-2">
           <Label htmlFor="q">Buscar</Label>

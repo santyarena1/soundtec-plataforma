@@ -1,3 +1,5 @@
+import { moduleForPath } from "./modules";
+
 export type TourStep = {
   target: string;
   title: string;
@@ -248,16 +250,148 @@ export const TOURS: TourDef[] = [
       },
     ],
   },
+  {
+    id: "dashboard",
+    title: "Dashboard",
+    steps: [
+      {
+        target: "page-header",
+        title: "Inicio",
+        body: "Resumen del día. No se edita nada acá: cada número abre esa pantalla.",
+      },
+      {
+        target: "dash-stats",
+        title: "Indicadores",
+        body: "Productos, solicitudes a responder, importaciones, feedback de IA y tickets abiertos.",
+      },
+    ],
+  },
+  {
+    id: "requests",
+    title: "Solicitudes",
+    steps: [
+      {
+        target: "page-header",
+        title: "Bandeja",
+        body: "Todo lo que el cliente mandó desde el portal. Abrí una para responder o adjuntar PDF.",
+      },
+      {
+        target: "requests-filters",
+        title: "Filtros",
+        body: "Estado, tipo, texto y fechas. Las tarjetas de arriba también filtran.",
+      },
+    ],
+  },
+  {
+    id: "request-detail",
+    title: "Una solicitud",
+    steps: [
+      {
+        target: "page-header",
+        title: "Cabecera",
+        body: "Tipo, cliente y estado. El cliente no ve el editor de cotizaciones.",
+      },
+      {
+        target: "request-reply",
+        title: "Responder",
+        body: "Texto oficial que ve el cliente en el portal. También queda en la conversación.",
+        editable: "Hasta cerrar o rechazar.",
+      },
+      {
+        target: "request-quote",
+        title: "Cotización",
+        body: "Crear una COT o adjuntar el PDF generado. El cliente solo descarga el PDF.",
+      },
+    ],
+  },
+  {
+    id: "quotes-history",
+    title: "Memoria histórica",
+    steps: [
+      {
+        target: "page-header",
+        title: "Excel 5.0",
+        body: "Qué se cotizó junto. Sin precios. Al generar una propuesta sugiere compañeros de hoja.",
+        editable: "Sólo subir el archivo. No se linkea a productos.",
+      },
+    ],
+  },
+  {
+    id: "products",
+    title: "Productos",
+    steps: [
+      {
+        target: "page-header",
+        title: "Catálogo",
+        body: "Listado que usan portal, COT e importaciones. El PVP se calcula: no se tipea acá.",
+      },
+      {
+        target: "page-actions",
+        title: "Nuevo producto",
+        body: "Alta a mano. Lo habitual es importar Excel o sync de marca.",
+      },
+      {
+        target: "products-tabs",
+        title: "Crestron Home",
+        body: "La otra pestaña marca compatibles. El catálogo general es la primera.",
+      },
+    ],
+  },
+  {
+    id: "settings-hub",
+    title: "Configuración",
+    steps: [
+      {
+        target: "settings-hub",
+        title: "Secciones",
+        body: "General, marca, precios, cotizaciones, IA, claves y roles. Si no ves una, es el permiso.",
+      },
+    ],
+  },
+  {
+    id: "tickets",
+    title: "Tickets",
+    steps: [
+      {
+        target: "page-header",
+        title: "Bandeja del dev",
+        body: "Los reportes del chatbot llegan con [Ayuda] y la URL de la pantalla.",
+      },
+    ],
+  },
+  {
+    id: "generic",
+    title: "Esta pantalla",
+    steps: [
+      {
+        target: "page-header",
+        title: "Qué es esto",
+        body: "Título y para qué sirve el módulo. El chatbot de Ayuda explica cada campo con la documentación.",
+      },
+      {
+        target: "page-actions",
+        title: "Acciones",
+        body: "Botones de esta pantalla: alta, volver, atajos. Si no hay, pasá al chatbot y preguntá.",
+      },
+    ],
+  },
 ];
 
 export function resolveTourId(pathname: string, paso?: string | null): string | null {
+  if (pathname === "/admin") return "dashboard";
+  if (pathname === "/admin/requests") return "requests";
+  if (/^\/admin\/requests\/[^/]+$/.test(pathname)) return "request-detail";
   if (pathname === "/admin/quotes") return "quotes-list";
   if (pathname === "/admin/quotes/new") return "quotes-new";
+  if (pathname === "/admin/quotes/history") return "quotes-history";
+  if (pathname === "/admin/products") return "products";
+  if (pathname === "/admin/settings") return "settings-hub";
   if (pathname === "/admin/settings/quotes") return "settings-quotes";
   if (pathname === "/admin/settings/quotes/clasificadores") return "settings-classifiers";
   if (pathname === "/admin/settings/quotes/modulos") return "settings-modules";
+  if (pathname === "/admin/tickets") return "tickets";
   if (pathname === "/admin/ayuda") return "ayuda";
-  if (/^\/admin\/quotes\/[^/]+$/.test(pathname) && !pathname.endsWith("/new")) {
+  if (/^\/admin\/quotes\/[^/]+$/.test(pathname) && !pathname.endsWith("/new") && !pathname.endsWith("/print")) {
     const step = Number(paso || "2");
     if (step === 1) return "quote-datos";
     if (step === 2) return "quote-brief";
@@ -268,9 +402,35 @@ export function resolveTourId(pathname: string, paso?: string | null): string | 
     if (step === 7) return "quote-emitir";
     return "quote-datos";
   }
-  return null;
+  return "generic";
 }
 
 export function getTour(id: string | null) {
   return TOURS.find((tour) => tour.id === id) || null;
+}
+
+export function resolveTour(pathname: string, paso?: string | null): TourDef | null {
+  const id = resolveTourId(pathname, paso);
+  const tour = getTour(id);
+  if (tour && tour.id !== "generic") return tour;
+
+  const mod = moduleForPath(pathname);
+  return {
+    id: `mod-${mod.id}`,
+    title: mod.title,
+    steps: [
+      {
+        target: "page-header",
+        title: mod.title,
+        body: `${mod.simple} ${mod.purpose}`,
+        editable: mod.editable,
+      },
+      {
+        target: "page-actions",
+        title: "Acciones de esta pantalla",
+        body: mod.fields.slice(0, 2).join(" ") || "Botones de alta, filtros o atajos.",
+        editable: mod.notEditable,
+      },
+    ],
+  };
 }

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Compass } from "lucide-react";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TUTORIAL_DETAILED, TUTORIAL_SIMPLE, type TutorialArticle } from "@/lib/help/tutorial";
 
@@ -94,7 +94,7 @@ export function TutorialReader() {
             Recorrer configuración
           </ButtonLink>
           <p className="text-[11px] text-muted-foreground">
-            En cualquier pantalla: botón Ayuda (abajo a la derecha) → Recorrer esta pantalla. Si algo falla, Reportar al
+            Abajo a la derecha: chatbot de ayuda. Lee esta documentación, recorre la pantalla y puede crear un ticket al
             dev.
           </p>
         </div>
