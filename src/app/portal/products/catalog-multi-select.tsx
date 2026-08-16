@@ -54,8 +54,8 @@ export function CatalogMultiSelectProvider({ children, productIds }: Props) {
     <MultiSelectContext.Provider value={{ selected, toggle }}>
       {children}
       {selected.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
-          <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-card px-5 py-3 shadow-2xl ring-1 ring-primary/10">
+        <div className="fixed bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5rem))] left-1/2 z-50 w-[calc(100vw-1.5rem)] max-w-lg -translate-x-1/2 md:bottom-6">
+          <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-primary/30 bg-card px-3 py-3 shadow-2xl ring-1 ring-primary/10 sm:gap-3 sm:px-5">
             <CheckSquare className="h-4 w-4 text-primary shrink-0" />
             <span className="text-sm font-medium">
               {selected.size} producto{selected.size !== 1 ? "s" : ""} seleccionado{selected.size !== 1 ? "s" : ""}

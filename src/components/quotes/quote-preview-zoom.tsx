@@ -20,6 +20,7 @@ export function QuotePreviewZoom({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const saved = Number(window.localStorage.getItem(STORAGE_KEY));
     if (LEVELS.includes(saved as (typeof LEVELS)[number])) setZoom(saved);
+    else if (window.innerWidth < 768) setZoom(0.55);
     setReady(true);
   }, []);
 
@@ -66,7 +67,7 @@ export function QuotePreviewZoom({ children }: { children: React.ReactNode }) {
   );
 
   const sheet = (
-    <div className="overflow-x-auto bg-neutral-300/40 p-6">
+    <div className="overflow-x-auto bg-neutral-300/40 p-2 sm:p-6">
       <div style={{ zoom }}>{children}</div>
     </div>
   );

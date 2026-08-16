@@ -711,7 +711,7 @@ export default async function QuoteEditorPage({
                 </p>
                 <span className="text-[11px] text-muted-foreground">{quote.items.length} ítems</span>
               </div>
-              <div className="max-h-[calc(100vh-8rem)] overflow-auto bg-neutral-300/40 p-3" data-tour="quote-live">
+              <div className="max-h-[min(70vh,calc(100vh-8rem))] overflow-auto bg-neutral-300/40 p-2 sm:p-3" data-tour="quote-live">
                 {issued ? (
                   <QuotePreviewZoom>
                     <QuoteDocument quote={quote} />

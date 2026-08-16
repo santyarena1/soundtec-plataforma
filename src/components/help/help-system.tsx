@@ -435,9 +435,15 @@ export function HelpDock() {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 z-[70] print:hidden">
+      <div
+        className="fixed z-[70] print:hidden"
+        style={{
+          right: "max(0.75rem, env(safe-area-inset-right))",
+          bottom: "max(0.75rem, env(safe-area-inset-bottom))",
+        }}
+      >
         {open ? (
-          <div className="mb-2 flex h-[min(560px,calc(100dvh-6rem))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+          <div className="mb-2 flex h-[min(560px,calc(100dvh-5.5rem))] w-[min(400px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
             <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
               <div>
                 <p className="text-sm font-semibold">Asistente de ayuda</p>

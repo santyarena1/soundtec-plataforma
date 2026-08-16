@@ -357,7 +357,7 @@ export function ProductsCatalogAdmin(props: Props) {
     <div className="space-y-3">
       {/* Fila 1: búsqueda + orden */}
       <div className="flex flex-wrap gap-2 rounded-md border border-border bg-card p-3">
-        <div className="relative min-w-[200px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-full sm:min-w-[200px] sm:basis-auto">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={qInput}
@@ -370,7 +370,7 @@ export function ProductsCatalogAdmin(props: Props) {
         <Select
           value={sortFromUrl}
           onChange={(e) => pushFilters({ sort: e.target.value })}
-          className="h-10 w-44 text-sm"
+          className="h-10 w-full text-sm sm:w-44"
           aria-label="Ordenar por"
         >
           {SORT_OPTIONS.map((o) => (

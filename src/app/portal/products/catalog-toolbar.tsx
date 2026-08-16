@@ -69,7 +69,7 @@ export function CatalogToolbar({ state }: { state: CatalogUrlState }) {
               state.view === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
             }`}
           >
-            <LayoutGrid className="h-4 w-4" /> Cuadrícula
+            <LayoutGrid className="h-4 w-4" /> <span className="hidden sm:inline">Cuadrícula</span>
           </button>
           <button
             type="button"
@@ -78,7 +78,7 @@ export function CatalogToolbar({ state }: { state: CatalogUrlState }) {
               state.view === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
             }`}
           >
-            <Table2 className="h-4 w-4" /> Lista
+            <Table2 className="h-4 w-4" /> <span className="hidden sm:inline">Lista</span>
           </button>
         </div>
 

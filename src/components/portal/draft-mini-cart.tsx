@@ -40,13 +40,14 @@ export function DraftMiniCart({ draft }: Props) {
 
   if (!draft || draft.itemCount === 0) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
+      <div className="fixed bottom-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))] right-[max(0.75rem,env(safe-area-inset-right))] z-50 md:bottom-6 md:right-6">
         <Link
           href="/portal/products"
-          className="group flex items-center gap-2 rounded-full border border-border bg-card px-4 py-3 text-sm font-medium text-muted-foreground shadow-lg hover:bg-secondary hover:text-foreground transition-colors"
+          className="group flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2.5 text-sm font-medium text-muted-foreground shadow-lg transition-colors hover:bg-secondary hover:text-foreground sm:px-4 sm:py-3"
         >
           <ShoppingBag className="h-4 w-4" />
-          <span>Sin solicitud activa</span>
+          <span className="hidden sm:inline">Sin solicitud activa</span>
+          <span className="sm:hidden">Catálogo</span>
           <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
         </Link>
       </div>
@@ -68,7 +69,7 @@ export function DraftMiniCart({ draft }: Props) {
         />
       ) : null}
 
-      <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
+      <div className="fixed bottom-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))] right-[max(0.75rem,env(safe-area-inset-right))] z-50 md:bottom-6 md:right-6">
         {/* Panel expandible */}
         {open ? (
           <div className="mb-3 w-[calc(100vw-2rem)] max-w-sm rounded-xl border border-border bg-card shadow-2xl overflow-hidden">

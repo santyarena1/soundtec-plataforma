@@ -6,6 +6,7 @@ import { Bookmark, Heart, LayoutDashboard, Package, Send } from "lucide-react";
 import { getSetting } from "@/lib/settings";
 import { DraftMiniCart } from "@/components/portal/draft-mini-cart";
 import { PortalToaster } from "@/components/portal/portal-toaster";
+import { PortalBottomNav } from "@/components/layout/portal-bottom-nav";
 import { getActiveDraftSummary } from "@/lib/draft-request";
 
 const navItems = [
@@ -31,23 +32,23 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="border-b border-border bg-card">
-        <div className="container-page flex h-16 items-center justify-between">
-          <Link href="/portal" className="flex items-center gap-2">
+    <div className="flex min-h-dvh flex-col overflow-x-clip">
+      <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
+        <div className="container-page flex h-14 items-center justify-between gap-2 sm:h-16">
+          <Link href="/portal" className="flex min-w-0 items-center gap-2">
             {logoUrl ? (
-              <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-md">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md sm:h-11 sm:w-11">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
               </span>
             ) : (
-              <span className="flex h-11 w-11 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground sm:h-11 sm:w-11">
                 S
               </span>
             )}
-            <div className="leading-tight">
-              <p className="text-sm font-semibold text-foreground">{appName} · Portal</p>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            <div className="min-w-0 leading-tight">
+              <p className="truncate text-sm font-semibold text-foreground">{appName} · Portal</p>
+              <p className="hidden truncate text-[11px] uppercase tracking-wider text-muted-foreground sm:block">
                 {session.user.companyName || session.user.name}
               </p>
             </div>
@@ -66,10 +67,15 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {(session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") && (
-              <ButtonLink href="/admin" size="sm" variant="outline">
+              <ButtonLink href="/admin" size="sm" variant="outline" className="hidden sm:inline-flex">
                 Modo admin
+              </ButtonLink>
+            )}
+            {(session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") && (
+              <ButtonLink href="/admin" size="sm" variant="outline" className="sm:hidden">
+                Admin
               </ButtonLink>
             )}
             <form action={handleSignOut}>
@@ -79,31 +85,19 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
             </form>
           </div>
         </div>
-
-        <div className="container-page flex gap-1 overflow-x-auto py-2 md:hidden">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          ))}
-        </div>
       </header>
 
-      <main className="container-page flex-1 py-8">{children}</main>
+      <main className="container-page min-w-0 flex-1 py-5 pb-28 sm:py-8 md:pb-8">{children}</main>
 
-      <footer className="border-t border-border bg-card">
-        <div className="container-page flex items-center justify-between py-4 text-xs text-muted-foreground">
+      <footer className="mb-16 border-t border-border bg-card md:mb-0">
+        <div className="container-page flex flex-col gap-1 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} Soundtec S.R.L.</span>
-          <span>{session.user.email}</span>
+          <span className="truncate">{session.user.email}</span>
         </div>
       </footer>
 
       <DraftMiniCart draft={draftSummary} />
+      <PortalBottomNav />
       <PortalToaster />
     </div>
   );

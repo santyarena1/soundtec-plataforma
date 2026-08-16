@@ -57,7 +57,7 @@ export function PortalToaster() {
 
   return (
     <div
-      className="fixed bottom-24 right-4 z-50 flex flex-col gap-2 sm:bottom-28 sm:right-6 pointer-events-none"
+      className="pointer-events-none fixed bottom-[max(9rem,calc(env(safe-area-inset-bottom)+8.5rem))] right-3 z-50 flex flex-col gap-2 md:bottom-28 md:right-6"
       aria-live="polite"
     >
       {toasts.map((t) => (

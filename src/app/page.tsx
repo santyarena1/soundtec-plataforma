@@ -87,12 +87,12 @@ export default async function HomePage() {
       <main>
         {/* HERO */}
         <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-secondary/40 via-background to-background">
-          <div className="container-page grid gap-12 py-20 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:py-28">
+          <div className="container-page grid gap-8 py-12 sm:gap-12 sm:py-20 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:py-28">
             <div>
               <Badge tone="accent" className="mb-5">
                 Soundtec · Portal B2B
               </Badge>
-              <h1 className="heading-1 text-balance text-4xl leading-tight sm:text-5xl lg:text-6xl">
+              <h1 className="heading-1 text-balance text-3xl leading-tight sm:text-5xl lg:text-6xl">
                 {hero?.title || "Soluciones audiovisuales integradas, ejecutadas con criterio profesional."}
               </h1>
               <p className="muted-text mt-5 max-w-xl text-base">
@@ -111,7 +111,7 @@ export default async function HomePage() {
                 </Link>
               </div>
 
-              <dl className="mt-10 grid grid-cols-3 gap-6 border-t border-border pt-6 text-sm">
+              <dl className="mt-10 grid grid-cols-1 gap-4 border-t border-border pt-6 text-sm sm:grid-cols-3 sm:gap-6">
                 <div>
                   <dt className="text-xs uppercase tracking-wider text-muted-foreground">Sectores</dt>
                   <dd className="mt-1 font-semibold">Corporativo · Educación · Cultural</dd>

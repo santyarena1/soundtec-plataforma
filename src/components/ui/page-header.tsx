@@ -12,7 +12,7 @@ export function PageHeader({ title, description, actions, className }: PageHeade
   return (
     <div
       data-tour="page-header"
-      className={cn("flex flex-col gap-3 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between", className)}
+      className={cn("flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between sm:pb-6", className)}
     >
       <div>
         <h1 className="heading-2">{title}</h1>

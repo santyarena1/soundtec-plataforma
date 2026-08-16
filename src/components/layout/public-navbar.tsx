@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { ButtonLink } from "@/components/ui/button";
 import { getSetting } from "@/lib/settings";
+import { PublicMobileMenu } from "@/components/layout/public-mobile-menu";
 
 export async function PublicNavbar() {
   let session: { user?: { role?: string } } | null = null;
@@ -28,8 +29,8 @@ export async function PublicNavbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/65">
-      <div className="container-page flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
+      <div className="container-page relative flex h-16 items-center justify-between gap-2">
+        <Link href="/" className="flex min-w-0 items-center gap-2">
           {logoUrl ? (
             <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-md">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -75,10 +76,12 @@ export async function PublicNavbar() {
                 Acceder
               </Link>
               <ButtonLink href="/login" size="sm">
-                Portal de clientes
+                <span className="sm:hidden">Portal</span>
+                <span className="hidden sm:inline">Portal de clientes</span>
               </ButtonLink>
             </>
           )}
+          <PublicMobileMenu />
         </div>
       </div>
     </header>
