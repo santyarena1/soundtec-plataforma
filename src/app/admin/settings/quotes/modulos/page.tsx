@@ -22,7 +22,7 @@ export default async function QuoteModuleLibraryPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-tour="settings-module-list">
       <PageHeader
         title="Borradores de módulos"
         description="Módulos extra con título, texto y fotos. No entran solos en las cotizaciones nuevas: se insertan a pedido."

@@ -38,7 +38,7 @@ export default async function NewQuotePage() {
       <Card>
         <CardContent className="p-6">
           <form action={createQuoteFromBrief} className="space-y-5">
-            <div className="space-y-2 rounded-md border border-accent/30 bg-accent/5 p-4">
+            <div data-tour="new-classifiers" className="space-y-2 rounded-md border border-accent/30 bg-accent/5 p-4">
               <p className="text-sm font-medium">Clasificación interna</p>
               <p className="text-xs text-muted-foreground">
                 Trabajo interno. Si más adelante pedís una sala de videoconferencia grande, se parte de las medianas
@@ -47,7 +47,7 @@ export default async function NewQuotePage() {
               <QuoteClassifierFields classifiers={classifiers} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div>
+              <div data-tour="new-client">
                 <Label htmlFor="clientId">Cliente</Label>
                 <Select id="clientId" name="clientId" defaultValue="">
                   <option value="">Asignar después (bloquea emitir)</option>
@@ -87,7 +87,7 @@ export default async function NewQuotePage() {
               </div>
             </div>
 
-            <div>
+            <div data-tour="new-brief">
               <Label htmlFor="brief">Qué querés armar</Label>
               <FieldHint>
                 Prompt interno. Ej. “Sala de videoconferencia grande, misma base que la mediana pero con una pantalla
@@ -119,7 +119,7 @@ export default async function NewQuotePage() {
               Al crear entras a Brief y planos, con plantilla precargada y vista previa al lado. La planilla se edita como tabla.
             </p>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2" data-tour="new-submit">
               <Button type="submit">Crear propuesta</Button>
             </div>
           </form>

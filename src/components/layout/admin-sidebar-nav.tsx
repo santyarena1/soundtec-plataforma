@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
+  BookOpen,
   Building2,
   Eye,
   FileSpreadsheet,
@@ -98,6 +99,7 @@ const groups: NavGroup[] = [
         icon: Settings2,
         anyScope: SETTINGS_SECTIONS.map((s) => s.scope),
       },
+      { href: "/admin/ayuda", label: "Ayuda y tutorial", icon: BookOpen },
       { href: "/admin/tickets", label: "Tickets al dev", icon: LifeBuoy, scope: "tickets.manage" },
     ],
   },

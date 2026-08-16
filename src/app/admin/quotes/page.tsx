@@ -133,13 +133,15 @@ export default async function AdminQuotesPage({
                 <ButtonLink href="/admin/settings/quotes/plantilla" variant="outline" size="icon" aria-label="Editor de plantilla de cotizaciones">
                   <Settings className="h-4 w-4" />
                 </ButtonLink>
-                <ButtonLink href="/admin/quotes/history" variant="outline">
+                <ButtonLink href="/admin/quotes/history" variant="outline" data-tour="quotes-history">
                   Memoria histórica
                 </ButtonLink>
               </>
             )}
             {permissionsHave(permissions, "quotes.create") || permissions.fullAccess ? (
-              <ButtonLink href="/admin/quotes/new">Nueva cotización</ButtonLink>
+              <ButtonLink href="/admin/quotes/new" data-tour="quotes-new-btn">
+                Nueva cotización
+              </ButtonLink>
             ) : null}
           </div>
         }

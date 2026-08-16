@@ -3,7 +3,7 @@ import { QUOTE_STEPS } from "@/lib/quote-defaults";
 
 export function QuoteWizardNav({ quoteId, step }: { quoteId: string; step: number }) {
   return (
-    <nav className="overflow-x-auto">
+    <nav className="overflow-x-auto" data-tour="quote-wizard">
       <ol className="flex min-w-max gap-1">
         {QUOTE_STEPS.map((s) => {
           const active = s.id === step;

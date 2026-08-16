@@ -35,7 +35,7 @@ export default async function AdminTicketsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Tickets al desarrollador"
-        description="Reportes de fallas, mejoras o consultas técnicas hacia quien mantiene la plataforma."
+        description="Reportes de fallas, mejoras o consultas técnicas. Los que salen de Ayuda → Reportar al dev llegan acá con el prefijo [Ayuda] y la URL de la pantalla."
       />
 
       <Card>

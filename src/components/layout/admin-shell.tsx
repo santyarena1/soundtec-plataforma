@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -6,6 +7,7 @@ import { getSetting } from "@/lib/settings";
 import { AdminSidebarNav } from "@/components/layout/admin-sidebar-nav";
 import { DolarTicker } from "@/components/layout/dolar-ticker";
 import { getCurrentPermissions } from "@/lib/auth-helpers";
+import { HelpDock } from "@/components/help/help-system";
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -96,6 +98,9 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
           <DolarTicker compact />
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-10 print:p-0 print:bg-white">{children}</main>
+        <Suspense fallback={null}>
+          <HelpDock />
+        </Suspense>
       </div>
     </div>
   );

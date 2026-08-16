@@ -24,7 +24,7 @@ export default async function QuoteClassifiersSettingsPage() {
   const classifiers = await listQuoteClassifiers();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-tour="settings-classifier-list">
       <PageHeader
         title="Clasificadores internos"
         description="Tipo de sala, escala y lo que agregues. Van al inicio de cada COT y sirven para sugerir equipos de casos parecidos."

@@ -24,7 +24,7 @@ export function QuotePatternSuggestions({
   const router = useRouter();
   const [pending, start] = useTransition();
 
-  if (!summary && suggestions.length === 0 && similar.length === 0) return null;
+  const empty = !summary && suggestions.length === 0 && similar.length === 0;
 
   return (
     <div className="space-y-3 rounded-lg border border-accent/30 bg-accent/5 p-4">
@@ -87,6 +87,10 @@ export function QuotePatternSuggestions({
         <p className="text-xs text-muted-foreground">
           Todavía no hay otra COT con esta combinación. Cuando armes una, las siguientes van a sugerir a partir de
           esta.
+        </p>
+      ) : empty ? (
+        <p className="text-xs text-muted-foreground">
+          Guardá tipo y escala para comparar con cotizaciones parecidas. El cliente no ve esta clasificación.
         </p>
       ) : null}
     </div>

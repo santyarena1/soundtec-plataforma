@@ -294,7 +294,11 @@ export default async function QuoteEditorPage({
       <div className={showFullLive ? "space-y-4" : "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(380px,42%)]"}>
         <div className="min-w-0 space-y-4">
           {step === 1 ? (
-            <form action={saveQuoteClassifierPicks} className="space-y-3 rounded-lg border border-accent/30 bg-accent/5 p-4">
+            <form
+              action={saveQuoteClassifierPicks}
+              data-tour="quote-classifiers"
+              className="space-y-3 rounded-lg border border-accent/30 bg-accent/5 p-4"
+            >
               <input type="hidden" name="quoteId" value={quote.id} />
               <div>
                 <p className="text-sm font-medium">Clasificación interna</p>
@@ -315,16 +319,22 @@ export default async function QuoteEditorPage({
             </form>
           ) : null}
           {step === 1 || step === 2 || step === 4 ? (
-            <QuotePatternSuggestions
-              quoteId={quote.id}
-              summary={patterns.summary}
-              similar={patterns.similar}
-              suggestions={patterns.suggestions}
-              issued={issued}
-            />
+            <div data-tour="quote-memory">
+              <QuotePatternSuggestions
+                quoteId={quote.id}
+                summary={patterns.summary}
+                similar={patterns.similar}
+                suggestions={patterns.suggestions}
+                issued={issued}
+              />
+            </div>
           ) : null}
           {step === 1 ? (
-            <form action={saveQuoteMeta} className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2">
+            <form
+              action={saveQuoteMeta}
+              data-tour="quote-header"
+              className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2"
+            >
               <input type="hidden" name="quoteId" value={quote.id} />
               <input type="hidden" name="metaKind" value="header" />
               <div>
@@ -383,7 +393,7 @@ export default async function QuoteEditorPage({
                 <p className="text-sm text-muted-foreground">
                   Prompt + planos. La IA arma un borrador editable. No toca módulos fijos ni inventa precios.
                 </p>
-                <form action={saveQuoteMeta} className="space-y-2">
+                <form action={saveQuoteMeta} className="space-y-2" data-tour="quote-brief">
                   <input type="hidden" name="quoteId" value={quote.id} />
                   <input type="hidden" name="metaKind" value="brief" />
                   <Label htmlFor="brief">Brief del proyecto</Label>
@@ -395,7 +405,11 @@ export default async function QuoteEditorPage({
                   ) : null}
                 </form>
                 <QuotePlanUpload quoteId={quote.id} plans={plans} disabled={issued} />
-                {!issued ? <GenerateProposalButton quoteId={quote.id} auto={autogen} /> : null}
+                {!issued ? (
+                  <div data-tour="quote-generate">
+                    <GenerateProposalButton quoteId={quote.id} auto={autogen} />
+                  </div>
+                ) : null}
                 {facts.length || assumptions.length || questions.length ? (
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div>
@@ -435,7 +449,7 @@ export default async function QuoteEditorPage({
                   Tildá qué módulos van. El texto fijo no se reescribe solo. Los módulos extra se insertan a pedido y
                   quedan como borrador si los guardás.
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2" data-tour="quote-add-module">
                   <AddCustomModule quoteId={quote.id} issued={issued} />
                   <ButtonLink href="/admin/settings/quotes/plantilla" size="sm" variant="outline">
                     <Settings className="mr-1 h-3.5 w-3.5" />
@@ -474,7 +488,7 @@ export default async function QuoteEditorPage({
                   </Card>
                 );
               })}
-              {showFullLive ? liveCanvas : null}
+              {showFullLive ? <div data-tour="quote-live">{liveCanvas}</div> : null}
             </div>
           ) : null}
 
@@ -606,7 +620,7 @@ export default async function QuoteEditorPage({
           ) : null}
 
           {step === 7 ? (
-            <div className="space-y-6">
+            <div className="space-y-6" data-tour="quote-issue">
               <Card>
                 <CardContent className="space-y-3 p-5">
                   <h2 className="heading-3">Condiciones</h2>
@@ -697,7 +711,7 @@ export default async function QuoteEditorPage({
                 </p>
                 <span className="text-[11px] text-muted-foreground">{quote.items.length} ítems</span>
               </div>
-              <div className="max-h-[calc(100vh-8rem)] overflow-auto bg-neutral-300/40 p-3">
+              <div className="max-h-[calc(100vh-8rem)] overflow-auto bg-neutral-300/40 p-3" data-tour="quote-live">
                 {issued ? (
                   <QuotePreviewZoom>
                     <QuoteDocument quote={quote} />

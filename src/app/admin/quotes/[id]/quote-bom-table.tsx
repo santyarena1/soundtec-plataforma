@@ -308,7 +308,7 @@ export function QuoteBomTable({
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" data-tour="quote-bom">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold tracking-tight">Planilla de productos y servicios</h2>
@@ -324,6 +324,7 @@ export function QuoteBomTable({
               type="button"
               size="sm"
               variant="outline"
+              data-tour="quote-add-zone"
               disabled={pending}
               onClick={() =>
                 start(async () => {

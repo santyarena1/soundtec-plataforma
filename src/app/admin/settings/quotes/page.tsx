@@ -174,7 +174,7 @@ export default async function SettingsQuotesPage() {
         }
       />
 
-      <Card>
+      <Card data-tour="settings-template">
         <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-sm font-semibold">Textos e imágenes de la plantilla</h3>
@@ -189,7 +189,7 @@ export default async function SettingsQuotesPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="settings-classifiers">
         <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-sm font-semibold">Clasificadores internos</h3>
@@ -203,7 +203,7 @@ export default async function SettingsQuotesPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="settings-modules">
         <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-sm font-semibold">Borradores de módulos extra</h3>
