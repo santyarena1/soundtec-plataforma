@@ -22,6 +22,7 @@ import { calculatePricesForProducts } from "@/lib/pricing";
 import { storeQuoteBlob } from "@/server/actions/quote-images";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { fillMissingShortDescription } from "@/lib/product-short-description";
+import { applyQuoteClassifierPicks, readClassifierPicksFromForm } from "@/server/actions/quote-classifiers";
 
 async function defaultTerms() {
   return {
@@ -200,6 +201,9 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
     revisionSummary: undefined,
   });
 
+  const { picks } = await readClassifierPicksFromForm(formData);
+  await applyQuoteClassifierPicks(quote.id, picks);
+
   const planFiles = formData.getAll("plans");
   let planSort = 0;
   for (const file of planFiles) {
@@ -226,10 +230,10 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
 
   revalidatePath("/admin/quotes");
   const brief = (parsed.data.brief || "").trim();
-  if (brief.length >= 12) {
+  if (brief.length >= 12 || Object.keys(picks).length > 0) {
     redirect(`/admin/quotes/${quote.id}?paso=2&autogen=1`);
   }
-  redirect(`/admin/quotes/${quote.id}?paso=2`);
+  redirect(`/admin/quotes/${quote.id}?paso=1`);
 }
 
 const REQUEST_TYPE_PROJECT: Record<string, string> = {

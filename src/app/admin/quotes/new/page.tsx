@@ -8,13 +8,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea, Select, FieldHint } from "@/components/ui/input";
 import { QuoteAdvancedFields } from "./advanced-fields";
+import { QuoteClassifierFields } from "@/components/quotes/quote-classifier-fields";
+import { listQuoteClassifiers } from "@/lib/quote-classifiers";
 
 export const metadata = { title: "Admin · Nueva cotización" };
 
 export default async function NewQuotePage() {
   await requireQuotePermission("quotes.create");
   await ensureQuoteProfiles();
-  const [clients, profiles, cfg] = await Promise.all([
+  const [clients, profiles, cfg, classifiers] = await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
       orderBy: { companyName: "asc" },
@@ -22,6 +24,7 @@ export default async function NewQuotePage() {
     }),
     prisma.quoteContentProfile.findMany({ orderBy: { name: "asc" } }),
     getQuoteNumberingConfig(),
+    listQuoteClassifiers(),
   ]);
   const preview = formatQuoteNumber({ ...cfg, sequence: cfg.nextSequence });
 
@@ -29,12 +32,20 @@ export default async function NewQuotePage() {
     <div className="space-y-6">
       <PageHeader
         title="Nueva cotización"
-        description={`Se va a reservar el número ${preview}. Podés arrancar con un brief y planos, o dejarlo vacío y armar el BOM a mano.`}
+        description={`Se va a reservar el número ${preview}. Primero el tipo y la escala: con eso la IA y las sugerencias miran COT parecidas.`}
       />
 
       <Card>
         <CardContent className="p-6">
           <form action={createQuoteFromBrief} className="space-y-5">
+            <div className="space-y-2 rounded-md border border-accent/30 bg-accent/5 p-4">
+              <p className="text-sm font-medium">Clasificación interna</p>
+              <p className="text-xs text-muted-foreground">
+                Trabajo interno. Si más adelante pedís una sala de videoconferencia grande, se parte de las medianas
+                que ya armamos. Los valores se editan en Configuración → Cotizaciones → Clasificadores.
+              </p>
+              <QuoteClassifierFields classifiers={classifiers} />
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="clientId">Cliente</Label>
@@ -57,20 +68,6 @@ export default async function NewQuotePage() {
                 <Input id="reference" name="reference" placeholder="Sistema de Audio Comercial" />
               </div>
               <div>
-                <Label htmlFor="projectType">Tipo de proyecto</Label>
-                <Select id="projectType" name="projectType" defaultValue="">
-                  <option value="">Que lo infiera la IA</option>
-                  <option value="audio_comercial">Audio comercial</option>
-                  <option value="aula_hibrida">Aula híbrida</option>
-                  <option value="sala_reunion">Sala de reunión</option>
-                  <option value="auditorio">Auditorio</option>
-                  <option value="retail">Retail</option>
-                  <option value="outdoor">Outdoor</option>
-                  <option value="uc_teams">UC / Teams</option>
-                  <option value="otro">Otro</option>
-                </Select>
-              </div>
-              <div>
                 <Label htmlFor="layoutKey">Layout visual</Label>
                 <Select id="layoutKey" name="layoutKey" defaultValue="STANDARD">
                   <option value="COMPACT">Compacto</option>
@@ -91,8 +88,11 @@ export default async function NewQuotePage() {
             </div>
 
             <div>
-              <Label htmlFor="brief">Brief del proyecto</Label>
-              <FieldHint>Pegá el mail, el relevamiento o escribí como se lo explicarías a ingeniería.</FieldHint>
+              <Label htmlFor="brief">Qué querés armar</Label>
+              <FieldHint>
+                Prompt interno. Ej. “Sala de videoconferencia grande, misma base que la mediana pero con una pantalla
+                más y DSP”. Si no escribís nada, igual sugerimos según tipo y escala.
+              </FieldHint>
               <Textarea
                 id="brief"
                 name="brief"

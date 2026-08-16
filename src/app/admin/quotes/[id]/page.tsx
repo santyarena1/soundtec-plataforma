@@ -36,6 +36,11 @@ import { QuotePreviewZoom } from "@/components/quotes/quote-preview-zoom";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
 import { requestShortId } from "@/lib/request-quote-link";
 import { isCustomSectionType, parseQuoteModuleLayout } from "@/lib/quote-module-layout";
+import { listQuoteClassifiers } from "@/lib/quote-classifiers";
+import { loadQuotePatternSuggestions } from "@/lib/quote-pattern-suggest";
+import { QuoteClassifierFields } from "@/components/quotes/quote-classifier-fields";
+import { QuotePatternSuggestions } from "@/components/quotes/quote-pattern-suggestions";
+import { saveQuoteClassifierPicks } from "@/server/actions/quote-classifiers";
 
 export const metadata = { title: "Admin · Cotización" };
 
@@ -70,7 +75,7 @@ export default async function QuoteEditorPage({
   if (!quote) notFound();
 
   const productIds = quote.items.map((i) => i.productId).filter((pid): pid is string => Boolean(pid));
-  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms, identity] = await Promise.all([
+  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms, identity, classifiers, patterns] = await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
       orderBy: { companyName: "asc" },
@@ -104,6 +109,8 @@ export default async function QuoteEditorPage({
         })
       : Promise.resolve(null),
     getCompanyIdentity(),
+    listQuoteClassifiers(),
+    loadQuotePatternSuggestions(quote.id),
   ]);
 
   const issued = quote.status === "ISSUED";
@@ -286,6 +293,36 @@ export default async function QuoteEditorPage({
 
       <div className={showFullLive ? "space-y-4" : "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(380px,42%)]"}>
         <div className="min-w-0 space-y-4">
+          {step === 1 ? (
+            <form action={saveQuoteClassifierPicks} className="space-y-3 rounded-lg border border-accent/30 bg-accent/5 p-4">
+              <input type="hidden" name="quoteId" value={quote.id} />
+              <div>
+                <p className="text-sm font-medium">Clasificación interna</p>
+                <p className="text-xs text-muted-foreground">
+                  Lo primero. Tipo y escala para comparar con COT ya hechas. Se edita en Configuración.
+                </p>
+              </div>
+              <QuoteClassifierFields
+                classifiers={classifiers}
+                picks={Object.fromEntries(quote.classifierPicks.map((pick) => [pick.classifierId, pick.optionId]))}
+                issued={issued}
+              />
+              {!issued ? (
+                <Button type="submit" size="sm">
+                  Guardar clasificación
+                </Button>
+              ) : null}
+            </form>
+          ) : null}
+          {step === 1 || step === 2 || step === 4 ? (
+            <QuotePatternSuggestions
+              quoteId={quote.id}
+              summary={patterns.summary}
+              similar={patterns.similar}
+              suggestions={patterns.suggestions}
+              issued={issued}
+            />
+          ) : null}
           {step === 1 ? (
             <form action={saveQuoteMeta} className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2">
               <input type="hidden" name="quoteId" value={quote.id} />

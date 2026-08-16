@@ -164,6 +164,9 @@ export default async function SettingsQuotesPage() {
             <ButtonLink href="/admin/settings/quotes/modulos" size="sm" variant="outline">
               Borradores de módulos
             </ButtonLink>
+            <ButtonLink href="/admin/settings/quotes/clasificadores" size="sm" variant="outline">
+              Clasificadores
+            </ButtonLink>
             <ButtonLink href="/admin/quotes" variant="outline" size="sm">
               Ir a cotizaciones
             </ButtonLink>
@@ -182,6 +185,20 @@ export default async function SettingsQuotesPage() {
           </div>
           <ButtonLink href="/admin/settings/quotes/plantilla" size="sm">
             Abrir editor
+          </ButtonLink>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Clasificadores internos</h3>
+            <p className="muted-text mt-0.5">
+              Tipo de sala, escala y lo que agregues. Van al inicio de cada COT para sugerir equipos de casos parecidos.
+            </p>
+          </div>
+          <ButtonLink href="/admin/settings/quotes/clasificadores" size="sm" variant="outline">
+            Editar clasificadores
           </ButtonLink>
         </CardContent>
       </Card>

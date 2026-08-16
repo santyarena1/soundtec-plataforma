@@ -49,6 +49,7 @@ export async function loadQuoteForUser(id: string) {
         },
       },
       itemGroups: { orderBy: { sortOrder: "asc" } },
+      classifierPicks: true,
       sections: { orderBy: { sortOrder: "asc" } },
       assets: { orderBy: { sortOrder: "asc" } },
       context: true,

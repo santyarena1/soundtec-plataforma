@@ -6,6 +6,8 @@ import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { AI_MODULE_KEYS, FIXED_MODULE_KEYS } from "@/lib/quote-defaults";
 import { fillMissingQuoteProductImages } from "@/lib/quote-product-images";
 import { fillMissingShortDescription } from "@/lib/product-short-description";
+import { formatClassifierSummary, listQuoteClassifiers } from "@/lib/quote-classifiers";
+import { loadQuotePatternSuggestions } from "@/lib/quote-pattern-suggest";
 import { suggestHistoricalCompanions } from "@/server/actions/quote-history";
 import { SOUNDTEC_VOICE, quoteChatJson, quoteChatText, getQuoteOpenAI, describeQuotePlanImage } from "@/lib/quote-llm";
 import { isRichText, sanitizeQuoteHtml } from "@/lib/quote-richtext";
@@ -101,7 +103,15 @@ export async function generateQuoteProposal(quoteId: string, userId: string) {
 
   const quote = await prisma.quote.findUnique({
     where: { id: quoteId },
-    include: { items: true, sections: true, alternatives: true, context: true, client: true, assets: true },
+    include: {
+      items: true,
+      sections: true,
+      alternatives: true,
+      context: true,
+      client: true,
+      assets: true,
+      classifierPicks: true,
+    },
   });
   if (!quote) return { ok: false as const, error: "Cotización no encontrada." };
   if (quote.status === "ISSUED") return { ok: false as const, error: "La COT emitida no se regenera." };
@@ -116,17 +126,37 @@ export async function generateQuoteProposal(quoteId: string, userId: string) {
     }
   }
 
+  const classifiers = await listQuoteClassifiers();
+  const pickMap = Object.fromEntries(quote.classifierPicks.map((pick) => [pick.classifierId, pick.optionId]));
+  const classification = formatClassifierSummary(classifiers, pickMap);
+  const patterns = await loadQuotePatternSuggestions(quoteId);
+  const patternBlock = [
+    classification ? `Clasificación interna: ${classification}` : "",
+    patterns.similar.length
+      ? `COT parecidas: ${patterns.similar.map((row) => `${row.number} (${row.labels})`).join("; ")}`
+      : "",
+    patterns.suggestions.length
+      ? `Equipos que suelen usarse en este patrón:\n${patterns.suggestions
+          .map((item) => `- ${item.name} (${item.reason})`)
+          .join("\n")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   const brief = [
     quote.brief,
     quote.reference,
+    classification,
     quote.projectType,
     JSON.stringify(quote.advancedIntake || {}),
+    patternBlock,
     planNotes.length ? `Lectura de planos:\n${planNotes.join("\n\n")}` : "",
   ]
     .filter(Boolean)
     .join("\n");
   if (brief.replace(/\s/g, "").length < 12) {
-    return { ok: false as const, error: "Escribí un brief antes de generar." };
+    return { ok: false as const, error: "Elegí tipo/escala o escribí un brief antes de generar." };
   }
 
   const catalog = await catalogDigest(brief);
@@ -149,7 +179,14 @@ sections[].type uno de: proposal, design_criteria, key_products, functionality.
 Para «proposal»: explicá POR QUÉ los productos de esta cotización y QUÉ problema resuelven. No copies hilos, mensajes ni respuestas de admin. No pidas precios. No inventes condiciones comerciales. No agregues preguntas de "faltan datos" dentro de sections[].
 No reescribas presentación, marcas, ISO, condiciones, garantía ni cierre: eso es plantilla fija.
 No pongas precios. No inventes productos que no estén en el catálogo; si falta, omití.`,
-    `Problema a resolver:\n${problem || brief}\n\nÍtems que YA están en la cotización (no los toques; usalos como base de la propuesta):\n${existing || "(ninguno)"}\n\nCatálogo disponible (solo para sugerir faltantes de sistema, no para volcar en la propuesta):\n${catalogText || "(vacío)"}`
+    `Problema a resolver:\n${problem || brief}
+${patternBlock ? `\nPatrón interno (prioridad alta). Si pidieron una escala más grande, partí de la mediana/chica del mismo tipo y sumá lo que falte. No copies precios.\n${patternBlock}` : ""}
+
+Ítems que YA están en la cotización (no los toques; usalos como base de la propuesta):
+${existing || "(ninguno)"}
+
+Catálogo disponible (solo para sugerir faltantes de sistema, no para volcar en la propuesta):
+${catalogText || "(vacío)"}`
   );
 
   await prisma.quoteContext.upsert({

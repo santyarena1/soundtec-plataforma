@@ -1014,6 +1014,39 @@ model QuoteModuleLibraryImage {
   aiGenerated Boolean        @default(false)
 }
 
+model QuoteClassifier {
+  id        String @id @default(cuid())
+  label     String
+  hint      String?
+  sortOrder Int    @default(0)
+  isActive  Boolean @default(true)
+  options   QuoteClassifierOption[]
+}
+
+model QuoteClassifierOption {
+  id           String @id @default(cuid())
+  classifierId String
+  classifier   QuoteClassifier @relation(fields: [classifierId], references: [id], onDelete: Cascade)
+  label        String
+  sortOrder    Int     @default(0)
+  isActive     Boolean @default(true)
+  picks        QuoteClassifierPick[]
+
+  @@index([classifierId])
+}
+
+model QuoteClassifierPick {
+  id           String @id @default(cuid())
+  quoteId      String
+  quote        Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  classifierId String
+  optionId     String
+  option       QuoteClassifierOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([quoteId, classifierId])
+  @@index([optionId])
+}
+
 model Quote {
   id                     String            @id @default(cuid())
   number                 String            @unique
@@ -1048,10 +1081,11 @@ model Quote {
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
-  alternatives QuoteAlternative[]
-  items        QuoteItem[]
-  itemGroups   QuoteItemGroup[]
-  sections     QuoteSection[]
+  alternatives    QuoteAlternative[]
+  items           QuoteItem[]
+  itemGroups      QuoteItemGroup[]
+  classifierPicks QuoteClassifierPick[]
+  sections        QuoteSection[]
   assets       QuoteAsset[]
   context      QuoteContext?
   terms        QuoteCommercialTerms?
