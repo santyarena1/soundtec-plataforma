@@ -115,9 +115,11 @@ interface Props {
   allowedScopes: PermissionScope[];
   /** Si es full access (super admin) ignora allowedScopes. */
   fullAccess?: boolean;
+  /** En el drawer mobile conviene ver todos los grupos abiertos. */
+  expandAll?: boolean;
 }
 
-export function AdminSidebarNav({ allowedScopes, fullAccess }: Props) {
+export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll }: Props) {
   const pathname = usePathname();
 
   const allowSet = useMemo(() => new Set(allowedScopes), [allowedScopes]);
@@ -147,7 +149,7 @@ export function AdminSidebarNav({ allowedScopes, fullAccess }: Props) {
     <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
       {filteredGroups.map((group) => {
         const groupActive = group.title === activeGroupTitle;
-        const opened = overrides[group.title] ?? groupActive;
+        const opened = overrides[group.title] ?? (expandAll || groupActive);
         return (
           <div key={group.title} className="">
             <button

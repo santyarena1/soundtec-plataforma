@@ -32,7 +32,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col overflow-x-clip">
+    <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className="container-page flex h-14 items-center justify-between gap-2 sm:h-16">
           <Link href="/portal" className="flex min-w-0 items-center gap-2">

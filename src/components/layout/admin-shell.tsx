@@ -55,13 +55,17 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  function SidebarBody() {
+  function SidebarBody({ expandAll }: { expandAll?: boolean } = {}) {
     return (
       <>
         <div className="border-b border-border p-4">
           <BrandMark />
         </div>
-        <AdminSidebarNav allowedScopes={permissions.scopes} fullAccess={permissions.fullAccess} />
+        <AdminSidebarNav
+          allowedScopes={permissions.scopes}
+          fullAccess={permissions.fullAccess}
+          expandAll={expandAll}
+        />
         <div className="border-t border-border p-3">
           <DolarTicker />
         </div>
@@ -84,16 +88,16 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-dvh overflow-x-clip bg-secondary/30">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-64 flex-col border-r border-border bg-card print:hidden lg:flex">
+    <div className="min-h-dvh bg-secondary/30">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-64 flex-col border-r border-border bg-card print:hidden xl:flex">
         <SidebarBody />
       </aside>
 
-      <div className="flex min-h-dvh flex-col lg:pl-64 print:pl-0">
-        <header className="sticky top-0 z-40 border-b border-border bg-card/95 px-3 py-2 backdrop-blur print:hidden lg:hidden">
+      <div className="flex min-h-dvh flex-col xl:pl-64 print:pl-0">
+        <header className="sticky top-0 z-40 border-b border-border bg-card px-3 py-2 print:hidden xl:hidden">
           <div className="flex items-center gap-2">
             <AdminMobileNav>
-              <SidebarBody />
+              <SidebarBody expandAll />
             </AdminMobileNav>
             <div className="min-w-0 flex-1">
               <BrandMark />
@@ -104,11 +108,8 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
               </button>
             </form>
           </div>
-          <div className="mt-1.5">
-            <DolarTicker compact />
-          </div>
         </header>
-        <main className="min-w-0 flex-1 p-3 pb-24 sm:p-6 lg:p-10 lg:pb-10 print:bg-white print:p-0">
+        <main className="min-w-0 flex-1 overflow-x-auto p-3 pb-24 sm:p-6 lg:p-10 xl:pb-10 print:bg-white print:p-0">
           {children}
         </main>
         <Suspense fallback={null}>
