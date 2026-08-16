@@ -30,7 +30,7 @@ export default async function QuoteHistoryPage() {
       <Card>
         <CardContent className="space-y-3 p-5">
           <p className="text-sm text-muted-foreground">
-            Subí <strong>Planillas de Cotizacion 5.0.xlsx</strong>. Se ignoran hojas LIBRE. Al generar una propuesta, el copiloto sugiere ítems que solían ir juntos.
+            Subí <strong>Planillas de Cotizacion 5.0.xlsx</strong>. El navegador lee el Excel (puede tardar un minuto) y manda las hojas en lotes. Se ignoran hojas LIBRE. Al generar una propuesta, el copiloto sugiere ítems que solían ir juntos.
           </p>
           <p className="text-sm">
             Cargadas: {sheets} hojas · {lines} líneas.

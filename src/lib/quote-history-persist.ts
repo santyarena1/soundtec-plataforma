@@ -46,19 +46,31 @@ export async function authorizeHistoryIngest(): Promise<
 
 export async function persistHistoricalSheets(
   sourceFile: string,
-  sheets: ParsedHistoricalSheet[]
+  sheets: ParsedHistoricalSheet[],
+  options?: { resetSource?: boolean }
 ): Promise<IngestHistoricalResult> {
   if (!Array.isArray(sheets) || sheets.length === 0) {
     return ingestFail("No se encontraron hojas con planillas reconocibles en el archivo.");
   }
 
+  const source = sourceFile || "Planillas de Cotizacion.xlsx";
+  if (options?.resetSource) {
+    try {
+      await prisma.historicalQuoteSheet.deleteMany({ where: { sourceFile: source } });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "error de base";
+      return ingestFail(`No se pudieron limpiar hojas previas de ${source} (${detail}).`);
+    }
+  }
+
   let savedSheets = 0;
   let savedLines = 0;
+  let firstError = "";
 
   for (const sheet of sheets) {
     const sheetName = String(sheet?.sheetName || "").trim();
     const lines = Array.isArray(sheet?.lines) ? sheet.lines : [];
-    if (!sheetName || lines.length < 2) continue;
+    if (!sheetName || lines.length < 1) continue;
 
     const capped = lines
       .map((line) => ({
@@ -70,13 +82,13 @@ export async function persistHistoricalSheets(
       }))
       .filter((line) => line.description.length > 0)
       .slice(0, 200);
-    if (capped.length < 2) continue;
+    if (capped.length < 1) continue;
 
     try {
       const created = await prisma.historicalQuoteSheet.create({
         data: {
           sheetName,
-          sourceFile: sourceFile || "Planillas de Cotizacion.xlsx",
+          sourceFile: source,
           projectHint: sheetName,
         },
       });
@@ -90,12 +102,18 @@ export async function persistHistoricalSheets(
       savedSheets += 1;
       savedLines += capped.length;
     } catch (error) {
+      const detail = error instanceof Error ? error.message : "error de base";
       console.error("persistHistoricalSheets sheet", sheetName, error);
+      if (!firstError) firstError = `${sheetName}: ${detail}`;
     }
   }
 
   if (savedSheets === 0) {
-    return ingestFail("No se pudieron guardar hojas reconocibles. Reintentá o revisá el formato del Excel.");
+    return ingestFail(
+      firstError
+        ? `No se pudieron guardar hojas (${firstError}).`
+        : "No se pudieron guardar hojas reconocibles. Reintentá o revisá el formato del Excel."
+    );
   }
-  return { ok: true, sheets: savedSheets, lines: savedLines };
+  return { ok: true, sheets: savedSheets, lines: savedLines, error: firstError || undefined };
 }
