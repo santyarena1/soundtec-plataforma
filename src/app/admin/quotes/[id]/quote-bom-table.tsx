@@ -2,6 +2,7 @@
 
 import { QuoteRevisePanel } from "./revise-panel";
 import { QuoteLinePhoto } from "@/components/quotes/quote-line-photo";
+import { RegenerateShortDescription } from "@/components/quotes/regenerate-short-description";
 import { addServiceToQuote } from "@/server/actions/quote-export";
 import {
   deleteQuoteItem,
@@ -143,9 +144,14 @@ export function QuoteBomTable({
                     <td className="px-2 py-2 min-w-[280px]">
                       <p className="mb-1 text-sm font-bold leading-snug">{item.name}</p>
                       {item.blurb ? (
-                        <p className="mb-2 text-xs leading-snug text-foreground/80" style={{ textAlign: "justify" }}>
+                        <p className="mb-1 text-xs leading-snug text-foreground/80" style={{ textAlign: "justify" }}>
                           {item.blurb}
                         </p>
+                      ) : (
+                        <p className="mb-1 text-[11px] text-muted-foreground">Sin descripción corta.</p>
+                      )}
+                      {item.productId && !issued ? (
+                        <RegenerateShortDescription quoteId={quoteId} productId={item.productId} />
                       ) : null}
                       <Textarea
                         form={formId}

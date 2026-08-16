@@ -8,6 +8,7 @@ import { quoteIssueCheck } from "@/lib/quote-issue";
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import * as XLSX from "xlsx";
+import { generateAndStoreQuotePdf } from "@/lib/quote-pdf-store";
 
 export async function issueQuote(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const id = String(formData.get("quoteId") || "");
@@ -47,6 +48,12 @@ export async function issueQuote(formData: FormData): Promise<{ ok: boolean; err
     }
   } catch {
     /* snapshot sigue valiendo */
+  }
+
+  try {
+    await generateAndStoreQuotePdf(id, loaded.user.id);
+  } catch (error) {
+    console.error("issueQuote pdf", error);
   }
 
   await prisma.quote.update({

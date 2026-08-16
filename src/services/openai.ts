@@ -161,6 +161,7 @@ export async function generateShortDescription(input: {
   brand?: string;
   category?: string;
   compact?: boolean;
+  avoid?: string;
 }): Promise<string> {
   const fallback = `${input.brand ? `${input.brand} ` : ""}${input.name}: solución ${
     input.category || "audiovisual profesional"
@@ -185,7 +186,8 @@ export async function generateShortDescription(input: {
           content: `${lengthRule}
 Producto: ${input.name}
 Marca: ${input.brand || "—"}
-Categoría: ${input.category || "—"}`,
+Categoría: ${input.category || "—"}
+${input.avoid ? `Escribí una versión distinta a esta, no la copies: "${input.avoid}"` : ""}`,
         },
       ],
     });

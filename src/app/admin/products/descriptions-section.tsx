@@ -98,7 +98,7 @@ export function DescriptionsSection({ productId, initialShort, initialLong, isAi
             ) : (
               <Wand2 className="mr-1.5 h-3.5 w-3.5" />
             )}
-            Generar con IA
+            {short.trim() ? "Regenerar con IA" : "Generar con IA"}
           </Button>
         </div>
         <textarea
@@ -158,7 +158,8 @@ export function DescriptionsSection({ productId, initialShort, initialLong, isAi
       <p className="text-[11px] text-muted-foreground flex items-center gap-1">
         <CheckCircle2 className="h-3 w-3" />
         Las descripciones se guardan junto al resto del formulario con el botón principal de
-        abajo. Generar con IA también las persiste automáticamente.
+        abajo. Regenerar con IA pisa la descripción corta actual y la deja guardada en el
+        producto.
       </p>
     </div>
   );

@@ -81,6 +81,10 @@ export function CreateQuoteCard({ requestId, canCreate, lines, existingQuotes }:
           </div>
 
           {existingQuotes.length > 0 ? (
+            <>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Al adjuntar se genera un PDF. El cliente lo descarga; no puede abrir ni editar la cotización.
+            </p>
             <ul className="mt-3 space-y-2">
               {existingQuotes.map((q) => (
                 <li key={q.id} className="flex items-center justify-between gap-2 text-sm">
@@ -90,7 +94,7 @@ export function CreateQuoteCard({ requestId, canCreate, lines, existingQuotes }:
                     </ButtonLink>
                     <p className="text-xs text-muted-foreground">{q.createdAtLabel}</p>
                     {q.attached ? (
-                      <p className="text-[11px] text-accent">Ya está adjunta como respuesta</p>
+                      <p className="text-[11px] text-accent">PDF ya adjunto como respuesta</p>
                     ) : (
                       <Button
                         type="button"
@@ -105,14 +109,14 @@ export function CreateQuoteCard({ requestId, canCreate, lines, existingQuotes }:
                               toast.error(r.error || "No se pudo adjuntar.");
                               return;
                             }
-                            toast.success(`Cotización ${q.number} adjunta`, {
-                              description: "El cliente la ve en el hilo de la solicitud.",
+                            toast.success(`PDF de ${q.number} adjunto`, {
+                              description: "El cliente solo puede descargar el PDF. No entra al editor.",
                             });
                             router.refresh();
                           })
                         }
                       >
-                        Adjuntar cotización como respuesta
+                        Adjuntar PDF como respuesta
                       </Button>
                     )}
                   </div>
@@ -120,6 +124,7 @@ export function CreateQuoteCard({ requestId, canCreate, lines, existingQuotes }:
                 </li>
               ))}
             </ul>
+            </>
           ) : (
             <p className="mt-2 text-xs text-muted-foreground">
               Todavía no hay una COT armada a partir de esta solicitud.

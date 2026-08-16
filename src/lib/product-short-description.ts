@@ -3,12 +3,25 @@ import { clipToWords, fallbackShortDescription } from "@/lib/quote-product-line"
 import { generateShortDescription } from "@/services/openai";
 
 export async function fillMissingShortDescription(productId: string): Promise<string | null> {
+  return writeProductShortDescription(productId, { replace: false });
+}
+
+/** Reescribe la descripción corta del producto y la deja guardada en el catálogo. */
+export async function regenerateProductShortDescription(productId: string): Promise<string | null> {
+  return writeProductShortDescription(productId, { replace: true });
+}
+
+async function writeProductShortDescription(
+  productId: string,
+  options: { replace: boolean }
+): Promise<string | null> {
   const product = await prisma.product.findUnique({
     where: { id: productId },
     include: { brand: true, category: true },
   });
   if (!product) return null;
-  if (product.shortDescription?.trim()) return product.shortDescription.trim();
+  const current = product.shortDescription?.trim() || "";
+  if (current && !options.replace) return current;
 
   let text = "";
   try {
@@ -17,6 +30,7 @@ export async function fillMissingShortDescription(productId: string): Promise<st
       brand: product.brand?.name,
       category: product.category?.name,
       compact: true,
+      avoid: options.replace ? current : undefined,
     });
   } catch {
     text = "";

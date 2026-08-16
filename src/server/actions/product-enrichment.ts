@@ -151,6 +151,7 @@ export async function generateProductShortDescription(
       name: p.normalizedName,
       brand: p.brand?.name,
       category: p.category?.name,
+      avoid: p.shortDescription?.trim() || undefined,
     });
 
     await prisma.product.update({

@@ -10,6 +10,7 @@ import { getGlobalMarginPercent } from "@/lib/settings";
 import { requireCommercialClientId, resolveCommercialClientId } from "@/lib/client-context";
 import { accessoryAckNote, evaluateAccessoryPolicy } from "@/lib/accessory-context";
 import { getOrCreateActiveDraft } from "@/lib/draft-request";
+import { generateAndStoreQuotePdf } from "@/lib/quote-pdf-store";
 
 function revalidateDraftPaths(requestId: string) {
   revalidatePath("/portal/requests");
@@ -985,7 +986,7 @@ export async function attachQuoteAsRequestResponse(input: {
 
   const quote = await prisma.quote.findUnique({
     where: { id: input.quoteId },
-    select: { id: true, number: true, sourceRequestId: true },
+    select: { id: true, number: true, sourceRequestId: true, pdfBlobUrl: true },
   });
   if (!quote) return { ok: false, error: "La cotización ya no existe." };
   if (quote.sourceRequestId && quote.sourceRequestId !== request.id) {
@@ -996,6 +997,17 @@ export async function attachQuoteAsRequestResponse(input: {
     await prisma.quote.update({ where: { id: quote.id }, data: { sourceRequestId: request.id } });
   }
 
+  let pdfUrl = quote.pdfBlobUrl;
+  try {
+    const generated = await generateAndStoreQuotePdf(quote.id, admin.id);
+    pdfUrl = generated.url;
+  } catch (error) {
+    console.error("attachQuoteAsRequestResponse pdf", error);
+  }
+  if (!pdfUrl) {
+    return { ok: false, error: "No se pudo generar el PDF. Reintentá o emití la cotización primero." };
+  }
+
   const already = await prisma.requestMessage.findFirst({
     where: { requestId: request.id, message: { contains: quote.number } },
   });
@@ -1003,13 +1015,13 @@ export async function attachQuoteAsRequestResponse(input: {
     return { ok: true };
   }
 
-  const message = `Adjuntamos la cotización ${quote.number} para tu evaluación. Podés abrirla desde el enlace de esta conversación.`;
+  const message = `Adjuntamos el PDF de la cotización ${quote.number} para tu evaluación.`;
   await prisma.requestMessage.create({
     data: {
       requestId: request.id,
       senderId: admin.id,
       message,
-      attachments: [{ kind: "quote", quoteId: quote.id, number: quote.number }],
+      attachments: [{ kind: "quote-pdf", quoteId: quote.id, number: quote.number, pdfUrl }],
     },
   });
 

@@ -6,7 +6,7 @@ import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { getQuoteOpenAI } from "@/lib/quote-llm";
 import { generateQuoteProposal, rewriteQuoteNode, rewriteQuoteTemplateBlock } from "@/services/quote-orchestrator";
-import { fillMissingShortDescription } from "@/lib/product-short-description";
+import { fillMissingShortDescription, regenerateProductShortDescription } from "@/lib/product-short-description";
 import { revalidatePath } from "next/cache";
 
 export async function generateQuoteFromBrief(quoteId: string): Promise<{ ok: boolean; error?: string; message?: string }> {
@@ -129,4 +129,26 @@ export async function ensureQuoteProductShortDescriptions(
   }
   if (filled > 0) revalidatePath(`/admin/quotes/${quoteId}`);
   return { ok: true, filled };
+}
+
+export async function regenerateQuoteProductShortDescription(input: {
+  quoteId: string;
+  productId: string;
+}): Promise<{ ok: boolean; text?: string; error?: string }> {
+  const loaded = await loadQuoteForUser(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
+  const onQuote = loaded.quote.items.some((item) => item.productId === input.productId);
+  if (!onQuote) return { ok: false, error: "Ese producto no está en la planilla." };
+  try {
+    const text = await regenerateProductShortDescription(input.productId);
+    if (!text) return { ok: false, error: "No se pudo regenerar la descripción." };
+    revalidatePath(`/admin/quotes/${input.quoteId}`);
+    revalidatePath("/admin/products");
+    revalidatePath(`/admin/products/${input.productId}`);
+    revalidatePath(`/portal/products/${input.productId}`);
+    return { ok: true, text };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "No se pudo regenerar." };
+  }
 }

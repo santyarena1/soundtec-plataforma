@@ -16,7 +16,7 @@ import { postRequestMessage } from "@/server/actions/requests";
 import { DraftRequestEditor } from "./draft-request-editor";
 import { RequestStatusTimeline } from "./request-status-timeline";
 import { ArrowLeft, MessageSquare, Sparkles, Package, FileText, ClipboardList } from "lucide-react";
-import { parseQuoteAttachments } from "@/lib/request-quote-link";
+import { clientQuotePdfHref, parseQuoteAttachments } from "@/lib/request-quote-link";
 
 const statusMap: Record<string, { tone: "muted" | "primary" | "accent" | "success" | "warning" | "destructive"; label: string }> = {
   DRAFT: { tone: "muted", label: "Borrador" },
@@ -244,16 +244,16 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
             ) : null}
             {attachedQuotes.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Cotizaciones adjuntas</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">PDFs de cotización</p>
                 {attachedQuotes.map((att) => (
-                  <Link
+                  <a
                     key={att.quoteId}
-                    href={`/portal/requests/${request.id}/quote/${att.quoteId}`}
+                    href={clientQuotePdfHref(request.id, att)}
                     className="flex items-center gap-2 rounded-md border border-primary/20 bg-card px-3 py-2 text-sm font-medium hover:bg-primary/5"
                   >
                     <FileText className="h-4 w-4 text-accent" />
-                    Abrir {att.number}
-                  </Link>
+                    Descargar PDF {att.number}
+                  </a>
                 ))}
               </div>
             ) : null}
@@ -281,14 +281,14 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                     </p>
                     <p className="mt-1.5 whitespace-pre-wrap">{m.message}</p>
                     {parseQuoteAttachments(m.attachments).map((att) => (
-                      <Link
+                      <a
                         key={att.quoteId}
-                        href={`/portal/requests/${request.id}/quote/${att.quoteId}`}
+                        href={clientQuotePdfHref(request.id, att)}
                         className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
                       >
                         <FileText className="h-3.5 w-3.5" />
-                        Abrir cotización {att.number}
-                      </Link>
+                        Descargar PDF {att.number}
+                      </a>
                     ))}
                   </div>
                 ))}
@@ -393,14 +393,14 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                   </p>
                   <p className="mt-1 whitespace-pre-wrap">{m.message}</p>
                   {parseQuoteAttachments(m.attachments).map((att) => (
-                    <Link
+                    <a
                       key={att.quoteId}
-                      href={`/portal/requests/${request.id}/quote/${att.quoteId}`}
+                      href={clientQuotePdfHref(request.id, att)}
                       className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
                     >
                       <FileText className="h-3.5 w-3.5" />
-                      Abrir cotización {att.number}
-                    </Link>
+                      Descargar PDF {att.number}
+                    </a>
                   ))}
                 </div>
               ))

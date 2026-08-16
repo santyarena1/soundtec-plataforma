@@ -84,13 +84,20 @@ export function RequestConversation({ requestId, messages, clientName }: Props) 
                 {m.quoteAttachments?.length ? (
                   <div className="mt-2 space-y-1">
                     {m.quoteAttachments.map((att) => (
-                      <a
-                        key={att.quoteId}
-                        href={`/admin/quotes/${att.quoteId}`}
-                        className="block text-xs font-medium text-accent hover:underline"
-                      >
-                        Abrir cotización {att.number}
-                      </a>
+                      <div key={att.quoteId} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <a
+                          href={`/admin/quotes/${att.quoteId}`}
+                          className="text-xs font-medium text-accent hover:underline"
+                        >
+                          Abrir editor {att.number}
+                        </a>
+                        <a
+                          href={att.pdfUrl.startsWith("http") ? att.pdfUrl : `/api/quotes/${att.quoteId}/pdf`}
+                          className="text-xs font-medium text-muted-foreground hover:underline"
+                        >
+                          Descargar PDF
+                        </a>
+                      </div>
                     ))}
                   </div>
                 ) : null}
