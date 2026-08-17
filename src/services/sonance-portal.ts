@@ -286,7 +286,8 @@ const PAGE_SIZE = 200;
 
 async function fetchProductsForCategory(
   session: Session,
-  categoryId: string
+  categoryId: string,
+  expand = "attributes,detail"
 ): Promise<PortalProductListing[]> {
   const all: PortalProductListing[] = [];
   let page = 1;
@@ -297,7 +298,7 @@ async function fetchProductsForCategory(
     // detail expande el objeto detail{} con info de modelo, SKU, dimensiones.
     const data = await apiGet<ProductsResponse>(
       session,
-      `/api/v2/products?categoryId=${categoryId}&pageSize=${PAGE_SIZE}&page=${page}&expand=attributes,detail`
+      `/api/v2/products?categoryId=${categoryId}&pageSize=${PAGE_SIZE}&page=${page}&expand=${expand}`
     );
     const batch = data.products ?? [];
     all.push(...batch);
@@ -636,7 +637,7 @@ export async function fetchFromPortalWithIds(
 
   const bySku = new Map<string, { product: SonanceProduct; portalId: string }>();
   for (const bc of brandCats) {
-    const portalItems = await fetchProductsForCategory(session, bc.id);
+    const portalItems = await fetchProductsForCategory(session, bc.id, "attributes");
     for (const portalItem of portalItems) {
       const product = mapPortalToProduct(portalItem, bc.brand);
       if (product) {
