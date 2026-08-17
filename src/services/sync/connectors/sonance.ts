@@ -23,15 +23,22 @@ import type {
   ProductSourceConnector,
 } from "../types";
 
+function str(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 function finiteNumber(value: string | number | null | undefined): number | undefined {
   if (value == null || value === "") return undefined;
   const parsed = typeof value === "number" ? value : Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function validDate(value: string | null | undefined): Date | undefined {
-  if (!value?.trim()) return undefined;
-  const parsed = new Date(value);
+function validDate(value: unknown): Date | undefined {
+  const normalized = str(value);
+  if (!normalized) return undefined;
+  const parsed = new Date(normalized);
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
@@ -39,10 +46,10 @@ function normalizeSpecs(attrs: PortalAttributeType[] | undefined): NormalizedSpe
   if (!Array.isArray(attrs)) return [];
   const specs: NormalizedSpec[] = [];
   for (const attr of attrs) {
-    const label = (attr.label ?? attr.name ?? "").trim();
+    const label = str(attr.label) ?? str(attr.name);
     const values = (attr.attributeValues ?? [])
-      .map((value) => (value.valueDisplay ?? value.value ?? "").trim())
-      .filter(Boolean);
+      .map((value) => str(value.valueDisplay) ?? str(value.value))
+      .filter((value): value is string => !!value);
     if (label && values.length > 0) {
       specs.push({ label, value: values.join(", ") });
     }
@@ -53,8 +60,8 @@ function normalizeSpecs(attrs: PortalAttributeType[] | undefined): NormalizedSpe
 function normalizeDocs(docs: PortalDocument[] | undefined): NormalizedDoc[] {
   if (!Array.isArray(docs)) return [];
   return docs.flatMap((doc) => {
-    const url = (doc.fileUrl ?? doc.filePath ?? "").trim();
-    const name = (doc.name ?? "").trim();
+    const url = str(doc.fileUrl) ?? str(doc.filePath);
+    const name = str(doc.name);
     return url && name
       ? [{
           name,
@@ -69,8 +76,8 @@ function normalizeDocs(docs: PortalDocument[] | undefined): NormalizedDoc[] {
 function normalizeImages(detail: PortalProductDetail): NormalizedImage[] {
   const seen = new Set<string>();
   const images: NormalizedImage[] = [];
-  const main = detail.largeImagePath ?? detail.mediumImagePath;
-  if (main?.trim()) {
+  const main = str(detail.largeImagePath) ?? str(detail.mediumImagePath);
+  if (main) {
     seen.add(main);
     images.push({
       url: main,
@@ -80,8 +87,8 @@ function normalizeImages(detail: PortalProductDetail): NormalizedImage[] {
     });
   }
   for (const image of detail.productImages ?? []) {
-    const url = image.largeImagePath ?? image.mediumImagePath ?? image.smallImagePath;
-    if (!url?.trim() || seen.has(url)) continue;
+    const url = str(image.largeImagePath) ?? str(image.mediumImagePath) ?? str(image.smallImagePath);
+    if (!url || seen.has(url)) continue;
     seen.add(url);
     images.push({
       url,
@@ -96,8 +103,8 @@ function normalizeImages(detail: PortalProductDetail): NormalizedImage[] {
 function pickSkus(items: PortalAccessory[] | undefined): string[] {
   if (!Array.isArray(items)) return [];
   return items
-    .map((item) => (item.productNumber ?? "").trim())
-    .filter(Boolean);
+    .map((item) => str(item.productNumber))
+    .filter((value): value is string => !!value);
 }
 
 type ListingProduct = Awaited<ReturnType<typeof fetchFromPortalWithIds>>["products"][number]["product"];
@@ -226,10 +233,10 @@ function normalizeDetail(
   listing: ListingProduct,
   detail: PortalProductDetail
 ): NormalizedProduct {
-  const name = detail.productTitle?.trim() || listing.name;
+  const name = str(detail.productTitle) ?? listing.name;
   const supplierSku = listing.supplierSku;
-  const modelNumber = detail.modelNumber?.trim() || undefined;
-  const manufacturerItem = detail.manufacturerItem?.trim() || undefined;
+  const modelNumber = str(detail.modelNumber);
+  const manufacturerItem = str(detail.manufacturerItem);
   const brandName =
     inferBrandFromKeywords([
       name,
@@ -237,8 +244,8 @@ function normalizeDetail(
       modelNumber,
       manufacturerItem,
     ]) ??
-    canonicalizeSonanceBrand(detail.brand?.name || listing.brand);
-  const htmlContent = detail.htmlContent?.trim() || undefined;
+    canonicalizeSonanceBrand(str(detail.brand?.name) ?? str(listing.brand));
+  const htmlContent = str(detail.htmlContent);
   const basicListPrice = finiteNumber(detail.basicListPrice);
   const basicSalePrice = finiteNumber(detail.basicSalePrice);
   const weight = finiteNumber(detail.shippingWeight);
@@ -248,9 +255,10 @@ function normalizeDetail(
   const videoUrl = typeof detail.properties?.videoUrl === "string"
     ? detail.properties.videoUrl.trim() || undefined
     : undefined;
-  const badges = detail.badges
-    ?.filter((badge) => badge.name?.trim())
-    .map((badge) => ({ name: badge.name }));
+  const badges = detail.badges?.flatMap((badge) => {
+    const badgeName = str(badge.name);
+    return badgeName ? [{ name: badgeName }] : [];
+  });
 
   return {
     matchField: "supplierSku",
@@ -264,38 +272,36 @@ function normalizeDetail(
           : undefined,
     modelNumber,
     manufacturerItem,
-    metaTitle: detail.pageTitle?.trim() || undefined,
-    metaDescription: detail.metaDescription?.trim() || undefined,
-    metaKeywords: detail.metaKeywords?.trim() || undefined,
+    metaTitle: str(detail.pageTitle),
+    metaDescription: str(detail.metaDescription),
+    metaKeywords: str(detail.metaKeywords),
     salePriceUsd:
       basicSalePrice !== undefined && basicSalePrice > 0
         ? basicSalePrice
         : undefined,
     salePriceStartsAt: validDate(detail.basicSaleStartDate),
     salePriceEndsAt: validDate(detail.basicSaleEndDate),
-    salePriceLabel: detail.salePriceLabel?.trim() || undefined,
+    salePriceLabel: str(detail.salePriceLabel),
     requiresQuote:
       typeof detail.quoteRequired === "boolean"
         ? detail.quoteRequired
         : undefined,
-    availabilityMessage: detail.availability?.message?.trim() || undefined,
-    availabilityType: detail.availability?.messageType?.trim() || undefined,
+    availabilityMessage: str(detail.availability?.message),
+    availabilityType: str(detail.availability?.messageType),
     badges: badges && badges.length > 0 ? badges : undefined,
     weight: weight !== undefined && weight > 0 ? weight : undefined,
     heightCm: height,
     widthCm: width,
     depthCm: depth,
-    urlSlug: detail.urlSegment?.trim() || undefined,
+    urlSlug: str(detail.urlSegment),
     vendorProductUrl:
-      detail.productDetailUrl?.trim() ||
-      detail.canonicalUrl?.trim() ||
-      undefined,
+      str(detail.productDetailUrl) ?? str(detail.canonicalUrl),
     videoUrl,
-    originalName: detail.productTitle?.trim() || listing.name,
+    originalName: str(detail.productTitle) ?? listing.name,
     brandName,
-    categoryName: listing.category?.trim() || undefined,
-    tipo: listing.subcategory?.trim() || undefined,
-    shortDescription: detail.shortDescription?.trim() || undefined,
+    categoryName: str(listing.category),
+    tipo: str(listing.subcategory),
+    shortDescription: str(detail.shortDescription),
     htmlContent,
     longDescription: htmlContent
       ?.replace(/<[^>]+>/g, " ")
