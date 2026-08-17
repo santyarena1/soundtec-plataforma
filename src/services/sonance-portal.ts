@@ -3,7 +3,25 @@ import { getSetting } from "@/lib/settings";
 import type { SonanceBrand, SonanceProduct } from "./sonance-import";
 
 const BASE = "https://my.sonance.com";
-const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36";
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+function browserHeaders(
+  extra: Record<string, string> = {}
+): Record<string, string> {
+  return {
+    "User-Agent": UA,
+    "Accept-Language": "es-AR,es;q=0.9,en;q=0.8",
+    "Accept-Encoding": "identity",
+    "sec-ch-ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    Connection: "keep-alive",
+    ...extra,
+  };
+}
 
 interface RawResponse {
   status: number;
@@ -82,32 +100,59 @@ async function login(): Promise<Session> {
     throw new Error("Credenciales de my.sonance.com no configuradas en el sistema.");
   }
 
-  // 1. GET SignIn page to seed cookies (CurrentCurrencyId, etc.)
-  const initRes = await rawRequestOnce(`${BASE}/SignIn`, "GET", {
-    "User-Agent": UA,
-    Accept: "text/html,*/*",
-  });
-  let cookies = parseCookiesRaw(rawSetCookies(initRes.headers));
-
-  // 2. POST /api/v1/sessions with credentials. Optimizely B2B Commerce auth endpoint.
   const body = JSON.stringify({ userName: username, password });
-  const sessRes = await rawRequestOnce(
-    `${BASE}/api/v1/sessions`,
-    "POST",
-    {
-      "Content-Type": "application/json",
-      "Content-Length": String(Buffer.byteLength(body)),
-      Accept: "application/json",
-      Cookie: cookieStr(cookies),
-      "User-Agent": UA,
-    },
-    body
-  );
-  cookies = { ...cookies, ...parseCookiesRaw(rawSetCookies(sessRes.headers)) };
+  async function attemptLogin(): Promise<{
+    cookies: Record<string, string>;
+    response: RawResponse;
+  }> {
+    const initRes = await rawRequestOnce(
+      `${BASE}/SignIn`,
+      "GET",
+      browserHeaders({
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "none",
+      })
+    );
+    let attemptCookies = parseCookiesRaw(rawSetCookies(initRes.headers));
+    const response = await rawRequestOnce(
+      `${BASE}/api/v1/sessions`,
+      "POST",
+      browserHeaders({
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "Content-Length": String(Buffer.byteLength(body)),
+        Origin: BASE,
+        Referer: `${BASE}/SignIn`,
+        "X-Requested-With": "XMLHttpRequest",
+        Cookie: cookieStr(attemptCookies),
+      }),
+      body
+    );
+    attemptCookies = {
+      ...attemptCookies,
+      ...parseCookiesRaw(rawSetCookies(response.headers)),
+    };
+    return { cookies: attemptCookies, response };
+  }
+
+  let attempt = await attemptLogin();
+  if (attempt.response.status === 503 || attempt.response.status === 429) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+    attempt = await attemptLogin();
+  }
+  const { cookies, response: sessRes } = attempt;
 
   if (sessRes.status !== 200 && sessRes.status !== 201) {
     const snippet = sessRes.body.slice(0, 200).replace(/\s+/g, " ");
-    throw new Error(`Login a my.sonance.com falló (HTTP ${sessRes.status}): ${snippet}`);
+    throw new Error(
+      `Login a my.sonance.com falló (HTTP ${sessRes.status}). ` +
+      "El portal está detrás de Cloudflare y puede estar bloqueando el request " +
+      "del servidor (IP de datacenter). Si persiste, hay que correr la sync " +
+      `desde una IP residencial o configurar un proxy. Respuesta: ${snippet}`
+    );
   }
 
   // Optimizely B2B sets auth cookies (`Authentication` or `.AspNet.Cookies`). Detect them.
@@ -126,11 +171,15 @@ async function login(): Promise<Session> {
 // ── API helpers ───────────────────────────────────────────────────────────────
 
 async function apiGet<T = unknown>(session: Session, path: string): Promise<T> {
-  const res = await rawRequestOnce(`${BASE}${path}`, "GET", {
-    Accept: "application/json",
-    Cookie: cookieStr(session.cookies),
-    "User-Agent": UA,
-  });
+  const res = await rawRequestOnce(
+    `${BASE}${path}`,
+    "GET",
+    browserHeaders({
+      Accept: "application/json",
+      Referer: `${BASE}/`,
+      Cookie: cookieStr(session.cookies),
+    })
+  );
   if (res.status !== 200) {
     throw new Error(`my.sonance.com API ${res.status} en GET ${path}: ${res.body.slice(0, 150)}`);
   }
