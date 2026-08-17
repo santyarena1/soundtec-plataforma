@@ -18,16 +18,15 @@
 - `vercel.json` con crons (Crestron diario 06:00 UTC, Sonance lunes 05:00 UTC).
 - Los endpoints/servicios VIEJOS siguen intactos y son el path autoritativo full-feature.
 
-## ⚠️ Lo que FALTA para paridad total (antes de deprecar los flujos viejos)
-El pipeline nuevo funciona pero todavía NO replica dos features del flujo viejo (por eso
-los viejos siguen vivos y nada se pierde si se usan):
-1. **Traducción ES (Sonance).** El enrich viejo traduce nombre/desc/specs/docs con
-   `translateBatchCached`. El connector nuevo guarda el texto en idioma origen. El nombre
-   ES curado se PRESERVA (upsert no lo pisa), pero specs/docs no se traducen aún.
-2. **Categoría Crestron (EN→ES).** El route viejo mapea `Gpo` → categoria/familia/rubro/subrubro
-   según setting `crestron.category_target` + `crestron.category_translations`. El connector
-   nuevo aún no aplica esa categoría.
-> Recomendación: correr paridad como "Fase 5" ANTES de apagar los endpoints viejos.
+## ✅ Paridad total (Fase 5, commit 8c051f7)
+El pipeline nuevo ya replica las dos features que faltaban:
+1. **Traducción ES (Sonance).** `translateItems` en el connector, batch con `translateBatchCached`
+   (nombre/desc/html/specs/docs), SOLO en mode apply, aislada de errores (no aborta el batch).
+2. **Categoría Crestron (EN→ES).** El connector carga `crestron.category_target` +
+   `crestron.category_translations`, hace find-or-create de Category/ProductFamily, y mapea a
+   categoria/familia/rubro/subrubro. `upsert` resuelve familyName.
+> Con esto el pipeline nuevo iguala a los flujos viejos. Los viejos siguen vivos hasta que el
+> dry-run con DB confirme paridad de datos; recién ahí se pueden deprecar.
 
 ## 🔴 Runbook de verificación con DB (pendiente — DB local estaba apagada)
 Cuando el Postgres local (`localhost:5433`) esté levantado, o directamente en el deploy:
