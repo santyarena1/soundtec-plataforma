@@ -1,12 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/sync?source=crestron&mode=apply",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/sync?source=sonance&mode=apply",
-      "schedule": "0 5 * * 1"
+      "path": "/api/cron/sync",
+      "schedule": "0 * * * *"
     }
   ]
 }

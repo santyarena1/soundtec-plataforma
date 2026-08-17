@@ -21,6 +21,30 @@ const SOURCES = [
 type SourceSlug = (typeof SOURCES)[number]["slug"];
 type SyncMode = "preview" | "apply";
 
+interface SourceSchedule {
+  enabled: boolean;
+  everyHours: number;
+  atHourArg: number | null;
+}
+
+interface ScheduleConfig {
+  crestron: SourceSchedule;
+  sonance: SourceSchedule;
+}
+
+interface ScheduleResponse {
+  ok: boolean;
+  schedule?: ScheduleConfig;
+  error?: string;
+}
+
+const FREQUENCIES = [
+  { value: 1, label: "Cada hora" },
+  { value: 6, label: "Cada 6 horas" },
+  { value: 24, label: "Diaria" },
+  { value: 168, label: "Semanal" },
+] as const;
+
 interface BatchSummary {
   done: boolean;
   processed: number;
@@ -210,6 +234,13 @@ export function UnifiedSyncPanel() {
   const [recentRuns, setRecentRuns] = useState<RunRecord[]>([]);
   const [loadingRuns, setLoadingRuns] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [schedule, setSchedule] = useState<ScheduleConfig | null>(null);
+  const [loadingSchedule, setLoadingSchedule] = useState(true);
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [scheduleMessage, setScheduleMessage] = useState<{
+    tone: "success" | "destructive";
+    text: string;
+  } | null>(null);
 
   const loadRecentRuns = useCallback(async () => {
     setLoadingRuns(true);
@@ -225,9 +256,76 @@ export function UnifiedSyncPanel() {
     }
   }, []);
 
+  const loadSchedule = useCallback(async () => {
+    setLoadingSchedule(true);
+    setScheduleMessage(null);
+    try {
+      const data = await readJson<ScheduleResponse>(
+        await fetch("/api/admin/sync/schedule", { cache: "no-store" })
+      );
+      if (!data.schedule) {
+        throw new Error("El servidor no devolvió la programación");
+      }
+      setSchedule(data.schedule);
+    } catch (scheduleError) {
+      setScheduleMessage({
+        tone: "destructive",
+        text: errorMessage(scheduleError),
+      });
+    } finally {
+      setLoadingSchedule(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadRecentRuns();
-  }, [loadRecentRuns]);
+    void loadSchedule();
+  }, [loadRecentRuns, loadSchedule]);
+
+  function updateSchedule(
+    sourceSlug: SourceSlug,
+    patch: Partial<SourceSchedule>
+  ) {
+    setSchedule((current) =>
+      current
+        ? {
+            ...current,
+            [sourceSlug]: { ...current[sourceSlug], ...patch },
+          }
+        : current
+    );
+    setScheduleMessage(null);
+  }
+
+  async function handleSaveSchedule() {
+    if (!schedule) return;
+    setSavingSchedule(true);
+    setScheduleMessage(null);
+    try {
+      const data = await readJson<ScheduleResponse>(
+        await fetch("/api/admin/sync/schedule", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(schedule),
+        })
+      );
+      if (!data.schedule) {
+        throw new Error("El servidor no devolvió la programación guardada");
+      }
+      setSchedule(data.schedule);
+      setScheduleMessage({
+        tone: "success",
+        text: "Programación guardada.",
+      });
+    } catch (scheduleError) {
+      setScheduleMessage({
+        tone: "destructive",
+        text: errorMessage(scheduleError),
+      });
+    } finally {
+      setSavingSchedule(false);
+    }
+  }
 
   async function handleRun(mode: SyncMode) {
     if (
@@ -329,6 +427,151 @@ export function UnifiedSyncPanel() {
               {runningMode === "apply" ? "Sincronizando…" : "Sincronizar ahora"}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-5 space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="heading-3">Programación automática</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                El cron corre cada hora y ejecuta cada fuente según esta configuración.
+                Requiere CRON_SECRET configurado en Vercel.
+              </p>
+            </div>
+            {schedule && (
+              <Badge tone={schedule.crestron.enabled || schedule.sonance.enabled ? "success" : "muted"}>
+                {schedule.crestron.enabled || schedule.sonance.enabled
+                  ? "activa"
+                  : "desactivada"}
+              </Badge>
+            )}
+          </div>
+
+          {loadingSchedule ? (
+            <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Cargando programación…
+            </div>
+          ) : schedule ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {SOURCES.map((item) => {
+                  const sourceSchedule = schedule[item.slug];
+                  const isPreset = FREQUENCIES.some(
+                    (frequency) => frequency.value === sourceSchedule.everyHours
+                  );
+                  return (
+                    <div
+                      key={item.slug}
+                      className="rounded-md border border-border bg-background p-4 space-y-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium">{item.name}</p>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={sourceSchedule.enabled}
+                          onClick={() =>
+                            updateSchedule(item.slug, {
+                              enabled: !sourceSchedule.enabled,
+                            })
+                          }
+                          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                            sourceSchedule.enabled
+                              ? "border-success/40 bg-success/10 text-success"
+                              : "border-border bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {sourceSchedule.enabled ? "Activa" : "Inactiva"}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="space-y-1.5">
+                          <span className="block text-xs font-medium text-muted-foreground">
+                            Frecuencia
+                          </span>
+                          <select
+                            value={sourceSchedule.everyHours}
+                            onChange={(event) =>
+                              updateSchedule(item.slug, {
+                                everyHours: Number(event.target.value),
+                              })
+                            }
+                            className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+                          >
+                            {!isPreset && (
+                              <option value={sourceSchedule.everyHours}>
+                                Cada {sourceSchedule.everyHours} horas
+                              </option>
+                            )}
+                            {FREQUENCIES.map((frequency) => (
+                              <option key={frequency.value} value={frequency.value}>
+                                {frequency.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="block text-xs font-medium text-muted-foreground">
+                            Hora (Argentina)
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={23}
+                            step={1}
+                            value={sourceSchedule.atHourArg ?? ""}
+                            placeholder="Cualquiera"
+                            onChange={(event) =>
+                              updateSchedule(item.slug, {
+                                atHourArg:
+                                  event.target.value === ""
+                                    ? null
+                                    : Number(event.target.value),
+                              })
+                            }
+                            className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                {scheduleMessage && (
+                  <p
+                    className={`text-xs ${
+                      scheduleMessage.tone === "success"
+                        ? "text-success"
+                        : "text-destructive"
+                    }`}
+                  >
+                    {scheduleMessage.text}
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  disabled={savingSchedule}
+                  onClick={() => void handleSaveSchedule()}
+                >
+                  {savingSchedule && (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  )}
+                  {savingSchedule ? "Guardando…" : "Guardar programación"}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-start gap-2 py-2 text-destructive">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              <p className="text-sm">
+                {scheduleMessage?.text ?? "No se pudo cargar la programación."}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
