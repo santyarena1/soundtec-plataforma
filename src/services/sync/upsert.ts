@@ -105,20 +105,43 @@ export async function applyNormalizedProduct(
       }
     }
   }
-  const [category, family] = await Promise.all([
-    categoryName
-      ? tx.category.findFirst({
-          where: { name: { equals: categoryName, mode: "insensitive" } },
+  let category: { id: string } | undefined = undefined;
+  if (categoryName) {
+    const categorySlug = slugify(categoryName);
+    category = await tx.category.findFirst({
+      where: {
+        OR: [
+          { name: { equals: categoryName, mode: "insensitive" } },
+          { slug: categorySlug },
+        ],
+      },
+      select: { id: true },
+    }) ?? undefined;
+    if (!category) {
+      try {
+        category = await tx.category.create({
+          data: { name: categoryName, slug: categorySlug },
           select: { id: true },
-        })
-      : undefined,
-    familyName
-      ? tx.productFamily.findFirst({
-          where: { name: { equals: familyName, mode: "insensitive" } },
+        });
+      } catch {
+        category = await tx.category.findFirst({
+          where: {
+            OR: [
+              { name: { equals: categoryName, mode: "insensitive" } },
+              { slug: categorySlug },
+            ],
+          },
           select: { id: true },
-        })
-      : undefined,
-  ]);
+        }) ?? undefined;
+      }
+    }
+  }
+  const family = familyName
+    ? await tx.productFamily.findFirst({
+        where: { name: { equals: familyName, mode: "insensitive" } },
+        select: { id: true },
+      }) ?? undefined
+    : undefined;
 
   const sharedData = {
     baseCostUsd: finite(n.baseCostUsd),

@@ -172,6 +172,7 @@ function normalizeDetail(
     originalName: detail.productTitle?.trim() || listing.name,
     brandName,
     categoryName: listing.category?.trim() || undefined,
+    tipo: listing.subcategory?.trim() || undefined,
     shortDescription: detail.shortDescription?.trim() || undefined,
     htmlContent,
     longDescription: htmlContent
