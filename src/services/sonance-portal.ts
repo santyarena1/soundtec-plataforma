@@ -616,3 +616,40 @@ export async function fetchFromPortal(existingSession?: Session): Promise<Portal
     rawCategoryCounts: rawCategoryCounts as Record<SonanceBrand, number>,
   };
 }
+
+export async function fetchFromPortalWithIds(
+  existingSession?: Session
+): Promise<{
+  products: Array<{ product: SonanceProduct; portalId: string }>;
+  brandCounts: Record<string, number>;
+  total: number;
+}> {
+  const session = existingSession ?? await login();
+  const brandCats = await fetchBrandCategories(session);
+  if (brandCats.length === 0) {
+    throw new Error(
+      "No se encontraron categorías de marca en my.sonance.com. La estructura del catálogo puede haber cambiado."
+    );
+  }
+
+  brandCats.sort((a, b) => brandPriority(a.slug) - brandPriority(b.slug));
+
+  const bySku = new Map<string, { product: SonanceProduct; portalId: string }>();
+  for (const bc of brandCats) {
+    const portalItems = await fetchProductsForCategory(session, bc.id);
+    for (const portalItem of portalItems) {
+      const product = mapPortalToProduct(portalItem, bc.brand);
+      if (product) {
+        bySku.set(product.supplierSku, { product, portalId: portalItem.id });
+      }
+    }
+  }
+
+  const products = Array.from(bySku.values());
+  const brandCounts: Record<string, number> = {};
+  for (const { product } of products) {
+    brandCounts[product.brand] = (brandCounts[product.brand] ?? 0) + 1;
+  }
+
+  return { products, brandCounts, total: products.length };
+}

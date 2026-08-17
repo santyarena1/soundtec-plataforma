@@ -1,6 +1,5 @@
 import {
-  buildSkuToIdMap,
-  fetchFromPortal,
+  fetchFromPortalWithIds,
   fetchProductDetailRawOrThrow,
   openSession,
   sessionFromCookies,
@@ -101,7 +100,7 @@ function pickSkus(items: PortalAccessory[] | undefined): string[] {
     .filter(Boolean);
 }
 
-type ListingProduct = Awaited<ReturnType<typeof fetchFromPortal>>["products"][number];
+type ListingProduct = Awaited<ReturnType<typeof fetchFromPortalWithIds>>["products"][number]["product"];
 
 const RUN_CACHE_KEY = "sync.sonance.run_cache";
 const RUN_CACHE_MAX_AGE_MS = 30 * 60_000;
@@ -141,17 +140,16 @@ function cacheIsFresh(cache: RunCache | undefined): cache is RunCache {
 
 async function buildRunCache(): Promise<RunCache> {
   const session = await openSession();
-  const listing = await fetchFromPortal(session);
-  const skuToPortalId = await buildSkuToIdMap(session);
-  const entries = listing.products.map((product) => ({
+  const listing = await fetchFromPortalWithIds(session);
+  const entries = listing.products.map(({ product, portalId }) => ({
     listing: product,
-    portalId: skuToPortalId.get(product.supplierSku) ?? null,
+    portalId,
   }));
   const cache: RunCache = {
     savedAt: new Date().toISOString(),
     sessionCookies: session.cookies,
     entries,
-    total: entries.length,
+    total: listing.total,
     brandCounts: listing.brandCounts,
   };
   await setSetting(RUN_CACHE_KEY, JSON.stringify(cache));
