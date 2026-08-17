@@ -289,22 +289,27 @@ async function fetchProductsForCategory(
   categoryId: string,
   expand = "attributes,detail"
 ): Promise<PortalProductListing[]> {
-  const all: PortalProductListing[] = [];
-  let page = 1;
-  let totalPages = 1;
-  while (page <= totalPages) {
+  const fetchPage = async (page: number): Promise<ProductsResponse> => {
     // expand=attributes — necesario para traer attributeTypes (Product Category,
     // Product Sub Category, specs técnicos) que vienen vacíos sin expand.
     // detail expande el objeto detail{} con info de modelo, SKU, dimensiones.
-    const data = await apiGet<ProductsResponse>(
+    return apiGet<ProductsResponse>(
       session,
       `/api/v2/products?categoryId=${categoryId}&pageSize=${PAGE_SIZE}&page=${page}&expand=${expand}`
     );
-    const batch = data.products ?? [];
-    all.push(...batch);
-    totalPages = data.pagination?.numberOfPages ?? 1;
-    if (batch.length === 0) break;
-    page++;
+  };
+
+  const firstPage = await fetchPage(1);
+  const all = [...(firstPage.products ?? [])];
+  const totalPages = firstPage.pagination?.numberOfPages ?? 1;
+  const pageConcurrency = 5;
+  for (let startPage = 2; startPage <= totalPages; startPage += pageConcurrency) {
+    const pageNumbers = Array.from(
+      { length: Math.min(pageConcurrency, totalPages - startPage + 1) },
+      (_, index) => startPage + index
+    );
+    const pages = await Promise.all(pageNumbers.map(fetchPage));
+    for (const page of pages) all.push(...(page.products ?? []));
   }
   return all;
 }
@@ -635,11 +640,26 @@ export async function fetchFromPortalWithIds(
 
   brandCats.sort((a, b) => brandPriority(a.slug) - brandPriority(b.slug));
 
+  const categoryResults: Array<{
+    brandCategory: (typeof brandCats)[number];
+    portalItems: PortalProductListing[];
+  }> = [];
+  const categoryConcurrency = 3;
+  for (let index = 0; index < brandCats.length; index += categoryConcurrency) {
+    const chunk = brandCats.slice(index, index + categoryConcurrency);
+    const results = await Promise.all(
+      chunk.map(async (brandCategory) => ({
+        brandCategory,
+        portalItems: await fetchProductsForCategory(session, brandCategory.id, "attributes"),
+      }))
+    );
+    categoryResults.push(...results);
+  }
+
   const bySku = new Map<string, { product: SonanceProduct; portalId: string }>();
-  for (const bc of brandCats) {
-    const portalItems = await fetchProductsForCategory(session, bc.id, "attributes");
+  for (const { brandCategory, portalItems } of categoryResults) {
     for (const portalItem of portalItems) {
-      const product = mapPortalToProduct(portalItem, bc.brand);
+      const product = mapPortalToProduct(portalItem, brandCategory.brand);
       if (product) {
         bySku.set(product.supplierSku, { product, portalId: portalItem.id });
       }
