@@ -34,7 +34,7 @@ function rawRequestOnce(
   method: string,
   reqHeaders: Record<string, string>,
   body?: string,
-  timeoutMs = 30000
+  timeoutMs = 25000
 ): Promise<RawResponse> {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
@@ -59,6 +59,7 @@ function rawRequestOnce(
       req.destroy();
       reject(new Error(`Timeout (${timeoutMs}ms) en ${method} ${url}`));
     });
+    req.setTimeout(timeoutMs);
     req.on("error", reject);
     if (body) req.write(body);
     req.end();
@@ -89,8 +90,12 @@ function cookieStr(cookies: Record<string, string>): string {
 
 // ── login ─────────────────────────────────────────────────────────────────────
 
-interface Session {
+export interface Session {
   cookies: Record<string, string>;
+}
+
+export function sessionFromCookies(cookies: Record<string, string>): Session {
+  return { cookies: { ...cookies } };
 }
 
 async function login(): Promise<Session> {
@@ -418,16 +423,23 @@ export interface PortalProductDetail {
 
 const RICH_EXPAND = "specifications,documents,attributes,detail,accessories,crosssells,brand";
 
+export async function fetchProductDetailRawOrThrow(
+  session: Session,
+  productId: string
+): Promise<PortalProductDetail | null> {
+  const data = await apiGet<{ product?: PortalProductDetail }>(
+    session,
+    `/api/v1/products/${productId}?expand=${RICH_EXPAND}`
+  );
+  return data.product ?? null;
+}
+
 export async function fetchProductDetailRaw(
   session: Session,
   productId: string
 ): Promise<PortalProductDetail | null> {
   try {
-    const data = await apiGet<{ product?: PortalProductDetail }>(
-      session,
-      `/api/v1/products/${productId}?expand=${RICH_EXPAND}`
-    );
-    return data.product ?? null;
+    return await fetchProductDetailRawOrThrow(session, productId);
   } catch (e) {
     console.error(`sonance-portal: failed to fetch detail for ${productId}`, e);
     return null;
@@ -554,8 +566,8 @@ function brandPriority(slug: string): number {
   return slug === UMBRELLA_BRAND_SLUG ? 1 : 10;
 }
 
-export async function fetchFromPortal(): Promise<PortalSyncResult> {
-  const session = await login();
+export async function fetchFromPortal(existingSession?: Session): Promise<PortalSyncResult> {
+  const session = existingSession ?? await login();
   const brandCats = await fetchBrandCategories(session);
   if (brandCats.length === 0) {
     throw new Error(

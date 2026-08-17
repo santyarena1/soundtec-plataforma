@@ -1,13 +1,16 @@
 import {
   buildSkuToIdMap,
   fetchFromPortal,
-  fetchProductDetailRaw,
+  fetchProductDetailRawOrThrow,
   openSession,
+  sessionFromCookies,
+  type Session,
   type PortalAccessory,
   type PortalAttributeType,
   type PortalDocument,
   type PortalProductDetail,
 } from "@/services/sonance-portal";
+import { getSetting, setSetting } from "@/lib/settings";
 import { translateBatchCached } from "@/services/translation-cache";
 import {
   canonicalizeSonanceBrand,
@@ -99,6 +102,92 @@ function pickSkus(items: PortalAccessory[] | undefined): string[] {
 }
 
 type ListingProduct = Awaited<ReturnType<typeof fetchFromPortal>>["products"][number];
+
+const RUN_CACHE_KEY = "sync.sonance.run_cache";
+const RUN_CACHE_MAX_AGE_MS = 30 * 60_000;
+
+interface RunCache {
+  savedAt: string;
+  sessionCookies: Record<string, string>;
+  entries: Array<{ listing: ListingProduct; portalId: string | null }>;
+  total: number;
+  brandCounts?: Record<string, number>;
+}
+
+function parseRunCache(raw: string): RunCache | undefined {
+  if (!raw) return undefined;
+  try {
+    const value = JSON.parse(raw) as Partial<RunCache>;
+    if (
+      typeof value.savedAt !== "string" ||
+      !value.sessionCookies ||
+      typeof value.sessionCookies !== "object" ||
+      !Array.isArray(value.entries) ||
+      typeof value.total !== "number"
+    ) {
+      return undefined;
+    }
+    return value as RunCache;
+  } catch {
+    return undefined;
+  }
+}
+
+function cacheIsFresh(cache: RunCache | undefined): cache is RunCache {
+  if (!cache) return false;
+  const savedAt = new Date(cache.savedAt).getTime();
+  return Number.isFinite(savedAt) && Date.now() - savedAt < RUN_CACHE_MAX_AGE_MS;
+}
+
+async function buildRunCache(): Promise<RunCache> {
+  const session = await openSession();
+  const listing = await fetchFromPortal(session);
+  const skuToPortalId = await buildSkuToIdMap(session);
+  const entries = listing.products.map((product) => ({
+    listing: product,
+    portalId: skuToPortalId.get(product.supplierSku) ?? null,
+  }));
+  const cache: RunCache = {
+    savedAt: new Date().toISOString(),
+    sessionCookies: session.cookies,
+    entries,
+    total: entries.length,
+    brandCounts: listing.brandCounts,
+  };
+  await setSetting(RUN_CACHE_KEY, JSON.stringify(cache));
+  return cache;
+}
+
+function isAuthError(error: unknown): boolean {
+  return error instanceof Error && /my\.sonance\.com API (401|403)\b/.test(error.message);
+}
+
+async function fetchBatchDetails(
+  entries: RunCache["entries"],
+  session: Session
+): Promise<NormalizedProduct[]> {
+  const items: NormalizedProduct[] = [];
+  const concurrency = 4;
+
+  for (let index = 0; index < entries.length; index += concurrency) {
+    const chunk = entries.slice(index, index + concurrency);
+    const details = await Promise.all(
+      chunk.map(async ({ listing, portalId }) => {
+        if (!portalId) return undefined;
+        try {
+          const detail = await fetchProductDetailRawOrThrow(session, portalId);
+          return detail ? normalizeDetail(listing, detail) : undefined;
+        } catch (error) {
+          if (isAuthError(error)) throw error;
+          return undefined;
+        }
+      })
+    );
+    items.push(...details.filter((item): item is NormalizedProduct => item !== undefined));
+  }
+
+  return items;
+}
 
 function normalizeDetail(
   listing: ListingProduct,
@@ -263,27 +352,24 @@ export const sonanceConnector: ProductSourceConnector = {
   async fetchNormalized(opts) {
     const offset = Math.max(0, opts?.offset ?? 0);
     const batchSize = Math.max(1, Math.min(50, opts?.batchSize ?? 25));
-    const listing = await fetchFromPortal();
-    const total = listing.products.length;
-    const batch = listing.products.slice(offset, offset + batchSize);
-    const session = await openSession();
-    const skuToPortalId = await buildSkuToIdMap(session);
-    const items: NormalizedProduct[] = [];
-    const concurrency = 4;
+    const storedCache = parseRunCache(await getSetting(RUN_CACHE_KEY, ""));
+    const cache = offset === 0 || !cacheIsFresh(storedCache)
+      ? await buildRunCache()
+      : storedCache;
+    const total = cache.total;
+    const batch = cache.entries.slice(offset, offset + batchSize);
+    let session = sessionFromCookies(cache.sessionCookies);
+    let items: NormalizedProduct[];
 
-    for (let index = 0; index < batch.length; index += concurrency) {
-      const chunk = batch.slice(index, index + concurrency);
-      const details = await Promise.all(
-        chunk.map(async (product) => {
-          const portalId = skuToPortalId.get(product.supplierSku);
-          if (!portalId) return undefined;
-          const detail = await fetchProductDetailRaw(session, portalId);
-          return detail ? normalizeDetail(product, detail) : undefined;
-        })
-      );
-      items.push(
-        ...details.filter((item): item is NormalizedProduct => item !== undefined)
-      );
+    try {
+      items = await fetchBatchDetails(batch, session);
+    } catch (error) {
+      if (!isAuthError(error)) throw error;
+      session = await openSession();
+      cache.sessionCookies = session.cookies;
+      cache.savedAt = new Date().toISOString();
+      await setSetting(RUN_CACHE_KEY, JSON.stringify(cache));
+      items = await fetchBatchDetails(batch, session);
     }
 
     const consumed = offset + batch.length;
@@ -293,7 +379,7 @@ export const sonanceConnector: ProductSourceConnector = {
       total,
       done,
       nextOffset: done ? null : consumed,
-      brandCounts: listing.brandCounts,
+      brandCounts: cache.brandCounts,
     };
   },
 };

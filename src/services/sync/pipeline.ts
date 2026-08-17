@@ -343,11 +343,13 @@ export async function processBatch(
     }
 
     const completed = fetched.done;
+    const nextProcessed = fetched.nextOffset ?? (completed ? fetched.total : run.processed + fetched.items.length);
+    const processedIncrement = Math.max(0, nextProcessed - run.processed);
     const updatedRun = await prisma.syncRun.update({
       where: { id: run.id },
       data: {
         totalItems: run.totalItems === 0 ? fetched.total : undefined,
-        processed: { increment: fetched.items.length },
+        processed: { increment: processedIncrement },
         matched: { increment: matched },
         created: { increment: created },
         updated: { increment: updated },
@@ -378,7 +380,7 @@ export async function processBatch(
     const message = errorMessage(error);
     await prisma.syncRun.update({
       where: { id: run.id },
-      data: { status: "FAILED", error: message },
+      data: { status: "FAILED", error: message, finishedAt: new Date() },
     }).catch(() => undefined);
     throw error;
   }
