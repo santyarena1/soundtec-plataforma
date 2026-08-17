@@ -116,6 +116,18 @@ function pickAccessorySkus(items: PortalAccessory[] | undefined): string[] {
   return items.map((a) => (a.productNumber ?? "").trim()).filter((s) => s.length > 0);
 }
 
+function finiteNumber(value: string | number | null | undefined): number | undefined {
+  if (value == null || value === "") return undefined;
+  const parsed = typeof value === "number" ? value : Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function validDate(value: string | null | undefined): Date | undefined {
+  if (!value?.trim()) return undefined;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
 // ── main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -317,10 +329,12 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Build a SKU lookup for accessory linking (across whole DB to support cross-brand)
-    let accessorySkus = new Set<string>();
+    const accessorySkus = new Set<string>();
     for (const { detail } of details) {
       if (!detail) continue;
       for (const s of pickAccessorySkus(detail.accessories)) accessorySkus.add(s);
+      for (const s of pickAccessorySkus(detail.crossSells)) accessorySkus.add(s);
+      for (const s of pickAccessorySkus(detail.alsoPurchasedProducts)) accessorySkus.add(s);
     }
     const accessoryProducts = accessorySkus.size > 0
       ? await prisma.product.findMany({
@@ -352,6 +366,8 @@ export async function POST(req: NextRequest) {
       const docs = normalizeDocs(detail.documents);
       const images = uniqueImageUrls(detail);
       const accSkus = pickAccessorySkus(detail.accessories);
+      const crossSellSkus = pickAccessorySkus(detail.crossSells);
+      const alsoPurchasedSkus = pickAccessorySkus(detail.alsoPurchasedProducts);
 
       // Apply translations if available
       if (translationMaps) {
@@ -369,6 +385,39 @@ export async function POST(req: NextRequest) {
         sourceMetadata: detail as unknown as object,
         enrichedAt: new Date(),
       };
+
+      const basicListPrice = finiteNumber(detail.basicListPrice);
+      const basicSalePrice = finiteNumber(detail.basicSalePrice);
+      const shippingWeight = finiteNumber(detail.shippingWeight);
+      const shippingHeight = finiteNumber(detail.shippingHeight);
+      const shippingWidth = finiteNumber(detail.shippingWidth);
+      const shippingLength = finiteNumber(detail.shippingLength);
+      const videoUrl = typeof detail.properties?.videoUrl === "string"
+        ? detail.properties.videoUrl.trim()
+        : "";
+
+      if (basicListPrice !== undefined && basicListPrice > 0) productUpdate.baseCostUsd = basicListPrice;
+      if (detail.modelNumber?.trim()) productUpdate.modelNumber = detail.modelNumber;
+      if (detail.manufacturerItem?.trim()) productUpdate.manufacturerItem = detail.manufacturerItem;
+      if (detail.pageTitle?.trim()) productUpdate.metaTitle = detail.pageTitle;
+      if (detail.metaDescription?.trim()) productUpdate.metaDescription = detail.metaDescription;
+      if (detail.metaKeywords?.trim()) productUpdate.metaKeywords = detail.metaKeywords;
+      if (basicSalePrice !== undefined && basicSalePrice > 0) productUpdate.salePriceUsd = basicSalePrice;
+      productUpdate.salePriceStartsAt = validDate(detail.basicSaleStartDate);
+      productUpdate.salePriceEndsAt = validDate(detail.basicSaleEndDate);
+      if (detail.salePriceLabel?.trim()) productUpdate.salePriceLabel = detail.salePriceLabel;
+      if (typeof detail.quoteRequired === "boolean") productUpdate.requiresQuote = detail.quoteRequired;
+      if (detail.availability?.message?.trim()) productUpdate.availabilityMessage = detail.availability.message;
+      if (detail.availability?.messageType?.trim()) productUpdate.availabilityType = detail.availability.messageType;
+      if (detail.badges && detail.badges.length > 0) productUpdate.badges = detail.badges as unknown as object;
+      if (shippingWeight !== undefined && shippingWeight > 0) productUpdate.weight = shippingWeight;
+      if (shippingHeight !== undefined) productUpdate.heightCm = shippingHeight;
+      if (shippingWidth !== undefined) productUpdate.widthCm = shippingWidth;
+      if (shippingLength !== undefined) productUpdate.depthCm = shippingLength;
+      if (detail.urlSegment?.trim()) productUpdate.urlSlug = detail.urlSegment;
+      const vendorProductUrl = detail.productDetailUrl?.trim() || detail.canonicalUrl?.trim();
+      if (vendorProductUrl) productUpdate.vendorProductUrl = vendorProductUrl;
+      if (videoUrl) productUpdate.videoUrl = videoUrl;
 
       if (detail.productTitle && translationMaps) {
         const es = translationMaps.productNames.get(detail.productTitle);
@@ -433,6 +482,28 @@ export async function POST(req: NextRequest) {
               data: toCreate,
               skipDuplicates: true,
             });
+          }
+        }
+
+        for (const [kind, skus] of [
+          ["CROSS_SELL", crossSellSkus],
+          ["ALSO_PURCHASED", alsoPurchasedSkus],
+        ] as const) {
+          if (skus.length === 0) continue;
+          await tx.accessoryRelation.deleteMany({
+            where: { productId: product.id, kind },
+          });
+          const toCreate = skus
+            .map((sku) => accessorySkuToId.get(sku))
+            .filter((id): id is string => !!id && id !== product.id)
+            .map((accessoryProductId) => ({
+              productId: product.id,
+              accessoryProductId,
+              isRequired: false,
+              kind,
+            }));
+          if (toCreate.length > 0) {
+            await tx.accessoryRelation.createMany({ data: toCreate, skipDuplicates: true });
           }
         }
       });

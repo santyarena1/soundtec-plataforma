@@ -1326,3 +1326,66 @@ model HistoricalQuoteLine {
   parsedModel  String?
   productId    String?
 }
+enum SyncSourceKind {
+  CRESTRON
+  SONANCE
+  EXCEL
+  MANUAL
+}
+
+enum SyncRunStatus {
+  PENDING
+  RUNNING
+  PREVIEW_READY
+  APPLYING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum SyncRunTrigger {
+  MANUAL
+  CRON
+}
+
+model SyncRun {
+  id           String         @id @default(cuid())
+  source       SyncSourceKind
+  status       SyncRunStatus  @default(PENDING)
+  trigger      SyncRunTrigger @default(MANUAL)
+  mode         String
+  totalItems   Int            @default(0)
+  processed    Int            @default(0)
+  matched      Int            @default(0)
+  created      Int            @default(0)
+  updated      Int            @default(0)
+  priceChanges Int            @default(0)
+  stockChanges Int            @default(0)
+  errors       Int            @default(0)
+  stats        Json?
+  error        String?
+  startedAt    DateTime       @default(now())
+  finishedAt   DateTime?
+  staged       SyncStagedProduct[]
+
+  @@index([source])
+  @@index([status])
+}
+
+model SyncStagedProduct {
+  id             String   @id @default(cuid())
+  syncRunId      String
+  syncRun        SyncRun  @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+  matchValue     String
+  rawJson        Json
+  normalizedJson Json
+  diffJson       Json?
+  action         String
+  status         String   @default("pending")
+  productId      String?
+  error          String?
+  createdAt      DateTime @default(now())
+
+  @@index([syncRunId])
+  @@index([matchValue])
+}
