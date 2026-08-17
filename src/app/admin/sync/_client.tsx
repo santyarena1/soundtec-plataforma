@@ -21,6 +21,49 @@ const SOURCES = [
 type SourceSlug = (typeof SOURCES)[number]["slug"];
 type SyncMode = "preview" | "apply";
 
+const MODE_LABELS: Record<string, string> = {
+  preview: "Previsualización",
+  apply: "Aplicación",
+};
+
+const RUN_STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pendiente",
+  RUNNING: "En curso",
+  PREVIEW_READY: "Previsualización lista",
+  APPLYING: "Aplicando",
+  COMPLETED: "Completada",
+  FAILED: "Fallida",
+  CANCELLED: "Cancelada",
+};
+
+const STAGED_STATUS_LABELS: Record<string, string> = {
+  pending: "Pendiente",
+  applied: "Aplicado",
+  error: "Error",
+};
+
+const ROW_ACTION_LABELS: Record<string, string> = {
+  create: "Nuevo",
+  update: "Actualizar",
+  noop: "Sin cambios",
+};
+
+function modeLabel(value: string): string {
+  return MODE_LABELS[value] ?? value;
+}
+
+function runStatusLabel(value: string): string {
+  return RUN_STATUS_LABELS[value] ?? value;
+}
+
+function stagedStatusLabel(value: string): string {
+  return STAGED_STATUS_LABELS[value] ?? value;
+}
+
+function rowActionLabel(value: string): string {
+  return ROW_ACTION_LABELS[value] ?? value;
+}
+
 interface SourceSchedule {
   enabled: boolean;
   everyHours: number;
@@ -681,10 +724,12 @@ export function UnifiedSyncPanel() {
                             {row.matchValue}
                           </td>
                           <td className="px-4 py-2.5">
-                            <Badge tone="muted">{row.action}</Badge>
+                            <Badge tone="muted">{rowActionLabel(row.action)}</Badge>
                           </td>
                           <td className="px-4 py-2.5">
-                            <Badge tone={statusTone(row.status)}>{row.status}</Badge>
+                            <Badge tone={statusTone(row.status)}>
+                              {stagedStatusLabel(row.status)}
+                            </Badge>
                           </td>
                           <td className="px-4 py-2.5 text-xs">
                             {diff.priceChanged ? (
@@ -767,10 +812,12 @@ export function UnifiedSyncPanel() {
                     <tr key={run.id} className="hover:bg-muted/20">
                       <td className="px-4 py-2.5 font-medium">{run.source}</td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                        {run.mode}
+                        {modeLabel(run.mode)}
                       </td>
                       <td className="px-4 py-2.5">
-                        <Badge tone={statusTone(run.status)}>{run.status}</Badge>
+                        <Badge tone={statusTone(run.status)}>
+                          {runStatusLabel(run.status)}
+                        </Badge>
                       </td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-xs">
                         {run.processed} / {run.totalItems}

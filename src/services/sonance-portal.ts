@@ -191,33 +191,6 @@ async function apiGet<T = unknown>(session: Session, path: string): Promise<T> {
   return JSON.parse(res.body) as T;
 }
 
-export async function rawApiGet(
-  session: Session,
-  path: string
-): Promise<{ status: number; bodyHead: string; json: unknown | null }> {
-  try {
-    const res = await rawRequestOnce(
-      `${BASE}${path}`,
-      "GET",
-      browserHeaders({
-        Accept: "application/json",
-        Referer: `${BASE}/`,
-        Cookie: cookieStr(session.cookies),
-      })
-    );
-    let json: unknown | null = null;
-    try {
-      json = JSON.parse(res.body) as unknown;
-    } catch {
-      json = null;
-    }
-    return { status: res.status, bodyHead: res.body.slice(0, 200), json };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return { status: 0, bodyHead: message.slice(0, 200), json: null };
-  }
-}
-
 // ── categories (brand discovery) ──────────────────────────────────────────────
 
 interface CategoryNode {

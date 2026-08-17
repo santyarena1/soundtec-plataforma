@@ -407,8 +407,14 @@ export async function POST(req: NextRequest) {
       productUpdate.salePriceEndsAt = validDate(detail.basicSaleEndDate);
       if (detail.salePriceLabel?.trim()) productUpdate.salePriceLabel = detail.salePriceLabel;
       if (typeof detail.quoteRequired === "boolean") productUpdate.requiresQuote = detail.quoteRequired;
-      if (detail.availability?.message?.trim()) productUpdate.availabilityMessage = detail.availability.message;
-      if (detail.availability?.messageType?.trim()) productUpdate.availabilityType = detail.availability.messageType;
+      if (
+        typeof detail.availability?.message === "string" &&
+        detail.availability.message.trim()
+      ) productUpdate.availabilityMessage = detail.availability.message;
+      if (
+        typeof detail.availability?.messageType === "string" &&
+        detail.availability.messageType.trim()
+      ) productUpdate.availabilityType = detail.availability.messageType;
       if (detail.badges && detail.badges.length > 0) productUpdate.badges = detail.badges as unknown as object;
       if (shippingWeight !== undefined && shippingWeight > 0) productUpdate.weight = shippingWeight;
       if (shippingHeight !== undefined) productUpdate.heightCm = shippingHeight;
