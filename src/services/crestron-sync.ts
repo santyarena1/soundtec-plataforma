@@ -19,6 +19,16 @@ export interface CrestronItem {
   OnHand: number;
   IsCommited: number;
   OnOrder: number;
+  SWeight1?: number;
+  SVolume?: number;
+  CodeBars?: string;
+  PicturName?: string;
+  TaxCodeAR?: string | null;
+  SalPackMsr?: string | null;
+  SalPackUn?: number | null;
+  Rate?: number | null;
+  RowNum?: number;
+  OrigItem?: string | null;
 }
 
 // ── low-level HTTPS helper ────────────────────────────────────────────────────

@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
 
     const products = await prisma.product.findMany({
       where: { internalSku: { in: skus } },
-      select: { id: true, internalSku: true },
+      select: { id: true, internalSku: true, originalName: true },
     });
 
     const byCode = new Map(products.map((p) => [p.internalSku, p]));
@@ -264,10 +264,40 @@ export async function POST(req: NextRequest) {
 
       const rawCategory = (item.Gpo ?? "").trim();
       const esCategory = (translations[rawCategory] ?? "").trim();
+      const stockStatus = toCrestronStockStatus(item);
+      const laredoAvailable = Number.isFinite(item["07_available"])
+        ? Math.trunc(item["07_available"])
+        : 0;
+      const miamiAvailable = Number.isFinite(item["11_available"])
+        ? Math.trunc(item["11_available"])
+        : 0;
 
       const data: Record<string, unknown> = {
         baseCostUsd: item.Price,
-        stockStatus: toCrestronStockStatus(item),
+        stockStatus,
+        currency: item.Currency?.trim() || undefined,
+        discountPercent:
+          item.Discount != null && Number.isFinite(item.Discount)
+            ? item.Discount
+            : undefined,
+        weight:
+          Number.isFinite(item.SWeight1) && item.SWeight1! > 0
+            ? item.SWeight1
+            : undefined,
+        volume:
+          Number.isFinite(item.SVolume) && item.SVolume! > 0
+            ? item.SVolume
+            : undefined,
+        stockQuantity: laredoAvailable + miamiAvailable,
+        availabilityType: stockStatus.replaceAll("_", ""),
+        availabilityMessage:
+          `Laredo: ${laredoAvailable} \u00b7 Miami: ${miamiAvailable}` +
+          (item.U_ETDCUS ? ` \u00b7 ETD f\u00e1brica: ${item.U_ETDCUS}` : ""),
+        sourceMetadata: item as unknown as object,
+        originalName:
+          !product.originalName?.trim() && item.ItemName?.trim()
+            ? item.ItemName
+            : undefined,
       };
 
       if (esCategory.length > 0) {
