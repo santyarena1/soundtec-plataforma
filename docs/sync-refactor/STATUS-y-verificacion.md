@@ -64,3 +64,21 @@ Cuando el Postgres local (`localhost:5433`) esté levantado, o directamente en e
 - Nunca desactivar productos automáticamente.
 - Nunca pisar valor bueno con null.
 - Match keys sin cambios (Crestron internalSku, Sonance supplierSku).
+
+---
+
+## 🔎 Bug BLAZE — causa raíz CONFIRMADA (datos live de mySonance, 2026-08-17)
+Las categorías de marca del portal (`/api/v1/categories/?maxDepth=1`) son SOLO:
+`pn-sonance`, `pn-iport`, `pn-Trufig`, `pn-james`. **NO existe `pn-blaze` (ni `pn-apparel`).**
+→ BLAZE/APPAREL viven dentro del paraguas `pn-sonance`; el descubrimiento por categoría
+no puede encontrarlos. La ÚNICA forma de identificarlos es keyword en nombre/SKU/modelo.
+
+Fix (commit fcdf244): `src/services/sync/brand.ts` (inferBrandFromKeywords +
+canonicalizeSonanceBrand) usado por el connector Sonance, + find-or-create de Brand
+robusto en `upsert.ts`. Resultado: BLAZE → "BLAZE BY SONANCE" en la primera pasada,
+reconocido como marca (brandId linkeado) y contado en la sección del sync. Ya no hacen
+falta los endpoints backfill-brand-* / cleanup-orphan-brands.
+
+Pendiente de chequear en el dry-run: si productos BLAZE quote-only (canShowPrice=false o
+price<=0) se descartan en `mapPortalToProduct` (filtro heredado). Si la sección BLAZE
+sigue incompleta tras el fix, revisar ese filtro.
