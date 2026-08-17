@@ -186,7 +186,7 @@ async function fetchBatchDetails(
   skippedNoId: number;
 }> {
   const items: NormalizedProduct[] = [];
-  const concurrency = 2;
+  const concurrency = 5;
   const attempted = entries.filter((entry) => !!entry.portalId).length;
   const skippedNoId = entries.length - attempted;
   let failedCount = 0;
@@ -223,7 +223,6 @@ async function fetchBatchDetails(
       })
     );
     items.push(...details.filter((item): item is NormalizedProduct => item !== undefined));
-    if (index + concurrency < entries.length) await sleep(200);
   }
 
   return { items, failedCount, firstError, attempted, skippedNoId };
@@ -390,7 +389,7 @@ export const sonanceConnector: ProductSourceConnector = {
 
   async fetchNormalized(opts) {
     const offset = Math.max(0, opts?.offset ?? 0);
-    const batchSize = Math.max(1, Math.min(50, opts?.batchSize ?? 25));
+    const batchSize = Math.max(1, Math.min(100, opts?.batchSize ?? 25));
     const storedCache = parseRunCache(await getSetting(RUN_CACHE_KEY, ""));
     const cache = offset === 0 || !cacheIsFresh(storedCache)
       ? await buildRunCache()

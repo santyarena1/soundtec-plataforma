@@ -185,7 +185,7 @@ export async function startRun(
 
 export async function processBatch(
   runId: string,
-  batchSize = 25
+  batchSize = 50
 ): Promise<ProcessBatchResult> {
   const run = await prisma.syncRun.findUnique({ where: { id: runId } });
   if (!run) throw new Error(`Sync run not found: ${runId}`);
