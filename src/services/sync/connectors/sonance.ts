@@ -160,12 +160,30 @@ function isAuthError(error: unknown): boolean {
   return error instanceof Error && /my\.sonance\.com API (401|403)\b/.test(error.message);
 }
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function fetchBatchDetails(
   entries: RunCache["entries"],
   session: Session
-): Promise<NormalizedProduct[]> {
+): Promise<{
+  items: NormalizedProduct[];
+  failedCount: number;
+  firstError: string | undefined;
+  attempted: number;
+  skippedNoId: number;
+}> {
   const items: NormalizedProduct[] = [];
-  const concurrency = 4;
+  const concurrency = 2;
+  const attempted = entries.filter((entry) => !!entry.portalId).length;
+  const skippedNoId = entries.length - attempted;
+  let failedCount = 0;
+  let firstError: string | undefined;
 
   for (let index = 0; index < entries.length; index += concurrency) {
     const chunk = entries.slice(index, index + concurrency);
@@ -174,17 +192,34 @@ async function fetchBatchDetails(
         if (!portalId) return undefined;
         try {
           const detail = await fetchProductDetailRawOrThrow(session, portalId);
-          return detail ? normalizeDetail(listing, detail) : undefined;
+          if (detail) return normalizeDetail(listing, detail);
+          const message = `Sonance devolvió un detalle vacío para ${portalId}`;
+          firstError ??= message;
+          failedCount++;
+          return undefined;
         } catch (error) {
           if (isAuthError(error)) throw error;
+          const message = errorMessage(error);
+          firstError ??= message;
+          if (/\b(429|503)\b/.test(message)) {
+            await sleep(1200);
+            try {
+              const detail = await fetchProductDetailRawOrThrow(session, portalId);
+              if (detail) return normalizeDetail(listing, detail);
+            } catch (retryError) {
+              if (isAuthError(retryError)) throw retryError;
+            }
+          }
+          failedCount++;
           return undefined;
         }
       })
     );
     items.push(...details.filter((item): item is NormalizedProduct => item !== undefined));
+    if (index + concurrency < entries.length) await sleep(200);
   }
 
-  return items;
+  return { items, failedCount, firstError, attempted, skippedNoId };
 }
 
 function normalizeDetail(
@@ -357,17 +392,24 @@ export const sonanceConnector: ProductSourceConnector = {
     const total = cache.total;
     const batch = cache.entries.slice(offset, offset + batchSize);
     let session = sessionFromCookies(cache.sessionCookies);
-    let items: NormalizedProduct[];
+    let detailResult: Awaited<ReturnType<typeof fetchBatchDetails>>;
 
     try {
-      items = await fetchBatchDetails(batch, session);
+      detailResult = await fetchBatchDetails(batch, session);
     } catch (error) {
       if (!isAuthError(error)) throw error;
       session = await openSession();
       cache.sessionCookies = session.cookies;
       cache.savedAt = new Date().toISOString();
       await setSetting(RUN_CACHE_KEY, JSON.stringify(cache));
-      items = await fetchBatchDetails(batch, session);
+      detailResult = await fetchBatchDetails(batch, session);
+    }
+
+    const { items, attempted, firstError } = detailResult;
+    if (items.length === 0 && attempted > 0 && firstError) {
+      throw new Error(
+        `Sonance: fallaron los ${attempted} detalles del lote. Primer error: ${firstError}`
+      );
     }
 
     const consumed = offset + batch.length;
