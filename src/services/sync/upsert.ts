@@ -72,7 +72,8 @@ export async function applyNormalizedProduct(
   });
   const brandName = nonEmpty(n.brandName);
   const categoryName = nonEmpty(n.categoryName);
-  const [brand, category] = await Promise.all([
+  const familyName = nonEmpty(n.familyName);
+  const [brand, category, family] = await Promise.all([
     brandName
       ? tx.brand.findFirst({
           where: { name: { equals: brandName, mode: "insensitive" } },
@@ -82,6 +83,12 @@ export async function applyNormalizedProduct(
     categoryName
       ? tx.category.findFirst({
           where: { name: { equals: categoryName, mode: "insensitive" } },
+          select: { id: true },
+        })
+      : undefined,
+    familyName
+      ? tx.productFamily.findFirst({
+          where: { name: { equals: familyName, mode: "insensitive" } },
           select: { id: true },
         })
       : undefined,
@@ -123,6 +130,7 @@ export async function applyNormalizedProduct(
     videoUrl: nonEmpty(n.videoUrl),
     brandId: brand?.id,
     categoryId: category?.id,
+    familyId: family?.id,
     familia: nonEmpty(n.familia),
     tipo: nonEmpty(n.tipo),
     specifications: n.specifications && n.specifications.length > 0

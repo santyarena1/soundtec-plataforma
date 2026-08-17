@@ -217,6 +217,19 @@ export async function processBatch(
       batchSize,
     });
 
+    if (run.mode === "apply" && connector.translateItems) {
+      try {
+        await connector.translateItems(fetched.items);
+      } catch (translationError) {
+        const translationMessage =
+          `Translation failed: ${errorMessage(translationError)}`;
+        await prisma.syncRun.update({
+          where: { id: run.id },
+          data: { error: translationMessage },
+        }).catch(() => undefined);
+      }
+    }
+
     if (run.totalItems === 0 && fetched.total > 0) {
       const currentStats =
         run.stats && typeof run.stats === "object" && !Array.isArray(run.stats)

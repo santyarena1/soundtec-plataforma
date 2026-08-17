@@ -60,6 +60,7 @@ export interface NormalizedProduct {
   originalName?: string;
   brandName?: string;
   categoryName?: string;
+  familyName?: string;
   familia?: string;
   tipo?: string;
   images?: NormalizedImage[];
@@ -76,6 +77,7 @@ export interface ProductSourceConnector {
   displayName: string;
   source: "CRESTRON" | "SONANCE" | "EXCEL" | "MANUAL";
   matchField: "internalSku" | "supplierSku";
+  translateItems?(items: NormalizedProduct[]): Promise<void>;
   fetchNormalized(opts?: {
     offset?: number;
     batchSize?: number;
