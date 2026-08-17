@@ -1,4 +1,5 @@
 import { Prisma, type ProductRelationKind } from "@prisma/client";
+import { slugify } from "@/lib/utils";
 import type { NormalizedProduct } from "./types";
 
 type ApplyResult = {
@@ -73,13 +74,38 @@ export async function applyNormalizedProduct(
   const brandName = nonEmpty(n.brandName);
   const categoryName = nonEmpty(n.categoryName);
   const familyName = nonEmpty(n.familyName);
-  const [brand, category, family] = await Promise.all([
-    brandName
-      ? tx.brand.findFirst({
-          where: { name: { equals: brandName, mode: "insensitive" } },
+  let brand: { id: string } | undefined = undefined;
+  if (brandName) {
+    const brandSlug = slugify(brandName);
+    brand = await tx.brand.findFirst({
+      where: {
+        OR: [
+          { name: { equals: brandName, mode: "insensitive" } },
+          { slug: brandSlug },
+        ],
+      },
+      select: { id: true },
+    }) ?? undefined;
+    if (!brand) {
+      try {
+        brand = await tx.brand.create({
+          data: { name: brandName, slug: brandSlug },
           select: { id: true },
-        })
-      : undefined,
+        });
+      } catch {
+        brand = await tx.brand.findFirst({
+          where: {
+            OR: [
+              { name: { equals: brandName, mode: "insensitive" } },
+              { slug: brandSlug },
+            ],
+          },
+          select: { id: true },
+        }) ?? undefined;
+      }
+    }
+  }
+  const [category, family] = await Promise.all([
     categoryName
       ? tx.category.findFirst({
           where: { name: { equals: categoryName, mode: "insensitive" } },

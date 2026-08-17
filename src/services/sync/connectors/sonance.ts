@@ -9,6 +9,10 @@ import {
   type PortalProductDetail,
 } from "@/services/sonance-portal";
 import { translateBatchCached } from "@/services/translation-cache";
+import {
+  canonicalizeSonanceBrand,
+  inferBrandFromKeywords,
+} from "../brand";
 import type {
   NormalizedDoc,
   NormalizedImage,
@@ -100,6 +104,18 @@ function normalizeDetail(
   listing: ListingProduct,
   detail: PortalProductDetail
 ): NormalizedProduct {
+  const name = detail.productTitle?.trim() || listing.name;
+  const supplierSku = listing.supplierSku;
+  const modelNumber = detail.modelNumber?.trim() || undefined;
+  const manufacturerItem = detail.manufacturerItem?.trim() || undefined;
+  const brandName =
+    inferBrandFromKeywords([
+      name,
+      supplierSku,
+      modelNumber,
+      manufacturerItem,
+    ]) ??
+    canonicalizeSonanceBrand(detail.brand?.name || listing.brand);
   const htmlContent = detail.htmlContent?.trim() || undefined;
   const basicListPrice = finiteNumber(detail.basicListPrice);
   const basicSalePrice = finiteNumber(detail.basicSalePrice);
@@ -116,16 +132,16 @@ function normalizeDetail(
 
   return {
     matchField: "supplierSku",
-    matchValue: listing.supplierSku,
-    name: detail.productTitle?.trim() || listing.name,
+    matchValue: supplierSku,
+    name,
     baseCostUsd:
       basicListPrice !== undefined && basicListPrice > 0
         ? basicListPrice
         : listing.price > 0
           ? listing.price
           : undefined,
-    modelNumber: detail.modelNumber?.trim() || undefined,
-    manufacturerItem: detail.manufacturerItem?.trim() || undefined,
+    modelNumber,
+    manufacturerItem,
     metaTitle: detail.pageTitle?.trim() || undefined,
     metaDescription: detail.metaDescription?.trim() || undefined,
     metaKeywords: detail.metaKeywords?.trim() || undefined,
@@ -154,7 +170,7 @@ function normalizeDetail(
       undefined,
     videoUrl,
     originalName: detail.productTitle?.trim() || listing.name,
-    brandName: detail.brand?.name?.trim() || listing.brand || undefined,
+    brandName,
     categoryName: listing.category?.trim() || undefined,
     shortDescription: detail.shortDescription?.trim() || undefined,
     htmlContent,
