@@ -323,47 +323,20 @@ export const sonanceConnector: ProductSourceConnector = {
   matchField: "supplierSku",
 
   async translateItems(items) {
-    const allNames: string[] = [];
     const allShorts: string[] = [];
     const allHtmls: string[] = [];
-    const allSpecLabels = new Set<string>();
-    const allSpecValues = new Set<string>();
-    const allDocNames = new Set<string>();
 
     for (const item of items) {
-      if (item.name) allNames.push(item.name);
       if (item.shortDescription) allShorts.push(item.shortDescription);
       if (item.htmlContent) allHtmls.push(item.htmlContent);
-      for (const spec of item.specifications ?? []) {
-        allSpecLabels.add(spec.label);
-        allSpecValues.add(spec.value);
-      }
-      for (const doc of item.documents ?? []) {
-        allDocNames.add(doc.name);
-      }
     }
 
-    const [
-      productNames,
-      shortDescs,
-      htmlContents,
-      specLabels,
-      specValues,
-      docNames,
-    ] = await Promise.all([
-      translateBatchCached(allNames, "product_name"),
+    const [shortDescs, htmlContents] = await Promise.all([
       translateBatchCached(allShorts, "short_desc"),
       translateBatchCached(allHtmls, "long_desc"),
-      translateBatchCached(Array.from(allSpecLabels), "spec_label"),
-      translateBatchCached(Array.from(allSpecValues), "spec_value"),
-      translateBatchCached(Array.from(allDocNames), "doc_name"),
     ]);
 
     for (const item of items) {
-      const translatedName = productNames.get(item.name);
-      if (translatedName && translatedName !== item.name) {
-        item.normalizedNameOverride = translatedName;
-      }
       if (item.shortDescription) {
         item.shortDescription =
           shortDescs.get(item.shortDescription) ?? item.shortDescription;
@@ -376,13 +349,6 @@ export const sonanceConnector: ProductSourceConnector = {
           .replace(/<[^>]+>/g, " ")
           .replace(/\s+/g, " ")
           .trim();
-      }
-      for (const spec of item.specifications ?? []) {
-        spec.labelEs = specLabels.get(spec.label);
-        spec.valueEs = specValues.get(spec.value);
-      }
-      for (const doc of item.documents ?? []) {
-        doc.nameEs = docNames.get(doc.name);
       }
     }
   },

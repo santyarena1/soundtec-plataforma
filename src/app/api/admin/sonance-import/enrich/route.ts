@@ -12,7 +12,7 @@ import {
   type PortalDocument,
   type PortalAccessory,
 } from "@/services/sonance-portal";
-import { translateBatchCached, type TranslationContext } from "@/services/translation-cache";
+import { translateBatchCached } from "@/services/translation-cache";
 import { revalidatePath } from "next/cache";
 
 const CACHED_PAYLOAD_KEY = "sonance.sync_preview"; // enrich consume el preview (con items + skus)
@@ -289,43 +289,23 @@ export async function POST(req: NextRequest) {
 
     // 4. Collect text for batch translation (cache-backed)
     let translationMaps: {
-      productNames: Map<string, string>;
       shortDescs: Map<string, string>;
       htmlContents: Map<string, string>;
-      specLabels: Map<string, string>;
-      specValues: Map<string, string>;
-      docNames: Map<string, string>;
     } | null = null;
 
     if (translate) {
-      const allNames: string[] = [];
       const allShorts: string[] = [];
       const allHtmls: string[] = [];
-      const allSpecLabels = new Set<string>();
-      const allSpecValues = new Set<string>();
-      const allDocNames = new Set<string>();
       for (const { detail } of details) {
         if (!detail) continue;
-        if (detail.productTitle) allNames.push(detail.productTitle);
         if (detail.shortDescription) allShorts.push(detail.shortDescription);
         if (detail.htmlContent) allHtmls.push(detail.htmlContent);
-        for (const s of normalizeSpecs(detail.attributeTypes)) {
-          allSpecLabels.add(s.label);
-          allSpecValues.add(s.value);
-        }
-        for (const d of normalizeDocs(detail.documents)) {
-          allDocNames.add(d.name);
-        }
       }
-      const [productNames, shortDescs, htmlContents, specLabels, specValues, docNames] = await Promise.all([
-        translateBatchCached(allNames, "product_name"),
+      const [shortDescs, htmlContents] = await Promise.all([
         translateBatchCached(allShorts, "short_desc"),
         translateBatchCached(allHtmls, "long_desc"),
-        translateBatchCached(Array.from(allSpecLabels), "spec_label"),
-        translateBatchCached(Array.from(allSpecValues), "spec_value"),
-        translateBatchCached(Array.from(allDocNames), "doc_name"),
       ]);
-      translationMaps = { productNames, shortDescs, htmlContents, specLabels, specValues, docNames };
+      translationMaps = { shortDescs, htmlContents };
     }
 
     // 5. Build a SKU lookup for accessory linking (across whole DB to support cross-brand)
@@ -368,17 +348,6 @@ export async function POST(req: NextRequest) {
       const accSkus = pickAccessorySkus(detail.accessories);
       const crossSellSkus = pickAccessorySkus(detail.crossSells);
       const alsoPurchasedSkus = pickAccessorySkus(detail.alsoPurchasedProducts);
-
-      // Apply translations if available
-      if (translationMaps) {
-        for (const s of specs) {
-          s.labelEs = translationMaps.specLabels.get(s.label);
-          s.valueEs = translationMaps.specValues.get(s.value);
-        }
-        for (const d of docs) {
-          d.nameEs = translationMaps.docNames.get(d.name);
-        }
-      }
 
       // Build update data
       const productUpdate: Record<string, unknown> = {
@@ -425,11 +394,8 @@ export async function POST(req: NextRequest) {
       if (vendorProductUrl) productUpdate.vendorProductUrl = vendorProductUrl;
       if (videoUrl) productUpdate.videoUrl = videoUrl;
 
-      if (detail.productTitle && translationMaps) {
-        const es = translationMaps.productNames.get(detail.productTitle);
-        if (es && es !== detail.productTitle) productUpdate.normalizedName = es;
-      }
       if (detail.productTitle) {
+        productUpdate.normalizedName = detail.productTitle;
         productUpdate.originalName = detail.productTitle;
       }
       if (detail.shortDescription) {

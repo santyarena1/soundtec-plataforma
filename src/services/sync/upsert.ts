@@ -205,10 +205,9 @@ export async function applyNormalizedProduct(
   const data: TimestampedProductUpdateInput = { ...sharedData };
 
   const originalName = nonEmpty(n.originalName);
-  const normalizedNameOverride = nonEmpty(n.normalizedNameOverride);
   let result: ApplyResult;
   if (existing) {
-    if (normalizedNameOverride) data.normalizedName = normalizedNameOverride;
+    data.normalizedName = name;
     if (
       originalName &&
       (n.matchField === "supplierSku" || !existing.originalName.trim())
@@ -232,7 +231,7 @@ export async function applyNormalizedProduct(
     const createData: TimestampedProductCreateInput = {
       ...sharedData,
       [n.matchField]: matchValue,
-      normalizedName: normalizedNameOverride ?? name,
+      normalizedName: name,
       originalName: originalName ?? name,
       baseCostUsd: finite(n.baseCostUsd) ?? 0,
     };
