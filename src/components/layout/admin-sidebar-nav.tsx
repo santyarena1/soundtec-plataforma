@@ -65,9 +65,10 @@ const groups: NavGroup[] = [
   {
     title: "Listas e importación",
     items: [
+      { href: "/admin/sync", label: "Sincronización", icon: RefreshCw, scope: "imports.manage" },
       { href: "/admin/imports", label: "Importaciones Excel", icon: FileSpreadsheet, scope: "imports.manage" },
-      { href: "/admin/crestron-sync", label: "Sync Crestron", icon: RefreshCw, scope: "imports.manage" },
-      { href: "/admin/sonance-import", label: "Importar Sonance/BLAZE", icon: FileSpreadsheet, scope: "imports.manage" },
+      { href: "/admin/crestron-sync", label: "Sync Crestron (clásico)", icon: RefreshCw, scope: "imports.manage" },
+      { href: "/admin/sonance-import", label: "Importar Sonance/BLAZE (clásico)", icon: FileSpreadsheet, scope: "imports.manage" },
       { href: "/admin/share-lists", label: "Listas compartibles", icon: Share2, scope: "share_lists.manage" },
       { href: "/admin/mappings", label: "Mapeos", icon: ListChecks, scope: "imports.manage" },
       { href: "/admin/scrapers", label: "Scrapers", icon: Hammer, scope: "scrapers.manage" },
