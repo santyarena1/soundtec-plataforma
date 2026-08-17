@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatUsd } from "@/lib/utils";
 import {
   Package, Users, FileSpreadsheet, Send, Sparkles, LifeBuoy,
 } from "lucide-react";
@@ -13,6 +13,7 @@ export const metadata = { title: "Admin · Dashboard" };
 
 export default async function AdminDashboardPage() {
   const user = await requireAdmin();
+  const now = new Date();
 
   const [
     totalProducts,
@@ -23,6 +24,7 @@ export default async function AdminDashboardPage() {
     openTickets,
     recentRequests,
     recentImports,
+    offerProductsRaw,
   ] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     prisma.user.count({ where: { role: "CLIENT", isActive: true } }),
@@ -36,7 +38,29 @@ export default async function AdminDashboardPage() {
       include: { user: { select: { name: true, companyName: true } }, _count: { select: { items: true } } },
     }),
     prisma.importBatch.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
+    prisma.product.findMany({
+      where: {
+        salePriceUsd: { not: null },
+        OR: [{ salePriceEndsAt: null }, { salePriceEndsAt: { gte: now } }],
+      },
+      orderBy: [
+        { salePriceEndsAt: { sort: "asc", nulls: "last" } },
+        { normalizedName: "asc" },
+      ],
+      take: 51,
+      select: {
+        id: true,
+        normalizedName: true,
+        internalSku: true,
+        baseCostUsd: true,
+        salePriceUsd: true,
+        salePriceEndsAt: true,
+      },
+    }),
   ]);
+
+  const hasMoreOfferProducts = offerProductsRaw.length > 50;
+  const offerProducts = offerProductsRaw.slice(0, 50);
 
   const tones = {
     primary: "bg-primary/10 text-primary",
@@ -139,6 +163,60 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between gap-4">
+            <CardTitle>Productos en oferta</CardTitle>
+            <Link href="/admin/products" className="text-sm text-accent hover:underline">
+              Ver todos
+            </Link>
+          </div>
+          {offerProducts.length === 0 ? (
+            <p className="muted-text py-8 text-center">No hay productos en oferta.</p>
+          ) : (
+            <>
+              <div className="mt-4 overflow-x-auto rounded-md border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Producto</th>
+                      <th className="px-3 py-2 font-medium">COD. Tango</th>
+                      <th className="px-3 py-2 text-right font-medium">Costo USD</th>
+                      <th className="px-3 py-2 text-right font-medium">Oferta proveedor</th>
+                      <th className="px-3 py-2 font-medium">Finaliza</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {offerProducts.map((product) => (
+                      <tr key={product.id} className="hover:bg-secondary/30">
+                        <td className="px-3 py-2.5">
+                          <Link href={`/admin/products/${product.id}`} className="font-medium hover:text-accent hover:underline">
+                            {product.normalizedName}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{product.internalSku || "—"}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">{formatUsd(Number(product.baseCostUsd))}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-accent">
+                          {formatUsd(product.salePriceUsd == null ? null : Number(product.salePriceUsd))}
+                        </td>
+                        <td className="px-3 py-2.5 text-muted-foreground">
+                          {product.salePriceEndsAt ? formatDate(product.salePriceEndsAt) : "Sin vencimiento"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {hasMoreOfferProducts ? (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Se muestran los primeros 50 productos. <Link href="/admin/products" className="text-accent hover:underline">Ver todos</Link>
+                </p>
+              ) : null}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

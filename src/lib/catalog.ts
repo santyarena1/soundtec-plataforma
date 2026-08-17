@@ -224,6 +224,11 @@ function toPricingInput(p: ProductRow): ProductPricingInput {
     familyId: p.familyId,
     productDiscountPercent: p.discountPercent ? Number(p.discountPercent) : null,
     tariffDutyPercent: p.tariffDutyPercent ? Number(p.tariffDutyPercent) : null,
+    coefNac: p.coefNac != null ? Number(p.coefNac) : null,
+    coefVta: p.coefVta != null ? Number(p.coefVta) : null,
+    coefVtaFob: p.coefVtaFob != null ? Number(p.coefVtaFob) : null,
+    ivaPercent: p.ivaPercent != null ? Number(p.ivaPercent) : null,
+    impIntPercent: p.impIntPercent != null ? Number(p.impIntPercent) : null,
   };
 }
 
@@ -426,6 +431,11 @@ export async function getCatalogSidebarMeta(
       stockStatus: true,
       discountPercent: true,
       tariffDutyPercent: true,
+      coefNac: true,
+      coefVta: true,
+      coefVtaFob: true,
+      ivaPercent: true,
+      impIntPercent: true,
     },
   });
 
@@ -440,6 +450,11 @@ export async function getCatalogSidebarMeta(
       familyId: p.familyId,
       productDiscountPercent: p.discountPercent ? Number(p.discountPercent) : null,
       tariffDutyPercent: null,
+      coefNac: p.coefNac != null ? Number(p.coefNac) : null,
+      coefVta: p.coefVta != null ? Number(p.coefVta) : null,
+      coefVtaFob: p.coefVtaFob != null ? Number(p.coefVtaFob) : null,
+      ivaPercent: p.ivaPercent != null ? Number(p.ivaPercent) : null,
+      impIntPercent: p.impIntPercent != null ? Number(p.impIntPercent) : null,
     })),
     ctx.commercialClientId,
     globalMargin

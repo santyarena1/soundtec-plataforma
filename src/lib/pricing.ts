@@ -1,14 +1,15 @@
 import { Prisma, RuleScopeType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getSetting } from "@/lib/settings";
 
 /**
  * Motor central de precios.
  *
  * Pipeline de cálculo:
  *
- *   costoBase  ──(+ posición arancelaria %)──► costoConArancel
- *   costoConArancel ──(× (1 + margen%))──► precioBruto
- *   precioBruto ──(× (1 - descuento%))──► precioFinalCliente
+ *   costoNacUsd = costoBase × coefNac
+ *   precioUsd   = costoNacUsd × markup directo × (1 - descuento%)
+ *   precioARS   = precioUsd × TC × IVA × impuestos internos
  *
  * Prioridad de MÁRGENES (la PRIMERA que matchea gana; orden estricto):
  *   1. cliente + producto
@@ -57,6 +58,11 @@ export interface ProductPricingInput {
   productDiscountPercent: number | null;
   /** % de derechos arancelarios sobre el costo base (NCM). */
   tariffDutyPercent?: number | null;
+  coefNac?: number | null;
+  coefVta?: number | null;
+  coefVtaFob?: number | null;
+  ivaPercent?: number | null;
+  impIntPercent?: number | null;
 }
 
 export interface AppliedRule {
@@ -80,6 +86,14 @@ export interface PriceBreakdown {
   appliedDiscountRule: AppliedRule | null;
   discountSource: "RULE" | "PRODUCT" | null;
   finalPriceUsd: number;
+  costoNacUsd: number;
+  markupMultiplier: number;
+  priceUsdFinal: number;
+  priceFobUsd: number;
+  priceNacFinalArs: number;
+  tc: number;
+  ivaPercent: number;
+  impIntPercent: number;
 }
 
 export interface VisibleBreakdown extends Pick<PriceBreakdown, "discountPercent" | "finalPriceUsd"> {
@@ -91,6 +105,8 @@ interface CalculatePriceOptions {
   product: ProductPricingInput;
   clientId?: string | null;
   defaultGlobalMarginPercent?: number;
+  defaultMarkupMultiplier?: number;
+  tc?: number;
 }
 
 function toNumber(value: Prisma.Decimal | number | null | undefined): number {
@@ -99,12 +115,20 @@ function toNumber(value: Prisma.Decimal | number | null | undefined): number {
   return Number(value.toString());
 }
 
-export async function calculateCustomerPrice({
-  product,
-  clientId,
-  defaultGlobalMarginPercent = 35,
-}: CalculatePriceOptions): Promise<PriceBreakdown> {
-  const [marginRules, discountRules] = await Promise.all([
+function optionalNumber(value: number | null | undefined): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function parsedSetting(value: string, fallback: number): number {
+  if (!value.trim()) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export async function calculateCustomerPrice(options: CalculatePriceOptions): Promise<PriceBreakdown> {
+  const { product, clientId } = options;
+  void options.defaultGlobalMarginPercent;
+  const [marginRules, discountRules, defaultMarkupSetting, tcSetting] = await Promise.all([
     prisma.marginRule.findMany({
       where: {
         isActive: true,
@@ -125,6 +149,12 @@ export async function calculateCustomerPrice({
       },
       orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
     }),
+    options.defaultMarkupMultiplier == null
+      ? getSetting("pricing.default_markup", "1.35")
+      : Promise.resolve(String(options.defaultMarkupMultiplier)),
+    options.tc == null
+      ? getSetting("pricing.tc", "1")
+      : Promise.resolve(String(options.tc)),
   ]);
 
   type AnyRule = {
@@ -162,12 +192,24 @@ export async function calculateCustomerPrice({
   }
 
   const margin = findFirstMatching(marginRules);
-  const marginPercent = margin ? toNumber(margin.marginPercent) : defaultGlobalMarginPercent;
+  const marginWithMarkup = margin as (typeof margin & { markupMultiplier?: Prisma.Decimal | null });
+  const defaultMarkupMultiplier = parsedSetting(defaultMarkupSetting, 1.35);
+  const tc = parsedSetting(tcSetting, 1);
+  const ruleMarkup = margin
+    ? marginWithMarkup.markupMultiplier != null
+      ? toNumber(marginWithMarkup.markupMultiplier)
+      : 1 + toNumber(margin.marginPercent) / 100
+    : undefined;
+  const markupMultiplier = ruleMarkup
+    ?? optionalNumber(product.coefVta)
+    ?? defaultMarkupMultiplier;
+  const marginPercent = (markupMultiplier - 1) * 100;
   const baseCost = toNumber(product.baseCostUsd);
   const tariffDutyPercent = Math.max(0, toNumber(product.tariffDutyPercent ?? 0));
   const tariffDutyAmount = baseCost * (tariffDutyPercent / 100);
   const landedCost = baseCost + tariffDutyAmount;
-  const priceBeforeDiscount = landedCost * (1 + marginPercent / 100);
+  const costoNacUsd = baseCost * (optionalNumber(product.coefNac) ?? 1);
+  const priceBeforeDiscount = costoNacUsd * markupMultiplier;
 
   let appliedDiscountRule: AppliedRule | null = null;
   let discountPercent = 0;
@@ -216,7 +258,14 @@ export async function calculateCustomerPrice({
     }
   }
 
-  const finalPrice = priceBeforeDiscount * (1 - discountPercent / 100);
+  const priceUsdFinal = priceBeforeDiscount * (1 - discountPercent / 100);
+  const priceFobUsd = baseCost * (optionalNumber(product.coefVtaFob) ?? markupMultiplier);
+  const ivaPercent = optionalNumber(product.ivaPercent) ?? 21;
+  const impIntPercent = optionalNumber(product.impIntPercent) ?? 0;
+  const priceNacFinalArs = priceUsdFinal
+    * tc
+    * (1 + ivaPercent / 100)
+    * (1 + impIntPercent / 100);
 
   return {
     baseCostUsd: baseCost,
@@ -238,14 +287,22 @@ export async function calculateCustomerPrice({
     discountPercent,
     appliedDiscountRule,
     discountSource,
-    finalPriceUsd: Math.max(0, finalPrice),
+    costoNacUsd,
+    markupMultiplier,
+    priceUsdFinal,
+    priceFobUsd,
+    priceNacFinalArs,
+    tc,
+    ivaPercent,
+    impIntPercent,
+    finalPriceUsd: priceUsdFinal,
   };
 }
 
 export function toVisibleBreakdown(breakdown: PriceBreakdown, role: ViewerRole): VisibleBreakdown {
   const isInternal = role === "ADMIN" || role === "SUPER_ADMIN";
   return {
-    finalPriceUsd: breakdown.finalPriceUsd,
+    finalPriceUsd: breakdown.priceUsdFinal,
     discountPercent: breakdown.discountPercent,
     priceBeforeDiscountUsd: breakdown.discountPercent > 0 ? breakdown.priceBeforeDiscountUsd : null,
     showInternals: isInternal,
@@ -257,10 +314,22 @@ export async function calculatePricesForProducts(
   clientId: string | null,
   defaultGlobalMarginPercent = 35
 ): Promise<Map<string, PriceBreakdown>> {
+  void defaultGlobalMarginPercent;
+  const [defaultMarkupRaw, tcRaw] = await Promise.all([
+    getSetting("pricing.default_markup", "1.35"),
+    getSetting("pricing.tc", "1"),
+  ]);
+  const defaultMarkupMultiplier = parsedSetting(defaultMarkupRaw, 1.35);
+  const tc = parsedSetting(tcRaw, 1);
   const results = new Map<string, PriceBreakdown>();
   await Promise.all(
     products.map(async (p) => {
-      const r = await calculateCustomerPrice({ product: p, clientId, defaultGlobalMarginPercent });
+      const r = await calculateCustomerPrice({
+        product: p,
+        clientId,
+        defaultMarkupMultiplier,
+        tc,
+      });
       results.set(p.productId, r);
     })
   );

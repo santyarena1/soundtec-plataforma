@@ -43,6 +43,10 @@ interface Row {
   distributor: string | null;
   distributorId: string | null;
   cost: number;
+  priceUsdFinal: number;
+  priceFobUsd: number;
+  priceNacFinalArs: number;
+  salePriceUsd: number | null;
   discountPercent: number | null;
   tariffPosition: string | null;
   tariffDutyPercent: number | null;
@@ -102,6 +106,7 @@ type ColumnKey =
   | "kind"
   | "customizable"
   | "cost"
+  | "salePrice"
   | "discount"
   | "tariff"
   | "stock"
@@ -132,6 +137,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "kind", label: "Tipo" },
   { key: "customizable", label: "Configurable" },
   { key: "cost", label: "Costo USD", requiresPrices: true },
+  { key: "salePrice", label: "Precio venta", requiresPrices: true },
   { key: "discount", label: "Descuento %", requiresPrices: true },
   { key: "tariff", label: "Pos. arancelaria", requiresPrices: true },
   { key: "stock", label: "Stock" },
@@ -150,6 +156,7 @@ const DEFAULT_COLUMNS: ColumnKey[] = [
   "brand",
   "category",
   "cost",
+  "salePrice",
   "discount",
   "stock",
   "active",
@@ -173,6 +180,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const [showDescModal, setShowDescModal] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [columnPickerOpen, setColumnPickerOpen] = useState(false);
+  const [priceView, setPriceView] = useState<"usdFinal" | "usdFob" | "arsNacional">("usdFinal");
 
   const [activeCols, setActiveCols] = useState<ColumnKey[]>(() => {
     if (typeof window === "undefined") return DEFAULT_COLUMNS;
@@ -181,7 +189,13 @@ export function ProductsCatalogAdmin(props: Props) {
       if (raw) {
         const parsed = JSON.parse(raw) as string[];
         const valid = parsed.filter((p): p is ColumnKey => ALL_COLUMNS.some((c) => c.key === p));
-        if (valid.length > 0) return valid as ColumnKey[];
+        if (valid.length > 0) {
+          if (!valid.includes("salePrice")) {
+            const costIndex = valid.indexOf("cost");
+            valid.splice(costIndex >= 0 ? costIndex + 1 : valid.length, 0, "salePrice");
+          }
+          return valid as ColumnKey[];
+        }
       }
     } catch {}
     return DEFAULT_COLUMNS;
@@ -222,8 +236,6 @@ export function ProductsCatalogAdmin(props: Props) {
 
   const [qInput, setQInput] = useState(qFromUrl);
   const debouncedQ = useDebouncedValue(qInput, 350);
-
-  useEffect(() => { setQInput(qFromUrl); }, [qFromUrl]);
 
   type FilterPatch = Partial<{
     q: string; brand: string[]; category: string[]; family: string[];
@@ -377,6 +389,20 @@ export function ProductsCatalogAdmin(props: Props) {
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </Select>
+        {props.showPrices ? (
+          <label className="flex h-10 items-center gap-2 rounded-md border border-border bg-background px-2 text-xs text-muted-foreground">
+            <span className="whitespace-nowrap">Ver precio:</span>
+            <select
+              value={priceView}
+              onChange={(e) => setPriceView(e.target.value as typeof priceView)}
+              className="bg-transparent text-sm text-foreground outline-none"
+            >
+              <option value="usdFinal">USD final</option>
+              <option value="usdFob">USD FOB</option>
+              <option value="arsNacional">ARS nacional</option>
+            </select>
+          </label>
+        ) : null}
         {pending ? <Loader2 className="h-5 w-5 animate-spin self-center text-muted-foreground" /> : null}
       </div>
 
@@ -456,7 +482,10 @@ export function ProductsCatalogAdmin(props: Props) {
           distributorIdsFromUrl.length || stockFromUrl.length || activeFromUrl ||
           nocatActive || noimgActive || nodescActive || crestronActive || qFromUrl) ? (
           <button
-            onClick={() => pushFilters({ q: "", brand: [], category: [], family: [], distributor: [], stock: [], active: "", nocat: "", noimg: "", nodesc: "", crestron: "" })}
+            onClick={() => {
+              setQInput("");
+              pushFilters({ q: "", brand: [], category: [], family: [], distributor: [], stock: [], active: "", nocat: "", noimg: "", nodesc: "", crestron: "" });
+            }}
             className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" /> Limpiar filtros
@@ -596,7 +625,7 @@ export function ProductsCatalogAdmin(props: Props) {
                   <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} />
                 </TD>
                 {visibleColumns.map((c) => (
-                  <TD key={c.key}>{renderCell(c.key, r, props.showPrices, setPreviewId)}</TD>
+                  <TD key={c.key}>{renderCell(c.key, r, props.showPrices, priceView, setPreviewId)}</TD>
                 ))}
               </TR>
             ))}
@@ -644,10 +673,20 @@ export function ProductsCatalogAdmin(props: Props) {
   );
 }
 
+function formatArs(value: number): string {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 function renderCell(
   key: ColumnKey,
   r: Row,
   showPrices: boolean,
+  priceView: "usdFinal" | "usdFob" | "arsNacional",
   setPreviewId: (id: string | null) => void
 ) {
   switch (key) {
@@ -721,6 +760,24 @@ function renderCell(
       return <span className="text-xs text-muted-foreground">{new Date(r.updatedAt).toLocaleDateString("es-AR")}</span>;
     case "cost":
       return showPrices ? formatUsd(r.cost) : "—";
+    case "salePrice": {
+      if (!showPrices) return "—";
+      const value = priceView === "usdFob"
+        ? formatUsd(r.priceFobUsd)
+        : priceView === "arsNacional"
+          ? formatArs(r.priceNacFinalArs)
+          : formatUsd(r.priceUsdFinal);
+      return (
+        <div className="whitespace-nowrap">
+          <span className="font-medium">{value}</span>
+          {r.salePriceUsd != null ? (
+            <span className="block text-[10px] text-muted-foreground">
+              oferta prov.: {formatUsd(r.salePriceUsd)}
+            </span>
+          ) : null}
+        </div>
+      );
+    }
     case "discount":
       return showPrices ? (r.discountPercent ? `${r.discountPercent}%` : "—") : "—";
     case "tariff":

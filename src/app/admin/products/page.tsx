@@ -12,6 +12,7 @@ import { CrestronActionsBar } from "../crestron-home/crestron-actions";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Suspense } from "react";
+import { calculatePricesForProducts } from "@/lib/pricing";
 
 interface SP {
   q?: string;
@@ -154,8 +155,28 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const prices = await calculatePricesForProducts(
+    products.map((p) => ({
+      productId: p.id,
+      baseCostUsd: Number(p.baseCostUsd),
+      brandId: p.brandId,
+      distributorId: p.distributorId,
+      categoryId: p.categoryId,
+      familyId: p.familyId,
+      productDiscountPercent: p.discountPercent != null ? Number(p.discountPercent) : null,
+      tariffDutyPercent: p.tariffDutyPercent != null ? Number(p.tariffDutyPercent) : null,
+      coefNac: p.coefNac != null ? Number(p.coefNac) : null,
+      coefVta: p.coefVta != null ? Number(p.coefVta) : null,
+      coefVtaFob: p.coefVtaFob != null ? Number(p.coefVtaFob) : null,
+      ivaPercent: p.ivaPercent != null ? Number(p.ivaPercent) : null,
+      impIntPercent: p.impIntPercent != null ? Number(p.impIntPercent) : null,
+    })),
+    null
+  );
 
-  const rows = products.map((p) => ({
+  const rows = products.map((p) => {
+    const price = prices.get(p.id);
+    return {
     id: p.id,
     sku: p.internalSku || "",
     supplierSku: p.supplierSku || "",
@@ -171,6 +192,10 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     distributor: p.distributor?.name || null,
     distributorId: p.distributorId,
     cost: Number(p.baseCostUsd),
+    priceUsdFinal: price?.priceUsdFinal ?? 0,
+    priceFobUsd: price?.priceFobUsd ?? 0,
+    priceNacFinalArs: price?.priceNacFinalArs ?? 0,
+    salePriceUsd: p.salePriceUsd != null ? Number(p.salePriceUsd) : null,
     discountPercent: p.discountPercent ? Number(p.discountPercent) : null,
     tariffPosition: p.tariffPosition || null,
     tariffDutyPercent: p.tariffDutyPercent ? Number(p.tariffDutyPercent) : null,
@@ -185,7 +210,8 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     isCrestronHomeCompatible: p.isCrestronHomeCompatible,
     updatedAt: p.updatedAt.toISOString(),
     labels: p.labels.map((pl) => pl.label),
-  }));
+    };
+  });
 
   return (
     <div className="space-y-4">

@@ -23,6 +23,7 @@ import { ProductAiAssist } from "./product-ai-assist";
 import { LabelSelector } from "@/components/admin/label-selector";
 import { getSetting } from "@/lib/settings";
 import { PortalDataPanel } from "./portal-data-panel";
+import { calculateCustomerPrice } from "@/lib/pricing";
 
 interface SectionRef {
   id: string;
@@ -94,7 +95,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
   });
   if (!product) notFound();
 
-  const [brands, distributors, categories, families, accessoryCandidates, tcVentaStr, globalCoefStr, allLabels] = await Promise.all([
+  const [brands, distributors, categories, families, accessoryCandidates, tcVentaStr, globalCoefStr, allLabels, priceBreakdown] = await Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -108,6 +109,24 @@ export default async function AdminProductEditPage({ params }: { params: Promise
     getSetting("pricing.tc_venta", "0"),
     getSetting("app.global_margin_percent", "35"),
     prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
+    calculateCustomerPrice({
+      clientId: null,
+      product: {
+        productId: product.id,
+        baseCostUsd: Number(product.baseCostUsd),
+        brandId: product.brandId,
+        distributorId: product.distributorId,
+        categoryId: product.categoryId,
+        familyId: product.familyId,
+        productDiscountPercent: product.discountPercent == null ? null : Number(product.discountPercent),
+        tariffDutyPercent: product.tariffDutyPercent == null ? null : Number(product.tariffDutyPercent),
+        coefNac: product.coefNac == null ? null : Number(product.coefNac),
+        coefVta: product.coefVta == null ? null : Number(product.coefVta),
+        coefVtaFob: product.coefVtaFob == null ? null : Number(product.coefVtaFob),
+        ivaPercent: product.ivaPercent == null ? null : Number(product.ivaPercent),
+        impIntPercent: product.impIntPercent == null ? null : Number(product.impIntPercent),
+      },
+    }),
   ]);
 
   return (
@@ -218,6 +237,14 @@ export default async function AdminProductEditPage({ params }: { params: Promise
             distributors={distributors}
             categories={categories}
             families={families}
+            enginePricing={{
+              priceUsdFinal: priceBreakdown.priceUsdFinal,
+              priceFobUsd: priceBreakdown.priceFobUsd,
+              priceNacFinalArs: priceBreakdown.priceNacFinalArs,
+              markupMultiplier: priceBreakdown.markupMultiplier,
+              costoNacUsd: priceBreakdown.costoNacUsd,
+              salePriceUsd: product.salePriceUsd == null ? null : Number(product.salePriceUsd),
+            }}
             tcVenta={parseFloat(tcVentaStr) || 0}
             globalCoefNac={parseFloat(globalCoefStr) || 35}
           />

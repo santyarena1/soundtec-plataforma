@@ -808,6 +808,11 @@ export async function adminSearchProductsForRequest(input: {
       familyId: true,
       discountPercent: true,
       tariffDutyPercent: true,
+      coefNac: true,
+      coefVta: true,
+      coefVtaFob: true,
+      ivaPercent: true,
+      impIntPercent: true,
       brand: { select: { name: true } },
     },
   });
@@ -824,6 +829,11 @@ export async function adminSearchProductsForRequest(input: {
       familyId: p.familyId,
       productDiscountPercent: p.discountPercent ? Number(p.discountPercent) : null,
       tariffDutyPercent: p.tariffDutyPercent ? Number(p.tariffDutyPercent) : null,
+      coefNac: p.coefNac != null ? Number(p.coefNac) : null,
+      coefVta: p.coefVta != null ? Number(p.coefVta) : null,
+      coefVtaFob: p.coefVtaFob != null ? Number(p.coefVtaFob) : null,
+      ivaPercent: p.ivaPercent != null ? Number(p.ivaPercent) : null,
+      impIntPercent: p.impIntPercent != null ? Number(p.impIntPercent) : null,
     })),
     clientId,
     globalMargin

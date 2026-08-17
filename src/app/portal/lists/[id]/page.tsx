@@ -37,6 +37,11 @@ export default async function ListDetailPage({ params }: { params: Promise<{ id:
       familyId: i.product.familyId,
       productDiscountPercent: i.product.discountPercent ? Number(i.product.discountPercent) : null,
       tariffDutyPercent: i.product.tariffDutyPercent ? Number(i.product.tariffDutyPercent) : null,
+      coefNac: i.product.coefNac != null ? Number(i.product.coefNac) : null,
+      coefVta: i.product.coefVta != null ? Number(i.product.coefVta) : null,
+      coefVtaFob: i.product.coefVtaFob != null ? Number(i.product.coefVtaFob) : null,
+      ivaPercent: i.product.ivaPercent != null ? Number(i.product.ivaPercent) : null,
+      impIntPercent: i.product.impIntPercent != null ? Number(i.product.impIntPercent) : null,
     })),
     commercialClientId,
     globalMargin

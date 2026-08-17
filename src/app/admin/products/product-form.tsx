@@ -54,6 +54,14 @@ interface Props {
   distributors: Option[];
   categories: Option[];
   families: Option[];
+  enginePricing?: {
+    priceUsdFinal: number;
+    priceFobUsd: number;
+    priceNacFinalArs: number;
+    markupMultiplier: number;
+    costoNacUsd: number;
+    salePriceUsd: number | null;
+  };
   tcVenta?: number;
   globalCoefNac?: number;
 }
@@ -66,7 +74,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function ProductForm({ product, brands, distributors, categories, families }: Props) {
+export function ProductForm({ product, brands, distributors, categories, families, enginePricing }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +120,15 @@ export function ProductForm({ product, brands, distributors, categories, familie
 
   function fmtUsd(n: number) {
     return n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtArs(n: number) {
+    return n.toLocaleString("es-AR", {
+      style: "currency",
+      currency: "ARS",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
   }
 
   return (
@@ -300,6 +317,40 @@ export function ProductForm({ product, brands, distributors, categories, familie
             <p className="text-xs text-blue-700/70 dark:text-blue-400/70">COSTO NAC USD = COSTO BASE × COEF NAC · PRECIO NAC = COSTO NAC × COEF VTA × DESC ESP</p>
           </div>
         </div>
+
+        {enginePricing ? (
+          <div className="mb-4 rounded-xl border border-blue-300 bg-white p-4 shadow-sm dark:border-blue-800 dark:bg-blue-950/40">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+                  Precio venta USD (final)
+                </p>
+                <p className="mt-1 text-2xl font-bold tabular-nums text-blue-950 dark:text-blue-100">
+                  US$ {fmtUsd(enginePricing.priceUsdFinal)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Motor unificado · markup ×{enginePricing.markupMultiplier.toFixed(4).replace(/0+$/, "").replace(/\.$/, "")}
+                </p>
+              </div>
+              <div className="grid min-w-[260px] grid-cols-2 gap-2 text-xs">
+                <div className="rounded-md bg-blue-50 px-3 py-2 dark:bg-blue-900/30">
+                  <span className="block text-muted-foreground">USD FOB</span>
+                  <strong className="tabular-nums">US$ {fmtUsd(enginePricing.priceFobUsd)}</strong>
+                </div>
+                <div className="rounded-md bg-blue-50 px-3 py-2 dark:bg-blue-900/30">
+                  <span className="block text-muted-foreground">ARS nacional</span>
+                  <strong className="tabular-nums">{fmtArs(enginePricing.priceNacFinalArs)}</strong>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-blue-100 pt-2 text-[11px] text-muted-foreground dark:border-blue-900">
+              <span>Costo nac. USD: US$ {fmtUsd(enginePricing.costoNacUsd)}</span>
+              {enginePricing.salePriceUsd != null ? (
+                <span>Oferta proveedor: US$ {fmtUsd(enginePricing.salePriceUsd)}</span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         {/* Costo base */}
         <div className="mb-4 rounded-lg bg-white/70 p-4 dark:bg-white/5">

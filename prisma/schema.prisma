@@ -515,6 +515,7 @@ model MarginRule {
   productId      String?
   product        Product?      @relation(fields: [productId], references: [id], onDelete: Cascade)
   marginPercent  Decimal       @db.Decimal(6, 3)
+  markupMultiplier Decimal?    @db.Decimal(8, 4)
   isActive       Boolean       @default(true)
   notes          String?
   createdAt      DateTime      @default(now())
