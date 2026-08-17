@@ -205,6 +205,7 @@ model Product {
   specifications          Json?                 // [{label, labelEs?, value, valueEs?, group?}]
   documents               Json?                 // [{name, nameEs?, url, type, fileType?}]
   sourceMetadata          Json?                 // datos raw del portal (debug/refresh)
+  fieldUpdatedAt          Json?                 // { fieldName: ISO timestamp }
   enrichedAt              DateTime?             // última vez que se enriqueció con datos completos
   translatedAt            DateTime?             // última vez que se tradujeron campos al ES
 

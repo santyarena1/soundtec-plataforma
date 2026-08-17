@@ -207,6 +207,12 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               kind: product.kind,
               accessoryRequiredWithPrimary: product.accessoryRequiredWithPrimary,
               isActive: product.isActive,
+              fieldUpdatedAt:
+                (product as unknown as { fieldUpdatedAt?: unknown }).fieldUpdatedAt &&
+                typeof (product as unknown as { fieldUpdatedAt?: unknown }).fieldUpdatedAt === "object" &&
+                !Array.isArray((product as unknown as { fieldUpdatedAt?: unknown }).fieldUpdatedAt)
+                  ? (product as unknown as { fieldUpdatedAt: Record<string, string> }).fieldUpdatedAt
+                  : null,
             }}
             brands={brands}
             distributors={distributors}

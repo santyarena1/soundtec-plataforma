@@ -7,6 +7,15 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { slugify } from "@/lib/utils";
+import {
+  SCALAR_PRODUCT_FIELDS,
+  changedScalarFields,
+  mergeFieldTimestamps,
+} from "@/lib/field-timestamps";
+
+type TimestampedProductCreateInput = Prisma.ProductUncheckedCreateInput & {
+  fieldUpdatedAt?: Prisma.InputJsonValue;
+};
 
 /**
  * Decisión técnica: estas server actions se invocan directamente desde
@@ -219,7 +228,7 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
   });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
 
-  const data = {
+  const data: TimestampedProductCreateInput = {
     internalSku: parsed.data.internalSku,
     supplierSku: parsed.data.supplierSku || null,
     normalizedName: parsed.data.normalizedName,
@@ -257,8 +266,28 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
 
   let productId = id || "";
   if (id) {
+    const current = await prisma.product.findUniqueOrThrow({ where: { id } });
+    const changed = changedScalarFields(
+      current as unknown as Record<string, unknown>,
+      data as Record<string, unknown>
+    );
+    if (changed.length > 0) {
+      data.fieldUpdatedAt = mergeFieldTimestamps(
+        (current as unknown as { fieldUpdatedAt?: unknown }).fieldUpdatedAt,
+        changed,
+        new Date().toISOString()
+      );
+    }
     await prisma.product.update({ where: { id }, data });
   } else {
+    const providedFields = SCALAR_PRODUCT_FIELDS.filter(
+      (field) => (data as Record<string, unknown>)[field] !== undefined
+    );
+    data.fieldUpdatedAt = mergeFieldTimestamps(
+      {},
+      providedFields,
+      new Date().toISOString()
+    );
     const created = await prisma.product.create({ data });
     productId = created.id;
   }

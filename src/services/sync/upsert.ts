@@ -1,10 +1,23 @@
 import { Prisma, type ProductRelationKind } from "@prisma/client";
 import { slugify } from "@/lib/utils";
+import {
+  SCALAR_PRODUCT_FIELDS,
+  changedScalarFields,
+  mergeFieldTimestamps,
+} from "@/lib/field-timestamps";
 import type { NormalizedProduct } from "./types";
 
 type ApplyResult = {
   action: "create" | "update";
   productId: string;
+};
+
+type TimestampedProductUpdateInput = Prisma.ProductUncheckedUpdateInput & {
+  fieldUpdatedAt?: Prisma.InputJsonValue;
+};
+
+type TimestampedProductCreateInput = Prisma.ProductUncheckedCreateInput & {
+  fieldUpdatedAt?: Prisma.InputJsonValue;
 };
 
 function nonEmpty(value: string | undefined): string | undefined {
@@ -69,7 +82,6 @@ export async function applyNormalizedProduct(
 
   const existing = await tx.product.findFirst({
     where: { [n.matchField]: matchValue },
-    select: { id: true, originalName: true },
   });
   const brandName = nonEmpty(n.brandName);
   const categoryName = nonEmpty(n.categoryName);
@@ -190,7 +202,7 @@ export async function applyNormalizedProduct(
       : undefined,
     sourceMetadata: jsonValue(n.raw),
   };
-  const data: Prisma.ProductUncheckedUpdateInput = { ...sharedData };
+  const data: TimestampedProductUpdateInput = { ...sharedData };
 
   const originalName = nonEmpty(n.originalName);
   const normalizedNameOverride = nonEmpty(n.normalizedNameOverride);
@@ -203,16 +215,32 @@ export async function applyNormalizedProduct(
     ) {
       data.originalName = originalName;
     }
+    const changed = changedScalarFields(
+      existing as unknown as Record<string, unknown>,
+      data as Record<string, unknown>
+    );
+    if (changed.length > 0) {
+      data.fieldUpdatedAt = mergeFieldTimestamps(
+        (existing as unknown as { fieldUpdatedAt?: unknown }).fieldUpdatedAt,
+        changed,
+        new Date().toISOString()
+      );
+    }
     await tx.product.update({ where: { id: existing.id }, data });
     result = { action: "update", productId: existing.id };
   } else {
-    const createData: Prisma.ProductUncheckedCreateInput = {
+    const createData: TimestampedProductCreateInput = {
       ...sharedData,
       [n.matchField]: matchValue,
       normalizedName: normalizedNameOverride ?? name,
       originalName: originalName ?? name,
       baseCostUsd: finite(n.baseCostUsd) ?? 0,
     };
+    const now = new Date().toISOString();
+    const providedFields = SCALAR_PRODUCT_FIELDS.filter(
+      (field) => (createData as Record<string, unknown>)[field] !== undefined
+    );
+    createData.fieldUpdatedAt = mergeFieldTimestamps({}, providedFields, now);
     const created = await tx.product.create({
       data: createData,
       select: { id: true },

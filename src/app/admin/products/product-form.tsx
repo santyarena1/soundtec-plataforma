@@ -8,6 +8,7 @@ import { Input, Label, Select } from "@/components/ui/input";
 import { NcmAutocomplete } from "@/components/admin/ncm-autocomplete";
 import { Loader2 } from "lucide-react";
 import { DescriptionsSection } from "./descriptions-section";
+import { FieldStamp } from "./field-stamp";
 
 interface Option { id: string; name: string }
 
@@ -47,6 +48,7 @@ interface Props {
     kind: "PRINCIPAL" | "ACCESORIO";
     accessoryRequiredWithPrimary: boolean;
     isActive: boolean;
+    fieldUpdatedAt?: Record<string, string> | null;
   };
   brands: Option[];
   distributors: Option[];
@@ -68,6 +70,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const fieldUpdatedAt = product?.fieldUpdatedAt ?? undefined;
 
   // NCM
   const [tariffPosition, setTariffPosition] = useState(product?.tariffPosition ?? "");
@@ -133,18 +136,22 @@ export function ProductForm({ product, brands, distributors, categories, familie
           <div>
             <Label htmlFor="internalSku" required>COD. TANGO</Label>
             <Input id="internalSku" name="internalSku" required defaultValue={product?.internalSku || ""} />
+            <FieldStamp at={fieldUpdatedAt?.internalSku} />
           </div>
           <div>
             <Label htmlFor="supplierSku">SKU PROVEEDOR</Label>
             <Input id="supplierSku" name="supplierSku" defaultValue={product?.supplierSku || ""} />
+            <FieldStamp at={fieldUpdatedAt?.supplierSku} />
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="normalizedName" required>MODELO</Label>
             <Input id="normalizedName" name="normalizedName" required defaultValue={product?.normalizedName || ""} />
+            <FieldStamp at={fieldUpdatedAt?.normalizedName} />
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="originalName">MODELO PROVEEDOR</Label>
             <Input id="originalName" name="originalName" defaultValue={product?.originalName || ""} />
+            <FieldStamp at={fieldUpdatedAt?.originalName} />
           </div>
         </div>
       </div>
@@ -159,6 +166,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               <option value="">—</option>
               {brands.map((b) => (<option key={b.id} value={b.id}>{b.name}</option>))}
             </Select>
+            <FieldStamp at={fieldUpdatedAt?.brandId} />
           </div>
           <div>
             <Label htmlFor="distributorId">PROVEEDOR</Label>
@@ -166,6 +174,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               <option value="">—</option>
               {distributors.map((d) => (<option key={d.id} value={d.id}>{d.name}</option>))}
             </Select>
+            <FieldStamp at={fieldUpdatedAt?.distributorId} />
           </div>
           <div>
             <Label htmlFor="categoryId">RUBRO</Label>
@@ -173,6 +182,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               <option value="">—</option>
               {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
             </Select>
+            <FieldStamp at={fieldUpdatedAt?.categoryId} />
           </div>
           <div>
             <Label htmlFor="familyId">SUBRUBRO</Label>
@@ -180,14 +190,17 @@ export function ProductForm({ product, brands, distributors, categories, familie
               <option value="">—</option>
               {families.map((f) => (<option key={f.id} value={f.id}>{f.name}</option>))}
             </Select>
+            <FieldStamp at={fieldUpdatedAt?.familyId} />
           </div>
           <div>
             <Label htmlFor="familia">FAMILIA</Label>
             <Input id="familia" name="familia" placeholder="Ej: Amplificadores, Micrófonos…" defaultValue={product?.familia || ""} />
+            <FieldStamp at={fieldUpdatedAt?.familia} />
           </div>
           <div>
             <Label htmlFor="tipo">TIPO</Label>
             <Input id="tipo" name="tipo" placeholder="Ej: Pasivo, Activo, Inalámbrico…" defaultValue={product?.tipo || ""} />
+            <FieldStamp at={fieldUpdatedAt?.tipo} />
           </div>
           <div>
             <Label htmlFor="kind">Tipo de producto</Label>
@@ -195,6 +208,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               <option value="PRINCIPAL">Principal</option>
               <option value="ACCESORIO">Accesorio</option>
             </Select>
+            <FieldStamp at={fieldUpdatedAt?.kind} />
           </div>
         </div>
       </div>
@@ -215,6 +229,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 if (te != null) setTePercent(te);
               }}
             />
+            <FieldStamp at={fieldUpdatedAt?.tariffPosition} />
           </div>
           <div>
             <Label htmlFor="aecDisplay">AEC (%)</Label>
@@ -228,6 +243,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               onChange={(e) => setAecPercent(e.target.value ? Number(e.target.value) : null)}
               className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
+            <FieldStamp at={fieldUpdatedAt?.aecPercent} />
           </div>
           <div>
             <Label htmlFor="dieDisplay">DIE (%)</Label>
@@ -241,6 +257,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               onChange={(e) => setTariffDutyPercent(e.target.value ? Number(e.target.value) : null)}
               className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
+            <FieldStamp at={fieldUpdatedAt?.tariffDutyPercent} />
           </div>
           <div>
             <Label htmlFor="teDisplay">TE (%)</Label>
@@ -254,18 +271,22 @@ export function ProductForm({ product, brands, distributors, categories, familie
               onChange={(e) => setTePercent(e.target.value ? Number(e.target.value) : null)}
               className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
+            <FieldStamp at={fieldUpdatedAt?.tePercent} />
           </div>
           <div>
             <Label htmlFor="coo">COO (País de origen)</Label>
             <Input id="coo" name="coo" placeholder="Ej: China, USA, Brasil…" defaultValue={product?.coo || ""} />
+            <FieldStamp at={fieldUpdatedAt?.coo} />
           </div>
           <div>
             <Label htmlFor="weight">Peso (kg)</Label>
             <Input id="weight" name="weight" type="number" min={0} step="0.001" placeholder="0.000" defaultValue={product?.weight ?? ""} />
+            <FieldStamp at={fieldUpdatedAt?.weight} />
           </div>
           <div>
             <Label htmlFor="volume">Volumen (m³)</Label>
             <Input id="volume" name="volume" type="number" min={0} step="0.0001" placeholder="0.0000" defaultValue={product?.volume ?? ""} />
+            <FieldStamp at={fieldUpdatedAt?.volume} />
           </div>
         </div>
       </div>
@@ -296,6 +317,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 value={baseCostUsd}
                 onChange={(e) => setBaseCostUsd(Number(e.target.value) || 0)}
               />
+              <FieldStamp at={fieldUpdatedAt?.baseCostUsd} />
             </div>
             <div>
               <Label htmlFor="discountPercentDisplay">DESCUENTO ESPECIAL (%)</Label>
@@ -310,6 +332,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 onChange={(e) => setDiscountPercent(e.target.value ? Number(e.target.value) : null)}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
+              <FieldStamp at={fieldUpdatedAt?.discountPercent} />
             </div>
           </div>
         </div>
@@ -330,6 +353,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 onChange={(e) => setCoefNac(e.target.value ? Number(e.target.value) : null)}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
+              <FieldStamp at={fieldUpdatedAt?.coefNac} />
               <p className="mt-1 text-[11px] text-muted-foreground">COSTO NAC USD = COSTO BASE × COEF NAC</p>
             </div>
             <div>
@@ -350,6 +374,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 onChange={(e) => setCoefVta(e.target.value ? Number(e.target.value) : null)}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
+              <FieldStamp at={fieldUpdatedAt?.coefVta} />
               <p className="mt-1 text-[11px] text-muted-foreground">PRECIO NAC = COSTO NAC × COEF VTA × DESC ESP</p>
             </div>
             <div>
@@ -378,6 +403,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 <option value="21">21% — Tasa general</option>
                 <option value="27">27% — Tasa superior</option>
               </select>
+              <FieldStamp at={fieldUpdatedAt?.ivaPercent} />
             </div>
             <div>
               <Label htmlFor="impIntPercentDisplay">IMP INT (%)</Label>
@@ -391,6 +417,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 onChange={(e) => setImpIntPercent(e.target.value ? Number(e.target.value) : null)}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
+              <FieldStamp at={fieldUpdatedAt?.impIntPercent} />
             </div>
             <div>
               <Label>PRECIO NAC FINAL</Label>
@@ -417,6 +444,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 onChange={(e) => setCoefVtaFob(e.target.value ? Number(e.target.value) : null)}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
+              <FieldStamp at={fieldUpdatedAt?.coefVtaFob} />
             </div>
             <div>
               <Label>PRECIO VTA FOB</Label>
@@ -441,6 +469,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               <option value="OUT_OF_STOCK">Sin stock</option>
               <option value="UNKNOWN">Desconocido</option>
             </Select>
+            <FieldStamp at={fieldUpdatedAt?.stockStatus} />
           </div>
           <div>
             <Label htmlFor="stockQuantity">Cantidad (opcional)</Label>
@@ -451,6 +480,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               min={0}
               defaultValue={product?.stockQuantity ?? ""}
             />
+            <FieldStamp at={fieldUpdatedAt?.stockQuantity} />
           </div>
         </div>
       </div>
@@ -463,6 +493,8 @@ export function ProductForm({ product, brands, distributors, categories, familie
           initialShort={product?.shortDescription ?? ""}
           initialLong={product?.longDescription ?? ""}
           isAi={false}
+          shortUpdatedAt={fieldUpdatedAt?.shortDescription}
+          longUpdatedAt={fieldUpdatedAt?.longDescription}
         />
       </div>
 
@@ -482,7 +514,10 @@ export function ProductForm({ product, brands, distributors, categories, familie
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="isActive" defaultChecked={product ? product.isActive : true} />
-          Producto activo
+          <span>
+            Producto activo
+            <FieldStamp at={fieldUpdatedAt?.isActive} />
+          </span>
         </label>
       </div>
 

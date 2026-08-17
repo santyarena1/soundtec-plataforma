@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Wand2, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FieldStamp } from "./field-stamp";
 import {
   generateProductDescription,
   generateProductShortDescription,
@@ -16,6 +17,8 @@ interface Props {
   initialShort: string;
   initialLong: string;
   isAi: boolean;
+  shortUpdatedAt?: string;
+  longUpdatedAt?: string;
 }
 
 /**
@@ -27,7 +30,7 @@ interface Props {
  * y actualizan el estado local para que el usuario vea el resultado y pueda
  * editarlo antes de pisar con el save del form.
  */
-export function DescriptionsSection({ productId, initialShort, initialLong, isAi }: Props) {
+export function DescriptionsSection({ productId, initialShort, initialLong, isAi, shortUpdatedAt, longUpdatedAt }: Props) {
   const router = useRouter();
   const [short, setShort] = useState(initialShort);
   const [long, setLong] = useState(initialLong);
@@ -110,6 +113,7 @@ export function DescriptionsSection({ productId, initialShort, initialLong, isAi
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           placeholder="1–2 oraciones que describen qué es el producto y para qué sirve."
         />
+        <FieldStamp at={shortUpdatedAt} />
       </div>
 
       <div className="space-y-2">
@@ -152,6 +156,7 @@ export function DescriptionsSection({ productId, initialShort, initialLong, isAi
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed"
           placeholder="4–7 oraciones con usos típicos, integración y datos técnicos."
         />
+        <FieldStamp at={longUpdatedAt} />
       </div>
 
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
