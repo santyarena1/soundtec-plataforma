@@ -157,12 +157,8 @@ async function buildRunCache(): Promise<RunCache> {
     portalId,
   }));
   const subBrandBySku: Record<string, string> = {};
-  const subBrandSearches = await Promise.all([
-    fetchSkusBySearch(session, "blaze"),
-    fetchSkusBySearch(session, "apparel"),
-  ]);
-  for (const sku of subBrandSearches[0]) subBrandBySku[sku] = "BLAZE BY SONANCE";
-  for (const sku of subBrandSearches[1]) subBrandBySku[sku] = "APPAREL";
+  const blazeSkus = await fetchSkusBySearch(session, "blaze");
+  for (const sku of blazeSkus) subBrandBySku[sku] = "BLAZE BY SONANCE";
   const cache: RunCache = {
     savedAt: new Date().toISOString(),
     sessionCookies: session.cookies,
