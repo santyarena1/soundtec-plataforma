@@ -1,6 +1,6 @@
 import {
   fetchFromPortalWithIds,
-  fetchSkusBySearch,
+  fetchProductsBySearch,
   fetchProductDetailRawOrThrow,
   openSession,
   sessionFromCookies,
@@ -9,6 +9,7 @@ import {
   type PortalAttributeType,
   type PortalDocument,
   type PortalProductDetail,
+  type PortalProductListing,
 } from "@/services/sonance-portal";
 import { getSetting, setSetting } from "@/lib/settings";
 import { translateBatchCached } from "@/services/translation-cache";
@@ -122,6 +123,44 @@ interface RunCache {
   subBrandBySku?: Record<string, string>;
 }
 
+function listingAttribute(
+  listing: PortalProductListing,
+  ...names: string[]
+): string | undefined {
+  const wanted = new Set(names.map((name) => name.toLowerCase()));
+  for (const attribute of listing.attributeTypes ?? []) {
+    const label = str(attribute.label) ?? str(attribute.name);
+    if (!label || !wanted.has(label.toLowerCase())) continue;
+    for (const value of attribute.attributeValues ?? []) {
+      const normalized = str(value.valueDisplay) ?? str(value.value);
+      if (normalized) return normalized;
+    }
+  }
+  return undefined;
+}
+
+function mapBlazeSearchListing(
+  listing: PortalProductListing
+): ListingProduct | undefined {
+  const supplierSku = str(listing.productNumber);
+  const name = str(listing.productTitle);
+  if (!supplierSku || !name) return undefined;
+  const rawPrice = finiteNumber(listing.unitListPrice);
+  return {
+    name,
+    supplierSku,
+    price: rawPrice !== undefined && rawPrice > 0 ? rawPrice : 0,
+    uom: str(listing.customerUnitOfMeasure) ?? "EA",
+    brand: "BLAZE BY SONANCE",
+    category: listingAttribute(
+      listing,
+      "Product Category",
+      "Product Super Category"
+    ) ?? "",
+    subcategory: listingAttribute(listing, "Product Sub Category") ?? "",
+  };
+}
+
 function parseRunCache(raw: string): RunCache | undefined {
   if (!raw) return undefined;
   try {
@@ -152,18 +191,30 @@ function cacheIsFresh(cache: RunCache | undefined): cache is RunCache {
 async function buildRunCache(): Promise<RunCache> {
   const session = await openSession();
   const listing = await fetchFromPortalWithIds(session);
-  const entries = listing.products.map(({ product, portalId }) => ({
+  const categoryEntries = listing.products.map(({ product, portalId }) => ({
     listing: product,
     portalId,
   }));
+  const blazeListings = await fetchProductsBySearch(session, "blaze");
   const subBrandBySku: Record<string, string> = {};
-  const blazeSkus = await fetchSkusBySearch(session, "blaze");
-  for (const sku of blazeSkus) subBrandBySku[sku] = "BLAZE BY SONANCE";
+  const entriesBySku = new Map(
+    categoryEntries.map((entry) => [entry.listing.supplierSku, entry])
+  );
+  for (const blazeListing of blazeListings) {
+    const mapped = mapBlazeSearchListing(blazeListing);
+    if (!mapped) continue;
+    subBrandBySku[mapped.supplierSku] = "BLAZE BY SONANCE";
+    entriesBySku.set(mapped.supplierSku, {
+      listing: mapped,
+      portalId: blazeListing.id,
+    });
+  }
+  const entries = [...entriesBySku.values()];
   const cache: RunCache = {
     savedAt: new Date().toISOString(),
     sessionCookies: session.cookies,
     entries,
-    total: listing.total,
+    total: entries.length,
     brandCounts: listing.brandCounts,
     subBrandBySku,
   };
@@ -293,7 +344,9 @@ function normalizeDetail(
     salePriceEndsAt: validDate(detail.basicSaleEndDate),
     salePriceLabel: str(detail.salePriceLabel),
     requiresQuote:
-      typeof detail.quoteRequired === "boolean"
+      listing.price <= 0
+        ? true
+        : typeof detail.quoteRequired === "boolean"
         ? detail.quoteRequired
         : undefined,
     availabilityMessage: str(detail.availability?.message),

@@ -245,7 +245,7 @@ async function fetchBrandCategories(session: Session): Promise<BrandCategory[]> 
 
 // ── products ──────────────────────────────────────────────────────────────────
 
-interface PortalProductListing {
+export interface PortalProductListing {
   id: string;
   productNumber?: string;
   productTitle?: string;
@@ -280,6 +280,26 @@ interface ProductsResponse {
     totalItemCount?: number;
     numberOfPages?: number;
   };
+}
+
+export async function fetchProductsBySearch(
+  session: Session,
+  term: string
+): Promise<PortalProductListing[]> {
+  const cleanTerm = term.trim();
+  if (!cleanTerm) return [];
+  const fetchPage = (page: number) => apiGet<ProductsResponse>(
+    session,
+    `/api/v2/products?search=${encodeURIComponent(cleanTerm)}&pageSize=200&page=${page}&expand=attributes`
+  );
+  const firstPage = await fetchPage(1);
+  const products = [...(firstPage.products ?? [])];
+  const totalPages = Math.min(3, Math.max(1, firstPage.pagination?.numberOfPages ?? 1));
+  for (let page = 2; page <= totalPages; page++) {
+    const response = await fetchPage(page);
+    products.push(...(response.products ?? []));
+  }
+  return products;
 }
 
 export async function fetchSkusBySearch(
