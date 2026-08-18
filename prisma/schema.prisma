@@ -206,6 +206,7 @@ model Product {
   documents               Json?                 // [{name, nameEs?, url, type, fileType?}]
   sourceMetadata          Json?                 // datos raw del portal (debug/refresh)
   fieldUpdatedAt          Json?                 // { fieldName: ISO timestamp }
+  searchKey               String?               // clave normalizada para búsqueda tolerante
   enrichedAt              DateTime?             // última vez que se enriqueció con datos completos
   translatedAt            DateTime?             // última vez que se tradujeron campos al ES
 
@@ -301,6 +302,7 @@ model Product {
   quoteItems      QuoteItem[]
 
   @@index([normalizedName])
+  @@index([searchKey])
   @@index([brandId])
   @@index([categoryId])
   @@index([distributorId])

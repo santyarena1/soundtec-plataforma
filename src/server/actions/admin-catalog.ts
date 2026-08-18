@@ -12,9 +12,11 @@ import {
   changedScalarFields,
   mergeFieldTimestamps,
 } from "@/lib/field-timestamps";
+import { buildProductSearchKey, normalizeForSearch } from "@/lib/search-key";
 
 type TimestampedProductCreateInput = Prisma.ProductUncheckedCreateInput & {
   fieldUpdatedAt?: Prisma.InputJsonValue;
+  searchKey?: string;
 };
 
 /**
@@ -265,8 +267,20 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
   };
 
   let productId = id || "";
+  const selectedBrand = parsed.data.brandId
+    ? await prisma.brand.findUnique({ where: { id: parsed.data.brandId }, select: { name: true } })
+    : null;
   if (id) {
     const current = await prisma.product.findUniqueOrThrow({ where: { id } });
+    data.searchKey = buildProductSearchKey({
+      internalSku: parsed.data.internalSku,
+      supplierSku: parsed.data.supplierSku,
+      normalizedName: parsed.data.normalizedName,
+      originalName: parsed.data.originalName || parsed.data.normalizedName,
+      modelNumber: current.modelNumber,
+      manufacturerItem: current.manufacturerItem,
+      brandName: selectedBrand?.name,
+    });
     const changed = changedScalarFields(
       current as unknown as Record<string, unknown>,
       data as Record<string, unknown>
@@ -280,6 +294,13 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     }
     await prisma.product.update({ where: { id }, data });
   } else {
+    data.searchKey = buildProductSearchKey({
+      internalSku: parsed.data.internalSku,
+      supplierSku: parsed.data.supplierSku,
+      normalizedName: parsed.data.normalizedName,
+      originalName: parsed.data.originalName || parsed.data.normalizedName,
+      brandName: selectedBrand?.name,
+    });
     const providedFields = SCALAR_PRODUCT_FIELDS.filter(
       (field) => (data as Record<string, unknown>)[field] !== undefined
     );
@@ -401,6 +422,9 @@ export async function bulkSetActiveByFilter(
             { normalizedName: { contains: parsed.data.q, mode: "insensitive" } },
             { internalSku: { contains: parsed.data.q, mode: "insensitive" } },
             { supplierSku: { contains: parsed.data.q, mode: "insensitive" } },
+            ...(normalizeForSearch(parsed.data.q)
+              ? [{ searchKey: { contains: normalizeForSearch(parsed.data.q) } } as Prisma.ProductWhereInput]
+              : []),
           ],
         }
       : {}),

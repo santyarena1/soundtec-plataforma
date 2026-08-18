@@ -1,6 +1,7 @@
 import { Prisma, RuleScopeType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
+import { getExchangeRate } from "@/lib/exchange-rate";
 
 /**
  * Motor central de precios.
@@ -106,7 +107,7 @@ interface CalculatePriceOptions {
   clientId?: string | null;
   defaultGlobalMarginPercent?: number;
   defaultMarkupMultiplier?: number;
-  tc?: number;
+  tcOverride?: number;
 }
 
 function toNumber(value: Prisma.Decimal | number | null | undefined): number {
@@ -128,7 +129,7 @@ function parsedSetting(value: string, fallback: number): number {
 export async function calculateCustomerPrice(options: CalculatePriceOptions): Promise<PriceBreakdown> {
   const { product, clientId } = options;
   void options.defaultGlobalMarginPercent;
-  const [marginRules, discountRules, defaultMarkupSetting, tcSetting] = await Promise.all([
+  const [marginRules, discountRules, defaultMarkupSetting, exchangeRate] = await Promise.all([
     prisma.marginRule.findMany({
       where: {
         isActive: true,
@@ -152,9 +153,9 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
     options.defaultMarkupMultiplier == null
       ? getSetting("pricing.default_markup", "1.35")
       : Promise.resolve(String(options.defaultMarkupMultiplier)),
-    options.tc == null
-      ? getSetting("pricing.tc", "1")
-      : Promise.resolve(String(options.tc)),
+    options.tcOverride == null
+      ? getExchangeRate()
+      : Promise.resolve(options.tcOverride),
   ]);
 
   type AnyRule = {
@@ -194,7 +195,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
   const margin = findFirstMatching(marginRules);
   const marginWithMarkup = margin as (typeof margin & { markupMultiplier?: Prisma.Decimal | null });
   const defaultMarkupMultiplier = parsedSetting(defaultMarkupSetting, 1.35);
-  const tc = parsedSetting(tcSetting, 1);
+  const tc = Number.isFinite(exchangeRate) && exchangeRate > 0 ? exchangeRate : 1;
   const ruleMarkup = margin
     ? marginWithMarkup.markupMultiplier != null
       ? toNumber(marginWithMarkup.markupMultiplier)
@@ -315,12 +316,11 @@ export async function calculatePricesForProducts(
   defaultGlobalMarginPercent = 35
 ): Promise<Map<string, PriceBreakdown>> {
   void defaultGlobalMarginPercent;
-  const [defaultMarkupRaw, tcRaw] = await Promise.all([
+  const [defaultMarkupRaw, tc] = await Promise.all([
     getSetting("pricing.default_markup", "1.35"),
-    getSetting("pricing.tc", "1"),
+    getExchangeRate(),
   ]);
   const defaultMarkupMultiplier = parsedSetting(defaultMarkupRaw, 1.35);
-  const tc = parsedSetting(tcRaw, 1);
   const results = new Map<string, PriceBreakdown>();
   await Promise.all(
     products.map(async (p) => {
@@ -328,7 +328,7 @@ export async function calculatePricesForProducts(
         product: p,
         clientId,
         defaultMarkupMultiplier,
-        tc,
+        tcOverride: tc,
       });
       results.set(p.productId, r);
     })

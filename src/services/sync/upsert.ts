@@ -6,6 +6,7 @@ import {
   mergeFieldTimestamps,
 } from "@/lib/field-timestamps";
 import type { NormalizedProduct } from "./types";
+import { buildProductSearchKey } from "@/lib/search-key";
 
 type ApplyResult = {
   action: "create" | "update";
@@ -14,10 +15,12 @@ type ApplyResult = {
 
 type TimestampedProductUpdateInput = Prisma.ProductUncheckedUpdateInput & {
   fieldUpdatedAt?: Prisma.InputJsonValue;
+  searchKey?: string;
 };
 
 type TimestampedProductCreateInput = Prisma.ProductUncheckedCreateInput & {
   fieldUpdatedAt?: Prisma.InputJsonValue;
+  searchKey?: string;
 };
 
 function nonEmpty(value: string | undefined): string | undefined {
@@ -82,6 +85,7 @@ export async function applyNormalizedProduct(
 
   const existing = await tx.product.findFirst({
     where: { [n.matchField]: matchValue },
+    include: { brand: { select: { name: true } } },
   });
   const brandName = nonEmpty(n.brandName);
   const categoryName = nonEmpty(n.categoryName);
@@ -214,6 +218,15 @@ export async function applyNormalizedProduct(
     ) {
       data.originalName = originalName;
     }
+    data.searchKey = buildProductSearchKey({
+      internalSku: n.matchField === "internalSku" ? matchValue : existing.internalSku,
+      supplierSku: n.matchField === "supplierSku" ? matchValue : existing.supplierSku,
+      normalizedName: name,
+      originalName: typeof data.originalName === "string" ? data.originalName : existing.originalName,
+      modelNumber: typeof data.modelNumber === "string" ? data.modelNumber : existing.modelNumber,
+      manufacturerItem: typeof data.manufacturerItem === "string" ? data.manufacturerItem : existing.manufacturerItem,
+      brandName: brandName ?? existing.brand?.name,
+    });
     const changed = changedScalarFields(
       existing as unknown as Record<string, unknown>,
       data as Record<string, unknown>
@@ -235,6 +248,15 @@ export async function applyNormalizedProduct(
       originalName: originalName ?? name,
       baseCostUsd: finite(n.baseCostUsd) ?? 0,
     };
+    createData.searchKey = buildProductSearchKey({
+      internalSku: n.matchField === "internalSku" ? matchValue : undefined,
+      supplierSku: n.matchField === "supplierSku" ? matchValue : undefined,
+      normalizedName: name,
+      originalName: originalName ?? name,
+      modelNumber: nonEmpty(n.modelNumber),
+      manufacturerItem: nonEmpty(n.manufacturerItem),
+      brandName,
+    });
     const now = new Date().toISOString();
     const providedFields = SCALAR_PRODUCT_FIELDS.filter(
       (field) => (createData as Record<string, unknown>)[field] !== undefined

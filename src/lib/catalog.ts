@@ -7,6 +7,7 @@ import {
   type ProductPricingInput,
 } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
+import { normalizeForSearch } from "@/lib/search-key";
 
 /**
  * Construye el OR del filtro de búsqueda extendido. Buscar SIMULTÁNEAMENTE en:
@@ -38,11 +39,15 @@ function buildSearchOr(search: string): Prisma.ProductWhereInput["OR"] {
 
 function tokenFieldOr(token: string): NonNullable<Prisma.ProductWhereInput["OR"]> {
   const c = { contains: token, mode: "insensitive" as const };
+  const normalizedToken = normalizeForSearch(token);
   return [
     { normalizedName: c },
     { originalName: c },
     { internalSku: c },
     { supplierSku: c },
+    ...(normalizedToken
+      ? [{ searchKey: { contains: normalizedToken } } as Prisma.ProductWhereInput]
+      : []),
     { shortDescription: c },
     { longDescription: c },
     { tariffPosition: c },
