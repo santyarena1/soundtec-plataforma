@@ -1,5 +1,6 @@
 import {
   fetchFromPortalWithIds,
+  fetchSkusBySearch,
   fetchProductDetailRawOrThrow,
   openSession,
   sessionFromCookies,
@@ -118,6 +119,7 @@ interface RunCache {
   entries: Array<{ listing: ListingProduct; portalId: string | null }>;
   total: number;
   brandCounts?: Record<string, number>;
+  subBrandBySku?: Record<string, string>;
 }
 
 function parseRunCache(raw: string): RunCache | undefined {
@@ -129,7 +131,9 @@ function parseRunCache(raw: string): RunCache | undefined {
       !value.sessionCookies ||
       typeof value.sessionCookies !== "object" ||
       !Array.isArray(value.entries) ||
-      typeof value.total !== "number"
+      typeof value.total !== "number" ||
+      (value.subBrandBySku !== undefined &&
+        (!value.subBrandBySku || typeof value.subBrandBySku !== "object" || Array.isArray(value.subBrandBySku)))
     ) {
       return undefined;
     }
@@ -152,12 +156,20 @@ async function buildRunCache(): Promise<RunCache> {
     listing: product,
     portalId,
   }));
+  const subBrandBySku: Record<string, string> = {};
+  const subBrandSearches = await Promise.all([
+    fetchSkusBySearch(session, "blaze"),
+    fetchSkusBySearch(session, "apparel"),
+  ]);
+  for (const sku of subBrandSearches[0]) subBrandBySku[sku] = "BLAZE BY SONANCE";
+  for (const sku of subBrandSearches[1]) subBrandBySku[sku] = "APPAREL";
   const cache: RunCache = {
     savedAt: new Date().toISOString(),
     sessionCookies: session.cookies,
     entries,
     total: listing.total,
     brandCounts: listing.brandCounts,
+    subBrandBySku,
   };
   await setSetting(RUN_CACHE_KEY, JSON.stringify(cache));
   return cache;
@@ -177,7 +189,8 @@ function sleep(ms: number): Promise<void> {
 
 async function fetchBatchDetails(
   entries: RunCache["entries"],
-  session: Session
+  session: Session,
+  subBrandBySku: Record<string, string>
 ): Promise<{
   items: NormalizedProduct[];
   failedCount: number;
@@ -199,7 +212,7 @@ async function fetchBatchDetails(
         if (!portalId) return undefined;
         try {
           const detail = await fetchProductDetailRawOrThrow(session, portalId);
-          if (detail) return normalizeDetail(listing, detail);
+          if (detail) return normalizeDetail(listing, detail, subBrandBySku);
           const message = `Sonance devolvió un detalle vacío para ${portalId}`;
           firstError ??= message;
           failedCount++;
@@ -212,7 +225,7 @@ async function fetchBatchDetails(
             await sleep(1200);
             try {
               const detail = await fetchProductDetailRawOrThrow(session, portalId);
-              if (detail) return normalizeDetail(listing, detail);
+              if (detail) return normalizeDetail(listing, detail, subBrandBySku);
             } catch (retryError) {
               if (isAuthError(retryError)) throw retryError;
             }
@@ -230,13 +243,15 @@ async function fetchBatchDetails(
 
 function normalizeDetail(
   listing: ListingProduct,
-  detail: PortalProductDetail
+  detail: PortalProductDetail,
+  subBrandBySku: Record<string, string>
 ): NormalizedProduct {
   const name = str(detail.productTitle) ?? listing.name;
   const supplierSku = listing.supplierSku;
   const modelNumber = str(detail.modelNumber);
   const manufacturerItem = str(detail.manufacturerItem);
   const brandName =
+    subBrandBySku[supplierSku] ??
     inferBrandFromKeywords([
       name,
       supplierSku,
@@ -362,18 +377,19 @@ export const sonanceConnector: ProductSourceConnector = {
       : storedCache;
     const total = cache.total;
     const batch = cache.entries.slice(offset, offset + batchSize);
+    const subBrandBySku = cache.subBrandBySku ?? {};
     let session = sessionFromCookies(cache.sessionCookies);
     let detailResult: Awaited<ReturnType<typeof fetchBatchDetails>>;
 
     try {
-      detailResult = await fetchBatchDetails(batch, session);
+      detailResult = await fetchBatchDetails(batch, session, subBrandBySku);
     } catch (error) {
       if (!isAuthError(error)) throw error;
       session = await openSession();
       cache.sessionCookies = session.cookies;
       cache.savedAt = new Date().toISOString();
       await setSetting(RUN_CACHE_KEY, JSON.stringify(cache));
-      detailResult = await fetchBatchDetails(batch, session);
+      detailResult = await fetchBatchDetails(batch, session, subBrandBySku);
     }
 
     const { items, attempted, firstError } = detailResult;

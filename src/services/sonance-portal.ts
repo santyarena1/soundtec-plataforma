@@ -282,6 +282,38 @@ interface ProductsResponse {
   };
 }
 
+export async function fetchSkusBySearch(
+  session: Session,
+  term: string
+): Promise<string[]> {
+  const cleanTerm = term.trim();
+  if (!cleanTerm) return [];
+  try {
+    const fetchPage = (page: number) => apiGet<ProductsResponse>(
+      session,
+      `/api/v2/products?search=${encodeURIComponent(cleanTerm)}&pageSize=250&page=${page}`
+    );
+    const firstPage = await fetchPage(1);
+    const pages = [firstPage];
+    const totalPages = Math.min(3, Math.max(1, firstPage.pagination?.numberOfPages ?? 1));
+    for (let page = 2; page <= totalPages; page++) {
+      pages.push(await fetchPage(page));
+    }
+    const skus = new Set<string>();
+    for (const response of pages) {
+      for (const product of response.products ?? []) {
+        const sku = typeof product.productNumber === "string"
+          ? product.productNumber.trim()
+          : "";
+        if (sku) skus.add(sku);
+      }
+    }
+    return [...skus];
+  } catch {
+    return [];
+  }
+}
+
 const PAGE_SIZE = 200;
 
 async function fetchProductsForCategory(
