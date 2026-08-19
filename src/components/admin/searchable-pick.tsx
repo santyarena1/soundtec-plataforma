@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import { Input, Label } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -9,18 +9,24 @@ export function SearchablePick({
   label,
   options,
   value,
+  values,
   onChange,
+  onValuesChange,
   placeholder = "Escribí para buscar…",
   disabled,
   required,
+  multiple = false,
 }: {
   label: string;
   options: { id: string; name: string }[];
-  value: string;
-  onChange: (id: string) => void;
+  value?: string;
+  values?: string[];
+  onChange?: (id: string) => void;
+  onValuesChange?: (ids: string[]) => void;
   placeholder?: string;
   disabled?: boolean;
   required?: boolean;
+  multiple?: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -28,27 +34,22 @@ export function SearchablePick({
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
-  const selected = options.find((option) => option.id === value) || null;
+  const selectedIds = multiple ? values || [] : value ? [value] : [];
+  const selected = options.filter((option) => selectedIds.includes(option.id));
+  const selectedSingle = selected[0] || null;
 
   useEffect(() => {
+    if (multiple) return;
     if (!value) return;
     const name = options.find((option) => option.id === value)?.name;
     if (name) setQ(name);
-  }, [value]);
+  }, [value, multiple]);
 
-  const filtered = useMemo(() => {
+  const filteredAll = useMemo(() => {
     const query = q.trim().toLowerCase();
-    const list = query
-      ? options.filter((option) => option.name.toLowerCase().includes(query))
-      : options;
-    return list.slice(0, 80);
+    return query ? options.filter((option) => option.name.toLowerCase().includes(query)) : options;
   }, [options, q]);
-
-  const total = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    if (!query) return options.length;
-    return options.filter((option) => option.name.toLowerCase().includes(query)).length;
-  }, [options, q]);
+  const filtered = filteredAll.slice(0, 80);
 
   useEffect(() => {
     function onDoc(event: MouseEvent) {
@@ -62,19 +63,37 @@ export function SearchablePick({
     setActive(0);
   }, [q, open]);
 
-  function pick(id: string) {
-    const option = options.find((item) => item.id === id);
-    onChange(id);
-    setQ(option?.name ?? "");
-    setOpen(false);
+  function setSelected(ids: string[]) {
+    if (multiple) onValuesChange?.(ids);
+    else onChange?.(ids[0] || "");
+  }
+
+  function toggle(id: string) {
+    if (!multiple) {
+      setSelected([id]);
+      setQ(options.find((item) => item.id === id)?.name ?? "");
+      setOpen(false);
+      return;
+    }
+    const next = selectedIds.includes(id) ? selectedIds.filter((item) => item !== id) : [...selectedIds, id];
+    setSelected(next);
+  }
+
+  function selectFiltered() {
+    const ids = new Set(selectedIds);
+    for (const option of filteredAll) ids.add(option.id);
+    setSelected([...ids]);
+  }
+
+  function clearFiltered() {
+    const drop = new Set(filteredAll.map((option) => option.id));
+    setSelected(selectedIds.filter((id) => !drop.has(id)));
   }
 
   function onFocus() {
     if (disabled) return;
     setOpen(true);
-    if (selected && q === selected.name) {
-      setQ("");
-    }
+    if (!multiple && selectedSingle && q === selectedSingle.name) setQ("");
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -92,27 +111,33 @@ export function SearchablePick({
     } else if (event.key === "Enter") {
       event.preventDefault();
       const option = filtered[active];
-      if (option) pick(option.id);
+      if (option) toggle(option.id);
     } else if (event.key === "Escape") {
       setOpen(false);
-      setQ(selected?.name ?? "");
+      if (!multiple) setQ(selectedSingle?.name ?? "");
       inputRef.current?.blur();
     }
   }
+
+  const allFilteredSelected = filteredAll.length > 0 && filteredAll.every((option) => selectedIds.includes(option.id));
+  const inputValue = multiple || open ? q : selectedSingle?.name || q;
 
   return (
     <div ref={wrapRef} className={cn("relative flex min-w-0 flex-col gap-1.5", disabled && "opacity-50")}>
       <Label required={required} className="block h-5 leading-5">
         {label}
+        {multiple && selectedIds.length > 0 ? (
+          <span className="ml-1 font-normal text-muted-foreground">({selectedIds.length})</span>
+        ) : null}
       </Label>
       <div className="relative">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           ref={inputRef}
-          value={open ? q : selected?.name || q}
+          value={inputValue}
           onChange={(e) => {
             setQ(e.target.value);
-            if (value && e.target.value !== selected?.name) onChange("");
+            if (!multiple && value && e.target.value !== selectedSingle?.name) onChange?.("");
             setOpen(true);
           }}
           onFocus={onFocus}
@@ -126,42 +151,82 @@ export function SearchablePick({
           role="combobox"
         />
         <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-        {open ? (
+            {open ? (
           <ul
             id={listId}
             role="listbox"
-            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-card shadow-lg"
+            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-md border border-border bg-card shadow-lg"
           >
-          {filtered.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-muted-foreground">Sin resultados.</li>
-          ) : (
-            filtered.map((option, index) => (
-              <li key={option.id} role="option" aria-selected={option.id === value}>
+            {multiple && filteredAll.length > 0 ? (
+              <li className="sticky top-0 border-b border-border bg-card px-2 py-1.5">
                 <button
                   type="button"
-                  className={cn(
-                    "w-full px-3 py-1.5 text-left text-sm hover:bg-secondary/70",
-                    option.id === value && "bg-primary/10 font-medium",
-                    index === active && "bg-secondary"
-                  )}
-                  onMouseEnter={() => setActive(index)}
+                  className="text-xs font-medium text-primary"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => pick(option.id)}
+                  onClick={allFilteredSelected ? clearFiltered : selectFiltered}
                 >
-                  {option.name}
+                  {allFilteredSelected
+                    ? `Quitar ${filteredAll.length} de esta búsqueda`
+                    : `Elegir ${filteredAll.length === options.length ? "todas" : `las ${filteredAll.length} de esta búsqueda`}`}
                 </button>
               </li>
-            ))
-          )}
-          {total > filtered.length ? (
-            <li className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">
-              Mostrando 80 de {total}. Seguí escribiendo para afinar.
-            </li>
-          ) : null}
+            ) : null}
+            {filtered.length === 0 ? (
+              <li className="px-3 py-2 text-sm text-muted-foreground">Sin resultados.</li>
+            ) : (
+              filtered.map((option, index) => {
+                const checked = selectedIds.includes(option.id);
+                return (
+                  <li key={option.id} role="option" aria-selected={checked}>
+                    <button
+                      type="button"
+                      className={cn(
+                        "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-secondary/70",
+                        checked && "bg-primary/10 font-medium",
+                        index === active && "bg-secondary"
+                      )}
+                      onMouseEnter={() => setActive(index)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => toggle(option.id)}
+                    >
+                      {multiple ? (
+                        <input type="checkbox" readOnly checked={checked} className="pointer-events-none" />
+                      ) : null}
+                      <span>{option.name}</span>
+                    </button>
+                  </li>
+                );
+              })
+            )}
+            {filteredAll.length > filtered.length ? (
+              <li className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">
+                Mostrando 80 de {filteredAll.length}. Seguí escribiendo para afinar.
+              </li>
+            ) : null}
           </ul>
         ) : null}
       </div>
-      {required ? <input type="hidden" value={value} required readOnly tabIndex={-1} /> : null}
+      {multiple && selected.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {selected.slice(0, 12).map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary/60 px-2 py-0.5 text-xs"
+              onClick={() => toggle(option.id)}
+            >
+              {option.name}
+              <X className="h-3 w-3 text-muted-foreground" />
+            </button>
+          ))}
+          {selected.length > 12 ? (
+            <span className="self-center text-xs text-muted-foreground">+{selected.length - 12} más</span>
+          ) : null}
+        </div>
+      ) : null}
+      {required ? (
+        <input type="hidden" value={selectedIds[0] || ""} required={selectedIds.length === 0} readOnly tabIndex={-1} />
+      ) : null}
     </div>
   );
 }

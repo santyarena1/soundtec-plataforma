@@ -3,11 +3,11 @@ import { formatDate } from "@/lib/utils";
 
 export const RULE_TARGETS = [
   { value: "ALL", label: "Todo el catálogo" },
-  { value: "BRAND", label: "Una marca" },
-  { value: "PRODUCT", label: "Un producto" },
-  { value: "CATEGORY", label: "Una categoría" },
-  { value: "FAMILY", label: "Una familia" },
-  { value: "DISTRIBUTOR", label: "Un proveedor" },
+  { value: "BRAND", label: "Marca(s)" },
+  { value: "PRODUCT", label: "Producto(s)" },
+  { value: "CATEGORY", label: "Categoría(s)" },
+  { value: "FAMILY", label: "Familia(s)" },
+  { value: "DISTRIBUTOR", label: "Proveedor(es)" },
 ] as const;
 
 export type RuleTarget = (typeof RULE_TARGETS)[number]["value"];

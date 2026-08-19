@@ -35,14 +35,20 @@ const ruleSchema = z.object({
   isActive: z.coerce.boolean().optional(),
 });
 
+function formIds(formData: FormData, many: string, one: string) {
+  const fromMany = formData.getAll(many).map((value) => String(value)).filter(Boolean);
+  const fromOne = String(formData.get(one) || "");
+  return fromMany.length > 0 ? fromMany : fromOne ? [fromOne] : [];
+}
+
 function parseRule(formData: FormData, kind: "margin" | "discount") {
   const parsed = ruleSchema.safeParse({
     name: formData.get("name") || "",
     audience: formData.get("audience") || undefined,
     target: formData.get("target") || undefined,
     scopeType: formData.get("scopeType") || undefined,
-    scopeId: formData.get("scopeId") || null,
-    clientId: formData.get("clientId") || null,
+    scopeId: formData.get("scopeId") || formData.get("scopeIds") || null,
+    clientId: formData.get("clientId") || formData.get("clientIds") || null,
     percent: formData.get("percent"),
     pricingMode: formData.get("pricingMode") || "margin",
     isActive: formData.get("isActive") === "on" || formData.get("isActive") === "true",
@@ -51,16 +57,38 @@ function parseRule(formData: FormData, kind: "margin" | "discount") {
     return { ok: false as const, error: "Revisá a quién aplica y el valor." };
   }
 
+  const audience = parsed.data.audience;
+  const target = (parsed.data.target as RuleTarget | undefined) || undefined;
+  const clientIds =
+    audience === "all" ? [null] : formIds(formData, "clientIds", "clientId").map((id) => id as string | null);
+  const scopeIds = target === "ALL" ? [null] : formIds(formData, "scopeIds", "scopeId").map((id) => id as string | null);
+
+  if (audience === "client" && clientIds.filter(Boolean).length === 0) {
+    return { ok: false as const, error: "Elegí al menos un cliente." };
+  }
+  if (target && target !== "ALL" && scopeIds.filter(Boolean).length === 0) {
+    return { ok: false as const, error: "Elegí al menos una marca, familia o recurso." };
+  }
+
+  const combos =
+    audience && target
+      ? clientIds.flatMap((clientId) => scopeIds.map((scopeId) => ({ clientId, scopeId })))
+      : null;
+  if (combos && combos.length > 400) {
+    return { ok: false as const, error: "Elegiste demasiadas combinaciones (máximo 400). Filtrá un poco." };
+  }
+
   let scopeType: RuleScopeType;
   let clientId: string | null;
   let scopeId: string | null;
 
-  if (parsed.data.audience && parsed.data.target) {
+  if (audience && target) {
+    const first = combos![0];
     const resolved = resolveRuleScope({
-      audience: parsed.data.audience,
-      target: parsed.data.target as RuleTarget,
-      clientId: parsed.data.clientId,
-      scopeId: parsed.data.scopeId,
+      audience,
+      target,
+      clientId: first.clientId,
+      scopeId: first.scopeId,
     });
     if (!resolved.ok) return resolved;
     scopeType = resolved.scopeType;
@@ -85,7 +113,6 @@ function parseRule(formData: FormData, kind: "margin" | "discount") {
     if (parsed.data.percent <= 0 || parsed.data.percent > 20) {
       return { ok: false as const, error: "El markup tiene que ser un multiplicador (ej. 2.75 = costo × 2.75)." };
     }
-    // 2.75 se guarda como 2.75. Nunca 1+2.75 (= 3.75).
     markupMultiplier = parsed.data.percent;
     marginPercent = markupToMarginPercent(parsed.data.percent);
   } else if (kind === "margin") {
@@ -100,13 +127,19 @@ function parseRule(formData: FormData, kind: "margin" | "discount") {
       mode,
       value: parsed.data.percent,
       audience: clientId ? "client" : "all",
-      target: (parsed.data.target as RuleTarget) || (scopeType === "GLOBAL" || scopeType === "CLIENT" ? "ALL" : (scopeType as RuleTarget)),
+      target: target || (scopeType === "GLOBAL" || scopeType === "CLIENT" ? "ALL" : (scopeType as RuleTarget)),
     });
 
   return {
     ok: true as const,
     data: {
       name,
+      customName: (parsed.data.name || "").trim(),
+      mode,
+      rawValue: parsed.data.percent,
+      kind,
+      audience: (audience || (clientId ? "client" : "all")) as "all" | "client",
+      target: target || (scopeType === "GLOBAL" || scopeType === "CLIENT" ? "ALL" : (scopeType as RuleTarget)),
       priority: autoPriority(scopeType, Boolean(clientId)),
       scopeType,
       scopeId,
@@ -115,35 +148,122 @@ function parseRule(formData: FormData, kind: "margin" | "discount") {
       percent: marginPercent,
       markupMultiplier,
       isActive: parsed.data.isActive ?? true,
+      combos: combos || [{ clientId, scopeId }],
     },
   };
 }
 
-export async function upsertMarginRule(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+async function resourceNameMap(target: RuleTarget, ids: string[]) {
+  if (ids.length === 0) return new Map<string, string>();
+  const select = { id: true, name: true };
+  const rows =
+    target === "BRAND"
+      ? await prisma.brand.findMany({ where: { id: { in: ids } }, select })
+      : target === "DISTRIBUTOR"
+        ? await prisma.distributor.findMany({ where: { id: { in: ids } }, select })
+        : target === "CATEGORY"
+          ? await prisma.category.findMany({ where: { id: { in: ids } }, select })
+          : target === "FAMILY"
+            ? await prisma.productFamily.findMany({ where: { id: { in: ids } }, select })
+            : target === "PRODUCT"
+              ? (await prisma.product.findMany({ where: { id: { in: ids } }, select: { id: true, normalizedName: true } })).map(
+                  (row) => ({ id: row.id, name: row.normalizedName })
+                )
+              : [];
+  return new Map(rows.map((row) => [row.id, row.name]));
+}
+
+async function saveRuleRows(
+  kind: "margin" | "discount",
+  parsed: Extract<ReturnType<typeof parseRule>, { ok: true }>,
+  id?: string
+) {
+  const combos = parsed.data.combos;
+  const scopeIds = combos.map((combo) => combo.scopeId).filter((value): value is string => Boolean(value));
+  const clientIds = combos.map((combo) => combo.clientId).filter((value): value is string => Boolean(value));
+  const [resources, clients] = await Promise.all([
+    resourceNameMap(parsed.data.target, scopeIds),
+    clientIds.length
+      ? prisma.client.findMany({
+          where: { id: { in: clientIds } },
+          select: { id: true, companyName: true, contactName: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  const clientNames = new Map(clients.map((row) => [row.id, row.companyName || row.contactName || row.id]));
+
+  let usedOriginal = false;
+  for (const combo of combos) {
+    const resolved = resolveRuleScope({
+      audience: parsed.data.audience,
+      target: parsed.data.target,
+      clientId: combo.clientId,
+      scopeId: combo.scopeId,
+    });
+    if (!resolved.ok) continue;
+    const generated = autoRuleName({
+      kind: parsed.data.kind,
+      mode: parsed.data.mode === "markup" ? "markup" : "margin",
+      value: parsed.data.rawValue,
+      audience: parsed.data.audience,
+      clientName: combo.clientId ? clientNames.get(combo.clientId) : null,
+      target: parsed.data.target,
+      resourceName: combo.scopeId ? resources.get(combo.scopeId) : null,
+    });
+    const name =
+      parsed.data.customName && combos.length === 1
+        ? parsed.data.customName
+        : parsed.data.customName
+          ? `${parsed.data.customName} · ${combo.scopeId ? resources.get(combo.scopeId) || "recurso" : clientNames.get(combo.clientId || "") || "catálogo"}`.slice(0, 200)
+          : generated;
+
+    const base = {
+      name,
+      priority: autoPriority(resolved.scopeType, Boolean(resolved.clientId)),
+      scopeType: resolved.scopeType,
+      scopeId: resolved.scopeId,
+      clientId: resolved.clientId,
+      productId: resolved.scopeType === "PRODUCT" ? resolved.scopeId : null,
+      isActive: parsed.data.isActive,
+    };
+
+    if (kind === "margin") {
+      const data = {
+        ...base,
+        marginPercent: parsed.data.percent,
+        markupMultiplier: parsed.data.markupMultiplier,
+      };
+      const existing = await prisma.marginRule.findFirst({
+        where: { clientId: resolved.clientId, scopeType: resolved.scopeType, scopeId: resolved.scopeId },
+      });
+      if (existing) await prisma.marginRule.update({ where: { id: existing.id }, data });
+      else if (id && !usedOriginal) {
+        await prisma.marginRule.update({ where: { id }, data });
+        usedOriginal = true;
+      } else await prisma.marginRule.create({ data });
+    } else {
+      const data = { ...base, discountPercent: parsed.data.percent };
+      const existing = await prisma.discountRule.findFirst({
+        where: { clientId: resolved.clientId, scopeType: resolved.scopeType, scopeId: resolved.scopeId },
+      });
+      if (existing) await prisma.discountRule.update({ where: { id: existing.id }, data });
+      else if (id && !usedOriginal) {
+        await prisma.discountRule.update({ where: { id }, data });
+        usedOriginal = true;
+      } else await prisma.discountRule.create({ data });
+    }
+  }
+  return combos.length;
+}
+
+export async function upsertMarginRule(formData: FormData): Promise<{ ok: boolean; error?: string; count?: number }> {
   await requireAdmin();
   const id = formData.get("id")?.toString() || undefined;
   const parsed = parseRule(formData, "margin");
   if (!parsed.ok) return parsed;
-
-  const data = {
-    name: parsed.data.name,
-    priority: parsed.data.priority,
-    scopeType: parsed.data.scopeType,
-    scopeId: parsed.data.scopeId,
-    clientId: parsed.data.clientId,
-    productId: parsed.data.productId,
-    marginPercent: parsed.data.percent,
-    markupMultiplier: parsed.data.markupMultiplier,
-    isActive: parsed.data.isActive,
-  };
-
-  if (id) {
-    await prisma.marginRule.update({ where: { id }, data });
-  } else {
-    await prisma.marginRule.create({ data });
-  }
+  const count = await saveRuleRows("margin", parsed, id);
   revalidatePricing();
-  return { ok: true };
+  return { ok: true, count };
 }
 
 export async function deleteMarginRule(formData: FormData): Promise<void> {
@@ -154,30 +274,14 @@ export async function deleteMarginRule(formData: FormData): Promise<void> {
   revalidatePricing();
 }
 
-export async function upsertDiscountRule(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+export async function upsertDiscountRule(formData: FormData): Promise<{ ok: boolean; error?: string; count?: number }> {
   await requireAdmin();
   const id = formData.get("id")?.toString() || undefined;
   const parsed = parseRule(formData, "discount");
   if (!parsed.ok) return parsed;
-
-  const data = {
-    name: parsed.data.name,
-    priority: parsed.data.priority,
-    scopeType: parsed.data.scopeType,
-    scopeId: parsed.data.scopeId,
-    clientId: parsed.data.clientId,
-    productId: parsed.data.productId,
-    discountPercent: parsed.data.percent,
-    isActive: parsed.data.isActive,
-  };
-
-  if (id) {
-    await prisma.discountRule.update({ where: { id }, data });
-  } else {
-    await prisma.discountRule.create({ data });
-  }
+  const count = await saveRuleRows("discount", parsed, id);
   revalidatePricing();
-  return { ok: true };
+  return { ok: true, count };
 }
 
 export async function deleteDiscountRule(formData: FormData): Promise<void> {

@@ -11,7 +11,6 @@ import { upsertMarginRule, upsertDiscountRule } from "@/server/actions/pricing-r
 import { cn } from "@/lib/utils";
 import {
   RULE_TARGETS,
-  autoRuleName,
   formatMarginPercent,
   formatMarkup,
   listFromCost100,
@@ -127,9 +126,11 @@ export function RulesForm({
   const [audience, setAudience] = useState<"all" | "client">(
     lockedClientId ? "client" : formSeed?.audience || "all"
   );
-  const [clientId, setClientId] = useState(lockedClientId || initial?.clientId || "");
+  const [clientIds, setClientIds] = useState<string[]>(
+    lockedClientId ? [lockedClientId] : initial?.clientId ? [initial.clientId] : []
+  );
   const [target, setTarget] = useState<RuleTarget>(formSeed?.target || "ALL");
-  const [scopeId, setScopeId] = useState(initial?.scopeId || "");
+  const [scopeIds, setScopeIds] = useState<string[]>(initial?.scopeId ? [initial.scopeId] : []);
   const [mode, setMode] = useState<"margin" | "markup">(type === "margin" ? initialMode(initial) : "margin");
   const [value, setValue] = useState(initialValue(type, initial));
   const [name, setName] = useState(initial?.name || "");
@@ -166,9 +167,23 @@ export function RulesForm({
         ? `Se resta ${formatMarginPercent(numericValue)} al precio de lista.`
         : null;
 
+  const comboCount =
+    (audience === "all" || lockedClientId ? 1 : Math.max(clientIds.length, 0)) *
+    (target === "ALL" ? 1 : Math.max(scopeIds.length, 0));
+  const comboParts = [
+    audience === "client" && !lockedClientId && clientIds.length > 1 ? `${clientIds.length} clientes` : null,
+    target !== "ALL" && scopeIds.length > 1
+      ? `${scopeIds.length} ${RULE_TARGETS.find((item) => item.value === target)?.label.toLowerCase() || "recursos"}`
+      : null,
+  ].filter(Boolean);
+  const comboHint =
+    comboCount > 1
+      ? ` Se van a guardar ${comboCount} reglas${comboParts.length ? ` (${comboParts.join(" × ")})` : ""}.`
+      : "";
+
   function onTargetChange(next: RuleTarget) {
     setTarget(next);
-    setScopeId("");
+    setScopeIds([]);
   }
 
   function onModeChange(next: "margin" | "markup") {
@@ -185,34 +200,24 @@ export function RulesForm({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    if (audience === "client" && !clientId) {
-      setError("Elegí el cliente.");
+    if (audience === "client" && !lockedClientId && clientIds.length === 0) {
+      setError("Elegí al menos un cliente.");
       return;
     }
-    if (target !== "ALL" && !scopeId) {
-      setError("Elegí el recurso de la lista mientras escribís.");
+    if (target !== "ALL" && scopeIds.length === 0) {
+      setError("Elegí al menos un recurso de la lista.");
       return;
     }
-    const clientName = clients.find((c) => c.id === clientId)?.companyName || clients.find((c) => c.id === clientId)?.name;
-    const resourceName = resourceOptions.find((o) => o.id === scopeId)?.name;
-    const generated = autoRuleName({
-      kind: type,
-      mode: type === "margin" ? mode : undefined,
-      value: numericValue,
-      audience,
-      clientName,
-      target,
-      resourceName,
-    });
     const fd = new FormData();
     if (initial?.id) fd.set("id", initial.id);
     fd.set("audience", audience);
     fd.set("target", target);
-    fd.set("clientId", audience === "client" ? clientId : "");
-    fd.set("scopeId", target === "ALL" ? "" : scopeId);
+    if (lockedClientId) fd.append("clientIds", lockedClientId);
+    else if (audience === "client") for (const id of clientIds) fd.append("clientIds", id);
+    if (target !== "ALL") for (const id of scopeIds) fd.append("scopeIds", id);
     fd.set("pricingMode", type === "margin" ? mode : "margin");
     fd.set("percent", String(numericValue));
-    fd.set("name", name.trim() || generated);
+    fd.set("name", name.trim());
     fd.set("isActive", active ? "on" : "");
     start(async () => {
       try {
@@ -223,16 +228,19 @@ export function RulesForm({
           return;
         }
         toast.success(
-          editing
-            ? type === "margin"
-              ? "Regla de precio actualizada."
-              : "Descuento actualizado."
-            : type === "margin"
-              ? "Regla de precio creada."
-              : "Descuento creado."
+          (result.count || 1) > 1
+            ? `Se guardaron ${result.count} reglas.`
+            : editing
+              ? type === "margin"
+                ? "Regla de precio actualizada."
+                : "Descuento actualizado."
+              : type === "margin"
+                ? "Regla de precio creada."
+                : "Descuento creado."
         );
         if (!editing) {
           setName("");
+          setScopeIds([]);
         }
         onSaved?.();
         router.refresh();
@@ -266,22 +274,23 @@ export function RulesForm({
                 value={audience}
                 onChange={(next) => {
                   setAudience(next);
-                  if (next === "all") setClientId("");
+                  if (next === "all") setClientIds([]);
                 }}
                 options={[
                   { value: "all", label: "Todos los clientes" },
-                  { value: "client", label: "Un cliente" },
+                  { value: "client", label: "Uno o más clientes" },
                 ]}
               />
             </Field>
             {audience === "client" ? (
               <SearchablePick
-                label="Cliente"
+                label="Clientes"
                 options={clients.map((c) => ({ id: c.id, name: c.companyName || c.name }))}
-                value={clientId}
-                onChange={setClientId}
-                placeholder="Escribí el cliente…"
+                values={clientIds}
+                onValuesChange={setClientIds}
+                placeholder="Escribí y marcá uno o más…"
                 required
+                multiple
               />
             ) : (
               <Field label="Cliente">
@@ -304,12 +313,13 @@ export function RulesForm({
         {target !== "ALL" ? (
           <SearchablePick
             key={target}
-            label={RULE_TARGETS.find((item) => item.value === target)?.label || "Recurso"}
+            label={RULE_TARGETS.find((item) => item.value === target)?.label || "Recursos"}
             options={resourceOptions}
-            value={scopeId}
-            onChange={setScopeId}
-            placeholder="Escribí y elegí de la lista…"
+            values={scopeIds}
+            onValuesChange={setScopeIds}
+            placeholder="Escribí y marcá todas las que quieras…"
             required
+            multiple
           />
         ) : (
           <Field label="Recurso">
@@ -363,9 +373,10 @@ export function RulesForm({
           </div>
         </Field>
 
-        {preview ? (
+        {preview || comboHint ? (
           <p className="rounded-md bg-secondary/50 px-3 py-2 text-xs leading-5 text-muted-foreground sm:col-span-2">
             {preview}
+            {comboHint}
           </p>
         ) : null}
       </div>
@@ -407,7 +418,7 @@ export function RulesForm({
           ) : null}
           <Button type="submit" disabled={pending}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {editing ? "Guardar cambios" : "Crear regla"}
+            {editing ? "Guardar cambios" : comboCount > 1 ? `Crear ${comboCount} reglas` : "Crear regla"}
           </Button>
         </div>
       </div>
