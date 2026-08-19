@@ -112,38 +112,35 @@ export async function upsertClientExtraDiscount(formData: FormData): Promise<voi
   });
   if (!parsed.success) return;
 
+  const scopeType =
+    parsed.data.scopeType === "GLOBAL" ? RuleScopeType.CLIENT : (parsed.data.scopeType as RuleScopeType);
+  const scopeId = parsed.data.scopeId || null;
+
   const existing = await prisma.discountRule.findFirst({
     where: {
       clientId: parsed.data.clientId,
-      scopeType: parsed.data.scopeType as RuleScopeType,
-      scopeId: parsed.data.scopeId || null,
+      scopeId,
+      OR: [{ scopeType }, { scopeType: "GLOBAL" }],
     },
   });
+  const data = {
+    name: parsed.data.name,
+    priority: parsed.data.priority,
+    scopeType,
+    scopeId,
+    clientId: parsed.data.clientId,
+    productId: parsed.data.scopeType === "PRODUCT" ? scopeId : null,
+    discountPercent: parsed.data.discountPercent,
+    isActive: true,
+  };
   if (existing) {
-    await prisma.discountRule.update({
-      where: { id: existing.id },
-      data: {
-        name: parsed.data.name,
-        priority: parsed.data.priority,
-        discountPercent: parsed.data.discountPercent,
-        isActive: true,
-      },
-    });
+    await prisma.discountRule.update({ where: { id: existing.id }, data });
   } else {
-    await prisma.discountRule.create({
-      data: {
-        name: parsed.data.name,
-        priority: parsed.data.priority,
-        scopeType: parsed.data.scopeType as RuleScopeType,
-        scopeId: parsed.data.scopeId || null,
-        clientId: parsed.data.clientId,
-        productId: parsed.data.scopeType === "PRODUCT" ? parsed.data.scopeId || null : null,
-        discountPercent: parsed.data.discountPercent,
-        isActive: true,
-      },
-    });
+    await prisma.discountRule.create({ data });
   }
   revalidatePath(`/admin/clients/${parsed.data.clientId}`);
+  revalidatePath("/admin/discounts");
+  revalidatePath("/portal/products");
 }
 
 export async function deleteClientExtraDiscount(formData: FormData): Promise<void> {
@@ -153,4 +150,6 @@ export async function deleteClientExtraDiscount(formData: FormData): Promise<voi
   if (!id) return;
   await prisma.discountRule.delete({ where: { id } });
   revalidatePath(`/admin/clients/${clientId}`);
+  revalidatePath("/admin/discounts");
+  revalidatePath("/portal/products");
 }

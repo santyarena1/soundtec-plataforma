@@ -25,10 +25,30 @@ export default async function AdminMarginsPage() {
       prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
       prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
       prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-      prisma.product.findMany({ orderBy: { normalizedName: "asc" }, select: { id: true, normalizedName: true } }),
+      prisma.product.findMany({
+        orderBy: { normalizedName: "asc" },
+        select: { id: true, normalizedName: true },
+        take: 4000,
+      }),
     ]);
 
   const clientMap = new Map(clients.map((c) => [c.id, c.companyName || c.contactName || c.id]));
+  const resourceMaps: Record<string, Map<string, string>> = {
+    BRAND: new Map(brands.map((b) => [b.id, b.name])),
+    DISTRIBUTOR: new Map(distributors.map((d) => [d.id, d.name])),
+    CATEGORY: new Map(categories.map((c) => [c.id, c.name])),
+    FAMILY: new Map(families.map((f) => [f.id, f.name])),
+    PRODUCT: new Map(products.map((p) => [p.id, p.normalizedName])),
+  };
+  const scopeLabel: Record<string, string> = {
+    GLOBAL: "Global",
+    CLIENT: "Cliente",
+    BRAND: "Marca",
+    DISTRIBUTOR: "Proveedor",
+    CATEGORY: "Categoría",
+    FAMILY: "Familia",
+    PRODUCT: "Producto",
+  };
 
   return (
     <div className="space-y-6">
@@ -79,11 +99,13 @@ export default async function AdminMarginsPage() {
                 <TD>{r.priority}</TD>
                 <TD className="font-medium">{r.name}</TD>
                 <TD>
-                  <Badge tone="primary">{r.scopeType}</Badge>{" "}
-                  <span className="text-xs text-muted-foreground">{r.scopeId || "—"}</span>
+                  <Badge tone="primary">{scopeLabel[r.scopeType] || r.scopeType}</Badge>{" "}
+                  <span className="text-xs text-muted-foreground">
+                    {r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) || r.scopeId : "—"}
+                  </span>
                 </TD>
                 <TD className="text-xs text-muted-foreground">
-                  {r.clientId ? (clientMap.get(r.clientId) ?? r.clientId.slice(-6)) : "—"}
+                  {r.clientId ? (clientMap.get(r.clientId) ?? r.clientId.slice(-6)) : "Todos"}
                 </TD>
                 <TD className="text-right">{Number(r.marginPercent).toFixed(2)}%</TD>
                 <TD>{r.isActive ? <Badge tone="success">Activa</Badge> : <Badge tone="muted">Inactiva</Badge>}</TD>
