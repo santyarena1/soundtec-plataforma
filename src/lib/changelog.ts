@@ -47,12 +47,16 @@ export function displayChangelogVersion(version: string) {
 export function formatChangelogDate(value: Date | string) {
   const date = typeof value === "string" ? new Date(value) : value;
   if (!Number.isFinite(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "America/Argentina/Buenos_Aires",
-  }).format(date);
+  try {
+    return new Intl.DateTimeFormat("es-AR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "America/Argentina/Buenos_Aires",
+    }).format(date);
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
 }
 
 /** Agrupa varias entradas del mismo día en una sola tarjeta (un push / un día). */
@@ -67,12 +71,16 @@ export type ChangelogDayGroup = {
 export function changelogDayKey(value: Date | string) {
   const date = typeof value === "string" ? new Date(value) : value;
   if (!Number.isFinite(date.getTime())) return "invalid";
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Argentina/Buenos_Aires",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
 }
 
 export function groupChangelogByDay(entries: ChangelogEntryView[]): ChangelogDayGroup[] {
@@ -98,10 +106,12 @@ export function groupChangelogByDay(entries: ChangelogEntryView[]): ChangelogDay
         items.push(item);
       }
     }
+    const newest = list[0];
+    if (!newest) continue;
     groups.push({
       key,
-      releasedAt: list[0].releasedAt,
-      summary: list[0].summary,
+      releasedAt: newest.releasedAt,
+      summary: newest.summary,
       items,
       sourceIds: list.map((entry) => entry.id),
     });

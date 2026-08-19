@@ -26,11 +26,20 @@ export async function markChangelogsSeen(ids: string[]): Promise<{ ok: boolean }
   const user = await requireAdminPanelUser();
   const unique = [...new Set(ids.filter(Boolean))].slice(0, 50);
   if (unique.length === 0) return { ok: true };
-  await prisma.adminChangelogRead.createMany({
-    data: unique.map((changelogId) => ({ userId: user.id, changelogId })),
-    skipDuplicates: true,
-  });
-  revalidatePath("/admin", "layout");
-  revalidatePath("/admin/changelog");
+  try {
+    await prisma.adminChangelogRead.createMany({
+      data: unique.map((changelogId) => ({ userId: user.id, changelogId })),
+      skipDuplicates: true,
+    });
+  } catch (err) {
+    console.error("markChangelogsSeen", err);
+    return { ok: false };
+  }
+  try {
+    revalidatePath("/admin", "layout");
+    revalidatePath("/admin/changelog");
+  } catch (err) {
+    console.error("markChangelogsSeen revalidate", err);
+  }
   return { ok: true };
 }

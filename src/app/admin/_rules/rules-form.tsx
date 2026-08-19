@@ -264,7 +264,11 @@ export function RulesForm({
           setScopeIds([]);
         }
         onSaved?.();
-        router.refresh();
+        try {
+          router.refresh();
+        } catch {
+          window.location.reload();
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : "";
         setError(

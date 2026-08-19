@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { toChangelogView, type ChangelogEntryView } from "@/lib/changelog";
 import { syncShippedChangelog } from "@/server/changelog-sync";
 
+let syncOnce: Promise<void> | null = null;
+
 function shippedViews(): ChangelogEntryView[] {
   return [...SHIPPED_ADMIN_CHANGELOG]
     .slice()
@@ -20,11 +22,15 @@ function shippedViews(): ChangelogEntryView[] {
 }
 
 export async function ensureShippedChangelog() {
-  try {
-    await syncShippedChangelog();
-  } catch {
-    // Tabla todavía no existe, o la DB no está lista.
+  if (!syncOnce) {
+    syncOnce = syncShippedChangelog()
+      .then(() => undefined)
+      .catch((err) => {
+        console.error("changelog sync", err);
+        syncOnce = null;
+      });
   }
+  await syncOnce;
 }
 
 export async function listAllChangelogs(): Promise<ChangelogEntryView[]> {

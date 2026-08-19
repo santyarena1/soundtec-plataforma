@@ -4,14 +4,15 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PriceLogicHint } from "@/components/admin/price-logic-hint";
 import { PricingRulesWorkspace } from "../_rules/workspace";
 import { deleteMarginRule, deleteMarginRuleGroup } from "@/server/actions/pricing-rules";
-import { toPricingRuleRow } from "@/lib/pricing-scope";
+import { toFiniteNumber, toPricingRuleRow } from "@/lib/pricing-scope";
 
 export const metadata = { title: "Admin · Márgenes" };
 
 export default async function AdminMarginsPage() {
   await requireAdmin();
-  const [rules, clients, brands, distributors, categories, families, products] =
-    await Promise.all([
+  try {
+    const [rules, clients, brands, distributors, categories, families, products] =
+      await Promise.all([
       prisma.marginRule.findMany({ orderBy: [{ priority: "asc" }, { createdAt: "desc" }] }),
       prisma.client.findMany({
         where: { isActive: true },
@@ -48,8 +49,8 @@ export default async function AdminMarginsPage() {
       isActive: r.isActive,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
-      percent: Number(r.marginPercent),
-      markupMultiplier: r.markupMultiplier != null ? Number(r.markupMultiplier) : null,
+      percent: toFiniteNumber(r.marginPercent),
+      markupMultiplier: r.markupMultiplier != null ? toFiniteNumber(r.markupMultiplier) : null,
       groupId: r.groupId,
       clientName: r.clientId ? clientMap.get(r.clientId) ?? null : null,
       resourceName: r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) ?? null : null,
@@ -86,4 +87,19 @@ export default async function AdminMarginsPage() {
       />
     </div>
   );
+  } catch (err) {
+    console.error("AdminMarginsPage", err);
+    return (
+      <div className="space-y-4">
+        <PageHeader
+          title="Márgenes"
+          description="Definí el markup o el margen sobre el costo nacionalizado. La regla más específica gana."
+        />
+        <p className="text-sm text-destructive">
+          No se pudieron cargar las reglas. Recargá la página. Si acabás de guardar, la regla puede
+          estar igual: volvé a entrar a Márgenes.
+        </p>
+      </div>
+    );
+  }
 }

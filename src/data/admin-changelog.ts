@@ -95,4 +95,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-08-19-2",
+    version: "2026.08.19",
+    releasedAt: "2026-08-19T15:32:00.000Z",
+    summary: "Al guardar una regla de precio ya no debería caerse la pantalla con el error genérico del servidor.",
+    items: [
+      {
+        kind: "FIX",
+        text: "Guardar márgenes o descuentos (también agrupados o con markup alto) deja de tirar el Application error al refrescar.",
+      },
+    ],
+  },
 ];

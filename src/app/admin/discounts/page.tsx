@@ -7,7 +7,7 @@ import { PricingRulesWorkspace } from "../_rules/workspace";
 import { deleteDiscountRule, deleteDiscountRuleGroup } from "@/server/actions/pricing-rules";
 import { badgeLabel, isManufacturerPromoLabel } from "@/lib/manufacturer-promo";
 import { ManufacturerPromosPanel, ProductDiscountsPanel } from "./product-discounts-panel";
-import { toPricingRuleRow } from "@/lib/pricing-scope";
+import { toFiniteNumber, toPricingRuleRow } from "@/lib/pricing-scope";
 
 export const metadata = { title: "Admin · Descuentos" };
 
@@ -77,7 +77,7 @@ export default async function AdminDiscountsPage() {
       isActive: r.isActive,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
-      percent: Number(r.discountPercent),
+      percent: toFiniteNumber(r.discountPercent),
       groupId: r.groupId,
       clientName: r.clientId ? clientMap.get(r.clientId) ?? null : null,
       resourceName: r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) ?? null : null,

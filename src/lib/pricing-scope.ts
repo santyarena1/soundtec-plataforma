@@ -151,6 +151,28 @@ export function formatRuleTimestamp(createdAt: string | Date, updatedAt?: string
   return `Creada ${created}`;
 }
 
+export function toFiniteNumber(value: unknown, fallback = 0) {
+  if (value == null || value === "") return fallback;
+  const n = typeof value === "number" ? value : Number(String(value));
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toIso(value: Date | string | null | undefined) {
+  if (!value) return new Date(0).toISOString();
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : value;
+  }
+  if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString();
+  try {
+    const parsed = new Date(value as Date);
+    if (Number.isFinite(parsed.getTime())) return parsed.toISOString();
+  } catch {
+    // ignore
+  }
+  return new Date(0).toISOString();
+}
+
 export function toPricingRuleRow(input: {
   id: string;
   name: string;
@@ -175,11 +197,15 @@ export function toPricingRuleRow(input: {
     clientName: input.clientName ?? null,
     resourceName: input.resourceName ?? null,
     isActive: input.isActive,
-    percent: input.percent,
-    markupMultiplier: input.markupMultiplier ?? null,
+    percent: toFiniteNumber(input.percent),
+    markupMultiplier: (() => {
+      if (input.markupMultiplier == null) return null;
+      const n = toFiniteNumber(input.markupMultiplier);
+      return n > 0 ? n : null;
+    })(),
     groupId: input.groupId ?? null,
-    createdAt: typeof input.createdAt === "string" ? input.createdAt : input.createdAt.toISOString(),
-    updatedAt: typeof input.updatedAt === "string" ? input.updatedAt : input.updatedAt.toISOString(),
+    createdAt: toIso(input.createdAt),
+    updatedAt: toIso(input.updatedAt),
   };
 }
 

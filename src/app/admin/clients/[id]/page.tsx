@@ -17,7 +17,7 @@ import {
   toggleClientMovementPaid,
 } from "@/server/actions/admin-client-detail";
 import { deleteDiscountRule, deleteDiscountRuleGroup, deleteVisibility, toggleVisibilityCanView } from "@/server/actions/pricing-rules";
-import { toPricingRuleRow } from "@/lib/pricing-scope";
+import { toFiniteNumber, toPricingRuleRow } from "@/lib/pricing-scope";
 import { upsertClient } from "@/server/actions/clients";
 import { CreatePortalUserForm } from "@/components/admin/create-portal-user-form";
 import { formatDate, formatUsd } from "@/lib/utils";
@@ -340,7 +340,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
                     isActive: d.isActive,
                     createdAt: d.createdAt,
                     updatedAt: d.updatedAt,
-                    percent: Number(d.discountPercent),
+                    percent: toFiniteNumber(d.discountPercent),
                     groupId: d.groupId,
                     clientName: client.companyName,
                     resourceName: d.scopeId ? resourceMaps[d.scopeType]?.get(d.scopeId) ?? null : null,

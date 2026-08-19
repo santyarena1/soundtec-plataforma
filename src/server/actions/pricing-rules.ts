@@ -115,6 +115,8 @@ function parseRule(formData: FormData, kind: "margin" | "discount") {
     }
     markupMultiplier = parsed.data.percent;
     marginPercent = markupToMarginPercent(parsed.data.percent);
+    if (marginPercent > 999.999) marginPercent = 999.999;
+    if (marginPercent < -999.999) marginPercent = -999.999;
   } else if (kind === "margin") {
     markupMultiplier = null;
     marginPercent = parsed.data.percent;
@@ -352,6 +354,11 @@ async function saveRuleRows(
   return combos.length;
 }
 
+function rethrowIfRedirect(err: unknown) {
+  const digest = err && typeof err === "object" && "digest" in err ? String((err as { digest: unknown }).digest) : "";
+  if (digest.includes("NEXT_REDIRECT") || digest.includes("NEXT_NOT_FOUND")) throw err;
+}
+
 export async function upsertMarginRule(formData: FormData): Promise<{ ok: boolean; error?: string; count?: number }> {
   await requireAdmin();
   const parsed = parseRule(formData, "margin");
@@ -362,9 +369,15 @@ export async function upsertMarginRule(formData: FormData): Promise<{ ok: boolea
       groupId: formData.get("groupId")?.toString() || undefined,
       replaceGroup: formData.get("replaceGroup") === "on",
     });
-    revalidatePricing();
+    try {
+      revalidatePricing();
+    } catch (revalidateErr) {
+      rethrowIfRedirect(revalidateErr);
+      console.error("revalidatePricing", revalidateErr);
+    }
     return { ok: true, count };
   } catch (err) {
+    rethrowIfRedirect(err);
     console.error("upsertMarginRule", err);
     return { ok: false, error: saveRuleError(err) };
   }
@@ -396,9 +409,15 @@ export async function upsertDiscountRule(formData: FormData): Promise<{ ok: bool
       groupId: formData.get("groupId")?.toString() || undefined,
       replaceGroup: formData.get("replaceGroup") === "on",
     });
-    revalidatePricing();
+    try {
+      revalidatePricing();
+    } catch (revalidateErr) {
+      rethrowIfRedirect(revalidateErr);
+      console.error("revalidatePricing", revalidateErr);
+    }
     return { ok: true, count };
   } catch (err) {
+    rethrowIfRedirect(err);
     console.error("upsertDiscountRule", err);
     return { ok: false, error: saveRuleError(err) };
   }

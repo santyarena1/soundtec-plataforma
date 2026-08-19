@@ -30,7 +30,10 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
   const [logoUrl, appName, unreadChangelogs] = await Promise.all([
     getSetting("branding.logo_url", ""),
     getSetting("app.name", "Soundtec"),
-    getUnreadChangelogsForUser(session.user.id),
+    getUnreadChangelogsForUser(session.user.id ?? "").catch((err) => {
+      console.error("changelog unread", err);
+      return [];
+    }),
   ]);
 
   async function handleSignOut() {
