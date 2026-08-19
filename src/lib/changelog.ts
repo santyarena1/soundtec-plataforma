@@ -51,7 +51,62 @@ export function formatChangelogDate(value: Date | string) {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "America/Argentina/Buenos_Aires",
   }).format(date);
+}
+
+/** Agrupa varias entradas del mismo día en una sola tarjeta (un push / un día). */
+export type ChangelogDayGroup = {
+  key: string;
+  releasedAt: string;
+  summary: string;
+  items: ChangelogItem[];
+  sourceIds: string[];
+};
+
+export function changelogDayKey(value: Date | string) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (!Number.isFinite(date.getTime())) return "invalid";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+export function groupChangelogByDay(entries: ChangelogEntryView[]): ChangelogDayGroup[] {
+  const buckets = new Map<string, ChangelogEntryView[]>();
+  const newestFirst = [...entries].sort(
+    (a, b) => new Date(b.releasedAt).getTime() - new Date(a.releasedAt).getTime()
+  );
+  for (const entry of newestFirst) {
+    const key = changelogDayKey(entry.releasedAt);
+    const list = buckets.get(key) || [];
+    list.push(entry);
+    buckets.set(key, list);
+  }
+  const groups: ChangelogDayGroup[] = [];
+  for (const [key, list] of buckets) {
+    const seen = new Set<string>();
+    const items: ChangelogItem[] = [];
+    for (const entry of list) {
+      for (const item of entry.items) {
+        const token = `${item.kind}:${item.text}`;
+        if (seen.has(token)) continue;
+        seen.add(token);
+        items.push(item);
+      }
+    }
+    groups.push({
+      key,
+      releasedAt: list[0].releasedAt,
+      summary: list[0].summary,
+      items,
+      sourceIds: list.map((entry) => entry.id),
+    });
+  }
+  return groups;
 }
 
 export function toChangelogView(row: {

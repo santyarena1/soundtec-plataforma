@@ -588,7 +588,7 @@ export const HELP_MODULES: HelpModule[] = [
     editable: "Nada. No se puede cargar, editar ni borrar a mano.",
     notEditable: "Todo el historial. Tampoco aparece en el portal del cliente.",
     config: "El botón está arriba del dólar, en el menú izquierdo.",
-    tips: ["Si publicamos código con una entrada nueva, el próximo ingreso de cada usuario abre el popup."],
+    tips: ["Las del mismo día se ven juntas. Cada push nuevo abre el popup a quien no lo leyó."],
   },
   {
     id: "tickets",

@@ -1,19 +1,23 @@
 ---
-description: En cada push al admin, cargar una novedad. El changelog no se edita en la UI.
+description: Changelog automático: una entrada por push, agrupada por día. No se edita en la UI.
 alwaysApply: true
 ---
 
 # Changelog automático (panel admin)
 
-Las novedades del admin **no se cargan, editan ni borran en la UI**. La pantalla es solo lectura.
+Las novedades del admin **no se cargan, editan ni borran en la UI**. La pantalla es solo lectura y agrupa el mismo día en una tarjeta.
 
-Van en `src/data/admin-changelog.ts` y el deploy las publica solo (`scripts/sync-changelog.ts` + sync al abrir el admin). Cualquier entrada que no esté en ese archivo se borra de la base.
+Van en `src/data/admin-changelog.ts` y el deploy las publica solo. Cualquier entrada que no esté en ese archivo se borra de la base.
 
-Cada vez que se commitee/pushee un cambio visible para el equipo del admin:
+## Cómo cargar (una por push)
 
-1. Agregar **una entrada nueva** al array `SHIPPED_ADMIN_CHANGELOG`.
-2. Usar un **id nuevo** (`ship-YYYY-MM-DD-tema`). No reutilizar un id viejo: si se reusa, quien ya tocó Entendido no vuelve a ver el popup.
-3. Completar `version` (siguiente número), `releasedAt` (ISO), `summary` (frase de "En pocas palabras") e `items` con `kind`: `NUEVO` | `FIX` | `MEJORA`.
-4. Textos en español, cortos, para el equipo interno. Nunca para el portal del cliente.
+No crear v1.1, v1.2, v1.3 para cada ajuste del mismo deploy. **Un push = una entrada**, con todos los NUEVO / FIX / MEJORA juntos.
 
-No agregar formularios, botones de editar/borrar ni acciones `upsert`/`delete` de changelog. Si el cambio no se ve en el admin, no hace falta entrada.
+1. Si este push todavía no tiene fila, agregar **una** al array `SHIPPED_ADMIN_CHANGELOG`.
+2. Id: `ship-YYYY-MM-DD`. Si hay otro push el mismo día, `ship-YYYY-MM-DD-2`.
+3. `version`: la fecha `YYYY.MM.DD` (no un número correlativo).
+4. `summary`: una sola frase de “En pocas palabras” para todo el push.
+5. `items`: la lista de cambios de ese push (`NUEVO` | `FIX` | `MEJORA`), en español, cortos, solo para el equipo interno.
+6. Si en el mismo push hay que sumar algo más **antes de desplegar**, append items a esa misma fila. No abras otra versión.
+
+No agregar formularios ni botones de editar/borrar. Si el cambio no se ve en el admin, no hace falta entrada.

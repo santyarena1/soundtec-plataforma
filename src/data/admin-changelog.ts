@@ -1,10 +1,9 @@
 import type { ChangelogItem } from "@/lib/changelog";
 
 /**
- * Fuente de las novedades del panel admin.
- * Cada push con cambios visibles para el equipo suma UNA entrada nueva (id nuevo).
- * El deploy las publica solas: popup por usuario la primera vez que entra.
- * No editar un id viejo para forzar popup: hay que crear otro id.
+ * Fuente de las novedades del panel admin (solo lectura en la UI).
+ * Un push = una entrada. El mismo día se muestra agrupado en una sola tarjeta.
+ * El deploy las publica solas. No reutilizar un id viejo para forzar popup.
  */
 export type ShippedChangelogEntry = {
   id: string;
