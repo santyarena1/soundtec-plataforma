@@ -173,10 +173,14 @@ async function resourceNameMap(target: RuleTarget, ids: string[]) {
   return new Map(rows.map((row) => [row.id, row.name]));
 }
 
+function newGroupId() {
+  return `grp_${globalThis.crypto.randomUUID().replace(/-/g, "")}`;
+}
+
 async function saveRuleRows(
   kind: "margin" | "discount",
   parsed: Extract<ReturnType<typeof parseRule>, { ok: true }>,
-  id?: string
+  options: { id?: string; groupId?: string; replaceGroup?: boolean }
 ) {
   const combos = parsed.data.combos;
   const scopeIds = combos.map((combo) => combo.scopeId).filter((value): value is string => Boolean(value));
@@ -191,6 +195,87 @@ async function saveRuleRows(
       : Promise.resolve([]),
   ]);
   const clientNames = new Map(clients.map((row) => [row.id, row.companyName || row.contactName || row.id]));
+
+  function comboKey(clientId: string | null, scopeId: string | null) {
+    return `${clientId || ""}::${scopeId || ""}`;
+  }
+
+  let groupId = options.groupId || null;
+  if (options.replaceGroup && !groupId && options.id) {
+    const current =
+      kind === "margin"
+        ? await prisma.marginRule.findUnique({ where: { id: options.id }, select: { groupId: true } })
+        : await prisma.discountRule.findUnique({ where: { id: options.id }, select: { groupId: true } });
+    groupId = current?.groupId || null;
+  }
+  if (options.replaceGroup) {
+    if (!groupId) groupId = newGroupId();
+    const existing =
+      kind === "margin"
+        ? await prisma.marginRule.findMany({ where: { groupId } })
+        : await prisma.discountRule.findMany({ where: { groupId } });
+    const existingByKey = new Map(
+      existing.map((row) => [comboKey(row.clientId, row.scopeId), row.id])
+    );
+    const keep = new Set<string>();
+    for (const combo of combos) {
+      const resolved = resolveRuleScope({
+        audience: parsed.data.audience,
+        target: parsed.data.target,
+        clientId: combo.clientId,
+        scopeId: combo.scopeId,
+      });
+      if (!resolved.ok) continue;
+      const generated = autoRuleName({
+        kind: parsed.data.kind,
+        mode: parsed.data.mode === "markup" ? "markup" : "margin",
+        value: parsed.data.rawValue,
+        audience: parsed.data.audience,
+        clientName: combo.clientId ? clientNames.get(combo.clientId) : null,
+        target: parsed.data.target,
+        resourceName: combo.scopeId ? resources.get(combo.scopeId) : null,
+      });
+      const name = parsed.data.customName || generated;
+      const base = {
+        name,
+        priority: autoPriority(resolved.scopeType, Boolean(resolved.clientId)),
+        scopeType: resolved.scopeType,
+        scopeId: resolved.scopeId,
+        clientId: resolved.clientId,
+        productId: resolved.scopeType === "PRODUCT" ? resolved.scopeId : null,
+        isActive: parsed.data.isActive,
+        groupId,
+      };
+      const key = comboKey(resolved.clientId, resolved.scopeId);
+      const existingId = existingByKey.get(key);
+      if (kind === "margin") {
+        const data = { ...base, marginPercent: parsed.data.percent, markupMultiplier: parsed.data.markupMultiplier };
+        if (existingId) await prisma.marginRule.update({ where: { id: existingId }, data });
+        else await prisma.marginRule.create({ data });
+      } else {
+        const data = { ...base, discountPercent: parsed.data.percent };
+        if (existingId) await prisma.discountRule.update({ where: { id: existingId }, data });
+        else await prisma.discountRule.create({ data });
+      }
+      keep.add(key);
+    }
+    for (const row of existing) {
+      if (keep.has(comboKey(row.clientId, row.scopeId))) continue;
+      if (kind === "margin") await prisma.marginRule.delete({ where: { id: row.id } });
+      else await prisma.discountRule.delete({ where: { id: row.id } });
+    }
+    return combos.length;
+  }
+
+  if (!groupId && combos.length > 1) groupId = newGroupId();
+  if (!groupId && options.id) {
+    const current =
+      kind === "margin"
+        ? await prisma.marginRule.findUnique({ where: { id: options.id }, select: { groupId: true } })
+        : await prisma.discountRule.findUnique({ where: { id: options.id }, select: { groupId: true } });
+    groupId = current?.groupId || (combos.length > 1 ? newGroupId() : null);
+    if (combos.length > 1 && !groupId) groupId = newGroupId();
+  }
 
   let usedOriginal = false;
   for (const combo of combos) {
@@ -225,6 +310,7 @@ async function saveRuleRows(
       clientId: resolved.clientId,
       productId: resolved.scopeType === "PRODUCT" ? resolved.scopeId : null,
       isActive: parsed.data.isActive,
+      groupId,
     };
 
     if (kind === "margin") {
@@ -233,22 +319,18 @@ async function saveRuleRows(
         marginPercent: parsed.data.percent,
         markupMultiplier: parsed.data.markupMultiplier,
       };
-      const existing = await prisma.marginRule.findFirst({
-        where: { clientId: resolved.clientId, scopeType: resolved.scopeType, scopeId: resolved.scopeId },
-      });
-      if (existing) await prisma.marginRule.update({ where: { id: existing.id }, data });
-      else if (id && !usedOriginal) {
-        await prisma.marginRule.update({ where: { id }, data });
+      if (options.id && combos.length === 1) {
+        await prisma.marginRule.update({ where: { id: options.id }, data });
+      } else if (options.id && !usedOriginal) {
+        await prisma.marginRule.update({ where: { id: options.id }, data });
         usedOriginal = true;
       } else await prisma.marginRule.create({ data });
     } else {
       const data = { ...base, discountPercent: parsed.data.percent };
-      const existing = await prisma.discountRule.findFirst({
-        where: { clientId: resolved.clientId, scopeType: resolved.scopeType, scopeId: resolved.scopeId },
-      });
-      if (existing) await prisma.discountRule.update({ where: { id: existing.id }, data });
-      else if (id && !usedOriginal) {
-        await prisma.discountRule.update({ where: { id }, data });
+      if (options.id && combos.length === 1) {
+        await prisma.discountRule.update({ where: { id: options.id }, data });
+      } else if (options.id && !usedOriginal) {
+        await prisma.discountRule.update({ where: { id: options.id }, data });
         usedOriginal = true;
       } else await prisma.discountRule.create({ data });
     }
@@ -258,10 +340,13 @@ async function saveRuleRows(
 
 export async function upsertMarginRule(formData: FormData): Promise<{ ok: boolean; error?: string; count?: number }> {
   await requireAdmin();
-  const id = formData.get("id")?.toString() || undefined;
   const parsed = parseRule(formData, "margin");
   if (!parsed.ok) return parsed;
-  const count = await saveRuleRows("margin", parsed, id);
+  const count = await saveRuleRows("margin", parsed, {
+    id: formData.get("id")?.toString() || undefined,
+    groupId: formData.get("groupId")?.toString() || undefined,
+    replaceGroup: formData.get("replaceGroup") === "on",
+  });
   revalidatePricing();
   return { ok: true, count };
 }
@@ -274,12 +359,23 @@ export async function deleteMarginRule(formData: FormData): Promise<void> {
   revalidatePricing();
 }
 
+export async function deleteMarginRuleGroup(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const groupId = String(formData.get("groupId") || "");
+  if (!groupId) return;
+  await prisma.marginRule.deleteMany({ where: { groupId } });
+  revalidatePricing();
+}
+
 export async function upsertDiscountRule(formData: FormData): Promise<{ ok: boolean; error?: string; count?: number }> {
   await requireAdmin();
-  const id = formData.get("id")?.toString() || undefined;
   const parsed = parseRule(formData, "discount");
   if (!parsed.ok) return parsed;
-  const count = await saveRuleRows("discount", parsed, id);
+  const count = await saveRuleRows("discount", parsed, {
+    id: formData.get("id")?.toString() || undefined,
+    groupId: formData.get("groupId")?.toString() || undefined,
+    replaceGroup: formData.get("replaceGroup") === "on",
+  });
   revalidatePricing();
   return { ok: true, count };
 }
@@ -289,6 +385,14 @@ export async function deleteDiscountRule(formData: FormData): Promise<void> {
   const id = String(formData.get("id") || "");
   if (!id) return;
   await prisma.discountRule.delete({ where: { id } });
+  revalidatePricing();
+}
+
+export async function deleteDiscountRuleGroup(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const groupId = String(formData.get("groupId") || "");
+  if (!groupId) return;
+  await prisma.discountRule.deleteMany({ where: { groupId } });
   revalidatePricing();
 }
 

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { PriceLogicHint } from "@/components/admin/price-logic-hint";
 import { PricingRulesWorkspace } from "../_rules/workspace";
-import { deleteMarginRule } from "@/server/actions/pricing-rules";
+import { deleteMarginRule, deleteMarginRuleGroup } from "@/server/actions/pricing-rules";
 import { toPricingRuleRow } from "@/lib/pricing-scope";
 
 export const metadata = { title: "Admin · Márgenes" };
@@ -50,6 +50,7 @@ export default async function AdminMarginsPage() {
       updatedAt: r.updatedAt,
       percent: Number(r.marginPercent),
       markupMultiplier: r.markupMultiplier != null ? Number(r.markupMultiplier) : null,
+      groupId: r.groupId,
       clientName: r.clientId ? clientMap.get(r.clientId) ?? null : null,
       resourceName: r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) ?? null : null,
     })
@@ -75,6 +76,7 @@ export default async function AdminMarginsPage() {
         rows={rows}
         empty="Todavía no hay reglas de precio."
         deleteAction={deleteMarginRule}
+        deleteGroupAction={deleteMarginRuleGroup}
         clients={clientOpts}
         brands={brands}
         distributors={distributors}

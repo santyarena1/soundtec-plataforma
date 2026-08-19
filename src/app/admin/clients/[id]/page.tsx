@@ -16,7 +16,7 @@ import {
   createClientAccountMovement,
   toggleClientMovementPaid,
 } from "@/server/actions/admin-client-detail";
-import { deleteDiscountRule, deleteVisibility, toggleVisibilityCanView } from "@/server/actions/pricing-rules";
+import { deleteDiscountRule, deleteDiscountRuleGroup, deleteVisibility, toggleVisibilityCanView } from "@/server/actions/pricing-rules";
 import { toPricingRuleRow } from "@/lib/pricing-scope";
 import { upsertClient } from "@/server/actions/clients";
 import { CreatePortalUserForm } from "@/components/admin/create-portal-user-form";
@@ -341,12 +341,14 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
                     createdAt: d.createdAt,
                     updatedAt: d.updatedAt,
                     percent: Number(d.discountPercent),
+                    groupId: d.groupId,
                     clientName: client.companyName,
                     resourceName: d.scopeId ? resourceMaps[d.scopeType]?.get(d.scopeId) ?? null : null,
                   })
                 )}
                 empty="Este cliente todavía no tiene descuentos propios."
                 deleteAction={deleteDiscountRule}
+                deleteGroupAction={deleteDiscountRuleGroup}
                 clients={clientOption}
                 brands={brands}
                 distributors={distributors}

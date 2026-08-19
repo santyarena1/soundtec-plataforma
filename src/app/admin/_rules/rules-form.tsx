@@ -38,6 +38,15 @@ function initialValue(type: "margin" | "discount", row?: PricingRuleRow | null) 
   return String(row.percent);
 }
 
+function seedRows(initial?: PricingRuleRow | null, editingGroup?: boolean) {
+  if (editingGroup && initial?.members?.length) return initial.members;
+  return initial ? [initial] : [];
+}
+
+function uniqueIds(rows: PricingRuleRow[], pick: (row: PricingRuleRow) => string | null | undefined) {
+  return [...new Set(rows.map(pick).filter((id): id is string => Boolean(id)))];
+}
+
 function Field({
   label,
   required,
@@ -105,6 +114,7 @@ export function RulesForm({
   products,
   lockedClientId,
   initial,
+  editingGroup,
   onSaved,
   onCancel,
 }: {
@@ -117,25 +127,28 @@ export function RulesForm({
   products: { id: string; normalizedName: string }[];
   lockedClientId?: string;
   initial?: PricingRuleRow | null;
+  editingGroup?: boolean;
   onSaved?: () => void;
   onCancel?: () => void;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const formSeed = initial ? scopeTypeToForm(initial.scopeType, Boolean(initial.clientId)) : null;
+  const seeded = seedRows(initial, editingGroup);
+  const seedHasClient = seeded.some((row) => Boolean(row.clientId));
+  const formSeed = initial ? scopeTypeToForm(initial.scopeType, seedHasClient || Boolean(initial.clientId)) : null;
   const [audience, setAudience] = useState<"all" | "client">(
     lockedClientId ? "client" : formSeed?.audience || "all"
   );
   const [clientIds, setClientIds] = useState<string[]>(
-    lockedClientId ? [lockedClientId] : initial?.clientId ? [initial.clientId] : []
+    lockedClientId ? [lockedClientId] : uniqueIds(seeded, (row) => row.clientId)
   );
   const [target, setTarget] = useState<RuleTarget>(formSeed?.target || "ALL");
-  const [scopeIds, setScopeIds] = useState<string[]>(initial?.scopeId ? [initial.scopeId] : []);
+  const [scopeIds, setScopeIds] = useState<string[]>(uniqueIds(seeded, (row) => row.scopeId));
   const [mode, setMode] = useState<"margin" | "markup">(type === "margin" ? initialMode(initial) : "margin");
   const [value, setValue] = useState(initialValue(type, initial));
-  const [name, setName] = useState(initial?.name || "");
+  const [name, setName] = useState(editingGroup ? "" : initial?.name || "");
   const [active, setActive] = useState(initial?.isActive ?? true);
-  const [advanced, setAdvanced] = useState(Boolean(initial));
+  const [advanced, setAdvanced] = useState(Boolean(initial) && !editingGroup);
   const [error, setError] = useState<string | null>(null);
   const editing = Boolean(initial?.id);
 
@@ -176,10 +189,13 @@ export function RulesForm({
       ? `${scopeIds.length} ${RULE_TARGETS.find((item) => item.value === target)?.label.toLowerCase() || "recursos"}`
       : null,
   ].filter(Boolean);
-  const comboHint =
-    comboCount > 1
-      ? ` Se van a guardar ${comboCount} reglas${comboParts.length ? ` (${comboParts.join(" × ")})` : ""}.`
-      : "";
+  const comboHint = editingGroup
+    ? " Los cambios se aplican a todas las subreglas. Podés agregar o sacar marcas/clientes y se actualiza el grupo entero."
+    : editing && initial?.groupId
+      ? " Solo se actualiza esta subregla. El resto del grupo queda igual."
+      : comboCount > 1
+        ? ` Se guarda como 1 regla con ${comboCount} subreglas${comboParts.length ? ` (${comboParts.join(" × ")})` : ""}. Después podés editar una sola o todo el grupo.`
+        : "";
 
   function onTargetChange(next: RuleTarget) {
     setTarget(next);
@@ -210,6 +226,8 @@ export function RulesForm({
     }
     const fd = new FormData();
     if (initial?.id) fd.set("id", initial.id);
+    if (initial?.groupId) fd.set("groupId", initial.groupId);
+    if (editingGroup) fd.set("replaceGroup", "on");
     fd.set("audience", audience);
     fd.set("target", target);
     if (lockedClientId) fd.append("clientIds", lockedClientId);
@@ -227,16 +245,19 @@ export function RulesForm({
           setError(result.error || "No se pudo guardar.");
           return;
         }
+        const count = result.count || 1;
         toast.success(
-          (result.count || 1) > 1
-            ? `Se guardaron ${result.count} reglas.`
-            : editing
-              ? type === "margin"
-                ? "Regla de precio actualizada."
-                : "Descuento actualizado."
-              : type === "margin"
-                ? "Regla de precio creada."
-                : "Descuento creado."
+          editingGroup
+            ? `Se actualizó el grupo (${count} subregla${count === 1 ? "" : "s"}).`
+            : count > 1
+              ? `Se guardó 1 regla con ${count} subreglas.`
+              : editing
+                ? type === "margin"
+                  ? "Regla de precio actualizada."
+                  : "Descuento actualizado."
+                : type === "margin"
+                  ? "Regla de precio creada."
+                  : "Descuento creado."
         );
         if (!editing) {
           setName("");
@@ -418,7 +439,13 @@ export function RulesForm({
           ) : null}
           <Button type="submit" disabled={pending}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {editing ? "Guardar cambios" : comboCount > 1 ? `Crear ${comboCount} reglas` : "Crear regla"}
+            {editingGroup
+              ? "Guardar todo el grupo"
+              : editing
+                ? "Guardar cambios"
+                : comboCount > 1
+                  ? `Crear regla (${comboCount} subreglas)`
+                  : "Crear regla"}
           </Button>
         </div>
       </div>

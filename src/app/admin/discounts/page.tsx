@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { PriceLogicHint } from "@/components/admin/price-logic-hint";
 import { PricingRulesWorkspace } from "../_rules/workspace";
-import { deleteDiscountRule } from "@/server/actions/pricing-rules";
+import { deleteDiscountRule, deleteDiscountRuleGroup } from "@/server/actions/pricing-rules";
 import { badgeLabel, isManufacturerPromoLabel } from "@/lib/manufacturer-promo";
 import { ManufacturerPromosPanel, ProductDiscountsPanel } from "./product-discounts-panel";
 import { toPricingRuleRow } from "@/lib/pricing-scope";
@@ -78,6 +78,7 @@ export default async function AdminDiscountsPage() {
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
       percent: Number(r.discountPercent),
+      groupId: r.groupId,
       clientName: r.clientId ? clientMap.get(r.clientId) ?? null : null,
       resourceName: r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) ?? null : null,
     })
@@ -122,6 +123,7 @@ export default async function AdminDiscountsPage() {
         rows={rows}
         empty="Todavía no hay reglas comerciales. El -% que ves en productos puede estar en las listas de abajo."
         deleteAction={deleteDiscountRule}
+        deleteGroupAction={deleteDiscountRuleGroup}
         clients={clientOpts}
         brands={brands}
         distributors={distributors}

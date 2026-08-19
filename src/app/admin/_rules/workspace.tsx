@@ -13,6 +13,7 @@ export function PricingRulesWorkspace({
   rows,
   empty,
   deleteAction,
+  deleteGroupAction,
   clients,
   brands,
   distributors,
@@ -25,6 +26,7 @@ export function PricingRulesWorkspace({
   rows: PricingRuleRow[];
   empty: string;
   deleteAction: (formData: FormData) => void | Promise<void>;
+  deleteGroupAction: (formData: FormData) => void | Promise<void>;
   clients: ClientOpt[];
   brands: Named[];
   distributors: Named[];
@@ -34,26 +36,66 @@ export function PricingRulesWorkspace({
   lockedClientId?: string;
 }) {
   const [editing, setEditing] = useState<PricingRuleRow | null>(null);
+  const [editMode, setEditMode] = useState<"one" | "group">("one");
+
+  function startEditOne(row: PricingRuleRow) {
+    setEditing({ ...row, members: undefined });
+    setEditMode("one");
+  }
+
+  function startEditGroup(members: PricingRuleRow[]) {
+    const first = members[0];
+    if (!first) return;
+    setEditing({ ...first, members });
+    setEditMode("group");
+  }
+
+  function clearEdit() {
+    setEditing(null);
+    setEditMode("one");
+  }
+
+  const noun = kind === "margin" ? "regla de precio" : "descuento";
+  const heading =
+    editing && editMode === "group"
+      ? `Editar ${noun} (todas las subreglas)`
+      : editing
+        ? editing.groupId
+          ? "Editar subregla"
+          : `Editar ${noun}`
+        : kind === "margin"
+          ? "Nueva regla de precio"
+          : "Nueva regla de descuento";
 
   return (
     <div className="space-y-6">
       <Card>
         <CardContent className="space-y-5 p-6">
-          <h2 className="heading-3 border-b border-border pb-4">
-            {editing
-              ? kind === "margin"
-                ? "Editar regla de precio"
-                : "Editar descuento"
-              : kind === "margin"
-                ? "Nueva regla de precio"
-                : "Nueva regla de descuento"}
-          </h2>
+          <div className="border-b border-border pb-4">
+            <h2 className="heading-3">{heading}</h2>
+            {editing ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {editMode === "group"
+                  ? "Los cambios se aplican a todo el grupo: marcas, familias, clientes y valor. Después también podés editar una subregla sola."
+                  : editing.groupId
+                    ? "Solo se actualiza esta subregla. El resto del grupo queda igual."
+                    : "Cambiá los campos y guardá. El resto de las reglas no se toca."}
+              </p>
+            ) : null}
+          </div>
           <RulesForm
-            key={editing?.id ?? "new"}
+            key={
+              editing
+                ? editMode === "group"
+                  ? `group-${editing.groupId || editing.id}`
+                  : editing.id
+                : "new"
+            }
             type={kind}
             initial={editing}
-            onSaved={() => setEditing(null)}
-            onCancel={() => setEditing(null)}
+            editingGroup={editMode === "group"}
+            onSaved={clearEdit}
+            onCancel={clearEdit}
             lockedClientId={lockedClientId}
             clients={clients}
             brands={brands}
@@ -70,8 +112,11 @@ export function PricingRulesWorkspace({
         rows={rows}
         empty={empty}
         deleteAction={deleteAction}
-        editingId={editing?.id}
-        onEdit={setEditing}
+        deleteGroupAction={deleteGroupAction}
+        editingId={editMode === "one" ? editing?.id : undefined}
+        editingGroupId={editMode === "group" ? editing?.groupId : undefined}
+        onEdit={startEditOne}
+        onEditGroup={startEditGroup}
       />
     </div>
   );

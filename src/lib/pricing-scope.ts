@@ -164,6 +164,7 @@ export function toPricingRuleRow(input: {
   markupMultiplier?: number | null;
   clientName?: string | null;
   resourceName?: string | null;
+  groupId?: string | null;
 }) {
   return {
     id: input.id,
@@ -176,7 +177,55 @@ export function toPricingRuleRow(input: {
     isActive: input.isActive,
     percent: input.percent,
     markupMultiplier: input.markupMultiplier ?? null,
+    groupId: input.groupId ?? null,
     createdAt: typeof input.createdAt === "string" ? input.createdAt : input.createdAt.toISOString(),
     updatedAt: typeof input.updatedAt === "string" ? input.updatedAt : input.updatedAt.toISOString(),
   };
+}
+
+export type GroupedPricingRow =
+  | { type: "single"; row: ReturnType<typeof toPricingRuleRow> }
+  | { type: "group"; groupId: string; rows: ReturnType<typeof toPricingRuleRow>[] };
+
+export function groupPricingRows(rows: ReturnType<typeof toPricingRuleRow>[]): GroupedPricingRow[] {
+  const grouped = new Map<string, ReturnType<typeof toPricingRuleRow>[]>();
+  for (const row of rows) {
+    if (!row.groupId) continue;
+    const list = grouped.get(row.groupId) || [];
+    list.push(row);
+    grouped.set(row.groupId, list);
+  }
+  const seen = new Set<string>();
+  const result: GroupedPricingRow[] = [];
+  for (const row of rows) {
+    if (!row.groupId || (grouped.get(row.groupId)?.length || 0) < 2) {
+      result.push({ type: "single", row });
+      continue;
+    }
+    if (seen.has(row.groupId)) continue;
+    seen.add(row.groupId);
+    result.push({ type: "group", groupId: row.groupId, rows: grouped.get(row.groupId) || [] });
+  }
+  return result;
+}
+
+export function describeRuleGroup(rows: ReturnType<typeof toPricingRuleRow>[]) {
+  if (rows.length === 0) return "";
+  const clientNames = [...new Set(rows.map((row) => (row.clientId ? row.clientName || "Un cliente" : "Todos los clientes")))];
+  const who = clientNames.length === 1 ? clientNames[0] : `${clientNames.length} clientes`;
+  if (rows[0].scopeType === "GLOBAL" || rows[0].scopeType === "CLIENT") {
+    return `${who} · todo el catálogo`;
+  }
+  const plural: Record<string, string> = {
+    BRAND: "marcas",
+    PRODUCT: "productos",
+    CATEGORY: "categorías",
+    FAMILY: "familias",
+    DISTRIBUTOR: "proveedores",
+  };
+  const resources = [...new Set(rows.map((row) => row.resourceName).filter(Boolean))] as string[];
+  const noun = plural[rows[0].scopeType] || "ítems";
+  const shown = resources.slice(0, 4).join(", ");
+  const extra = resources.length > 4 ? ` +${resources.length - 4}` : "";
+  return `${who} · ${resources.length || rows.length} ${noun}${shown ? `: ${shown}${extra}` : ""}`;
 }
