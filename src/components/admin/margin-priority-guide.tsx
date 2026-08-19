@@ -16,11 +16,11 @@ const MARGIN_STEPS = [
 ];
 
 const DISCOUNT_STEPS = [
-  { n: 1, label: "Cliente + producto", example: "Descuento puntual" },
-  { n: 2, label: "Cliente + marca / categoría / familia", example: "Descuento por línea" },
-  { n: 3, label: "Cliente general", example: "Descuento global del cliente" },
-  { n: 4, label: "Producto / marca / distribuidor / familia / categoría", example: "Sin cliente" },
-  { n: 5, label: "Descuento del producto", example: "Campo % en la ficha del producto" },
+  { n: 1, label: "Cliente + producto / marca / categoría / familia", example: "Regla comercial de un cliente" },
+  { n: 2, label: "Cliente general", example: "Descuento a todo el catálogo de ese cliente" },
+  { n: 3, label: "Descuento en la ficha del producto", example: "Campo % del producto: sí baja el precio aunque no haya regla acá" },
+  { n: 4, label: "Regla de producto / marca / proveedor / familia / categoría", example: "Sin cliente" },
+  { n: 5, label: "Regla global", example: "Toda la plataforma" },
 ];
 
 export function MarginPriorityGuide() {

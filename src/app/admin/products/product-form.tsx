@@ -299,6 +299,9 @@ export function ProductForm({ product, brands, distributors, categories, familie
             </div>
             <div>
               <Label htmlFor="discountPercentDisplay">DESCUENTO ESPECIAL (%)</Label>
+              <p className="mb-1 text-[11px] text-muted-foreground">
+                Baja el precio para todos los clientes. Se lista en Admin → Descuentos, no hace falta crear una regla.
+              </p>
               <input
                 id="discountPercentDisplay"
                 type="number"

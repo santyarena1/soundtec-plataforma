@@ -18,6 +18,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { filterCustomerBadges } from "@/lib/manufacturer-promo";
+
 interface SpecItem {
   label?: string;
   name?: string;
@@ -92,7 +94,7 @@ function fileIconForType(type: string, url: string): "image" | "doc" {
 export function ProductRichInfo(props: ProductRichInfoProps) {
   const specs = asArray<SpecItem>(props.specifications);
   const docs = asArray<DocItem>(props.documents);
-  const badges = asArray<unknown>(props.badges)
+  const badges = filterCustomerBadges(props.badges)
     .map((b) => badgeText(b))
     .filter((s) => s.length > 0);
 

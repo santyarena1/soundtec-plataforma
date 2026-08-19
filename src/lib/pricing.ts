@@ -144,7 +144,10 @@ export async function calculateCustomerPrice({
     (r) => !!clientId && r.clientId === clientId && r.scopeType === "BRAND" && r.scopeId === product.brandId,
     (r) => !!clientId && r.clientId === clientId && r.scopeType === "CATEGORY" && r.scopeId === product.categoryId,
     (r) => !!clientId && r.clientId === clientId && r.scopeType === "FAMILY" && r.scopeId === product.familyId,
-    (r) => !!clientId && r.clientId === clientId && r.scopeType === "CLIENT",
+    (r) =>
+      !!clientId &&
+      r.clientId === clientId &&
+      (r.scopeType === "CLIENT" || r.scopeType === "GLOBAL"),
     (r) => r.scopeType === "PRODUCT" && r.scopeId === product.productId && !r.clientId,
     (r) => r.scopeType === "BRAND" && r.scopeId === product.brandId && !r.clientId,
     (r) => r.scopeType === "DISTRIBUTOR" && r.scopeId === product.distributorId && !r.clientId,

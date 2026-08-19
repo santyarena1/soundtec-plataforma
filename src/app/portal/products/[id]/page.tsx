@@ -18,7 +18,7 @@ import { AiContentNotice } from "./ai-content-notice";
 import { ProductConfigurator } from "./configurator";
 import { CompatibleAccessoriesSection } from "./compatible-accessories";
 import { AccessoryInfoBanner } from "@/components/portal/accessory-warning";
-import { ProductRichInfo, SaleBanner } from "./product-rich-info";
+import { ProductRichInfo } from "./product-rich-info";
 import { formatUsd, formatPercent } from "@/lib/utils";
 import { ArrowLeft, Sparkles, FileText } from "lucide-react";
 
@@ -252,19 +252,6 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
           <Card className="border-primary/10 bg-gradient-to-br from-card to-primary/5">
             <CardContent className="p-5 space-y-3">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {(product as any).salePriceUsd != null && Number((product as any).salePriceUsd) > 0 ? (
-                <SaleBanner
-                  /* eslint-disable @typescript-eslint/no-explicit-any */
-                  saleUsd={Number((product as any).salePriceUsd)}
-                  baseUsd={pricing.finalPriceUsd}
-                  startsAt={(product as any).salePriceStartsAt ?? null}
-                  endsAt={(product as any).salePriceEndsAt ?? null}
-                  label={(product as any).salePriceLabel ?? null}
-                  /* eslint-enable @typescript-eslint/no-explicit-any */
-                />
-              ) : null}
-
               {pricing.discountPercent > 0 ? (
                 <p className="text-sm text-muted-foreground line-through">
                   {formatUsd(pricing.priceBeforeDiscountUsd)}

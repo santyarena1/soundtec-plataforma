@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { upsertMarginRule, upsertDiscountRule } from "@/server/actions/pricing-rules";
@@ -53,7 +54,12 @@ export function RulesForm({ type, clients, brands, distributors, categories, fam
     start(async () => {
       try {
         const action = type === "margin" ? upsertMarginRule : upsertDiscountRule;
-        await action(fd);
+        const result = await action(fd);
+        if (!result.ok) {
+          setError(result.error || "No se pudo guardar.");
+          return;
+        }
+        toast.success(type === "margin" ? "Regla de margen guardada." : "Regla de descuento guardada.");
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "No se pudo guardar.");
@@ -79,14 +85,16 @@ export function RulesForm({ type, clients, brands, distributors, categories, fam
       </div>
       <div>
         <Label htmlFor="scopeId">Recurso del alcance</Label>
-        <Select id="scopeId" name="scopeId" disabled={scope === "GLOBAL" || scope === "CLIENT"}>
+        <Select id="scopeId" name="scopeId" disabled={scope === "GLOBAL" || scope === "CLIENT"} required={scope !== "GLOBAL" && scope !== "CLIENT"}>
           <option value="">—</option>
           {scopeOptions.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
         </Select>
       </div>
       <div>
-        <Label htmlFor="clientId">Cliente (opcional)</Label>
-        <Select id="clientId" name="clientId">
+        <Label htmlFor="clientId" required={scope === "CLIENT"}>
+          {scope === "CLIENT" ? "Cliente" : "Cliente (opcional)"}
+        </Label>
+        <Select id="clientId" name="clientId" required={scope === "CLIENT"}>
           <option value="">Aplica a todos</option>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>
