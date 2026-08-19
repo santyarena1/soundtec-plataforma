@@ -7,7 +7,10 @@ import { getSetting } from "@/lib/settings";
 import { AdminSidebarNav } from "@/components/layout/admin-sidebar-nav";
 import { AdminMobileNav } from "@/components/layout/admin-mobile-nav";
 import { DolarTicker } from "@/components/layout/dolar-ticker";
+import { ChangelogSidebarButton } from "@/components/layout/changelog-sidebar-button";
+import { ChangelogPopup } from "@/components/layout/changelog-popup";
 import { getCurrentPermissions } from "@/lib/auth-helpers";
+import { getUnreadChangelogsForUser } from "@/server/changelog-query";
 import { HelpDock } from "@/components/help/help-system";
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
@@ -24,9 +27,10 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
 
   const userName = session.user.name;
   const userEmail = session.user.email;
-  const [logoUrl, appName] = await Promise.all([
+  const [logoUrl, appName, unreadChangelogs] = await Promise.all([
     getSetting("branding.logo_url", ""),
     getSetting("app.name", "Soundtec"),
+    getUnreadChangelogsForUser(session.user.id),
   ]);
 
   async function handleSignOut() {
@@ -67,6 +71,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
           expandAll={expandAll}
         />
         <div className="border-t border-border p-3">
+          <ChangelogSidebarButton unreadCount={unreadChangelogs.length} />
           <DolarTicker />
         </div>
         <div className="border-t border-border p-3 text-xs">
@@ -115,6 +120,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
         <Suspense fallback={null}>
           <HelpDock />
         </Suspense>
+        <ChangelogPopup entries={unreadChangelogs} />
       </div>
     </div>
   );

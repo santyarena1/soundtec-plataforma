@@ -26,6 +26,7 @@ import {
   ChevronRight,
   PackageSearch,
   RefreshCw,
+  ScrollText,
 } from "lucide-react";
 import type { PermissionScope } from "@/lib/permissions";
 import { SETTINGS_SECTIONS } from "@/lib/settings-sections";
@@ -101,6 +102,7 @@ const groups: NavGroup[] = [
         anyScope: SETTINGS_SECTIONS.map((s) => s.scope),
       },
       { href: "/admin/ayuda", label: "Ayuda y tutorial", icon: BookOpen },
+      { href: "/admin/changelog", label: "Changelog", icon: ScrollText },
       { href: "/admin/tickets", label: "Tickets al dev", icon: LifeBuoy, scope: "tickets.manage" },
     ],
   },

@@ -579,6 +579,18 @@ export const HELP_MODULES: HelpModule[] = [
     tips: ["Si no ves Ayuda no es por rol: Ayuda está para todo el admin. Si no ves una pantalla, es el scope."],
   },
   {
+    id: "changelog",
+    title: "Changelog",
+    match: (p) => p.startsWith("/admin/changelog"),
+    simple: "Novedades del panel admin. Cada usuario ve un popup la primera vez que hay algo nuevo.",
+    purpose: "Avisar cambios de la plataforma al equipo interno, no a los clientes.",
+    fields: ["Versión, fecha, En pocas palabras, lista NUEVO / FIX / MEJORA, publicar."],
+    editable: "Los admin publican, editan y borran. El resto del staff sólo lee.",
+    notEditable: "No aparece en el portal del cliente.",
+    config: "El botón está arriba del dólar, en el menú izquierdo.",
+    tips: ["Si publicás, el próximo ingreso de cada usuario abre el popup hasta que toca Entendido."],
+  },
+  {
     id: "tickets",
     title: "Tickets al dev",
     match: (p) => p.startsWith("/admin/tickets"),

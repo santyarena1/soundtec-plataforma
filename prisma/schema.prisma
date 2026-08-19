@@ -50,6 +50,8 @@ model User {
   requests        CustomerRequest[]
   requestMessages RequestMessage[]
   tickets         DeveloperTicket[]
+  changelogEntries AdminChangelog[]  @relation("ChangelogAuthor")
+  changelogReads  AdminChangelogRead[]
   aiFeedback      AiContentFeedback[]
   quoteSignName   String?
   quoteSignTitle  String?
@@ -871,6 +873,36 @@ model DeveloperTicket {
 
   @@index([status])
   @@index([priority])
+}
+
+// Novedades del panel admin. No se muestra en el portal del cliente.
+model AdminChangelog {
+  id          String   @id @default(cuid())
+  version     String
+  releasedAt  DateTime
+  summary     String
+  // [{ kind: "NUEVO" | "FIX" | "MEJORA", text: string }]
+  items       Json
+  isPublished Boolean  @default(true)
+  createdById String?
+  createdBy   User?    @relation("ChangelogAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  reads       AdminChangelogRead[]
+
+  @@index([isPublished, releasedAt])
+}
+
+model AdminChangelogRead {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  changelogId String
+  changelog   AdminChangelog @relation(fields: [changelogId], references: [id], onDelete: Cascade)
+  seenAt      DateTime       @default(now())
+
+  @@unique([userId, changelogId])
+  @@index([userId])
 }
 
 // Cache de traducciones para evitar re-llamar a OpenAI por textos ya traducidos.

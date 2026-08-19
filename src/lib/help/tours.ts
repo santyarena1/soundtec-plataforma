@@ -389,6 +389,7 @@ export function resolveTourId(pathname: string, paso?: string | null): string | 
   if (pathname === "/admin/settings/quotes") return "settings-quotes";
   if (pathname === "/admin/settings/quotes/clasificadores") return "settings-classifiers";
   if (pathname === "/admin/settings/quotes/modulos") return "settings-modules";
+  if (pathname === "/admin/changelog") return "generic";
   if (pathname === "/admin/tickets") return "tickets";
   if (pathname === "/admin/ayuda") return "ayuda";
   if (/^\/admin\/quotes\/[^/]+$/.test(pathname) && !pathname.endsWith("/new") && !pathname.endsWith("/print")) {
