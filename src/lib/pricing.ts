@@ -44,6 +44,8 @@ import { getExchangeRate } from "@/lib/exchange-rate";
  * Notas:
  *  - `MarginRule.priority` no se usa para reordenar la cadena; se usa solo
  *    para desempate cuando hay varias reglas dentro del MISMO nivel.
+ *  - Una subregla PRODUCT con `isExemption` no aplica un valor propio: saca
+ *    a ese producto de todo el `groupId` y sigue la cadena (cae al default).
  *  - El cliente NUNCA ve baseCost, márgenes ni reglas aplicadas: usar
  *    `toVisibleBreakdown` para devolver solo lo público.
  *  - La posición arancelaria es un costo extra sobre el costo base.
@@ -112,6 +114,30 @@ interface CalculatePriceOptions {
   tcOverride?: number;
 }
 
+function exemptionGroupIds(
+  rules: Array<{
+    isExemption: boolean;
+    groupId: string | null;
+    scopeType: RuleScopeType;
+    scopeId: string | null;
+    productId: string | null;
+    clientId: string | null;
+  }>,
+  productId: string,
+  clientId: string | null
+) {
+  const skipped = new Set<string>();
+  for (const rule of rules) {
+    if (!rule.isExemption || !rule.groupId) continue;
+    const productMatch =
+      rule.scopeType === "PRODUCT" && (rule.scopeId === productId || rule.productId === productId);
+    if (!productMatch) continue;
+    if (rule.clientId && rule.clientId !== clientId) continue;
+    skipped.add(rule.groupId);
+  }
+  return skipped;
+}
+
 function toNumber(value: Prisma.Decimal | number | null | undefined): number {
   if (value === null || value === undefined) return 0;
   if (typeof value === "number") return value;
@@ -169,7 +195,14 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
     scopeId: string | null;
     clientId: string | null;
     productId: string | null;
+    groupId: string | null;
+    isExemption: boolean;
   };
+
+  // Si un producto matchea una subregla PRODUCT marcada como excepción,
+  // se salta TODO el grupo (cae a la siguiente regla de la cadena).
+  const skippedMarginGroups = exemptionGroupIds(marginRules, product.productId, clientId ?? null);
+  const skippedDiscountGroups = exemptionGroupIds(discountRules, product.productId, clientId ?? null);
 
   // Cadena de matchers de mayor a menor prioridad
   const matcherChain: Array<(rule: AnyRule) => boolean> = [
@@ -192,15 +225,19 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
   const clientLevels = 6;
   const lastLevel = matcherChain.length - 1;
 
-  function findFirstMatching<T extends AnyRule>(rules: T[]): T | null {
+  function findFirstMatching<T extends AnyRule>(rules: T[], skippedGroups: Set<string>): T | null {
     for (const matcher of matcherChain) {
-      const found = rules.find((r) => matcher(r as AnyRule));
+      const found = rules.find((r) => {
+        if (r.isExemption) return false;
+        if (r.groupId && skippedGroups.has(r.groupId)) return false;
+        return matcher(r as AnyRule);
+      });
       if (found) return found;
     }
     return null;
   }
 
-  const margin = findFirstMatching(marginRules);
+  const margin = findFirstMatching(marginRules, skippedMarginGroups);
   const marginWithMarkup = margin as (typeof margin & { markupMultiplier?: Prisma.Decimal | null });
   const defaultMarkupMultiplier = parsedSetting(defaultMarkupSetting, 1.35);
   const tc = Number.isFinite(exchangeRate) && exchangeRate > 0 ? exchangeRate : 1;
@@ -228,15 +265,24 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
   //   1-5. Client-specific rules (chain indices 0-4)
   //   6.   Product.discountPercent (explicit field, higher priority than product rules)
   //   7-12. Non-client rules: product-rule, brand, distributor, family, category, global (chain indices 5-10)
-  function findMatchingAtLevel(rules: typeof discountRules, startIdx: number, endIdx: number) {
+  function findMatchingAtLevel(
+    rules: typeof discountRules,
+    startIdx: number,
+    endIdx: number,
+    skippedGroups: Set<string>
+  ) {
     for (let i = startIdx; i <= endIdx; i++) {
-      const found = rules.find((r) => matcherChain[i](r as AnyRule));
+      const found = rules.find((r) => {
+        if (r.isExemption) return false;
+        if (r.groupId && skippedGroups.has(r.groupId)) return false;
+        return matcherChain[i](r as AnyRule);
+      });
       if (found) return found;
     }
     return null;
   }
 
-  const clientDiscount = findMatchingAtLevel(discountRules, 0, clientLevels - 1);
+  const clientDiscount = findMatchingAtLevel(discountRules, 0, clientLevels - 1, skippedDiscountGroups);
   if (clientDiscount) {
     discountPercent = toNumber(clientDiscount.discountPercent);
     appliedDiscountRule = {
@@ -252,7 +298,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
     discountPercent = product.productDiscountPercent;
     discountSource = "PRODUCT";
   } else {
-    const nonClientDiscount = findMatchingAtLevel(discountRules, clientLevels, lastLevel);
+    const nonClientDiscount = findMatchingAtLevel(discountRules, clientLevels, lastLevel, skippedDiscountGroups);
     if (nonClientDiscount) {
       discountPercent = toNumber(nonClientDiscount.discountPercent);
       appliedDiscountRule = {

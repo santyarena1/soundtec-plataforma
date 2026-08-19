@@ -76,10 +76,10 @@ export function PricingRulesWorkspace({
             {editing ? (
               <p className="mt-1 text-sm text-muted-foreground">
                 {editMode === "group"
-                  ? "Los cambios se aplican a todo el grupo: marcas, familias, clientes y valor. Después también podés editar una subregla sola."
+                  ? "Los cambios se aplican a todo el grupo: marcas, familias, clientes y valor. Previsualizá para exceptuar productos. Después también podés editar una subregla sola."
                   : editing.groupId
-                    ? "Solo se actualiza esta subregla. El resto del grupo queda igual."
-                    : "Cambiá los campos y guardá. El resto de las reglas no se toca."}
+                    ? "Solo se actualiza esta subregla. Las excepciones de productos aplican a todo el grupo."
+                    : "Cambiá los campos, previsualizá los productos si querés exceptuar alguno, y guardá."}
               </p>
             ) : null}
           </div>

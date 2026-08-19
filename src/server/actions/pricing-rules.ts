@@ -187,8 +187,11 @@ function saveRuleError(err: unknown) {
   if (code === "P2000" || code === "P2020" || /out of range|numeric value|Decimal/i.test(message)) {
     return "El markup es demasiado alto para cómo estaba la base. Recargá la página e intentá de nuevo.";
   }
-  if (code === "P2022" || /column|groupId|does not exist/i.test(message)) {
+  if (code === "P2022" || /column|groupId|isExemption|does not exist/i.test(message)) {
     return "Falta un campo nuevo en la base. Recargá en un minuto, cuando termine el deploy.";
+  }
+  if (message === "TOO_MANY_EXEMPTIONS" || /TOO_MANY_EXEMPTIONS/.test(message)) {
+    return "Exceptuaste demasiados productos (máximo 400 combinaciones). Filtrá un poco.";
   }
   return "No se pudo guardar la regla. Probá de nuevo.";
 }
@@ -196,9 +199,13 @@ function saveRuleError(err: unknown) {
 async function saveRuleRows(
   kind: "margin" | "discount",
   parsed: Extract<ReturnType<typeof parseRule>, { ok: true }>,
-  options: { id?: string; groupId?: string; replaceGroup?: boolean }
+  options: { id?: string; groupId?: string; replaceGroup?: boolean; excludeProductIds?: string[] }
 ) {
   const combos = parsed.data.combos;
+  const excludeProductIds =
+    parsed.data.target === "PRODUCT"
+      ? []
+      : [...new Set((options.excludeProductIds || []).filter(Boolean))];
   const scopeIds = combos.map((combo) => combo.scopeId).filter((value): value is string => Boolean(value));
   const clientIds = combos.map((combo) => combo.clientId).filter((value): value is string => Boolean(value));
   const [resources, clients] = await Promise.all([
@@ -216,6 +223,7 @@ async function saveRuleRows(
     return `${clientId || ""}::${scopeId || ""}`;
   }
 
+  const needsGroup = combos.length > 1 || excludeProductIds.length > 0;
   let groupId = options.groupId || null;
   if (options.replaceGroup && !groupId && options.id) {
     const current =
@@ -231,7 +239,7 @@ async function saveRuleRows(
         ? await prisma.marginRule.findMany({ where: { groupId } })
         : await prisma.discountRule.findMany({ where: { groupId } });
     const existingByKey = new Map(
-      existing.map((row) => [comboKey(row.clientId, row.scopeId), row.id])
+      existing.filter((row) => !row.isExemption).map((row) => [comboKey(row.clientId, row.scopeId), row.id])
     );
     const keep = new Set<string>();
     for (const combo of combos) {
@@ -261,6 +269,7 @@ async function saveRuleRows(
         productId: resolved.scopeType === "PRODUCT" ? resolved.scopeId : null,
         isActive: parsed.data.isActive,
         groupId,
+        isExemption: false,
       };
       const key = comboKey(resolved.clientId, resolved.scopeId);
       const existingId = existingByKey.get(key);
@@ -276,21 +285,23 @@ async function saveRuleRows(
       keep.add(key);
     }
     for (const row of existing) {
+      if (row.isExemption) continue;
       if (keep.has(comboKey(row.clientId, row.scopeId))) continue;
       if (kind === "margin") await prisma.marginRule.delete({ where: { id: row.id } });
       else await prisma.discountRule.delete({ where: { id: row.id } });
     }
-    return combos.length;
+    const exemptionCount = await syncExemptionRows(kind, groupId, parsed, excludeProductIds, clientNames);
+    return combos.length + exemptionCount;
   }
 
-  if (!groupId && combos.length > 1) groupId = newGroupId();
+  if (!groupId && needsGroup) groupId = newGroupId();
   if (!groupId && options.id) {
     const current =
       kind === "margin"
         ? await prisma.marginRule.findUnique({ where: { id: options.id }, select: { groupId: true } })
         : await prisma.discountRule.findUnique({ where: { id: options.id }, select: { groupId: true } });
-    groupId = current?.groupId || (combos.length > 1 ? newGroupId() : null);
-    if (combos.length > 1 && !groupId) groupId = newGroupId();
+    groupId = current?.groupId || (needsGroup ? newGroupId() : null);
+    if (needsGroup && !groupId) groupId = newGroupId();
   }
 
   let usedOriginal = false;
@@ -327,6 +338,7 @@ async function saveRuleRows(
       productId: resolved.scopeType === "PRODUCT" ? resolved.scopeId : null,
       isActive: parsed.data.isActive,
       groupId,
+      isExemption: false,
     };
 
     if (kind === "margin") {
@@ -351,7 +363,80 @@ async function saveRuleRows(
       } else await prisma.discountRule.create({ data });
     }
   }
-  return combos.length;
+
+  const exemptionCount = groupId
+    ? await syncExemptionRows(kind, groupId, parsed, excludeProductIds, clientNames)
+    : 0;
+  return combos.length + exemptionCount;
+}
+
+async function syncExemptionRows(
+  kind: "margin" | "discount",
+  groupId: string,
+  parsed: Extract<ReturnType<typeof parseRule>, { ok: true }>,
+  excludeProductIds: string[],
+  clientNames: Map<string, string>
+) {
+  const existing =
+    kind === "margin"
+      ? await prisma.marginRule.findMany({ where: { groupId, isExemption: true } })
+      : await prisma.discountRule.findMany({ where: { groupId, isExemption: true } });
+
+  if (parsed.data.target === "PRODUCT" || excludeProductIds.length === 0) {
+    for (const row of existing) {
+      if (kind === "margin") await prisma.marginRule.delete({ where: { id: row.id } });
+      else await prisma.discountRule.delete({ where: { id: row.id } });
+    }
+    return 0;
+  }
+
+  const clientKeys = [...new Set(parsed.data.combos.map((combo) => combo.clientId))];
+  if (clientKeys.length * excludeProductIds.length > 400) {
+    throw new Error("TOO_MANY_EXEMPTIONS");
+  }
+
+  const productNames = await resourceNameMap("PRODUCT", excludeProductIds);
+  const existingByKey = new Map(existing.map((row) => [`${row.clientId || ""}::${row.scopeId || ""}`, row.id]));
+  const keep = new Set<string>();
+
+  for (const clientId of clientKeys) {
+    for (const productId of excludeProductIds) {
+      const productName = productNames.get(productId) || "producto";
+      const name = `Excepción · ${productName}`.slice(0, 200);
+      const base = {
+        name: parsed.data.customName ? `${parsed.data.customName} · no aplica · ${productName}`.slice(0, 200) : name,
+        priority: autoPriority("PRODUCT", Boolean(clientId)),
+        scopeType: "PRODUCT" as const,
+        scopeId: productId,
+        clientId,
+        productId,
+        isActive: parsed.data.isActive,
+        groupId,
+        isExemption: true,
+      };
+      const key = `${clientId || ""}::${productId}`;
+      const existingId = existingByKey.get(key);
+      if (kind === "margin") {
+        const data = { ...base, marginPercent: parsed.data.percent, markupMultiplier: parsed.data.markupMultiplier };
+        if (existingId) await prisma.marginRule.update({ where: { id: existingId }, data });
+        else await prisma.marginRule.create({ data });
+      } else {
+        const data = { ...base, discountPercent: parsed.data.percent };
+        if (existingId) await prisma.discountRule.update({ where: { id: existingId }, data });
+        else await prisma.discountRule.create({ data });
+      }
+      keep.add(key);
+    }
+  }
+
+  for (const row of existing) {
+    const key = `${row.clientId || ""}::${row.scopeId || ""}`;
+    if (keep.has(key)) continue;
+    if (kind === "margin") await prisma.marginRule.delete({ where: { id: row.id } });
+    else await prisma.discountRule.delete({ where: { id: row.id } });
+  }
+
+  return keep.size;
 }
 
 function rethrowIfRedirect(err: unknown) {
@@ -368,6 +453,7 @@ export async function upsertMarginRule(formData: FormData): Promise<{ ok: boolea
       id: formData.get("id")?.toString() || undefined,
       groupId: formData.get("groupId")?.toString() || undefined,
       replaceGroup: formData.get("replaceGroup") === "on",
+      excludeProductIds: formIds(formData, "excludeProductIds", "excludeProductId"),
     });
     try {
       revalidatePricing();
@@ -408,6 +494,7 @@ export async function upsertDiscountRule(formData: FormData): Promise<{ ok: bool
       id: formData.get("id")?.toString() || undefined,
       groupId: formData.get("groupId")?.toString() || undefined,
       replaceGroup: formData.get("replaceGroup") === "on",
+      excludeProductIds: formIds(formData, "excludeProductIds", "excludeProductId"),
     });
     try {
       revalidatePricing();
@@ -437,6 +524,110 @@ export async function deleteDiscountRuleGroup(formData: FormData): Promise<void>
   if (!groupId) return;
   await prisma.discountRule.deleteMany({ where: { groupId } });
   revalidatePricing();
+}
+
+export type RulePreviewProduct = {
+  id: string;
+  name: string;
+  sku: string | null;
+  brandName: string | null;
+};
+
+function mapPreviewProduct(row: {
+  id: string;
+  normalizedName: string;
+  internalSku: string | null;
+  brand: { name: string } | null;
+}): RulePreviewProduct {
+  return {
+    id: row.id,
+    name: row.normalizedName,
+    sku: row.internalSku,
+    brandName: row.brand?.name ?? null,
+  };
+}
+
+export async function searchRulePreviewProducts(input: {
+  q?: string;
+  target: RuleTarget;
+  scopeIds: string[];
+  hydrateIds?: string[];
+  take?: number;
+}): Promise<
+  | { ok: true; items: RulePreviewProduct[]; total: number; hydrated: RulePreviewProduct[] }
+  | { ok: false; error: string }
+> {
+  await requireAdmin();
+  const target = input.target;
+  const scopeIds = [...new Set((input.scopeIds || []).filter(Boolean))];
+  if (target !== "ALL" && scopeIds.length === 0) {
+    return { ok: true, items: [], total: 0, hydrated: [] };
+  }
+
+  const take = Math.min(Math.max(input.take || 200, 1), 200);
+  const q = (input.q || "").trim();
+
+  const scopeWhere =
+    target === "BRAND"
+      ? { brandId: { in: scopeIds } }
+      : target === "FAMILY"
+        ? { familyId: { in: scopeIds } }
+        : target === "CATEGORY"
+          ? { categoryId: { in: scopeIds } }
+          : target === "DISTRIBUTOR"
+            ? { distributorId: { in: scopeIds } }
+            : target === "PRODUCT"
+              ? { id: { in: scopeIds } }
+              : {};
+
+  const searchWhere = q
+    ? {
+        OR: [
+          { normalizedName: { contains: q, mode: "insensitive" as const } },
+          { originalName: { contains: q, mode: "insensitive" as const } },
+          { internalSku: { contains: q, mode: "insensitive" as const } },
+          { supplierSku: { contains: q, mode: "insensitive" as const } },
+          { searchKey: { contains: q, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+
+  const where = {
+    AND: [scopeWhere, searchWhere].filter((part) => Object.keys(part).length > 0),
+  };
+
+  const select = {
+    id: true,
+    normalizedName: true,
+    internalSku: true,
+    brand: { select: { name: true } },
+  };
+
+  const hydrateIds = [...new Set((input.hydrateIds || []).filter(Boolean))].slice(0, 400);
+
+  const [total, rows, hydratedRows] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      orderBy: { normalizedName: "asc" },
+      take,
+      select,
+    }),
+    hydrateIds.length
+      ? prisma.product.findMany({
+          where: { id: { in: hydrateIds } },
+          orderBy: { normalizedName: "asc" },
+          select,
+        })
+      : Promise.resolve([]),
+  ]);
+
+  return {
+    ok: true,
+    items: rows.map(mapPreviewProduct),
+    total,
+    hydrated: hydratedRows.map(mapPreviewProduct),
+  };
 }
 
 export async function clearProductDiscount(formData: FormData): Promise<void> {

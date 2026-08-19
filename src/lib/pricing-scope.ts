@@ -187,6 +187,7 @@ export function toPricingRuleRow(input: {
   clientName?: string | null;
   resourceName?: string | null;
   groupId?: string | null;
+  isExemption?: boolean;
 }) {
   return {
     id: input.id,
@@ -204,9 +205,45 @@ export function toPricingRuleRow(input: {
       return n > 0 ? n : null;
     })(),
     groupId: input.groupId ?? null,
+    isExemption: Boolean(input.isExemption),
+    excludedProductIds: [] as string[],
+    excludedProductLabels: [] as string[],
     createdAt: toIso(input.createdAt),
     updatedAt: toIso(input.updatedAt),
   };
+}
+
+/** Saca las subreglas de excepción de la lista y las cuelga del grupo padre. */
+export function attachRuleExemptions<T extends ReturnType<typeof toPricingRuleRow>>(rows: T[]): T[] {
+  const exemptions = rows.filter((row) => row.isExemption && row.scopeType === "PRODUCT" && row.scopeId);
+  const byGroup = new Map<string, T[]>();
+  for (const row of exemptions) {
+    if (!row.groupId) continue;
+    const list = byGroup.get(row.groupId) || [];
+    list.push(row);
+    byGroup.set(row.groupId, list);
+  }
+  return rows
+    .filter((row) => !row.isExemption)
+    .map((row) => {
+      const extras = row.groupId ? byGroup.get(row.groupId) || [] : [];
+      const excludedProductIds = [...new Set(extras.map((item) => item.scopeId).filter(Boolean))] as string[];
+      const excludedProductLabels = [...new Set(extras.map((item) => item.resourceName).filter(Boolean))] as string[];
+      return { ...row, excludedProductIds, excludedProductLabels };
+    });
+}
+
+export function describeRuleExclusions(row: {
+  excludedProductIds?: string[] | null;
+  excludedProductLabels?: string[] | null;
+}) {
+  const count = row.excludedProductIds?.length || 0;
+  if (count === 0) return "";
+  const labels = row.excludedProductLabels || [];
+  const shown = labels.slice(0, 3).join(", ");
+  const extra = labels.length > 3 ? ` +${labels.length - 3}` : "";
+  const noun = count === 1 ? "producto" : "productos";
+  return shown ? `Exceptúa ${count} ${noun}: ${shown}${extra}` : `Exceptúa ${count} ${noun}`;
 }
 
 export type GroupedPricingRow =
@@ -214,8 +251,9 @@ export type GroupedPricingRow =
   | { type: "group"; groupId: string; rows: ReturnType<typeof toPricingRuleRow>[] };
 
 export function groupPricingRows(rows: ReturnType<typeof toPricingRuleRow>[]): GroupedPricingRow[] {
+  const visible = rows.filter((row) => !row.isExemption);
   const grouped = new Map<string, ReturnType<typeof toPricingRuleRow>[]>();
-  for (const row of rows) {
+  for (const row of visible) {
     if (!row.groupId) continue;
     const list = grouped.get(row.groupId) || [];
     list.push(row);
@@ -223,7 +261,7 @@ export function groupPricingRows(rows: ReturnType<typeof toPricingRuleRow>[]): G
   }
   const seen = new Set<string>();
   const result: GroupedPricingRow[] = [];
-  for (const row of rows) {
+  for (const row of visible) {
     if (!row.groupId || (grouped.get(row.groupId)?.length || 0) < 2) {
       result.push({ type: "single", row });
       continue;

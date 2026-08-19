@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { SearchablePick } from "@/components/admin/searchable-pick";
@@ -20,6 +20,7 @@ import {
   type RuleTarget,
 } from "@/lib/pricing-scope";
 import type { PricingRuleRow } from "@/components/admin/pricing-rules-table";
+import { RulePreviewModal } from "./rule-preview-modal";
 
 type ClientOpt = { id: string; name: string; companyName?: string | null };
 type Named = { id: string; name: string };
@@ -39,8 +40,14 @@ function initialValue(type: "margin" | "discount", row?: PricingRuleRow | null) 
 }
 
 function seedRows(initial?: PricingRuleRow | null, editingGroup?: boolean) {
-  if (editingGroup && initial?.members?.length) return initial.members;
-  return initial ? [initial] : [];
+  const rows = editingGroup && initial?.members?.length ? initial.members : initial ? [initial] : [];
+  return rows.filter((row) => !row.isExemption);
+}
+
+function seedExcludedIds(initial?: PricingRuleRow | null) {
+  if (initial?.excludedProductIds?.length) return [...new Set(initial.excludedProductIds)];
+  const members = initial?.members?.length ? initial.members : initial ? [initial] : [];
+  return [...new Set(members.flatMap((row) => row.excludedProductIds || []))];
 }
 
 function uniqueIds(rows: PricingRuleRow[], pick: (row: PricingRuleRow) => string | null | undefined) {
@@ -144,6 +151,8 @@ export function RulesForm({
   );
   const [target, setTarget] = useState<RuleTarget>(formSeed?.target || "ALL");
   const [scopeIds, setScopeIds] = useState<string[]>(uniqueIds(seeded, (row) => row.scopeId));
+  const [excludedIds, setExcludedIds] = useState<string[]>(seedExcludedIds(initial));
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [mode, setMode] = useState<"margin" | "markup">(type === "margin" ? initialMode(initial) : "margin");
   const [value, setValue] = useState(initialValue(type, initial));
   const [name, setName] = useState(editingGroup ? "" : initial?.name || "");
@@ -196,10 +205,15 @@ export function RulesForm({
       : comboCount > 1
         ? ` Se guarda como 1 regla con ${comboCount} subreglas${comboParts.length ? ` (${comboParts.join(" × ")})` : ""}. Después podés editar una sola o todo el grupo.`
         : "";
+  const exclusionHint =
+    target !== "PRODUCT" && excludedIds.length > 0
+      ? ` ${excludedIds.length} producto${excludedIds.length === 1 ? "" : "s"} exceptuado${excludedIds.length === 1 ? "" : "s"}: no les aplica esta regla.`
+      : "";
 
   function onTargetChange(next: RuleTarget) {
     setTarget(next);
     setScopeIds([]);
+    setExcludedIds([]);
   }
 
   function onModeChange(next: "margin" | "markup") {
@@ -211,6 +225,40 @@ export function RulesForm({
       setValue(next === "markup" ? "1.35" : "35");
     }
     setMode(next);
+  }
+
+  function formScopeOk() {
+    if (audience === "client" && !lockedClientId && clientIds.length === 0) {
+      setError("Elegí al menos un cliente.");
+      return false;
+    }
+    if (target !== "ALL" && scopeIds.length === 0) {
+      setError("Elegí al menos un recurso de la lista.");
+      return false;
+    }
+    return true;
+  }
+
+  function openPreview() {
+    setError(null);
+    if (!formScopeOk()) return;
+    setPreviewOpen(true);
+  }
+
+  function togglePreviewProduct(productId: string, included: boolean) {
+    if (target === "PRODUCT") {
+      setScopeIds((prev) =>
+        included ? (prev.includes(productId) ? prev : [...prev, productId]) : prev.filter((id) => id !== productId)
+      );
+      return;
+    }
+    setExcludedIds((prev) =>
+      included ? prev.filter((id) => id !== productId) : prev.includes(productId) ? prev : [...prev, productId]
+    );
+  }
+
+  function restorePreviewProduct(productId: string) {
+    setExcludedIds((prev) => prev.filter((id) => id !== productId));
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -233,6 +281,7 @@ export function RulesForm({
     if (lockedClientId) fd.append("clientIds", lockedClientId);
     else if (audience === "client") for (const id of clientIds) fd.append("clientIds", id);
     if (target !== "ALL") for (const id of scopeIds) fd.append("scopeIds", id);
+    if (target !== "PRODUCT") for (const id of excludedIds) fd.append("excludeProductIds", id);
     fd.set("pricingMode", type === "margin" ? mode : "margin");
     fd.set("percent", String(numericValue));
     fd.set("name", name.trim());
@@ -262,6 +311,7 @@ export function RulesForm({
         if (!editing) {
           setName("");
           setScopeIds([]);
+          setExcludedIds([]);
         }
         onSaved?.();
         try {
@@ -286,6 +336,7 @@ export function RulesForm({
     "Este cliente";
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid grid-cols-1 items-start gap-x-4 gap-y-5 sm:grid-cols-2">
         {lockedClientId ? (
@@ -403,10 +454,11 @@ export function RulesForm({
           </div>
         </Field>
 
-        {preview || comboHint ? (
+        {preview || comboHint || exclusionHint ? (
           <p className="rounded-md bg-secondary/50 px-3 py-2 text-xs leading-5 text-muted-foreground sm:col-span-2">
             {preview}
             {comboHint}
+            {exclusionHint}
           </p>
         ) : null}
       </div>
@@ -446,6 +498,11 @@ export function RulesForm({
               Cancelar
             </Button>
           ) : null}
+          <Button type="button" variant="outline" onClick={openPreview} disabled={pending}>
+            <Eye className="h-4 w-4" />
+            Previsualizar
+            {target !== "PRODUCT" && excludedIds.length > 0 ? ` (${excludedIds.length} excepto)` : ""}
+          </Button>
           <Button type="submit" disabled={pending}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {editingGroup
@@ -459,5 +516,18 @@ export function RulesForm({
         </div>
       </div>
     </form>
+
+      <RulePreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        target={target}
+        scopeIds={target === "ALL" ? [] : scopeIds}
+        productMode={target === "PRODUCT"}
+        includedProductIds={scopeIds}
+        excludedIds={excludedIds}
+        onToggle={togglePreviewProduct}
+        onRestore={restorePreviewProduct}
+      />
+    </>
   );
 }

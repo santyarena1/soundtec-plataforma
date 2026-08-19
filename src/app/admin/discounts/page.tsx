@@ -7,7 +7,7 @@ import { PricingRulesWorkspace } from "../_rules/workspace";
 import { deleteDiscountRule, deleteDiscountRuleGroup } from "@/server/actions/pricing-rules";
 import { badgeLabel, isManufacturerPromoLabel } from "@/lib/manufacturer-promo";
 import { ManufacturerPromosPanel, ProductDiscountsPanel } from "./product-discounts-panel";
-import { toFiniteNumber, toPricingRuleRow } from "@/lib/pricing-scope";
+import { toFiniteNumber, toPricingRuleRow, attachRuleExemptions } from "@/lib/pricing-scope";
 
 export const metadata = { title: "Admin · Descuentos" };
 
@@ -67,21 +67,39 @@ export default async function AdminDiscountsPage() {
     PRODUCT: new Map(products.map((p) => [p.id, p.normalizedName])),
   };
 
-  const rows = rules.map((r) =>
-    toPricingRuleRow({
-      id: r.id,
-      name: r.name,
-      scopeType: r.scopeType,
-      scopeId: r.scopeId,
-      clientId: r.clientId,
-      isActive: r.isActive,
-      createdAt: r.createdAt,
-      updatedAt: r.updatedAt,
-      percent: toFiniteNumber(r.discountPercent),
-      groupId: r.groupId,
-      clientName: r.clientId ? clientMap.get(r.clientId) ?? null : null,
-      resourceName: r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) ?? null : null,
-    })
+  const extraProductIds = [
+    ...new Set(
+      rules
+        .filter((r) => r.scopeType === "PRODUCT" && r.scopeId && !resourceMaps.PRODUCT.has(r.scopeId))
+        .map((r) => r.scopeId as string)
+    ),
+  ];
+  if (extraProductIds.length) {
+    const extra = await prisma.product.findMany({
+      where: { id: { in: extraProductIds } },
+      select: { id: true, normalizedName: true },
+    });
+    for (const p of extra) resourceMaps.PRODUCT.set(p.id, p.normalizedName);
+  }
+
+  const rows = attachRuleExemptions(
+    rules.map((r) =>
+      toPricingRuleRow({
+        id: r.id,
+        name: r.name,
+        scopeType: r.scopeType,
+        scopeId: r.scopeId,
+        clientId: r.clientId,
+        isActive: r.isActive,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        percent: toFiniteNumber(r.discountPercent),
+        groupId: r.groupId,
+        isExemption: r.isExemption,
+        clientName: r.clientId ? clientMap.get(r.clientId) ?? null : null,
+        resourceName: r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) ?? null : null,
+      })
+    )
   );
 
   const promoRows = manufacturerPromos

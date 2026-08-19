@@ -107,4 +107,20 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-08-19-3",
+    version: "2026.08.19",
+    releasedAt: "2026-08-19T16:10:00.000Z",
+    summary: "Antes de guardar una regla podés previsualizar los productos y exceptuar algunos.",
+    items: [
+      {
+        kind: "NUEVO",
+        text: "Botón Previsualizar: lista los productos de la regla, con buscador, todos tildados.",
+      },
+      {
+        kind: "NUEVO",
+        text: "Destildar un producto lo saca de esa regla (queda una subregla de excepción) y cae al markup o descuento que le corresponda.",
+      },
+    ],
+  },
 ];

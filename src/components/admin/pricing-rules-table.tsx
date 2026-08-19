@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import {
   describeRuleAppliesTo,
+  describeRuleExclusions,
   describeRuleGroup,
   formatMarginPercent,
   formatMarkup,
@@ -27,6 +28,9 @@ export type PricingRuleRow = {
   percent: number;
   markupMultiplier: number | null;
   groupId: string | null;
+  isExemption: boolean;
+  excludedProductIds: string[];
+  excludedProductLabels: string[];
   createdAt: string;
   updatedAt: string;
   members?: PricingRuleRow[];
@@ -119,6 +123,9 @@ export function PricingRulesTable({
                       resourceName: row.resourceName,
                     })}
                   </p>
+                  {describeRuleExclusions(row) ? (
+                    <p className="text-[11px] text-muted-foreground">{describeRuleExclusions(row)}</p>
+                  ) : null}
                   <p className="text-[11px] text-muted-foreground">{row.name}</p>
                 </TD>
                 <TD>
@@ -211,6 +218,7 @@ function GroupBlock({
               <span className="font-medium leading-snug">{describeRuleGroup(members)}</span>
               <span className="mt-0.5 block text-[11px] text-muted-foreground">
                 {members.length} subreglas{mixed ? " · hay valores distintos" : ""}
+                {describeRuleExclusions(first) ? ` · ${describeRuleExclusions(first)}` : ""}
               </span>
             </span>
           </button>
@@ -255,7 +263,10 @@ function GroupBlock({
                       resourceName: row.resourceName,
                     })}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">Subregla</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Subregla
+                    {describeRuleExclusions(row) ? ` · ${describeRuleExclusions(row)}` : ""}
+                  </p>
                 </TD>
                 <TD>
                   <ValueCell kind={kind} row={row} />

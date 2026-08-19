@@ -525,6 +525,8 @@ model MarginRule {
   notes          String?
   // Varias subreglas creadas juntas comparten groupId. Null = regla suelta.
   groupId        String?
+  // Subregla PRODUCT que saca a ese producto del grupo (no aplica esta regla).
+  isExemption    Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -548,6 +550,8 @@ model DiscountRule {
   notes           String?
   // Varias subreglas creadas juntas comparten groupId. Null = regla suelta.
   groupId         String?
+  // Subregla PRODUCT que saca a ese producto del grupo (no aplica esta regla).
+  isExemption     Boolean       @default(false)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

@@ -17,7 +17,7 @@ import {
   toggleClientMovementPaid,
 } from "@/server/actions/admin-client-detail";
 import { deleteDiscountRule, deleteDiscountRuleGroup, deleteVisibility, toggleVisibilityCanView } from "@/server/actions/pricing-rules";
-import { toFiniteNumber, toPricingRuleRow } from "@/lib/pricing-scope";
+import { toFiniteNumber, toPricingRuleRow, attachRuleExemptions } from "@/lib/pricing-scope";
 import { upsertClient } from "@/server/actions/clients";
 import { CreatePortalUserForm } from "@/components/admin/create-portal-user-form";
 import { formatDate, formatUsd } from "@/lib/utils";
@@ -90,6 +90,21 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
     FAMILY: new Map(families.map((f) => [f.id, f.name])),
     PRODUCT: new Map(products.map((p) => [p.id, p.normalizedName])),
   };
+
+  const extraProductIds = [
+    ...new Set(
+      discountRules
+        .filter((r) => r.scopeType === "PRODUCT" && r.scopeId && !resourceMaps.PRODUCT.has(r.scopeId))
+        .map((r) => r.scopeId as string)
+    ),
+  ];
+  if (extraProductIds.length) {
+    const extra = await prisma.product.findMany({
+      where: { id: { in: extraProductIds } },
+      select: { id: true, normalizedName: true },
+    });
+    for (const p of extra) resourceMaps.PRODUCT.set(p.id, p.normalizedName);
+  }
 
   const clientOption = [{ id: client.id, name: client.contactName || client.companyName, companyName: client.companyName }];
 
@@ -330,21 +345,24 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
               <PricingRulesWorkspace
                 kind="discount"
                 lockedClientId={client.id}
-                rows={discountRules.map((d) =>
-                  toPricingRuleRow({
-                    id: d.id,
-                    name: d.name,
-                    scopeType: d.scopeType,
-                    scopeId: d.scopeId,
-                    clientId: d.clientId,
-                    isActive: d.isActive,
-                    createdAt: d.createdAt,
-                    updatedAt: d.updatedAt,
-                    percent: toFiniteNumber(d.discountPercent),
-                    groupId: d.groupId,
-                    clientName: client.companyName,
-                    resourceName: d.scopeId ? resourceMaps[d.scopeType]?.get(d.scopeId) ?? null : null,
-                  })
+                rows={attachRuleExemptions(
+                  discountRules.map((d) =>
+                    toPricingRuleRow({
+                      id: d.id,
+                      name: d.name,
+                      scopeType: d.scopeType,
+                      scopeId: d.scopeId,
+                      clientId: d.clientId,
+                      isActive: d.isActive,
+                      createdAt: d.createdAt,
+                      updatedAt: d.updatedAt,
+                      percent: toFiniteNumber(d.discountPercent),
+                      groupId: d.groupId,
+                      isExemption: d.isExemption,
+                      clientName: client.companyName,
+                      resourceName: d.scopeId ? resourceMaps[d.scopeType]?.get(d.scopeId) ?? null : null,
+                    })
+                  )
                 )}
                 empty="Este cliente todavía no tiene descuentos propios."
                 deleteAction={deleteDiscountRule}
