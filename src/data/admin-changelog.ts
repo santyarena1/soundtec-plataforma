@@ -135,4 +135,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-08-19-5",
+    version: "2026.08.19",
+    releasedAt: "2026-08-19T16:35:00.000Z",
+    summary: "El popup de novedades queda en esta computadora: si tocás Entendido, no vuelve a salir acá aunque entre otro usuario.",
+    items: [
+      {
+        kind: "MEJORA",
+        text: "El aviso de changelog es por PC (este navegador), no por usuario. En otra computadora sí vuelve a aparecer.",
+      },
+    ],
+  },
 ];

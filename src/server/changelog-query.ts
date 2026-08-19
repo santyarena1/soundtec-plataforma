@@ -1,5 +1,4 @@
 import { SHIPPED_ADMIN_CHANGELOG } from "@/data/admin-changelog";
-import { prisma } from "@/lib/prisma";
 import { toChangelogView, type ChangelogEntryView } from "@/lib/changelog";
 import { syncShippedChangelog } from "@/server/changelog-sync";
 
@@ -36,20 +35,4 @@ export async function ensureShippedChangelog() {
 export async function listAllChangelogs(): Promise<ChangelogEntryView[]> {
   await ensureShippedChangelog();
   return shippedViews();
-}
-
-export async function getUnreadChangelogsForUser(userId: string): Promise<ChangelogEntryView[]> {
-  if (!userId) return [];
-  await ensureShippedChangelog();
-  const published = shippedViews();
-  try {
-    const read = await prisma.adminChangelogRead.findMany({
-      where: { userId },
-      select: { changelogId: true },
-    });
-    const seen = new Set(read.map((row) => row.changelogId));
-    return published.filter((row) => !seen.has(row.id));
-  } catch {
-    return published;
-  }
 }

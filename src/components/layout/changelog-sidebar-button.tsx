@@ -1,7 +1,27 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ScrollText } from "lucide-react";
+import { CHANGELOG_SEEN_EVENT, unreadChangelogEntries } from "@/lib/changelog-seen";
+import type { ChangelogEntryView } from "@/lib/changelog";
 
-export function ChangelogSidebarButton({ unreadCount = 0 }: { unreadCount?: number }) {
+export function ChangelogSidebarButton({ entries }: { entries: ChangelogEntryView[] }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    function sync() {
+      setUnreadCount(unreadChangelogEntries(entries).length);
+    }
+    sync();
+    window.addEventListener(CHANGELOG_SEEN_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(CHANGELOG_SEEN_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [entries]);
+
   return (
     <Link
       href="/admin/changelog"
