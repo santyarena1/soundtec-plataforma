@@ -123,4 +123,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-08-19-4",
+    version: "2026.08.19",
+    releasedAt: "2026-08-19T16:25:00.000Z",
+    summary: "La previsualización de una regla se puede ver en tarjetas o lista, con la foto de cada producto.",
+    items: [
+      {
+        kind: "MEJORA",
+        text: "Previsualizar productos: interruptor Tarjetas / Lista y se ve la foto de catálogo.",
+      },
+    ],
+  },
 ];

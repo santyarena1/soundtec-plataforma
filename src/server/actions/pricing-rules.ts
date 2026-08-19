@@ -531,6 +531,7 @@ export type RulePreviewProduct = {
   name: string;
   sku: string | null;
   brandName: string | null;
+  imageUrl: string | null;
 };
 
 function mapPreviewProduct(row: {
@@ -538,12 +539,14 @@ function mapPreviewProduct(row: {
   normalizedName: string;
   internalSku: string | null;
   brand: { name: string } | null;
+  images: { url: string }[];
 }): RulePreviewProduct {
   return {
     id: row.id,
     name: row.normalizedName,
     sku: row.internalSku,
     brandName: row.brand?.name ?? null,
+    imageUrl: row.images[0]?.url ?? null,
   };
 }
 
@@ -601,6 +604,11 @@ export async function searchRulePreviewProducts(input: {
     normalizedName: true,
     internalSku: true,
     brand: { select: { name: true } },
+    images: {
+      orderBy: [{ isPrimary: "desc" as const }, { createdAt: "asc" as const }],
+      take: 1,
+      select: { url: true },
+    },
   };
 
   const hydrateIds = [...new Set((input.hydrateIds || []).filter(Boolean))].slice(0, 400);
