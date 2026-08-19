@@ -53,7 +53,8 @@ export function PriceLogicHint({ variant }: { variant: "margin" | "discount" | "
         </p>
         {variant === "margin" ? (
           <p className="text-muted-foreground">
-            Markup ×1,35 es lo mismo que margen 35%. Elegí cómo te resulta más natural cargarlo.
+            Markup 2,75 es costo × 2,75 (lista 275 si el costo es 100). No se le suma 1: no termina
+            en ×3,75. Si preferís margen %, 35% sí es ×1,35.
           </p>
         ) : (
           <p className="text-muted-foreground">

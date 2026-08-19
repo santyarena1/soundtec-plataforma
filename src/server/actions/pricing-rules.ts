@@ -83,8 +83,9 @@ function parseRule(formData: FormData, kind: "margin" | "discount") {
   let markupMultiplier: number | null = null;
   if (kind === "margin" && mode === "markup") {
     if (parsed.data.percent <= 0 || parsed.data.percent > 20) {
-      return { ok: false as const, error: "El markup tiene que ser un multiplicador (ej. 1.35)." };
+      return { ok: false as const, error: "El markup tiene que ser un multiplicador (ej. 2.75 = costo × 2.75)." };
     }
+    // 2.75 se guarda como 2.75. Nunca 1+2.75 (= 3.75).
     markupMultiplier = parsed.data.percent;
     marginPercent = markupToMarginPercent(parsed.data.percent);
   } else if (kind === "margin") {

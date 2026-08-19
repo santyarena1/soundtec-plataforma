@@ -8,7 +8,7 @@ import {
   formatMarginPercent,
   formatMarkup,
   formatRuleTimestamp,
-  markupToMarginPercent,
+  listFromCost100,
 } from "@/lib/pricing-scope";
 
 export type PricingRuleRow = {
@@ -60,7 +60,6 @@ export function PricingRulesTable({
         {rows.map((row) => {
           const asMarkup = kind === "margin" && row.markupMultiplier != null && row.markupMultiplier > 0;
           const markup = asMarkup ? row.markupMultiplier! : null;
-          const margin = asMarkup ? markupToMarginPercent(markup!) : row.percent;
           const editing = editingId === row.id;
           return (
             <TR key={row.id} className={editing ? "bg-primary/5" : undefined}>
@@ -83,14 +82,15 @@ export function PricingRulesTable({
                       <>
                         <span className="font-semibold tabular-nums">{formatMarkup(markup!)}</span>
                         <span className="ml-2 text-xs text-muted-foreground">
-                          margen {formatMarginPercent(margin)}
+                          costo 100 → {listFromCost100("markup", markup!).toLocaleString("es-AR", { maximumFractionDigits: 2 })}
                         </span>
                       </>
                     ) : (
                       <>
                         <span className="font-semibold tabular-nums">Margen {formatMarginPercent(row.percent)}</span>
                         <span className="ml-2 text-xs text-muted-foreground">
-                          {formatMarkup(1 + row.percent / 100)}
+                          {formatMarkup(1 + row.percent / 100)} · costo 100 →{" "}
+                          {listFromCost100("margin", row.percent).toLocaleString("es-AR", { maximumFractionDigits: 2 })}
                         </span>
                       </>
                     )}

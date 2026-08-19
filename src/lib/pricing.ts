@@ -206,7 +206,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
   const tc = Number.isFinite(exchangeRate) && exchangeRate > 0 ? exchangeRate : 1;
   const ruleMarkup = margin
     ? marginWithMarkup.markupMultiplier != null
-      ? toNumber(marginWithMarkup.markupMultiplier)
+      ? toNumber(marginWithMarkup.markupMultiplier) // 2.75 → ×2.75, nunca 1+2.75
       : 1 + toNumber(margin.marginPercent) / 100
     : undefined;
   const markupMultiplier = ruleMarkup

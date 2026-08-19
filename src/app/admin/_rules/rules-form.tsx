@@ -13,6 +13,7 @@ import {
   autoRuleName,
   formatMarginPercent,
   formatMarkup,
+  listFromCost100,
   marginPercentToMarkup,
   markupToMarginPercent,
   scopeTypeToForm,
@@ -101,8 +102,8 @@ export function RulesForm({
   const preview =
     type === "margin" && parsedOk
       ? mode === "markup"
-        ? `Margen equivalente ${formatMarginPercent(markupToMarginPercent(numericValue))}. Costo 100 → lista ${formatMarkup(numericValue).replace("× ", "")}.`
-        : `Markup equivalente ${formatMarkup(marginPercentToMarkup(numericValue))}. Costo 100 → lista ${marginPercentToMarkup(numericValue).toLocaleString("es-AR", { maximumFractionDigits: 2 })}.`
+        ? `${formatMarkup(numericValue)} · costo 100 → lista ${listFromCost100("markup", numericValue).toLocaleString("es-AR", { maximumFractionDigits: 2 })}. El 1 no se suma: ${numericValue.toLocaleString("es-AR", { maximumFractionDigits: 4 })} es ×${numericValue.toLocaleString("es-AR", { maximumFractionDigits: 4 })}, no ×${(1 + numericValue).toLocaleString("es-AR", { maximumFractionDigits: 4 })}.`
+        : `Margen ${formatMarginPercent(numericValue)} = ${formatMarkup(marginPercentToMarkup(numericValue))} · costo 100 → lista ${listFromCost100("margin", numericValue).toLocaleString("es-AR", { maximumFractionDigits: 2 })}.`
       : null;
 
   function onTargetChange(next: RuleTarget) {
@@ -124,6 +125,14 @@ export function RulesForm({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    if (audience === "client" && !clientId) {
+      setError("Elegí el cliente.");
+      return;
+    }
+    if (target !== "ALL" && !scopeId) {
+      setError("Elegí el recurso de la lista mientras escribís.");
+      return;
+    }
     const clientName = clients.find((c) => c.id === clientId)?.companyName || clients.find((c) => c.id === clientId)?.name;
     const resourceName = resourceOptions.find((o) => o.id === scopeId)?.name;
     const generated = autoRuleName({
@@ -207,17 +216,14 @@ export function RulesForm({
           )}
         </div>
         {audience === "client" && !lockedClientId ? (
-          <div>
-            <Label required>Cliente</Label>
-            <Select value={clientId} onChange={(e) => setClientId(e.target.value)} required>
-              <option value="">Elegí el cliente</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.companyName || c.name}
-                </option>
-              ))}
-            </Select>
-          </div>
+          <SearchablePick
+            label="Cliente"
+            options={clients.map((c) => ({ id: c.id, name: c.companyName || c.name }))}
+            value={clientId}
+            onChange={setClientId}
+            placeholder="Escribí el cliente…"
+            required
+          />
         ) : (
           <div />
         )}
@@ -236,11 +242,12 @@ export function RulesForm({
         </div>
         {target !== "ALL" ? (
           <SearchablePick
+            key={target}
             label={RULE_TARGETS.find((item) => item.value === target)?.label || "Recurso"}
             options={resourceOptions}
             value={scopeId}
             onChange={setScopeId}
-            placeholder="Escribí para filtrar…"
+            placeholder="Escribí y elegí de la lista…"
             required
           />
         ) : (

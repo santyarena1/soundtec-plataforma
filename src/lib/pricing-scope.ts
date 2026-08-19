@@ -38,6 +38,12 @@ export function formatMarginPercent(value: number) {
   return `${value.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`;
 }
 
+/** Precio de lista si el costo es 100. Markup 2.75 → 275, nunca 375. */
+export function listFromCost100(mode: "markup" | "margin", value: number) {
+  const multiplier = mode === "markup" ? value : marginPercentToMarkup(value);
+  return multiplier * 100;
+}
+
 /** Prioridad interna: más específico = número más bajo. No se muestra en la UI. */
 export function autoPriority(scopeType: RuleScopeType, hasClient: boolean) {
   const rank: Record<string, number> = {

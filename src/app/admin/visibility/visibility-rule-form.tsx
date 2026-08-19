@@ -7,6 +7,7 @@ import { upsertVisibility } from "@/server/actions/pricing-rules";
 import { Button } from "@/components/ui/button";
 import { Select, Label, Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { SearchablePick } from "@/components/admin/searchable-pick";
 import { Loader2, Search } from "lucide-react";
 import type { VisibilityRuleRow } from "./visibility-rules-table";
 
@@ -133,17 +134,15 @@ export function VisibilityRuleForm({
   return (
     <div className="grid gap-3">
       <div className="grid gap-3 sm:grid-cols-3">
-        <div>
-          <Label required>Cliente</Label>
-          <Select value={clientId} onChange={(e) => setClientId(e.target.value)} disabled={Boolean(defaultClientId)}>
-            <option value="">Seleccionar cliente</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.companyName || c.name}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <SearchablePick
+          label="Cliente"
+          options={clients.map((c) => ({ id: c.id, name: c.companyName || c.name }))}
+          value={clientId}
+          onChange={setClientId}
+          placeholder="Escribí el cliente…"
+          required
+          disabled={Boolean(defaultClientId)}
+        />
         <div>
           <Label required>Alcance</Label>
           <Select
