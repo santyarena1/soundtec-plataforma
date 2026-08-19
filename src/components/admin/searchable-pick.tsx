@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { Input, Label } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ export function SearchablePick({
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
@@ -100,9 +101,11 @@ export function SearchablePick({
   }
 
   return (
-    <div ref={wrapRef} className={cn("relative", disabled && "opacity-50")}>
-      <Label required={required}>{label}</Label>
-      <div className="relative mt-1.5">
+    <div ref={wrapRef} className={cn("relative flex min-w-0 flex-col gap-1.5", disabled && "opacity-50")}>
+      <Label required={required} className="block h-5 leading-5">
+        {label}
+      </Label>
+      <div className="relative">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           ref={inputRef}
@@ -117,20 +120,18 @@ export function SearchablePick({
           placeholder={placeholder}
           disabled={disabled}
           autoComplete="off"
-          className="h-9 pl-8 pr-8"
+          className="h-10 pl-8 pr-8"
           aria-expanded={open}
-          aria-controls="searchable-pick-list"
+          aria-controls={listId}
           role="combobox"
         />
         <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-      </div>
-      {required ? <input type="hidden" value={value} required readOnly tabIndex={-1} /> : null}
-      {open ? (
-        <ul
-          id="searchable-pick-list"
-          role="listbox"
-          className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-border bg-card shadow-lg"
-        >
+        {open ? (
+          <ul
+            id={listId}
+            role="listbox"
+            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-card shadow-lg"
+          >
           {filtered.length === 0 ? (
             <li className="px-3 py-2 text-sm text-muted-foreground">Sin resultados.</li>
           ) : (
@@ -157,8 +158,10 @@ export function SearchablePick({
               Mostrando 80 de {total}. Seguí escribiendo para afinar.
             </li>
           ) : null}
-        </ul>
-      ) : null}
+          </ul>
+        ) : null}
+      </div>
+      {required ? <input type="hidden" value={value} required readOnly tabIndex={-1} /> : null}
     </div>
   );
 }

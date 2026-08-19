@@ -38,8 +38,8 @@ export function PricingRulesWorkspace({
   return (
     <div className="space-y-6">
       <Card>
-        <CardContent className="p-6">
-          <h2 className="heading-3 mb-3">
+        <CardContent className="space-y-5 p-6">
+          <h2 className="heading-3 border-b border-border pb-4">
             {editing
               ? kind === "margin"
                 ? "Editar regla de precio"

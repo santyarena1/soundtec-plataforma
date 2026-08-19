@@ -10,7 +10,7 @@ export function PriceLogicHint({ variant }: { variant: "margin" | "discount" | "
   if (variant === "visibility") {
     return (
       <Card>
-        <CardContent className="space-y-2 p-5 text-sm">
+        <CardContent className="space-y-2 p-6 text-sm">
           <p className="font-medium">Por defecto el cliente ve todo el catálogo.</p>
           <p className="text-muted-foreground">
             Acá solo cargás excepciones: ocultá marcas, familias o productos que ese cliente no
@@ -41,7 +41,7 @@ export function PriceLogicHint({ variant }: { variant: "margin" | "discount" | "
 
   return (
     <Card>
-      <CardContent className="space-y-2 p-5 text-sm">
+        <CardContent className="space-y-2 p-6 text-sm">
         <p className="font-medium">
           {variant === "margin"
             ? "El precio de lista sale del costo nacionalizado × markup."

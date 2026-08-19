@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { SearchablePick } from "@/components/admin/searchable-pick";
 import { upsertMarginRule, upsertDiscountRule } from "@/server/actions/pricing-rules";
+import { cn } from "@/lib/utils";
 import {
   RULE_TARGETS,
   autoRuleName,
@@ -36,6 +37,63 @@ function initialValue(type: "margin" | "discount", row?: PricingRuleRow | null) 
     return String(row.markupMultiplier);
   }
   return String(row.percent);
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: ReactNode;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <Label required={required} className="block h-5 leading-5">
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (value: T) => void;
+  options: { value: T; label: string }[];
+}) {
+  return (
+    <div className="flex h-10 w-full rounded-md border border-input bg-card p-0.5">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={cn(
+            "flex-1 rounded-[5px] px-2 text-sm font-medium transition-colors",
+            value === option.value
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+          )}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Readout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex h-10 items-center rounded-md border border-dashed border-border bg-secondary/40 px-3 text-sm text-muted-foreground">
+      {children}
+    </div>
+  );
 }
 
 export function RulesForm({
@@ -104,7 +162,9 @@ export function RulesForm({
       ? mode === "markup"
         ? `${formatMarkup(numericValue)} · costo 100 → lista ${listFromCost100("markup", numericValue).toLocaleString("es-AR", { maximumFractionDigits: 2 })}. El 1 no se suma: ${numericValue.toLocaleString("es-AR", { maximumFractionDigits: 4 })} es ×${numericValue.toLocaleString("es-AR", { maximumFractionDigits: 4 })}, no ×${(1 + numericValue).toLocaleString("es-AR", { maximumFractionDigits: 4 })}.`
         : `Margen ${formatMarginPercent(numericValue)} = ${formatMarkup(marginPercentToMarkup(numericValue))} · costo 100 → lista ${listFromCost100("margin", numericValue).toLocaleString("es-AR", { maximumFractionDigits: 2 })}.`
-      : null;
+      : type === "discount" && parsedOk
+        ? `Se resta ${formatMarginPercent(numericValue)} al precio de lista.`
+        : null;
 
   function onTargetChange(next: RuleTarget) {
     setTarget(next);
@@ -182,56 +242,56 @@ export function RulesForm({
     });
   }
 
+  const lockedName =
+    clients.find((c) => c.id === lockedClientId)?.companyName ||
+    clients.find((c) => c.id === lockedClientId)?.name ||
+    "Este cliente";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label required>¿Para quién?</Label>
-          {lockedClientId ? (
-            <p className="mt-2 text-sm">
-              {clients.find((c) => c.id === lockedClientId)?.companyName ||
-                clients.find((c) => c.id === lockedClientId)?.name ||
-                "Este cliente"}
-            </p>
-          ) : (
-            <div className="mt-1.5 inline-flex rounded-lg border border-border p-0.5">
-              <button
-                type="button"
-                className={`rounded-md px-3 py-1.5 text-sm ${audience === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                onClick={() => {
-                  setAudience("all");
-                  setClientId("");
-                }}
-              >
-                Todos los clientes
-              </button>
-              <button
-                type="button"
-                className={`rounded-md px-3 py-1.5 text-sm ${audience === "client" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                onClick={() => setAudience("client")}
-              >
-                Un cliente
-              </button>
-            </div>
-          )}
-        </div>
-        {audience === "client" && !lockedClientId ? (
-          <SearchablePick
-            label="Cliente"
-            options={clients.map((c) => ({ id: c.id, name: c.companyName || c.name }))}
-            value={clientId}
-            onChange={setClientId}
-            placeholder="Escribí el cliente…"
-            required
-          />
+      <div className="grid grid-cols-1 items-start gap-x-4 gap-y-5 sm:grid-cols-2">
+        {lockedClientId ? (
+          <>
+            <Field label="Cliente" required>
+              <Readout>{lockedName}</Readout>
+            </Field>
+            <Field label="Alcance">
+              <Readout>Solo este cliente.</Readout>
+            </Field>
+          </>
         ) : (
-          <div />
+          <>
+            <Field label="¿Para quién?" required>
+              <Segmented
+                value={audience}
+                onChange={(next) => {
+                  setAudience(next);
+                  if (next === "all") setClientId("");
+                }}
+                options={[
+                  { value: "all", label: "Todos los clientes" },
+                  { value: "client", label: "Un cliente" },
+                ]}
+              />
+            </Field>
+            {audience === "client" ? (
+              <SearchablePick
+                label="Cliente"
+                options={clients.map((c) => ({ id: c.id, name: c.companyName || c.name }))}
+                value={clientId}
+                onChange={setClientId}
+                placeholder="Escribí el cliente…"
+                required
+              />
+            ) : (
+              <Field label="Cliente">
+                <Readout>Aplica a todos. No hace falta elegir uno.</Readout>
+              </Field>
+            )}
+          </>
         )}
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label required>¿Sobre qué?</Label>
+        <Field label="¿Sobre qué?" required>
           <Select value={target} onChange={(e) => onTargetChange(e.target.value as RuleTarget)}>
             {RULE_TARGETS.map((item) => (
               <option key={item.value} value={item.value}>
@@ -239,7 +299,8 @@ export function RulesForm({
               </option>
             ))}
           </Select>
-        </div>
+        </Field>
+
         {target !== "ALL" ? (
           <SearchablePick
             key={target}
@@ -251,54 +312,65 @@ export function RulesForm({
             required
           />
         ) : (
-          <p className="self-end text-sm text-muted-foreground">Aplica a todo el catálogo de ese alcance.</p>
+          <Field label="Recurso">
+            <Readout>Todo el catálogo de ese alcance.</Readout>
+          </Field>
         )}
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
         {type === "margin" ? (
-          <div>
-            <Label required>¿Cómo lo cargás?</Label>
-            <div className="mt-1.5 inline-flex rounded-lg border border-border p-0.5">
-              <button
-                type="button"
-                className={`rounded-md px-3 py-1.5 text-sm ${mode === "markup" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                onClick={() => onModeChange("markup")}
-              >
-                Markup ×
-              </button>
-              <button
-                type="button"
-                className={`rounded-md px-3 py-1.5 text-sm ${mode === "margin" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                onClick={() => onModeChange("margin")}
-              >
-                Margen %
-              </button>
-            </div>
-          </div>
+          <Field label="¿Cómo lo cargás?" required>
+            <Segmented
+              value={mode}
+              onChange={onModeChange}
+              options={[
+                { value: "markup", label: "Markup ×" },
+                { value: "margin", label: "Margen %" },
+              ]}
+            />
+          </Field>
         ) : (
-          <div>
-            <Label required>Descuento</Label>
-            <p className="mt-2 text-sm text-muted-foreground">Porcentaje que se resta al precio de lista.</p>
-          </div>
+          <Field label="Cómo aplica">
+            <Readout>Se resta al precio de lista.</Readout>
+          </Field>
         )}
-        <div>
-          <Label required>{type === "discount" ? "Descuento %" : mode === "markup" ? "Markup" : "Margen %"}</Label>
-          <Input
-            type="number"
-            step={type === "margin" && mode === "markup" ? "0.01" : "0.1"}
-            min={type === "margin" && mode === "markup" ? "0.01" : "0"}
-            max={type === "margin" && mode === "markup" ? "20" : "100"}
-            required
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={type === "discount" ? "10" : mode === "markup" ? "1.35" : "35"}
-          />
-          {preview ? <p className="mt-1 text-[12px] text-muted-foreground">{preview}</p> : null}
-        </div>
+
+        <Field
+          label={type === "discount" ? "Descuento %" : mode === "markup" ? "Markup" : "Margen %"}
+          required
+        >
+          <div className="relative">
+            {type === "margin" && mode === "markup" ? (
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                ×
+              </span>
+            ) : null}
+            <Input
+              type="number"
+              step={type === "margin" && mode === "markup" ? "0.01" : "0.1"}
+              min={type === "margin" && mode === "markup" ? "0.01" : "0"}
+              max={type === "margin" && mode === "markup" ? "20" : "100"}
+              required
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder={type === "discount" ? "10" : mode === "markup" ? "2.75" : "35"}
+              className={type === "margin" && mode === "markup" ? "pl-7" : "pr-8"}
+            />
+            {type === "discount" || mode === "margin" ? (
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                %
+              </span>
+            ) : null}
+          </div>
+        </Field>
+
+        {preview ? (
+          <p className="rounded-md bg-secondary/50 px-3 py-2 text-xs leading-5 text-muted-foreground sm:col-span-2">
+            {preview}
+          </p>
+        ) : null}
       </div>
 
-      <div>
+      <div className="border-t border-border pt-4">
         <button
           type="button"
           className="text-xs font-medium text-primary"
@@ -307,16 +379,17 @@ export function RulesForm({
           {advanced ? "Ocultar opciones" : "Personalización profunda (nombre interno)"}
         </button>
         {advanced ? (
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 items-start gap-x-4 gap-y-5 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <Label>Nombre interno</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Si lo dejás vacío, se arma solo."
-              />
+              <Field label="Nombre interno">
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Si lo dejás vacío, se arma solo."
+                />
+              </Field>
             </div>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex h-10 items-center gap-2 text-sm">
               <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
               Regla activa
             </label>

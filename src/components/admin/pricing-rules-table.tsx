@@ -77,18 +77,18 @@ export function PricingRulesTable({
               </TD>
               <TD>
                 {kind === "margin" ? (
-                  <div className="text-sm">
+                  <div className="flex flex-col gap-0.5">
                     {asMarkup ? (
                       <>
                         <span className="font-semibold tabular-nums">{formatMarkup(markup!)}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           costo 100 → {listFromCost100("markup", markup!).toLocaleString("es-AR", { maximumFractionDigits: 2 })}
                         </span>
                       </>
                     ) : (
                       <>
                         <span className="font-semibold tabular-nums">Margen {formatMarginPercent(row.percent)}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {formatMarkup(1 + row.percent / 100)} · costo 100 →{" "}
                           {listFromCost100("margin", row.percent).toLocaleString("es-AR", { maximumFractionDigits: 2 })}
                         </span>
