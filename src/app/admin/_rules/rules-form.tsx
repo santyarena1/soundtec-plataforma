@@ -266,7 +266,12 @@ export function RulesForm({
         onSaved?.();
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "No se pudo guardar.");
+        const message = err instanceof Error ? err.message : "";
+        setError(
+          /Server Components|digest property/i.test(message)
+            ? "No se pudo guardar. Recargá la página e intentá de nuevo."
+            : message || "No se pudo guardar."
+        );
       }
     });
   }

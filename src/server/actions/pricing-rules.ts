@@ -174,7 +174,21 @@ async function resourceNameMap(target: RuleTarget, ids: string[]) {
 }
 
 function newGroupId() {
-  return `grp_${globalThis.crypto.randomUUID().replace(/-/g, "")}`;
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return `grp_${uuid.replace(/-/g, "")}`;
+  return `grp_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function saveRuleError(err: unknown) {
+  const code = err && typeof err === "object" && "code" in err ? String((err as { code: unknown }).code) : "";
+  const message = err instanceof Error ? err.message : "";
+  if (code === "P2000" || code === "P2020" || /out of range|numeric value|Decimal/i.test(message)) {
+    return "El markup es demasiado alto para cómo estaba la base. Recargá la página e intentá de nuevo.";
+  }
+  if (code === "P2022" || /column|groupId|does not exist/i.test(message)) {
+    return "Falta un campo nuevo en la base. Recargá en un minuto, cuando termine el deploy.";
+  }
+  return "No se pudo guardar la regla. Probá de nuevo.";
 }
 
 async function saveRuleRows(
@@ -342,13 +356,18 @@ export async function upsertMarginRule(formData: FormData): Promise<{ ok: boolea
   await requireAdmin();
   const parsed = parseRule(formData, "margin");
   if (!parsed.ok) return parsed;
-  const count = await saveRuleRows("margin", parsed, {
-    id: formData.get("id")?.toString() || undefined,
-    groupId: formData.get("groupId")?.toString() || undefined,
-    replaceGroup: formData.get("replaceGroup") === "on",
-  });
-  revalidatePricing();
-  return { ok: true, count };
+  try {
+    const count = await saveRuleRows("margin", parsed, {
+      id: formData.get("id")?.toString() || undefined,
+      groupId: formData.get("groupId")?.toString() || undefined,
+      replaceGroup: formData.get("replaceGroup") === "on",
+    });
+    revalidatePricing();
+    return { ok: true, count };
+  } catch (err) {
+    console.error("upsertMarginRule", err);
+    return { ok: false, error: saveRuleError(err) };
+  }
 }
 
 export async function deleteMarginRule(formData: FormData): Promise<void> {
@@ -371,13 +390,18 @@ export async function upsertDiscountRule(formData: FormData): Promise<{ ok: bool
   await requireAdmin();
   const parsed = parseRule(formData, "discount");
   if (!parsed.ok) return parsed;
-  const count = await saveRuleRows("discount", parsed, {
-    id: formData.get("id")?.toString() || undefined,
-    groupId: formData.get("groupId")?.toString() || undefined,
-    replaceGroup: formData.get("replaceGroup") === "on",
-  });
-  revalidatePricing();
-  return { ok: true, count };
+  try {
+    const count = await saveRuleRows("discount", parsed, {
+      id: formData.get("id")?.toString() || undefined,
+      groupId: formData.get("groupId")?.toString() || undefined,
+      replaceGroup: formData.get("replaceGroup") === "on",
+    });
+    revalidatePricing();
+    return { ok: true, count };
+  } catch (err) {
+    console.error("upsertDiscountRule", err);
+    return { ok: false, error: saveRuleError(err) };
+  }
 }
 
 export async function deleteDiscountRule(formData: FormData): Promise<void> {

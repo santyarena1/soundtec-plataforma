@@ -518,7 +518,8 @@ model MarginRule {
   client         Client?       @relation("ClientMargins", fields: [clientId], references: [id], onDelete: Cascade)
   productId      String?
   product        Product?      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  marginPercent  Decimal       @db.Decimal(6, 3)
+  // Markup 20 = margen 1900%. Decimal(6,3) solo llega a 999.999 y tiraba error al guardar.
+  marginPercent  Decimal       @db.Decimal(10, 3)
   markupMultiplier Decimal?    @db.Decimal(8, 4)
   isActive       Boolean       @default(true)
   notes          String?
