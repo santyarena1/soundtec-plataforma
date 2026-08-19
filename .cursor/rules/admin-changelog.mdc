@@ -1,0 +1,17 @@
+---
+description: En cada push al admin, cargar una novedad en el changelog automático
+alwaysApply: true
+---
+
+# Changelog automático (panel admin)
+
+Las novedades del admin **no se cargan a mano** en la UI. Van en `src/data/admin-changelog.ts` y el deploy las publica solo (`scripts/sync-changelog.ts` en el build + sync al abrir el admin).
+
+Cada vez que se commitee/pushee un cambio visible para el equipo del admin:
+
+1. Agregar **una entrada nueva** al array `SHIPPED_ADMIN_CHANGELOG`.
+2. Usar un **id nuevo** (`ship-YYYY-MM-DD-tema`). No reutilizar un id viejo: si se reusa, quien ya tocó Entendido no vuelve a ver el popup.
+3. Completar `version` (siguiente número), `releasedAt` (ISO), `summary` (frase de "En pocas palabras") e `items` con `kind`: `NUEVO` | `FIX` | `MEJORA`.
+4. Textos en español, cortos, para el equipo interno. Nunca para el portal del cliente.
+
+Si el cambio no se ve en el admin (refactor interno, tipos, etc.), no hace falta entrada.

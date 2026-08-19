@@ -26,8 +26,11 @@ export function ChangelogWorkspace({
         <Card>
           <CardContent className="space-y-4 p-6">
             <h2 className="heading-3 border-b border-border pb-4">
-              {editing ? `Editar ${editing.version}` : "Nueva novedad"}
+              {editing ? `Editar ${editing.version}` : "Nota extra (opcional)"}
             </h2>
+            <p className="text-sm text-muted-foreground">
+              Lo de cada deploy ya entra solo. Esto es por si querés dejar una nota que no vino en el código.
+            </p>
             <ChangelogForm
               key={editing?.id ?? "new"}
               initial={editing}

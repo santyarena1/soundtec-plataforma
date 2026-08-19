@@ -15,7 +15,7 @@ export default async function AdminChangelogPage() {
     <div className="space-y-6">
       <PageHeader
         title="Changelog"
-        description="Historial de versiones y cambios del panel admin. Cada novedad publicada aparece como popup la primera vez que entra cada usuario. El portal del cliente no lo ve."
+        description="Historial de versiones del panel admin. Las novedades de cada push se publican solas: el popup aparece por usuario hasta que toca Entendido. El portal del cliente no lo ve."
       />
 
       <ChangelogWorkspace entries={entries} canWrite={canWrite} />

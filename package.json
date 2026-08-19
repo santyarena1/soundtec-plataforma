@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma db push --skip-generate --accept-data-loss && next build",
+    "build": "prisma generate && prisma db push --skip-generate --accept-data-loss && tsx scripts/sync-changelog.ts && next build",
+    "changelog:sync": "tsx scripts/sync-changelog.ts",
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",

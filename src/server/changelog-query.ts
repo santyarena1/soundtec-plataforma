@@ -1,43 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { toChangelogView, type ChangelogEntryView } from "@/lib/changelog";
+import { syncShippedChangelog } from "@/server/changelog-sync";
 
-export const BOOTSTRAP_CHANGELOG_ID = "changelog-bootstrap-v1";
-
-export async function ensureBootstrapChangelog() {
+export async function ensureShippedChangelog() {
   try {
-    const count = await prisma.adminChangelog.count();
-    if (count > 0) return;
-    await prisma.adminChangelog.create({
-      data: {
-        id: BOOTSTRAP_CHANGELOG_ID,
-        version: "1.0",
-        releasedAt: new Date(),
-        summary:
-          "El admin ahora avisa las novedades con un changelog. Además, en márgenes y descuentos una regla puede cubrir varias marcas o clientes y se edita una subregla o el grupo entero.",
-        isPublished: true,
-        items: [
-          {
-            kind: "NUEVO",
-            text: "Changelog interno: historial de versiones, botón arriba del dólar, y un popup la primera vez que hay algo nuevo.",
-          },
-          {
-            kind: "NUEVO",
-            text: "Reglas de precio agrupadas: tildás varias marcas o clientes y queda 1 regla con subreglas. Editar esta / Editar todo.",
-          },
-          {
-            kind: "MEJORA",
-            text: "Markup se carga tal cual: 2,75 = costo × 2,75. No se suma 1.",
-          },
-        ],
-      },
-    });
+    await syncShippedChangelog();
   } catch {
-    // Tabla todavía no existe, o dos requests coincidieron al crearla.
+    // Tabla todavía no existe, o la DB no está lista.
   }
 }
 
 export async function listAllChangelogs(): Promise<ChangelogEntryView[]> {
-  await ensureBootstrapChangelog();
+  await ensureShippedChangelog();
   const rows = await prisma.adminChangelog.findMany({
     orderBy: [{ releasedAt: "desc" }, { createdAt: "desc" }],
   });
@@ -46,7 +20,7 @@ export async function listAllChangelogs(): Promise<ChangelogEntryView[]> {
 
 export async function getUnreadChangelogsForUser(userId: string): Promise<ChangelogEntryView[]> {
   if (!userId) return [];
-  await ensureBootstrapChangelog();
+  await ensureShippedChangelog();
   try {
     const read = await prisma.adminChangelogRead.findMany({
       where: { userId },

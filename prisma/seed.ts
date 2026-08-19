@@ -1,5 +1,6 @@
 import { PrismaClient, UserRole, RuleScopeType, StockStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { syncShippedChangelog } from "../src/server/changelog-sync";
 
 const prisma = new PrismaClient();
 
@@ -373,34 +374,8 @@ async function main() {
     console.log(`Migrado usuario legacy → cliente: ${commercial.companyName}`);
   }
 
-  await prisma.adminChangelog.upsert({
-    where: { id: "changelog-bootstrap-v1" },
-    update: {},
-    create: {
-      id: "changelog-bootstrap-v1",
-      version: "1.0",
-      releasedAt: new Date(),
-      summary:
-        "El admin ahora avisa las novedades con un changelog. Además, en márgenes y descuentos una regla puede cubrir varias marcas o clientes y se edita una subregla o el grupo entero.",
-      isPublished: true,
-      createdById: admin.id,
-      items: [
-        {
-          kind: "NUEVO",
-          text: "Changelog interno: historial de versiones, botón arriba del dólar, y un popup la primera vez que hay algo nuevo.",
-        },
-        {
-          kind: "NUEVO",
-          text: "Reglas de precio agrupadas: tildás varias marcas o clientes y queda 1 regla con subreglas. Editar esta / Editar todo.",
-        },
-        {
-          kind: "MEJORA",
-          text: "Markup se carga tal cual: 2,75 = costo × 2,75. No se suma 1.",
-        },
-      ],
-    },
-  });
-  console.log("Changelog inicial listo.");
+  await syncShippedChangelog();
+  console.log("Changelog de deploys sincronizado.");
 
   console.log("Seed completo.");
 }

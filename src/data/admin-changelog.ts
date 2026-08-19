@@ -1,0 +1,87 @@
+import type { ChangelogItem } from "@/lib/changelog";
+
+/**
+ * Fuente de las novedades del panel admin.
+ * Cada push con cambios visibles para el equipo suma UNA entrada nueva (id nuevo).
+ * El deploy las publica solas: popup por usuario la primera vez que entra.
+ * No editar un id viejo para forzar popup: hay que crear otro id.
+ */
+export type ShippedChangelogEntry = {
+  id: string;
+  version: string;
+  releasedAt: string;
+  summary: string;
+  items: ChangelogItem[];
+};
+
+export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
+  {
+    id: "changelog-bootstrap-v1",
+    version: "1.0",
+    releasedAt: "2026-08-19T14:00:00.000Z",
+    summary:
+      "Márgenes y descuentos se pueden aplicar a varias marcas o clientes a la vez, y se editan de a una o todas juntas.",
+    items: [
+      {
+        kind: "NUEVO",
+        text: "Una regla agrupada: tildás varias marcas o clientes y queda 1 regla con subreglas.",
+      },
+      {
+        kind: "NUEVO",
+        text: "Editar esta cambia una sola subregla. Editar todo actualiza el grupo entero.",
+      },
+      {
+        kind: "MEJORA",
+        text: "Buscador en vivo al elegir marca, cliente o producto.",
+      },
+      {
+        kind: "MEJORA",
+        text: "Markup se carga tal cual: 2,75 = costo × 2,75. El 1 no se suma.",
+      },
+      {
+        kind: "MEJORA",
+        text: "Las reglas muestran fecha de alta y se pueden editar después de crearlas.",
+      },
+    ],
+  },
+  {
+    id: "ship-2026-08-19-changelog",
+    version: "1.1",
+    releasedAt: "2026-08-19T15:10:00.000Z",
+    summary: "El admin tiene un changelog: historial de versiones y un aviso cuando hay algo nuevo.",
+    items: [
+      {
+        kind: "NUEVO",
+        text: "Botón Changelog arriba del dólar, en el menú izquierdo.",
+      },
+      {
+        kind: "NUEVO",
+        text: "Popup por usuario la primera vez que hay una novedad. El portal del cliente no lo ve.",
+      },
+    ],
+  },
+  {
+    id: "ship-2026-08-19-markup20",
+    version: "1.2",
+    releasedAt: "2026-08-19T15:22:00.000Z",
+    summary: "Ya se puede guardar un markup alto (por ejemplo ×20) sin que se rompa la pantalla.",
+    items: [
+      {
+        kind: "FIX",
+        text: "Crear una regla con markup ×20 (u otro valor alto) ya no tira el error genérico de Server Components.",
+      },
+    ],
+  },
+  {
+    id: "ship-2026-08-19-changelog-sync",
+    version: "1.3",
+    releasedAt: "2026-08-19T15:24:00.000Z",
+    summary: "Las novedades se publican solas con cada push. No hace falta cargarlas a mano.",
+    items: [
+      {
+        kind: "NUEVO",
+        text: "Cada deploy sincroniza el changelog desde el código. Si hay una entrada nueva, el popup aparece a cada usuario del admin hasta que toca Entendido.",
+      },
+    ],
+  },
+];
