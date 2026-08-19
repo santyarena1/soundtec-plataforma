@@ -417,7 +417,7 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
       {
         title: "Precios y cuentas",
         body: [
-          "Márgenes: sobre costo. Gana la regla más específica. No es descuento.",
+          "Márgenes: sobre costo. Gana la regla más específica. Se editan y quedan con fecha de alta.",
           "Descuentos: bajan lo que ve el cliente. Visibilidad: qué ve en el portal.",
           "Clientes = empresa comercial (hace falta para emitir COT). Usuarios = quién entra.",
           "Roles: scopes. hidePrices oculta costos. SUPER_ADMIN siempre full access.",

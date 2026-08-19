@@ -2,26 +2,14 @@ import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { RulesForm } from "../_rules/rules-form";
-import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PriceLogicHint } from "@/components/admin/price-logic-hint";
+import { PricingRulesWorkspace } from "../_rules/workspace";
 import { deleteDiscountRule } from "@/server/actions/pricing-rules";
-import { MarginPriorityGuide } from "@/components/admin/margin-priority-guide";
 import { badgeLabel, isManufacturerPromoLabel } from "@/lib/manufacturer-promo";
 import { ManufacturerPromosPanel, ProductDiscountsPanel } from "./product-discounts-panel";
+import { toPricingRuleRow } from "@/lib/pricing-scope";
 
 export const metadata = { title: "Admin · Descuentos" };
-
-const SCOPE_LABEL: Record<string, string> = {
-  GLOBAL: "Global",
-  CLIENT: "Cliente",
-  BRAND: "Marca",
-  DISTRIBUTOR: "Proveedor",
-  CATEGORY: "Categoría",
-  FAMILY: "Familia",
-  PRODUCT: "Producto",
-};
 
 export default async function AdminDiscountsPage() {
   await requireAdmin();
@@ -79,6 +67,22 @@ export default async function AdminDiscountsPage() {
     PRODUCT: new Map(products.map((p) => [p.id, p.normalizedName])),
   };
 
+  const rows = rules.map((r) =>
+    toPricingRuleRow({
+      id: r.id,
+      name: r.name,
+      scopeType: r.scopeType,
+      scopeId: r.scopeId,
+      clientId: r.clientId,
+      isActive: r.isActive,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      percent: Number(r.discountPercent),
+      clientName: r.clientId ? clientMap.get(r.clientId) ?? null : null,
+      resourceName: r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) ?? null : null,
+    })
+  );
+
   const promoRows = manufacturerPromos
     .map((p) => {
       const badgePromo = Array.isArray(p.badges)
@@ -98,78 +102,33 @@ export default async function AdminDiscountsPage() {
     })
     .filter((row): row is NonNullable<typeof row> => row != null);
 
+  const clientOpts = clients.map((c) => ({
+    id: c.id,
+    name: c.contactName || c.companyName,
+    companyName: c.companyName,
+  }));
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Descuentos"
-        description="Las reglas comerciales viven acá. El % de la ficha del producto y las etiquetas del fabricante son otras dos fuentes: si el catálogo muestra un descuento y esta tabla está vacía, casi seguro está en una de las listas de abajo."
+        description="Las reglas comerciales viven acá y se pueden editar. El % de la ficha del producto y las etiquetas del fabricante son otras dos fuentes: si el catálogo muestra un descuento y esta tabla está vacía, casi seguro está en una de las listas de abajo."
       />
 
-      <MarginPriorityGuide />
+      <PriceLogicHint variant="discount" />
 
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="heading-3 mb-3">Nueva regla de descuento</h2>
-          <RulesForm
-            type="discount"
-            clients={clients.map((c) => ({
-              id: c.id,
-              name: c.contactName || c.companyName,
-              companyName: c.companyName,
-            }))}
-            brands={brands}
-            distributors={distributors}
-            categories={categories}
-            families={families}
-            products={products}
-          />
-        </CardContent>
-      </Card>
-
-      {rules.length === 0 ? (
-        <TableEmpty message="Todavía no hay reglas comerciales. El -% que ves en productos puede estar en las listas de abajo." />
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Prioridad</TH>
-              <TH>Nombre</TH>
-              <TH>Alcance</TH>
-              <TH>Cliente</TH>
-              <TH className="text-right">Descuento %</TH>
-              <TH>Estado</TH>
-              <TH></TH>
-            </TR>
-          </THead>
-          <TBody>
-            {rules.map((r) => (
-              <TR key={r.id}>
-                <TD>{r.priority}</TD>
-                <TD className="font-medium">{r.name}</TD>
-                <TD>
-                  <Badge tone="primary">{SCOPE_LABEL[r.scopeType] || r.scopeType}</Badge>{" "}
-                  <span className="text-xs text-muted-foreground">
-                    {r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) || r.scopeId : "—"}
-                  </span>
-                </TD>
-                <TD className="text-xs text-muted-foreground">
-                  {r.clientId ? (clientMap.get(r.clientId) ?? r.clientId.slice(-6)) : "Todos"}
-                </TD>
-                <TD className="text-right">{Number(r.discountPercent).toFixed(2)}%</TD>
-                <TD>{r.isActive ? <Badge tone="success">Activa</Badge> : <Badge tone="muted">Inactiva</Badge>}</TD>
-                <TD className="text-right">
-                  <form action={deleteDiscountRule} className="inline">
-                    <input type="hidden" name="id" value={r.id} />
-                    <Button variant="ghost" size="sm" type="submit" className="text-destructive">
-                      Eliminar
-                    </Button>
-                  </form>
-                </TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
-      )}
+      <PricingRulesWorkspace
+        kind="discount"
+        rows={rows}
+        empty="Todavía no hay reglas comerciales. El -% que ves en productos puede estar en las listas de abajo."
+        deleteAction={deleteDiscountRule}
+        clients={clientOpts}
+        brands={brands}
+        distributors={distributors}
+        categories={categories}
+        families={families}
+        products={products}
+      />
 
       <Card>
         <CardContent className="p-6">

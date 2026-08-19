@@ -50,7 +50,7 @@ export default async function SettingsPricingPage() {
       <div className="rounded-lg border border-border bg-card p-5">
         <p className="text-sm font-semibold">Reglas por cliente, marca o producto</p>
         <p className="muted-text mt-0.5">
-          Estos valores son el punto de partida. Las excepciones con prioridad se administran por separado.
+          Estos valores son el punto de partida. Las excepciones por cliente, marca o producto se administran en Márgenes y Descuentos.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <ButtonLink href="/admin/margins" variant="outline" size="sm">

@@ -9,31 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Tabs } from "@/components/ui/tabs";
-import { VisibilityRuleForm } from "@/app/admin/visibility/visibility-rule-form";
+import { VisibilityRulesWorkspace } from "@/app/admin/visibility/visibility-rules-workspace";
+import { PricingRulesWorkspace } from "@/app/admin/_rules/workspace";
 import {
   saveClientCommercialConfig,
   createClientAccountMovement,
   toggleClientMovementPaid,
-  deleteClientVisibility,
-  upsertClientExtraDiscount,
-  deleteClientExtraDiscount,
 } from "@/server/actions/admin-client-detail";
+import { deleteDiscountRule, deleteVisibility, toggleVisibilityCanView } from "@/server/actions/pricing-rules";
+import { toPricingRuleRow } from "@/lib/pricing-scope";
 import { upsertClient } from "@/server/actions/clients";
 import { CreatePortalUserForm } from "@/components/admin/create-portal-user-form";
 import { formatDate, formatUsd } from "@/lib/utils";
-
-function textoAlcance(scope: string) {
-  const map: Record<string, string> = {
-    BRAND: "Marca",
-    DISTRIBUTOR: "Proveedor",
-    CATEGORY: "Categoría",
-    FAMILY: "Familia",
-    PRODUCT: "Producto",
-    GLOBAL: "Global",
-    CLIENT: "Cliente",
-  };
-  return map[scope] || scope;
-}
 
 function textoEstadoSolicitud(status: string) {
   const map: Record<string, string> = {
@@ -86,7 +73,7 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
       prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
       prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
       prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-      prisma.product.findMany({ orderBy: { normalizedName: "asc" }, select: { id: true, normalizedName: true }, take: 500 }),
+      prisma.product.findMany({ orderBy: { normalizedName: "asc" }, select: { id: true, normalizedName: true }, take: 4000 }),
     ]);
 
   if (!client) notFound();
@@ -312,85 +299,61 @@ export default async function AdminClientDetailPage({ params }: { params: Promis
             id: "visibilidad",
             label: "Visibilidad",
             content: (
-              <Card>
-                <CardContent className="space-y-4 p-6">
-                  <VisibilityRuleForm
-                    defaultClientId={client.id}
-                    clients={clientOption}
-                    brands={brands}
-                    distributors={distributors}
-                    categories={categories}
-                    families={families}
-                    products={products.map((p) => ({ id: p.id, name: p.normalizedName }))}
-                  />
-                  <div className="space-y-1">
-                    {visibilityRules.map((r) => (
-                      <div key={r.id} className="flex justify-between rounded border px-3 py-2 text-sm">
-                        <span>
-                          <Badge tone="primary">{textoAlcance(r.scopeType)}</Badge>{" "}
-                          {r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) : "—"}
-                        </span>
-                        <form action={deleteClientVisibility}>
-                          <input type="hidden" name="id" value={r.id} />
-                          <input type="hidden" name="clientId" value={client.id} />
-                          <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                            Eliminar
-                          </Button>
-                        </form>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <VisibilityRulesWorkspace
+                defaultClientId={client.id}
+                rows={visibilityRules.map((r) => ({
+                  id: r.id,
+                  clientId: r.clientId,
+                  clientName: client.companyName,
+                  scopeType: r.scopeType,
+                  scopeId: r.scopeId,
+                  resourceName: r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) ?? null : null,
+                  canView: r.canView,
+                  createdAt: r.createdAt.toISOString(),
+                  updatedAt: r.updatedAt.toISOString(),
+                }))}
+                clients={clientOption}
+                brands={brands}
+                distributors={distributors}
+                categories={categories}
+                families={families}
+                products={products.map((p) => ({ id: p.id, name: p.normalizedName }))}
+                deleteAction={deleteVisibility}
+                toggleAction={toggleVisibilityCanView}
+              />
             ),
           },
           {
             id: "descuentos",
             label: "Descuentos",
             content: (
-              <Card>
-                <CardContent className="space-y-4 p-6">
-                  <form action={upsertClientExtraDiscount} className="grid gap-3 sm:grid-cols-2">
-                    <input type="hidden" name="clientId" value={client.id} />
-                    <div className="sm:col-span-2">
-                      <Label>Nombre</Label>
-                      <Input name="name" required />
-                    </div>
-                    <div>
-                      <Label>Alcance</Label>
-                      <Select name="scopeType" defaultValue="GLOBAL">
-                        <option value="GLOBAL">Global</option>
-                        <option value="BRAND">Marca</option>
-                        <option value="CATEGORY">Categoría</option>
-                        <option value="PRODUCT">Producto</option>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Descuento %</Label>
-                      <Input name="discountPercent" type="number" min={0} max={100} required />
-                    </div>
-                    <div className="sm:col-span-2 flex justify-end">
-                      <Button type="submit" size="sm">
-                        Agregar
-                      </Button>
-                    </div>
-                  </form>
-                  {discountRules.map((d) => (
-                    <div key={d.id} className="flex justify-between rounded border px-3 py-2 text-sm">
-                      <span>
-                        {d.name} · {Number(d.discountPercent).toFixed(1)}%
-                      </span>
-                      <form action={deleteClientExtraDiscount}>
-                        <input type="hidden" name="id" value={d.id} />
-                        <input type="hidden" name="clientId" value={client.id} />
-                        <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                          Eliminar
-                        </Button>
-                      </form>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              <PricingRulesWorkspace
+                kind="discount"
+                lockedClientId={client.id}
+                rows={discountRules.map((d) =>
+                  toPricingRuleRow({
+                    id: d.id,
+                    name: d.name,
+                    scopeType: d.scopeType,
+                    scopeId: d.scopeId,
+                    clientId: d.clientId,
+                    isActive: d.isActive,
+                    createdAt: d.createdAt,
+                    updatedAt: d.updatedAt,
+                    percent: Number(d.discountPercent),
+                    clientName: client.companyName,
+                    resourceName: d.scopeId ? resourceMaps[d.scopeType]?.get(d.scopeId) ?? null : null,
+                  })
+                )}
+                empty="Este cliente todavía no tiene descuentos propios."
+                deleteAction={deleteDiscountRule}
+                clients={clientOption}
+                brands={brands}
+                distributors={distributors}
+                categories={categories}
+                families={families}
+                products={products}
+              />
             ),
           },
           {

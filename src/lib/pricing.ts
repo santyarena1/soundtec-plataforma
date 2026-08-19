@@ -17,27 +17,29 @@ import { getExchangeRate } from "@/lib/exchange-rate";
  *   2. cliente + marca
  *   3. cliente + categoría
  *   4. cliente + familia
- *   5. cliente (regla global del cliente)
- *   6. producto
- *   7. marca
- *   8. distribuidor
- *   9. familia
- *  10. categoría
- *  11. global del sistema
+ *   5. cliente + proveedor
+ *   6. cliente (regla global del cliente)
+ *   7. producto
+ *   8. marca
+ *   9. distribuidor
+ *  10. familia
+ *  11. categoría
+ *  12. global del sistema
  *
  * Prioridad de DESCUENTOS (idéntica lógica, primera que matchea gana):
  *   1. cliente + producto
  *   2. cliente + marca
  *   3. cliente + categoría
  *   4. cliente + familia
- *   5. cliente (regla global del cliente)
- *   6. producto explícito (Product.discountPercent)
- *   7. producto por regla
- *   8. marca
- *   9. distribuidor
- *  10. familia
- *  11. categoría
- *  12. global
+ *   5. cliente + proveedor
+ *   6. cliente (regla global del cliente)
+ *   7. producto explícito (Product.discountPercent)
+ *   8. producto por regla
+ *   9. marca
+ *  10. distribuidor
+ *  11. familia
+ *  12. categoría
+ *  13. global
  *
  * Notas:
  *  - `MarginRule.priority` no se usa para reordenar la cadena; se usa solo
@@ -175,6 +177,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
     (r) => !!clientId && r.clientId === clientId && r.scopeType === "BRAND" && r.scopeId === product.brandId,
     (r) => !!clientId && r.clientId === clientId && r.scopeType === "CATEGORY" && r.scopeId === product.categoryId,
     (r) => !!clientId && r.clientId === clientId && r.scopeType === "FAMILY" && r.scopeId === product.familyId,
+    (r) => !!clientId && r.clientId === clientId && r.scopeType === "DISTRIBUTOR" && r.scopeId === product.distributorId,
     (r) =>
       !!clientId &&
       r.clientId === clientId &&
@@ -186,6 +189,8 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
     (r) => r.scopeType === "CATEGORY" && r.scopeId === product.categoryId && !r.clientId,
     (r) => r.scopeType === "GLOBAL" && !r.clientId,
   ];
+  const clientLevels = 6;
+  const lastLevel = matcherChain.length - 1;
 
   function findFirstMatching<T extends AnyRule>(rules: T[]): T | null {
     for (const matcher of matcherChain) {
@@ -231,7 +236,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
     return null;
   }
 
-  const clientDiscount = findMatchingAtLevel(discountRules, 0, 4);
+  const clientDiscount = findMatchingAtLevel(discountRules, 0, clientLevels - 1);
   if (clientDiscount) {
     discountPercent = toNumber(clientDiscount.discountPercent);
     appliedDiscountRule = {
@@ -247,7 +252,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
     discountPercent = product.productDiscountPercent;
     discountSource = "PRODUCT";
   } else {
-    const nonClientDiscount = findMatchingAtLevel(discountRules, 5, 10);
+    const nonClientDiscount = findMatchingAtLevel(discountRules, clientLevels, lastLevel);
     if (nonClientDiscount) {
       discountPercent = toNumber(nonClientDiscount.discountPercent);
       appliedDiscountRule = {

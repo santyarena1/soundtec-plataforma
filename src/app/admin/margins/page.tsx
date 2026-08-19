@@ -1,13 +1,10 @@
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardContent } from "@/components/ui/card";
-import { RulesForm } from "../_rules/rules-form";
-import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PriceLogicHint } from "@/components/admin/price-logic-hint";
+import { PricingRulesWorkspace } from "../_rules/workspace";
 import { deleteMarginRule } from "@/server/actions/pricing-rules";
-import { MarginPriorityGuide } from "@/components/admin/margin-priority-guide";
+import { toPricingRuleRow } from "@/lib/pricing-scope";
 
 export const metadata = { title: "Admin · Márgenes" };
 
@@ -40,88 +37,51 @@ export default async function AdminMarginsPage() {
     FAMILY: new Map(families.map((f) => [f.id, f.name])),
     PRODUCT: new Map(products.map((p) => [p.id, p.normalizedName])),
   };
-  const scopeLabel: Record<string, string> = {
-    GLOBAL: "Global",
-    CLIENT: "Cliente",
-    BRAND: "Marca",
-    DISTRIBUTOR: "Proveedor",
-    CATEGORY: "Categoría",
-    FAMILY: "Familia",
-    PRODUCT: "Producto",
-  };
+
+  const rows = rules.map((r) =>
+    toPricingRuleRow({
+      id: r.id,
+      name: r.name,
+      scopeType: r.scopeType,
+      scopeId: r.scopeId,
+      clientId: r.clientId,
+      isActive: r.isActive,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      percent: Number(r.marginPercent),
+      markupMultiplier: r.markupMultiplier != null ? Number(r.markupMultiplier) : null,
+      clientName: r.clientId ? clientMap.get(r.clientId) ?? null : null,
+      resourceName: r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) ?? null : null,
+    })
+  );
+
+  const clientOpts = clients.map((c) => ({
+    id: c.id,
+    name: c.contactName || c.companyName,
+    companyName: c.companyName,
+  }));
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Márgenes"
-        description="Definí el margen de venta sobre el costo (con arancel incluido). Las reglas más específicas ganan a las generales."
+        description="Definí el markup o el margen sobre el costo nacionalizado. La regla más específica gana. Cada regla queda con fecha de alta y se puede editar."
       />
 
-      <MarginPriorityGuide />
+      <PriceLogicHint variant="margin" />
 
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="heading-3 mb-3">Nueva regla de margen</h2>
-          <RulesForm
-            type="margin"
-            clients={clients.map((c) => ({
-              id: c.id,
-              name: c.contactName || c.companyName,
-              companyName: c.companyName,
-            }))}
-            brands={brands}
-            distributors={distributors}
-            categories={categories}
-            families={families}
-            products={products}
-          />
-        </CardContent>
-      </Card>
-
-      {rules.length === 0 ? (
-        <TableEmpty />
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Prioridad</TH>
-              <TH>Nombre</TH>
-              <TH>Alcance</TH>
-              <TH>Cliente</TH>
-              <TH className="text-right">Margen %</TH>
-              <TH>Estado</TH>
-              <TH></TH>
-            </TR>
-          </THead>
-          <TBody>
-            {rules.map((r) => (
-              <TR key={r.id}>
-                <TD>{r.priority}</TD>
-                <TD className="font-medium">{r.name}</TD>
-                <TD>
-                  <Badge tone="primary">{scopeLabel[r.scopeType] || r.scopeType}</Badge>{" "}
-                  <span className="text-xs text-muted-foreground">
-                    {r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) || r.scopeId : "—"}
-                  </span>
-                </TD>
-                <TD className="text-xs text-muted-foreground">
-                  {r.clientId ? (clientMap.get(r.clientId) ?? r.clientId.slice(-6)) : "Todos"}
-                </TD>
-                <TD className="text-right">{Number(r.marginPercent).toFixed(2)}%</TD>
-                <TD>{r.isActive ? <Badge tone="success">Activa</Badge> : <Badge tone="muted">Inactiva</Badge>}</TD>
-                <TD className="text-right">
-                  <form action={deleteMarginRule} className="inline">
-                    <input type="hidden" name="id" value={r.id} />
-                    <Button variant="ghost" size="sm" type="submit" className="text-destructive">
-                      Eliminar
-                    </Button>
-                  </form>
-                </TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
-      )}
+      <PricingRulesWorkspace
+        kind="margin"
+        rows={rows}
+        empty="Todavía no hay reglas de precio."
+        deleteAction={deleteMarginRule}
+        clients={clientOpts}
+        brands={brands}
+        distributors={distributors}
+        categories={categories}
+        families={families}
+        products={products}
+      />
     </div>
   );
 }

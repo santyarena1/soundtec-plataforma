@@ -1,56 +1,150 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
+import { SearchablePick } from "@/components/admin/searchable-pick";
 import { upsertMarginRule, upsertDiscountRule } from "@/server/actions/pricing-rules";
-import { Loader2 } from "lucide-react";
+import {
+  RULE_TARGETS,
+  autoRuleName,
+  formatMarginPercent,
+  formatMarkup,
+  marginPercentToMarkup,
+  markupToMarginPercent,
+  scopeTypeToForm,
+  type RuleTarget,
+} from "@/lib/pricing-scope";
+import type { PricingRuleRow } from "@/components/admin/pricing-rules-table";
 
-interface Opt { id: string; name?: string; companyName?: string | null; normalizedName?: string }
+type ClientOpt = { id: string; name: string; companyName?: string | null };
+type Named = { id: string; name: string };
 
-interface Props {
-  type: "margin" | "discount";
-  clients: { id: string; name: string; companyName?: string | null }[];
-  brands: { id: string; name: string }[];
-  distributors: { id: string; name: string }[];
-  categories: { id: string; name: string }[];
-  families: { id: string; name: string }[];
-  products: { id: string; normalizedName: string }[];
+function initialMode(row?: PricingRuleRow | null): "margin" | "markup" {
+  if (row?.markupMultiplier != null && row.markupMultiplier > 0) return "markup";
+  if (row) return "margin";
+  return "markup";
 }
 
-const scopes = [
-  { value: "GLOBAL", label: "Global" },
-  { value: "BRAND", label: "Marca" },
-  { value: "DISTRIBUTOR", label: "Proveedor" },
-  { value: "CATEGORY", label: "Categoría" },
-  { value: "FAMILY", label: "Familia" },
-  { value: "PRODUCT", label: "Producto" },
-  { value: "CLIENT", label: "Cliente puro" },
-];
+function initialValue(type: "margin" | "discount", row?: PricingRuleRow | null) {
+  if (!row) return type === "margin" ? "1.35" : "10";
+  if (type === "margin" && row.markupMultiplier != null && row.markupMultiplier > 0) {
+    return String(row.markupMultiplier);
+  }
+  return String(row.percent);
+}
 
-export function RulesForm({ type, clients, brands, distributors, categories, families, products }: Props) {
+export function RulesForm({
+  type,
+  clients,
+  brands,
+  distributors,
+  categories,
+  families,
+  products,
+  lockedClientId,
+  initial,
+  onSaved,
+  onCancel,
+}: {
+  type: "margin" | "discount";
+  clients: ClientOpt[];
+  brands: Named[];
+  distributors: Named[];
+  categories: Named[];
+  families: Named[];
+  products: { id: string; normalizedName: string }[];
+  lockedClientId?: string;
+  initial?: PricingRuleRow | null;
+  onSaved?: () => void;
+  onCancel?: () => void;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [scope, setScope] = useState("GLOBAL");
+  const formSeed = initial ? scopeTypeToForm(initial.scopeType, Boolean(initial.clientId)) : null;
+  const [audience, setAudience] = useState<"all" | "client">(
+    lockedClientId ? "client" : formSeed?.audience || "all"
+  );
+  const [clientId, setClientId] = useState(lockedClientId || initial?.clientId || "");
+  const [target, setTarget] = useState<RuleTarget>(formSeed?.target || "ALL");
+  const [scopeId, setScopeId] = useState(initial?.scopeId || "");
+  const [mode, setMode] = useState<"margin" | "markup">(type === "margin" ? initialMode(initial) : "margin");
+  const [value, setValue] = useState(initialValue(type, initial));
+  const [name, setName] = useState(initial?.name || "");
+  const [active, setActive] = useState(initial?.isActive ?? true);
+  const [advanced, setAdvanced] = useState(Boolean(initial));
   const [error, setError] = useState<string | null>(null);
+  const editing = Boolean(initial?.id);
 
-  const scopeOptions: { id: string; name: string }[] = (() => {
-    switch (scope) {
-      case "BRAND": return brands;
-      case "DISTRIBUTOR": return distributors;
-      case "CATEGORY": return categories;
-      case "FAMILY": return families;
-      case "PRODUCT": return products.map((p) => ({ id: p.id, name: p.normalizedName }));
-      default: return [];
+  const resourceOptions = useMemo(() => {
+    switch (target) {
+      case "BRAND":
+        return brands;
+      case "DISTRIBUTOR":
+        return distributors;
+      case "CATEGORY":
+        return categories;
+      case "FAMILY":
+        return families;
+      case "PRODUCT":
+        return products.map((p) => ({ id: p.id, name: p.normalizedName }));
+      default:
+        return [];
     }
-  })();
+  }, [target, brands, distributors, categories, families, products]);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const numericValue = Number(value);
+  const parsedOk = Number.isFinite(numericValue) && numericValue !== 0;
+  const preview =
+    type === "margin" && parsedOk
+      ? mode === "markup"
+        ? `Margen equivalente ${formatMarginPercent(markupToMarginPercent(numericValue))}. Costo 100 → lista ${formatMarkup(numericValue).replace("× ", "")}.`
+        : `Markup equivalente ${formatMarkup(marginPercentToMarkup(numericValue))}. Costo 100 → lista ${marginPercentToMarkup(numericValue).toLocaleString("es-AR", { maximumFractionDigits: 2 })}.`
+      : null;
+
+  function onTargetChange(next: RuleTarget) {
+    setTarget(next);
+    setScopeId("");
+  }
+
+  function onModeChange(next: "margin" | "markup") {
+    const current = Number(value);
+    if (next === mode) return;
+    if (Number.isFinite(current) && current !== 0) {
+      setValue(next === "markup" ? marginPercentToMarkup(current).toFixed(2) : markupToMarginPercent(current).toFixed(2));
+    } else {
+      setValue(next === "markup" ? "1.35" : "35");
+    }
+    setMode(next);
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const fd = new FormData(e.currentTarget);
+    const clientName = clients.find((c) => c.id === clientId)?.companyName || clients.find((c) => c.id === clientId)?.name;
+    const resourceName = resourceOptions.find((o) => o.id === scopeId)?.name;
+    const generated = autoRuleName({
+      kind: type,
+      mode: type === "margin" ? mode : undefined,
+      value: numericValue,
+      audience,
+      clientName,
+      target,
+      resourceName,
+    });
+    const fd = new FormData();
+    if (initial?.id) fd.set("id", initial.id);
+    fd.set("audience", audience);
+    fd.set("target", target);
+    fd.set("clientId", audience === "client" ? clientId : "");
+    fd.set("scopeId", target === "ALL" ? "" : scopeId);
+    fd.set("pricingMode", type === "margin" ? mode : "margin");
+    fd.set("percent", String(numericValue));
+    fd.set("name", name.trim() || generated);
+    fd.set("isActive", active ? "on" : "");
     start(async () => {
       try {
         const action = type === "margin" ? upsertMarginRule : upsertDiscountRule;
@@ -59,7 +153,19 @@ export function RulesForm({ type, clients, brands, distributors, categories, fam
           setError(result.error || "No se pudo guardar.");
           return;
         }
-        toast.success(type === "margin" ? "Regla de margen guardada." : "Regla de descuento guardada.");
+        toast.success(
+          editing
+            ? type === "margin"
+              ? "Regla de precio actualizada."
+              : "Descuento actualizado."
+            : type === "margin"
+              ? "Regla de precio creada."
+              : "Descuento creado."
+        );
+        if (!editing) {
+          setName("");
+        }
+        onSaved?.();
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "No se pudo guardar.");
@@ -68,55 +174,162 @@ export function RulesForm({ type, clients, brands, distributors, categories, fam
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <div className="lg:col-span-2">
-        <Label htmlFor="name" required>Nombre</Label>
-        <Input id="name" name="name" required placeholder={type === "margin" ? "Ej: Margen marca Shure" : "Ej: Descuento cliente Acme"} />
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label required>¿Para quién?</Label>
+          {lockedClientId ? (
+            <p className="mt-2 text-sm">
+              {clients.find((c) => c.id === lockedClientId)?.companyName ||
+                clients.find((c) => c.id === lockedClientId)?.name ||
+                "Este cliente"}
+            </p>
+          ) : (
+            <div className="mt-1.5 inline-flex rounded-lg border border-border p-0.5">
+              <button
+                type="button"
+                className={`rounded-md px-3 py-1.5 text-sm ${audience === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => {
+                  setAudience("all");
+                  setClientId("");
+                }}
+              >
+                Todos los clientes
+              </button>
+              <button
+                type="button"
+                className={`rounded-md px-3 py-1.5 text-sm ${audience === "client" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => setAudience("client")}
+              >
+                Un cliente
+              </button>
+            </div>
+          )}
+        </div>
+        {audience === "client" && !lockedClientId ? (
+          <div>
+            <Label required>Cliente</Label>
+            <Select value={clientId} onChange={(e) => setClientId(e.target.value)} required>
+              <option value="">Elegí el cliente</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.companyName || c.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+        ) : (
+          <div />
+        )}
       </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label required>¿Sobre qué?</Label>
+          <Select value={target} onChange={(e) => onTargetChange(e.target.value as RuleTarget)}>
+            {RULE_TARGETS.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+        {target !== "ALL" ? (
+          <SearchablePick
+            label={RULE_TARGETS.find((item) => item.value === target)?.label || "Recurso"}
+            options={resourceOptions}
+            value={scopeId}
+            onChange={setScopeId}
+            placeholder="Escribí para filtrar…"
+            required
+          />
+        ) : (
+          <p className="self-end text-sm text-muted-foreground">Aplica a todo el catálogo de ese alcance.</p>
+        )}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {type === "margin" ? (
+          <div>
+            <Label required>¿Cómo lo cargás?</Label>
+            <div className="mt-1.5 inline-flex rounded-lg border border-border p-0.5">
+              <button
+                type="button"
+                className={`rounded-md px-3 py-1.5 text-sm ${mode === "markup" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => onModeChange("markup")}
+              >
+                Markup ×
+              </button>
+              <button
+                type="button"
+                className={`rounded-md px-3 py-1.5 text-sm ${mode === "margin" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => onModeChange("margin")}
+              >
+                Margen %
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <Label required>Descuento</Label>
+            <p className="mt-2 text-sm text-muted-foreground">Porcentaje que se resta al precio de lista.</p>
+          </div>
+        )}
+        <div>
+          <Label required>{type === "discount" ? "Descuento %" : mode === "markup" ? "Markup" : "Margen %"}</Label>
+          <Input
+            type="number"
+            step={type === "margin" && mode === "markup" ? "0.01" : "0.1"}
+            min={type === "margin" && mode === "markup" ? "0.01" : "0"}
+            max={type === "margin" && mode === "markup" ? "20" : "100"}
+            required
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={type === "discount" ? "10" : mode === "markup" ? "1.35" : "35"}
+          />
+          {preview ? <p className="mt-1 text-[12px] text-muted-foreground">{preview}</p> : null}
+        </div>
+      </div>
+
       <div>
-        <Label htmlFor="priority">Prioridad (menor = más fuerte)</Label>
-        <Input id="priority" name="priority" type="number" min={0} defaultValue={100} />
+        <button
+          type="button"
+          className="text-xs font-medium text-primary"
+          onClick={() => setAdvanced((v) => !v)}
+        >
+          {advanced ? "Ocultar opciones" : "Personalización profunda (nombre interno)"}
+        </button>
+        {advanced ? (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Label>Nombre interno</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Si lo dejás vacío, se arma solo."
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+              Regla activa
+            </label>
+          </div>
+        ) : null}
       </div>
-      <div>
-        <Label htmlFor="scopeType" required>Alcance</Label>
-        <Select id="scopeType" name="scopeType" value={scope} onChange={(e) => setScope(e.target.value)}>
-          {scopes.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="scopeId">Recurso del alcance</Label>
-        <Select id="scopeId" name="scopeId" disabled={scope === "GLOBAL" || scope === "CLIENT"} required={scope !== "GLOBAL" && scope !== "CLIENT"}>
-          <option value="">—</option>
-          {scopeOptions.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="clientId" required={scope === "CLIENT"}>
-          {scope === "CLIENT" ? "Cliente" : "Cliente (opcional)"}
-        </Label>
-        <Select id="clientId" name="clientId" required={scope === "CLIENT"}>
-          <option value="">Aplica a todos</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.companyName || c.name}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div>
-        <Label htmlFor="percent" required>{type === "margin" ? "Margen %" : "Descuento %"}</Label>
-        <Input id="percent" name="percent" type="number" step="0.01" required placeholder="35" />
-      </div>
-      <label className="flex items-end gap-2 text-sm">
-        <input type="checkbox" name="isActive" defaultChecked />
-        Activa
-      </label>
-      <div className="sm:col-span-2 lg:col-span-3 flex items-center justify-between">
+
+      <div className="flex items-center justify-between gap-3">
         {error ? <p className="text-sm text-destructive">{error}</p> : <span />}
-        <Button type="submit" disabled={pending}>
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Crear regla
-        </Button>
+        <div className="flex items-center gap-2">
+          {editing && onCancel ? (
+            <Button type="button" variant="ghost" onClick={onCancel}>
+              Cancelar
+            </Button>
+          ) : null}
+          <Button type="submit" disabled={pending}>
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {editing ? "Guardar cambios" : "Crear regla"}
+          </Button>
+        </div>
       </div>
     </form>
   );

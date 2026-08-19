@@ -2,11 +2,13 @@
 
 import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { upsertVisibility } from "@/server/actions/pricing-rules";
 import { Button } from "@/components/ui/button";
 import { Select, Label, Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Search } from "lucide-react";
+import type { VisibilityRuleRow } from "./visibility-rules-table";
 
 type Option = { id: string; name: string };
 
@@ -21,6 +23,9 @@ interface Props {
   products: Option[];
   /** Preselecciona cliente (ej. ficha de usuario). */
   defaultClientId?: string;
+  initial?: VisibilityRuleRow | null;
+  onSaved?: () => void;
+  onCancel?: () => void;
 }
 
 export function VisibilityRuleForm({
@@ -31,16 +36,22 @@ export function VisibilityRuleForm({
   families,
   products,
   defaultClientId,
+  initial,
+  onSaved,
+  onCancel,
 }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [clientId, setClientId] = useState(defaultClientId || clients[0]?.id || "");
-  const [scopeType, setScopeType] = useState<ScopeKey>("BRAND");
-  const [canView, setCanView] = useState<"false" | "true">("false");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [clientId, setClientId] = useState(initial?.clientId || defaultClientId || clients[0]?.id || "");
+  const [scopeType, setScopeType] = useState<ScopeKey>((initial?.scopeType as ScopeKey) || "BRAND");
+  const [canView, setCanView] = useState<"false" | "true">(initial?.canView ? "true" : "false");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(initial?.scopeId ? [initial.scopeId] : [])
+  );
   const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const editing = Boolean(initial?.id);
 
   const optionsByScope: Record<ScopeKey, Option[]> = {
     BRAND: brands,
@@ -58,6 +69,10 @@ export function VisibilityRuleForm({
   }, [opts, search]);
 
   function toggle(id: string) {
+    if (editing) {
+      setSelectedIds(new Set([id]));
+      return;
+    }
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -67,6 +82,7 @@ export function VisibilityRuleForm({
   }
 
   function toggleAllFiltered() {
+    if (editing) return;
     setSelectedIds((prev) => {
       const allSelected = filtered.every((o) => prev.has(o.id));
       const next = new Set(prev);
@@ -93,13 +109,20 @@ export function VisibilityRuleForm({
     start(async () => {
       try {
         const fd = new FormData();
+        if (initial?.id) fd.set("id", initial.id);
         fd.set("clientId", clientId);
         fd.set("scopeType", scopeType);
         fd.set("canView", canView);
         for (const id of selectedIds) fd.append("scopeIds", id);
-        await upsertVisibility(fd);
-        setFeedback(`Aplicaste la regla a ${selectedIds.size} recurso(s).`);
-        setSelectedIds(new Set());
+        const result = await upsertVisibility(fd);
+        if (!result.ok) {
+          setError(result.error || "No se pudo guardar.");
+          return;
+        }
+        toast.success(editing ? "Regla de visibilidad actualizada." : "Regla de visibilidad creada.");
+        setFeedback(editing ? "Regla actualizada." : `Aplicaste la regla a ${selectedIds.size} recurso(s).`);
+        if (!editing) setSelectedIds(new Set());
+        onSaved?.();
         router.refresh();
       } catch {
         setError("Ocurrió un error guardando las reglas.");
@@ -112,7 +135,7 @@ export function VisibilityRuleForm({
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
           <Label required>Cliente</Label>
-          <Select value={clientId} onChange={(e) => setClientId(e.target.value)}>
+          <Select value={clientId} onChange={(e) => setClientId(e.target.value)} disabled={Boolean(defaultClientId)}>
             <option value="">Seleccionar cliente</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -162,11 +185,13 @@ export function VisibilityRuleForm({
             <span>
               Seleccionados: <strong className="text-foreground">{selectedIds.size}</strong>
             </span>
-            <Button type="button" variant="ghost" size="sm" onClick={toggleAllFiltered} className="h-7 text-xs">
-              {filtered.every((o) => selectedIds.has(o.id)) && filtered.length > 0
-                ? "Quitar todos"
-                : "Seleccionar todos"}
-            </Button>
+            {!editing ? (
+              <Button type="button" variant="ghost" size="sm" onClick={toggleAllFiltered} className="h-7 text-xs">
+                {filtered.every((o) => selectedIds.has(o.id)) && filtered.length > 0
+                  ? "Quitar todos"
+                  : "Seleccionar todos"}
+              </Button>
+            ) : null}
           </div>
         </div>
 
@@ -178,11 +203,11 @@ export function VisibilityRuleForm({
               {filtered.map((o) => (
                 <li key={o.id}>
                   <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-secondary/50">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(o.id)}
-                      onChange={() => toggle(o.id)}
-                    />
+                    {editing ? (
+                      <input type="radio" name="visibility-scope" checked={selectedIds.has(o.id)} onChange={() => toggle(o.id)} />
+                    ) : (
+                      <input type="checkbox" checked={selectedIds.has(o.id)} onChange={() => toggle(o.id)} />
+                    )}
                     <span>{o.name}</span>
                   </label>
                 </li>
@@ -199,10 +224,17 @@ export function VisibilityRuleForm({
         <Badge tone={canView === "true" ? "success" : "destructive"}>
           {canView === "true" ? "Permitir explícitamente" : "Ocultar para el cliente"}
         </Badge>
-        <Button onClick={submit} disabled={pending || selectedIds.size === 0}>
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Aplicar a {selectedIds.size || 0} recurso(s)
-        </Button>
+        <div className="flex items-center gap-2">
+          {editing && onCancel ? (
+            <Button type="button" variant="ghost" onClick={onCancel}>
+              Cancelar
+            </Button>
+          ) : null}
+          <Button onClick={submit} disabled={pending || selectedIds.size === 0}>
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {editing ? "Guardar cambios" : `Aplicar a ${selectedIds.size || 0} recurso(s)`}
+          </Button>
+        </div>
       </div>
     </div>
   );
