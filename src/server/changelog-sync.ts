@@ -1,12 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { SHIPPED_ADMIN_CHANGELOG } from "@/data/admin-changelog";
 
-/** Publica en la DB las novedades declaradas en el repo. Corre en el build y al abrir el admin. */
+/** Publica en la DB solo lo que está en el repo. Borra cualquier entrada cargada a mano. */
 export async function syncShippedChangelog(): Promise<number> {
-  let count = 0;
+  const ids: string[] = [];
   for (const entry of SHIPPED_ADMIN_CHANGELOG) {
     const releasedAt = new Date(entry.releasedAt);
     if (!Number.isFinite(releasedAt.getTime())) continue;
+    ids.push(entry.id);
     await prisma.adminChangelog.upsert({
       where: { id: entry.id },
       create: {
@@ -25,7 +26,9 @@ export async function syncShippedChangelog(): Promise<number> {
         isPublished: true,
       },
     });
-    count += 1;
   }
-  return count;
+  if (ids.length > 0) {
+    await prisma.adminChangelog.deleteMany({ where: { id: { notIn: ids } } });
+  }
+  return ids.length;
 }

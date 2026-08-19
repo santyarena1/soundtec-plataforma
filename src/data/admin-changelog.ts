@@ -84,4 +84,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-08-19-changelog-readonly",
+    version: "1.4",
+    releasedAt: "2026-08-19T15:25:00.000Z",
+    summary: "El changelog ya no se puede editar, borrar ni cargar a mano. Solo se actualiza con cada push.",
+    items: [
+      {
+        kind: "MEJORA",
+        text: "La pantalla Changelog es solo lectura. Las novedades las carga el deploy, no hay formulario ni botón de borrar.",
+      },
+    ],
+  },
 ];

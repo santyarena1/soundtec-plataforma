@@ -1,11 +1,13 @@
 ---
-description: En cada push al admin, cargar una novedad en el changelog automático
+description: En cada push al admin, cargar una novedad. El changelog no se edita en la UI.
 alwaysApply: true
 ---
 
 # Changelog automático (panel admin)
 
-Las novedades del admin **no se cargan a mano** en la UI. Van en `src/data/admin-changelog.ts` y el deploy las publica solo (`scripts/sync-changelog.ts` en el build + sync al abrir el admin).
+Las novedades del admin **no se cargan, editan ni borran en la UI**. La pantalla es solo lectura.
+
+Van en `src/data/admin-changelog.ts` y el deploy las publica solo (`scripts/sync-changelog.ts` + sync al abrir el admin). Cualquier entrada que no esté en ese archivo se borra de la base.
 
 Cada vez que se commitee/pushee un cambio visible para el equipo del admin:
 
@@ -14,4 +16,4 @@ Cada vez que se commitee/pushee un cambio visible para el equipo del admin:
 3. Completar `version` (siguiente número), `releasedAt` (ISO), `summary` (frase de "En pocas palabras") e `items` con `kind`: `NUEVO` | `FIX` | `MEJORA`.
 4. Textos en español, cortos, para el equipo interno. Nunca para el portal del cliente.
 
-Si el cambio no se ve en el admin (refactor interno, tipos, etc.), no hace falta entrada.
+No agregar formularios, botones de editar/borrar ni acciones `upsert`/`delete` de changelog. Si el cambio no se ve en el admin, no hace falta entrada.
