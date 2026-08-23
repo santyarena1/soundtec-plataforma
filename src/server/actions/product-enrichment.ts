@@ -9,6 +9,32 @@ import { getSetting, setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import { put } from "@vercel/blob";
 
+function revalidateProductImages(productId: string) {
+  if (productId) {
+    revalidatePath(`/admin/products/${productId}`);
+    revalidatePath(`/portal/products/${productId}`);
+  }
+  revalidatePath("/admin/products");
+  revalidatePath("/portal/products");
+}
+
+/** Si hay fotos pero ninguna es principal, marca la más vieja. El listado la usa de tapa. */
+async function ensureProductHasPrimaryImage(productId: string) {
+  if (!productId) return;
+  const primary = await prisma.productImage.findFirst({
+    where: { productId, isPrimary: true },
+    select: { id: true },
+  });
+  if (primary) return;
+  const first = await prisma.productImage.findFirst({
+    where: { productId },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  if (!first) return;
+  await prisma.productImage.update({ where: { id: first.id }, data: { isPrimary: true } });
+}
+
 // ── AI prompt settings (editables por el admin desde la ficha de producto) ──
 
 const PROMPT_KEYS = {
@@ -327,8 +353,8 @@ export async function uploadProductImageFile(
         isPrimary,
       },
     });
-    revalidatePath(`/admin/products/${productId}`);
-    revalidatePath(`/portal/products/${productId}`);
+    await ensureProductHasPrimaryImage(productId);
+    revalidateProductImages(productId);
     return { ok: true, url: blob.url };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error desconocido al subir el archivo.";
@@ -353,8 +379,8 @@ export async function attachProductImage(formData: FormData): Promise<void> {
   await prisma.productImage.create({
     data: { productId, url, alt: alt || null, source: "serper", isPrimary },
   });
-  revalidatePath(`/admin/products/${productId}`);
-  revalidatePath(`/portal/products/${productId}`);
+  await ensureProductHasPrimaryImage(productId);
+  revalidateProductImages(productId);
 }
 
 export async function setPrimaryImage(formData: FormData): Promise<void> {
@@ -367,8 +393,7 @@ export async function setPrimaryImage(formData: FormData): Promise<void> {
     data: { isPrimary: false },
   });
   await prisma.productImage.update({ where: { id }, data: { isPrimary: true } });
-  revalidatePath(`/admin/products/${productId}`);
-  revalidatePath(`/portal/products/${productId}`);
+  revalidateProductImages(productId);
 }
 
 export type DescriptionType = "short" | "long" | "both";
@@ -513,6 +538,6 @@ export async function deleteProductImage(formData: FormData): Promise<void> {
   const productId = String(formData.get("productId") || "");
   if (!id) return;
   await prisma.productImage.delete({ where: { id } });
-  revalidatePath(`/admin/products/${productId}`);
-  revalidatePath(`/portal/products/${productId}`);
+  if (productId) await ensureProductHasPrimaryImage(productId);
+  revalidateProductImages(productId);
 }

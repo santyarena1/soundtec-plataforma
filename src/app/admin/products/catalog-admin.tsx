@@ -705,8 +705,8 @@ function renderCell(
       );
     case "name":
       return (
-        <div className="min-w-[160px]">
-          <Link href={`/admin/products/${r.id}`} className="font-medium hover:underline">
+        <div className="min-w-[280px] max-w-[420px]">
+          <Link href={`/admin/products/${r.id}`} className="break-words font-medium hover:underline">
             {r.name}
           </Link>
           <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">

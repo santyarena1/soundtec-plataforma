@@ -31,11 +31,11 @@ export function CatalogGrid({ items }: { items: CatalogProduct[] }) {
 
           <div className="flex flex-1 flex-col gap-3 p-4">
             <div className="flex items-start justify-between gap-2">
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">{p.brandName || "—"}</p>
                 <Link
                   href={`/portal/products/${p.id}`}
-                  className="line-clamp-2 text-sm font-semibold leading-tight hover:underline"
+                  className="break-words text-sm font-semibold leading-snug hover:underline"
                 >
                   {p.normalizedName}
                 </Link>

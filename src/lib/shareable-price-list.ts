@@ -2,6 +2,7 @@ import { Prisma, ProductKind, StockStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { calculatePricesForProducts, getClientVisibility } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
+import { productCoverImageInclude } from "@/lib/product-cover-image";
 
 export interface ShareablePriceListFilters {
   brandIds?: string[];
@@ -116,7 +117,7 @@ export async function resolveShareablePriceListProducts(input: {
       brand: { select: { name: true } },
       category: { select: { name: true } },
       family: { select: { name: true } },
-      images: { where: { isPrimary: true }, take: 1 },
+      images: productCoverImageInclude,
     },
   });
 

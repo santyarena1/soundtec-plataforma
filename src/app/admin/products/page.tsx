@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Suspense } from "react";
 import { calculatePricesForProducts } from "@/lib/pricing";
+import { productCoverImageInclude } from "@/lib/product-cover-image";
 
 interface SP {
   q?: string;
@@ -131,7 +132,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         category: { select: { id: true, name: true } },
         family: { select: { id: true, name: true } },
         distributor: { select: { id: true, name: true } },
-        images: { where: { isPrimary: true }, take: 1 },
+        images: productCoverImageInclude,
         labels: { select: { label: { select: { id: true, name: true, color: true } } } },
       },
       take: pageSize,

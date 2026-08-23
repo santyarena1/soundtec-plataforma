@@ -18,6 +18,7 @@ import { AiContentNotice } from "./ai-content-notice";
 import { ProductConfigurator } from "./configurator";
 import { CompatibleAccessoriesSection } from "./compatible-accessories";
 import { AccessoryInfoBanner } from "@/components/portal/accessory-warning";
+import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { ProductRichInfo } from "./product-rich-info";
 import { formatUsd, formatPercent } from "@/lib/utils";
 import { ArrowLeft, Sparkles, FileText } from "lucide-react";
@@ -58,7 +59,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               kind: true,
               accessoryRequiredWithPrimary: true,
               isActive: true,
-              images: { where: { isPrimary: true }, take: 1 },
+              images: productCoverImageInclude,
             },
           },
         },

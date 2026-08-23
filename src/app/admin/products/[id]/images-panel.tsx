@@ -45,7 +45,7 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [markAsPrimary, setMarkAsPrimary] = useState(images.length === 0);
+  const [markAsPrimary, setMarkAsPrimary] = useState(!images.some((img) => img.isPrimary));
 
   // Serper search
   const [query, setQuery] = useState(productName);

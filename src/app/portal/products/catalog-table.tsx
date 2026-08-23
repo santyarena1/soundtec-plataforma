@@ -31,8 +31,8 @@ export function CatalogTable({ items }: { items: CatalogProduct[] }) {
                     <img src={p.primaryImage} alt={p.normalizedName} className="h-full w-full object-contain" />
                   ) : null}
                 </span>
-                <span>
-                  <span className="block text-sm font-medium">{p.normalizedName}</span>
+                <span className="min-w-0">
+                  <span className="block break-words text-sm font-medium">{p.normalizedName}</span>
                   <span className="block text-xs text-muted-foreground">{p.internalSku || "—"}</span>
                 </span>
               </Link>

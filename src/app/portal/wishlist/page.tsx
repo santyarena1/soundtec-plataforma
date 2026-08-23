@@ -12,6 +12,7 @@ import { formatUsd } from "@/lib/utils";
 import { Heart, Trash2 } from "lucide-react";
 import { removeWishlistItem } from "@/server/actions/wishlist";
 import { createRequestDraft } from "@/server/actions/requests";
+import { productCoverImageInclude } from "@/lib/product-cover-image";
 
 export const metadata = { title: "Favoritos" };
 
@@ -23,7 +24,7 @@ export default async function WishlistPage() {
       items: {
         include: {
           product: {
-            include: { brand: true, images: { where: { isPrimary: true }, take: 1 } },
+            include: { brand: true, images: productCoverImageInclude },
           },
         },
       },
@@ -101,7 +102,7 @@ export default async function WishlistPage() {
               </p>
               <Link
                 href={`/portal/products/${item.product.id}`}
-                className="line-clamp-2 text-sm font-semibold hover:underline"
+                className="break-words text-sm font-semibold hover:underline"
               >
                 {item.product.normalizedName}
               </Link>

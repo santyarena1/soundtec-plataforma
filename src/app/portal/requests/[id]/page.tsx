@@ -17,6 +17,7 @@ import { DraftRequestEditor } from "./draft-request-editor";
 import { RequestStatusTimeline } from "./request-status-timeline";
 import { ArrowLeft, MessageSquare, Sparkles, Package, FileText, ClipboardList } from "lucide-react";
 import { clientQuotePdfHref, parseQuoteAttachments } from "@/lib/request-quote-link";
+import { productCoverImageInclude } from "@/lib/product-cover-image";
 
 const statusMap: Record<string, { tone: "muted" | "primary" | "accent" | "success" | "warning" | "destructive"; label: string }> = {
   DRAFT: { tone: "muted", label: "Borrador" },
@@ -128,7 +129,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
           product: {
             include: {
               brand: true,
-              images: { where: { isPrimary: true }, take: 1 },
+              images: productCoverImageInclude,
             },
           },
         },

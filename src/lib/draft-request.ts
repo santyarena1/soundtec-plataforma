@@ -3,6 +3,7 @@ import type { CustomerRequest, CustomerRequestType } from "@prisma/client";
 import { calculatePricesForProducts } from "@/lib/pricing";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { getGlobalMarginPercent } from "@/lib/settings";
+import { productCoverImageInclude } from "@/lib/product-cover-image";
 
 /** Solicitud en borrador más reciente del usuario, o una nueva si no hay. */
 export async function getOrCreateActiveDraft(
@@ -151,7 +152,7 @@ export async function getActiveDraftSummary(userId: string): Promise<DraftSummar
             coefVtaFob: true,
             ivaPercent: true,
             impIntPercent: true,
-            images: { where: { isPrimary: true }, take: 1, select: { url: true } },
+            images: { ...productCoverImageInclude, select: { url: true } },
           },
         },
       },

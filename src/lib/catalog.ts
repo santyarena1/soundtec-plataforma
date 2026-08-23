@@ -8,6 +8,7 @@ import {
 } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { normalizeForSearch } from "@/lib/search-key";
+import { productCoverImageInclude } from "@/lib/product-cover-image";
 
 /**
  * Construye el OR del filtro de búsqueda extendido. Buscar SIMULTÁNEAMENTE en:
@@ -140,7 +141,7 @@ type ProductRow = Prisma.ProductGetPayload<{
   include: {
     brand: { select: { id: true; name: true } };
     category: { select: { id: true; name: true } };
-    images: { where: { isPrimary: true }; take: 1 };
+    images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }]; take: 1 };
   };
 }>;
 
@@ -326,7 +327,7 @@ function sortCatalogItems(items: CatalogProduct[], sort: CatalogFilters["sort"])
 const productInclude = {
   brand: { select: { id: true, name: true } },
   category: { select: { id: true, name: true } },
-  images: { where: { isPrimary: true }, take: 1 },
+  images: productCoverImageInclude,
 } as const;
 
 export async function getCatalog(

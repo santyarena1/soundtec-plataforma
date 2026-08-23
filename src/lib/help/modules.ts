@@ -154,7 +154,10 @@ export const HELP_MODULES: HelpModule[] = [
     editable: "Alta y ficha. Precios/costos según permiso.",
     notEditable: "El precio de venta se calcula (costo + márgenes + descuentos + NCM). No se tipea el PVP acá.",
     config: "Marcas, categorías, familias, proveedores, márgenes, visibilidad.",
-    tips: ["La descripción corta se reutiliza en las COT. Regenerar con IA la guarda en el producto."],
+    tips: [
+      "La descripción corta se reutiliza en las COT. Regenerar con IA la guarda en el producto.",
+      "El listado usa la foto principal; si no hay una marcada, toma cualquiera de las cargadas.",
+    ],
   },
   {
     id: "product-new",
@@ -177,7 +180,7 @@ export const HELP_MODULES: HelpModule[] = [
     fields: [
       "Generales: nombre, SKUs, marca, activo, tipo principal/accesorio.",
       "Descripciones: corta (COT) y larga (ficha). Regenerar con IA guarda en el producto.",
-      "Fotos: catálogo. En una COT se puede elegir otra foto para ESA COT.",
+      "Fotos: catálogo (si ninguna es principal, el listado igual usa una). En una COT se puede elegir otra foto para ESA COT.",
       "Costo, descuento propio, posición NCM / arancel.",
       "Accesorios: relaciones fijas que aparecen en la planilla de COT.",
     ],

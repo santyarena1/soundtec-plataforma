@@ -147,4 +147,20 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-08-23",
+    version: "2026.08.23",
+    releasedAt: "2026-08-23T00:55:00.000Z",
+    summary: "El catálogo muestra la foto aunque nadie haya marcado una imagen como principal, y el título del producto ya no se corta con puntos suspensivos.",
+    items: [
+      {
+        kind: "FIX",
+        text: "Si un artículo tiene fotos (subidas, Serper o viejas) pero ninguna marcada como principal, el listado ya no dice Sin imagen. Ejemplo: IVA-CMT-BRKTJ-1B.",
+      },
+      {
+        kind: "MEJORA",
+        text: "El nombre del producto en el catálogo se muestra completo, sin cortar con ….",
+      },
+    ],
+  },
 ];
