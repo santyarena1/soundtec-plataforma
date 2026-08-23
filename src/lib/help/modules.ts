@@ -585,13 +585,19 @@ export const HELP_MODULES: HelpModule[] = [
     id: "changelog",
     title: "Changelog",
     match: (p) => p.startsWith("/admin/changelog"),
-    simple: "Novedades del panel admin. Solo lectura: cada push las publica; el popup aparece en esa computadora hasta Entendido.",
+    simple: "Novedades del panel admin en vX.X.X. Solo lectura: cada push publica una versión; el popup aparece en esa computadora hasta Entendido.",
     purpose: "Avisar cambios de la plataforma al equipo interno, no a los clientes.",
-    fields: ["Las entradas viven en el código. Versión, En pocas palabras, NUEVO / FIX / MEJORA."],
+    fields: [
+      "Versión vX.X.X: mayor, menor, parche (mini-fix).",
+      "En pocas palabras + ítems NUEVO / FIX / MEJORA.",
+    ],
     editable: "Nada. No se puede cargar, editar ni borrar a mano.",
     notEditable: "Todo el historial. Tampoco aparece en el portal del cliente.",
     config: "El botón está arriba del dólar, en el menú izquierdo.",
-    tips: ["Las del mismo día se ven juntas. Cada push nuevo abre el popup en esa PC hasta que alguien toca Entendido."],
+    tips: [
+      "El tercer número es un mini-fix (v1.5.3). Una novedad visible sube el del medio (v1.6.0).",
+      "Cada push nuevo abre el popup en esa PC hasta que alguien toca Entendido.",
+    ],
   },
   {
     id: "tickets",

@@ -38,10 +38,26 @@ export function parseChangelogItems(raw: unknown): ChangelogItem[] {
   return items;
 }
 
+/** Deja la versión en X.Y.Z. "1.4" → "1.4.0", "v1.5.3" → "1.5.3". */
+export function normalizeSemver(version: string) {
+  const raw = version.trim().replace(/^v/i, "");
+  if (!raw) return "0.0.0";
+  const parts = raw.split(".").map((part) => {
+    const n = Number.parseInt(part.replace(/\D/g, ""), 10);
+    return Number.isFinite(n) ? String(n) : "0";
+  });
+  return `${parts[0] || "0"}.${parts[1] || "0"}.${parts[2] || "0"}`;
+}
+
 export function displayChangelogVersion(version: string) {
-  const trimmed = version.trim();
-  if (!trimmed) return "v—";
-  return trimmed.toLowerCase().startsWith("v") ? trimmed : `v${trimmed}`;
+  return `v${normalizeSemver(version)}`;
+}
+
+export function latestChangelogVersion(entries: Array<{ version: string; releasedAt: string }>) {
+  const newest = [...entries].sort(
+    (a, b) => new Date(b.releasedAt).getTime() - new Date(a.releasedAt).getTime()
+  )[0];
+  return newest ? normalizeSemver(newest.version) : "0.0.0";
 }
 
 export function formatChangelogDate(value: Date | string) {

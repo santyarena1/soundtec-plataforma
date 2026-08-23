@@ -1,23 +1,33 @@
 ---
-description: Changelog automático: una entrada por push, agrupada por día. No se edita en la UI.
+description: Changelog automático: una entrada por push, versión vX.X.X. No se edita en la UI.
 alwaysApply: true
 ---
 
 # Changelog automático (panel admin)
 
-Las novedades del admin **no se cargan, editan ni borran en la UI**. La pantalla es solo lectura y agrupa el mismo día en una tarjeta.
+Las novedades del admin **no se cargan, editan ni borran en la UI**. La pantalla es solo lectura.
 
 Van en `src/data/admin-changelog.ts` y el deploy las publica solo. Cualquier entrada que no esté en ese archivo se borra de la base.
 
-## Cómo cargar (una por push)
+## Versión `vX.X.X`
 
-No crear v1.1, v1.2, v1.3 para cada ajuste del mismo deploy. **Un push = una entrada**, con todos los NUEVO / FIX / MEJORA juntos.
+Un push = **una** entrada = **un** bump de versión. Se muestra como `v1.5.3`.
 
-1. Si este push todavía no tiene fila, agregar **una** al array `SHIPPED_ADMIN_CHANGELOG`.
-2. Id: `ship-YYYY-MM-DD`. Si hay otro push el mismo día, `ship-YYYY-MM-DD-2`.
-3. `version`: la fecha `YYYY.MM.DD` (no un número correlativo).
-4. `summary`: una sola frase de “En pocas palabras” para todo el push.
-5. `items`: la lista de cambios de ese push (`NUEVO` | `FIX` | `MEJORA`), en español, cortos, solo para el equipo interno.
+| Dígito | Cuándo subirlo | Ejemplo |
+| --- | --- | --- |
+| **X** mayor (`1.0.0` → `2.0.0`) | Cambio grande o que rompe cómo se trabaja. Casi nunca. | Rehacer cotizaciones |
+| **Y** menor (`1.5.0` → `1.6.0`) | Novedad o mejora visible: flujo nuevo, botón nuevo, comportamiento que hay que explicar. | Previsualizar reglas |
+| **Z** parche (`1.5.2` → `1.5.3`) | Mini-fix o ajuste chico: un bug, un texto, un fallback. No cambia el flujo. | Fotos que no salían en el catálogo |
+
+El parche (tercer número) **se resetea a 0** cuando subís menor o mayor: `1.5.3` + feature → `1.6.0`.
+
+## Cómo cargar
+
+1. Si este push todavía no tiene fila, agregar **una** al final de `SHIPPED_ADMIN_CHANGELOG`.
+2. `id`: `ship-YYYY-MM-DD`. Si hay otro push el mismo día, `ship-YYYY-MM-DD-2`. **No reutilizar** un id viejo (eso no reabre el popup).
+3. `version`: la siguiente `X.Y.Z` según la tabla. No uses fechas.
+4. `summary`: una sola frase de “En pocas palabras”.
+5. `items`: `NUEVO` | `FIX` | `MEJORA`, en español, cortos, solo para el equipo interno. Un mini-fix lleva `FIX` y bump de **Z**.
 6. Si en el mismo push hay que sumar algo más **antes de desplegar**, append items a esa misma fila. No abras otra versión.
 
 No agregar formularios ni botones de editar/borrar. Si el cambio no se ve en el admin, no hace falta entrada.
