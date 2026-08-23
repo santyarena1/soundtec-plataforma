@@ -184,4 +184,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-08-23-3",
+    version: "1.6.1",
+    releasedAt: "2026-08-23T01:20:00.000Z",
+    summary: "En las tarjetas del catálogo el título usa todo el ancho y ocupa siempre 3 líneas, para que no queden de distinto tamaño.",
+    items: [
+      {
+        kind: "FIX",
+        text: "El nombre ya no se aprieta al lado del favorito: va a lo ancho de la card. Siempre reserva 3 líneas (si sobra, quedan vacías).",
+      },
+    ],
+  },
 ];

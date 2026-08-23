@@ -13,34 +13,37 @@ export function CatalogGrid({ items }: { items: CatalogProduct[] }) {
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {items.map((p) => (
         <SelectableCard key={p.id} productId={p.id}>
-        <Card className="group flex flex-col overflow-hidden transition-shadow hover:shadow-elevated">
-          <Link href={`/portal/products/${p.id}`} className="block">
-            <div className="aspect-[4/3] w-full overflow-hidden bg-white">
-              {p.primaryImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={p.primaryImage}
-                  alt={p.normalizedName}
-                  className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">Sin imagen</div>
-              )}
+        <Card className="group flex h-full flex-col overflow-hidden transition-shadow hover:shadow-elevated">
+          <div className="relative">
+            <Link href={`/portal/products/${p.id}`} className="block">
+              <div className="aspect-[4/3] w-full overflow-hidden bg-white">
+                {p.primaryImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.primaryImage}
+                    alt={p.normalizedName}
+                    className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">Sin imagen</div>
+                )}
+              </div>
+            </Link>
+            <div className="absolute right-2 top-2">
+              <FavoriteButton productId={p.id} isFavorite={p.isFavorite} />
             </div>
-          </Link>
+          </div>
 
           <div className="flex flex-1 flex-col gap-3 p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">{p.brandName || "—"}</p>
-                <Link
-                  href={`/portal/products/${p.id}`}
-                  className="break-words text-sm font-semibold leading-snug hover:underline"
-                >
-                  {p.normalizedName}
-                </Link>
-              </div>
-              <FavoriteButton productId={p.id} isFavorite={p.isFavorite} />
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{p.brandName || "—"}</p>
+              <Link
+                href={`/portal/products/${p.id}`}
+                title={p.normalizedName}
+                className="mt-0.5 block min-h-[3.75rem] line-clamp-3 w-full text-sm font-semibold leading-5 hover:underline"
+              >
+                {p.normalizedName}
+              </Link>
             </div>
 
             <div className="flex flex-wrap items-center gap-1">

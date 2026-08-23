@@ -102,7 +102,8 @@ export default async function WishlistPage() {
               </p>
               <Link
                 href={`/portal/products/${item.product.id}`}
-                className="break-words text-sm font-semibold hover:underline"
+                title={item.product.normalizedName}
+                className="mt-0.5 block min-h-[3.75rem] line-clamp-3 w-full text-sm font-semibold leading-5 hover:underline"
               >
                 {item.product.normalizedName}
               </Link>

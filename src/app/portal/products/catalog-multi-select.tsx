@@ -117,7 +117,7 @@ export function SelectableCard({
   const isSelected = selected.has(productId);
 
   return (
-    <div className="relative group/selectable">
+    <div className="group/selectable relative h-full">
       <button
         type="button"
         onClick={(e) => {
@@ -135,7 +135,7 @@ export function SelectableCard({
         {isSelected ? "✓" : ""}
       </button>
       <div
-        className={`transition-all ${isSelected ? "ring-2 ring-primary ring-offset-1 rounded-xl" : ""}`}
+        className={`h-full transition-all ${isSelected ? "rounded-xl ring-2 ring-primary ring-offset-1" : ""}`}
       >
         {children}
       </div>
