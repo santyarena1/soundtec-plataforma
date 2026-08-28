@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { AiRewriteBox } from "@/components/quotes/ai-rewrite-box";
 import { QuoteSectionEditor } from "@/components/quotes/quote-section-editor";
 import { Button } from "@/components/ui/button";
-import { reviseQuoteNode } from "@/server/actions/quote-ai";
+import { saveQuoteItemBody, saveQuoteSectionBody } from "@/server/actions/quotes";
+import { previewReviseQuoteNode } from "@/server/actions/quote-ai";
 
 export function QuoteRevisePanel({
   quoteId,
@@ -23,19 +24,32 @@ export function QuoteRevisePanel({
 }) {
   const [open, setOpen] = useState(alwaysOpen);
   const [message, setMessage] = useState<string | null>(null);
-  const [pending, start] = useTransition();
 
   const box = (
     <AiRewriteBox
-      pending={pending}
+      pending={false}
       message={message}
       warning={warning}
-      onApply={(instruction) => {
-        start(async () => {
-          const r = await reviseQuoteNode({ quoteId, nodeId, kind, instruction });
-          setMessage(r.error || r.message || "Listo");
-          if (r.ok && r.body) onRewritten?.(r.body);
-        });
+      previewTitle={kind === "section" ? "Módulo" : "Ítem"}
+      onPreview={(instruction) => previewReviseQuoteNode({ quoteId, nodeId, kind, instruction })}
+      onConfirmPreview={async (body) => {
+        if (kind === "section") {
+          const r = await saveQuoteSectionBody({ sectionId: nodeId, body });
+          if (!r.ok) {
+            setMessage(r.error || "No se pudo guardar.");
+            return;
+          }
+          onRewritten?.(body);
+          setMessage("Cambio aplicado.");
+          return;
+        }
+        const r = await saveQuoteItemBody({ itemId: nodeId, description: body });
+        if (!r.ok) {
+          setMessage(r.error || "No se pudo guardar.");
+          return;
+        }
+        onRewritten?.(body);
+        setMessage("Cambio aplicado.");
       }}
     />
   );

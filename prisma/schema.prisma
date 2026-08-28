@@ -126,6 +126,7 @@ model Brand {
   priceLists PriceList[]
   mappings   ColumnMappingProfile[]
   imports    ImportBatch[]
+  quoteBrandLogos QuoteBrandLogo[]
 }
 
 model Distributor {
@@ -1125,6 +1126,8 @@ model Quote {
   supersededById         String?
   sourceRequestId        String?
   sourceRequest          CustomerRequest?  @relation(fields: [sourceRequestId], references: [id], onDelete: SetNull)
+  // null = usar setting global; collage | individual
+  brandsMode             String?
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
@@ -1134,6 +1137,7 @@ model Quote {
   classifierPicks QuoteClassifierPick[]
   sections        QuoteSection[]
   assets       QuoteAsset[]
+  brandSelections QuoteBrandSelection[]
   context      QuoteContext?
   terms        QuoteCommercialTerms?
   validations  QuoteValidation[]
@@ -1236,6 +1240,8 @@ model QuoteSection {
   lastAiRunId     String?
   layout          String              @default("text_only")
   libraryId       String?
+  // Slug de variante de texto (quotes.block_variants.{type})
+  variantSlug     String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
@@ -1260,6 +1266,39 @@ model QuoteAsset {
   createdAt       DateTime       @default(now())
 
   @@index([sectionId])
+}
+
+// Logo de marca reutilizable en cotizaciones (biblioteca global).
+model QuoteBrandLogo {
+  id        String   @id @default(cuid())
+  brandId   String?
+  brand     Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  label     String
+  url       String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  selections QuoteBrandSelection[]
+
+  @@index([brandId])
+}
+
+// Logo incluido en una cotización concreta (modo individual).
+model QuoteBrandSelection {
+  id            String   @id @default(cuid())
+  quoteId       String
+  quote         Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  libraryLogoId String?
+  libraryLogo   QuoteBrandLogo? @relation(fields: [libraryLogoId], references: [id], onDelete: SetNull)
+  label         String
+  url           String
+  visible       Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([quoteId])
 }
 
 model QuoteContext {

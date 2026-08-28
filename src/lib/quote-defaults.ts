@@ -1,13 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
+import { defaultBlockVariantBody, isVariantBlockKey, resolveBlockVariantBody, listBlockVariants } from "@/lib/quote-block-variants";
 
 export const QUOTE_STEPS = [
-  { id: 1, key: "datos", title: "Datos" },
-  { id: 2, key: "brief", title: "Brief y planos" },
-  { id: 3, key: "plantilla", title: "Plantilla" },
-  { id: 4, key: "equipos", title: "Planilla" },
-  { id: 5, key: "textos", title: "Textos" },
+  { id: 1, key: "datos", title: "Encabezado" },
+  { id: 2, key: "brief", title: "Brief y generación" },
+  { id: 3, key: "modulos", title: "Módulos" },
+  { id: 4, key: "productos", title: "Productos" },
+  { id: 5, key: "textos", title: "Textos con IA" },
   { id: 6, key: "imagenes", title: "Imágenes" },
   { id: 7, key: "emitir", title: "Emitir" },
 ] as const;
@@ -326,6 +327,7 @@ export async function getCompanyIdentity() {
     brandsAlign,
     isoWidth,
     isoAlign,
+    brandsDisplayMode,
   ] = await Promise.all([
     getSetting("app.name", "SOUNDTEC"),
     getSetting(QUOTE_SETTING_KEYS.companyTagline, "integramos tecnología"),
@@ -342,6 +344,7 @@ export async function getCompanyIdentity() {
     getSetting(QUOTE_SETTING_KEYS.brandsAlign, "center"),
     getSetting(QUOTE_SETTING_KEYS.isoWidth, "30"),
     getSetting(QUOTE_SETTING_KEYS.isoAlign, "center"),
+    getSetting(QUOTE_SETTING_KEYS.brandsDisplayMode, "collage"),
   ]);
   return {
     name,
@@ -357,6 +360,7 @@ export async function getCompanyIdentity() {
     primary: primary || "#1e3553",
     brands: parsePlacement(brandsWidth, brandsAlign, DEFAULT_BRANDS_PLACEMENT.width),
     iso: parsePlacement(isoWidth, isoAlign, DEFAULT_ISO_PLACEMENT.width),
+    brandsDisplayMode: (brandsDisplayMode === "individual" ? "individual" : "collage") as "collage" | "individual",
   };
 }
 
@@ -456,12 +460,20 @@ export async function ensureQuoteSections(quoteId: string, profileKey = "tecnico
   for (const mod of QUOTE_MODULES) {
     if (existing.has(mod.key)) continue;
     sort += 1;
+    let body = bodies[mod.key] || mod.body;
+    let variantSlug: string | null = null;
+    if (isVariantBlockKey(mod.key)) {
+      body = await defaultBlockVariantBody(mod.key, body);
+      const variants = await listBlockVariants(mod.key);
+      const chosen = variants.find((v) => v.isDefault) || variants[0];
+      variantSlug = chosen?.slug || null;
+    }
     await prisma.quoteSection.create({
       data: {
         quoteId,
         type: mod.key,
         title: mod.title,
-        body: bodies[mod.key] || mod.body,
+        body,
         origin: mod.kind === "fixed" ? "CORPORATE" : mod.kind === "table" ? "TEMPLATE" : "PROJECT",
         source: "TEMPLATE",
         locked: mod.kind === "fixed",
@@ -469,6 +481,7 @@ export async function ensureQuoteSections(quoteId: string, profileKey = "tecnico
         sortOrder: sort,
         sourceBlockKey: mod.key,
         sourceBlockVersion: moduleVersion(mod),
+        variantSlug,
       },
     });
   }

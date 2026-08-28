@@ -362,3 +362,11 @@
     margin: 10mm 14mm;
   }
 }
+
+/* Modo enfoque en el editor de cotizaciones: oculta el sidebar del admin. */
+body.quote-focus-mode aside.fixed {
+  display: none !important;
+}
+body.quote-focus-mode .xl\:pl-64 {
+  padding-left: 0 !important;
+}

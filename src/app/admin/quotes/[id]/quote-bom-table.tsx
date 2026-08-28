@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
 import { QuoteRevisePanel } from "./revise-panel";
 import { QuoteLinePhoto } from "@/components/quotes/quote-line-photo";
 import { RegenerateShortDescription } from "@/components/quotes/regenerate-short-description";
@@ -158,6 +158,10 @@ function ZoneTable({
                       rows={2}
                       disabled={issued}
                       className="mb-1 min-h-[40px] font-bold leading-snug"
+                      onChange={(e) => {
+                        const form = e.currentTarget.form;
+                        if (form) form.dataset.dirty = "1";
+                      }}
                       onBlur={(e) => saveRow(e.currentTarget.form)}
                     />
                     {item.blurb ? (
@@ -312,59 +316,113 @@ export function QuoteBomTable({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [filter, setFilter] = useState("");
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const multi = groups.length > 0;
   const zones = buildQuoteZones(
     items,
     groups.map((group, index) => ({ ...group, sortOrder: index }))
   );
 
+  const activeCount = items.filter((item) => !item.optional).length;
+  const needle = filter.trim().toLowerCase();
+
+  const filteredZones = useMemo(() => {
+    if (!needle) return zones;
+    return zones
+      .map((zone) => ({
+        ...zone,
+        items: zone.items.filter((item) => {
+          const hay = [item.name, item.description, item.blurb || "", item.deliveryKey].join(" ").toLowerCase();
+          return hay.includes(needle);
+        }),
+      }))
+      .filter((zone) => zone.items.length > 0 || !needle);
+  }, [zones, needle]);
+
+  function toggleZone(zoneKey: string) {
+    setCollapsed((prev) => ({ ...prev, [zoneKey]: !prev[zoneKey] }));
+  }
+
   return (
     <div className="space-y-5" data-tour="quote-bom">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold tracking-tight">Planilla de productos y servicios</h2>
-          <p className="text-xs text-muted-foreground">
-            {multi
-              ? "Cada ambiente tiene su texto y su tabla. Lo importado del cliente es una referencia: podés editar cantidad, título, unidad, precio, IVA y entrega. Los opcionales no suman al total."
-              : "Lo que pidió el cliente es una referencia: podés cambiar cantidad, título, unidad, precio, IVA y entrega. Fijar IA solo evita que la IA lo pise."}
-          </p>
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold tracking-tight">Planilla de productos y servicios</h2>
+            <p className="text-xs text-muted-foreground">
+              {activeCount} ítem{activeCount === 1 ? "" : "s"} · Neto {formatUsd(total)}
+            </p>
+          </div>
+          <div className="flex min-w-[220px] flex-1 flex-wrap items-center justify-end gap-2 sm:max-w-md">
+            <div className="relative min-w-[180px] flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Filtrar filas…"
+                className="h-9 pl-8"
+              />
+            </div>
+            {!issued ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                data-tour="quote-add-zone"
+                disabled={pending}
+                onClick={() =>
+                  start(async () => {
+                    const result = await createQuoteItemGroup({ quoteId });
+                    if (!result.ok) {
+                      toast.error(result.error || "No se pudo crear el ambiente.");
+                      return;
+                    }
+                    toast.success("Ambiente agregado", {
+                      description: "Poné el título, la explicación y los equipos de esa zona.",
+                    });
+                    router.refresh();
+                  })
+                }
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Ambiente
+              </Button>
+            ) : null}
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {!issued ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              data-tour="quote-add-zone"
-              disabled={pending}
-              onClick={() =>
-                start(async () => {
-                  const result = await createQuoteItemGroup({ quoteId });
-                  if (!result.ok) {
-                    toast.error(result.error || "No se pudo crear el ambiente.");
-                    return;
-                  }
-                  toast.success("Ambiente agregado", {
-                    description: "Poné el título, la explicación y los equipos de esa zona.",
-                  });
-                  router.refresh();
-                })
-              }
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Agregar ambiente
-            </Button>
-          ) : null}
-          <p className="text-sm font-semibold tabular-nums">Neto {formatUsd(total)}</p>
-        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {multi
+            ? "Cada ambiente tiene su texto y su tabla. Lo importado del cliente es referencia: podés editar cantidad, título, unidad, precio, IVA y entrega. Los opcionales no suman al total."
+            : "Lo que pidió el cliente es referencia: podés cambiar cantidad, título, unidad, precio, IVA y entrega. Editá directo en la tabla."}
+        </p>
       </div>
 
-      {zones.map((zone) => {
+      {filteredZones.map((zone) => {
+        const zoneKey = zone.id || "general";
+        const isCollapsed = collapsed[zoneKey] === true;
         const subtotal = zone.items.filter((item) => !item.optional).reduce((sum, item) => sum + item.lineTotalUsd, 0);
         return (
-          <section key={zone.id || "general"} className="space-y-3">
+          <section key={zoneKey} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-2 border-b border-border bg-secondary/30 px-4 py-2.5 text-left"
+              onClick={() => toggleZone(zoneKey)}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {zone.title}
+                <span className="font-normal text-muted-foreground">({zone.items.length})</span>
+              </span>
+              {zone.items.length > 0 ? (
+                <span className="text-xs font-medium tabular-nums text-muted-foreground">{formatUsd(subtotal)}</span>
+              ) : null}
+            </button>
+
+            {!isCollapsed ? (
+              <div className="space-y-3 p-3">
             {multi ? (
-              <div className="space-y-2 rounded-lg border border-border bg-card p-3">
+              <div className="space-y-2">
                 {zone.id && !issued ? (
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <Input
@@ -398,9 +456,7 @@ export function QuoteBomTable({
                       Quitar ambiente
                     </Button>
                   </div>
-                ) : (
-                  <h3 className="text-sm font-semibold">{zone.title}</h3>
-                )}
+                ) : null}
                 {zone.id ? (
                   <Textarea
                     defaultValue={zone.body}
@@ -420,7 +476,7 @@ export function QuoteBomTable({
                   />
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    Equipos que no están asignados a un ambiente. Movelos con el selector de cada fila.
+                    Equipos sin ambiente asignado. Movelos con el selector de cada fila.
                   </p>
                 )}
               </div>
@@ -428,7 +484,7 @@ export function QuoteBomTable({
 
             {!issued ? <QuoteProductPicker quoteId={quoteId} groupId={zone.id} /> : null}
             {!issued ? (
-              <form action={addServiceToQuote} className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-card p-3">
+              <form action={addServiceToQuote} className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-secondary/10 p-3">
                 <input type="hidden" name="quoteId" value={quoteId} />
                 {zone.id ? <input type="hidden" name="groupId" value={zone.id} /> : null}
                 <Input name="description" placeholder="Servicio (instalación, materiales…)" className="min-w-[220px] flex-1" />
@@ -450,6 +506,8 @@ export function QuoteBomTable({
               totalLabel={multi ? `Subtotal ${zone.title}` : "Total neto USD"}
               total={multi ? subtotal : total}
             />
+              </div>
+            ) : null}
           </section>
         );
       })}

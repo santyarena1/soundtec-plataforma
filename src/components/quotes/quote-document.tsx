@@ -8,6 +8,8 @@ import {
   type ImagePlacement,
 } from "@/lib/quote-defaults";
 import { QuoteBody } from "@/components/quotes/quote-body";
+import { QuoteBrandsGrid } from "@/components/quotes/quote-brands-grid";
+import { resolveQuoteBrandsDisplayMode, visibleQuoteBrandLogos, type QuoteBrandLogoView } from "@/lib/quote-brands";
 import { ModuleMediaLayout } from "@/components/quotes/module-media-layout";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
 import { displayImageCaption } from "@/lib/quote-image-caption";
@@ -228,11 +230,15 @@ function SectionBlock({
   quote,
   identity,
   photos,
+  brandsMode,
+  brandLogos,
 }: {
   section: QuoteSection;
   quote: DocQuote;
   identity: Identity;
   photos: Map<string, QuoteAsset>;
+  brandsMode: "collage" | "individual";
+  brandLogos: QuoteBrandLogoView[];
 }) {
   const color = identity.primary || "#1e3553";
   const spacing = "mt-[7mm]";
@@ -261,12 +267,16 @@ function SectionBlock({
       <div className={`quote-doc__block ${spacing}`}>
         <SectionTitle color={color}>{section.title}</SectionTitle>
         {hasBody(section) ? <Paragraphs body={section.body} /> : null}
-        <PlacedImage
-          src={identity.brandsUrl}
-          alt="Marcas representadas por SOUNDTEC"
-          placement={identity.brands}
-          fallback={DEFAULT_BRANDS_PLACEMENT}
-        />
+        {brandsMode === "individual" && brandLogos.length > 0 ? (
+          <QuoteBrandsGrid logos={brandLogos} className="mt-[3mm]" />
+        ) : (
+          <PlacedImage
+            src={identity.brandsUrl}
+            alt="Marcas representadas por SOUNDTEC"
+            placement={identity.brands}
+            fallback={DEFAULT_BRANDS_PLACEMENT}
+          />
+        )}
       </div>
     );
   }
@@ -368,12 +378,16 @@ function DocumentBody({
   photos,
   plans,
   gallery,
+  brandsMode,
+  brandLogos,
 }: {
   quote: DocQuote;
   identity: Identity;
   photos: Map<string, QuoteAsset>;
   plans: QuoteAsset[];
   gallery: QuoteAsset[];
+  brandsMode: "collage" | "individual";
+  brandLogos: QuoteBrandLogoView[];
 }) {
   const color = identity.primary || "#1e3553";
   const sections = [...quote.sections]
@@ -409,7 +423,15 @@ function DocumentBody({
       </div>
 
       {sections.map((section) => (
-        <SectionBlock key={section.id} section={section} quote={quote} identity={identity} photos={photos} />
+        <SectionBlock
+          key={section.id}
+          section={section}
+          quote={quote}
+          identity={identity}
+          photos={photos}
+          brandsMode={brandsMode}
+          brandLogos={brandLogos}
+        />
       ))}
 
       <div className="quote-doc__block quote-doc__keep mt-[9mm]">
@@ -471,6 +493,11 @@ export async function QuoteDocument({ quote }: { quote: DocQuote }) {
     iso: resolveImagePlacement(rawIdentity.iso, DEFAULT_ISO_PLACEMENT),
   };
 
+  const [brandLogos, brandsMode] = await Promise.all([
+    visibleQuoteBrandLogos(quote.id),
+    resolveQuoteBrandsDisplayMode(quote.id),
+  ]);
+
   const photos = new Map(
     quote.assets
       .filter((asset) => asset.kind === "PRODUCT" && asset.productId)
@@ -508,7 +535,15 @@ export async function QuoteDocument({ quote }: { quote: DocQuote }) {
       <tbody>
         <tr>
           <td className="quote-doc__inner">
-            <DocumentBody quote={quote} identity={identity} photos={photos} plans={plans} gallery={gallery} />
+            <DocumentBody
+              quote={quote}
+              identity={identity}
+              photos={photos}
+              plans={plans}
+              gallery={gallery}
+              brandsMode={brandsMode}
+              brandLogos={brandLogos}
+            />
           </td>
         </tr>
       </tbody>

@@ -116,6 +116,7 @@ export default async function SettingsQuotesPage() {
     logoUrl,
     headerUrl,
     brandsUrl,
+    brandsDisplayMode,
     isoUrl,
     blocks,
   ] = await Promise.all([
@@ -148,6 +149,7 @@ export default async function SettingsQuotesPage() {
     getSetting(QUOTE_SETTING_KEYS.companyLogoUrl, QUOTE_CORPORATE_ASSETS.logo),
     getSetting(QUOTE_SETTING_KEYS.companyHeaderUrl, QUOTE_CORPORATE_ASSETS.header),
     getSetting(QUOTE_SETTING_KEYS.companyBrandsUrl, QUOTE_CORPORATE_ASSETS.brands),
+    getSetting(QUOTE_SETTING_KEYS.brandsDisplayMode, "collage"),
     getSetting(QUOTE_SETTING_KEYS.companyIsoUrl, QUOTE_CORPORATE_ASSETS.iso),
     prisma.quoteBlock.findMany({ where: { isActive: true }, orderBy: { key: "asc" } }),
   ]);
@@ -166,6 +168,12 @@ export default async function SettingsQuotesPage() {
             </ButtonLink>
             <ButtonLink href="/admin/settings/quotes/clasificadores" size="sm" variant="outline">
               Clasificadores
+            </ButtonLink>
+            <ButtonLink href="/admin/settings/quotes/variantes" size="sm" variant="outline">
+              Variantes de texto
+            </ButtonLink>
+            <ButtonLink href="/admin/settings/quotes/marcas" size="sm" variant="outline">
+              Biblioteca de marcas
             </ButtonLink>
             <ButtonLink href="/admin/quotes" variant="outline" size="sm">
               Ir a cotizaciones
@@ -360,6 +368,16 @@ export default async function SettingsQuotesPage() {
           </div>
 
           <div className="mt-4 divide-y divide-border/70 border-t border-border/70">
+            <QuoteSettingField
+              settingKey={QUOTE_SETTING_KEYS.brandsDisplayMode}
+              label="Marcas en el PDF"
+              hint="Collage institucional por defecto. Con logos individuales, cada COT elige marcas desde la biblioteca o la planilla."
+              defaultValue={brandsDisplayMode}
+              options={[
+                { value: "collage", label: "Collage institucional (recomendado)" },
+                { value: "individual", label: "Logos individuales por marca" },
+              ]}
+            />
             <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.companyTagline} label="Tagline" defaultValue={tagline} />
             <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.companyAddress} label="Dirección" defaultValue={address} />
             <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.companyPhone} label="Teléfono" defaultValue={phone} />

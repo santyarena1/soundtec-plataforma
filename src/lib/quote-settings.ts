@@ -29,6 +29,7 @@ export const QUOTE_SETTING_KEYS = {
   companyIsoUrl: "quotes.company.iso_url",
   brandsWidth: "quotes.company.brands_width",
   brandsAlign: "quotes.company.brands_align",
+  brandsDisplayMode: "quotes.brands.display_mode",
   isoWidth: "quotes.company.iso_width",
   isoAlign: "quotes.company.iso_align",
   openaiKey: "openai.api_key",

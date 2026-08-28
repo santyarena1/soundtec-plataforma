@@ -784,16 +784,11 @@ export async function adminSearchProductsForRequest(input: {
   });
   if (!request) return { ok: false, error: "La solicitud ya no existe.", products: [] };
 
+  const { buildProductSearchWhere } = await import("@/lib/product-search");
   const found = await prisma.product.findMany({
     where: {
       isActive: true,
-      OR: [
-        { normalizedName: { contains: query, mode: "insensitive" } },
-        { originalName: { contains: query, mode: "insensitive" } },
-        { internalSku: { contains: query, mode: "insensitive" } },
-        { supplierSku: { contains: query, mode: "insensitive" } },
-        { modelNumber: { contains: query, mode: "insensitive" } },
-      ],
+      ...buildProductSearchWhere(query),
     },
     orderBy: { normalizedName: "asc" },
     take: 25,

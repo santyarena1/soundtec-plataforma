@@ -446,6 +446,34 @@ ${input.body}`
   return html || isRichText(cleaned) ? sanitizeQuoteHtml(cleaned) : cleaned;
 }
 
+export async function previewRewriteQuoteNode(input: {
+  quoteId: string;
+  nodeId: string;
+  kind: "item" | "section";
+  instruction: string;
+}) {
+  const instruction = input.instruction.trim();
+  if (instruction.length < 3) throw new Error("Escribí una instrucción.");
+  if (input.kind === "section") {
+    const section = await prisma.quoteSection.findUnique({ where: { id: input.nodeId } });
+    if (!section || section.quoteId !== input.quoteId) throw new Error("Sección no encontrada.");
+    const body = await rewriteSectionBody({
+      title: section.title,
+      type: section.type,
+      body: section.body,
+      instruction,
+    });
+    return { body, previousBody: section.body };
+  }
+  const item = await prisma.quoteItem.findUnique({ where: { id: input.nodeId } });
+  if (!item || item.quoteId !== input.quoteId || item.locked) throw new Error("Ítem no editable.");
+  const out = await quoteChatJson<{ description: string; quantity?: number }>(
+    SOUNDTEC_VOICE + " Devolvé JSON { description, quantity? }.",
+    `Instrucción: ${instruction}\nDescripción actual: ${item.description}\nCantidad: ${item.quantity}`
+  );
+  return { body: out.description || item.description, previousBody: item.description };
+}
+
 export async function rewriteQuoteNode(input: {
   quoteId: string;
   nodeId: string;

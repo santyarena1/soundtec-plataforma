@@ -7,8 +7,8 @@ import {
   type ProductPricingInput,
 } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
-import { normalizeForSearch } from "@/lib/search-key";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
+import { buildProductSearchAnd, productTokenOr } from "@/lib/product-search";
 
 /**
  * Construye el OR del filtro de búsqueda extendido. Buscar SIMULTÁNEAMENTE en:
@@ -29,55 +29,11 @@ function buildSearchOr(search: string): Prisma.ProductWhereInput["OR"] {
     .map((t) => t.trim())
     .filter((t) => t.length > 0);
   if (tokens.length === 0) return undefined;
-
-  // Para cada token armamos un grupo OR sobre todos los campos buscables.
-  // Devolvemos el array de OR del primer token; los tokens 1+ se manejan
-  // como AND en el caller. Pero como acá la firma esperada es OR, devolvemos
-  // solo el primer token cuando hay uno solo (caso típico). Para multi-token
-  // ver buildSearchAnd que usa el caller.
-  return tokenFieldOr(tokens[0]);
+  return productTokenOr(tokens[0]);
 }
 
-function tokenFieldOr(token: string): NonNullable<Prisma.ProductWhereInput["OR"]> {
-  const c = { contains: token, mode: "insensitive" as const };
-  const normalizedToken = normalizeForSearch(token);
-  return [
-    { normalizedName: c },
-    { originalName: c },
-    { internalSku: c },
-    { supplierSku: c },
-    ...(normalizedToken
-      ? [{ searchKey: { contains: normalizedToken } } as Prisma.ProductWhereInput]
-      : []),
-    { shortDescription: c },
-    { longDescription: c },
-    { tariffPosition: c },
-    { coo: c },
-    // Columnas opcionales agregadas por el sync — castean a string via raw
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { modelNumber: c } as any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { manufacturerItem: c } as any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { productLine: c } as any,
-    { brand: { name: c } },
-    { category: { name: c } },
-    { family: { name: c } },
-    { distributor: { name: c } },
-  ];
-}
-
-/**
- * Variante AND multi-token: usada en buildCatalogWhere directamente para que
- * "shure sm58" matchee productos que tengan AMBAS palabras en algún campo.
- */
 function buildSearchAnd(search: string): Prisma.ProductWhereInput[] | undefined {
-  const tokens = search
-    .split(/\s+/)
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
-  if (tokens.length === 0) return undefined;
-  return tokens.map((t) => ({ OR: tokenFieldOr(t) }));
+  return buildProductSearchAnd(search);
 }
 
 export interface CatalogFilters {

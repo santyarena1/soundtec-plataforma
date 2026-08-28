@@ -5,6 +5,7 @@ import { Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "soundtec.quoteCanvasZoom";
+const EXPANDED_KEY = "soundtec.quoteCanvasExpanded";
 const LEVELS = [0.55, 0.75, 1] as const;
 const DEFAULT_ZOOM = 0.75;
 
@@ -21,6 +22,7 @@ export function QuotePreviewZoom({ children }: { children: React.ReactNode }) {
     const saved = Number(window.localStorage.getItem(STORAGE_KEY));
     if (LEVELS.includes(saved as (typeof LEVELS)[number])) setZoom(saved);
     else if (window.innerWidth < 768) setZoom(0.55);
+    setExpanded(window.sessionStorage.getItem(EXPANDED_KEY) === "1");
     setReady(true);
   }, []);
 
@@ -28,6 +30,11 @@ export function QuotePreviewZoom({ children }: { children: React.ReactNode }) {
     if (!ready) return;
     window.localStorage.setItem(STORAGE_KEY, String(zoom));
   }, [ready, zoom]);
+
+  useEffect(() => {
+    if (!ready) return;
+    window.sessionStorage.setItem(EXPANDED_KEY, expanded ? "1" : "0");
+  }, [ready, expanded]);
 
   function step(delta: -1 | 1) {
     const index = LEVELS.indexOf(nearestLevel(zoom) as (typeof LEVELS)[number]);
@@ -76,9 +83,7 @@ export function QuotePreviewZoom({ children }: { children: React.ReactNode }) {
     return (
       <>
         <div className="quote-preview-lightbox print:hidden">
-          <div className="quote-preview-lightbox__bar">
-            {toolbar}
-          </div>
+          <div className="quote-preview-lightbox__bar">{toolbar}</div>
           <div className="quote-preview-lightbox__body">{sheet}</div>
         </div>
         <div className="hidden print:block">{children}</div>

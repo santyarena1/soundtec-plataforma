@@ -3,6 +3,11 @@ import { loadQuoteForUser } from "@/lib/quote-access";
 import { getDeliveryOptions } from "@/lib/quote-settings";
 import { Settings } from "lucide-react";
 import { ensureQuoteSections, getCompanyIdentity, moduleByKey, parseQuoteStep, QUOTE_STEPS } from "@/lib/quote-defaults";
+import { isVariantBlockKey, listBlockVariants } from "@/lib/quote-block-variants";
+import { resolveBrandsDisplayMode } from "@/lib/quote-brands";
+import { listBrandLibrary } from "@/server/actions/quote-brands";
+import { SectionVariantPicker } from "@/components/quotes/section-variant-picker";
+import { QuoteBrandsEditor } from "@/components/quotes/quote-brands-editor";
 import { LiveQuoteCanvas } from "@/components/quotes/live-quote-canvas";
 import { prisma } from "@/lib/prisma";
 import { permissionsHave } from "@/lib/permissions";
@@ -32,6 +37,9 @@ import { QuoteBomTable } from "./quote-bom-table";
 import { QuoteMediaRail } from "./media-rail";
 import { FillMissingShortDescriptions } from "@/components/quotes/fill-missing-short-descriptions";
 import { AddCustomModule, RemoveCustomModule } from "@/components/quotes/add-custom-module";
+import { QuoteEditHistoryPanel } from "@/components/quotes/quote-edit-history-panel";
+import { QuoteFocusToggle } from "@/components/quotes/quote-focus-toggle";
+import { QuoteBody } from "@/components/quotes/quote-body";
 import { QuotePreviewZoom } from "@/components/quotes/quote-preview-zoom";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
 import { displayImageCaption } from "@/lib/quote-image-caption";
@@ -76,7 +84,9 @@ export default async function QuoteEditorPage({
   if (!quote) notFound();
 
   const productIds = quote.items.map((i) => i.productId).filter((pid): pid is string => Boolean(pid));
-  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms, identity, classifiers, patterns] = await Promise.all([
+  const variantBlockKeys = [...new Set(quote.sections.map((s) => s.type).filter(isVariantBlockKey))];
+  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms, identity, classifiers, patterns, brandLibrary, ...variantLists] =
+    await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
       orderBy: { companyName: "asc" },
@@ -112,7 +122,22 @@ export default async function QuoteEditorPage({
     getCompanyIdentity(),
     listQuoteClassifiers(),
     loadQuotePatternSuggestions(quote.id),
+    listBrandLibrary(),
+    ...variantBlockKeys.map((key) => listBlockVariants(key)),
   ]);
+
+  const variantsByBlock = Object.fromEntries(
+    variantBlockKeys.map((key, index) => [key, variantLists[index] as Awaited<ReturnType<typeof listBlockVariants>>])
+  );
+  const brandsMode = resolveBrandsDisplayMode(quote.brandsMode, identity.brandsDisplayMode);
+  const brandLogos = quote.brandSelections.map((row) => ({
+    id: row.id,
+    label: row.label,
+    url: row.url,
+    visible: row.visible,
+    sortOrder: row.sortOrder,
+    libraryLogoId: row.libraryLogoId,
+  }));
 
   const issued = quote.status === "ISSUED";
   const total = quote.items.reduce((s, i) => s + Number(i.lineTotalUsd), 0);
@@ -169,10 +194,9 @@ export default async function QuoteEditorPage({
   );
 
   const canEditImages = permissions.fullAccess || permissionsHave(permissions, "quotes.manage_library");
-  const showFullLive = step === 3 && !issued;
   const liveCanvas = (
     <LiveQuoteCanvas
-      key={quote.sections.map((section) => `${section.id}:${section.layout}:${section.updatedAt.toISOString()}`).join("|")}
+      key={quote.id}
       scope="quote"
       quoteId={quote.id}
       issued={issued}
@@ -254,11 +278,14 @@ export default async function QuoteEditorPage({
           aiGenerated: asset.aiGenerated,
         }))}
       canEditImages={canEditImages}
+      brandsMode={brandsMode}
+      brandLogos={brandLogos}
     />
   );
 
   return (
     <div className="space-y-4">
+      {!issued ? <QuoteEditHistoryPanel quoteId={quote.id} /> : null}
       <PageHeader
         title={quote.number}
         description={
@@ -285,6 +312,7 @@ export default async function QuoteEditorPage({
             <ButtonLink href={`/admin/quotes/${quote.id}/print`} size="sm" variant="outline">
               Vista PDF
             </ButtonLink>
+            {!issued ? <QuoteFocusToggle /> : null}
           </div>
         }
       />
@@ -292,7 +320,7 @@ export default async function QuoteEditorPage({
       <QuoteMediaRail quoteId={quote.id} planCount={plans.length} imageCount={extraImages.length} />
       {!issued ? <FillMissingShortDescriptions quoteId={quote.id} needed={needsShortDescriptions} /> : null}
 
-      <div className={showFullLive ? "space-y-4" : "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(380px,42%)]"}>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(420px,44%)]">
         <div className="min-w-0 space-y-4">
           {step === 1 ? (
             <form
@@ -447,32 +475,68 @@ export default async function QuoteEditorPage({
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm text-muted-foreground">
-                  Tildá qué módulos van. El texto fijo no se reescribe solo. Los módulos extra se insertan a pedido y
-                  quedan como borrador si los guardás.
+                  Elegí qué bloques de texto van en el PDF. Podés ver el contenido de cada uno y la vista previa se
+                  actualiza en tiempo real a la derecha.
                 </p>
                 <div className="flex flex-wrap gap-2" data-tour="quote-add-module">
                   <AddCustomModule quoteId={quote.id} issued={issued} />
                   <ButtonLink href="/admin/settings/quotes/plantilla" size="sm" variant="outline">
                     <Settings className="mr-1 h-3.5 w-3.5" />
-                    Plantilla maestra
+                    Textos maestros
                   </ButtonLink>
                 </div>
               </div>
               {templateSections.map((section) => {
                 const def = moduleByKey(section.type);
                 const custom = isCustomSectionType(section.type);
+                const excerpt = section.body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 220);
                 return (
                   <Card key={section.id}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <h3 className="font-medium">{section.title}</h3>
                           <p className="text-xs text-muted-foreground">
                             {custom
                               ? "Módulo extra. No entra solo en las cotizaciones nuevas."
                               : def?.description}
                           </p>
+                          {excerpt ? (
+                            <details className="mt-2">
+                              <summary className="cursor-pointer text-xs font-medium text-primary">
+                                Ver contenido actual
+                              </summary>
+                              <div className="mt-2 max-h-40 overflow-auto rounded-md border border-border bg-secondary/20 p-2 text-xs">
+                                <QuoteBody body={section.body} />
+                              </div>
+                            </details>
+                          ) : null}
                           {custom ? <RemoveCustomModule sectionId={section.id} issued={issued} /> : null}
+                          {isVariantBlockKey(section.type) ? (
+                            <SectionVariantPicker
+                              sectionId={section.id}
+                              blockKey={section.type}
+                              currentSlug={section.variantSlug}
+                              variants={variantsByBlock[section.type] || []}
+                              issued={issued}
+                            />
+                          ) : null}
+                          {section.type === "brands" && section.included ? (
+                            <QuoteBrandsEditor
+                              quoteId={quote.id}
+                              issued={issued}
+                              globalMode={identity.brandsDisplayMode}
+                              quoteMode={brandsMode}
+                              quoteBrandsModeRaw={quote.brandsMode}
+                              selections={brandLogos}
+                              library={brandLibrary.map((logo) => ({
+                                id: logo.id,
+                                label: logo.label,
+                                url: logo.url,
+                                brand: logo.brand,
+                              }))}
+                            />
+                          ) : null}
                         </div>
                         {section.type === "products_table" ? (
                           <Badge tone="success">Siempre</Badge>
@@ -489,7 +553,6 @@ export default async function QuoteEditorPage({
                   </Card>
                 );
               })}
-              {showFullLive ? <div data-tour="quote-live">{liveCanvas}</div> : null}
             </div>
           ) : null}
 
@@ -707,27 +770,25 @@ export default async function QuoteEditorPage({
           ) : null}
         </div>
 
-        {showFullLive ? null : (
-          <aside className="xl:sticky xl:top-4">
-            <div className="overflow-auto rounded-xl border border-border bg-neutral-200/60 shadow-sm">
-              <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {issued ? "Vista previa" : "Documento editable"}
-                </p>
-                <span className="text-[11px] text-muted-foreground">{quote.items.length} ítems</span>
-              </div>
-              <div className="max-h-[min(70vh,calc(100vh-8rem))] overflow-auto bg-neutral-300/40 p-2 sm:p-3" data-tour="quote-live">
-                {issued ? (
-                  <QuotePreviewZoom>
-                    <QuoteDocument quote={quote} />
-                  </QuotePreviewZoom>
-                ) : (
-                  <div className="quote-preview quote-preview--live">{liveCanvas}</div>
-                )}
-              </div>
+        <aside className="xl:sticky xl:top-4">
+          <div className="overflow-auto rounded-xl border border-border bg-neutral-200/60 shadow-sm">
+            <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {issued ? "Vista previa" : "Documento editable"}
+              </p>
+              <span className="text-[11px] text-muted-foreground">{quote.items.length} ítems</span>
             </div>
-          </aside>
-        )}
+            <div className="max-h-[min(85vh,calc(100vh-6rem))] overflow-auto bg-neutral-300/40 p-2 sm:p-3" data-tour="quote-live">
+              {issued ? (
+                <QuotePreviewZoom>
+                  <QuoteDocument quote={quote} />
+                </QuotePreviewZoom>
+              ) : (
+                liveCanvas
+              )}
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

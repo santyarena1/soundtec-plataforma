@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Sparkles, Table2 } from "lucide-react";
 import { AiRewriteBox } from "@/components/quotes/ai-rewrite-box";
 import { LiveRichText } from "@/components/quotes/live-rich-text";
@@ -18,8 +18,10 @@ import { formatUsd } from "@/lib/utils";
 import { displayImageCaption } from "@/lib/quote-image-caption";
 import { buildQuoteZones } from "@/lib/quote-item-groups";
 import { QuoteBody } from "@/components/quotes/quote-body";
+import { QuoteBrandsGrid } from "@/components/quotes/quote-brands-grid";
+import type { QuoteBrandLogoView } from "@/lib/quote-brands";
 import { saveQuoteImagePlacement, saveQuoteSectionBody, saveQuoteTemplateBlock } from "@/server/actions/quotes";
-import { reviseQuoteNode, reviseQuoteTemplateBlock } from "@/server/actions/quote-ai";
+import { previewReviseQuoteNode, reviseQuoteTemplateBlock } from "@/server/actions/quote-ai";
 import { ModuleMediaLayout } from "@/components/quotes/module-media-layout";
 import { ModuleLayoutMedia } from "@/components/quotes/module-layout-media";
 import { parseQuoteModuleLayout, type QuoteModuleLayout } from "@/lib/quote-module-layout";
@@ -48,6 +50,7 @@ export type LiveIdentity = {
   isoUrl: string;
   brands?: ImagePlacement | null;
   iso?: ImagePlacement | null;
+  brandsDisplayMode?: "collage" | "individual";
 };
 
 export type LiveHeader = {
@@ -343,6 +346,8 @@ export function LiveQuoteCanvas({
   canEditImages = false,
   quoteId,
   itemGroups = [],
+  brandsMode,
+  brandLogos = [],
 }: {
   scope: "template" | "quote";
   identity: LiveIdentity;
@@ -358,8 +363,11 @@ export function LiveQuoteCanvas({
   issued?: boolean;
   canEditImages?: boolean;
   quoteId?: string;
+  brandsMode?: "collage" | "individual";
+  brandLogos?: QuoteBrandLogoView[];
 }) {
   const color = identity.primary;
+  const effectiveBrandsMode = brandsMode ?? identity.brandsDisplayMode ?? "collage";
   const [bodies, setBodies] = useState(() => Object.fromEntries(modules.map((mod) => [mod.key, mod.body])));
   const [titles, setTitles] = useState(() => Object.fromEntries(modules.map((mod) => [mod.key, mod.title])));
   const draftsRef = useRef({ ...bodies });
@@ -382,6 +390,33 @@ export function LiveQuoteCanvas({
       : buildQuoteZones(tableItems, itemGroups);
   const multiTables = tableZones.length > 1 || itemGroups.length > 0;
   const imageEditable = canEditImages && !issued;
+
+  useEffect(() => {
+    for (const mod of modules) {
+      if (focusedKey === mod.key) continue;
+      if (draftsRef.current[mod.key] !== savedRef.current[mod.key]) continue;
+      draftsRef.current[mod.key] = mod.body;
+      savedRef.current[mod.key] = mod.body;
+      titlesRef.current[mod.key] = mod.title;
+      savedTitlesRef.current[mod.key] = mod.title;
+    }
+    setBodies((prev) => {
+      const next = { ...prev };
+      for (const mod of modules) {
+        if (focusedKey === mod.key) continue;
+        if (draftsRef.current[mod.key] === savedRef.current[mod.key]) next[mod.key] = mod.body;
+      }
+      return next;
+    });
+    setTitles((prev) => {
+      const next = { ...prev };
+      for (const mod of modules) {
+        if (focusedKey === mod.key) continue;
+        if (titlesRef.current[mod.key] === savedTitlesRef.current[mod.key]) next[mod.key] = mod.title;
+      }
+      return next;
+    });
+  }, [modules, focusedKey]);
 
   function persistBody(mod: LiveModule, body = draftsRef.current[mod.key] ?? "", title = titlesRef.current[mod.key]) {
     if (!mod.persistId || issued) return;
@@ -423,15 +458,7 @@ export function LiveQuoteCanvas({
     if (!mod.persistId || issued) return;
     setAiPendingKey(mod.key);
     start(async () => {
-      const result =
-        scope === "template"
-          ? await reviseQuoteTemplateBlock({ blockId: mod.persistId as string, instruction })
-          : await reviseQuoteNode({
-              quoteId: quoteId as string,
-              nodeId: mod.persistId as string,
-              kind: "section",
-              instruction,
-            });
+      const result = await reviseQuoteTemplateBlock({ blockId: mod.persistId as string, instruction });
       setAiPendingKey(null);
       setAiMessage((prev) => ({ ...prev, [mod.key]: result.error || result.message || "Listo" }));
       if (result.ok && result.body) {
@@ -440,6 +467,28 @@ export function LiveQuoteCanvas({
         setBodies((prev) => ({ ...prev, [mod.key]: result.body as string }));
       }
     });
+  }
+
+  async function previewSectionRewrite(mod: LiveModule, instruction: string) {
+    return previewReviseQuoteNode({
+      quoteId: quoteId as string,
+      nodeId: mod.persistId as string,
+      kind: "section",
+      instruction,
+    });
+  }
+
+  async function applySectionRewrite(mod: LiveModule, body: string) {
+    const result = await saveQuoteSectionBody({ sectionId: mod.persistId as string, body });
+    if (!result.ok) {
+      setError(result.error || "No se pudo guardar el módulo.");
+      return;
+    }
+    draftsRef.current[mod.key] = body;
+    savedRef.current[mod.key] = body;
+    setBodies((prev) => ({ ...prev, [mod.key]: body }));
+    setAiMessage((prev) => ({ ...prev, [mod.key]: "Cambio aplicado." }));
+    setError(null);
   }
 
   function canEdit(mod: LiveModule) {
@@ -471,6 +520,7 @@ export function LiveQuoteCanvas({
           compact
           pending={aiPendingKey === mod.key || pending}
           message={aiMessage[mod.key]}
+          previewTitle={titles[mod.key] || mod.title}
           warning={
             scope === "template"
               ? "Cambia la plantilla maestra. Las cotizaciones ya creadas no se tocan."
@@ -478,10 +528,17 @@ export function LiveQuoteCanvas({
           }
           placeholder={
             scope === "template"
-              ? "Hacelo más largo, más claro… actualiza el texto de las COT nuevas."
-              : "Hacelo más largo, más claro… sólo esta cotización."
+              ? "Pedile a la IA que reescriba este módulo de plantilla…"
+              : "Pedile a la IA que reescriba este módulo…"
           }
-          onApply={(instruction) => rewrite(mod, instruction)}
+          {...(scope === "quote" && quoteId
+            ? {
+                onPreview: (instruction) => previewSectionRewrite(mod, instruction),
+                onConfirmPreview: (body) => applySectionRewrite(mod, body),
+              }
+            : {
+                onApply: (instruction) => rewrite(mod, instruction),
+              })}
         />
       </>
     );
@@ -704,13 +761,17 @@ export function LiveQuoteCanvas({
                         {renderEditor(mod)}
                       </ModuleMediaLayout>
                       {mod.key === "brands" ? (
-                        <ResizableQuoteImage
-                          src={identity.brandsUrl}
-                          alt="Marcas representadas por SOUNDTEC"
-                          placement={brands}
-                          editable={imageEditable}
-                          onChange={(next) => persistImage("brands", next)}
-                        />
+                        effectiveBrandsMode === "individual" && brandLogos.length > 0 ? (
+                          <QuoteBrandsGrid logos={brandLogos} className="mt-[3mm]" />
+                        ) : (
+                          <ResizableQuoteImage
+                            src={identity.brandsUrl}
+                            alt="Marcas representadas por SOUNDTEC"
+                            placement={brands}
+                            editable={imageEditable}
+                            onChange={(next) => persistImage("brands", next)}
+                          />
+                        )
                       ) : null}
                       {mod.key === "iso" ? (
                         <ResizableQuoteImage

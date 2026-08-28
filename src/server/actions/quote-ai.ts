@@ -5,14 +5,20 @@ import { prisma } from "@/lib/prisma";
 import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { getQuoteOpenAI } from "@/lib/quote-llm";
-import { generateQuoteProposal, rewriteQuoteNode, rewriteQuoteTemplateBlock } from "@/services/quote-orchestrator";
+import { generateQuoteProposal, previewRewriteQuoteNode, rewriteQuoteNode, rewriteQuoteTemplateBlock } from "@/services/quote-orchestrator";
 import { fillMissingShortDescription, regenerateProductShortDescription } from "@/lib/product-short-description";
+import { recordQuoteSnapshot } from "@/lib/quote-edit-history";
 import { revalidatePath } from "next/cache";
 
 export async function generateQuoteFromBrief(quoteId: string): Promise<{ ok: boolean; error?: string; message?: string }> {
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
   try {
+    await recordQuoteSnapshot({
+      quoteId,
+      actorId: loaded.user.id,
+      summary: "Antes de generar propuesta con IA",
+    });
     const r = await generateQuoteProposal(quoteId, loaded.user.id);
     revalidatePath(`/admin/quotes/${quoteId}`);
     if (!r.ok) return r;
@@ -20,6 +26,27 @@ export async function generateQuoteFromBrief(quoteId: string): Promise<{ ok: boo
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Error al generar.";
     return { ok: false, error: msg };
+  }
+}
+
+export async function previewReviseQuoteNode(input: {
+  quoteId: string;
+  nodeId: string;
+  kind: "item" | "section";
+  instruction: string;
+}): Promise<{ ok: boolean; error?: string; body?: string; previousBody?: string }> {
+  const loaded = await loadQuoteForUser(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
+  const instruction = input.instruction.trim();
+  if (instruction.length < 3) return { ok: false, error: "Escribí una instrucción." };
+  const oa = await getQuoteOpenAI();
+  if (!oa) return { ok: false, error: "Cargá la API Key de OpenAI en Configuración → Integraciones." };
+  try {
+    const result = await previewRewriteQuoteNode({ ...input, instruction });
+    return { ok: true, body: result.body, previousBody: result.previousBody };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo generar la vista previa." };
   }
 }
 
@@ -40,6 +67,14 @@ export async function reviseQuoteNode(input: {
     return { ok: false, error: "Cargá OpenAI API Key en Admin → API Keys." };
   }
   try {
+    await recordQuoteSnapshot({
+      quoteId: input.quoteId,
+      actorId: loaded.user.id,
+      summary:
+        input.kind === "section"
+          ? `Antes de reescribir módulo con IA`
+          : `Antes de reescribir ítem con IA`,
+    });
     const body = await rewriteQuoteNode({ ...input, instruction });
     await prisma.quoteAiRun.create({
       data: {

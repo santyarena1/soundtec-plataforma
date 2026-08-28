@@ -10,12 +10,15 @@ import { permissionsHave } from "@/lib/permissions";
 import { allocateQuoteNumber, getQuoteNumberingConfig, QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import {
   ensureQuoteProfiles,
+  moduleByKey,
   moduleVersion,
   QUOTE_MODULES,
   resolveDefaultProfileId,
   resolveQuoteModuleBodies,
 } from "@/lib/quote-defaults";
+import { isVariantBlockKey, resolveBlockVariantBody } from "@/lib/quote-block-variants";
 import { sanitizeQuoteHtml } from "@/lib/quote-richtext";
+import { recordQuoteSnapshot } from "@/lib/quote-edit-history";
 import { ensureQuoteCatalogImage } from "@/lib/quote-product-images";
 import { getSetting, setSetting, getGlobalMarginPercent } from "@/lib/settings";
 import { calculatePricesForProducts } from "@/lib/pricing";
@@ -506,16 +509,11 @@ export async function searchProductsForQuote(query: string) {
   await requireQuotePermission("quotes.edit");
   const q = query.trim();
   if (q.length < 2) return [];
+  const { buildProductSearchWhere } = await import("@/lib/product-search");
   return prisma.product.findMany({
     where: {
       isActive: true,
-      OR: [
-        { normalizedName: { contains: q, mode: "insensitive" } },
-        { originalName: { contains: q, mode: "insensitive" } },
-        { internalSku: { contains: q, mode: "insensitive" } },
-        { supplierSku: { contains: q, mode: "insensitive" } },
-        { modelNumber: { contains: q, mode: "insensitive" } },
-      ],
+      ...buildProductSearchWhere(q),
     },
     take: 20,
     select: {
@@ -524,7 +522,10 @@ export async function searchProductsForQuote(query: string) {
       internalSku: true,
       supplierSku: true,
       modelNumber: true,
+      shortDescription: true,
       brand: { select: { name: true } },
+      category: { select: { name: true } },
+      family: { select: { name: true } },
       ivaPercent: true,
     },
   });
@@ -623,6 +624,12 @@ export async function updateQuoteItem(formData: FormData): Promise<void> {
   if (!loaded.quote) return;
   if (loaded.quote.status === "ISSUED") return;
 
+  await recordQuoteSnapshot({
+    quoteId: item.quoteId,
+    actorId: loaded.user.id,
+    summary: `Antes de editar ítem de producto`,
+  });
+
   const quantity = Number(formData.get("quantity") ?? item.quantity);
   const description = String(formData.get("description") ?? item.description);
   const unit = String(formData.get("unit") ?? item.unit).trim() || item.unit;
@@ -709,6 +716,11 @@ export async function saveQuoteSectionBody(input: {
   if (!loaded.quote) return { ok: false, error: "Sin acceso a esta cotización." };
   if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
   const title = (input.title || "").trim();
+  await recordQuoteSnapshot({
+    quoteId: section.quoteId,
+    actorId: loaded.user.id,
+    summary: `Antes de editar «${section.title}»`,
+  });
   await prisma.quoteSection.update({
     where: { id: section.id },
     data: {
@@ -719,6 +731,68 @@ export async function saveQuoteSectionBody(input: {
     },
   });
   revalidatePath(`/admin/quotes/${section.quoteId}`);
+  return { ok: true };
+}
+
+export async function applySectionVariant(input: {
+  sectionId: string;
+  blockKey: string;
+  variantSlug: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  await requireQuotePermission("quotes.edit");
+  if (!isVariantBlockKey(input.blockKey)) {
+    return { ok: false, error: "Este módulo no admite variantes." };
+  }
+  const section = await prisma.quoteSection.findUnique({ where: { id: input.sectionId } });
+  if (!section) return { ok: false, error: "El módulo ya no existe." };
+  const loaded = await loadQuoteForUser(section.quoteId);
+  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
+
+  const def = moduleByKey(input.blockKey);
+  const fallback = def?.body || section.body;
+  const body = await resolveBlockVariantBody(input.blockKey, input.variantSlug, fallback);
+
+  await recordQuoteSnapshot({
+    quoteId: section.quoteId,
+    actorId: loaded.user.id,
+    summary: `Antes de cambiar variante de «${section.title}»`,
+  });
+
+  await prisma.quoteSection.update({
+    where: { id: section.id },
+    data: {
+      body: sanitizeQuoteHtml(body),
+      variantSlug: input.variantSlug,
+      source: QuoteNodeSource.TEMPLATE,
+      stale: false,
+    },
+  });
+
+  revalidatePath(`/admin/quotes/${section.quoteId}`);
+  return { ok: true };
+}
+
+export async function saveQuoteItemBody(input: {
+  itemId: string;
+  description: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  await requireQuotePermission("quotes.edit");
+  const item = await prisma.quoteItem.findUnique({ where: { id: input.itemId } });
+  if (!item) return { ok: false, error: "El ítem ya no existe." };
+  const loaded = await loadQuoteForUser(item.quoteId);
+  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  if (item.locked || loaded.quote.status === "ISSUED") return { ok: false, error: "No editable." };
+  await recordQuoteSnapshot({
+    quoteId: item.quoteId,
+    actorId: loaded.user.id,
+    summary: "Antes de aplicar cambio de IA en ítem",
+  });
+  await prisma.quoteItem.update({
+    where: { id: item.id },
+    data: { description: input.description },
+  });
+  revalidatePath(`/admin/quotes/${item.quoteId}`);
   return { ok: true };
 }
 

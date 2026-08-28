@@ -52,6 +52,7 @@ export async function loadQuoteForUser(id: string) {
       classifierPicks: true,
       sections: { orderBy: { sortOrder: "asc" } },
       assets: { orderBy: { sortOrder: "asc" } },
+      brandSelections: { orderBy: { sortOrder: "asc" } },
       context: true,
       terms: true,
     },
