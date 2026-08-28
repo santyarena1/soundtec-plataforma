@@ -13,6 +13,7 @@ import {
   Languages,
   Sparkles,
   Loader2,
+  Globe,
 } from "lucide-react";
 import type {
   SyncPreviewResponse,
@@ -63,6 +64,17 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
   const [target, setTarget] = useState<CategoryTarget>("rubro");
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState<string | null>(null);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichForce, setEnrichForce] = useState(false);
+  const [enrichError, setEnrichError] = useState<string | null>(null);
+  const [enrichProgress, setEnrichProgress] = useState<{
+    total: number;
+    done: number;
+    updated: number;
+    skipped: number;
+    withImages: number;
+    withSpecs: number;
+  } | null>(null);
 
   // Hydrate translations and target when a preview arrives
   useEffect(() => {
@@ -138,6 +150,49 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
     }
   }
 
+  async function handleEnrich() {
+    setEnriching(true);
+    setEnrichError(null);
+    setEnrichProgress({ total: 0, done: 0, updated: 0, skipped: 0, withImages: 0, withSpecs: 0 });
+    try {
+      let offset = 0;
+      const acc = { total: 0, done: 0, updated: 0, skipped: 0, withImages: 0, withSpecs: 0 };
+      for (;;) {
+        const res = await fetch("/api/admin/crestron-sync/enrich", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ offset, force: enrichForce, translate: true }),
+        });
+        const data = (await res.json()) as {
+          ok?: boolean;
+          error?: string;
+          total?: number;
+          processed?: number;
+          updated?: number;
+          skipped?: number;
+          withImages?: number;
+          withSpecs?: number;
+          done?: boolean;
+          nextOffset?: number | null;
+        };
+        if (!res.ok || !data.ok) throw new Error(data.error || "No se pudo enriquecer.");
+        acc.total = data.total ?? acc.total;
+        acc.done += data.processed ?? 0;
+        acc.updated += data.updated ?? 0;
+        acc.skipped += data.skipped ?? 0;
+        acc.withImages += data.withImages ?? 0;
+        acc.withSpecs += data.withSpecs ?? 0;
+        setEnrichProgress({ ...acc });
+        if (data.done || data.nextOffset == null) break;
+        offset = data.nextOffset;
+      }
+    } catch (e) {
+      setEnrichError(e instanceof Error ? e.message : "Error inesperado");
+    } finally {
+      setEnriching(false);
+    }
+  }
+
   // categoryChanged is computed client-side from translations + target
   const itemsWithComputed = useMemo(() => {
     if (!preview?.items) return [];
@@ -170,6 +225,44 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
 
   return (
     <div className="space-y-4">
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-2 min-w-[220px]">
+              <Globe className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+              <div>
+                <h3 className="text-sm font-medium">Enriquecer fichas desde crestron.com</h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Xtrabone solo trae precio y stock. Esto busca cada modelo en el catálogo público,
+                  baja foto oficial, overview, especificaciones y el link de la ficha. Traduce el texto al español.
+                  No pisa descripciones ni fotos que ya existan, salvo que tildes Forzar.
+                </p>
+              </div>
+            </div>
+            <Button size="sm" onClick={handleEnrich} disabled={enriching}>
+              {enriching ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1.5 h-3.5 w-3.5" />}
+              {enriching ? "Enriqueciendo…" : "Enriquecer fichas Crestron"}
+            </Button>
+          </div>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={enrichForce}
+              onChange={(e) => setEnrichForce(e.target.checked)}
+              disabled={enriching}
+            />
+            Forzar: volver a bajar aunque ya tenga ficha o foto
+          </label>
+          {enrichProgress ? (
+            <p className="text-xs text-muted-foreground">
+              {enrichProgress.done} de {enrichProgress.total || "…"} · actualizados {enrichProgress.updated} ·
+              saltados {enrichProgress.skipped} · con foto {enrichProgress.withImages} · con specs {enrichProgress.withSpecs}
+            </p>
+          ) : null}
+          {enrichError ? <p className="text-xs text-destructive">{enrichError}</p> : null}
+        </CardContent>
+      </Card>
+
       {/* Info card */}
       <Card>
         <CardContent className="p-5 space-y-3">

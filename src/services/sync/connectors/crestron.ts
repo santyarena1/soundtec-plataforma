@@ -96,6 +96,9 @@ function normalizeItem(
     weight: weight !== undefined && weight > 0 ? weight : undefined,
     volume: volume !== undefined && volume > 0 ? volume : undefined,
     originalName: item.ItemName?.trim() || undefined,
+    brandName: "CRESTRON",
+    modelNumber: item.ItemCode.trim(),
+    manufacturerItem: item.ItemCode.trim(),
     raw: item,
   };
   if (esCategory) {

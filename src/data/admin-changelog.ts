@@ -267,4 +267,21 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-08-28-4",
+    version: "1.8.0",
+    releasedAt: "2026-08-28T16:40:00.000Z",
+    summary:
+      "Las fichas Crestron se pueden enriquecer desde el catálogo público: foto, texto, specs y link oficial.",
+    items: [
+      {
+        kind: "NUEVO",
+        text: "En Sync Crestron, botón Enriquecer fichas: busca el modelo en crestron.com y completa foto, descripción, especificaciones y URL.",
+      },
+      {
+        kind: "MEJORA",
+        text: "El sync de precios asigna marca CRESTRON y el número de modelo. No pisa textos o fotos que ya estaban, salvo que tildes Forzar.",
+      },
+    ],
+  },
 ];

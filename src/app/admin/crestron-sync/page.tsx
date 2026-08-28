@@ -27,7 +27,7 @@ export default async function CrestronSyncPage() {
     <div className="space-y-6">
       <PageHeader
         title="Sincronización lista Crestron"
-        description="Importa precios y stock directamente desde crestronlatam.xtrabone.mx. Solo actualiza baseCostUsd y stockStatus en productos con internalSku coincidente."
+        description="Precios y stock desde Xtrabone. Las fichas (foto, texto, specs) se completan aparte, desde el catálogo público de Crestron."
       />
 
       {/* Credentials */}
