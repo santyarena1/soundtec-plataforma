@@ -164,6 +164,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       distributorId: p.distributorId,
       categoryId: p.categoryId,
       familyId: p.familyId,
+      familia: p.familia ?? null,
       productDiscountPercent: p.discountPercent != null ? Number(p.discountPercent) : null,
       tariffDutyPercent: p.tariffDutyPercent != null ? Number(p.tariffDutyPercent) : null,
       coefNac: p.coefNac != null ? Number(p.coefNac) : null,

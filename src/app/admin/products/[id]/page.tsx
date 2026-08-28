@@ -118,6 +118,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         distributorId: product.distributorId,
         categoryId: product.categoryId,
         familyId: product.familyId,
+        familia: product.familia ?? null,
         productDiscountPercent: product.discountPercent == null ? null : Number(product.discountPercent),
         tariffDutyPercent: product.tariffDutyPercent == null ? null : Number(product.tariffDutyPercent),
         coefNac: product.coefNac == null ? null : Number(product.coefNac),
@@ -242,6 +243,13 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               priceFobUsd: priceBreakdown.priceFobUsd,
               priceNacFinalArs: priceBreakdown.priceNacFinalArs,
               markupMultiplier: priceBreakdown.markupMultiplier,
+              markupSource: priceBreakdown.markupSource,
+              appliedMarginRule: priceBreakdown.appliedMarginRule
+                ? {
+                    name: priceBreakdown.appliedMarginRule.name,
+                    scopeType: priceBreakdown.appliedMarginRule.scopeType,
+                  }
+                : null,
               costoNacUsd: priceBreakdown.costoNacUsd,
               salePriceUsd: product.salePriceUsd == null ? null : Number(product.salePriceUsd),
             }}

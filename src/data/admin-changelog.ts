@@ -196,4 +196,21 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-08-28",
+    version: "1.6.2",
+    releasedAt: "2026-08-28T03:20:00.000Z",
+    summary:
+      "Si el producto tiene la familia escrita pero el subrubro vacío, ya toma la regla de márgenes en vez del ×1,35.",
+    items: [
+      {
+        kind: "FIX",
+        text: "El motor matchea la familia por nombre (Bracket, Accessory, CCA Series…) cuando el subrubro no está vinculado. Antes caía al default ×1,35.",
+      },
+      {
+        kind: "MEJORA",
+        text: "En Cadena de precios se ve si aplicó una regla, el COEF VTA o el default ×1,35.",
+      },
+    ],
+  },
 ];

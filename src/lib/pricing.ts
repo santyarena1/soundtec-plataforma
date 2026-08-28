@@ -46,12 +46,17 @@ import { getExchangeRate } from "@/lib/exchange-rate";
  *    para desempate cuando hay varias reglas dentro del MISMO nivel.
  *  - Una subregla PRODUCT con `isExemption` no aplica un valor propio: saca
  *    a ese producto de todo el `groupId` y sigue la cadena (cae al default).
+ *  - Si `familyId` está vacío, se intenta resolver ProductFamily por el texto
+ *    `familia` (mismo nombre, sin distinguir mayúsculas). Si no hay regla ni
+ *    COEF VTA, el markup es `pricing.default_markup` (×1.35).
  *  - El cliente NUNCA ve baseCost, márgenes ni reglas aplicadas: usar
  *    `toVisibleBreakdown` para devolver solo lo público.
  *  - La posición arancelaria es un costo extra sobre el costo base.
  */
 
 export type ViewerRole = "ADMIN" | "SUPER_ADMIN" | "CLIENT";
+
+export type MarkupSource = "RULE" | "COEF_VTA" | "DEFAULT";
 
 export interface ProductPricingInput {
   productId: string;
@@ -60,6 +65,14 @@ export interface ProductPricingInput {
   distributorId: string | null;
   categoryId: string | null;
   familyId: string | null;
+  /**
+   * Texto libre del producto (campo FAMILIA). Si `familyId` está vacío, el
+   * motor lo usa para matchear ProductFamily por nombre (imports suelen
+   * llenar esto y dejar el subrubro sin vincular).
+   */
+  familia?: string | null;
+  /** Evita un segundo lookup si el caller ya resolvió la familia. */
+  familyScopeResolved?: boolean;
   productDiscountPercent: number | null;
   /** % de derechos arancelarios sobre el costo base (NCM). */
   tariffDutyPercent?: number | null;
@@ -93,6 +106,7 @@ export interface PriceBreakdown {
   finalPriceUsd: number;
   costoNacUsd: number;
   markupMultiplier: number;
+  markupSource: MarkupSource;
   priceUsdFinal: number;
   priceFobUsd: number;
   priceNacFinalArs: number;
@@ -154,9 +168,107 @@ function parsedSetting(value: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/** Comparar FAMILIA (texto) con ProductFamily.name: trim + minúsculas. */
+export function normalizeTaxonomyName(value: string | null | undefined): string {
+  return (value ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function familyIdFromFamiliaText(
+  familia: string | null | undefined,
+  families: Array<{ id: string; name: string }>
+): string | null {
+  const key = normalizeTaxonomyName(familia);
+  if (!key) return null;
+  const found = families.find((f) => normalizeTaxonomyName(f.name) === key);
+  return found?.id ?? null;
+}
+
+/**
+ * Si el producto no tiene subrubro (`familyId`) pero sí texto en FAMILIA,
+ * busca un ProductFamily con el mismo nombre. Así las reglas por familia
+ * (Bracket, Accessory, CCA Series…) aplican aunque el import no haya
+ * vinculado el ID.
+ */
+async function resolveFamilyIds(
+  products: ProductPricingInput[]
+): Promise<Map<string, string | null>> {
+  const resolved = new Map<string, string | null>();
+  for (const product of products) {
+    if (product.familyId) resolved.set(product.productId, product.familyId);
+  }
+  const missing = products.filter((product) => !resolved.get(product.productId));
+  if (missing.length === 0) return resolved;
+
+  const needsDb = missing.filter((product) => !normalizeTaxonomyName(product.familia));
+  const [families, rows] = await Promise.all([
+    prisma.productFamily.findMany({ select: { id: true, name: true } }),
+    needsDb.length > 0
+      ? prisma.product.findMany({
+          where: { id: { in: needsDb.map((product) => product.productId) } },
+          select: { id: true, familia: true, familyId: true },
+        })
+      : Promise.resolve(
+          [] as Array<{ id: string; familia: string | null; familyId: string | null }>
+        ),
+  ]);
+
+  const familiaById = new Map<string, string | null>();
+  for (const row of rows) {
+    familiaById.set(row.id, row.familia);
+    if (row.familyId) resolved.set(row.id, row.familyId);
+  }
+
+  for (const product of missing) {
+    if (resolved.get(product.productId)) continue;
+    const text = product.familia ?? familiaById.get(product.productId) ?? null;
+    resolved.set(product.productId, familyIdFromFamiliaText(text, families));
+  }
+  return resolved;
+}
+
+/** Productos de esas familias: por `familyId` o por texto FAMILIA si el ID está vacío. */
+export async function familyScopeProductWhere(
+  familyIds: string[]
+): Promise<Prisma.ProductWhereInput> {
+  if (familyIds.length === 0) return { familyId: { in: [] } };
+  const families = await prisma.productFamily.findMany({
+    where: { id: { in: familyIds } },
+    select: { id: true, name: true },
+  });
+  const names = families.map((family) => family.name).filter((name) => name.trim().length > 0);
+  return {
+    OR: [
+      { familyId: { in: familyIds } },
+      ...(names.length > 0
+        ? [
+            {
+              AND: [
+                { familyId: null },
+                {
+                  OR: names.map((name) => ({
+                    familia: { equals: name, mode: "insensitive" as const },
+                  })),
+                },
+              ],
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
 export async function calculateCustomerPrice(options: CalculatePriceOptions): Promise<PriceBreakdown> {
-  const { product, clientId } = options;
+  const { clientId } = options;
   void options.defaultGlobalMarginPercent;
+  let product = options.product;
+  if (!product.familyScopeResolved) {
+    const familyIds = await resolveFamilyIds([product]);
+    product = {
+      ...product,
+      familyId: familyIds.get(product.productId) ?? product.familyId,
+      familyScopeResolved: true,
+    };
+  }
   const [marginRules, discountRules, defaultMarkupSetting, exchangeRate] = await Promise.all([
     prisma.marginRule.findMany({
       where: {
@@ -246,9 +358,19 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
       ? toNumber(marginWithMarkup.markupMultiplier) // 2.75 → ×2.75, nunca 1+2.75
       : 1 + toNumber(margin.marginPercent) / 100
     : undefined;
-  const markupMultiplier = ruleMarkup
-    ?? optionalNumber(product.coefVta)
-    ?? defaultMarkupMultiplier;
+  const coefVtaMarkup = optionalNumber(product.coefVta);
+  let markupMultiplier: number;
+  let markupSource: MarkupSource;
+  if (ruleMarkup != null) {
+    markupMultiplier = ruleMarkup;
+    markupSource = "RULE";
+  } else if (coefVtaMarkup != null) {
+    markupMultiplier = coefVtaMarkup;
+    markupSource = "COEF_VTA";
+  } else {
+    markupMultiplier = defaultMarkupMultiplier;
+    markupSource = "DEFAULT";
+  }
   const marginPercent = (markupMultiplier - 1) * 100;
   const baseCost = toNumber(product.baseCostUsd);
   const tariffDutyPercent = Math.max(0, toNumber(product.tariffDutyPercent ?? 0));
@@ -344,6 +466,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
     discountSource,
     costoNacUsd,
     markupMultiplier,
+    markupSource,
     priceUsdFinal,
     priceFobUsd,
     priceNacFinalArs,
@@ -375,11 +498,16 @@ export async function calculatePricesForProducts(
     getExchangeRate(),
   ]);
   const defaultMarkupMultiplier = parsedSetting(defaultMarkupRaw, 1.35);
+  const familyIds = await resolveFamilyIds(products);
   const results = new Map<string, PriceBreakdown>();
   await Promise.all(
     products.map(async (p) => {
       const r = await calculateCustomerPrice({
-        product: p,
+        product: {
+          ...p,
+          familyId: familyIds.get(p.productId) ?? p.familyId,
+          familyScopeResolved: true,
+        },
         clientId,
         defaultMarkupMultiplier,
         tcOverride: tc,

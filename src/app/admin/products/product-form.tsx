@@ -9,6 +9,7 @@ import { NcmAutocomplete } from "@/components/admin/ncm-autocomplete";
 import { Loader2 } from "lucide-react";
 import { DescriptionsSection } from "./descriptions-section";
 import { FieldStamp } from "./field-stamp";
+import { SCOPE_LABEL } from "@/lib/pricing-scope";
 
 interface Option { id: string; name: string }
 
@@ -59,6 +60,8 @@ interface Props {
     priceFobUsd: number;
     priceNacFinalArs: number;
     markupMultiplier: number;
+    markupSource: "RULE" | "COEF_VTA" | "DEFAULT";
+    appliedMarginRule: { name: string; scopeType: string } | null;
     costoNacUsd: number;
     salePriceUsd: number | null;
   };
@@ -129,6 +132,24 @@ export function ProductForm({ product, brands, distributors, categories, familie
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
+  }
+
+  function fmtMarkup(n: number) {
+    return `×${n.toFixed(4).replace(/0+$/, "").replace(/\.$/, "")}`;
+  }
+
+  function markupSourceLabel() {
+    if (!enginePricing) return "";
+    const markup = fmtMarkup(enginePricing.markupMultiplier);
+    if (enginePricing.markupSource === "RULE" && enginePricing.appliedMarginRule) {
+      const scope =
+        SCOPE_LABEL[enginePricing.appliedMarginRule.scopeType] ?? enginePricing.appliedMarginRule.scopeType;
+      return `Regla «${enginePricing.appliedMarginRule.name}» · ${scope} · markup ${markup}`;
+    }
+    if (enginePricing.markupSource === "COEF_VTA") {
+      return `COEF VTA del producto · markup ${markup}`;
+    }
+    return `Sin regla de márgenes · default ${markup}`;
   }
 
   return (
@@ -329,7 +350,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
                   US$ {fmtUsd(enginePricing.priceUsdFinal)}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Motor unificado · markup ×{enginePricing.markupMultiplier.toFixed(4).replace(/0+$/, "").replace(/\.$/, "")}
+                  {markupSourceLabel()}
                 </p>
               </div>
               <div className="grid min-w-[260px] grid-cols-2 gap-2 text-xs">

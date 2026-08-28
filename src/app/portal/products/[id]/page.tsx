@@ -115,6 +115,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       distributorId: product.distributorId,
       categoryId: product.categoryId,
       familyId: product.familyId,
+      familia: product.familia ?? null,
       productDiscountPercent: product.discountPercent ? Number(product.discountPercent) : null,
       tariffDutyPercent: product.tariffDutyPercent ? Number(product.tariffDutyPercent) : null,
       coefNac: product.coefNac != null ? Number(product.coefNac) : null,

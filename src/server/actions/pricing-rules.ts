@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { familyScopeProductWhere } from "@/lib/pricing";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { RuleScopeType } from "@prisma/client";
 import { badgeLabel, isManufacturerPromoLabel } from "@/lib/manufacturer-promo";
@@ -574,7 +575,7 @@ export async function searchRulePreviewProducts(input: {
     target === "BRAND"
       ? { brandId: { in: scopeIds } }
       : target === "FAMILY"
-        ? { familyId: { in: scopeIds } }
+        ? await familyScopeProductWhere(scopeIds)
         : target === "CATEGORY"
           ? { categoryId: { in: scopeIds } }
           : target === "DISTRIBUTOR"
