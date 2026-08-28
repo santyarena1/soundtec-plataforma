@@ -250,4 +250,21 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-08-28-3",
+    version: "1.7.1",
+    releasedAt: "2026-08-28T03:35:00.000Z",
+    summary:
+      "Si un producto usa el margen general se avisa en la ficha, y Guardar queda fijo abajo.",
+    items: [
+      {
+        kind: "MEJORA",
+        text: "Cadena de precios avisa en amarillo cuando no hay regla y aplica el markup general (×1,35).",
+      },
+      {
+        kind: "MEJORA",
+        text: "En la ficha del producto el botón Guardar queda flotante y siempre visible.",
+      },
+    ],
+  },
 ];

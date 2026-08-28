@@ -131,7 +131,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
   ]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <Link
         href="/admin/products"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -177,7 +177,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
             id="datos"
             icon={FileText}
             title="Datos generales"
-            description="Identificación, clasificación, descripciones, precios, NCM y disponibilidad. Se guardan con el botón al final."
+            description="Identificación, clasificación, descripciones, precios, NCM y disponibilidad. Se guardan con el botón fijo abajo."
           />
           <ProductForm
             product={{

@@ -19,7 +19,7 @@ export default async function NewProductPage() {
   ]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <PageHeader title="Nuevo producto" description="Cargá un producto manualmente al catálogo." />
       <Card>
         <CardContent className="p-6">

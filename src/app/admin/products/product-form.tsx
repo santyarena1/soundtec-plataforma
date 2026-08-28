@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { upsertProduct } from "@/server/actions/admin-catalog";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { NcmAutocomplete } from "@/components/admin/ncm-autocomplete";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, Save } from "lucide-react";
 import { DescriptionsSection } from "./descriptions-section";
 import { FieldStamp } from "./field-stamp";
 import { SCOPE_LABEL } from "@/lib/pricing-scope";
+
+const PRODUCT_FORM_ID = "admin-product-form";
 
 interface Option { id: string; name: string }
 
@@ -81,7 +84,12 @@ export function ProductForm({ product, brands, distributors, categories, familie
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [saveBarReady, setSaveBarReady] = useState(false);
   const fieldUpdatedAt = product?.fieldUpdatedAt ?? undefined;
+
+  useEffect(() => {
+    setSaveBarReady(true);
+  }, []);
 
   // NCM
   const [tariffPosition, setTariffPosition] = useState(product?.tariffPosition ?? "");
@@ -152,8 +160,27 @@ export function ProductForm({ product, brands, distributors, categories, familie
     return `Sin regla de márgenes · default ${markup}`;
   }
 
+  const saveLabel = product ? "Guardar cambios" : "Crear producto";
+  const saveBar =
+    saveBarReady && typeof document !== "undefined"
+      ? createPortal(
+          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] print:hidden xl:left-64">
+            <div className="pointer-events-auto border-t border-border bg-card/95 px-3 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-card/90 sm:px-6">
+              <div className="flex items-center justify-end gap-3 pr-[7.5rem] sm:pr-32">
+                {error ? <p className="mr-auto max-w-md text-sm text-destructive">{error}</p> : null}
+                <Button type="submit" form={PRODUCT_FORM_ID} disabled={pending}>
+                  {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {saveLabel}
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form id={PRODUCT_FORM_ID} onSubmit={handleSubmit} className="space-y-6">
       {product?.id ? <input type="hidden" name="id" value={product.id} /> : null}
 
       {/* Hidden controlled inputs for FormData */}
@@ -349,9 +376,9 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 <p className="mt-1 text-2xl font-bold tabular-nums text-blue-950 dark:text-blue-100">
                   US$ {fmtUsd(enginePricing.priceUsdFinal)}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {markupSourceLabel()}
-                </p>
+                {enginePricing.markupSource === "DEFAULT" ? null : (
+                  <p className="mt-1 text-xs text-muted-foreground">{markupSourceLabel()}</p>
+                )}
               </div>
               <div className="grid min-w-[260px] grid-cols-2 gap-2 text-xs">
                 <div className="rounded-md bg-blue-50 px-3 py-2 dark:bg-blue-900/30">
@@ -364,6 +391,18 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 </div>
               </div>
             </div>
+            {enginePricing.markupSource === "DEFAULT" ? (
+              <div className="mt-3 flex gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-amber-950 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-100">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div className="min-w-0 text-sm">
+                  <p className="font-semibold">Usa el margen general {fmtMarkup(enginePricing.markupMultiplier)}</p>
+                  <p className="mt-0.5 text-xs leading-snug text-amber-900/80 dark:text-amber-100/80">
+                    No entra en ninguna regla de Márgenes (marca, familia, producto…). El precio es costo{" "}
+                    {fmtMarkup(enginePricing.markupMultiplier)}. Si debería ser otro, revisá marca, subrubro o el texto FAMILIA.
+                  </p>
+                </div>
+              </div>
+            ) : null}
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-blue-100 pt-2 text-[11px] text-muted-foreground dark:border-blue-900">
               <span>Costo nac. USD: US$ {fmtUsd(enginePricing.costoNacUsd)}</span>
               {enginePricing.salePriceUsd != null ? (
@@ -596,14 +635,8 @@ export function ProductForm({ product, brands, distributors, categories, familie
         </label>
       </div>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-      <div className="flex justify-end gap-2">
-        <Button type="submit" disabled={pending}>
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {product ? "Guardar cambios" : "Crear producto"}
-        </Button>
-      </div>
+      {error && !saveBarReady ? <p className="text-sm text-destructive">{error}</p> : null}
+      {saveBar}
     </form>
   );
 }
