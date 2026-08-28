@@ -213,4 +213,41 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-08-28-2",
+    version: "1.7.0",
+    releasedAt: "2026-08-28T03:25:00.000Z",
+    summary:
+      "Cotizaciones renovadas: marcas por logo, variantes de texto, planilla más clara, preview de IA y deshacer cambios.",
+    items: [
+      {
+        kind: "NUEVO",
+        text: "Marcas en el PDF: collage institucional o logos individuales por marca, con biblioteca en Configuración → Cotizaciones → Biblioteca de marcas.",
+      },
+      {
+        kind: "NUEVO",
+        text: "En el paso Módulos podés elegir variantes de texto (Disciplinas, Intro corporativa, Instalación) definidas en Configuración → Variantes de texto.",
+      },
+      {
+        kind: "NUEVO",
+        text: "La IA muestra preview antes de aplicar cambios en módulos e ítems. Panel flotante de historial con Deshacer.",
+      },
+      {
+        kind: "NUEVO",
+        text: "Modo enfoque en el editor: oculta el menú lateral para trabajar solo en el documento.",
+      },
+      {
+        kind: "MEJORA",
+        text: "Planilla de productos: filtro de filas, ambientes colapsables, búsqueda con marca/categoría/SKU y refresh al agregar del catálogo.",
+      },
+      {
+        kind: "MEJORA",
+        text: "Pasos del wizard renombrados (Módulos, Productos…) y pantalla de nueva COT simplificada.",
+      },
+      {
+        kind: "FIX",
+        text: "Generar propuesta refresca el documento; la vista ampliada ya no se cierra sola al editar.",
+      },
+    ],
+  },
 ];
