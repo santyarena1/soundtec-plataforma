@@ -1,8 +1,6 @@
-import { Prisma, QuoteAiCapability, QuoteItemKind, QuoteNodeSource, QuoteSectionOrigin } from "@prisma/client";
+import { Prisma, QuoteAiCapability, QuoteNodeSource, QuoteSectionOrigin } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { calculatePricesForProducts } from "@/lib/pricing";
-import { getGlobalMarginPercent, getSetting } from "@/lib/settings";
-import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
+import { spacesWithSuggestions, type QuoteAiSuggestion } from "@/lib/quote-ai-suggestions";
 import { AI_MODULE_KEYS, FIXED_MODULE_KEYS } from "@/lib/quote-defaults";
 import { fillMissingQuoteProductImages } from "@/lib/quote-product-images";
 import { fillMissingShortDescription } from "@/lib/product-short-description";
@@ -210,97 +208,53 @@ ${catalogText || "(vacío)"}`
     await prisma.quote.update({ where: { id: quoteId }, data: { reference: gen.reference.slice(0, 200) } });
   }
 
-  const altId = quote.alternatives.find((a) => a.isDefault)?.id ?? quote.alternatives[0]?.id;
-  const defaultIva = Number(await getSetting(QUOTE_SETTING_KEYS.defaultIva, "21")) || 21;
-  const global = await getGlobalMarginPercent();
-  let sort = quote.items.reduce((m, i) => Math.max(m, i.sortOrder), -1);
-
-  for (const row of gen.items || []) {
+  const alreadyOnQuote = new Set(quote.items.map((item) => item.productId).filter(Boolean) as string[]);
+  const pending: QuoteAiSuggestion[] = [];
+  const seenProduct = new Set<string>();
+  for (const [index, row] of (gen.items || []).entries()) {
     const qty = Number(row.quantity) > 0 ? Number(row.quantity) : 1;
     if (row.kind === "SERVICE") {
-      sort += 1;
-      await prisma.quoteItem.create({
-        data: {
-          quoteId,
-          alternativeId: altId,
-          kind: QuoteItemKind.SERVICE,
-          serviceType: row.serviceType || "instalacion",
-          quantity: new Prisma.Decimal(qty),
-          unit: "u",
-          description: row.search,
-          unitPriceUsd: new Prisma.Decimal(0),
-          lineTotalUsd: new Prisma.Decimal(0),
-          ivaRate: new Prisma.Decimal(defaultIva),
-          source: QuoteNodeSource.SUGGESTED,
-          quantityRationale: row.rationale,
-          sortOrder: sort,
-        },
+      pending.push({
+        key: `svc-${index}-${row.search.slice(0, 40)}`,
+        productId: null,
+        name: row.search,
+        quantity: qty,
+        rationale: row.rationale || "Servicio sugerido por la IA",
+        kind: "SERVICE",
+        serviceType: row.serviceType || "instalacion",
       });
       continue;
     }
     const product = await matchProduct(row.search);
-    if (!product) continue;
-    if (quote.items.some((i) => i.productId === product.id)) continue;
-    let unit = Number(product.salePriceUsd ?? 0);
-    if (quote.clientId) {
-      const prices = await calculatePricesForProducts(
-        [
-          {
-            productId: product.id,
-            baseCostUsd: Number(product.baseCostUsd),
-            brandId: product.brandId,
-            distributorId: product.distributorId,
-            categoryId: product.categoryId,
-            familyId: product.familyId,
-            productDiscountPercent: product.discountPercent != null ? Number(product.discountPercent) : null,
-            tariffDutyPercent: product.tariffDutyPercent != null ? Number(product.tariffDutyPercent) : null,
-            coefNac: product.coefNac != null ? Number(product.coefNac) : null,
-            coefVta: product.coefVta != null ? Number(product.coefVta) : null,
-            coefVtaFob: product.coefVtaFob != null ? Number(product.coefVtaFob) : null,
-            ivaPercent: product.ivaPercent != null ? Number(product.ivaPercent) : null,
-            impIntPercent: product.impIntPercent != null ? Number(product.impIntPercent) : null,
-          },
-        ],
-        quote.clientId,
-        global
-      );
-      unit = prices.get(product.id)?.finalPriceUsd ?? unit;
-    }
-    const iva = product.ivaPercent != null ? Number(product.ivaPercent) : defaultIva;
-    const desc = [product.brand?.name, product.normalizedName].filter(Boolean).join(" — ");
-    const already = quote.items.find((i) => i.productId === product.id && !i.locked);
-    if (already) {
-      await prisma.quoteItem.update({
-        where: { id: already.id },
-        data: {
-          quantity: new Prisma.Decimal(qty),
-          lineTotalUsd: new Prisma.Decimal(unit * qty),
-          unitPriceUsd: new Prisma.Decimal(unit),
-          quantityRationale: row.rationale,
-          source: QuoteNodeSource.SUGGESTED,
-        },
+    if (!product) {
+      pending.push({
+        key: `miss-${index}-${row.search.slice(0, 40)}`,
+        productId: null,
+        name: row.search,
+        quantity: qty,
+        rationale: row.rationale || "No se encontró en el catálogo. Buscalo a mano si corresponde.",
+        kind: "PRODUCT",
       });
       continue;
     }
-    sort += 1;
-    await prisma.quoteItem.create({
-      data: {
-        quoteId,
-        alternativeId: altId,
-        kind: QuoteItemKind.PRODUCT,
-        productId: product.id,
-        quantity: new Prisma.Decimal(qty),
-        unit: "u",
-        description: desc,
-        unitPriceUsd: new Prisma.Decimal(unit),
-        lineTotalUsd: new Prisma.Decimal(unit * qty),
-        ivaRate: new Prisma.Decimal(iva),
-        source: QuoteNodeSource.SUGGESTED,
-        quantityRationale: row.rationale,
-        sortOrder: sort,
-      },
+    if (alreadyOnQuote.has(product.id) || seenProduct.has(product.id)) continue;
+    seenProduct.add(product.id);
+    const desc = [product.brand?.name, product.normalizedName].filter(Boolean).join(" — ");
+    pending.push({
+      key: `prd-${product.id}`,
+      productId: product.id,
+      name: desc,
+      quantity: qty,
+      rationale: row.rationale || "Sugerido a partir del brief",
+      kind: "PRODUCT",
     });
   }
+
+  await prisma.quoteContext.upsert({
+    where: { quoteId },
+    create: { quoteId, spaces: spacesWithSuggestions(null, pending) as Prisma.InputJsonValue },
+    update: { spaces: spacesWithSuggestions(quote.context?.spaces, pending) as Prisma.InputJsonValue },
+  });
 
   const sectionBodies = new Map((gen.sections || []).map((s) => [s.type, s.body]));
   const liveItems = await prisma.quoteItem.findMany({
@@ -308,14 +262,24 @@ ${catalogText || "(vacío)"}`
     orderBy: { sortOrder: "asc" },
     include: { product: { select: { normalizedName: true, brand: { select: { name: true } } } } },
   });
+  const approvedLines = liveItems.map((item) => {
+    const name =
+      [item.product?.brand?.name, item.product?.normalizedName].filter(Boolean).join(" ") || item.description;
+    return `- ${item.quantity} × ${name} [en la cotización]`;
+  });
+  const pendingLines = pending.map((s) => {
+    const qty = s.quantity > 1 ? `${s.quantity} × ` : "";
+    const tag = s.productId
+      ? "sugerido, pendiente de aprobación"
+      : s.kind === "SERVICE"
+        ? "servicio sugerido, pendiente"
+        : "sugerido, no está en catálogo";
+    return `- ${qty}${s.name} [${tag}]`;
+  });
   const productList =
-    liveItems
-      .map((item) => {
-        const name =
-          [item.product?.brand?.name, item.product?.normalizedName].filter(Boolean).join(" ") || item.description;
-        return `- ${item.quantity} × ${name}`;
-      })
-      .join("\n") || existing;
+    [...approvedLines, ...pendingLines].join("\n") ||
+    existing ||
+    "(aún no hay ítems; redactá a partir del problema sin inventar marcas o modelos específicos)";
 
   for (const section of quote.sections) {
     // locked = no pisar en generate. Un revise explícito sí puede tocar fijos.
@@ -328,12 +292,14 @@ ${catalogText || "(vacío)"}`
         const proposal = await quoteChatText(
           `${SOUNDTEC_VOICE}
 Redactá el módulo «Nuestra propuesta» de una COT Soundtec.
-Mirá los productos que YA están en la cotización y el problema a resolver.
-Explicá POR QUÉ esos productos y QUÉ se resuelve para el cliente.
+Mirá el problema a resolver y la lista de equipos.
+Los marcados como sugeridos AÚN NO están en la cotización: el comercial los aprueba después. No los trates como confirmados.
+Explicá QUÉ se resuelve para el cliente y, si hay equipos en la cotización, POR QUÉ esos. Podés mencionar tipos de equipo en general.
 Tono institucional, mismo registro que el resto del documento.
-PROHIBIDO: pedir precios, inventar condiciones comerciales, copiar hilos de solicitud, agregar preguntas de "faltan datos", inventar equipos que no estén en la lista.
+SIEMPRE devolvé un cuerpo (2-4 párrafos). Aunque no haya ítems, redactá a partir del pedido.
+PROHIBIDO: pedir precios, inventar condiciones comerciales, copiar hilos de solicitud, agregar preguntas de "faltan datos", inventar marcas o modelos que no estén en la lista.
 Devolvé solo el cuerpo, HTML acotado (p, strong, em, ul, ol, li, br) o texto plano.`,
-          `Problema a resolver:\n${problem || brief}\n\nProductos y servicios de esta cotización:\n${productList || "(aún no hay ítems; redactá a partir del problema sin inventar marcas/modelos específicos)"}`
+          `Problema a resolver:\n${problem || brief}\n\nEquipos y servicios:\n${productList}`
         );
         const cleaned = stripCodeFences(proposal);
         if (cleaned) body = isRichText(cleaned) ? sanitizeQuoteHtml(cleaned) : cleaned;

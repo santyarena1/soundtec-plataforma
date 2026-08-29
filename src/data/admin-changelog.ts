@@ -289,7 +289,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     version: "1.9.0",
     releasedAt: "2026-09-04T00:45:00.000Z",
     summary:
-      "En sincronización de productos: historial de cambios por proceso y botón para volver a la sync anterior.",
+      "En sincronización de productos: historial de cambios por producto y botón para volver a la sync anterior.",
     items: [
       {
         kind: "NUEVO",
@@ -302,6 +302,27 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       {
         kind: "MEJORA",
         text: "“Actualizados” solo cuenta cambios reales. El resto aparece en “Sin cambios” (ya no infla 900+ updates).",
+      },
+    ],
+  },
+  {
+    id: "ship-2026-08-29",
+    version: "1.10.0",
+    releasedAt: "2026-08-29T02:10:00.000Z",
+    summary:
+      "La IA deja equipos como sugerencias en Productos y también redacta «Nuestra propuesta» si generás desde una solicitud.",
+    items: [
+      {
+        kind: "MEJORA",
+        text: "Generar propuesta ya no vuelca equipos a la planilla: quedan como sugerencias para aprobar o elegir a mano.",
+      },
+      {
+        kind: "FIX",
+        text: "Al aprobar una sugerencia, el precio es el del motor (el mismo que al agregar del catálogo).",
+      },
+      {
+        kind: "FIX",
+        text: "Desde una solicitud, «Nuestra propuesta» se genera en Productos, no solo si tocás Generar al principio.",
       },
     ],
   },

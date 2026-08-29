@@ -49,6 +49,8 @@ import { listQuoteClassifiers } from "@/lib/quote-classifiers";
 import { loadQuotePatternSuggestions } from "@/lib/quote-pattern-suggest";
 import { QuoteClassifierFields } from "@/components/quotes/quote-classifier-fields";
 import { QuotePatternSuggestions } from "@/components/quotes/quote-pattern-suggestions";
+import { QuoteAiSuggestions } from "@/components/quotes/quote-ai-suggestions";
+import { readAiSuggestions } from "@/lib/quote-ai-suggestions";
 import { saveQuoteClassifierPicks } from "@/server/actions/quote-classifiers";
 
 export const metadata = { title: "Admin · Cotización" };
@@ -191,6 +193,9 @@ export default async function QuoteEditorPage({
   });
   const needsShortDescriptions = quote.items.some(
     (item) => item.productId && !item.product?.shortDescription?.trim()
+  );
+  const aiSuggestions = readAiSuggestions(quote.context?.spaces).filter(
+    (row) => !row.productId || !onQuoteProductIds.has(row.productId)
   );
 
   const canEditImages = permissions.fullAccess || permissionsHave(permissions, "quotes.manage_library");
@@ -439,6 +444,16 @@ export default async function QuoteEditorPage({
                     <GenerateProposalButton quoteId={quote.id} auto={autogen} />
                   </div>
                 ) : null}
+                {aiSuggestions.length > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Hay {aiSuggestions.length} equipo{aiSuggestions.length === 1 ? "" : "s"} sugerido
+                    {aiSuggestions.length === 1 ? "" : "s"} en{" "}
+                    <a href={`/admin/quotes/${quote.id}?paso=4`} className="text-accent hover:underline">
+                      Productos
+                    </a>{" "}
+                    para aprobar o descartar.
+                  </p>
+                ) : null}
                 {facts.length || assumptions.length || questions.length ? (
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div>
@@ -558,6 +573,14 @@ export default async function QuoteEditorPage({
 
           {step === 4 ? (
             <div className="space-y-4">
+              {!issued ? (
+                <div data-tour="quote-generate-products">
+                  <GenerateProposalButton quoteId={quote.id} auto={autogen} />
+                </div>
+              ) : null}
+              {!issued ? (
+                <QuoteAiSuggestions quoteId={quote.id} suggestions={aiSuggestions} issued={issued} />
+              ) : null}
               <QuoteBomTable
                 quoteId={quote.id}
                 items={bomRows}
@@ -603,6 +626,11 @@ export default async function QuoteEditorPage({
               <p className="text-sm text-muted-foreground">
                 Textos de proyecto. Editá en el documento de la derecha. Fijar evita que Generar propuesta los pise.
               </p>
+              {!issued ? (
+                <div data-tour="quote-generate-texts">
+                  <GenerateProposalButton quoteId={quote.id} />
+                </div>
+              ) : null}
               {aiSections.map((section) => (
                 <Card key={section.id}>
                   <CardContent className="space-y-2 p-5">

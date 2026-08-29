@@ -16,7 +16,7 @@ export function GenerateProposalButton({ quoteId, auto = false }: { quoteId: str
       const res = await fetch(`/api/admin/quotes/${quoteId}/generate`, { method: "POST" });
       const r = (await res.json()) as { ok?: boolean; error?: string; message?: string };
       if (r.ok) {
-        setMsg(r.message || "Propuesta generada. Revisá productos y textos en el documento.");
+        setMsg(r.message || "Propuesta generada. Revisá las sugerencias en Productos y el texto de «Nuestra propuesta».");
         router.refresh();
       } else {
         setMsg(r.error || r.message || "No se pudo generar la propuesta.");
@@ -42,15 +42,15 @@ export function GenerateProposalButton({ quoteId, auto = false }: { quoteId: str
         </Button>
         {pending ? (
           <p className="text-sm text-muted-foreground">
-            Esto puede tardar un minuto: lee el brief, sugiere productos y redacta «Nuestra propuesta».
+            Esto puede tardar un minuto: lee el brief, deja equipos como sugerencias y redacta «Nuestra propuesta».
           </p>
         ) : null}
       </div>
       {msg ? <p className="text-sm text-muted-foreground">{msg}</p> : null}
       {!pending && !msg ? (
         <p className="text-xs text-muted-foreground">
-          Genera la lista de equipos sugerida y el texto de «Nuestra propuesta». Los módulos fijos (presentación,
-          marcas, condiciones) no se reescriben.
+          Redacta «Nuestra propuesta» y deja equipos como sugerencias en Productos para que los apruebes o los elijas
+          a mano. No los vuelca a la planilla. Los módulos fijos no se reescriben.
         </p>
       ) : null}
     </div>

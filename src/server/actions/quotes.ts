@@ -22,6 +22,7 @@ import { recordQuoteSnapshot } from "@/lib/quote-edit-history";
 import { ensureQuoteCatalogImage } from "@/lib/quote-product-images";
 import { getSetting, setSetting, getGlobalMarginPercent } from "@/lib/settings";
 import { calculatePricesForProducts } from "@/lib/pricing";
+import { quoteListUnitUsd } from "@/lib/quote-unit-price";
 import { storeQuoteBlob } from "@/server/actions/quote-images";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { fillMissingShortDescription } from "@/lib/product-short-description";
@@ -551,34 +552,7 @@ export async function addProductToQuote(formData: FormData): Promise<{ ok: boole
 
   const defaultIva = Number(await getSetting(QUOTE_SETTING_KEYS.defaultIva, "21")) || 21;
   const iva = product.ivaPercent != null ? Number(product.ivaPercent) : defaultIva;
-  let unit = 0;
-  if (loaded.quote.clientId) {
-    const global = await getGlobalMarginPercent();
-    const prices = await calculatePricesForProducts(
-      [
-        {
-          productId: product.id,
-          baseCostUsd: Number(product.baseCostUsd),
-          brandId: product.brandId,
-          distributorId: product.distributorId,
-          categoryId: product.categoryId,
-          familyId: product.familyId,
-          productDiscountPercent: product.discountPercent != null ? Number(product.discountPercent) : null,
-          tariffDutyPercent: product.tariffDutyPercent != null ? Number(product.tariffDutyPercent) : null,
-          coefNac: product.coefNac != null ? Number(product.coefNac) : null,
-          coefVta: product.coefVta != null ? Number(product.coefVta) : null,
-          coefVtaFob: product.coefVtaFob != null ? Number(product.coefVtaFob) : null,
-          ivaPercent: product.ivaPercent != null ? Number(product.ivaPercent) : null,
-          impIntPercent: product.impIntPercent != null ? Number(product.impIntPercent) : null,
-        },
-      ],
-      loaded.quote.clientId,
-      global
-    );
-    unit = prices.get(product.id)?.finalPriceUsd ?? 0;
-  } else {
-    unit = Number(product.salePriceUsd ?? product.baseCostUsd ?? 0);
-  }
+  const unit = await quoteListUnitUsd(product, loaded.quote.clientId);
 
   const maxSort = loaded.quote.items.reduce((m, i) => Math.max(m, i.sortOrder), -1);
   const desc = [product.brand?.name, product.normalizedName].filter(Boolean).join(" — ");

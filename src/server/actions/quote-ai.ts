@@ -22,7 +22,10 @@ export async function generateQuoteFromBrief(quoteId: string): Promise<{ ok: boo
     const r = await generateQuoteProposal(quoteId, loaded.user.id);
     revalidatePath(`/admin/quotes/${quoteId}`);
     if (!r.ok) return r;
-    return { ok: true, message: "Propuesta armada. Revisá ítems y textos; fijá lo que esté bien." };
+    return {
+      ok: true,
+      message: "Propuesta armada. Los equipos quedaron como sugerencias en Productos; revisá el texto de «Nuestra propuesta».",
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Error al generar.";
     return { ok: false, error: msg };
