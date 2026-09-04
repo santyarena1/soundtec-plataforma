@@ -327,8 +327,8 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     ],
   },
   {
-    id: "ship-2026-09-04",
-    version: "1.10.0",
+    id: "ship-2026-09-04-2",
+    version: "1.11.0",
     releasedAt: "2026-09-04T00:40:00.000Z",
     summary:
       "El catálogo abre mucho más rápido y se arregló el ícono de pestaña (page icon) que 404aba o metía el logo gigante en el HTML.",
@@ -348,8 +348,8 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     ],
   },
   {
-    id: "ship-2026-09-04-2",
-    version: "1.10.1",
+    id: "ship-2026-09-04-3",
+    version: "1.11.1",
     releasedAt: "2026-09-04T00:50:00.000Z",
     summary: "Se corrigió el build de Vercel que rompía el deploy del catálogo más rápido.",
     items: [
