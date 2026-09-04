@@ -347,4 +347,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-04-2",
+    version: "1.10.1",
+    releasedAt: "2026-09-04T00:50:00.000Z",
+    summary: "Se corrigió el build de Vercel que rompía el deploy del catálogo más rápido.",
+    items: [
+      {
+        kind: "FIX",
+        text: "Admin → Productos: tipado del tab Crestron vs Catálogo para que compile el deploy.",
+      },
+    ],
+  },
 ];
