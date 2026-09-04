@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   // Nunca usar el logo de marca (puede ser data: de hasta ~500KB) como page icon:
   // inflaba el HTML de todas las páginas y el browser pedía /favicon.ico en 404.
-  // app/icon.svg + public/favicon.ico cubren el ícono de pestaña.
+  // public/favicon.ico + public/icon.svg cubren el ícono de pestaña.
   const ogImage =
     logoUrl && /^https?:\/\//i.test(logoUrl) ? [logoUrl] : undefined;
 
