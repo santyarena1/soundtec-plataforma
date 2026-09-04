@@ -359,4 +359,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-04-4",
+    version: "1.11.2",
+    releasedAt: "2026-09-04T03:50:00.000Z",
+    summary:
+      "Sync Sonance: el costo FOB ahora toma My Price del dealer, no el wholesale de catálogo.",
+    items: [
+      {
+        kind: "FIX",
+        text: "Antes se usaba basicListPrice (wholesale). Ahora se usa pricing.unitNetPrice (My Price en my.sonance.com).",
+      },
+    ],
+  },
 ];

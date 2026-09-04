@@ -89,8 +89,15 @@ export const API_PATHS: PathGroup[] = [
   {
     group: "Precios",
     paths: [
-      { path: "unitListPrice", label: "unitListPrice (USD numérico)" },
-      { path: "basicListPrice", label: "basicListPrice (V1 — USD numérico) ⭐" },
+      {
+        path: "pricing.unitNetPrice",
+        label: "pricing.unitNetPrice (My Price del dealer) ⭐ costo FOB",
+      },
+      { path: "unitListPrice", label: "unitListPrice (precio de sesión / listing)" },
+      {
+        path: "basicListPrice",
+        label: "basicListPrice (wholesale/list de catálogo — NO es My Price)",
+      },
       { path: "basicSalePrice", label: "basicSalePrice (USD promo)" },
       { path: "basicSaleStartDate", label: "basicSaleStartDate (inicio promo)" },
       { path: "basicSaleEndDate", label: "basicSaleEndDate (fin promo)" },

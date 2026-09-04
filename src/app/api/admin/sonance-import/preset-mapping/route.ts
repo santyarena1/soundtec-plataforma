@@ -35,8 +35,8 @@ const RECOMMENDED_MAPPING: Record<string, string> = {
   metaDescription: "metaDescription",
   metaKeywords: "metaKeywords",
 
-  // Precios
-  baseCostUsd: "basicListPrice",
+  // Precios — costo FOB = My Price del dealer (unitNetPrice), no wholesale/basicListPrice
+  baseCostUsd: "pricing.unitNetPrice",
   salePriceUsd: "basicSalePrice",
   salePriceStartsAt: "basicSaleStartDate",
   salePriceEndsAt: "basicSaleEndDate",

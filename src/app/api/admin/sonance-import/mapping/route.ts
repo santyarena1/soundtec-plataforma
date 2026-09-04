@@ -7,6 +7,14 @@ export const dynamic = "force-dynamic";
 
 const MAPPING_KEY = "sonance.field_mapping";
 
+/** Migra mappings viejos que usaban wholesale (basicListPrice) como costo. */
+function normalizePriceMapping(mapping: Record<string, string>): Record<string, string> {
+  if (mapping.baseCostUsd === "basicListPrice") {
+    return { ...mapping, baseCostUsd: "pricing.unitNetPrice" };
+  }
+  return mapping;
+}
+
 // GET — devuelve el mapping persistido + el catálogo de paths agrupados
 export async function GET() {
   try {
@@ -18,9 +26,14 @@ export async function GET() {
       if (parsed && typeof parsed === "object") mapping = parsed;
     } catch { /* ignore */ }
 
+    const normalized = normalizePriceMapping(mapping);
+    if (normalized.baseCostUsd !== mapping.baseCostUsd) {
+      await setSetting(MAPPING_KEY, JSON.stringify(normalized));
+    }
+
     return NextResponse.json({
       ok: true,
-      mapping,
+      mapping: normalized,
       apiPaths: API_PATHS,
     });
   } catch (err) {

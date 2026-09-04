@@ -6,6 +6,7 @@ import {
   openSession,
   buildSkuToIdMap,
   fetchProductDetailRaw,
+  resolveSonanceMyPrice,
   type PortalProductDetail,
   type PortalImage,
   type PortalAttributeType,
@@ -357,6 +358,12 @@ export async function POST(req: NextRequest) {
 
       const basicListPrice = finiteNumber(detail.basicListPrice);
       const basicSalePrice = finiteNumber(detail.basicSalePrice);
+      const myPrice = resolveSonanceMyPrice({
+        pricing: detail.pricing,
+        unitListPrice: detail.unitListPrice,
+        listingPrice: finiteNumber(skuToCachedItem.get(product.supplierSku!)?.price),
+        basicListPrice,
+      });
       const shippingWeight = finiteNumber(detail.shippingWeight);
       const shippingHeight = finiteNumber(detail.shippingHeight);
       const shippingWidth = finiteNumber(detail.shippingWidth);
@@ -365,7 +372,7 @@ export async function POST(req: NextRequest) {
         ? detail.properties.videoUrl.trim()
         : "";
 
-      if (basicListPrice !== undefined && basicListPrice > 0) productUpdate.baseCostUsd = basicListPrice;
+      if (myPrice !== undefined) productUpdate.baseCostUsd = myPrice;
       if (detail.modelNumber?.trim()) productUpdate.modelNumber = detail.modelNumber;
       if (detail.manufacturerItem?.trim()) productUpdate.manufacturerItem = detail.manufacturerItem;
       if (detail.pageTitle?.trim()) productUpdate.metaTitle = detail.pageTitle;

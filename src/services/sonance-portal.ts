@@ -432,6 +432,7 @@ export interface PortalProductDetail {
   metaKeywords?: string;
   pageTitle?: string;
 
+  /** Wholesale / list de catálogo (NO es “My Price” del dealer). */
   basicListPrice?: number;
   basicSalePrice?: number;
   basicSaleStartDate?: string | null;
@@ -440,6 +441,10 @@ export interface PortalProductDetail {
   canShowPrice?: boolean;
   quoteRequired?: boolean;
   currencySymbol?: string;
+  /** En algunos responses V1 ya viene el precio de sesión (dealer). */
+  unitListPrice?: number;
+  /** Precio calculado para el dealer logueado. unitNetPrice = “My Price” en la web. */
+  pricing?: PortalProductPrice;
 
   isActive?: boolean;
   isDiscontinued?: boolean;
@@ -479,17 +484,85 @@ export interface PortalProductDetail {
   canonicalUrl?: string;
 }
 
-const RICH_EXPAND = "specifications,documents,attributes,detail,accessories,crosssells,brand";
+const RICH_EXPAND =
+  "specifications,documents,attributes,detail,accessories,crosssells,brand";
+
+export interface PortalProductPrice {
+  unitNetPrice?: number;
+  unitNetPriceDisplay?: string;
+  unitListPrice?: number;
+  unitListPriceDisplay?: string;
+  unitRegularPrice?: number;
+  unitCost?: number;
+  isOnSale?: boolean;
+  quoteRequired?: boolean;
+}
+
+function positivePrice(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
+  return value;
+}
+
+/**
+ * Precio de costo FOB para Soundtec = “My Price” del dealer en my.sonance.com.
+ *
+ * En Optimizely/Insite:
+ * - pricing.unitNetPrice / GET …/price → My Price (lo que paga el dealer)
+ * - unitListPrice de listing (sesión dealer) → suele ser el mismo precio de tarjeta
+ * - basicListPrice → wholesale/list de catálogo (NO usar como primario)
+ */
+export function resolveSonanceMyPrice(input: {
+  pricing?: PortalProductPrice | null;
+  unitListPrice?: number | null;
+  listingPrice?: number | null;
+  basicListPrice?: number | null;
+}): number | undefined {
+  return (
+    positivePrice(input.pricing?.unitNetPrice) ??
+    positivePrice(input.unitListPrice) ??
+    positivePrice(input.listingPrice) ??
+    // último recurso: algunos SKUs solo traen list/wholesale
+    positivePrice(input.basicListPrice)
+  );
+}
+
+/** GET /api/v1/products/{id}/price — trae unitNetPrice (My Price) para la sesión. */
+export async function fetchProductPrice(
+  session: Session,
+  productId: string
+): Promise<PortalProductPrice | null> {
+  try {
+    const data = await apiGet<PortalProductPrice & { productId?: string }>(
+      session,
+      `/api/v1/products/${productId}/price?qtyOrdered=1`
+    );
+    return data ?? null;
+  } catch (e) {
+    console.error(`sonance-portal: failed to fetch price for ${productId}`, e);
+    return null;
+  }
+}
 
 export async function fetchProductDetailRawOrThrow(
   session: Session,
   productId: string
 ): Promise<PortalProductDetail | null> {
-  const data = await apiGet<{ product?: PortalProductDetail }>(
-    session,
-    `/api/v1/products/${productId}?expand=${RICH_EXPAND}`
-  );
-  return data.product ?? null;
+  const [data, price] = await Promise.all([
+    apiGet<{ product?: PortalProductDetail }>(
+      session,
+      `/api/v1/products/${productId}?expand=${RICH_EXPAND}`
+    ),
+    fetchProductPrice(session, productId),
+  ]);
+  const product = data.product ?? null;
+  if (!product) return null;
+  if (price) {
+    product.pricing = {
+      ...(product.pricing ?? {}),
+      ...price,
+    };
+  }
+  return product;
 }
 
 export async function fetchProductDetailRaw(

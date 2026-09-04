@@ -3,6 +3,7 @@ import {
   fetchProductsBySearch,
   fetchProductDetailRawOrThrow,
   openSession,
+  resolveSonanceMyPrice,
   sessionFromCookies,
   type Session,
   type PortalAccessory,
@@ -309,6 +310,12 @@ function normalizeDetail(
   const htmlContent = str(detail.htmlContent);
   const basicListPrice = finiteNumber(detail.basicListPrice);
   const basicSalePrice = finiteNumber(detail.basicSalePrice);
+  const myPrice = resolveSonanceMyPrice({
+    pricing: detail.pricing,
+    unitListPrice: detail.unitListPrice,
+    listingPrice: listing.price,
+    basicListPrice,
+  });
   const weight = finiteNumber(detail.shippingWeight);
   const height = finiteNumber(detail.shippingHeight);
   const width = finiteNumber(detail.shippingWidth);
@@ -325,12 +332,8 @@ function normalizeDetail(
     matchField: "supplierSku",
     matchValue: supplierSku,
     name,
-    baseCostUsd:
-      basicListPrice !== undefined && basicListPrice > 0
-        ? basicListPrice
-        : listing.price > 0
-          ? listing.price
-          : undefined,
+    // Costo FOB = My Price del dealer (unitNetPrice), no wholesale/basicListPrice.
+    baseCostUsd: myPrice,
     modelNumber,
     manufacturerItem,
     metaTitle: str(detail.pageTitle),

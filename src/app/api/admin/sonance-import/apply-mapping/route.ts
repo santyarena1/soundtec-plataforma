@@ -4,8 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import { applyMapping, resolvePath } from "@/services/portal-path-resolver";
-import type { PortalProductDetail } from "@/services/sonance-portal";
-import { openSession } from "@/services/sonance-portal";
+import { openSession, resolveSonanceMyPrice, type PortalProductDetail } from "@/services/sonance-portal";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -413,6 +412,10 @@ export async function POST(req: NextRequest) {
     try {
       mapping = JSON.parse(mappingRaw);
     } catch { /* ignore */ }
+    // Migrar mappings viejos que tomaban wholesale como costo FOB.
+    if (mapping.baseCostUsd === "basicListPrice") {
+      mapping = { ...mapping, baseCostUsd: "pricing.unitNetPrice" };
+    }
     if (Object.keys(mapping).length === 0) {
       return NextResponse.json({
         ok: false,
@@ -626,9 +629,18 @@ export async function POST(req: NextRequest) {
         const fallbackName = typeof detailRecord.productTitle === "string"
           ? detailRecord.productTitle
           : item.sku;
-        const fallbackPrice = typeof detailRecord.unitListPrice === "number"
-          ? detailRecord.unitListPrice
-          : 0;
+        const pricing =
+          detailRecord.pricing && typeof detailRecord.pricing === "object"
+            ? (detailRecord.pricing as { unitNetPrice?: number })
+            : undefined;
+        const fallbackPrice =
+          resolveSonanceMyPrice({
+            pricing,
+            unitListPrice:
+              typeof detailRecord.unitListPrice === "number" ? detailRecord.unitListPrice : null,
+            basicListPrice:
+              typeof detailRecord.basicListPrice === "number" ? detailRecord.basicListPrice : null,
+          }) ?? 0;
         const createData = {
           supplierSku: item.sku,
           normalizedName: (productData.normalizedName as string) ?? fallbackName,
