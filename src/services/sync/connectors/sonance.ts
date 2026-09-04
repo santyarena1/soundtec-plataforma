@@ -2,6 +2,7 @@ import {
   fetchFromPortalWithIds,
   fetchProductsBySearch,
   fetchProductDetailRawOrThrow,
+  fetchRealtimePricing,
   openSession,
   resolveSonanceMyPrice,
   sessionFromCookies,
@@ -259,8 +260,11 @@ async function fetchBatchDetails(
       chunk.map(async ({ listing, portalId }) => {
         if (!portalId) return undefined;
         try {
-          const detail = await fetchProductDetailRawOrThrow(session, portalId);
-          if (detail) return normalizeDetail(listing, detail, subBrandBySku);
+          // Precio My Price se pide en lote abajo (realtimepricing).
+          const detail = await fetchProductDetailRawOrThrow(session, portalId, {
+            includeRealtimePrice: false,
+          });
+          if (detail) return { listing, portalId, detail };
           const message = `Sonance devolvió un detalle vacío para ${portalId}`;
           firstError ??= message;
           failedCount++;
@@ -272,8 +276,10 @@ async function fetchBatchDetails(
           if (/\b(429|503)\b/.test(message)) {
             await sleep(1200);
             try {
-              const detail = await fetchProductDetailRawOrThrow(session, portalId);
-              if (detail) return normalizeDetail(listing, detail, subBrandBySku);
+              const detail = await fetchProductDetailRawOrThrow(session, portalId, {
+                includeRealtimePrice: false,
+              });
+              if (detail) return { listing, portalId, detail };
             } catch (retryError) {
               if (isAuthError(retryError)) throw retryError;
             }
@@ -283,7 +289,21 @@ async function fetchBatchDetails(
         }
       })
     );
-    items.push(...details.filter((item): item is NormalizedProduct => item !== undefined));
+    const loaded = details.filter(
+      (row): row is { listing: ListingProduct; portalId: string; detail: PortalProductDetail } =>
+        !!row
+    );
+    const priceMap = await fetchRealtimePricing(
+      session,
+      loaded.map((row) => row.portalId)
+    );
+    for (const row of loaded) {
+      const price = priceMap.get(row.portalId);
+      if (price) {
+        row.detail.pricing = { ...(row.detail.pricing ?? {}), ...price };
+      }
+      items.push(normalizeDetail(row.listing, row.detail, subBrandBySku));
+    }
   }
 
   return { items, failedCount, firstError, attempted, skippedNoId };
@@ -308,14 +328,9 @@ function normalizeDetail(
     ]) ??
     canonicalizeSonanceBrand(str(detail.brand?.name) ?? str(listing.brand));
   const htmlContent = str(detail.htmlContent);
-  const basicListPrice = finiteNumber(detail.basicListPrice);
   const basicSalePrice = finiteNumber(detail.basicSalePrice);
-  const myPrice = resolveSonanceMyPrice({
-    pricing: detail.pricing,
-    unitListPrice: detail.unitListPrice,
-    listingPrice: listing.price,
-    basicListPrice,
-  });
+  // Solo unitNetPrice (My Price). unitListPrice/basicListPrice = WHOLESALE.
+  const myPrice = resolveSonanceMyPrice({ pricing: detail.pricing });
   const weight = finiteNumber(detail.shippingWeight);
   const height = finiteNumber(detail.shippingHeight);
   const width = finiteNumber(detail.shippingWidth);

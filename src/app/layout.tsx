@@ -10,6 +10,20 @@ const inter = Inter({
   display: "swap",
 });
 
+function resolveMetadataBase(): URL | undefined {
+  const raw = (process.env.APP_URL || "").trim();
+  if (!raw || !/^https?:\/\//i.test(raw)) return undefined;
+  try {
+    const url = new URL(raw);
+    // Si queda en localhost, Next convierte /favicon.ico en
+    // http://localhost:3000/favicon.ico y el ícono se rompe en producción.
+    if (/^(localhost|127\.0\.0\.1)$/i.test(url.hostname)) return undefined;
+    return url;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   let appName = "Soundtec";
   let logoUrl = "";
@@ -25,10 +39,10 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   // Nunca usar el logo de marca (puede ser data: de hasta ~500KB) como page icon:
-  // inflaba el HTML de todas las páginas y el browser pedía /favicon.ico en 404.
-  // public/favicon.ico + public/icon.svg cubren el ícono de pestaña.
+  // inflaba el HTML de todas las páginas. Íconos fijos en /public.
   const ogImage =
     logoUrl && /^https?:\/\//i.test(logoUrl) ? [logoUrl] : undefined;
+  const metadataBase = resolveMetadataBase();
 
   return {
     title: {
@@ -37,11 +51,14 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description:
       "Integración profesional de audio, video, iluminación, videoconferencia, automatización y control inteligente para proyectos corporativos, educativos, culturales y de eventos.",
-    metadataBase: new URL(process.env.APP_URL || "http://localhost:3000"),
+    ...(metadataBase ? { metadataBase } : {}),
     icons: {
-      icon: [{ url: "/favicon.ico" }, { url: "/icon.svg", type: "image/svg+xml" }],
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/icon.svg", type: "image/svg+xml" },
+      ],
       shortcut: "/favicon.ico",
-      apple: "/favicon.ico",
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
     },
     openGraph: {
       title: appName,

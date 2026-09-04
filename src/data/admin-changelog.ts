@@ -372,4 +372,25 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-04-5",
+    version: "1.11.3",
+    releasedAt: "2026-09-04T04:15:00.000Z",
+    summary:
+      "Sonance trae el My Price real (ej. 768 vs wholesale 960) y el favicon deja de romperse en producción.",
+    items: [
+      {
+        kind: "FIX",
+        text: "My Price sale de POST /api/v1/realtimepricing (unitNetPrice). Ya no se usa unitListPrice/wholesale como fallback.",
+      },
+      {
+        kind: "FIX",
+        text: "El favicon ya no apunta a localhost cuando falta APP_URL; hay favicon multi-tamaño e ícono Apple.",
+      },
+      {
+        kind: "MEJORA",
+        text: "En Cadena de precios, el resumen dice «Precio FOB USD» (venta) para no confundirlo con el costo base.",
+      },
+    ],
+  },
 ];

@@ -91,9 +91,9 @@ export const API_PATHS: PathGroup[] = [
     paths: [
       {
         path: "pricing.unitNetPrice",
-        label: "pricing.unitNetPrice (My Price del dealer) ⭐ costo FOB",
+        label: "pricing.unitNetPrice (My Price / realtimepricing) ⭐ costo FOB",
       },
-      { path: "unitListPrice", label: "unitListPrice (precio de sesión / listing)" },
+      { path: "unitListPrice", label: "unitListPrice (WHOLESALE — no usar como costo)" },
       {
         path: "basicListPrice",
         label: "basicListPrice (wholesale/list de catálogo — NO es My Price)",

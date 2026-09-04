@@ -636,10 +636,6 @@ export async function POST(req: NextRequest) {
         const fallbackPrice =
           resolveSonanceMyPrice({
             pricing,
-            unitListPrice:
-              typeof detailRecord.unitListPrice === "number" ? detailRecord.unitListPrice : null,
-            basicListPrice:
-              typeof detailRecord.basicListPrice === "number" ? detailRecord.basicListPrice : null,
           }) ?? 0;
         const createData = {
           supplierSku: item.sku,

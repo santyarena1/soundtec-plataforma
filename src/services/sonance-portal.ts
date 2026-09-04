@@ -191,6 +191,34 @@ async function apiGet<T = unknown>(session: Session, path: string): Promise<T> {
   return JSON.parse(res.body) as T;
 }
 
+async function apiPost<T = unknown>(
+  session: Session,
+  path: string,
+  body: unknown
+): Promise<T> {
+  const payload = JSON.stringify(body);
+  const res = await rawRequestOnce(
+    `${BASE}${path}`,
+    "POST",
+    browserHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "Content-Length": String(Buffer.byteLength(payload)),
+      Origin: BASE,
+      Referer: `${BASE}/`,
+      "X-Requested-With": "XMLHttpRequest",
+      Cookie: cookieStr(session.cookies),
+    }),
+    payload
+  );
+  if (res.status !== 200 && res.status !== 201) {
+    throw new Error(
+      `my.sonance.com API ${res.status} en POST ${path}: ${res.body.slice(0, 150)}`
+    );
+  }
+  return JSON.parse(res.body) as T;
+}
+
 // ── categories (brand discovery) ──────────────────────────────────────────────
 
 interface CategoryNode {
@@ -488,6 +516,7 @@ const RICH_EXPAND =
   "specifications,documents,attributes,detail,accessories,crosssells,brand";
 
 export interface PortalProductPrice {
+  productId?: string;
   unitNetPrice?: number;
   unitNetPriceDisplay?: string;
   unitListPrice?: number;
@@ -496,6 +525,11 @@ export interface PortalProductPrice {
   unitCost?: number;
   isOnSale?: boolean;
   quoteRequired?: boolean;
+  additionalResults?: {
+    showMyPrice?: boolean | string;
+    showWholesale?: boolean | string;
+    showMsrp?: boolean | string;
+  };
 }
 
 function positivePrice(value: unknown): number | undefined {
@@ -506,61 +540,95 @@ function positivePrice(value: unknown): number | undefined {
 /**
  * Precio de costo FOB para Soundtec = “My Price” del dealer en my.sonance.com.
  *
- * En Optimizely/Insite:
- * - pricing.unitNetPrice / GET …/price → My Price (lo que paga el dealer)
- * - unitListPrice de listing (sesión dealer) → suele ser el mismo precio de tarjeta
- * - basicListPrice → wholesale/list de catálogo (NO usar como primario)
+ * En la UI de Sonance:
+ * - MY PRICE  → pricing.unitNetPrice (vía POST /api/v1/realtimepricing)
+ * - WHOLESALE → unitListPrice / basicListPrice (NO usar como costo)
+ * - MSRP      → otro campo de listado
+ *
+ * Nunca caemos a wholesale: eso era el bug (ej. SKU 93802 → 960 en vez de 768).
  */
 export function resolveSonanceMyPrice(input: {
   pricing?: PortalProductPrice | null;
+  /** @deprecated Ignorado: unitListPrice es WHOLESALE, no My Price. */
   unitListPrice?: number | null;
+  /** @deprecated Ignorado: listing.price suele ser wholesale. */
   listingPrice?: number | null;
+  /** @deprecated Ignorado: basicListPrice es wholesale/list de catálogo. */
   basicListPrice?: number | null;
 }): number | undefined {
-  return (
-    positivePrice(input.pricing?.unitNetPrice) ??
-    positivePrice(input.unitListPrice) ??
-    positivePrice(input.listingPrice) ??
-    // último recurso: algunos SKUs solo traen list/wholesale
-    positivePrice(input.basicListPrice)
-  );
+  return positivePrice(input.pricing?.unitNetPrice);
 }
 
-/** GET /api/v1/products/{id}/price — trae unitNetPrice (My Price) para la sesión. */
+/**
+ * POST /api/v1/realtimepricing — el mismo endpoint que usa la web para MY PRICE.
+ * Devuelve un map productId → pricing (unitNetPrice = My Price).
+ */
+export async function fetchRealtimePricing(
+  session: Session,
+  productIds: string[],
+  qtyOrdered = 1
+): Promise<Map<string, PortalProductPrice>> {
+  const out = new Map<string, PortalProductPrice>();
+  const ids = [...new Set(productIds.map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0) return out;
+
+  const CHUNK = 25;
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const chunk = ids.slice(i, i + CHUNK);
+    try {
+      const data = await apiPost<{
+        realTimePricingResults?: PortalProductPrice[];
+      }>(session, "/api/v1/realtimepricing", {
+        productPriceParameters: chunk.map((productId) => ({
+          productId,
+          qtyOrdered,
+          unitOfMeasure: "",
+        })),
+      });
+      for (const result of data.realTimePricingResults ?? []) {
+        const id = result.productId?.trim();
+        if (id) out.set(id, result);
+      }
+    } catch (e) {
+      console.error(
+        `sonance-portal: realtimepricing falló para ${chunk.length} productos`,
+        e
+      );
+    }
+  }
+  return out;
+}
+
+/** @deprecated Usar fetchRealtimePricing — /products/{id}/price no trae el My Price del dealer. */
 export async function fetchProductPrice(
   session: Session,
   productId: string
 ): Promise<PortalProductPrice | null> {
-  try {
-    const data = await apiGet<PortalProductPrice & { productId?: string }>(
-      session,
-      `/api/v1/products/${productId}/price?qtyOrdered=1`
-    );
-    return data ?? null;
-  } catch (e) {
-    console.error(`sonance-portal: failed to fetch price for ${productId}`, e);
-    return null;
-  }
+  const map = await fetchRealtimePricing(session, [productId]);
+  return map.get(productId) ?? null;
 }
 
 export async function fetchProductDetailRawOrThrow(
   session: Session,
-  productId: string
+  productId: string,
+  options?: { includeRealtimePrice?: boolean }
 ): Promise<PortalProductDetail | null> {
-  const [data, price] = await Promise.all([
-    apiGet<{ product?: PortalProductDetail }>(
-      session,
-      `/api/v1/products/${productId}?expand=${RICH_EXPAND}`
-    ),
-    fetchProductPrice(session, productId),
-  ]);
+  const includeRealtimePrice = options?.includeRealtimePrice !== false;
+  const data = await apiGet<{ product?: PortalProductDetail }>(
+    session,
+    `/api/v1/products/${productId}?expand=${RICH_EXPAND}`
+  );
   const product = data.product ?? null;
   if (!product) return null;
-  if (price) {
-    product.pricing = {
-      ...(product.pricing ?? {}),
-      ...price,
-    };
+  if (includeRealtimePrice) {
+    const priceMap = await fetchRealtimePricing(session, [productId]);
+    const price = priceMap.get(productId);
+    if (price) {
+      product.pricing = {
+        ...(product.pricing ?? {}),
+        ...price,
+      };
+    }
   }
   return product;
 }

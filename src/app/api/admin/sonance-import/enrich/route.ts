@@ -356,14 +356,9 @@ export async function POST(req: NextRequest) {
         enrichedAt: new Date(),
       };
 
-      const basicListPrice = finiteNumber(detail.basicListPrice);
       const basicSalePrice = finiteNumber(detail.basicSalePrice);
-      const myPrice = resolveSonanceMyPrice({
-        pricing: detail.pricing,
-        unitListPrice: detail.unitListPrice,
-        listingPrice: finiteNumber(skuToCachedItem.get(product.supplierSku!)?.price),
-        basicListPrice,
-      });
+      // Solo My Price (unitNetPrice). No caer a wholesale.
+      const myPrice = resolveSonanceMyPrice({ pricing: detail.pricing });
       const shippingWeight = finiteNumber(detail.shippingWeight);
       const shippingHeight = finiteNumber(detail.shippingHeight);
       const shippingWidth = finiteNumber(detail.shippingWidth);

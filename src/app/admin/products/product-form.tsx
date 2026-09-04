@@ -382,7 +382,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               </div>
               <div className="grid min-w-[260px] grid-cols-2 gap-2 text-xs">
                 <div className="rounded-md bg-blue-50 px-3 py-2 dark:bg-blue-900/30">
-                  <span className="block text-muted-foreground">USD FOB</span>
+                  <span className="block text-muted-foreground">Precio FOB USD</span>
                   <strong className="tabular-nums">US$ {fmtUsd(enginePricing.priceFobUsd)}</strong>
                 </div>
                 <div className="rounded-md bg-blue-50 px-3 py-2 dark:bg-blue-900/30">
