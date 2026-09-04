@@ -123,97 +123,116 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const orderBy: Prisma.ProductOrderByWithRelationInput =
     SORT_MAP[params.sort || ""] ?? { normalizedName: "asc" };
 
-  const [products, total, brands, categories, families, distributors, allLabels, crestronProducts, compatibleCount] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      orderBy,
-      include: {
-        brand: { select: { id: true, name: true } },
-        category: { select: { id: true, name: true } },
-        family: { select: { id: true, name: true } },
-        distributor: { select: { id: true, name: true } },
-        images: productCoverImageInclude,
-        labels: { select: { label: { select: { id: true, name: true, color: true } } } },
-      },
-      take: pageSize,
-      skip: (page - 1) * pageSize,
-    }),
-    prisma.product.count({ where }),
-    prisma.brand.findMany({
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, _count: { select: { products: true } } },
-    }),
-    prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
-    prisma.product.findMany({
-      where: { isActive: true },
-      orderBy: [{ isCrestronHomeCompatible: "desc" }, { normalizedName: "asc" }],
-      select: { id: true, internalSku: true, normalizedName: true, isCrestronHomeCompatible: true },
-    }),
-    prisma.product.count({ where: { isCrestronHomeCompatible: true } }),
-  ]);
+  // Crestron Home pide TODOS los productos activos: no lo corremos en el tab Catálogo.
+  const crestronBundle =
+    tab === "crestron"
+      ? Promise.all([
+          prisma.product.findMany({
+            where: { isActive: true },
+            orderBy: [{ isCrestronHomeCompatible: "desc" }, { normalizedName: "asc" }],
+            select: { id: true, internalSku: true, normalizedName: true, isCrestronHomeCompatible: true },
+          }),
+          prisma.product.count({ where: { isCrestronHomeCompatible: true } }),
+        ])
+      : Promise.resolve([[], 0] as const);
+
+  const catalogBundle =
+    tab === "catalog"
+      ? Promise.all([
+          prisma.product.findMany({
+            where,
+            orderBy,
+            include: {
+              brand: { select: { id: true, name: true } },
+              category: { select: { id: true, name: true } },
+              family: { select: { id: true, name: true } },
+              distributor: { select: { id: true, name: true } },
+              images: productCoverImageInclude,
+              labels: { select: { label: { select: { id: true, name: true, color: true } } } },
+            },
+            take: pageSize,
+            skip: (page - 1) * pageSize,
+          }),
+          prisma.product.count({ where }),
+          prisma.brand.findMany({
+            orderBy: { name: "asc" },
+            select: { id: true, name: true, _count: { select: { products: true } } },
+          }),
+          prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+          prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+          prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+          prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
+        ])
+      : Promise.resolve([[], 0, [], [], [], [], []] as const);
+
+  const [[products, total, brands, categories, families, distributors, allLabels], [crestronProducts, compatibleCount]] =
+    await Promise.all([catalogBundle, crestronBundle]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const prices = await calculatePricesForProducts(
-    products.map((p) => ({
-      productId: p.id,
-      baseCostUsd: Number(p.baseCostUsd),
-      brandId: p.brandId,
-      distributorId: p.distributorId,
-      categoryId: p.categoryId,
-      familyId: p.familyId,
-      familia: p.familia ?? null,
-      productDiscountPercent: p.discountPercent != null ? Number(p.discountPercent) : null,
-      tariffDutyPercent: p.tariffDutyPercent != null ? Number(p.tariffDutyPercent) : null,
-      coefNac: p.coefNac != null ? Number(p.coefNac) : null,
-      coefVta: p.coefVta != null ? Number(p.coefVta) : null,
-      coefVtaFob: p.coefVtaFob != null ? Number(p.coefVtaFob) : null,
-      ivaPercent: p.ivaPercent != null ? Number(p.ivaPercent) : null,
-      impIntPercent: p.impIntPercent != null ? Number(p.impIntPercent) : null,
-    })),
-    null
-  );
+  const prices =
+    tab === "catalog"
+      ? await calculatePricesForProducts(
+          products.map((p) => ({
+            productId: p.id,
+            baseCostUsd: Number(p.baseCostUsd),
+            brandId: p.brandId,
+            distributorId: p.distributorId,
+            categoryId: p.categoryId,
+            familyId: p.familyId,
+            familia: p.familia ?? null,
+            productDiscountPercent: p.discountPercent != null ? Number(p.discountPercent) : null,
+            tariffDutyPercent: p.tariffDutyPercent != null ? Number(p.tariffDutyPercent) : null,
+            coefNac: p.coefNac != null ? Number(p.coefNac) : null,
+            coefVta: p.coefVta != null ? Number(p.coefVta) : null,
+            coefVtaFob: p.coefVtaFob != null ? Number(p.coefVtaFob) : null,
+            ivaPercent: p.ivaPercent != null ? Number(p.ivaPercent) : null,
+            impIntPercent: p.impIntPercent != null ? Number(p.impIntPercent) : null,
+          })),
+          null
+        )
+      : new Map();
 
-  const rows = products.map((p) => {
-    const price = prices.get(p.id);
-    return {
-    id: p.id,
-    sku: p.internalSku || "",
-    supplierSku: p.supplierSku || "",
-    name: p.normalizedName,
-    originalName: p.originalName || "",
-    primaryImage: p.images[0]?.url || null,
-    brand: p.brand?.name || null,
-    brandId: p.brandId,
-    category: p.category?.name || null,
-    categoryId: p.categoryId,
-    family: p.family?.name || null,
-    familyId: p.familyId,
-    distributor: p.distributor?.name || null,
-    distributorId: p.distributorId,
-    cost: Number(p.baseCostUsd),
-    priceUsdFinal: price?.priceUsdFinal ?? 0,
-    priceFobUsd: price?.priceFobUsd ?? 0,
-    priceNacFinalArs: price?.priceNacFinalArs ?? 0,
-    salePriceUsd: p.salePriceUsd != null ? Number(p.salePriceUsd) : null,
-    discountPercent: p.discountPercent ? Number(p.discountPercent) : null,
-    tariffPosition: p.tariffPosition || null,
-    tariffDutyPercent: p.tariffDutyPercent ? Number(p.tariffDutyPercent) : null,
-    stockStatus: p.stockStatus,
-    stockQuantity: p.stockQuantity,
-    isActive: p.isActive,
-    isCustomizable: p.isCustomizable,
-    kind: p.kind as "PRINCIPAL" | "ACCESORIO",
-    shortDescription: p.shortDescription || null,
-    longDescription: p.longDescription || null,
-    aiGeneratedDescription: p.aiGeneratedDescription,
-    isCrestronHomeCompatible: p.isCrestronHomeCompatible,
-    updatedAt: p.updatedAt.toISOString(),
-    labels: p.labels.map((pl) => pl.label),
-    };
-  });
+  const rows =
+    tab === "catalog"
+      ? products.map((p) => {
+          const price = prices.get(p.id);
+          return {
+            id: p.id,
+            sku: p.internalSku || "",
+            supplierSku: p.supplierSku || "",
+            name: p.normalizedName,
+            originalName: p.originalName || "",
+            primaryImage: p.images[0]?.url || null,
+            brand: p.brand?.name || null,
+            brandId: p.brandId,
+            category: p.category?.name || null,
+            categoryId: p.categoryId,
+            family: p.family?.name || null,
+            familyId: p.familyId,
+            distributor: p.distributor?.name || null,
+            distributorId: p.distributorId,
+            cost: Number(p.baseCostUsd),
+            priceUsdFinal: price?.priceUsdFinal ?? 0,
+            priceFobUsd: price?.priceFobUsd ?? 0,
+            priceNacFinalArs: price?.priceNacFinalArs ?? 0,
+            salePriceUsd: p.salePriceUsd != null ? Number(p.salePriceUsd) : null,
+            discountPercent: p.discountPercent ? Number(p.discountPercent) : null,
+            tariffPosition: p.tariffPosition || null,
+            tariffDutyPercent: p.tariffDutyPercent ? Number(p.tariffDutyPercent) : null,
+            stockStatus: p.stockStatus,
+            stockQuantity: p.stockQuantity,
+            isActive: p.isActive,
+            isCustomizable: p.isCustomizable,
+            kind: p.kind as "PRINCIPAL" | "ACCESORIO",
+            shortDescription: p.shortDescription || null,
+            longDescription: p.longDescription || null,
+            aiGeneratedDescription: p.aiGeneratedDescription,
+            isCrestronHomeCompatible: p.isCrestronHomeCompatible,
+            updatedAt: p.updatedAt.toISOString(),
+            labels: p.labels.map((pl) => pl.label),
+          };
+        })
+      : [];
 
   return (
     <div className="space-y-4">

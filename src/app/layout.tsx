@@ -24,7 +24,12 @@ export async function generateMetadata(): Promise<Metadata> {
     // fallback silencioso si la DB no está disponible
   }
 
-  const icon = logoUrl || "/favicon.ico";
+  // Nunca usar el logo de marca (puede ser data: de hasta ~500KB) como page icon:
+  // inflaba el HTML de todas las páginas y el browser pedía /favicon.ico en 404.
+  // app/icon.svg + public/favicon.ico cubren el ícono de pestaña.
+  const ogImage =
+    logoUrl && /^https?:\/\//i.test(logoUrl) ? [logoUrl] : undefined;
+
   return {
     title: {
       default: `${appName} — Soluciones audiovisuales profesionales`,
@@ -34,9 +39,9 @@ export async function generateMetadata(): Promise<Metadata> {
       "Integración profesional de audio, video, iluminación, videoconferencia, automatización y control inteligente para proyectos corporativos, educativos, culturales y de eventos.",
     metadataBase: new URL(process.env.APP_URL || "http://localhost:3000"),
     icons: {
-      icon,
-      shortcut: icon,
-      apple: icon,
+      icon: [{ url: "/favicon.ico" }, { url: "/icon.svg", type: "image/svg+xml" }],
+      shortcut: "/favicon.ico",
+      apple: "/favicon.ico",
     },
     openGraph: {
       title: appName,
@@ -44,7 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
         "Portal de clientes y herramientas profesionales para proyectos audiovisuales integrados.",
       type: "website",
       locale: "es_AR",
-      images: logoUrl ? [logoUrl] : undefined,
+      images: ogImage,
     },
   };
 }

@@ -120,12 +120,38 @@ export interface VisibleBreakdown extends Pick<PriceBreakdown, "discountPercent"
   showInternals: boolean;
 }
 
+type PricingMarginRule = Awaited<ReturnType<typeof loadPricingRules>>["marginRules"][number];
+type PricingDiscountRule = Awaited<ReturnType<typeof loadPricingRules>>["discountRules"][number];
+
 interface CalculatePriceOptions {
   product: ProductPricingInput;
   clientId?: string | null;
   defaultGlobalMarginPercent?: number;
   defaultMarkupMultiplier?: number;
   tcOverride?: number;
+  /** Si vienen de un batch (catálogo), evita un findMany por producto. */
+  marginRules?: PricingMarginRule[];
+  discountRules?: PricingDiscountRule[];
+}
+
+async function loadPricingRules(clientId: string | null) {
+  const [marginRules, discountRules] = await Promise.all([
+    prisma.marginRule.findMany({
+      where: {
+        isActive: true,
+        OR: [{ clientId: clientId ?? null }, { clientId: null }],
+      },
+      orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
+    }),
+    prisma.discountRule.findMany({
+      where: {
+        isActive: true,
+        OR: [{ clientId: clientId ?? null }, { clientId: null }],
+      },
+      orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
+    }),
+  ]);
+  return { marginRules, discountRules };
 }
 
 function exemptionGroupIds(
@@ -269,27 +295,11 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
       familyScopeResolved: true,
     };
   }
-  const [marginRules, discountRules, defaultMarkupSetting, exchangeRate] = await Promise.all([
-    prisma.marginRule.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { clientId: clientId ?? null },
-          { clientId: null },
-        ],
-      },
-      orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
-    }),
-    prisma.discountRule.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { clientId: clientId ?? null },
-          { clientId: null },
-        ],
-      },
-      orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
-    }),
+  const hasRuleCache = options.marginRules != null && options.discountRules != null;
+  const [cachedRules, defaultMarkupSetting, exchangeRate] = await Promise.all([
+    hasRuleCache
+      ? Promise.resolve({ marginRules: options.marginRules!, discountRules: options.discountRules! })
+      : loadPricingRules(clientId ?? null),
     options.defaultMarkupMultiplier == null
       ? getSetting("pricing.default_markup", "1.35")
       : Promise.resolve(String(options.defaultMarkupMultiplier)),
@@ -297,6 +307,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
       ? getExchangeRate()
       : Promise.resolve(options.tcOverride),
   ]);
+  const { marginRules, discountRules } = cachedRules;
 
   type AnyRule = {
     id: string;
@@ -493,28 +504,33 @@ export async function calculatePricesForProducts(
   defaultGlobalMarginPercent = 35
 ): Promise<Map<string, PriceBreakdown>> {
   void defaultGlobalMarginPercent;
-  const [defaultMarkupRaw, tc] = await Promise.all([
+  if (products.length === 0) return new Map();
+
+  // Una sola lectura de reglas/TC/markup para todo el lote. Antes el catálogo
+  // pedía margin+discount por cada producto (miles de queries) y se colgaba.
+  const [defaultMarkupRaw, tc, rules, familyIds] = await Promise.all([
     getSetting("pricing.default_markup", "1.35"),
     getExchangeRate(),
+    loadPricingRules(clientId),
+    resolveFamilyIds(products),
   ]);
   const defaultMarkupMultiplier = parsedSetting(defaultMarkupRaw, 1.35);
-  const familyIds = await resolveFamilyIds(products);
   const results = new Map<string, PriceBreakdown>();
-  await Promise.all(
-    products.map(async (p) => {
-      const r = await calculateCustomerPrice({
-        product: {
-          ...p,
-          familyId: familyIds.get(p.productId) ?? p.familyId,
-          familyScopeResolved: true,
-        },
-        clientId,
-        defaultMarkupMultiplier,
-        tcOverride: tc,
-      });
-      results.set(p.productId, r);
-    })
-  );
+  for (const p of products) {
+    const r = await calculateCustomerPrice({
+      product: {
+        ...p,
+        familyId: familyIds.get(p.productId) ?? p.familyId,
+        familyScopeResolved: true,
+      },
+      clientId,
+      defaultMarkupMultiplier,
+      tcOverride: tc,
+      marginRules: rules.marginRules,
+      discountRules: rules.discountRules,
+    });
+    results.set(p.productId, r);
+  }
   return results;
 }
 

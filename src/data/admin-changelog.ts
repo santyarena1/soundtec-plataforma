@@ -326,4 +326,25 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-04",
+    version: "1.10.0",
+    releasedAt: "2026-09-04T00:40:00.000Z",
+    summary:
+      "El catálogo abre mucho más rápido y se arregló el ícono de pestaña (page icon) que 404aba o metía el logo gigante en el HTML.",
+    items: [
+      {
+        kind: "FIX",
+        text: "Calcular precios del catálogo ya no pide las reglas de margen/descuento una vez por producto (miles de queries).",
+      },
+      {
+        kind: "FIX",
+        text: "En Admin → Productos, el listado Crestron ya no se carga cuando estás en el tab Catálogo.",
+      },
+      {
+        kind: "FIX",
+        text: "El page icon usa favicon.ico / icon.svg fijos. El logo en data: ya no se mete en el HTML de todas las páginas.",
+      },
+    ],
+  },
 ];
