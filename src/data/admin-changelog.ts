@@ -284,4 +284,25 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-04",
+    version: "1.9.0",
+    releasedAt: "2026-09-04T00:45:00.000Z",
+    summary:
+      "En sincronización de productos: historial de cambios por proceso y botón para volver a la sync anterior.",
+    items: [
+      {
+        kind: "NUEVO",
+        text: "Procesos recientes: Historial con cambios campo por campo (antes → después).",
+      },
+      {
+        kind: "NUEVO",
+        text: "Revertir una sync aplicada restaura productos al estado anterior; los creados se desactivan.",
+      },
+      {
+        kind: "MEJORA",
+        text: "“Actualizados” solo cuenta cambios reales. El resto aparece en “Sin cambios” (ya no infla 900+ updates).",
+      },
+    ],
+  },
 ];

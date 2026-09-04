@@ -5,9 +5,12 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock3,
+  History,
   Loader2,
   Play,
   RefreshCw,
+  RotateCcw,
+  Undo2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,12 +37,31 @@ const RUN_STATUS_LABELS: Record<string, string> = {
   COMPLETED: "Completada",
   FAILED: "Fallida",
   CANCELLED: "Cancelada",
+  ROLLED_BACK: "Revertida",
 };
 
 const STAGED_STATUS_LABELS: Record<string, string> = {
   pending: "Pendiente",
   applied: "Aplicado",
   error: "Error",
+  rolled_back: "Revertido",
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  baseCostUsd: "Costo USD",
+  salePriceUsd: "Precio venta",
+  stockStatus: "Stock",
+  stockQuantity: "Cantidad stock",
+  normalizedName: "Nombre",
+  shortDescription: "Descripción corta",
+  longDescription: "Descripción larga",
+  brandId: "Marca",
+  categoryId: "Categoría",
+  familyId: "Familia",
+  familia: "Familia (texto)",
+  tipo: "Tipo",
+  discountPercent: "Descuento %",
+  isActive: "Activo",
 };
 
 const ROW_ACTION_LABELS: Record<string, string> = {
@@ -95,6 +117,7 @@ interface BatchSummary {
   nextOffset: number | null;
   created: number;
   updated: number;
+  unchanged: number;
   priceChanges: number;
   stockChanges: number;
   errors: number;
@@ -121,25 +144,46 @@ interface RunRecord {
   matched: number;
   created: number;
   updated: number;
+  unchanged?: number;
   priceChanges: number;
   stockChanges: number;
   errors: number;
   startedAt: string;
   finishedAt: string | null;
+  rolledBackAt?: string | null;
+}
+
+interface FieldChange {
+  field: string;
+  from: unknown;
+  to: unknown;
 }
 
 interface StagedRow {
+  id?: string;
   matchValue: string;
   action: string;
   status: string;
   diffJson: unknown;
+  beforeJson?: unknown;
   error: string | null;
+  productId?: string | null;
 }
 
 interface RunResponse {
   ok: boolean;
   run?: RunRecord;
   rows?: StagedRow[];
+  changeSummary?: Record<string, number>;
+  canRollback?: boolean;
+  error?: string;
+}
+
+interface RollbackResponse {
+  ok: boolean;
+  restored?: number;
+  deactivated?: number;
+  skipped?: number;
   error?: string;
 }
 
@@ -152,6 +196,7 @@ interface RunsResponse {
 interface DiffInfo {
   priceChanged: boolean;
   stockChanged: boolean;
+  changes: FieldChange[];
 }
 
 function errorMessage(error: unknown): string {
@@ -193,6 +238,7 @@ function requireSummary(data: Partial<BatchSummary>): BatchSummary {
     nextOffset: data.nextOffset ?? null,
     created: data.created,
     updated: data.updated,
+    unchanged: typeof data.unchanged === "number" ? data.unchanged : 0,
     priceChanges: data.priceChanges,
     stockChanges: data.stockChanges,
     errors: data.errors,
@@ -233,13 +279,38 @@ async function runWithPolling(
 
 function parseDiff(value: unknown): DiffInfo {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { priceChanged: false, stockChanged: false };
+    return { priceChanged: false, stockChanged: false, changes: [] };
   }
   const diff = value as Record<string, unknown>;
+  const changes = Array.isArray(diff.changes)
+    ? (diff.changes as FieldChange[]).filter(
+        (c) => c && typeof c === "object" && typeof c.field === "string"
+      )
+    : [];
   return {
     priceChanged: diff.priceChanged === true,
     stockChanged: diff.stockChanged === true,
+    changes,
   };
+}
+
+function fieldLabel(field: string): string {
+  return FIELD_LABELS[field] ?? field;
+}
+
+function formatChangeValue(value: unknown): string {
+  if (value == null || value === "") return "—";
+  if (typeof value === "boolean") return value ? "sí" : "no";
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") {
+    return value.length > 80 ? `${value.slice(0, 80)}…` : value;
+  }
+  try {
+    const raw = JSON.stringify(value);
+    return raw.length > 80 ? `${raw.slice(0, 80)}…` : raw;
+  } catch {
+    return String(value);
+  }
 }
 
 function statusTone(
@@ -249,6 +320,7 @@ function statusTone(
   if (status === "FAILED" || status === "error" || status === "CANCELLED") {
     return "destructive";
   }
+  if (status === "ROLLED_BACK" || status === "rolled_back") return "warning";
   if (
     status === "RUNNING" ||
     status === "APPLYING" ||
@@ -276,6 +348,15 @@ export function UnifiedSyncPanel() {
   const [rows, setRows] = useState<StagedRow[]>([]);
   const [recentRuns, setRecentRuns] = useState<RunRecord[]>([]);
   const [loadingRuns, setLoadingRuns] = useState(true);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [historyRows, setHistoryRows] = useState<StagedRow[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<"changed" | "all" | "price" | "errors" | "noop">(
+    "changed"
+  );
+  const [historyCanRollback, setHistoryCanRollback] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [rollingBack, setRollingBack] = useState(false);
+  const [historyMessage, setHistoryMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [schedule, setSchedule] = useState<ScheduleConfig | null>(null);
   const [loadingSchedule, setLoadingSchedule] = useState(true);
@@ -298,6 +379,59 @@ export function UnifiedSyncPanel() {
       setLoadingRuns(false);
     }
   }, []);
+
+  const loadRunHistory = useCallback(
+    async (id: string, filter: typeof historyFilter = "changed") => {
+      setLoadingHistory(true);
+      setHistoryMessage(null);
+      try {
+        const data = await readJson<RunResponse>(
+          await fetch(`/api/admin/sync/run/${id}?filter=${filter}&take=150`, {
+            cache: "no-store",
+          })
+        );
+        setSelectedRunId(id);
+        setHistoryRows(data.rows ?? []);
+        setHistoryCanRollback(data.canRollback === true);
+      } catch (historyError) {
+        setHistoryMessage(errorMessage(historyError));
+      } finally {
+        setLoadingHistory(false);
+      }
+    },
+    []
+  );
+
+  async function handleRollback(id: string) {
+    if (
+      !window.confirm(
+        "Esto va a restaurar los productos al estado anterior a esta sync.\n" +
+          "Los productos creados en esta sync se desactivan (no se borran).\n\n" +
+          "¿Confirmás revertir?"
+      )
+    ) {
+      return;
+    }
+    setRollingBack(true);
+    setHistoryMessage(null);
+    try {
+      const data = await readJson<RollbackResponse>(
+        await fetch(`/api/admin/sync/run/${id}/rollback`, { method: "POST" })
+      );
+      setHistoryMessage(
+        `Revertido: ${data.restored ?? 0} restaurados, ${data.deactivated ?? 0} creados desactivados` +
+          (data.skipped ? `, ${data.skipped} sin cambios` : "") +
+          "."
+      );
+      setHistoryCanRollback(false);
+      await loadRecentRuns();
+      await loadRunHistory(id, historyFilter);
+    } catch (rollbackError) {
+      setHistoryMessage(errorMessage(rollbackError));
+    } finally {
+      setRollingBack(false);
+    }
+  }
 
   const loadSchedule = useCallback(async () => {
     setLoadingSchedule(true);
@@ -652,10 +786,11 @@ export function UnifiedSyncPanel() {
                   style={{ width: `${percent}%` }}
                 />
               </div>
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-7">
                 {[
                   { label: "Creados", value: progress.created },
                   { label: "Actualizados", value: progress.updated },
+                  { label: "Sin cambios", value: progress.unchanged },
                   { label: "Precios", value: progress.priceChanges },
                   { label: "Stock", value: progress.stockChanges },
                   { label: "Errores", value: progress.errors },
@@ -667,6 +802,9 @@ export function UnifiedSyncPanel() {
                   </div>
                 ))}
               </div>
+              <p className="text-[11px] text-muted-foreground">
+                “Actualizados” solo cuenta productos con cambios reales. El resto va en “Sin cambios”.
+              </p>
             </CardContent>
           </Card>
 
@@ -709,6 +847,7 @@ export function UnifiedSyncPanel() {
                       <th className="px-4 py-2.5">Estado</th>
                       <th className="px-4 py-2.5">Precio</th>
                       <th className="px-4 py-2.5">Stock</th>
+                      <th className="px-4 py-2.5">Cambios</th>
                       <th className="px-4 py-2.5">Error</th>
                     </tr>
                   </thead>
@@ -745,6 +884,26 @@ export function UnifiedSyncPanel() {
                               <span className="text-muted-foreground">—</span>
                             )}
                           </td>
+                          <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[320px]">
+                            {diff.changes.length > 0 ? (
+                              <ul className="space-y-0.5">
+                                {diff.changes.slice(0, 4).map((change) => (
+                                  <li key={change.field}>
+                                    <span className="font-medium text-foreground">
+                                      {fieldLabel(change.field)}
+                                    </span>
+                                    : {formatChangeValue(change.from)} →{" "}
+                                    {formatChangeValue(change.to)}
+                                  </li>
+                                ))}
+                                {diff.changes.length > 4 ? (
+                                  <li>+{diff.changes.length - 4} más</li>
+                                ) : null}
+                              </ul>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
                           <td className="px-4 py-2.5 text-xs text-destructive max-w-[280px]">
                             {row.error ?? "—"}
                           </td>
@@ -765,7 +924,7 @@ export function UnifiedSyncPanel() {
             <div>
               <h2 className="heading-3">Procesos recientes</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Últimas sincronizaciones manuales y automáticas.
+                Tocá un proceso para ver el historial de cambios y, si aplica, revertirlo.
               </p>
             </div>
             <Button
@@ -802,14 +961,20 @@ export function UnifiedSyncPanel() {
                     <th className="px-4 py-2.5 text-right">Procesados</th>
                     <th className="px-4 py-2.5 text-right">Creados</th>
                     <th className="px-4 py-2.5 text-right">Actualizados</th>
+                    <th className="px-4 py-2.5 text-right">Sin cambios</th>
                     <th className="px-4 py-2.5 text-right">Errores</th>
                     <th className="px-4 py-2.5">Inicio</th>
-                    <th className="px-4 py-2.5">Fin</th>
+                    <th className="px-4 py-2.5">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {recentRuns.map((run) => (
-                    <tr key={run.id} className="hover:bg-muted/20">
+                    <tr
+                      key={run.id}
+                      className={`hover:bg-muted/20 ${
+                        selectedRunId === run.id ? "bg-primary/5" : ""
+                      }`}
+                    >
                       <td className="px-4 py-2.5 font-medium">{run.source}</td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
                         {modeLabel(run.mode)}
@@ -829,6 +994,9 @@ export function UnifiedSyncPanel() {
                         {run.updated}
                       </td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-xs">
+                        {run.unchanged ?? 0}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-xs">
                         {run.errors}
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
@@ -837,8 +1005,38 @@ export function UnifiedSyncPanel() {
                           {formatDate(run.startedAt)}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDate(run.finishedAt)}
+                      <td className="px-4 py-2.5">
+                        <div className="flex flex-wrap gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy || loadingHistory}
+                            onClick={() => {
+                              setHistoryFilter("changed");
+                              void loadRunHistory(run.id, "changed");
+                            }}
+                          >
+                            <History className="mr-1 h-3.5 w-3.5" />
+                            Historial
+                          </Button>
+                          {run.mode === "apply" &&
+                          run.status === "COMPLETED" &&
+                          !run.rolledBackAt ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={busy || rollingBack}
+                              onClick={() => void handleRollback(run.id)}
+                            >
+                              {rollingBack && selectedRunId === run.id ? (
+                                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Undo2 className="mr-1 h-3.5 w-3.5" />
+                              )}
+                              Revertir
+                            </Button>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -848,6 +1046,138 @@ export function UnifiedSyncPanel() {
           )}
         </CardContent>
       </Card>
+
+      {selectedRunId ? (
+        <Card>
+          <CardContent className="p-0">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3">
+              <div>
+                <h2 className="heading-3">Historial del proceso</h2>
+                <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                  {selectedRunId}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {(
+                  [
+                    ["changed", "Con cambios"],
+                    ["price", "Precios"],
+                    ["noop", "Sin cambios"],
+                    ["errors", "Errores"],
+                    ["all", "Todos"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <Button
+                    key={value}
+                    size="sm"
+                    variant={historyFilter === value ? "primary" : "outline"}
+                    disabled={loadingHistory}
+                    onClick={() => {
+                      setHistoryFilter(value);
+                      void loadRunHistory(selectedRunId, value);
+                    }}
+                  >
+                    {label}
+                  </Button>
+                ))}
+                {historyCanRollback ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={rollingBack}
+                    onClick={() => void handleRollback(selectedRunId)}
+                  >
+                    {rollingBack ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    Volver a sync anterior
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+            {historyMessage ? (
+              <p className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
+                {historyMessage}
+              </p>
+            ) : null}
+            {loadingHistory ? (
+              <div className="py-10 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Cargando historial…
+              </div>
+            ) : historyRows.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                No hay filas para este filtro.
+                {historyFilter === "changed"
+                  ? " Si la sync es anterior a este cambio, puede no tener diffs detallados."
+                  : ""}
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-border bg-muted/40">
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                      <th className="px-4 py-2.5">SKU</th>
+                      <th className="px-4 py-2.5">Acción</th>
+                      <th className="px-4 py-2.5">Estado</th>
+                      <th className="px-4 py-2.5">Cambios (antes → después)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {historyRows.map((row, index) => {
+                      const diff = parseDiff(row.diffJson);
+                      return (
+                        <tr key={row.id ?? `${row.matchValue}-${index}`} className="align-top hover:bg-muted/20">
+                          <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                            {row.matchValue}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <Badge tone="muted">{rowActionLabel(row.action)}</Badge>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <Badge tone={statusTone(row.status)}>
+                              {stagedStatusLabel(row.status)}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                            {row.error ? (
+                              <span className="text-destructive">{row.error}</span>
+                            ) : diff.changes.length > 0 ? (
+                              <ul className="space-y-1">
+                                {diff.changes.map((change) => (
+                                  <li key={change.field}>
+                                    <span className="font-medium text-foreground">
+                                      {fieldLabel(change.field)}
+                                    </span>
+                                    :{" "}
+                                    <span className="text-destructive/80">
+                                      {formatChangeValue(change.from)}
+                                    </span>{" "}
+                                    →{" "}
+                                    <span className="text-success">
+                                      {formatChangeValue(change.to)}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : row.action === "noop" ? (
+                              "Sin cambios de campos"
+                            ) : (
+                              "Sin detalle de campos (sync anterior o solo imágenes/relaciones)"
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

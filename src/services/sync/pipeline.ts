@@ -2,6 +2,7 @@ import { Prisma, type SyncSourceKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getConnector, listConnectors } from "./registry";
 import { applyNormalizedProduct } from "./upsert";
+import { asInputJson, toDiffJson } from "./snapshot";
 import type { NormalizedProduct } from "./types";
 
 export interface ProcessBatchResult {
@@ -11,6 +12,7 @@ export interface ProcessBatchResult {
   nextOffset: number | null;
   created: number;
   updated: number;
+  unchanged: number;
   priceChanges: number;
   stockChanges: number;
   errors: number;
@@ -79,10 +81,7 @@ function changedFieldsFor(
   ) {
     changed.add("baseCostUsd");
   }
-  if (
-    item.stockStatus != null &&
-    existing.stockStatus !== item.stockStatus
-  ) {
+  if (item.stockStatus != null && existing.stockStatus !== item.stockStatus) {
     changed.add("stockStatus");
   }
 
@@ -190,7 +189,7 @@ export async function processBatch(
   const run = await prisma.syncRun.findUnique({ where: { id: runId } });
   if (!run) throw new Error(`Sync run not found: ${runId}`);
 
-  if (["COMPLETED", "FAILED", "CANCELLED"].includes(run.status)) {
+  if (["COMPLETED", "FAILED", "CANCELLED", "ROLLED_BACK"].includes(run.status)) {
     return {
       done: true,
       processed: run.processed,
@@ -198,6 +197,7 @@ export async function processBatch(
       nextOffset: null,
       created: run.created,
       updated: run.updated,
+      unchanged: run.unchanged,
       priceChanges: run.priceChanges,
       stockChanges: run.stockChanges,
       errors: run.errors,
@@ -221,19 +221,20 @@ export async function processBatch(
       try {
         await connector.translateItems(fetched.items);
       } catch (translationError) {
-        const translationMessage =
-          `Translation failed: ${errorMessage(translationError)}`;
-        await prisma.syncRun.update({
-          where: { id: run.id },
-          data: { error: translationMessage },
-        }).catch(() => undefined);
+        const translationMessage = `Translation failed: ${errorMessage(translationError)}`;
+        await prisma.syncRun
+          .update({
+            where: { id: run.id },
+            data: { error: translationMessage },
+          })
+          .catch(() => undefined);
       }
     }
 
     if (run.totalItems === 0 && fetched.total > 0) {
       const currentStats =
         run.stats && typeof run.stats === "object" && !Array.isArray(run.stats)
-          ? run.stats as Record<string, Prisma.JsonValue>
+          ? (run.stats as Record<string, Prisma.JsonValue>)
           : {};
       await prisma.syncRun.update({
         where: { id: run.id },
@@ -267,7 +268,7 @@ export async function processBatch(
       return {
         item,
         existing,
-        action: existing ? "update" as const : "create" as const,
+        action: existing ? ("update" as const) : ("create" as const),
         priceChanged,
         stockChanged,
         changedFields: changedFieldsFor(item, existing),
@@ -275,34 +276,39 @@ export async function processBatch(
     });
 
     const matched = rows.filter((row) => !!row.existing).length;
-    const priceChanges = rows.filter((row) => row.priceChanged).length;
-    const stockChanges = rows.filter((row) => row.stockChanged).length;
     let created = 0;
     let updated = 0;
+    let unchanged = 0;
+    let priceChanges = 0;
+    let stockChanges = 0;
     let errors = 0;
 
     if (run.mode === "apply") {
       for (const row of rows) {
-        const stagedBase = {
-          syncRunId: run.id,
-          matchValue: row.item.matchValue,
-          rawJson: toJson(row.item.raw),
-          normalizedJson: toJson(withoutRaw(row.item)),
-          diffJson: toJson({
-            priceChanged: row.priceChanged,
-            stockChanged: row.stockChanged,
-            changedFields: row.changedFields,
-          }),
-        };
         try {
           const applied = await prisma.$transaction((tx) =>
             applyNormalizedProduct(tx, row.item)
           );
           if (applied.action === "create") created++;
-          else updated++;
+          else if (applied.action === "update") updated++;
+          else unchanged++;
+          if (applied.priceChanged) priceChanges++;
+          if (applied.stockChanged) stockChanges++;
+
           await prisma.syncStagedProduct.create({
             data: {
-              ...stagedBase,
+              syncRunId: run.id,
+              matchValue: row.item.matchValue,
+              rawJson: toJson(row.item.raw),
+              normalizedJson: toJson(withoutRaw(row.item)),
+              beforeJson: applied.before ? asInputJson(applied.before) : undefined,
+              diffJson: toJson(
+                toDiffJson({
+                  priceChanged: applied.priceChanged,
+                  stockChanged: applied.stockChanged,
+                  changes: applied.changes,
+                })
+              ),
               action: applied.action,
               status: "applied",
               productId: applied.productId,
@@ -312,7 +318,16 @@ export async function processBatch(
           errors++;
           await prisma.syncStagedProduct.create({
             data: {
-              ...stagedBase,
+              syncRunId: run.id,
+              matchValue: row.item.matchValue,
+              rawJson: toJson(row.item.raw),
+              normalizedJson: toJson(withoutRaw(row.item)),
+              diffJson: toJson({
+                priceChanged: row.priceChanged,
+                stockChanged: row.stockChanged,
+                changedFields: row.changedFields,
+                changes: [],
+              }),
               action: row.action,
               status: "error",
               error: errorMessage(error),
@@ -323,6 +338,8 @@ export async function processBatch(
     } else {
       created = rows.filter((row) => row.action === "create").length;
       updated = rows.filter((row) => row.action === "update").length;
+      priceChanges = rows.filter((row) => row.priceChanged).length;
+      stockChanges = rows.filter((row) => row.stockChanged).length;
       if (rows.length > 0) {
         await prisma.syncStagedProduct.createMany({
           data: rows.map((row) => ({
@@ -334,6 +351,7 @@ export async function processBatch(
               priceChanged: row.priceChanged,
               stockChanged: row.stockChanged,
               changedFields: row.changedFields,
+              changes: [],
             }),
             action: row.action,
             status: "pending",
@@ -343,7 +361,9 @@ export async function processBatch(
     }
 
     const completed = fetched.done;
-    const nextProcessed = fetched.nextOffset ?? (completed ? fetched.total : run.processed + fetched.items.length);
+    const nextProcessed =
+      fetched.nextOffset ??
+      (completed ? fetched.total : run.processed + fetched.items.length);
     const processedIncrement = Math.max(0, nextProcessed - run.processed);
     const updatedRun = await prisma.syncRun.update({
       where: { id: run.id },
@@ -353,6 +373,7 @@ export async function processBatch(
         matched: { increment: matched },
         created: { increment: created },
         updated: { increment: updated },
+        unchanged: { increment: unchanged },
         priceChanges: { increment: priceChanges },
         stockChanges: { increment: stockChanges },
         errors: { increment: errors },
@@ -372,16 +393,19 @@ export async function processBatch(
       nextOffset: fetched.nextOffset,
       created: updatedRun.created,
       updated: updatedRun.updated,
+      unchanged: updatedRun.unchanged,
       priceChanges: updatedRun.priceChanges,
       stockChanges: updatedRun.stockChanges,
       errors: updatedRun.errors,
     };
   } catch (error) {
     const message = errorMessage(error);
-    await prisma.syncRun.update({
-      where: { id: run.id },
-      data: { status: "FAILED", error: message, finishedAt: new Date() },
-    }).catch(() => undefined);
+    await prisma.syncRun
+      .update({
+        where: { id: run.id },
+        data: { status: "FAILED", error: message, finishedAt: new Date() },
+      })
+      .catch(() => undefined);
     throw error;
   }
 }
