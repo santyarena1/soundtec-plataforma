@@ -5,10 +5,11 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
 const LINKS = [
+  { href: "/#como-funciona", label: "Cómo funciona" },
+  { href: "/#plataforma", label: "Plataforma" },
   { href: "/#soluciones", label: "Soluciones" },
   { href: "/#marcas", label: "Marcas" },
-  { href: "/#novedades", label: "Novedades" },
-  { href: "/#contacto", label: "Contacto" },
+  { href: "/#acceso", label: "Contacto" },
   { href: "/login", label: "Acceder" },
 ];
 

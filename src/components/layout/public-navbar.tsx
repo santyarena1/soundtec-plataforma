@@ -43,21 +43,24 @@ export async function PublicNavbar() {
           )}
           <div className="leading-tight">
             <p className="text-sm font-semibold text-foreground">{appName}</p>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Audiovisual Pro</p>
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Integramos tecnología</p>
           </div>
         </Link>
 
         <nav className="hidden gap-6 text-sm text-muted-foreground md:flex">
+          <Link href="/#como-funciona" className="transition-colors hover:text-foreground">
+            Cómo funciona
+          </Link>
+          <Link href="/#plataforma" className="transition-colors hover:text-foreground">
+            Plataforma
+          </Link>
           <Link href="/#soluciones" className="transition-colors hover:text-foreground">
             Soluciones
           </Link>
           <Link href="/#marcas" className="transition-colors hover:text-foreground">
             Marcas
           </Link>
-          <Link href="/#novedades" className="transition-colors hover:text-foreground">
-            Novedades
-          </Link>
-          <Link href="/#contacto" className="transition-colors hover:text-foreground">
+          <Link href="/#acceso" className="transition-colors hover:text-foreground">
             Contacto
           </Link>
         </nav>
