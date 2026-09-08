@@ -125,15 +125,15 @@ async function main() {
   const staged = await prisma.syncStagedProduct.findMany({
     where: { syncRunId: runId },
     orderBy: { matchValue: "asc" },
-    select: { matchValue: true, action: true, status: true, diffJson: true, errorMessage: true, normalizedJson: true },
+    select: { matchValue: true, action: true, status: true, diffJson: true, error: true, normalizedJson: true },
   });
-  const errors = staged.filter((s) => s.status === "error" || s.errorMessage);
+  const errors = staged.filter((s) => s.status === "error" || s.error);
   const fails = staged.filter((s) => {
     const n = s.normalizedJson as Record<string, unknown> | null;
     return n && !n.vendorProductUrl;
   });
   console.log(`staged ${staged.length} · con error de pipeline ${errors.length} · sin ficha en crestron.com ${fails.length}`);
-  for (const s of errors.slice(0, 10)) console.log("  ERROR", s.matchValue, s.errorMessage);
+  for (const s of errors.slice(0, 10)) console.log("  ERROR", s.matchValue, s.error);
   for (const s of fails.slice(0, 15)) {
     const n = s.normalizedJson as Record<string, unknown>;
     console.log("  SIN FICHA", s.matchValue, n?.name);
