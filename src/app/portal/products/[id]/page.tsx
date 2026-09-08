@@ -171,6 +171,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const includedRelations = visibleRelations.filter((r) => r.kind === "INCLUDED");
   const variantRelations = visibleRelations.filter((r) => r.kind === "MODEL_VARIANT");
   const relatedRelations = visibleRelations.filter((r) => r.kind === "RELATED");
+  const compatibleRelations = visibleRelations.filter((r) => r.kind === "COMPATIBLE");
 
   // Precios calculados UNA vez para todas las relaciones visibles
   const allRelationProducts = visibleRelations.map((r) => r.accessoryProduct);
@@ -219,6 +220,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const includedItems = includedRelations.map(relationToItem);
   const variantItems = variantRelations.map(relationToItem);
   const relatedItems = relatedRelations.map(relationToItem);
+  const compatibleItems = compatibleRelations.map(relationToItem);
 
   return (
     <div className="space-y-6">
@@ -381,6 +383,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           parentProductName={product.normalizedName}
           items={relatedItems}
           variant="RELATED"
+        />
+      ) : null}
+
+      {compatibleItems.length > 0 ? (
+        <CompatibleAccessoriesSection
+          parentProductName={product.normalizedName}
+          items={compatibleItems}
+          variant="COMPATIBLE"
         />
       ) : null}
       </ProductBundleProvider>

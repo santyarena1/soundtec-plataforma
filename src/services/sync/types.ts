@@ -75,6 +75,8 @@ export interface NormalizedProduct {
   variantKeys?: string[];
   /** Productos relacionados sugeridos por el fabricante. */
   relatedKeys?: string[];
+  /** Modelos mencionados como compatibles en el texto de la ficha. */
+  compatibleKeys?: string[];
   isDiscontinued?: boolean;
   regulatoryModel?: string;
   keyFeatures?: string[];

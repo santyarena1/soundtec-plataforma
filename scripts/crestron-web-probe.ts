@@ -57,6 +57,7 @@ async function main() {
       weight: normalized.weight,
     },
     warnings: enrichment.warnings,
+    compatibleModels: enrichment.compatibleModels,
     search: enrichment.search,
     firstSpecs: enrichment.page.specs.slice(0, 6),
     dimensionSpecs: enrichment.page.specs.filter((s) => /dimension|weight/i.test(s.group)),

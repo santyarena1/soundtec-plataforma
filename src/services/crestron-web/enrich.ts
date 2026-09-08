@@ -88,6 +88,33 @@ function mergeIncluded(
   return Array.from(byModel.values());
 }
 
+const MODEL_TOKEN = /\b(?:[A-Z]{2,5}\d{1,3}[A-Z]{0,2}|[A-Z][A-Z0-9]{1,}(?:-[A-Z0-9]{1,}){1,5})\b/g;
+const IGNORED_TOKENS = new Set([
+  "RS-232", "RS-422", "RS-485", "RS-232/422/485", "IEEE", "USB", "HDMI", "HDBaseT", "HDCP", "TCP", "UDP",
+  "IPv4", "IPv6", "SNMP", "SSH", "TLS", "SSL", "HTTPS", "HTTP", "PoE", "PoE+", "AC", "DC", "LED", "LCD",
+  "MP3", "MP4", "H264", "H265", "AAC", "PCM", "DHCP", "SMTP", "DNS", "UL", "CE", "FCC", "TAA", "CPU",
+  "ANSI", "EN", "IEC", "ISO", "BACnet", "IR", "IO", "I/O", "COM", "LAN", "WAN", "VLAN", "QR", "SDRAM",
+  "SDHC", "SD", "MB", "GB", "TB", "GHz", "MHz", "KHz", "VDC", "VAC", "BTU", "AWG", "RJ45", "RJ-45",
+]);
+
+/**
+ * Extrae menciones de modelos (ej. "CP4", "DMPS3-4K-250-C") en los textos de la
+ * ficha. Se validan después contra nuestro catálogo, así que puede ser generoso.
+ */
+export function extractModelMentions(texts: string[], exclude: string[]): string[] {
+  const excluded = new Set(exclude.map((value) => value.toUpperCase()));
+  const found = new Set<string>();
+  for (const text of texts) {
+    for (const match of text.replace(/[‑‐–]/g, "-").matchAll(MODEL_TOKEN)) {
+      const token = match[0].toUpperCase();
+      if (excluded.has(token) || IGNORED_TOKENS.has(match[0]) || IGNORED_TOKENS.has(token)) continue;
+      if (!/\d/.test(token)) continue;
+      found.add(token);
+    }
+  }
+  return Array.from(found);
+}
+
 export async function enrichCrestronProduct(target: EnrichTarget): Promise<CrestronEnrichment> {
   const warnings: string[] = [];
   const resolved = await resolveUrl(target, warnings);
@@ -165,6 +192,24 @@ export async function enrichCrestronProduct(target: EnrichTarget): Promise<Crest
     variantsResult.inTheBox
   );
 
+  const knownModels = [
+    page.model,
+    ...variantsResult.variants.map((item) => item.model),
+    ...inTheBox.map((item) => item.model),
+    ...accessories.map((item) => item.model),
+    ...related.map((item) => item.model),
+    ...interestedIn.map((item) => item.model),
+  ];
+  const compatibleModels = extractModelMentions(
+    [
+      page.overviewText,
+      ...page.keyFeatures,
+      ...page.footnotes,
+      ...page.specs.map((row) => row.value),
+    ],
+    knownModels
+  );
+
   return {
     fetchedAt: new Date().toISOString(),
     page,
@@ -176,6 +221,7 @@ export async function enrichCrestronProduct(target: EnrichTarget): Promise<Crest
     related,
     interestedIn,
     replacements,
+    compatibleModels,
     warnings,
   };
 }

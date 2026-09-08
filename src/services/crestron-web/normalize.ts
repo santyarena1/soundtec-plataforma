@@ -234,6 +234,7 @@ export function toNormalizedProduct(
       )
     ),
     relatedKeys: relationKeys([...enrichment.related, ...enrichment.interestedIn]),
+    compatibleKeys: enrichment.compatibleModels ?? [],
     crossSellSkus: relationKeys(enrichment.replacements),
     rawKey: CRESTRON_WEB_RAW_KEY,
     raw: enrichment,

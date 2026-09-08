@@ -31,7 +31,8 @@ export type RelationVariant =
   | "ALSO_PURCHASED"
   | "INCLUDED"
   | "MODEL_VARIANT"
-  | "RELATED";
+  | "RELATED"
+  | "COMPATIBLE";
 
 interface Props {
   parentProductName: string;
@@ -70,6 +71,11 @@ const VARIANT_LABELS: Record<RelationVariant, { title: string; subtitle: (parent
     title: "Productos relacionados",
     subtitle: (parent) =>
       `Productos que el fabricante recomienda junto a ${parent}.`,
+  },
+  COMPATIBLE: {
+    title: "Compatible con",
+    subtitle: (parent) =>
+      `Productos de nuestro catálogo que la ficha del fabricante menciona como compatibles con ${parent}. Podés sumarlos a tu pedido.`,
   },
 };
 

@@ -388,6 +388,7 @@ enum ProductRelationKind {
   INCLUDED        // Viene incluido en la caja (ej. fuente de alimentación)
   MODEL_VARIANT   // Variante / modelo hermano del mismo producto (ej. CP4 ↔ CP4N)
   RELATED         // Producto relacionado sugerido por el fabricante
+  COMPATIBLE      // Mencionado como compatible en la ficha del fabricante (texto)
 }
 
 model AccessoryRelation {

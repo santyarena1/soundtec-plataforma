@@ -137,6 +137,7 @@ async function applyAllRelations(
   await replaceRelations(tx, productId, "INCLUDED", n.includedItems);
   await replaceRelations(tx, productId, "MODEL_VARIANT", n.variantKeys);
   await replaceRelations(tx, productId, "RELATED", n.relatedKeys);
+  await replaceRelations(tx, productId, "COMPATIBLE", n.compatibleKeys);
 }
 
 export async function applyNormalizedProduct(
@@ -293,7 +294,8 @@ export async function applyNormalizedProduct(
     (n.alsoPurchasedSkus?.length ?? 0) > 0 ||
     (n.includedItems?.length ?? 0) > 0 ||
     (n.variantKeys?.length ?? 0) > 0 ||
-    (n.relatedKeys?.length ?? 0) > 0;
+    (n.relatedKeys?.length ?? 0) > 0 ||
+    (n.compatibleKeys?.length ?? 0) > 0;
 
   if (existing) {
     const before = snapshotProductScalars(existing as unknown as Record<string, unknown>);

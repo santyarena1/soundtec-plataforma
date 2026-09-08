@@ -55,6 +55,20 @@ function input(f: FormData) {
     isActive: f.get("isActive") !== "false" && f.get("isActive") !== null,
   };
 }
+/** Opción {id, name} de un cliente, para selectores que agregan clientes al vuelo. */
+export async function getClientOption(id: string): Promise<{ id: string; name: string } | null> {
+  await requireAdmin();
+  const client = await prisma.client.findUnique({
+    where: { id },
+    select: { id: true, companyName: true, tradeName: true },
+  });
+  if (!client) return null;
+  return {
+    id: client.id,
+    name: client.tradeName ? `${client.companyName} (${client.tradeName})` : client.companyName,
+  };
+}
+
 export async function createClient(f: FormData): Promise<ActionResult> {
   await requireAdmin();
   const p = schema.safeParse(input(f));

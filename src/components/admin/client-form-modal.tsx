@@ -62,7 +62,11 @@ export function ClientFormModal({
       }
       setOpen(false);
       if (result.id) {
-        onCreated?.(result.id);
+        if (onCreated) {
+          // Quien abre el modal decide qué hacer (ej. seleccionar el cliente en una cotización).
+          onCreated(result.id);
+          return;
+        }
         router.push(`/admin/clients/${result.id}`);
       }
       router.refresh();

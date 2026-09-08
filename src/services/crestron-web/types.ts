@@ -117,6 +117,8 @@ export interface CrestronEnrichment {
   related: CrestronRelatedItem[];
   interestedIn: CrestronRelatedItem[];
   replacements: CrestronRelatedItem[];
+  /** Modelos mencionados en el texto de la ficha (overview, features, notas, specs). */
+  compatibleModels: string[];
   warnings: string[];
 }
 

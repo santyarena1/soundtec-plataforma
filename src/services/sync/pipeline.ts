@@ -36,6 +36,7 @@ const NON_SCALAR_KEYS = new Set<keyof NormalizedProduct>([
   "includedItems",
   "variantKeys",
   "relatedKeys",
+  "compatibleKeys",
   "rawKey",
   "preserveName",
   "brandName",
