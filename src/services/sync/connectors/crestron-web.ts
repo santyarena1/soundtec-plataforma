@@ -17,7 +17,8 @@ import {
 } from "@/services/crestron-web/normalize";
 import type { NormalizedProduct, ProductSourceConnector } from "../types";
 
-const CONCURRENCY = 4;
+const CONCURRENCY = 3;
+const PAUSE_BETWEEN_PRODUCTS_MS = 250;
 const TRANSLATION_DOMAIN =
   "Crestron — control, automatización, AV profesional y colaboración B2B";
 
@@ -92,6 +93,24 @@ async function enrichOne(candidate: Candidate): Promise<NormalizedProduct> {
   }
 }
 
+/**
+ * Si TODO el lote falló con 403, crestron.com nos está bloqueando: cortamos la
+ * corrida con error en vez de guardar el fallo en cada producto.
+ */
+function assertNotBlocked(items: NormalizedProduct[]): void {
+  if (items.length === 0) return;
+  const blocked = items.filter((item) => {
+    const raw = item.raw as { error?: unknown } | null;
+    return typeof raw?.error === "string" && /HTTP 403/.test(raw.error);
+  });
+  if (blocked.length === items.length) {
+    throw new Error(
+      "crestron.com rechazó todas las peticiones del lote (HTTP 403). Esperá unos minutos y volvé a correr; " +
+        "si persiste, configurá CRESTRON_HTTP_PROXY."
+    );
+  }
+}
+
 async function mapWithConcurrency<T, R>(
   items: T[],
   limit: number,
@@ -103,6 +122,7 @@ async function mapWithConcurrency<T, R>(
     while (cursor < items.length) {
       const index = cursor++;
       results[index] = await worker(items[index]);
+      await new Promise((resolve) => setTimeout(resolve, PAUSE_BETWEEN_PRODUCTS_MS));
     }
   });
   await Promise.all(runners);
@@ -151,6 +171,7 @@ export const crestronWebConnector: ProductSourceConnector = {
     const batchSize = Math.max(1, Math.min(50, opts?.batchSize ?? 10));
     const { items: candidates, total } = await loadCandidates(offset, batchSize);
     const items = await mapWithConcurrency(candidates, CONCURRENCY, enrichOne);
+    assertNotBlocked(items);
     const consumed = offset + candidates.length;
     const done = candidates.length === 0 || consumed >= total;
     return {

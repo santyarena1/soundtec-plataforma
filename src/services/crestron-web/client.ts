@@ -11,15 +11,30 @@
  *  - GET /Handlers/ReplacementProductsHandler.ashx?ids=&label=&culture= → HTML reemplazos
  */
 
+import { ProxyAgent, fetch as undiciFetch, type Dispatcher } from "undici";
 import type { CrestronSearchHit } from "./types";
 
 export const CRESTRON_BASE_URL = "https://www.crestron.com";
 const CULTURE = "en-US";
 const USER_AGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 SoundtecCatalogBot/1.0";
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 const DEFAULT_TIMEOUT_MS = 25_000;
 const MAX_ATTEMPTS = 3;
 const RETRY_BASE_DELAY_MS = 600;
+const BLOCKED_RETRY_DELAY_MS = 4_000;
+
+/**
+ * crestron.com bloquea por IP a algunos datacenters (Vercel devuelve 403).
+ * Si está definido CRESTRON_HTTP_PROXY (http://user:pass@host:port), todas las
+ * peticiones salen por ese proxy usando undici.
+ */
+let proxyDispatcher: Dispatcher | null | undefined;
+function getProxyDispatcher(): Dispatcher | null {
+  if (proxyDispatcher !== undefined) return proxyDispatcher;
+  const proxyUrl = (process.env.CRESTRON_HTTP_PROXY ?? "").trim();
+  proxyDispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : null;
+  return proxyDispatcher;
+}
 
 export class CrestronHttpError extends Error {
   constructor(
@@ -54,18 +69,29 @@ async function request(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
     try {
-      const response = await fetch(url, {
-        method: "GET",
-        redirect: init.redirect ?? "follow",
-        signal: controller.signal,
-        cache: "no-store",
-        headers: {
-          "User-Agent": USER_AGENT,
-          Accept: init.accept ?? "text/html,application/xhtml+xml,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.9",
-        },
-      });
-      if (response.status >= 500 || response.status === 429) {
+      const headers = {
+        "User-Agent": USER_AGENT,
+        Accept: init.accept ?? "text/html,application/xhtml+xml,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      };
+      const dispatcher = getProxyDispatcher();
+      const response = (dispatcher
+        ? await undiciFetch(url, {
+            method: "GET",
+            redirect: init.redirect ?? "follow",
+            signal: controller.signal,
+            headers,
+            dispatcher,
+          })
+        : await fetch(url, {
+            method: "GET",
+            redirect: init.redirect ?? "follow",
+            signal: controller.signal,
+            cache: "no-store",
+            headers,
+          })) as Response;
+      // 403: el WAF de crestron.com bloquea ráfagas; esperamos y reintentamos.
+      if (response.status >= 500 || response.status === 429 || response.status === 403) {
         throw new CrestronHttpError(
           `HTTP ${response.status} en ${url}`,
           response.status,
@@ -76,7 +102,8 @@ async function request(
     } catch (error) {
       lastError = error;
       if (attempt < MAX_ATTEMPTS) {
-        await sleep(RETRY_BASE_DELAY_MS * attempt);
+        const blocked = error instanceof CrestronHttpError && error.status === 403;
+        await sleep((blocked ? BLOCKED_RETRY_DELAY_MS : RETRY_BASE_DELAY_MS) * attempt);
         continue;
       }
     } finally {
