@@ -393,4 +393,29 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-08-1",
+    version: "1.12.0",
+    releasedAt: "2026-09-08T03:30:00.000Z",
+    summary:
+      "Enriquecimiento Crestron desde crestron.com: fichas completas con specs, imágenes HD, documentos, accesorios e incluidos.",
+    items: [
+      {
+        kind: "NUEVO",
+        text: "Admin → Sincronización: nueva fuente «Crestron.com — enriquecimiento». Cruza por material number y trae descripción, key features, tabla de specs, dimensiones y peso, galería 2500px, badges, documentos (spec sheet, manuales, CAD, Revit, firmware) y modelo regulatorio.",
+      },
+      {
+        kind: "NUEVO",
+        text: "Relaciones nuevas entre productos: «Incluido en la caja» (con cantidad), «Otros modelos de esta línea» y «Productos relacionados». Se ven en la ficha del portal.",
+      },
+      {
+        kind: "NUEVO",
+        text: "Los productos discontinuados por Crestron muestran un badge en la ficha.",
+      },
+      {
+        kind: "MEJORA",
+        text: "Precio y stock siguen viniendo solo de Xtrabon: el enriquecimiento no los toca y no pisa el nombre del producto.",
+      },
+    ],
+  },
 ];

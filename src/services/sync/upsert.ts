@@ -48,41 +48,108 @@ function jsonValue(value: unknown): Prisma.InputJsonValue | undefined {
   return value == null ? undefined : (value as Prisma.InputJsonValue);
 }
 
+type RelationRef = { key: string; quantity?: number };
+
+function toRelationRefs(
+  value: Array<string | RelationRef> | undefined
+): RelationRef[] {
+  return (value ?? [])
+    .map((entry) =>
+      typeof entry === "string" ? { key: entry.trim() } : { ...entry, key: entry.key.trim() }
+    )
+    .filter((entry) => entry.key.length > 0);
+}
+
+/**
+ * Reemplaza las relaciones de un tipo. Cada clave se resuelve contra
+ * supplierSku, internalSku o modelNumber (case-insensitive) para que sirva
+ * tanto para Sonance (supplierSku) como para Crestron (material number / modelo).
+ */
 async function replaceRelations(
   tx: Prisma.TransactionClient,
   productId: string,
   kind: ProductRelationKind,
-  skus: string[] | undefined
+  refs: Array<string | RelationRef> | undefined
 ): Promise<boolean> {
-  const cleanSkus = (skus ?? []).map((sku) => sku.trim()).filter(Boolean);
-  if (cleanSkus.length === 0) return false;
+  const cleanRefs = toRelationRefs(refs);
+  if (cleanRefs.length === 0) return false;
+  const keys = Array.from(new Set(cleanRefs.map((ref) => ref.key)));
 
   const products = await tx.product.findMany({
-    where: { supplierSku: { in: cleanSkus } },
-    select: { id: true, supplierSku: true },
+    where: {
+      OR: [
+        { supplierSku: { in: keys } },
+        { internalSku: { in: keys } },
+        { modelNumber: { in: keys, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true, supplierSku: true, internalSku: true, modelNumber: true },
   });
-  const bySku = new Map(
-    products
-      .filter((product) => !!product.supplierSku)
-      .map((product) => [product.supplierSku!, product.id])
-  );
+  const byKey = new Map<string, string>();
+  for (const product of products) {
+    for (const candidate of [product.supplierSku, product.internalSku, product.modelNumber]) {
+      if (candidate) byKey.set(candidate.trim().toUpperCase(), product.id);
+    }
+  }
 
   await tx.accessoryRelation.deleteMany({ where: { productId, kind } });
-  const data = cleanSkus
-    .map((sku) => bySku.get(sku))
-    .filter((id): id is string => !!id && id !== productId)
-    .map((accessoryProductId) => ({
+  const seen = new Set<string>();
+  const data: Prisma.AccessoryRelationCreateManyInput[] = [];
+  for (const ref of cleanRefs) {
+    const accessoryProductId = byKey.get(ref.key.toUpperCase());
+    if (!accessoryProductId || accessoryProductId === productId) continue;
+    if (seen.has(accessoryProductId)) continue;
+    seen.add(accessoryProductId);
+    data.push({
       productId,
       accessoryProductId,
       isRequired: false,
       kind,
-    }));
+      quantity: ref.quantity,
+    });
+  }
 
   if (data.length > 0) {
     await tx.accessoryRelation.createMany({ data, skipDuplicates: true });
     return true;
   }
   return false;
+}
+
+function mergeSourceMetadata(
+  existing: unknown,
+  raw: unknown,
+  rawKey: string | undefined
+): Prisma.InputJsonValue | undefined {
+  if (raw == null) return undefined;
+  if (!rawKey) return raw as Prisma.InputJsonValue;
+  const base =
+    existing && typeof existing === "object" && !Array.isArray(existing)
+      ? (existing as Record<string, unknown>)
+      : {};
+  return { ...base, [rawKey]: raw } as Prisma.InputJsonValue;
+}
+
+function jsonChanged(current: unknown, next: unknown): boolean {
+  if (next === undefined) return false;
+  try {
+    return JSON.stringify(current ?? null) !== JSON.stringify(next ?? null);
+  } catch {
+    return true;
+  }
+}
+
+async function applyAllRelations(
+  tx: Prisma.TransactionClient,
+  productId: string,
+  n: NormalizedProduct
+): Promise<void> {
+  await replaceRelations(tx, productId, "ACCESSORY", n.accessorySkus);
+  await replaceRelations(tx, productId, "CROSS_SELL", n.crossSellSkus);
+  await replaceRelations(tx, productId, "ALSO_PURCHASED", n.alsoPurchasedSkus);
+  await replaceRelations(tx, productId, "INCLUDED", n.includedItems);
+  await replaceRelations(tx, productId, "MODEL_VARIANT", n.variantKeys);
+  await replaceRelations(tx, productId, "RELATED", n.relatedKeys);
 }
 
 export async function applyNormalizedProduct(
@@ -216,7 +283,18 @@ export async function applyNormalizedProduct(
         : undefined,
     documents:
       n.documents && n.documents.length > 0 ? jsonValue(n.documents) : undefined,
-    sourceMetadata: jsonValue(n.raw),
+    keyFeatures:
+      n.keyFeatures && n.keyFeatures.length > 0 ? jsonValue(n.keyFeatures) : undefined,
+    isDiscontinued:
+      typeof n.isDiscontinued === "boolean" ? n.isDiscontinued : undefined,
+    regulatoryModel: nonEmpty(n.regulatoryModel),
+    sourceCategoryPath: nonEmpty(n.sourceCategoryPath),
+    vendorPublishedAt: validDate(n.vendorPublishedAt),
+    sourceMetadata: mergeSourceMetadata(
+      (existing as unknown as { sourceMetadata?: unknown } | null)?.sourceMetadata,
+      n.raw,
+      n.rawKey
+    ),
   };
   const data: TimestampedProductUpdateInput = { ...sharedData };
 
@@ -225,11 +303,22 @@ export async function applyNormalizedProduct(
   const hasRelations =
     (n.accessorySkus?.length ?? 0) > 0 ||
     (n.crossSellSkus?.length ?? 0) > 0 ||
-    (n.alsoPurchasedSkus?.length ?? 0) > 0;
+    (n.alsoPurchasedSkus?.length ?? 0) > 0 ||
+    (n.includedItems?.length ?? 0) > 0 ||
+    (n.variantKeys?.length ?? 0) > 0 ||
+    (n.relatedKeys?.length ?? 0) > 0;
 
   if (existing) {
     const before = snapshotProductScalars(existing as unknown as Record<string, unknown>);
-    data.normalizedName = name;
+    const existingRecord = existing as unknown as Record<string, unknown>;
+    data.normalizedName =
+      n.preserveName && existing.normalizedName.trim() ? existing.normalizedName : name;
+    const hasJsonChanges =
+      jsonChanged(existingRecord.specifications, sharedData.specifications) ||
+      jsonChanged(existingRecord.documents, sharedData.documents) ||
+      jsonChanged(existingRecord.keyFeatures, sharedData.keyFeatures) ||
+      jsonChanged(existingRecord.badges, sharedData.badges) ||
+      jsonChanged(existingRecord.sourceMetadata, sharedData.sourceMetadata);
     if (
       originalName &&
       (n.matchField === "supplierSku" || !existing.originalName.trim())
@@ -265,7 +354,7 @@ export async function applyNormalizedProduct(
       (c) => c.field === "stockStatus" || c.field === "stockQuantity"
     );
 
-    if (changed.length === 0 && !hasImages && !hasRelations) {
+    if (changed.length === 0 && !hasImages && !hasRelations && !hasJsonChanges) {
       return {
         action: "noop",
         productId: existing.id,
@@ -276,7 +365,7 @@ export async function applyNormalizedProduct(
       };
     }
 
-    if (changed.length > 0) {
+    if (changed.length > 0 || hasJsonChanges) {
       data.fieldUpdatedAt = mergeFieldTimestamps(
         (existing as unknown as { fieldUpdatedAt?: unknown }).fieldUpdatedAt,
         changed,
@@ -312,9 +401,7 @@ export async function applyNormalizedProduct(
       }
     }
 
-    await replaceRelations(tx, existing.id, "ACCESSORY", n.accessorySkus);
-    await replaceRelations(tx, existing.id, "CROSS_SELL", n.crossSellSkus);
-    await replaceRelations(tx, existing.id, "ALSO_PURCHASED", n.alsoPurchasedSkus);
+    await applyAllRelations(tx, existing.id, n);
 
     return {
       action: "update",
@@ -376,9 +463,7 @@ export async function applyNormalizedProduct(
     }
   }
 
-  await replaceRelations(tx, created.id, "ACCESSORY", n.accessorySkus);
-  await replaceRelations(tx, created.id, "CROSS_SELL", n.crossSellSkus);
-  await replaceRelations(tx, created.id, "ALSO_PURCHASED", n.alsoPurchasedSkus);
+  await applyAllRelations(tx, created.id, n);
 
   return {
     action: "create",

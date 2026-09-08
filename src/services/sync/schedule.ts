@@ -2,7 +2,7 @@ import type { SyncSourceKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSetting, setSetting } from "@/lib/settings";
 
-type ScheduledSource = "crestron" | "sonance";
+type ScheduledSource = "crestron" | "crestron-web" | "sonance";
 
 export interface SyncSourceSchedule {
   enabled: boolean;
@@ -12,6 +12,7 @@ export interface SyncSourceSchedule {
 
 export interface SyncScheduleConfig {
   crestron: SyncSourceSchedule;
+  "crestron-web": SyncSourceSchedule;
   sonance: SyncSourceSchedule;
 }
 
@@ -19,6 +20,7 @@ const SCHEDULE_KEY = "sync.schedule";
 
 export const DEFAULT_SCHEDULE: SyncScheduleConfig = {
   crestron: { enabled: true, everyHours: 24, atHourArg: 8 },
+  "crestron-web": { enabled: false, everyHours: 168, atHourArg: 4 },
   sonance: { enabled: true, everyHours: 168, atHourArg: 6 },
 };
 
@@ -61,6 +63,7 @@ export async function getSchedule(): Promise<SyncScheduleConfig> {
     if (!raw) {
       return {
         crestron: { ...DEFAULT_SCHEDULE.crestron },
+        "crestron-web": { ...DEFAULT_SCHEDULE["crestron-web"] },
         sonance: { ...DEFAULT_SCHEDULE.sonance },
       };
     }
@@ -70,6 +73,10 @@ export async function getSchedule(): Promise<SyncScheduleConfig> {
         parsed?.crestron,
         DEFAULT_SCHEDULE.crestron
       ),
+      "crestron-web": normalizedSource(
+        parsed?.["crestron-web"],
+        DEFAULT_SCHEDULE["crestron-web"]
+      ),
       sonance: normalizedSource(
         parsed?.sonance,
         DEFAULT_SCHEDULE.sonance
@@ -78,6 +85,7 @@ export async function getSchedule(): Promise<SyncScheduleConfig> {
   } catch {
     return {
       crestron: { ...DEFAULT_SCHEDULE.crestron },
+      "crestron-web": { ...DEFAULT_SCHEDULE["crestron-web"] },
       sonance: { ...DEFAULT_SCHEDULE.sonance },
     };
   }
@@ -116,6 +124,7 @@ export async function lastCompletedRunMs(
 ): Promise<number | null> {
   const sourceKind: Record<ScheduledSource, SyncSourceKind> = {
     crestron: "CRESTRON",
+    "crestron-web": "CRESTRON_WEB",
     sonance: "SONANCE",
   };
   const run = await prisma.syncRun.findFirst({

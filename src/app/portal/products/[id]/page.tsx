@@ -167,6 +167,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const activeAccessories = visibleRelations.filter((r) => r.kind === "ACCESSORY");
   const crossSellRelations = visibleRelations.filter((r) => r.kind === "CROSS_SELL");
   const alsoPurchasedRelations = visibleRelations.filter((r) => r.kind === "ALSO_PURCHASED");
+  const includedRelations = visibleRelations.filter((r) => r.kind === "INCLUDED");
+  const variantRelations = visibleRelations.filter((r) => r.kind === "MODEL_VARIANT");
+  const relatedRelations = visibleRelations.filter((r) => r.kind === "RELATED");
 
   // Precios calculados UNA vez para todas las relaciones visibles
   const allRelationProducts = visibleRelations.map((r) => r.accessoryProduct);
@@ -206,11 +209,15 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       finalPriceUsd: relationPrices.get(r.accessoryProduct.id)?.finalPriceUsd ?? 0,
       kind: r.accessoryProduct.kind as "PRINCIPAL" | "ACCESORIO",
       accessoryRequiredWithPrimary: r.accessoryProduct.accessoryRequiredWithPrimary,
+      quantity: r.quantity,
     };
   }
   const compatibleAccessoryItems = activeAccessories.map(relationToItem);
   const crossSellItems = crossSellRelations.map(relationToItem);
   const alsoPurchasedItems = alsoPurchasedRelations.map(relationToItem);
+  const includedItems = includedRelations.map(relationToItem);
+  const variantItems = variantRelations.map(relationToItem);
+  const relatedItems = relatedRelations.map(relationToItem);
 
   return (
     <div className="space-y-6">
@@ -259,6 +266,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StockBadge status={product.stockStatus} qty={product.stockQuantity} />
               {product.isCustomizable ? <Badge tone="accent">Configurable</Badge> : null}
+              {product.isDiscontinued ? <Badge tone="warning">Discontinuado por el fabricante</Badge> : null}
               {product.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : <Badge tone="primary">Producto principal</Badge>}
               {pricing.discountPercent > 0 ? (
                 <Badge tone="success">Descuento {formatPercent(pricing.discountPercent)}</Badge>
@@ -348,6 +356,30 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           parentProductName={product.normalizedName}
           items={alsoPurchasedItems}
           variant="ALSO_PURCHASED"
+        />
+      ) : null}
+
+      {includedItems.length > 0 ? (
+        <CompatibleAccessoriesSection
+          parentProductName={product.normalizedName}
+          items={includedItems}
+          variant="INCLUDED"
+        />
+      ) : null}
+
+      {variantItems.length > 0 ? (
+        <CompatibleAccessoriesSection
+          parentProductName={product.normalizedName}
+          items={variantItems}
+          variant="MODEL_VARIANT"
+        />
+      ) : null}
+
+      {relatedItems.length > 0 ? (
+        <CompatibleAccessoriesSection
+          parentProductName={product.normalizedName}
+          items={relatedItems}
+          variant="RELATED"
         />
       ) : null}
       </ProductBundleProvider>

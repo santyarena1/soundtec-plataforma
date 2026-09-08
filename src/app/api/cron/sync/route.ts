@@ -11,8 +11,9 @@ import {
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-const SOURCE_KIND: Record<"crestron" | "sonance", SyncSourceKind> = {
+const SOURCE_KIND: Record<"crestron" | "crestron-web" | "sonance", SyncSourceKind> = {
   crestron: "CRESTRON",
+  "crestron-web": "CRESTRON_WEB",
   sonance: "SONANCE",
 };
 
@@ -101,7 +102,7 @@ export async function GET(req: NextRequest) {
 
     const schedule = await getSchedule();
     const nowUtcMs = Date.now();
-    const sources: SyncSource[] = ["crestron", "sonance"];
+    const sources: SyncSource[] = ["crestron", "crestron-web", "sonance"];
     const results = [];
     for (const source of sources) {
       try {

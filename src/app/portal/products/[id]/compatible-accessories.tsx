@@ -21,16 +21,26 @@ export interface CompatibleAccessoryItem {
   finalPriceUsd: number;
   kind: "PRINCIPAL" | "ACCESORIO";
   accessoryRequiredWithPrimary: boolean;
+  /** Cantidad incluida en la caja (solo relaciones INCLUDED). */
+  quantity?: number | null;
 }
+
+export type RelationVariant =
+  | "ACCESSORY"
+  | "CROSS_SELL"
+  | "ALSO_PURCHASED"
+  | "INCLUDED"
+  | "MODEL_VARIANT"
+  | "RELATED";
 
 interface Props {
   parentProductName: string;
   items: CompatibleAccessoryItem[];
   /** Cambia el título y el copy según el tipo de relación. Default "ACCESSORY". */
-  variant?: "ACCESSORY" | "CROSS_SELL" | "ALSO_PURCHASED";
+  variant?: RelationVariant;
 }
 
-const VARIANT_LABELS: Record<NonNullable<Props["variant"]>, { title: string; subtitle: (parent: string) => string }> = {
+const VARIANT_LABELS: Record<RelationVariant, { title: string; subtitle: (parent: string) => string }> = {
   ACCESSORY: {
     title: "Accesorios compatibles",
     subtitle: (parent) =>
@@ -45,6 +55,21 @@ const VARIANT_LABELS: Record<NonNullable<Props["variant"]>, { title: string; sub
     title: "Otros clientes también compraron",
     subtitle: (parent) =>
       `Productos que clientes adquirieron junto a ${parent}.`,
+  },
+  INCLUDED: {
+    title: "Incluido en la caja",
+    subtitle: (parent) =>
+      `Componentes que vienen incluidos con ${parent} según el fabricante. No hace falta cotizarlos aparte.`,
+  },
+  MODEL_VARIANT: {
+    title: "Otros modelos de esta línea",
+    subtitle: (parent) =>
+      `Variantes del fabricante para ${parent} (mismo producto, distinta configuración o región).`,
+  },
+  RELATED: {
+    title: "Productos relacionados",
+    subtitle: (parent) =>
+      `Productos que el fabricante recomienda junto a ${parent}.`,
   },
 };
 
@@ -98,6 +123,9 @@ export function CompatibleAccessoriesSection({ parentProductName, items, variant
                 <div className="flex flex-wrap items-center gap-1">
                   <StockBadge status={item.stockStatus} qty={item.stockQuantity} />
                   {item.isRequired ? <Badge tone="warning">Obligatorio</Badge> : null}
+                  {variant === "INCLUDED" ? (
+                    <Badge tone="success">Incluido{item.quantity && item.quantity > 1 ? ` ×${item.quantity}` : ""}</Badge>
+                  ) : null}
                   {item.kind === "ACCESORIO" ? <Badge tone="muted">Accesorio</Badge> : null}
                 </div>
                 <p className="text-base font-semibold">{formatUsd(item.finalPriceUsd)}</p>
@@ -123,7 +151,7 @@ function AccessoryAddButton({
   variant,
 }: {
   item: CompatibleAccessoryItem;
-  variant?: "ACCESSORY" | "CROSS_SELL" | "ALSO_PURCHASED";
+  variant?: RelationVariant;
 }) {
   const bundle = useProductBundle();
   if (bundle && variant === "ACCESSORY") {

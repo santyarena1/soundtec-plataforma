@@ -17,11 +17,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 const SOURCES = [
-  { slug: "crestron", name: "Crestron (Xtrabon)" },
+  { slug: "crestron", name: "Crestron (Xtrabon) — precios y stock" },
+  { slug: "crestron-web", name: "Crestron.com — enriquecimiento (fichas, specs, imágenes, documentos)" },
   { slug: "sonance", name: "Sonance / IPORT / JAMES / BLAZE" },
 ] as const;
 
 type SourceSlug = (typeof SOURCES)[number]["slug"];
+
+const SOURCE_HINTS: Record<SourceSlug, string> = {
+  crestron: "Precios, disponibilidad y logística desde Xtrabon. No toca contenido.",
+  "crestron-web":
+    "Fichas públicas de crestron.com: descripciones, specs, imágenes HD, documentos, accesorios, incluidos y variantes. No toca precios ni stock.",
+  sonance: "Catálogo, contenido, imágenes y relaciones.",
+};
 type SyncMode = "preview" | "apply";
 
 const MODE_LABELS: Record<string, string> = {
@@ -94,6 +102,7 @@ interface SourceSchedule {
 
 interface ScheduleConfig {
   crestron: SourceSchedule;
+  "crestron-web": SourceSchedule;
   sonance: SourceSchedule;
 }
 
@@ -570,9 +579,7 @@ export function UnifiedSyncPanel() {
               >
                 <p className="text-sm font-medium">{item.name}</p>
                 <p className="text-xs mt-0.5">
-                  {item.slug === "crestron"
-                    ? "Precios, disponibilidad y logística."
-                    : "Catálogo, contenido, imágenes y relaciones."}
+                  {SOURCE_HINTS[item.slug]}
                 </p>
               </button>
             ))}
@@ -618,8 +625,8 @@ export function UnifiedSyncPanel() {
               </p>
             </div>
             {schedule && (
-              <Badge tone={schedule.crestron.enabled || schedule.sonance.enabled ? "success" : "muted"}>
-                {schedule.crestron.enabled || schedule.sonance.enabled
+              <Badge tone={SOURCES.some((item) => schedule[item.slug].enabled) ? "success" : "muted"}>
+                {SOURCES.some((item) => schedule[item.slug].enabled)
                   ? "activa"
                   : "desactivada"}
               </Badge>

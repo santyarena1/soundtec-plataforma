@@ -50,6 +50,7 @@ function validateSchedule(value: unknown): SyncScheduleConfig {
   const schedule = value as Record<string, unknown>;
   return {
     crestron: validateSource(schedule.crestron, "crestron"),
+    "crestron-web": validateSource(schedule["crestron-web"], "crestron-web"),
     sonance: validateSource(schedule.sonance, "sonance"),
   };
 }

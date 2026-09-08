@@ -69,13 +69,31 @@ export interface NormalizedProduct {
   accessorySkus?: string[];
   crossSellSkus?: string[];
   alsoPurchasedSkus?: string[];
+  /** Viene incluido en la caja. Las claves se resuelven contra internalSku / supplierSku / modelNumber. */
+  includedItems?: Array<{ key: string; quantity?: number }>;
+  /** Variantes / modelos hermanos (ej. CP4 ↔ CP4N). */
+  variantKeys?: string[];
+  /** Productos relacionados sugeridos por el fabricante. */
+  relatedKeys?: string[];
+  isDiscontinued?: boolean;
+  regulatoryModel?: string;
+  keyFeatures?: string[];
+  sourceCategoryPath?: string;
+  vendorPublishedAt?: Date;
+  /**
+   * Si está definido, `raw` se guarda en sourceMetadata[rawKey] preservando el
+   * resto del objeto (para que un enriquecimiento no pise los datos del sync de precios).
+   */
+  rawKey?: string;
+  /** No pisar normalizedName de un producto existente (solo enriquecer). */
+  preserveName?: boolean;
   raw: unknown;
 }
 
 export interface ProductSourceConnector {
   slug: string;
   displayName: string;
-  source: "CRESTRON" | "SONANCE" | "EXCEL" | "MANUAL";
+  source: "CRESTRON" | "CRESTRON_WEB" | "SONANCE" | "EXCEL" | "MANUAL";
   matchField: "internalSku" | "supplierSku";
   translateItems?(items: NormalizedProduct[]): Promise<void>;
   fetchNormalized(opts?: {

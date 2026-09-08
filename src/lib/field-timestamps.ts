@@ -8,7 +8,8 @@ export const SCALAR_PRODUCT_FIELDS: string[] = [
   "volume", "widthCm", "heightCm", "depthCm", "urlSlug", "vendorProductUrl",
   "videoUrl", "coo", "tariffPosition", "tariffDutyPercent", "aecPercent",
   "tePercent", "coefNac", "coefVta", "ivaPercent", "impIntPercent",
-  "coefVtaFob", "isActive",
+  "coefVtaFob", "isActive", "isDiscontinued", "regulatoryModel",
+  "sourceCategoryPath", "vendorPublishedAt",
 ];
 
 function normalized(value: unknown): unknown {

@@ -244,6 +244,13 @@ model Product {
   // Flags extra
   requiresQuote           Boolean  @default(false)
 
+  // Enriquecimiento desde el sitio del fabricante (crestron.com)
+  isDiscontinued          Boolean  @default(false)
+  regulatoryModel         String?               // modelo regulatorio (ej. "M201903003")
+  keyFeatures             Json?                 // string[] — bullets de "Key Features"
+  sourceCategoryPath      String?               // ruta de categoría del fabricante (ej. "Control and Management > Control System > Rack Mount")
+  vendorPublishedAt       DateTime?             // fecha de publicación en el catálogo del fabricante
+
   // Badges (NEW / ON SALE / FEATURED / etc.)
   badges                  Json?                 // [{name, type?}]
 
@@ -316,6 +323,9 @@ enum ProductRelationKind {
   ACCESSORY       // Accesorio compatible (mount, bracket, requerido por instalación)
   CROSS_SELL      // Producto alternativo o complementario sugerido (otra línea)
   ALSO_PURCHASED  // "Otros también compraron" (upsell del cart)
+  INCLUDED        // Viene incluido en la caja (ej. fuente de alimentación)
+  MODEL_VARIANT   // Variante / modelo hermano del mismo producto (ej. CP4 ↔ CP4N)
+  RELATED         // Producto relacionado sugerido por el fabricante
 }
 
 model AccessoryRelation {
@@ -326,6 +336,7 @@ model AccessoryRelation {
   accessoryProduct  Product  @relation("AccessoryTarget", fields: [accessoryProductId], references: [id], onDelete: Cascade)
   isRequired        Boolean  @default(false)
   kind              ProductRelationKind @default(ACCESSORY)
+  quantity          Int?     // cantidad incluida (kind = INCLUDED)
   createdAt         DateTime @default(now())
 
   @@unique([productId, accessoryProductId, kind])
@@ -1414,6 +1425,7 @@ model HistoricalQuoteLine {
 }
 enum SyncSourceKind {
   CRESTRON
+  CRESTRON_WEB
   SONANCE
   EXCEL
   MANUAL
