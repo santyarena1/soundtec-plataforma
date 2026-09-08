@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { SearchablePick } from "@/components/admin/searchable-pick";
+import { ClientSelectWithCreate } from "@/components/admin/client-select-with-create";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { QuickQuoteItems, type QuickItem } from "./quick-quote-items";
@@ -17,10 +17,14 @@ type Product = Awaited<ReturnType<typeof searchQuickQuoteProducts>>[number];
 
 export function QuickQuoteForm({
   clients,
+  owners,
+  priceLists,
   validityDays,
   requests,
 }: {
   clients: { id: string; name: string }[];
+  owners: { id: string; name: string }[];
+  priceLists: { id: string; name: string }[];
   validityDays: number;
   requests: { id: string; clientId: string | null; label: string }[];
 }) {
@@ -179,9 +183,10 @@ export function QuickQuoteForm({
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
-        <SearchablePick
-          label="Cliente"
-          options={clients}
+        <ClientSelectWithCreate
+          clients={clients}
+          owners={owners}
+          priceLists={priceLists}
           value={clientId}
           onChange={setClientId}
           placeholder="Buscá un cliente activo…"

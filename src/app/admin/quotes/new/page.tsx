@@ -10,6 +10,7 @@ import { Input, Label, Textarea, Select, FieldHint } from "@/components/ui/input
 import { QuoteAdvancedFields } from "./advanced-fields";
 import { QuoteClassifierFields } from "@/components/quotes/quote-classifier-fields";
 import { listQuoteClassifiers } from "@/lib/quote-classifiers";
+import { ClientSelectWithCreate } from "@/components/admin/client-select-with-create";
 
 export const metadata = { title: "Admin · Nueva cotización" };
 
@@ -22,7 +23,7 @@ const PROFILE_HELP: Record<string, string> = {
 export default async function NewQuotePage() {
   await requireQuotePermission("quotes.create");
   await ensureQuoteProfiles();
-  const [clients, profiles, cfg, classifiers] = await Promise.all([
+  const [clients, profiles, cfg, classifiers, owners, priceLists] = await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
       orderBy: { companyName: "asc" },
@@ -31,6 +32,12 @@ export default async function NewQuotePage() {
     prisma.quoteContentProfile.findMany({ orderBy: { name: "asc" } }),
     getQuoteNumberingConfig(),
     listQuoteClassifiers(),
+    prisma.user.findMany({
+      where: { role: { in: ["ADMIN", "SUPER_ADMIN"] }, isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.priceList.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   const preview = formatQuoteNumber({ ...cfg, sequence: cfg.nextSequence });
   const defaultProfile = profiles.find((p) => p.isDefault)?.key || "tecnico";
@@ -52,16 +59,15 @@ export default async function NewQuotePage() {
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="clientId">Cliente</Label>
-                  <Select id="clientId" name="clientId" defaultValue="">
-                    <option value="">Asignar después (no podés emitir sin cliente)</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.companyName}
-                        {c.tradeName ? ` (${c.tradeName})` : ""}
-                      </option>
-                    ))}
-                  </Select>
+                  <ClientSelectWithCreate
+                    clients={clients.map((c) => ({
+                      id: c.id,
+                      name: c.tradeName ? `${c.companyName} (${c.tradeName})` : c.companyName,
+                    }))}
+                    owners={owners}
+                    priceLists={priceLists}
+                    placeholder="Asignar después (no podés emitir sin cliente)"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="contactName">Contacto</Label>

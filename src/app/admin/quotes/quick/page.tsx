@@ -9,7 +9,7 @@ export const metadata = { title: "Admin · Cotización rápida" };
 
 export default async function QuickQuotePage() {
   await requireQuotePermission("quotes.create");
-  const [clients, requests, validity] = await Promise.all([
+  const [clients, requests, validity, owners, priceLists] = await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
       orderBy: { companyName: "asc" },
@@ -22,6 +22,12 @@ export default async function QuickQuotePage() {
       select: { id: true, clientId: true, projectDescription: true },
     }),
     getSetting(QUOTE_SETTING_KEYS.validityDays, "5"),
+    prisma.user.findMany({
+      where: { role: { in: ["ADMIN", "SUPER_ADMIN"] }, isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.priceList.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   return (
     <div className="space-y-6">
@@ -31,6 +37,8 @@ export default async function QuickQuotePage() {
       />
       <QuickQuoteForm
         clients={clients.map((c) => ({ id: c.id, name: c.companyName }))}
+        owners={owners}
+        priceLists={priceLists}
         validityDays={Number(validity) || 5}
         requests={requests.map((r) => ({
           id: r.id,
