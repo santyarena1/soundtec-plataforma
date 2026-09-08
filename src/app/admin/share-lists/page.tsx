@@ -72,7 +72,11 @@ export default async function AdminShareListsPage() {
                 </TD>
                 <TD className="text-sm">{l.client?.companyName || "Estándar"}</TD>
                 <TD>
-                  <Badge tone={statusTone[l.status] || "muted"}>{statusLabel[l.status] || l.status}</Badge>
+                  {l.status === "ACTIVE" && l.expiresAt && l.expiresAt < new Date() ? (
+                    <Badge tone="warning">Vencida</Badge>
+                  ) : (
+                    <Badge tone={statusTone[l.status] || "muted"}>{statusLabel[l.status] || l.status}</Badge>
+                  )}
                 </TD>
                 <TD>{l.viewCount}</TD>
                 <TD className="text-xs text-muted-foreground">{formatDate(l.updatedAt)}</TD>
