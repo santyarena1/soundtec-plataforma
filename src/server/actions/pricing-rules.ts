@@ -584,17 +584,8 @@ export async function searchRulePreviewProducts(input: {
               ? { id: { in: scopeIds } }
               : {};
 
-  const searchWhere = q
-    ? {
-        OR: [
-          { normalizedName: { contains: q, mode: "insensitive" as const } },
-          { originalName: { contains: q, mode: "insensitive" as const } },
-          { internalSku: { contains: q, mode: "insensitive" as const } },
-          { supplierSku: { contains: q, mode: "insensitive" as const } },
-          { searchKey: { contains: q, mode: "insensitive" as const } },
-        ],
-      }
-    : {};
+  const { buildProductSearchWhere } = await import("@/lib/product-search");
+  const searchWhere = q ? buildProductSearchWhere(q) : {};
 
   const where = {
     AND: [scopeWhere, searchWhere].filter((part) => Object.keys(part).length > 0),

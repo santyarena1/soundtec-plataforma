@@ -9,6 +9,7 @@ import { issueQuote } from "@/server/actions/quote-export";
 import { calculatePricesForProducts } from "@/lib/pricing";
 import { getGlobalMarginPercent, getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
+import { buildProductSearchWhere, sortBySearchRelevance } from "@/lib/product-search";
 
 const itemSchema = z.object({
   productId: z.string(),
@@ -115,17 +116,9 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
   await requireQuotePermission("quotes.create");
   if (query.trim().length < 2) return [];
   const q = query.trim();
-  const products = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      OR: [
-        { normalizedName: { contains: q, mode: "insensitive" } },
-        { internalSku: { contains: q, mode: "insensitive" } },
-        { supplierSku: { contains: q, mode: "insensitive" } },
-        { modelNumber: { contains: q, mode: "insensitive" } },
-      ],
-    },
-    take: 20,
+  const found = await prisma.product.findMany({
+    where: { isActive: true, ...buildProductSearchWhere(q) },
+    take: 60,
     include: {
       brand: { select: { name: true } },
       accessories: {
@@ -136,6 +129,15 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
       },
     },
   });
+  const products = sortBySearchRelevance(found, q, (p) => ({
+    normalizedName: p.normalizedName,
+    originalName: p.originalName,
+    internalSku: p.internalSku,
+    supplierSku: p.supplierSku,
+    modelNumber: p.modelNumber,
+    manufacturerItem: p.manufacturerItem,
+    brandName: p.brand?.name ?? null,
+  })).slice(0, 20);
   const prices = await calculatePricesForProducts(
     products.map((p) => ({
       productId: p.id,

@@ -58,6 +58,8 @@ export function ClientFormModal({
       if (result.password) {
         setCreatedId(result.id);
         setPwd(result.password);
+        // El cliente ya existe: avisar igual (ej. para seleccionarlo en la cotización).
+        if (onCreated && result.id) onCreated(result.id);
         return;
       }
       setOpen(false);
@@ -74,7 +76,9 @@ export function ClientFormModal({
   }
   return (
     <>
-      <Button onClick={() => setOpen(true)}>{triggerLabel}</Button>
+      <Button type="button" onClick={() => setOpen(true)}>
+        {triggerLabel}
+      </Button>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
@@ -97,14 +101,16 @@ export function ClientFormModal({
                 type="button"
                 onClick={() => {
                   setOpen(false);
+                  if (onCreated) return;
                   router.push(`/admin/clients/${client?.id || createdId || ""}`);
                 }}
               >
-                Ir a la ficha
+                {onCreated ? "Listo" : "Ir a la ficha"}
               </Button>
             </>
-          ) : step === 1 ? (
+          ) : (
             <>
+            <div className={step === 1 ? "space-y-4" : "hidden"}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <Label required>Razón social</Label>
@@ -145,15 +151,23 @@ export function ClientFormModal({
               <div className="flex justify-end">
                 <Button
                   type={client ? "submit" : "button"}
-                  onClick={() => !client && setStep(2)}
+                  onClick={(e) => {
+                    if (client) return;
+                    const form = e.currentTarget.closest("form");
+                    const company = form?.querySelector<HTMLInputElement>('input[name="companyName"]');
+                    if (company && !company.value.trim()) {
+                      company.reportValidity();
+                      return;
+                    }
+                    setStep(2);
+                  }}
                   disabled={pending}
                 >
                   {client ? "Guardar cambios" : "Continuar"}
                 </Button>
               </div>
-            </>
-          ) : (
-            <>
+            </div>
+            <div className={step === 2 && !client ? "space-y-4" : "hidden"}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label>Nombre del contacto</Label>
@@ -190,13 +204,14 @@ export function ClientFormModal({
                 <FieldHint>Si la dejás vacía, te mostraremos una temporal una sola vez.</FieldHint>
               </div>
               <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setStep(1)}>
+                <Button type="button" variant="outline" onClick={() => setStep(1)}>
                   Volver
                 </Button>
                 <Button type="submit" disabled={pending}>
                   {pending ? "Guardando…" : "Crear cliente"}
                 </Button>
               </div>
+            </div>
             </>
           )}
           <FieldError message={error} />

@@ -787,14 +787,14 @@ export async function adminSearchProductsForRequest(input: {
   });
   if (!request) return { ok: false, error: "El pedido ya no existe.", products: [] };
 
-  const { buildProductSearchWhere } = await import("@/lib/product-search");
-  const found = await prisma.product.findMany({
+  const { buildProductSearchWhere, sortBySearchRelevance } = await import("@/lib/product-search");
+  const foundRaw = await prisma.product.findMany({
     where: {
       isActive: true,
       ...buildProductSearchWhere(query),
     },
     orderBy: { normalizedName: "asc" },
-    take: 25,
+    take: 80,
     select: {
       id: true,
       normalizedName: true,
@@ -815,6 +815,11 @@ export async function adminSearchProductsForRequest(input: {
     },
   });
 
+  const found = sortBySearchRelevance(foundRaw, query, (p) => ({
+    normalizedName: p.normalizedName,
+    internalSku: p.internalSku,
+    brandName: p.brand?.name ?? null,
+  })).slice(0, 25);
   const clientId = await commercialClientIdForRequest(request);
   const globalMargin = await getGlobalMarginPercent();
   const prices = await calculatePricesForProducts(

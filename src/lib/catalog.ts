@@ -8,7 +8,7 @@ import {
 } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
-import { buildProductSearchAnd, productTokenOr } from "@/lib/product-search";
+import { buildProductSearchAnd, productTokenOr, searchRank } from "@/lib/product-search";
 
 /**
  * Construye el OR del filtro de búsqueda extendido. Buscar SIMULTÁNEAMENTE en:
@@ -59,6 +59,10 @@ export interface CatalogFilters {
 export interface CatalogProduct {
   id: string;
   internalSku: string | null;
+  supplierSku: string | null;
+  modelNumber: string | null;
+  manufacturerItem: string | null;
+  originalName: string;
   normalizedName: string;
   shortDescription: string | null;
   brandName: string | null;
@@ -230,6 +234,10 @@ async function mapProductsToCatalogItems(
   return products.map((p) => ({
     id: p.id,
     internalSku: p.internalSku,
+    supplierSku: p.supplierSku,
+    modelNumber: p.modelNumber,
+    manufacturerItem: p.manufacturerItem,
+    originalName: p.originalName,
     normalizedName: p.normalizedName,
     shortDescription: p.shortDescription,
     brandName: p.brand?.name ?? null,
@@ -254,32 +262,58 @@ function passesPriceFilter(item: CatalogProduct, filters: CatalogFilters) {
   return true;
 }
 
-function sortCatalogItems(items: CatalogProduct[], sort: CatalogFilters["sort"]) {
+function sortCatalogItems(items: CatalogProduct[], sort: CatalogFilters["sort"], search?: string) {
   const copy = [...items];
+  // Con búsqueda, la relevancia manda: título/SKU antes que contenido.
+  const query = search?.trim() ?? "";
+  const rankOf = new Map<string, number>();
+  if (query) {
+    for (const item of items) {
+      rankOf.set(
+        item.id,
+        searchRank(
+          {
+            normalizedName: item.normalizedName,
+            internalSku: item.internalSku,
+            brandName: item.brandName,
+            modelNumber: item.modelNumber,
+            manufacturerItem: item.manufacturerItem,
+            supplierSku: item.supplierSku,
+            originalName: item.originalName,
+          },
+          query
+        )
+      );
+    }
+  }
+  const relevance = (a: CatalogProduct, b: CatalogProduct) =>
+    query ? (rankOf.get(a.id) ?? 3) - (rankOf.get(b.id) ?? 3) : 0;
   // Comparador secundario: PRINCIPAL siempre antes que ACCESORIO. El criterio
   // primario sigue siendo el sort que pidió el usuario.
   const kindWeight = (k: string | null | undefined) => (k === "ACCESORIO" ? 1 : 0);
   const price = (item: CatalogProduct) => item.pricing?.finalPriceUsd ?? 0;
   switch (sort) {
     case "price_asc":
-      copy.sort((a, b) => kindWeight(a.kind) - kindWeight(b.kind) || price(a) - price(b));
+      copy.sort((a, b) => relevance(a, b) || kindWeight(a.kind) - kindWeight(b.kind) || price(a) - price(b));
       break;
     case "price_desc":
-      copy.sort((a, b) => kindWeight(a.kind) - kindWeight(b.kind) || price(b) - price(a));
+      copy.sort((a, b) => relevance(a, b) || kindWeight(a.kind) - kindWeight(b.kind) || price(b) - price(a));
       break;
     case "name_desc":
       copy.sort(
         (a, b) =>
+          relevance(a, b) ||
           kindWeight(a.kind) - kindWeight(b.kind) ||
           b.normalizedName.localeCompare(a.normalizedName, "es")
       );
       break;
     case "newest":
-      copy.sort((a, b) => kindWeight(a.kind) - kindWeight(b.kind));
+      copy.sort((a, b) => relevance(a, b) || kindWeight(a.kind) - kindWeight(b.kind));
       break;
     default:
       copy.sort(
         (a, b) =>
+          relevance(a, b) ||
           kindWeight(a.kind) - kindWeight(b.kind) ||
           a.normalizedName.localeCompare(b.normalizedName, "es")
       );
@@ -303,12 +337,14 @@ export async function getCatalog(
   const where = await buildCatalogWhere(filters, ctx);
   if (!where) return { items: [], total: 0, page, pageSize };
 
+  const hasSearch = !!filters.search?.trim();
   const needsPricePipeline =
-    !ctx.publicMode &&
-    (filters.minPrice != null ||
-      filters.maxPrice != null ||
-      filters.sort === "price_asc" ||
-      filters.sort === "price_desc");
+    hasSearch ||
+    (!ctx.publicMode &&
+      (filters.minPrice != null ||
+        filters.maxPrice != null ||
+        filters.sort === "price_asc" ||
+        filters.sort === "price_desc"));
 
   // ORDEN PRIMARIO: kind ASC → PRINCIPAL sale primero, ACCESORIO después.
   // Esto asegura que en cualquier vista (búsqueda, navegación por filtros,
@@ -328,7 +364,7 @@ export async function getCatalog(
 
     let items = await mapProductsToCatalogItems(products, ctx);
     items = items.filter((i) => passesPriceFilter(i, filters));
-    items = sortCatalogItems(items, filters.sort);
+    items = sortCatalogItems(items, filters.sort, filters.search);
     const total = items.length;
     const start = (page - 1) * pageSize;
     return { items: items.slice(start, start + pageSize), total, page, pageSize };

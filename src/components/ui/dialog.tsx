@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,12 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, description, icon, size = "md", footer, children }: ModalProps) {
+  // Se monta en <body> (portal): así un modal con formulario puede abrirse
+  // desde adentro de otro <form> sin anidar formularios.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   React.useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -40,9 +47,9 @@ export function Modal({ open, onClose, title, description, icon, size = "md", fo
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div
@@ -80,7 +87,8 @@ export function Modal({ open, onClose, title, description, icon, size = "md", fo
           <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border px-5 py-3">{footer}</div>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

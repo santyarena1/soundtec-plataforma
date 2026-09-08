@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { calculatePricesForProducts, getClientVisibility } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
+import { buildProductSearchAnd } from "@/lib/product-search";
 
 export interface ShareablePriceListFilters {
   brandIds?: string[];
@@ -54,15 +55,8 @@ export function buildProductWhereFromFilters(filters: ShareablePriceListFilters)
   }
 
   if (filters.search) {
-    const q = filters.search;
-    and.push({
-      OR: [
-        { normalizedName: { contains: q, mode: "insensitive" } },
-        { originalName: { contains: q, mode: "insensitive" } },
-        { internalSku: { contains: q, mode: "insensitive" } },
-        { supplierSku: { contains: q, mode: "insensitive" } },
-      ],
-    });
+    const ands = buildProductSearchAnd(filters.search);
+    if (ands?.length) and.push(...ands);
   }
 
   const where: Prisma.ProductWhereInput = { AND: and };

@@ -14,6 +14,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { calculatePricesForProducts } from "@/lib/pricing";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
+import { buildProductSearchAnd, SEARCH_RANK_SELECT, sortBySearchRelevance } from "@/lib/product-search";
+
+const SEARCH_RANK_CAP = 3000;
 
 interface SP {
   q?: string;
@@ -86,46 +89,37 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     ...(params.nodesc === "1" ? { longDescription: null } : {}),
     ...(params.crestron === "1" ? { isCrestronHomeCompatible: true } : {}),
     ...(params.q
-      ? {
-          // Búsqueda extendida tipo "Google": tokeniza por espacios, exige que
-          // TODOS los tokens matcheen en al menos un campo (AND entre tokens,
-          // OR entre campos). Buscamos en nombre + SKUs + descripciones +
-          // brand/category/family/distributor + identificadores del fabricante.
-          AND: params.q
-            .split(/\s+/)
-            .map((t) => t.trim())
-            .filter(Boolean)
-            .map((t) => {
-              const c = { contains: t, mode: "insensitive" as const };
-              return {
-                OR: [
-                  { normalizedName: c },
-                  { originalName: c },
-                  { internalSku: c },
-                  { supplierSku: c },
-                  { shortDescription: c },
-                  { longDescription: c },
-                  { tariffPosition: c },
-                  { coo: c },
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  { modelNumber: c } as any,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  { manufacturerItem: c } as any,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  { productLine: c } as any,
-                  { brand: { name: c } },
-                  { category: { name: c } },
-                  { family: { name: c } },
-                  { distributor: { name: c } },
-                ],
-              };
-            }),
-        }
+      ? (() => {
+          // Búsqueda extendida: AND entre palabras, OR entre campos (nombre,
+          // SKUs, descripciones, contenido enriquecido, marca/categoría/familia).
+          const ands = buildProductSearchAnd(params.q);
+          return ands?.length ? { AND: ands } : {};
+        })()
       : {}),
   };
 
   const orderBy: Prisma.ProductOrderByWithRelationInput =
     SORT_MAP[params.sort || ""] ?? { normalizedName: "asc" };
+
+  // Con búsqueda, el orden lo da la relevancia (título/SKU antes que contenido):
+  // resolvemos los ids de la página en memoria y después traemos las filas.
+  const searchQuery = params.q?.trim() ?? "";
+  const rankedPageIds: string[] | null = searchQuery
+    ? await (async () => {
+        const candidates = await prisma.product.findMany({
+          where,
+          orderBy,
+          take: SEARCH_RANK_CAP,
+          select: { id: true, ...SEARCH_RANK_SELECT, brand: { select: { name: true } } },
+        });
+        const ranked = sortBySearchRelevance(candidates, searchQuery, (c) => ({
+          ...c,
+          brandName: c.brand?.name ?? null,
+        }));
+        return ranked.map((c) => c.id);
+      })()
+    : null;
+
 
   if (tab === "crestron") {
     const [crestronProducts, compatibleCount] = await Promise.all([
@@ -167,9 +161,10 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     );
   }
 
-  const [products, total, brands, categories, families, distributors, allLabels] = await Promise.all([
+  const pageIds = rankedPageIds ? rankedPageIds.slice((page - 1) * pageSize, page * pageSize) : null;
+  const [productsUnordered, total, brands, categories, families, distributors, allLabels] = await Promise.all([
     prisma.product.findMany({
-      where,
+      where: pageIds ? { id: { in: pageIds } } : where,
       orderBy,
       include: {
         brand: { select: { id: true, name: true } },
@@ -179,10 +174,9 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         images: productCoverImageInclude,
         labels: { select: { label: { select: { id: true, name: true, color: true } } } },
       },
-      take: pageSize,
-      skip: (page - 1) * pageSize,
+      ...(pageIds ? {} : { take: pageSize, skip: (page - 1) * pageSize }),
     }),
-    prisma.product.count({ where }),
+    rankedPageIds ? Promise.resolve(rankedPageIds.length) : prisma.product.count({ where }),
     prisma.brand.findMany({
       orderBy: { name: "asc" },
       select: { id: true, name: true, _count: { select: { products: true } } },
@@ -193,6 +187,11 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
   ]);
 
+  const products = pageIds
+    ? pageIds
+        .map((id) => productsUnordered.find((p) => p.id === id))
+        .filter((p): p is (typeof productsUnordered)[number] => !!p)
+    : productsUnordered;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const prices = await calculatePricesForProducts(
     products.map((p) => ({

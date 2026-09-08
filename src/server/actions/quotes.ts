@@ -513,19 +513,21 @@ export async function searchProductsForQuote(query: string) {
   await requireQuotePermission("quotes.edit");
   const q = query.trim();
   if (q.length < 2) return [];
-  const { buildProductSearchWhere } = await import("@/lib/product-search");
-  return prisma.product.findMany({
+  const { buildProductSearchWhere, sortBySearchRelevance } = await import("@/lib/product-search");
+  const rows = await prisma.product.findMany({
     where: {
       isActive: true,
       ...buildProductSearchWhere(q),
     },
-    take: 20,
+    take: 60,
     select: {
       id: true,
       normalizedName: true,
+      originalName: true,
       internalSku: true,
       supplierSku: true,
       modelNumber: true,
+      manufacturerItem: true,
       shortDescription: true,
       brand: { select: { name: true } },
       category: { select: { name: true } },
@@ -533,6 +535,7 @@ export async function searchProductsForQuote(query: string) {
       ivaPercent: true,
     },
   });
+  return sortBySearchRelevance(rows, q, (p) => ({ ...p, brandName: p.brand?.name ?? null })).slice(0, 20);
 }
 
 export async function addProductToQuote(formData: FormData): Promise<{ ok: boolean; error?: string }> {

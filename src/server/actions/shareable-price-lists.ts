@@ -156,15 +156,22 @@ export async function searchProductsForShareList(input: z.input<typeof searchSch
   await requireAdmin();
   const data = searchSchema.parse(input);
   const q = data.q.trim();
+  const { buildProductSearchWhere, sortBySearchRelevance, SEARCH_RANK_SELECT } = await import("@/lib/product-search");
   const rows = await prisma.product.findMany({
-    where: { isActive: true, ...(data.brandIds.length ? { brandId: { in: data.brandIds } } : {}),
+    where: {
+      isActive: true,
+      ...(data.brandIds.length ? { brandId: { in: data.brandIds } } : {}),
       ...(data.categoryIds.length ? { categoryId: { in: data.categoryIds } } : {}),
-      ...(q ? { OR: [{ normalizedName: { contains: q, mode: "insensitive" } },
-        { internalSku: { contains: q, mode: "insensitive" } }, { supplierSku: { contains: q, mode: "insensitive" } }] } : {}) },
-    orderBy: { normalizedName: "asc" }, take: data.take,
-    select: { id: true, normalizedName: true, internalSku: true },
+      ...(q ? buildProductSearchWhere(q) : {}),
+    },
+    orderBy: { normalizedName: "asc" },
+    take: q ? data.take * 4 : data.take,
+    select: { id: true, ...SEARCH_RANK_SELECT, brand: { select: { name: true } } },
   });
-  return rows.map((row) => ({ id: row.id, name: row.normalizedName, sku: row.internalSku }));
+  const ranked = q
+    ? sortBySearchRelevance(rows, q, (row) => ({ ...row, brandName: row.brand?.name ?? null })).slice(0, data.take)
+    : rows;
+  return ranked.map((row) => ({ id: row.id, name: row.normalizedName, sku: row.internalSku }));
 }
 
 export async function duplicateShareablePriceList(id: string) {
