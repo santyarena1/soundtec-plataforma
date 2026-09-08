@@ -33,6 +33,12 @@ const NON_SCALAR_KEYS = new Set<keyof NormalizedProduct>([
   "accessorySkus",
   "crossSellSkus",
   "alsoPurchasedSkus",
+  "includedItems",
+  "variantKeys",
+  "relatedKeys",
+  "rawKey",
+  "preserveName",
+  "brandName",
 ]);
 
 function errorMessage(error: unknown): string {
