@@ -7,7 +7,7 @@ import type { CatalogUrlState } from "@/lib/catalog-url";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useCatalogNavigation } from "./use-catalog-navigation";
 
-export function CatalogToolbar({ state }: { state: CatalogUrlState }) {
+export function CatalogToolbar({ state, publicMode = false }: { state: CatalogUrlState; publicMode?: boolean }) {
   const { push, isPending, params } = useCatalogNavigation();
   const [search, setSearch] = useState(state.search || "");
   const debouncedSearch = useDebouncedValue(search, 350);
@@ -44,8 +44,8 @@ export function CatalogToolbar({ state }: { state: CatalogUrlState }) {
         >
           <option value="name_asc">Nombre A-Z</option>
           <option value="name_desc">Nombre Z-A</option>
-          <option value="price_asc">Menor precio</option>
-          <option value="price_desc">Mayor precio</option>
+          {!publicMode ? <option value="price_asc">Menor precio</option> : null}
+          {!publicMode ? <option value="price_desc">Mayor precio</option> : null}
           <option value="newest">Más nuevos</option>
         </Select>
 

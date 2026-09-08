@@ -40,8 +40,14 @@ export function LandingHero({ title, subtitle, ctaText, ctaUrl, productCount, br
               {ctaText || "Ingresar al portal"} <ArrowRight className="h-4 w-4" />
             </ButtonLink>
             <Link
-              href="#acceso"
+              href="/catalogo"
               className="inline-flex h-11 items-center rounded-md border border-primary-foreground/25 px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-foreground/10"
+            >
+              Explorar el catálogo
+            </Link>
+            <Link
+              href="#acceso"
+              className="inline-flex h-11 items-center px-2 text-sm font-medium text-primary-foreground/80 underline-offset-4 hover:underline"
             >
               Quiero una cuenta
             </Link>

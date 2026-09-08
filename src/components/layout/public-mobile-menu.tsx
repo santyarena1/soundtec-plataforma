@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
 const LINKS = [
+  { href: "/catalogo", label: "Catálogo" },
   { href: "/#como-funciona", label: "Cómo funciona" },
   { href: "/#plataforma", label: "Plataforma" },
   { href: "/#soluciones", label: "Soluciones" },

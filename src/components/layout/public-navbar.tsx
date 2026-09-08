@@ -48,6 +48,9 @@ export async function PublicNavbar() {
         </Link>
 
         <nav className="hidden gap-6 text-sm text-muted-foreground md:flex">
+          <Link href="/catalogo" className="font-medium text-foreground transition-colors hover:text-accent">
+            Catálogo
+          </Link>
           <Link href="/#como-funciona" className="transition-colors hover:text-foreground">
             Cómo funciona
           </Link>

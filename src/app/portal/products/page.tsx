@@ -33,6 +33,7 @@ export default async function ProductsPage({
     categoryIds: urlState.categoryIds,
     familyIds: urlState.familyIds,
     stock: urlState.stock,
+    includeOutOfStock: urlState.includeOutOfStock,
     hasDiscount: urlState.hasDiscount,
     favoritesOnly: urlState.favoritesOnly,
     crestronOnly: urlState.crestronOnly,

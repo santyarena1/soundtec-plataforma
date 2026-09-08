@@ -33,6 +33,7 @@ export function PublicFooter() {
         <div>
           <p className="text-sm font-semibold">Plataforma</p>
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+            <li><Link href="/catalogo" className="hover:text-foreground">Catálogo público</Link></li>
             <li><Link href="/#como-funciona" className="hover:text-foreground">Cómo funciona</Link></li>
             <li><Link href="/#plataforma" className="hover:text-foreground">Qué incluye</Link></li>
             <li><Link href="/#marcas" className="hover:text-foreground">Marcas</Link></li>

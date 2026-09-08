@@ -31,6 +31,7 @@ export function parseCatalogSearchParams(
     familyIds: toList(params.family),
     stock:
       stock === "in_stock" || stock === "low_stock" || stock === "on_request" ? stock : "any",
+    includeOutOfStock: params.oos === "1",
     hasDiscount: params.discount === "1",
     favoritesOnly: params.fav === "1",
     crestronOnly: params.crestron === "1",

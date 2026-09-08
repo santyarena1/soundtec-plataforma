@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CatalogUrlState } from "@/lib/catalog-url";
 
 type Patch = Partial<CatalogUrlState> & { reset?: boolean };
@@ -9,12 +9,15 @@ type Patch = Partial<CatalogUrlState> & { reset?: boolean };
 export function useCatalogNavigation() {
   const router = useRouter();
   const params = useSearchParams();
+  const pathname = usePathname();
+  // El catálogo vive en /portal/products (clientes) y en /catalogo (público).
+  const basePath = pathname.startsWith("/catalogo") ? "/catalogo" : "/portal/products";
   const [isPending, startTransition] = useTransition();
 
   const push = useCallback(
     (patch: Patch) => {
       if (patch.reset) {
-        startTransition(() => router.push("/portal/products"));
+        startTransition(() => router.push(basePath));
         return;
       }
 
@@ -38,6 +41,10 @@ export function useCatalogNavigation() {
       if (patch.stock !== undefined) {
         if (patch.stock && patch.stock !== "any") next.set("stock", patch.stock);
         else next.delete("stock");
+      }
+      if (patch.includeOutOfStock !== undefined) {
+        if (patch.includeOutOfStock) next.set("oos", "1");
+        else next.delete("oos");
       }
       if (patch.kind !== undefined) {
         if (patch.kind && patch.kind !== "any") next.set("kind", patch.kind);
@@ -79,10 +86,10 @@ export function useCatalogNavigation() {
       }
 
       startTransition(() => {
-        router.push(`/portal/products?${next.toString()}`);
+        router.push(`${basePath}?${next.toString()}`);
       });
     },
-    [params, router]
+    [params, router, basePath]
   );
 
   function toggleInList(
@@ -96,5 +103,5 @@ export function useCatalogNavigation() {
     push({ [key]: [...set] } as Patch);
   }
 
-  return { push, toggleInList, isPending, params };
+  return { push, toggleInList, isPending, params, basePath };
 }

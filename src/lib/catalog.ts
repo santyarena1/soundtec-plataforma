@@ -43,6 +43,8 @@ export interface CatalogFilters {
   categoryIds?: string[];
   familyIds?: string[];
   stock?: "in_stock" | "low_stock" | "on_request" | "any";
+  /** Por defecto el catálogo oculta los productos sin stock; true los muestra. */
+  includeOutOfStock?: boolean;
   hasDiscount?: boolean;
   favoritesOnly?: boolean;
   crestronOnly?: boolean;
@@ -68,7 +70,8 @@ export interface CatalogProduct {
   isCrestronHomeCompatible: boolean;
   kind: "PRINCIPAL" | "ACCESORIO";
   accessoryRequiredWithPrimary: boolean;
-  pricing: PriceBreakdown;
+  /** null en el catálogo público (sin precios). */
+  pricing: PriceBreakdown | null;
   isFavorite: boolean;
 }
 
@@ -80,17 +83,20 @@ export interface CatalogSidebarMeta {
   categories: FacetOption[];
   families: FacetOption[];
   distributors: FacetOption[];
-  stockCounts: { in_stock: number; low_stock: number; on_request: number };
+  stockCounts: { in_stock: number; low_stock: number; on_request: number; out_of_stock: number };
   discountCount: number;
   totalMatching: number;
 }
 
 const CATALOG_FETCH_CAP = 2500;
 
-type CatalogContext = {
+export type CatalogContext = {
   commercialClientId: string | null;
-  userId: string;
+  /** null para visitantes sin sesión (catálogo público). */
+  userId: string | null;
   isAdmin: boolean;
+  /** Catálogo público: sin precios, sin stock, sin favoritos. */
+  publicMode?: boolean;
 };
 
 type ProductRow = Prisma.ProductGetPayload<{
@@ -149,7 +155,9 @@ async function buildCatalogWhere(
         ? { stockStatus: "LOW_STOCK" }
         : filters.stock === "on_request"
           ? { stockStatus: "ON_REQUEST" }
-          : {}),
+          : filters.includeOutOfStock || ctx.publicMode
+            ? {}
+            : { stockStatus: { not: "OUT_OF_STOCK" } }),
     ...(filters.hasDiscount ? { discountPercent: { gt: 0 } } : {}),
     ...(filters.crestronOnly ? { isCrestronHomeCompatible: true } : {}),
     ...(filters.search
@@ -162,7 +170,7 @@ async function buildCatalogWhere(
   // Mantenemos la referencia al builder OR para compatibilidad con otros llamadores.
   void buildSearchOr;
 
-  if (filters.favoritesOnly) {
+  if (filters.favoritesOnly && ctx.userId) {
     const favs = await prisma.wishlistItem.findMany({
       where: { wishlist: { userId: ctx.userId } },
       select: { productId: true },
@@ -202,18 +210,22 @@ async function mapProductsToCatalogItems(
   if (products.length === 0) return [];
 
   const [wishlistItems, globalMargin] = await Promise.all([
-    prisma.wishlistItem.findMany({
-      where: { wishlist: { userId: ctx.userId } },
-      select: { productId: true },
-    }),
+    ctx.userId
+      ? prisma.wishlistItem.findMany({
+          where: { wishlist: { userId: ctx.userId } },
+          select: { productId: true },
+        })
+      : Promise.resolve([] as Array<{ productId: string }>),
     getGlobalMarginPercent(),
   ]);
   const favSet = new Set(wishlistItems.map((w) => w.productId));
-  const prices = await calculatePricesForProducts(
-    products.map(toPricingInput),
-    ctx.commercialClientId,
-    globalMargin
-  );
+  const prices = ctx.publicMode
+    ? new Map<string, PriceBreakdown>()
+    : await calculatePricesForProducts(
+        products.map(toPricingInput),
+        ctx.commercialClientId,
+        globalMargin
+      );
 
   return products.map((p) => ({
     id: p.id,
@@ -229,12 +241,13 @@ async function mapProductsToCatalogItems(
     isCrestronHomeCompatible: p.isCrestronHomeCompatible,
     kind: p.kind,
     accessoryRequiredWithPrimary: p.accessoryRequiredWithPrimary,
-    pricing: prices.get(p.id)!,
+    pricing: prices.get(p.id) ?? null,
     isFavorite: favSet.has(p.id),
   }));
 }
 
 function passesPriceFilter(item: CatalogProduct, filters: CatalogFilters) {
+  if (!item.pricing) return true;
   const price = item.pricing.finalPriceUsd;
   if (filters.minPrice != null && price < filters.minPrice) return false;
   if (filters.maxPrice != null && price > filters.maxPrice) return false;
@@ -246,20 +259,13 @@ function sortCatalogItems(items: CatalogProduct[], sort: CatalogFilters["sort"])
   // Comparador secundario: PRINCIPAL siempre antes que ACCESORIO. El criterio
   // primario sigue siendo el sort que pidió el usuario.
   const kindWeight = (k: string | null | undefined) => (k === "ACCESORIO" ? 1 : 0);
+  const price = (item: CatalogProduct) => item.pricing?.finalPriceUsd ?? 0;
   switch (sort) {
     case "price_asc":
-      copy.sort(
-        (a, b) =>
-          kindWeight(a.kind) - kindWeight(b.kind) ||
-          a.pricing.finalPriceUsd - b.pricing.finalPriceUsd
-      );
+      copy.sort((a, b) => kindWeight(a.kind) - kindWeight(b.kind) || price(a) - price(b));
       break;
     case "price_desc":
-      copy.sort(
-        (a, b) =>
-          kindWeight(a.kind) - kindWeight(b.kind) ||
-          b.pricing.finalPriceUsd - a.pricing.finalPriceUsd
-      );
+      copy.sort((a, b) => kindWeight(a.kind) - kindWeight(b.kind) || price(b) - price(a));
       break;
     case "name_desc":
       copy.sort(
@@ -298,10 +304,11 @@ export async function getCatalog(
   if (!where) return { items: [], total: 0, page, pageSize };
 
   const needsPricePipeline =
-    filters.minPrice != null ||
-    filters.maxPrice != null ||
-    filters.sort === "price_asc" ||
-    filters.sort === "price_desc";
+    !ctx.publicMode &&
+    (filters.minPrice != null ||
+      filters.maxPrice != null ||
+      filters.sort === "price_asc" ||
+      filters.sort === "price_desc");
 
   // ORDEN PRIMARIO: kind ASC → PRINCIPAL sale primero, ACCESORIO después.
   // Esto asegura que en cualquier vista (búsqueda, navegación por filtros,
@@ -371,11 +378,19 @@ export async function getCatalogSidebarMeta(
       categories: [],
       families: [],
       distributors: [],
-      stockCounts: { in_stock: 0, low_stock: 0, on_request: 0 },
+      stockCounts: { in_stock: 0, low_stock: 0, on_request: 0, out_of_stock: 0 },
       discountCount: 0,
       totalMatching: 0,
     };
   }
+  // Cuántos "sin stock" quedan ocultos por el toggle (misma consulta, sin la exclusión).
+  const hidesOutOfStock =
+    !filtersNoPrice.includeOutOfStock &&
+    !ctx.publicMode &&
+    (!filtersNoPrice.stock || filtersNoPrice.stock === "any");
+  const outOfStockHidden = hidesOutOfStock
+    ? await prisma.product.count({ where: { ...where, stockStatus: "OUT_OF_STOCK" } })
+    : 0;
 
   const products = await prisma.product.findMany({
     where,
@@ -404,7 +419,9 @@ export async function getCatalogSidebarMeta(
   });
 
   const globalMargin = await getGlobalMarginPercent();
-  const prices = await calculatePricesForProducts(
+  const prices = ctx.publicMode
+    ? new Map<string, PriceBreakdown>()
+    : await calculatePricesForProducts(
     products.map((p) => ({
       productId: p.id,
       baseCostUsd: Number(p.baseCostUsd),
@@ -429,16 +446,17 @@ export async function getCatalogSidebarMeta(
   const categoryMap = new Map<string, { name: string; count: number }>();
   const familyMap = new Map<string, { name: string; count: number }>();
   const distributorMap = new Map<string, { name: string; count: number }>();
-  const stockCounts = { in_stock: 0, low_stock: 0, on_request: 0 };
+  const stockCounts = { in_stock: 0, low_stock: 0, on_request: 0, out_of_stock: outOfStockHidden };
   let discountCount = 0;
   let priceMin = Infinity;
   let priceMax = 0;
 
   for (const p of products) {
     const price = prices.get(p.id)?.finalPriceUsd;
-    if (price == null) continue;
-    if (price < priceMin) priceMin = price;
-    if (price > priceMax) priceMax = price;
+    if (price != null) {
+      if (price < priceMin) priceMin = price;
+      if (price > priceMax) priceMax = price;
+    }
 
     countFacet(brandMap, p.brandId, p.brand?.name ?? null);
     countFacet(categoryMap, p.categoryId, p.category?.name ?? null);
@@ -448,6 +466,7 @@ export async function getCatalogSidebarMeta(
     if (p.stockStatus === "IN_STOCK") stockCounts.in_stock += 1;
     else if (p.stockStatus === "LOW_STOCK") stockCounts.low_stock += 1;
     else if (p.stockStatus === "ON_REQUEST") stockCounts.on_request += 1;
+    else if (p.stockStatus === "OUT_OF_STOCK") stockCounts.out_of_stock += 1;
 
     const breakdown = prices.get(p.id);
     if (breakdown && breakdown.discountPercent > 0) discountCount += 1;
