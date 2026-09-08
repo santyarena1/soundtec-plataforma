@@ -70,7 +70,7 @@ export function SourceSettings() {
         const value = settings[source];
         const entries = Object.entries(value.translations);
         return <div key={source} className="space-y-4 rounded-md border border-border p-4">
-          <div><h3 className="font-medium">{source === "crestron" ? "Crestron (Xtrabone)" : "Sonance"}</h3><p className="text-xs text-muted-foreground">Contraseña configurada: {value.passwordConfigured ? "sí" : "no"}</p></div>
+          <div><h3 className="font-medium">{source === "crestron" ? "Crestron (Xtrabone)" : "Sonance"}</h3><p className="text-xs text-muted-foreground">Contraseña configurada: {value.passwordConfigured ? "sí" : "no"}</p>{source === "crestron" ? <a href="/admin/products?crestronMissing=1" className="mt-1 inline-block text-xs font-medium text-accent hover:underline">Ver productos sin ficha en crestron.com</a> : null}</div>
           <div><Label>Usuario</Label><Input value={value.username} onChange={(event) => update(source, { username: event.target.value })} /></div>
           <div><Label>Nueva contraseña</Label><Input type="password" autoComplete="new-password" placeholder={value.passwordConfigured ? "Dejá vacío para conservarla" : "Ingresá la contraseña"} value={value.password} onChange={(event) => update(source, { password: event.target.value })} /></div>
           <div><Label>Destino de categoría</Label><Select value={value.categoryTarget} onChange={(event) => update(source, { categoryTarget: event.target.value as Target })}><option value="categoria">Categoría</option><option value="familia">Familia</option><option value="rubro">Rubro</option><option value="subrubro">Subrubro</option></Select></div>

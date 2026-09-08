@@ -80,7 +80,7 @@ const groups: NavGroup[] = [
     ],
   },
   {
-    title: "Cuentas",
+    title: "CRM",
     items: [
       { href: "/admin/clients", label: "Clientes", icon: Users, scope: "clients.view" },
       { href: "/admin/users", label: "Usuarios", icon: ShieldCheck, scope: "users.view" },

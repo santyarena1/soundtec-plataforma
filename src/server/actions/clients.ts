@@ -133,6 +133,32 @@ export async function updateClient(f: FormData): Promise<ActionResult> {
     return { ok: false, error: err(e) };
   }
 }
+/** Borra un cliente sin historial comercial (pedidos, cotizaciones, movimientos). */
+export async function deleteClient(f: FormData): Promise<ActionResult> {
+  await requireAdmin();
+  const id = val(f, "id");
+  if (!id) return { ok: false, error: "Falta el cliente." };
+  const c = await prisma.client.findUnique({
+    where: { id },
+    select: { _count: { select: { requests: true, quotes: true, accountMovements: true } } },
+  });
+  if (!c) return { ok: false, error: "El cliente no existe." };
+  const history = c._count.requests + c._count.quotes + c._count.accountMovements;
+  if (history > 0) {
+    return {
+      ok: false,
+      error: "Este cliente tiene pedidos, cotizaciones o movimientos. Desactivalo en vez de eliminarlo.",
+    };
+  }
+  await prisma.$transaction(async (tx) => {
+    await tx.user.deleteMany({ where: { clientId: id, role: "CLIENT" } });
+    await tx.client.delete({ where: { id } });
+  });
+  revalidatePath("/admin/clients");
+  revalidatePath("/admin");
+  return { ok: true, id };
+}
+
 export async function toggleClientActive(f: FormData): Promise<ActionResult> {
   await requireAdmin();
   const id = val(f, "id");

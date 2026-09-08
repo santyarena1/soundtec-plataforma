@@ -8,6 +8,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ClientFormModal } from "@/components/admin/client-form-modal";
+import { ClientRowActions } from "@/components/admin/client-row-actions";
 import { formatDate } from "@/lib/utils";
 export const metadata = { title: "Admin · Clientes" };
 type Search = {
@@ -66,7 +67,7 @@ export default async function Page({ searchParams }: { searchParams: Search }) {
         include: {
           owner: { select: { name: true } },
           contacts: { where: { isPrimary: true }, take: 1 },
-          _count: { select: { portalUsers: true, requests: true } },
+          _count: { select: { portalUsers: true, requests: true, quotes: true, accountMovements: true } },
         },
       }),
       prisma.client.count({ where }),
@@ -178,6 +179,7 @@ export default async function Page({ searchParams }: { searchParams: Search }) {
                   <TH>Pedidos</TH>
                   <TH>Última actividad</TH>
                   <TH>Estado</TH>
+                  <TH className="text-right">Acciones</TH>
                 </TR>
               </THead>
               <TBody>
@@ -209,6 +211,31 @@ export default async function Page({ searchParams }: { searchParams: Search }) {
                         <Badge tone={c.isActive ? "success" : "muted"}>
                           {c.isActive ? "Activo" : "Inactivo"}
                         </Badge>
+                      </TD>
+                      <TD>
+                        <ClientRowActions
+                          owners={owners}
+                          priceLists={priceLists}
+                          client={{
+                            id: c.id,
+                            companyName: c.companyName,
+                            tradeName: c.tradeName,
+                            taxId: c.taxId,
+                            segment: c.segment,
+                            ownerId: c.ownerId,
+                            website: c.website,
+                            address: c.address,
+                            city: c.city,
+                            province: c.province,
+                            country: c.country,
+                            source: c.source,
+                            notes: c.notes,
+                            assignedPriceListId: c.assignedPriceListId,
+                            tags: c.tags,
+                            isActive: c.isActive,
+                            historyCount: c._count.requests + c._count.quotes + c._count.accountMovements,
+                          }}
+                        />
                       </TD>
                     </TR>
                   );

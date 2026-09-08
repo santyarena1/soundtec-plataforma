@@ -35,6 +35,7 @@ interface SP {
   pageSize?: string;
   tab?: string;
   feedback?: string;
+  crestronMissing?: string;
 }
 
 function multi(value: string | string[] | undefined): string[] {
@@ -75,9 +76,16 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     params.active === "yes" ? true : params.active === "no" ? false : undefined;
   const openFeedback = await prisma.aiContentFeedback.groupBy({ by: ["refId"], where: { type: "PRODUCT_DESCRIPTION", verdict: "HAS_ERRORS", resolvedAt: null }, _count: { _all: true } });
   const openFeedbackMap = new Map(openFeedback.map((f) => [f.refId, f._count._all]));
+  // Productos Crestron cuyo enriquecimiento falló (no existen en crestron.com).
+  const crestronMissingWhere: Prisma.ProductWhereInput = {
+    brand: { name: { equals: "CRESTRON", mode: "insensitive" } },
+    sourceMetadata: { path: ["crestronCom", "error"], string_contains: "" },
+  };
+  const crestronMissingCount = await prisma.product.count({ where: { isActive: true, ...crestronMissingWhere } });
 
   const where: Prisma.ProductWhereInput = {
     ...(params.feedback === "errors" ? { id: { in: [...openFeedbackMap.keys()] } } : {}),
+    ...(params.crestronMissing === "1" ? crestronMissingWhere : {}),
     ...(brandIds.length ? { brandId: { in: brandIds } } : {}),
     ...(categoryIds.length ? { categoryId: { in: categoryIds } } : {}),
     ...(familyIds.length ? { familyId: { in: familyIds } } : {}),
@@ -283,6 +291,11 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       <Link href={params.feedback === "errors" ? "/admin/products" : "/admin/products?feedback=errors"}
         className="inline-flex rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground">
         Con reportes de IA ({openFeedback.length})
+      </Link>
+      <Link href={params.crestronMissing === "1" ? "/admin/products" : "/admin/products?crestronMissing=1"}
+        className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${params.crestronMissing === "1" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground"}`}
+        title="Productos Crestron que no existen en crestron.com: quedan con los datos de Xtrabone y sin ficha enriquecida.">
+        Crestron sin ficha en crestron.com ({crestronMissingCount})
       </Link>
 
       {rows.length === 0 &&

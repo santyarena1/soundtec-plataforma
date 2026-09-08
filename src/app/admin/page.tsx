@@ -5,6 +5,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatDate, formatUsd } from "@/lib/utils";
+import { CrmOverview } from "./crm-overview";
 import {
   Package, Users, FileSpreadsheet, Send, Sparkles, LifeBuoy,
 } from "lucide-react";
@@ -72,7 +73,7 @@ export default async function AdminDashboardPage() {
 
   const stats = [
     { label: "Productos activos", value: totalProducts, icon: Package, tone: "primary" as const, href: "/admin/products" },
-    { label: "Clientes activos", value: totalUsers, icon: Users, tone: "accent" as const, href: "/admin/users" },
+    { label: "Usuarios del portal", value: totalUsers, icon: Users, tone: "accent" as const, href: "/admin/users" },
     { label: "Pedidos a responder", value: activeRequests, icon: Send, tone: "warning" as const, href: "/admin/requests" },
     { label: "Importaciones pendientes", value: pendingImports, icon: FileSpreadsheet, tone: "primary" as const, href: "/admin/imports" },
     { label: "Feedback IA con errores", value: pendingFeedback, icon: Sparkles, tone: "destructive" as const, href: "/admin/feedback" },
@@ -164,6 +165,8 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <CrmOverview />
 
       <Card>
         <CardContent className="p-6">
