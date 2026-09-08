@@ -126,6 +126,41 @@ function jsonChanged(current: unknown, next: unknown): boolean {
   }
 }
 
+/**
+ * Borra imágenes de fuentes viejas (ej. Serper) cuando llega una foto oficial y
+ * garantiza que quede exactamente una imagen principal.
+ */
+async function reconcileImages(
+  tx: Prisma.TransactionClient,
+  productId: string,
+  n: NormalizedProduct
+): Promise<void> {
+  const hasNewImages = !!(n.images && n.images.some((image) => image.url.trim()));
+  if (hasNewImages && n.dropImageSources?.length) {
+    await tx.productImage.deleteMany({
+      where: { productId, source: { in: n.dropImageSources } },
+    });
+  }
+  const images = await tx.productImage.findMany({
+    where: { productId },
+    orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+    select: { id: true, isPrimary: true, source: true },
+  });
+  if (images.length === 0) return;
+  const primaries = images.filter((image) => image.isPrimary);
+  if (primaries.length === 1) return;
+  const preferredSource = n.images?.find((image) => image.source)?.source;
+  const chosen =
+    images.find((image) => image.isPrimary && image.source === preferredSource) ??
+    images.find((image) => image.source === preferredSource) ??
+    images[0];
+  await tx.productImage.updateMany({
+    where: { productId, id: { not: chosen.id } },
+    data: { isPrimary: false },
+  });
+  await tx.productImage.update({ where: { id: chosen.id }, data: { isPrimary: true } });
+}
+
 async function applyAllRelations(
   tx: Prisma.TransactionClient,
   productId: string,
@@ -390,6 +425,7 @@ export async function applyNormalizedProduct(
       }
     }
 
+    await reconcileImages(tx, existing.id, n);
     await applyAllRelations(tx, existing.id, n);
 
     return {
@@ -452,6 +488,7 @@ export async function applyNormalizedProduct(
     }
   }
 
+  await reconcileImages(tx, created.id, n);
   await applyAllRelations(tx, created.id, n);
 
   return {

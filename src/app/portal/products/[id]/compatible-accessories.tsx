@@ -101,17 +101,17 @@ export function CompatibleAccessoriesSection({ parentProductName, items, variant
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {items.map((item) => (
             <article
               key={item.relationId}
-              className="flex flex-col overflow-hidden rounded-lg border border-border bg-card"
+              className="flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-shadow hover:shadow-elevated"
             >
               <Link href={`/portal/products/${item.productId}`} className="block">
-                <div className="aspect-[4/3] bg-white">
+                <div className="aspect-[4/3] bg-white p-2">
                   {item.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain" />
+                    <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain" loading="lazy" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                       Sin imagen
@@ -119,13 +119,14 @@ export function CompatibleAccessoriesSection({ parentProductName, items, variant
                   )}
                 </div>
               </Link>
-              <div className="flex flex-1 flex-col gap-2 p-3">
-                <Link href={`/portal/products/${item.productId}`} className="text-sm font-semibold hover:text-accent">
+              <div className="flex flex-1 flex-col gap-1.5 p-2.5">
+                <Link
+                  href={`/portal/products/${item.productId}`}
+                  title={item.name}
+                  className="line-clamp-2 text-xs font-semibold leading-snug hover:text-accent"
+                >
                   {item.name}
                 </Link>
-                {item.shortDescription ? (
-                  <p className="line-clamp-2 text-xs text-muted-foreground">{item.shortDescription}</p>
-                ) : null}
                 <div className="flex flex-wrap items-center gap-1">
                   <StockBadge status={item.stockStatus} qty={item.stockQuantity} />
                   {item.isRequired ? <Badge tone="warning">Obligatorio</Badge> : null}
@@ -134,7 +135,7 @@ export function CompatibleAccessoriesSection({ parentProductName, items, variant
                   ) : null}
                   {item.kind === "ACCESORIO" ? <Badge tone="muted">Accesorio</Badge> : null}
                 </div>
-                <p className="text-base font-semibold">{formatUsd(item.finalPriceUsd)}</p>
+                <p className="mt-auto text-sm font-semibold">{formatUsd(item.finalPriceUsd)}</p>
                 <AccessoryAddButton item={item} variant={variant} />
               </div>
             </article>

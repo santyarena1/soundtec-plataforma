@@ -382,11 +382,7 @@ export function ProductRichInfo(props: ProductRichInfoProps) {
                 className="prose prose-sm max-w-none border-t border-border pt-3 text-sm"
                 dangerouslySetInnerHTML={{ __html: props.htmlContent }}
               />
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Contenido enriquecido del fabricante (HTML). Click para expandir.
-              </p>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

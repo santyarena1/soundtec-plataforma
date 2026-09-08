@@ -31,6 +31,16 @@ export default auth((req) => {
 
   if (pathname.startsWith("/portal")) {
     if (!isLogged) {
+      // Un link de producto compartido debe abrir igual: versión pública sin precios.
+      const productMatch = pathname.match(/^\/portal\/products(?:\/([^/]+))?\/?$/);
+      if (productMatch) {
+        const publicUrl = new URL(
+          productMatch[1] ? `/catalogo/${productMatch[1]}` : "/catalogo",
+          req.nextUrl
+        );
+        publicUrl.search = req.nextUrl.search;
+        return NextResponse.redirect(publicUrl);
+      }
       const loginUrl = new URL("/login", req.nextUrl);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);

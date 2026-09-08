@@ -208,6 +208,8 @@ export function toNormalizedProduct(
     specifications: toSpecs(page.specs),
     documents: toDocs(enrichment),
     images: toImages(enrichment),
+    // Con foto oficial de Crestron, las de Serper/scrapers viejos sobran (y varias están rotas).
+    dropImageSources: enrichment.page.images.length > 0 ? ["serper", "crestron-catalog", "scraper"] : undefined,
     badges: badges.length > 0 ? badges : undefined,
     heightCm: dims.heightCm,
     widthCm: dims.widthCm,

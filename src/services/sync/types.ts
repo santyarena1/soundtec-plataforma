@@ -64,6 +64,8 @@ export interface NormalizedProduct {
   familia?: string;
   tipo?: string;
   images?: NormalizedImage[];
+  /** Fuentes de ProductImage a borrar cuando llegan imágenes nuevas (ej. "serper" al tener foto oficial). */
+  dropImageSources?: string[];
   specifications?: NormalizedSpec[];
   documents?: NormalizedDoc[];
   accessorySkus?: string[];
