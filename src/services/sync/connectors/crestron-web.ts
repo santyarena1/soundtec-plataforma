@@ -129,13 +129,14 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-export const crestronWebConnector: ProductSourceConnector = {
-  slug: "crestron-web",
-  displayName: "Crestron.com (enriquecimiento)",
-  source: "CRESTRON_WEB",
-  matchField: "internalSku",
-
-  async translateItems(items) {
+/**
+ * Traducción EN→ES de descripciones (misma mecánica que Sonance). Por ahora
+ * NO está conectada al conector: el usuario pidió traer la información en
+ * inglés primero. Para activarla, agregar `translateItems: translateCrestronItems`
+ * al conector.
+ */
+export async function translateCrestronItems(items: NormalizedProduct[]): Promise<void> {
+  {
     const shorts: string[] = [];
     const htmls: string[] = [];
     for (const item of items) {
@@ -164,7 +165,14 @@ export const crestronWebConnector: ProductSourceConnector = {
         }
       }
     }
-  },
+  }
+}
+
+export const crestronWebConnector: ProductSourceConnector = {
+  slug: "crestron-web",
+  displayName: "Crestron.com (enriquecimiento)",
+  source: "CRESTRON_WEB",
+  matchField: "internalSku",
 
   async fetchNormalized(opts) {
     const offset = Math.max(0, opts?.offset ?? 0);
