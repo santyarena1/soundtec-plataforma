@@ -68,10 +68,10 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
               {/* Marca · SKU — 1 línea */}
               <p className="flex h-4 items-center gap-1.5 truncate text-[11px] uppercase tracking-wider text-muted-foreground">
                 <span className="truncate">{p.brandName || "—"}</span>
-                {p.internalSku ? (
+                {displaySku(p) ? (
                   <>
                     <span aria-hidden>·</span>
-                    <span className="shrink-0 normal-case tracking-normal">{p.internalSku}</span>
+                    <span className="shrink-0 normal-case tracking-normal">{displaySku(p)}</span>
                   </>
                 ) : null}
               </p>
@@ -140,6 +140,20 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
       })}
     </div>
   );
+}
+
+const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_SKU_LENGTH = 24;
+
+/** SKU legible para la card: modelo del fabricante o SKU corto; nunca un UUID interno. */
+function displaySku(p: CatalogProduct): string | null {
+  const candidates = [p.modelNumber, p.supplierSku, p.internalSku];
+  for (const value of candidates) {
+    const clean = value?.trim();
+    if (!clean || UUID_LIKE.test(clean) || clean.length > MAX_SKU_LENGTH) continue;
+    return clean;
+  }
+  return null;
 }
 
 export function StockBadge({ status, qty }: { status: string; qty: number | null }) {
