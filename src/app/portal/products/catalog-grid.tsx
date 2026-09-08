@@ -67,11 +67,11 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
             <div className="flex flex-1 flex-col p-3.5">
               {/* Marca · SKU — 1 línea */}
               <p className="flex h-4 items-center gap-1.5 truncate text-[11px] uppercase tracking-wider text-muted-foreground">
-                <span className="truncate">{p.brandName || "—"}</span>
+                <span className="shrink-0">{p.brandName || "—"}</span>
                 {displaySku(p) ? (
                   <>
                     <span aria-hidden>·</span>
-                    <span className="shrink-0 normal-case tracking-normal">{displaySku(p)}</span>
+                    <span className="min-w-0 truncate normal-case tracking-normal">{displaySku(p)}</span>
                   </>
                 ) : null}
               </p>
@@ -98,8 +98,8 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                 {publicMode && p.categoryName ? <Badge tone="muted">{p.categoryName}</Badge> : null}
               </div>
 
-              {/* Precio + acción — siempre al pie */}
-              <div className="mt-auto flex items-end justify-between gap-2 pt-3">
+              {/* Precio + acción — siempre al pie, cada uno en su fila */}
+              <div className="mt-auto space-y-2 pt-3">
                 {publicMode || !p.pricing ? (
                   <Link
                     href={href}
@@ -109,21 +109,19 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                   </Link>
                 ) : (
                   <>
-                    <div className="min-w-0">
+                    <div className="flex h-10 items-end justify-between gap-2">
+                      <p className="text-lg font-semibold leading-none tabular-nums">
+                        {formatUsd(p.pricing.finalPriceUsd)}
+                      </p>
                       {p.pricing.priceBeforeDiscountUsd && p.pricing.discountPercent > 0 ? (
                         <p className="text-[11px] leading-none text-muted-foreground line-through">
                           {formatUsd(p.pricing.priceBeforeDiscountUsd)}
                         </p>
                       ) : (
-                        <p className="text-[11px] leading-none text-muted-foreground">Precio USD</p>
+                        <p className="text-[11px] leading-none text-muted-foreground">USD final</p>
                       )}
-                      <p className="mt-1 truncate text-lg font-semibold leading-none tabular-nums">
-                        {formatUsd(p.pricing.finalPriceUsd)}
-                      </p>
                     </div>
-                    <div className="shrink-0">
-                      <AddToDraftButton productId={p.id} productName={p.normalizedName} compact />
-                    </div>
+                    <AddToDraftButton productId={p.id} productName={p.normalizedName} />
                   </>
                 )}
               </div>
