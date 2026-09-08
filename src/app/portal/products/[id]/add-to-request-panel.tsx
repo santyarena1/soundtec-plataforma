@@ -104,7 +104,7 @@ export function AddToRequestPanel({
       showToast({
         type: "success",
         title: `Agregaste ${result.detail?.addedQty ?? quantity} u. de «${productName || "este producto"}»`,
-        description: "Quedó cargado en tu solicitud en armado.",
+        description: "Quedó cargado en tu pedido en armado.",
         requestId: draftRequestId,
         itemsTotal: result.detail?.itemsTotal,
         unitsTotal: result.detail?.unitsTotal,
@@ -118,7 +118,7 @@ export function AddToRequestPanel({
       <div className="border-b border-border bg-gradient-to-r from-primary/10 to-transparent px-5 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
-            <CardTitle className="text-lg">Agregar a tu solicitud</CardTitle>
+            <CardTitle className="text-lg">Agregar a tu pedido</CardTitle>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {requestTypeLabel(draftType)} ·{" "}
               <Link href={`/portal/requests/${draftRequestId}`} className="underline hover:text-foreground">
@@ -235,7 +235,7 @@ export function AddToRequestPanel({
             size="lg"
           >
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Agregar a mi solicitud
+            Agregar a mi pedido
           </Button>
         </form>
       </CardContent>

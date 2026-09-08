@@ -41,7 +41,7 @@ export const REQUEST_STATUS_META: Record<RequestStatus, StatusMeta> = {
     actionLabel: "Volver a borrador",
   },
   SENT: {
-    label: "Nueva",
+    label: "Nuevo",
     tone: "warning",
     icon: Send,
     adminHint: "Recién llegó y nadie la tomó todavía.",
@@ -55,28 +55,28 @@ export const REQUEST_STATUS_META: Record<RequestStatus, StatusMeta> = {
     actionLabel: "Tomar y revisar",
   },
   ANSWERED: {
-    label: "Respondida",
+    label: "Respondido",
     tone: "primary",
     icon: MessageSquare,
     adminHint: "Ya enviamos propuesta. La pelota está del lado del cliente.",
     actionLabel: "Marcar respondida",
   },
   CONFIRMED: {
-    label: "Confirmada",
+    label: "Confirmado",
     tone: "success",
     icon: CheckCircle2,
     adminHint: "El cliente aceptó la propuesta.",
     actionLabel: "Confirmar",
   },
   REJECTED: {
-    label: "Rechazada",
+    label: "Rechazado",
     tone: "destructive",
     icon: XCircle,
-    adminHint: "No avanzamos con esta solicitud.",
+    adminHint: "No avanzamos con este pedido.",
     actionLabel: "Rechazar",
   },
   CLOSED: {
-    label: "Cerrada",
+    label: "Cerrado",
     tone: "muted",
     icon: Lock,
     adminHint: "Archivada, sin acciones pendientes.",
@@ -86,7 +86,7 @@ export const REQUEST_STATUS_META: Record<RequestStatus, StatusMeta> = {
 
 export const REQUEST_TYPE_META: Record<RequestType, { label: string; description: string }> = {
   QUOTE: { label: "Cotización", description: "Pide precios y disponibilidad" },
-  ORDER: { label: "Pedido", description: "Quiere comprar" },
+  ORDER: { label: "Compra", description: "Quiere comprar" },
   CONSULTATION: { label: "Consulta", description: "Duda técnica o comercial" },
 };
 
@@ -104,7 +104,7 @@ export const ADMIN_ASSIGNABLE_STATUSES = [
 
 export type AdminAssignableStatus = (typeof ADMIN_ASSIGNABLE_STATUSES)[number];
 
-/** Estados en los que la solicitud espera algo de nuestro lado. */
+/** Estados en los que el pedido espera algo de nuestro lado. */
 export const OPEN_STATUSES: RequestStatus[] = ["SENT", "IN_REVIEW"];
 
 export function statusLabel(status: string) {

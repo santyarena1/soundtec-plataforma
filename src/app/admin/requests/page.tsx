@@ -20,7 +20,7 @@ import {
 } from "@/lib/request-status";
 import { Inbox, MessageSquare, ArrowRight } from "lucide-react";
 
-export const metadata = { title: "Admin · Solicitudes" };
+export const metadata = { title: "Admin · Pedidos" };
 
 const FILTERABLE: RequestStatus[] = ["SENT", "IN_REVIEW", "ANSWERED", "CONFIRMED", "REJECTED", "CLOSED", "DRAFT"];
 
@@ -144,7 +144,7 @@ export default async function AdminRequestsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Solicitudes"
+        title="Pedidos"
         description="Todo lo que los clientes te mandan desde el portal: cotizaciones, pedidos y consultas."
       />
 
@@ -245,11 +245,11 @@ export default async function AdminRequestsPage({
       {requests.length === 0 ? (
         <EmptyState
           icon={<Inbox className="h-5 w-5" />}
-          title={hasFilters ? "Ninguna solicitud con esos filtros" : "Todavía no hay solicitudes"}
+          title={hasFilters ? "Ningún pedido con esos filtros" : "Todavía no hay pedidos"}
           description={
             hasFilters
               ? "Probá ampliar el rango de fechas o limpiar la búsqueda."
-              : "Cuando un cliente envíe una solicitud desde el portal, va a aparecer acá."
+              : "Cuando un cliente envíe un pedido desde el portal, va a aparecer acá."
           }
           action={hasFilters ? <ButtonLink href="/admin/requests" variant="outline" size="sm">Limpiar filtros</ButtonLink> : null}
         />
@@ -257,7 +257,7 @@ export default async function AdminRequestsPage({
         <Table>
           <THead>
             <TR>
-              <TH>Solicitud</TH>
+              <TH>Pedido</TH>
               <TH>Cliente</TH>
               <TH>Contenido</TH>
               <TH>Última actividad</TH>

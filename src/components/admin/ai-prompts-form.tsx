@@ -44,8 +44,8 @@ const FIELDS: { key: keyof Props["prompts"]; settingKey: string; label: string; 
   {
     key: "requestResponse",
     settingKey: "ai.prompt.request_response",
-    label: "Respuesta a solicitudes",
-    hint: "Se usa para generar respuestas sugeridas a solicitudes de clientes.",
+    label: "Respuesta a pedidos",
+    hint: "Se usa para generar respuestas sugeridas a pedidos de clientes.",
   },
 ];
 

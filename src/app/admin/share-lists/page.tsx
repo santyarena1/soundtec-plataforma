@@ -2,10 +2,10 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { deleteShareablePriceList } from "@/server/actions/shareable-price-lists";
+import { ShareListActions } from "./share-list-actions";
 import { shareListPublicUrl } from "@/lib/shareable-price-list";
 import { formatDate } from "@/lib/utils";
 import { Link2, Plus } from "lucide-react";
@@ -28,7 +28,7 @@ export default async function AdminShareListsPage() {
   await requireAdmin();
   const lists = await prisma.shareablePriceList.findMany({
     orderBy: { updatedAt: "desc" },
-    include: { client: { select: { companyName: true } } },
+    include: { client: { select: { companyName: true } }, views: { orderBy: { viewedAt: "desc" }, take: 1 } },
   });
 
   return (
@@ -54,6 +54,7 @@ export default async function AdminShareListsPage() {
               <TH>Estado</TH>
               <TH>Vistas</TH>
               <TH>Actualizada</TH>
+              <TH>Última vista</TH>
               <TH>Link</TH>
               <TH></TH>
             </TR>
@@ -75,6 +76,7 @@ export default async function AdminShareListsPage() {
                 </TD>
                 <TD>{l.viewCount}</TD>
                 <TD className="text-xs text-muted-foreground">{formatDate(l.updatedAt)}</TD>
+                <TD className="text-xs text-muted-foreground">{l.views[0] ? formatDate(l.views[0].viewedAt) : "—"}</TD>
                 <TD>
                   <a
                     href={shareListPublicUrl(l.shareSlug)}
@@ -86,12 +88,7 @@ export default async function AdminShareListsPage() {
                   </a>
                 </TD>
                 <TD className="text-right">
-                  <form action={deleteShareablePriceList} className="inline">
-                    <input type="hidden" name="id" value={l.id} />
-                    <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                      Eliminar
-                    </Button>
-                  </form>
+                  <ShareListActions id={l.id} name={l.name} url={shareListPublicUrl(l.shareSlug)} />
                 </TD>
               </TR>
             ))}

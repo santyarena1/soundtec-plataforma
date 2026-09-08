@@ -13,6 +13,7 @@ import {
   regenerateShareSlug,
 } from "@/server/actions/shareable-price-lists";
 import { shareListPublicUrl, type ShareablePriceListFilters } from "@/lib/shareable-price-list";
+import { ShareListProductSearch, type ShareProductOption } from "@/components/admin/share-list-product-search";
 
 type Option = { id: string; name: string };
 
@@ -35,7 +36,8 @@ interface Props {
   categories: Option[];
   families: Option[];
   distributors: Option[];
-  products: Option[];
+  products: ShareProductOption[];
+  initialProductIds?: string[];
 }
 
 function FilterSection({
@@ -101,19 +103,23 @@ export function ShareListForm({
   families,
   distributors,
   products,
+  initialProductIds = [],
 }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [kindsTouched, setKindsTouched] = useState(false);
   const [slug, setSlug] = useState(list?.shareSlug || "");
 
   const [brandIds, setBrandIds] = useState(() => new Set(list?.filters.brandIds || []));
   const [categoryIds, setCategoryIds] = useState(() => new Set(list?.filters.categoryIds || []));
   const [familyIds, setFamilyIds] = useState(() => new Set(list?.filters.familyIds || []));
   const [distributorIds, setDistributorIds] = useState(() => new Set(list?.filters.distributorIds || []));
-  const [productIds, setProductIds] = useState(() => new Set(list?.filters.productIds || []));
+  const [productIds, setProductIds] = useState(() => new Set(list?.filters.productIds || initialProductIds));
   const [excludeProductIds, setExcludeProductIds] = useState(() => new Set(list?.filters.excludeProductIds || []));
+  const [selectedProducts, setSelectedProducts] = useState(() => products.filter((p) => productIds.has(p.id)));
+  const [excludedProducts, setExcludedProducts] = useState(() => products.filter((p) => excludeProductIds.has(p.id)));
 
   const publicUrl = slug ? shareListPublicUrl(slug) : "";
 
@@ -147,8 +153,10 @@ export function ShareListForm({
     appendSets(base, "distributorIds", distributorIds);
     appendSets(base, "productIds", productIds);
     appendSets(base, "excludeProductIds", excludeProductIds);
-    if (base.get("kindPrincipal") === "on") base.append("kinds", "PRINCIPAL");
-    if (base.get("kindAccessory") === "on") base.append("kinds", "ACCESORIO");
+    if (!list || list.filters.kinds !== undefined || kindsTouched) {
+      if (base.get("kindPrincipal") === "on") base.append("kinds", "PRINCIPAL");
+      if (base.get("kindAccessory") === "on") base.append("kinds", "ACCESORIO");
+    }
     return base;
   }
 
@@ -302,11 +310,11 @@ export function ShareListForm({
 
         <div className="flex flex-wrap gap-3 text-sm">
           <label className="flex items-center gap-2">
-            <input type="checkbox" name="kindPrincipal" defaultChecked={!list || list.filters.kinds?.includes("PRINCIPAL") !== false} />
+            <input type="checkbox" name="kindPrincipal" onChange={() => setKindsTouched(true)} defaultChecked={!list || list.filters.kinds?.includes("PRINCIPAL") !== false} />
             Principales
           </label>
           <label className="flex items-center gap-2">
-            <input type="checkbox" name="kindAccessory" defaultChecked={!list || list.filters.kinds?.includes("ACCESORIO") !== false} />
+            <input type="checkbox" name="kindAccessory" onChange={() => setKindsTouched(true)} defaultChecked={!list || list.filters.kinds?.includes("ACCESORIO") !== false} />
             Accesorios
           </label>
           <label className="flex items-center gap-2">
@@ -329,8 +337,10 @@ export function ShareListForm({
           <FilterSection title="Categorías" options={categories} selected={categoryIds} onToggle={(id) => toggle(setCategoryIds, id)} onToggleAll={(ids) => toggleAll(setCategoryIds, ids)} />
           <FilterSection title="Familias" options={families} selected={familyIds} onToggle={(id) => toggle(setFamilyIds, id)} onToggleAll={(ids) => toggleAll(setFamilyIds, ids)} />
           <FilterSection title="Proveedores" options={distributors} selected={distributorIds} onToggle={(id) => toggle(setDistributorIds, id)} onToggleAll={(ids) => toggleAll(setDistributorIds, ids)} />
-          <FilterSection title="Productos específicos" options={products} selected={productIds} onToggle={(id) => toggle(setProductIds, id)} onToggleAll={(ids) => toggleAll(setProductIds, ids)} />
-          <FilterSection title="Excluir productos" options={products} selected={excludeProductIds} onToggle={(id) => toggle(setExcludeProductIds, id)} onToggleAll={(ids) => toggleAll(setExcludeProductIds, ids)} />
+          <ShareListProductSearch label="Productos específicos" selected={selectedProducts}
+            onChange={(values) => { setSelectedProducts(values); setProductIds(new Set(values.map((v) => v.id))); }} brandIds={[...brandIds]} categoryIds={[...categoryIds]} />
+          <ShareListProductSearch label="Excluir productos" selected={excludedProducts}
+            onChange={(values) => { setExcludedProducts(values); setExcludeProductIds(new Set(values.map((v) => v.id))); }} brandIds={[...brandIds]} categoryIds={[...categoryIds]} />
         </div>
       </div>
 

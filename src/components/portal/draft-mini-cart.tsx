@@ -30,7 +30,7 @@ interface Props {
  *
  * - Muestra contador de items + unidades + subtotal estimado.
  * - Click abre un panel con preview de los últimos productos agregados y CTAs
- *   "Ir a mi solicitud" y "Seguir agregando productos".
+ *   "Ir a mi pedido" y "Seguir agregando productos".
  * - Si no hay borrador activo, no se renderiza.
  *
  * Se actualiza con cada router.refresh() porque su padre es server component.
@@ -46,7 +46,7 @@ export function DraftMiniCart({ draft }: Props) {
           className="group flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2.5 text-sm font-medium text-muted-foreground shadow-lg transition-colors hover:bg-secondary hover:text-foreground sm:px-4 sm:py-3"
         >
           <ShoppingBag className="h-4 w-4" />
-          <span className="hidden sm:inline">Sin solicitud activa</span>
+          <span className="hidden sm:inline">Sin pedido activo</span>
           <span className="sm:hidden">Catálogo</span>
           <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
         </Link>
@@ -76,7 +76,7 @@ export function DraftMiniCart({ draft }: Props) {
             <div className="flex items-center justify-between border-b border-border bg-gradient-to-r from-primary/10 to-transparent px-4 py-3">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold">Tu solicitud en armado</h3>
+                <h3 className="text-sm font-semibold">Tu pedido en armado</h3>
               </div>
               <button
                 type="button"
@@ -151,7 +151,7 @@ export function DraftMiniCart({ draft }: Props) {
               {accessoryUnits > 0 ? (
                 <p className="border-t border-border pt-2 text-[11px] text-muted-foreground text-center">
                   <Wrench className="inline h-3 w-3 mr-0.5 text-warning" />
-                  {accessoryUnits} accesorio{accessoryUnits === 1 ? "" : "s"} en tu solicitud
+                  {accessoryUnits} accesorio{accessoryUnits === 1 ? "" : "s"} en tu pedido
                 </p>
               ) : null}
             </div>
@@ -163,7 +163,7 @@ export function DraftMiniCart({ draft }: Props) {
                 onClick={() => setOpen(false)}
               >
                 <Send className="h-3.5 w-3.5" />
-                Ver y enviar mi solicitud
+                Ver y enviar mi pedido
               </Link>
               <Link
                 href="/portal/products"
@@ -183,7 +183,7 @@ export function DraftMiniCart({ draft }: Props) {
           className={`flex items-center gap-2 rounded-full border border-primary/40 bg-card pl-3 pr-4 py-2.5 text-sm font-medium shadow-xl transition-all hover:scale-105 ${
             open ? "ring-2 ring-primary/30" : ""
           }`}
-          aria-label="Ver mi solicitud"
+          aria-label="Ver mi pedido"
         >
           <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <ShoppingBag className="h-4 w-4" />

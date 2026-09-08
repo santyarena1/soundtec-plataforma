@@ -19,7 +19,7 @@ export const TUTORIAL_SIMPLE: TutorialArticle[] = [
       {
         title: "En una frase",
         body: [
-          "Clasificás la COT (tipo de sala + escala), armás el documento, y cuando está lista adjuntás un PDF a la solicitud. El cliente no entra al editor.",
+          "Clasificás la COT (tipo de sala + escala), armás el documento, y cuando está lista adjuntás un PDF a el pedido. El cliente no entra al editor.",
         ],
       },
       {
@@ -31,7 +31,7 @@ export const TUTORIAL_SIMPLE: TutorialArticle[] = [
           "4. Plantilla: qué módulos van. Podés agregar módulos extra.",
           "5. Planilla: productos. Si es una casa, un ambiente por zona.",
           "6. Textos e imágenes: retocás en el documento.",
-          "7. Emitir o adjuntar PDF a la solicitud.",
+          "7. Emitir o adjuntar PDF a el pedido.",
         ],
       },
     ],
@@ -87,7 +87,7 @@ export const TUTORIAL_SIMPLE: TutorialArticle[] = [
         title: "Operación",
         body: [
           "Dashboard: números del día.",
-          "Solicitudes: el cliente pide; vos respondés y podés adjuntar PDF de COT.",
+          "Pedidos: el cliente pide; vos respondés y podés adjuntar PDF de COT.",
           "Cotizaciones: el editor interno. El cliente no entra.",
           "Feedback de IA: errores reportados sobre textos generados.",
         ],
@@ -135,7 +135,7 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
       {
         title: "Operación diaria",
         body: [
-          "Solicitudes: el cliente pide; el equipo responde y puede adjuntar un PDF de COT.",
+          "Pedidos: el cliente pide; el equipo responde y puede adjuntar un PDF de COT.",
           "Cotizaciones: el editor interno. Acá se escribe, se genera IA y se emite.",
           "Nueva cotización: alta. Reserva número y deja la plantilla lista.",
           "Tickets al dev: fallas o pedidos técnicos. También se abre desde Ayuda en cualquier pantalla.",
@@ -334,7 +334,7 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
       {
         title: "Adjuntar",
         body: [
-          "En la solicitud: Adjuntar PDF como respuesta. Se genera un snapshot en ese momento.",
+          "En el pedido: Adjuntar PDF como respuesta. Se genera un snapshot en ese momento.",
           "El cliente ve «Descargar PDF». Links viejos de «abrir cotización» también bajan el PDF.",
           "El equipo sigue abriendo el editor desde admin.",
         ],
@@ -398,7 +398,7 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
         title: "Operación",
         body: [
           "Dashboard: atajos. No se edita.",
-          "Solicitudes: bandeja del portal. Adentro: responder, crear COT, adjuntar PDF (el cliente solo descarga PDF).",
+          "Pedidos: bandeja del portal. Adentro: responder, crear COT, adjuntar PDF (el cliente solo descarga PDF).",
           "Cotizaciones: 7 pasos + documento. Clasificadores internos, IA, ambientes, módulos extra.",
           "Memoria histórica: Excel 5.0 sin precios. Sugiere qué se cotizó junto.",
           "Feedback IA: veredictos de usuarios sobre contenido generado.",
@@ -458,7 +458,7 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
       {
         title: "Pantallas con recorrido",
         body: [
-          "Todas las del admin: el título se señala siempre. Cotizaciones, solicitudes, productos y settings tienen pasos extra.",
+          "Todas las del admin: el título se señala siempre. Cotizaciones, pedidos, productos y settings tienen pasos extra.",
           "Si un botón no está (permiso o COT emitida), el globo lo dice. El chatbot explica el módulo aunque no haya globo.",
         ],
       },

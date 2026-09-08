@@ -9,6 +9,7 @@ import {
   fetchProductDetailRaw,
   type PortalProductDetail,
 } from "@/services/sonance-portal";
+import { mergeSourceMetadata } from "@/services/sync/source-metadata";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -238,17 +239,17 @@ export async function POST(req: NextRequest) {
     if (writtenSkus.length > 0) {
       const dbProducts = await prisma.product.findMany({
         where: { supplierSku: { in: writtenSkus } },
-        select: { id: true, supplierSku: true },
+        select: { id: true, supplierSku: true, sourceMetadata: true },
       });
-      const skuToId = new Map(dbProducts.map((p) => [p.supplierSku!, p.id]));
+      const skuToProduct = new Map(dbProducts.map((p) => [p.supplierSku!, p]));
       for (const r of results) {
         if (!r.detail) continue;
-        const productId = skuToId.get(r.sku);
-        if (!productId) continue;
+        const product = skuToProduct.get(r.sku);
+        if (!product) continue;
         try {
           await prisma.product.update({
-            where: { id: productId },
-            data: { sourceMetadata: r.detail as unknown as object },
+            where: { id: product.id },
+            data: { sourceMetadata: mergeSourceMetadata(product.sourceMetadata, r.detail, "sonance") },
           });
         } catch {
           // best-effort, no rompemos por un producto que falla

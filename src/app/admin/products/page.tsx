@@ -31,6 +31,7 @@ interface SP {
   page?: string;
   pageSize?: string;
   tab?: string;
+  feedback?: string;
 }
 
 function multi(value: string | string[] | undefined): string[] {
@@ -69,8 +70,11 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const stockStatuses = multi(params.stock);
   const activeFilter =
     params.active === "yes" ? true : params.active === "no" ? false : undefined;
+  const openFeedback = await prisma.aiContentFeedback.groupBy({ by: ["refId"], where: { type: "PRODUCT_DESCRIPTION", verdict: "HAS_ERRORS", resolvedAt: null }, _count: { _all: true } });
+  const openFeedbackMap = new Map(openFeedback.map((f) => [f.refId, f._count._all]));
 
   const where: Prisma.ProductWhereInput = {
+    ...(params.feedback === "errors" ? { id: { in: [...openFeedbackMap.keys()] } } : {}),
     ...(brandIds.length ? { brandId: { in: brandIds } } : {}),
     ...(categoryIds.length ? { categoryId: { in: categoryIds } } : {}),
     ...(familyIds.length ? { familyId: { in: familyIds } } : {}),
@@ -243,6 +247,8 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       shortDescription: p.shortDescription || null,
       longDescription: p.longDescription || null,
       aiGeneratedDescription: p.aiGeneratedDescription,
+      aiDescriptionFeedbackStatus: p.aiDescriptionFeedbackStatus,
+      openFeedbackCount: openFeedbackMap.get(p.id) || 0,
       isCrestronHomeCompatible: p.isCrestronHomeCompatible,
       updatedAt: p.updatedAt.toISOString(),
       labels: p.labels.map((pl) => pl.label),
@@ -275,6 +281,10 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
           Crestron Home
         </Link>
       </div>
+      <Link href={params.feedback === "errors" ? "/admin/products" : "/admin/products?feedback=errors"}
+        className="inline-flex rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground">
+        Con reportes de IA ({openFeedback.length})
+      </Link>
 
       {rows.length === 0 &&
       !params.q &&

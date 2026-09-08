@@ -44,7 +44,7 @@ const VARIANT_LABELS: Record<RelationVariant, { title: string; subtitle: (parent
   ACCESSORY: {
     title: "Accesorios compatibles",
     subtitle: (parent) =>
-      `Productos vinculados a ${parent} desde administración. Podés sumarlos a tu solicitud o ver su ficha.`,
+      `Productos vinculados a ${parent} desde administración. Podés sumarlos a tu pedido o ver su ficha.`,
   },
   CROSS_SELL: {
     title: "Productos alternativos",

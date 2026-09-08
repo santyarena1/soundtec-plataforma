@@ -8,6 +8,7 @@ import { requireUser, requireAdmin } from "@/lib/auth-helpers";
 import { calculatePricesForProducts, isProductVisibleToClient } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { requireCommercialClientId, resolveCommercialClientId } from "@/lib/client-context";
+import { logClientActivity } from "@/server/crm/activity";
 import { accessoryAckNote, evaluateAccessoryPolicy } from "@/lib/accessory-context";
 import { getOrCreateActiveDraft } from "@/lib/draft-request";
 import { generateAndStoreQuotePdf } from "@/lib/quote-pdf-store";
@@ -80,6 +81,7 @@ export async function createRequestDraft(formData: FormData): Promise<void> {
         },
       })
     : await getOrCreateActiveDraft(user.id, { type: parsed.data.type, migrateLegacyCart: true });
+  if (forceNew) await logClientActivity({ clientId: commercialClientId, title: "Se creó un pedido", referenceType: "REQUEST", referenceId: request.id });
 
   if (!forceNew && parsed.data.projectDescription) {
     await prisma.customerRequest.update({
@@ -149,7 +151,7 @@ type RequestItemResult = {
   compatiblePrimaries?: { id: string; name: string }[];
 };
 
-/** Crear solicitud nueva con un producto (desde ficha / formulario cliente). */
+/** Crear pedido nuevo con un producto (desde ficha / formulario cliente). */
 export async function createRequestWithProduct(formData: FormData): Promise<RequestItemResult> {
   const user = await requireUser();
   const parsed = createSchema.safeParse({
@@ -192,6 +194,7 @@ export async function createRequestWithProduct(formData: FormData): Promise<Requ
       projectDescription: parsed.data.projectDescription || null,
     },
   });
+  await logClientActivity({ clientId: commercialClientId, title: "Se creó un pedido", referenceType: "REQUEST", referenceId: request.id });
 
   const noteParts: string[] = [];
   if (parsed.data.primaryProductId) {
@@ -245,7 +248,7 @@ export async function addRequestItem(formData: FormData): Promise<{
   const request = await prisma.customerRequest.findFirst({
     where: { id: parsed.data.requestId, userId: user.id },
   });
-  if (!request || request.status !== "DRAFT") return { ok: false, error: "Solicitud no editable" };
+  if (!request || request.status !== "DRAFT") return { ok: false, error: "Pedido no editable" };
 
   const visible = await assertVisible(parsed.data.productId, user.id, user.role);
   if (!visible) return { ok: false, error: "Producto no disponible." };
@@ -316,7 +319,7 @@ const draftAddSchema = z.object({
   ackAccessoryWarning: z.coerce.boolean().optional(),
 });
 
-/** Agrega un producto a la solicitud en borrador activa (flujo unificado, reemplaza «carrito»). */
+/** Agrega un producto a el pedido en borrador activa (flujo unificado, reemplaza «carrito»). */
 export async function addToDraftRequest(formData: FormData): Promise<{
   ok: boolean;
   error?: string;
@@ -575,7 +578,7 @@ export async function updateDraftItemQuantity(formData: FormData): Promise<{ ok:
   const item = await prisma.customerRequestItem.findFirst({
     where: { id: itemId, request: { userId: user.id, status: "DRAFT" } },
   });
-  if (!item) return { ok: false, error: "Ítem no encontrado o solicitud ya enviada." };
+  if (!item) return { ok: false, error: "Ítem no encontrado o pedido ya enviado." };
 
   await prisma.customerRequestItem.update({ where: { id: itemId }, data: { quantity } });
   await prisma.customerRequest.update({ where: { id: item.requestId }, data: { updatedAt: new Date() } });
@@ -694,7 +697,7 @@ export async function adminRespondRequest(input: {
     where: { id: parsed.data.requestId },
     select: { id: true, status: true },
   });
-  if (!request) return { ok: false, error: "La solicitud ya no existe." };
+  if (!request) return { ok: false, error: "El pedido ya no existe." };
 
   const responseText = parsed.data.adminResponse?.trim() || "";
 
@@ -728,7 +731,7 @@ export async function adminSetRequestStatus(input: { requestId: string; status: 
     where: { id: parsed.data.requestId },
     select: { id: true },
   });
-  if (!request) return { ok: false, error: "La solicitud ya no existe." };
+  if (!request) return { ok: false, error: "El pedido ya no existe." };
 
   await prisma.customerRequest.update({
     where: { id: request.id },
@@ -752,7 +755,7 @@ export async function adminSendRequestMessage(input: {
     where: { id: parsed.data.requestId },
     select: { id: true },
   });
-  if (!request) return { ok: false, error: "La solicitud ya no existe." };
+  if (!request) return { ok: false, error: "El pedido ya no existe." };
 
   await prisma.requestMessage.create({
     data: { requestId: request.id, senderId: admin.id, message: parsed.data.message },
@@ -782,7 +785,7 @@ export async function adminSearchProductsForRequest(input: {
     where: { id: input.requestId },
     select: { id: true, userId: true, clientId: true },
   });
-  if (!request) return { ok: false, error: "La solicitud ya no existe.", products: [] };
+  if (!request) return { ok: false, error: "El pedido ya no existe.", products: [] };
 
   const { buildProductSearchWhere } = await import("@/lib/product-search");
   const found = await prisma.product.findMany({
@@ -876,7 +879,7 @@ export async function addAdminSuggestion(input: {
   if (!parsed.success) return { ok: false, error: "Datos inválidos." };
 
   const request = await prisma.customerRequest.findUnique({ where: { id: parsed.data.requestId } });
-  if (!request) return { ok: false, error: "La solicitud ya no existe." };
+  if (!request) return { ok: false, error: "El pedido ya no existe." };
 
   const product = await prisma.product.findUnique({
     where: { id: parsed.data.productId },
@@ -987,7 +990,7 @@ export async function attachQuoteAsRequestResponse(input: {
     where: { id: input.requestId },
     select: { id: true, status: true, adminResponse: true, userId: true },
   });
-  if (!request) return { ok: false, error: "La solicitud ya no existe." };
+  if (!request) return { ok: false, error: "El pedido ya no existe." };
 
   const quote = await prisma.quote.findUnique({
     where: { id: input.quoteId },
@@ -995,7 +998,7 @@ export async function attachQuoteAsRequestResponse(input: {
   });
   if (!quote) return { ok: false, error: "La cotización ya no existe." };
   if (quote.sourceRequestId && quote.sourceRequestId !== request.id) {
-    return { ok: false, error: "Esta cotización pertenece a otra solicitud." };
+    return { ok: false, error: "Esta cotización pertenece a otro pedido." };
   }
 
   if (!quote.sourceRequestId) {

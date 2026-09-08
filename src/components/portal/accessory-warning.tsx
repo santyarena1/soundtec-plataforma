@@ -89,7 +89,7 @@ export function AccessoryInfoBanner({
             </p>
           ) : null}
           <p className="mt-2 text-xs text-muted-foreground">
-            Podés agregarlo a tu solicitud igualmente; te pediremos confirmar la advertencia.
+            Podés agregarlo a tu pedido igualmente; te pediremos confirmar la advertencia.
           </p>
         </div>
       </div>

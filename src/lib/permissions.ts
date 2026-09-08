@@ -113,10 +113,10 @@ export const PERMISSION_GROUPS: Array<{
     ],
   },
   {
-    title: "Solicitudes",
+    title: "Pedidos",
     items: [
-      { scope: "requests.view", label: "Ver solicitudes" },
-      { scope: "requests.respond", label: "Responder solicitudes" },
+      { scope: "requests.view", label: "Ver pedidos" },
+      { scope: "requests.respond", label: "Responder pedidos" },
     ],
   },
   {
@@ -157,7 +157,7 @@ export const PERMISSION_GROUPS: Array<{
     title: "Portal del cliente (si el rol base es Cliente)",
     items: [
       { scope: "portal.catalog", label: "Ver catálogo público" },
-      { scope: "portal.requests", label: "Crear solicitudes" },
+      { scope: "portal.requests", label: "Crear pedidos" },
       { scope: "portal.cart", label: "Usar carrito" },
     ],
   },

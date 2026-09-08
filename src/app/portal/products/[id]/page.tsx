@@ -129,8 +129,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   });
 
   const aiFeedback = product.aiGeneratedDescription
-    ? await prisma.aiContentFeedback.findFirst({
+      ? await prisma.aiContentFeedback.findFirst({
         where: { type: "PRODUCT_DESCRIPTION", refId: product.id, userId: user.id },
+        orderBy: { createdAt: "desc" },
       })
     : null;
 
@@ -432,6 +433,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               type="PRODUCT_DESCRIPTION"
               existingVerdict={aiFeedback?.verdict ?? null}
               existingComment={aiFeedback?.comment ?? null}
+              existingIssues={aiFeedback?.issues ?? []}
+              generatedText={product.longDescription || product.shortDescription || ""}
             />
           ) : null}
         </CardContent>

@@ -10,16 +10,16 @@ import { formatDate, formatUsd } from "@/lib/utils";
 import { createRequestDraft } from "@/server/actions/requests";
 import { ShoppingBag } from "lucide-react";
 
-export const metadata = { title: "Solicitudes" };
+export const metadata = { title: "Pedidos" };
 
 const statusMap: Record<string, { tone: "muted" | "primary" | "accent" | "success" | "warning" | "destructive"; label: string }> = {
   DRAFT: { tone: "muted", label: "En armado" },
-  SENT: { tone: "accent", label: "Enviada" },
+  SENT: { tone: "accent", label: "Enviado" },
   IN_REVIEW: { tone: "warning", label: "En revisión" },
-  ANSWERED: { tone: "primary", label: "Respondida" },
-  CONFIRMED: { tone: "success", label: "Confirmada" },
-  REJECTED: { tone: "destructive", label: "Rechazada" },
-  CLOSED: { tone: "muted", label: "Cerrada" },
+  ANSWERED: { tone: "primary", label: "Respondido" },
+  CONFIRMED: { tone: "success", label: "Confirmado" },
+  REJECTED: { tone: "destructive", label: "Rechazado" },
+  CLOSED: { tone: "muted", label: "Cerrado" },
 };
 
 const typeMap: Record<string, string> = {
@@ -44,14 +44,14 @@ export default async function RequestsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Mis solicitudes"
-        description="Armá tu pedido o cotización en un solo lugar. Desde el catálogo, «Agregar a mi solicitud» suma productos al borrador activo."
+        title="Mis pedidos"
+        description="Armá tu pedido o cotización en un solo lugar. Desde el catálogo, «Agregar a mi pedido» suma productos al borrador activo."
         actions={
           <form action={createRequestDraft}>
             <input type="hidden" name="forceNew" value="true" />
             <input type="hidden" name="type" value="QUOTE" />
             <Button type="submit" variant="outline">
-              Nueva solicitud vacía
+              Nuevo pedido vacío
             </Button>
           </form>
         }
@@ -65,7 +65,7 @@ export default async function RequestsPage() {
                 <ShoppingBag className="h-5 w-5" />
               </span>
               <div>
-                <p className="font-semibold">Tu solicitud en armado</p>
+                <p className="font-semibold">Tu pedido en armado</p>
                 <p className="text-sm text-muted-foreground">
                   {activeDraft.itemCount} producto(s) · {activeDraft.unitCount} unidad(es) ·{" "}
                   <span className="text-success font-medium tabular-nums">
@@ -86,7 +86,7 @@ export default async function RequestsPage() {
       ) : null}
 
       {sentRequests.length === 0 ? (
-        <TableEmpty message="Todavía no enviaste solicitudes a Soundtec. Armá la primera desde el catálogo." />
+        <TableEmpty message="Todavía no enviaste pedidos a Soundtec. Armá la primera desde el catálogo." />
       ) : (
         <>
           <h2 className="text-sm font-semibold text-muted-foreground">Historial enviado</h2>

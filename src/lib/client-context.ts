@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 /**
- * ID comercial del cliente (empresa) para precios, visibilidad y solicitudes.
+ * ID comercial del cliente (empresa) para precios, visibilidad y pedidos.
  * - Usuarios de portal con `clientId` → usan ese Client.
  * - Legacy: usuarios CLIENT sin `clientId` pero con reglas bajo su userId → siguen usando userId.
  */

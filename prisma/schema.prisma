@@ -52,13 +52,16 @@ model User {
   tickets         DeveloperTicket[]
   changelogEntries AdminChangelog[]  @relation("ChangelogAuthor")
   changelogReads  AdminChangelogRead[]
-  aiFeedback      AiContentFeedback[]
+  aiFeedback      AiContentFeedback[] @relation("AiFeedbackAuthor")
+  resolvedAiFeedback AiContentFeedback[] @relation("AiFeedbackResolver")
   quoteSignName   String?
   quoteSignTitle  String?
   ownedQuotes     Quote[]           @relation("QuoteOwner")
   issuedQuotes    Quote[]           @relation("QuoteIssuer")
   quoteAiRuns     QuoteAiRun[]
   quoteRevisions  QuoteRevision[]
+  ownedClients    Client[]           @relation("ClientOwner")
+  clientActivities ClientActivity[]  @relation("ClientActivityAuthor")
   @@index([email])
   @@index([role])
   @@index([customRoleId])
@@ -89,6 +92,16 @@ model Client {
   taxId               String?
   address             String?
   notes               String?
+  website             String?
+  city                String?
+  province            String?
+  country             String?  @default("Argentina")
+  segment             String?
+  source              String?
+  ownerId             String?
+  owner               User?    @relation("ClientOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  tags                 String[] @default([])
+  lastActivityAt       DateTime?
   assignedPriceListId String?
   assignedPriceList   PriceList? @relation(fields: [assignedPriceListId], references: [id], onDelete: SetNull)
   isActive            Boolean  @default(true)
@@ -103,9 +116,58 @@ model Client {
   requests            CustomerRequest[]
   shareablePriceLists ShareablePriceList[]
   quotes              Quote[]
+  contacts            ClientContact[]
+  activities          ClientActivity[]
 
   @@index([companyName])
   @@index([isActive])
+  @@index([ownerId])
+  @@index([lastActivityAt])
+}
+
+model ClientContact {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name      String
+  role      String?
+  email     String?
+  phone     String?
+  whatsapp  String?
+  isPrimary Boolean  @default(false)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+enum ClientActivityKind {
+  NOTE
+  CALL
+  MEETING
+  EMAIL
+  WHATSAPP
+  TASK
+  SYSTEM
+}
+
+model ClientActivity {
+  id            String             @id @default(cuid())
+  clientId      String
+  client        Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  kind          ClientActivityKind @default(NOTE)
+  title         String
+  body          String?
+  dueAt         DateTime?
+  doneAt        DateTime?
+  createdById   String?
+  createdBy     User?              @relation("ClientActivityAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  referenceType String?
+  referenceId   String?
+  createdAt     DateTime           @default(now())
+
+  @@index([clientId, createdAt])
 }
 
 // ---------------------------------------------
@@ -412,10 +474,23 @@ model ShareablePriceList {
   viewCount   Int                      @default(0)
   createdAt   DateTime                 @default(now())
   updatedAt   DateTime                 @updatedAt
+  views       ShareablePriceListView[]
 
   @@index([shareSlug])
   @@index([status])
   @@index([clientId])
+}
+
+model ShareablePriceListView {
+  id        String             @id @default(cuid())
+  listId    String
+  list      ShareablePriceList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime           @default(now())
+  userAgent String?
+  referer   String?
+  ipHash    String?
+
+  @@index([listId, viewedAt])
 }
 
 model PriceList {
@@ -755,13 +830,17 @@ enum AiFeedbackVerdict {
 model AiContentFeedback {
   id            String              @id @default(cuid())
   userId        String?
-  user          User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user          User?               @relation("AiFeedbackAuthor", fields: [userId], references: [id], onDelete: SetNull)
   type          AiFeedbackType
   refEntity     String              // tabla referida (ej. "Product", "CustomerRequest")
   refId         String
   generatedText String?
   verdict       AiFeedbackVerdict?
   comment       String?
+  issues        String[]            @default([])
+  resolvedAt    DateTime?
+  resolvedById  String?
+  resolvedBy    User?               @relation("AiFeedbackResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
   createdAt     DateTime            @default(now())
 
   @@index([type, refId])

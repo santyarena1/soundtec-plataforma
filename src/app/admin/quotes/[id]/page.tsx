@@ -300,7 +300,7 @@ export default async function QuoteEditorPage({
               <>
                 {" · "}
                 <a href={`/admin/requests/${quote.sourceRequestId}`} className="text-accent hover:underline">
-                  Ver solicitud de origen
+                  Ver pedido de origen
                 </a>
               </>
             ) : null}
@@ -309,7 +309,7 @@ export default async function QuoteEditorPage({
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
             {quote.sourceRequestId ? (
-              <Badge tone="accent">Importada de solicitud #{requestShortId(quote.sourceRequestId)}</Badge>
+              <Badge tone="accent">Importada del pedido #{requestShortId(quote.sourceRequestId)}</Badge>
             ) : null}
             <Badge tone={issued ? "success" : quote.status === "IN_REVIEW" ? "warning" : "muted"}>
               {issued ? "Emitida" : quote.status === "IN_REVIEW" ? "En revisión" : "Borrador"}

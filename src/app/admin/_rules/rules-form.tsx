@@ -124,6 +124,10 @@ export function RulesForm({
   editingGroup,
   onSaved,
   onCancel,
+  presetTarget,
+  presetScopeIds,
+  presetClientId,
+  presetGroupId,
 }: {
   type: "margin" | "discount";
   clients: ClientOpt[];
@@ -137,6 +141,10 @@ export function RulesForm({
   editingGroup?: boolean;
   onSaved?: () => void;
   onCancel?: () => void;
+  presetTarget?: RuleTarget;
+  presetScopeIds?: string[];
+  presetClientId?: string | null;
+  presetGroupId?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -144,13 +152,13 @@ export function RulesForm({
   const seedHasClient = seeded.some((row) => Boolean(row.clientId));
   const formSeed = initial ? scopeTypeToForm(initial.scopeType, seedHasClient || Boolean(initial.clientId)) : null;
   const [audience, setAudience] = useState<"all" | "client">(
-    lockedClientId ? "client" : formSeed?.audience || "all"
+    lockedClientId || presetClientId ? "client" : formSeed?.audience || "all"
   );
   const [clientIds, setClientIds] = useState<string[]>(
-    lockedClientId ? [lockedClientId] : uniqueIds(seeded, (row) => row.clientId)
+    lockedClientId ? [lockedClientId] : presetClientId ? [presetClientId] : uniqueIds(seeded, (row) => row.clientId)
   );
-  const [target, setTarget] = useState<RuleTarget>(formSeed?.target || "ALL");
-  const [scopeIds, setScopeIds] = useState<string[]>(uniqueIds(seeded, (row) => row.scopeId));
+  const [target, setTarget] = useState<RuleTarget>(presetTarget || formSeed?.target || "ALL");
+  const [scopeIds, setScopeIds] = useState<string[]>(presetScopeIds || uniqueIds(seeded, (row) => row.scopeId));
   const [excludedIds, setExcludedIds] = useState<string[]>(seedExcludedIds(initial));
   const [previewOpen, setPreviewOpen] = useState(false);
   const [mode, setMode] = useState<"margin" | "markup">(type === "margin" ? initialMode(initial) : "margin");
@@ -274,7 +282,7 @@ export function RulesForm({
     }
     const fd = new FormData();
     if (initial?.id) fd.set("id", initial.id);
-    if (initial?.groupId) fd.set("groupId", initial.groupId);
+    if (initial?.groupId || presetGroupId) fd.set("groupId", initial?.groupId || presetGroupId!);
     if (editingGroup) fd.set("replaceGroup", "on");
     fd.set("audience", audience);
     fd.set("target", target);

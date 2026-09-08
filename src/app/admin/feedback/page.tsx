@@ -1,118 +1,135 @@
+import Link from "next/link";
+import { Prisma } from "@prisma/client";
 import { requirePermission } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ButtonLink } from "@/components/ui/button";
-import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
-import { formatDate, truncate } from "@/lib/utils";
+import { Input, Select } from "@/components/ui/input";
+import { AiFeedbackTable } from "@/components/admin/ai-feedback-table";
 
 export const metadata = { title: "Admin · Feedback de IA" };
 
-const VERDICT_LABEL: Record<string, string> = {
-  CORRECT: "Correcto",
-  HAS_ERRORS: "Con errores",
-  INCOMPLETE: "Incompleto",
-};
-
-function verdictTone(verdict: string | null) {
-  if (verdict === "CORRECT") return "success" as const;
-  if (verdict === "HAS_ERRORS") return "destructive" as const;
-  return "muted" as const;
-}
-
-export default async function AdminAiFeedbackPage() {
+export default async function AdminAiFeedbackPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    verdict?: string;
+    type?: string;
+    state?: string;
+    q?: string;
+    page?: string;
+  }>;
+}) {
   await requirePermission("ai.manage");
-
-  const [feedback, stats] = await Promise.all([
+  const params = await searchParams;
+  const page = Math.max(1, Number(params.page) || 1);
+  const where: Prisma.AiContentFeedbackWhereInput = {
+    ...(params.verdict ? { verdict: params.verdict as never } : {}),
+    ...(params.type ? { type: params.type as never } : {}),
+    ...(params.state === "resolved"
+      ? { resolvedAt: { not: null } }
+      : params.state === "pending"
+        ? { resolvedAt: null }
+        : {}),
+    ...(params.q
+      ? {
+          refEntity: "Product",
+          refId: {
+            in: (
+              await prisma.product.findMany({
+                where: { normalizedName: { contains: params.q, mode: "insensitive" } },
+                select: { id: true },
+              })
+            ).map((p) => p.id),
+          },
+        }
+      : {}),
+  };
+  const [feedback, total] = await Promise.all([
     prisma.aiContentFeedback.findMany({
+      where,
       orderBy: { createdAt: "desc" },
-      take: 80,
+      skip: (page - 1) * 50,
+      take: 50,
       include: { user: { select: { name: true, email: true } } },
     }),
-    prisma.aiContentFeedback.groupBy({ by: ["verdict"], _count: { _all: true } }),
+    prisma.aiContentFeedback.count({ where }),
   ]);
-
-  const productIds = [
-    ...new Set(feedback.filter((f) => f.refEntity === "Product").map((f) => f.refId)),
-  ];
-  const products = productIds.length
-    ? await prisma.product.findMany({
-        where: { id: { in: productIds } },
-        select: { id: true, normalizedName: true, internalSku: true },
-      })
-    : [];
+  const ids = [...new Set(feedback.filter((f) => f.refEntity === "Product").map((f) => f.refId))];
+  const products = await prisma.product.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, normalizedName: true, longDescription: true },
+  });
   const productMap = new Map(products.map((p) => [p.id, p]));
-
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v && !Array.isArray(v)) as [string, string][],
+  );
   return (
     <div className="space-y-6">
       <PageHeader
         title="Feedback de IA"
-        description="Qué reportaron los usuarios sobre la precisión del contenido generado. Los prompts se editan en Configuración."
-        actions={
-          <ButtonLink href="/admin/settings/ai" variant="outline" size="sm">
-            Editar prompts y modelos
-          </ButtonLink>
-        }
+        description={`${total} reportes. La gestión cotidiana también está integrada en Catálogo.`}
       />
-
-      {stats.length === 0 ? (
-        <Card>
-          <CardContent className="p-5">
-            <p className="muted-text">Todavía no hay feedback registrado.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-3">
-          {stats.map((s) => (
-            <Card key={s.verdict || "null"}>
-              <CardContent className="p-5">
-                <p className="muted-text">{VERDICT_LABEL[s.verdict || ""] || "Sin clasificar"}</p>
-                <p className="text-2xl font-semibold">{s._count._all}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {feedback.length === 0 ? (
-        <TableEmpty />
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Tipo</TH>
-              <TH>Veredicto</TH>
-              <TH>Usuario</TH>
-              <TH>Comentario</TH>
-              <TH>Entidad</TH>
-              <TH>Fecha</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {feedback.map((f) => (
-              <TR key={f.id}>
-                <TD>{f.type}</TD>
-                <TD>
-                  <Badge tone={verdictTone(f.verdict)}>{VERDICT_LABEL[f.verdict || ""] || "—"}</Badge>
-                </TD>
-                <TD>{f.user?.name || "—"}</TD>
-                <TD className="max-w-xs text-xs text-muted-foreground">{truncate(f.comment || "—", 80)}</TD>
-                <TD className="text-xs text-muted-foreground">
-                  {f.refEntity === "Product" && productMap.get(f.refId) ? (
-                    <a href={`/admin/products/${f.refId}`} className="underline hover:text-foreground">
-                      {productMap.get(f.refId)!.normalizedName}
-                    </a>
-                  ) : (
-                    `${f.refEntity}/${f.refId.slice(-6)}`
-                  )}
-                </TD>
-                <TD>{formatDate(f.createdAt)}</TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
-      )}
+      <form className="grid gap-2 rounded-md border bg-card p-4 md:grid-cols-5">
+        <Input name="q" defaultValue={params.q} placeholder="Buscar producto…" />
+        <Select name="verdict" defaultValue={params.verdict || ""}>
+          <option value="">Todos los veredictos</option>
+          <option value="CORRECT">Correcto</option>
+          <option value="HAS_ERRORS">Con errores</option>
+          <option value="UNCLEAR">Sin definir</option>
+        </Select>
+        <Select name="type" defaultValue={params.type || ""}>
+          <option value="">Todos los tipos</option>
+          <option value="PRODUCT_DESCRIPTION">Descripción de producto</option>
+          <option value="PRODUCT_NORMALIZATION">Normalización</option>
+          <option value="COLUMN_MAPPING">Mapeo de columnas</option>
+          <option value="REQUEST_RESPONSE">Respuesta de pedido</option>
+          <option value="IMAGE_SUGGESTION">Sugerencia de imagen</option>
+        </Select>
+        <Select name="state" defaultValue={params.state || ""}>
+          <option value="">Todos los estados</option>
+          <option value="pending">Pendientes</option>
+          <option value="resolved">Resueltos</option>
+        </Select>
+        <button className="rounded-md bg-primary px-4 text-sm text-primary-foreground">
+          Filtrar
+        </button>
+      </form>
+      <AiFeedbackTable
+        rows={feedback.map((f) => {
+          const p = productMap.get(f.refId);
+          return {
+            id: f.id,
+            verdict: f.verdict,
+            type: f.type,
+            issues: f.issues,
+            comment: f.comment,
+            generatedText: f.generatedText,
+            createdAt: f.createdAt.toISOString(),
+            resolvedAt: f.resolvedAt?.toISOString() || null,
+            userName: f.user?.name || "—",
+            userEmail: f.user?.email || "—",
+            productId: p?.id || null,
+            productName: p?.normalizedName || `${f.refEntity}/${f.refId.slice(-6)}`,
+            currentText: p?.longDescription || null,
+          };
+        })}
+      />
+      <div className="flex justify-center gap-4 text-sm">
+        {page > 1 ? (
+          <Link
+            href={`?${new URLSearchParams({ ...Object.fromEntries(query), page: String(page - 1) })}`}
+          >
+            Anterior
+          </Link>
+        ) : null}
+        {page * 50 < total ? (
+          <Link
+            href={`?${new URLSearchParams({ ...Object.fromEntries(query), page: String(page + 1) })}`}
+          >
+            Siguiente
+          </Link>
+        ) : null}
+      </div>
     </div>
   );
 }

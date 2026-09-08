@@ -63,7 +63,7 @@ function localAnswer(message: string, pathname: string): string {
   return [
     `Estás en ${mod.title}. ${mod.simple}`,
     `Se edita: ${mod.editable}`,
-    `Si querés el detalle de otro módulo, nombralo (productos, solicitudes, márgenes, roles…).`,
+    `Si querés el detalle de otro módulo, nombralo (productos, pedidos, márgenes, roles…).`,
     `También podés Recorrer esta pantalla o abrir el tutorial.`,
   ].join("\n");
 }

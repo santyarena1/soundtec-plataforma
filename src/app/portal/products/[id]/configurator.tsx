@@ -132,7 +132,7 @@ export function ProductConfigurator({
       showToast({
         type: "success",
         title: `Producto configurado agregado (${r.detail?.addedQty ?? 1} u.)`,
-        description: "Quedó cargado en tu solicitud en armado.",
+        description: "Quedó cargado en tu pedido en armado.",
         requestId: r.requestId,
         itemsTotal: r.detail?.itemsTotal,
         unitsTotal: r.detail?.unitsTotal,
@@ -145,7 +145,7 @@ export function ProductConfigurator({
     <Card>
       <CardContent className="space-y-4 p-5">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Configurar y agregar a tu solicitud</h3>
+          <h3 className="font-semibold">Configurar y agregar a tu pedido</h3>
           <Badge tone="accent">{options.length} opcionales</Badge>
         </div>
 
@@ -245,7 +245,7 @@ export function ProductConfigurator({
           <p className="text-xs text-success">
             Configuración agregada.{" "}
             <Link href={`/portal/requests/${draftRequestId}`} className="underline">
-              Ver mi solicitud
+              Ver mi pedido
             </Link>
           </p>
         ) : null}
@@ -255,7 +255,7 @@ export function ProductConfigurator({
             onClick={submit}
             disabled={pending || Boolean(showAck && accessoryContext && !acknowledged)}
           >
-            {pending ? "Agregando…" : "Agregar configuración a mi solicitud"}
+            {pending ? "Agregando…" : "Agregar configuración a mi pedido"}
           </Button>
         </div>
       </CardContent>

@@ -6,8 +6,9 @@ import { ShareListForm } from "@/components/admin/share-list-form";
 
 export const metadata = { title: "Admin · Nueva lista compartible" };
 
-export default async function NewShareListPage() {
+export default async function NewShareListPage({ searchParams }: { searchParams: Promise<{ productIds?: string }> }) {
   await requireAdmin();
+  const requestedIds = (await searchParams).productIds?.split(",").filter(Boolean).slice(0, 200) || [];
   const [clients, brands, categories, families, distributors, products] = await Promise.all([
     prisma.client.findMany({ where: { isActive: true }, orderBy: { companyName: "asc" }, select: { id: true, companyName: true } }),
     prisma.brand.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -15,10 +16,9 @@ export default async function NewShareListPage() {
     prisma.productFamily.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.product.findMany({
-      where: { isActive: true },
+      where: { isActive: true, id: { in: requestedIds } },
       orderBy: { normalizedName: "asc" },
-      take: 500,
-      select: { id: true, normalizedName: true },
+      select: { id: true, normalizedName: true, internalSku: true },
     }),
   ]);
 
@@ -33,7 +33,8 @@ export default async function NewShareListPage() {
             categories={categories}
             families={families}
             distributors={distributors}
-            products={products.map((p) => ({ id: p.id, name: p.normalizedName }))}
+            products={products.map((p) => ({ id: p.id, name: p.normalizedName, sku: p.internalSku }))}
+            initialProductIds={requestedIds}
           />
         </CardContent>
       </Card>

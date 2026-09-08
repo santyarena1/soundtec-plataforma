@@ -10,6 +10,7 @@ import {
   generateProductDescription,
   generateProductShortDescription,
 } from "@/server/actions/product-enrichment";
+import { ProductFeedbackBlock } from "./product-feedback-block";
 
 interface Props {
   /** En /new no hay productId — los botones IA quedan deshabilitados hasta el primer guardado. */
@@ -74,6 +75,7 @@ export function DescriptionsSection({ productId, initialShort, initialLong, isAi
 
   return (
     <div className="space-y-5">
+      {productId ? <ProductFeedbackBlock productId={productId} /> : null}
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <label

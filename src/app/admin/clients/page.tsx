@@ -1,163 +1,236 @@
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { Input, Label, Textarea, Select } from "@/components/ui/input";
+import { Input, Select } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { upsertClient, toggleClientActive } from "@/server/actions/clients";
+import { ClientFormModal } from "@/components/admin/client-form-modal";
 import { formatDate } from "@/lib/utils";
-import { Building2, ExternalLink } from "lucide-react";
-
 export const metadata = { title: "Admin · Clientes" };
-
-export default async function AdminClientsPage() {
+type Search = {
+  q?: string;
+  status?: string;
+  segment?: string;
+  owner?: string;
+  portal?: string;
+  inactive?: string;
+  page?: string;
+  size?: string;
+};
+export default async function Page({ searchParams }: { searchParams: Search }) {
   await requireAdmin();
-  const [clients, priceLists] = await Promise.all([
-    prisma.client.findMany({
-      orderBy: { companyName: "asc" },
-      include: {
-        _count: { select: { portalUsers: true, requests: true } },
-        assignedPriceList: { select: { name: true } },
-      },
-    }),
-    prisma.priceList.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-  ]);
-
+  const q = searchParams.q?.trim(),
+    size = searchParams.size === "50" ? 50 : 25,
+    page = Math.max(1, Number(searchParams.page) || 1),
+    days = searchParams.inactive ? Number(searchParams.inactive) : 0,
+    cutoff = days ? new Date(Date.now() - days * 86400000) : null;
+  const where: Prisma.ClientWhereInput = {
+    ...(q
+      ? {
+          OR: [
+            { companyName: { contains: q, mode: "insensitive" } },
+            { tradeName: { contains: q, mode: "insensitive" } },
+            { taxId: { contains: q, mode: "insensitive" } },
+            { contactName: { contains: q, mode: "insensitive" } },
+            { email: { contains: q, mode: "insensitive" } },
+            {
+              contacts: {
+                some: {
+                  OR: [
+                    { name: { contains: q, mode: "insensitive" } },
+                    { email: { contains: q, mode: "insensitive" } },
+                  ],
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+    ...(searchParams.status ? { isActive: searchParams.status === "active" } : {}),
+    ...(searchParams.segment ? { segment: searchParams.segment } : {}),
+    ...(searchParams.owner ? { ownerId: searchParams.owner } : {}),
+    ...(searchParams.portal === "none" ? { portalUsers: { none: {} } } : {}),
+    ...(cutoff ? { OR: [{ lastActivityAt: { lt: cutoff } }, { lastActivityAt: null }] } : {}),
+  };
+  const openStatuses = ["DRAFT", "SENT", "IN_REVIEW"] as const;
+  const [clients, total, owners, priceLists, segments, totalActive, withPortal, withOpen, old] =
+    await Promise.all([
+      prisma.client.findMany({
+        where,
+        skip: (page - 1) * size,
+        take: size,
+        orderBy: [{ lastActivityAt: "desc" }, { createdAt: "desc" }],
+        include: {
+          owner: { select: { name: true } },
+          contacts: { where: { isPrimary: true }, take: 1 },
+          _count: { select: { portalUsers: true, requests: true } },
+        },
+      }),
+      prisma.client.count({ where }),
+      prisma.user.findMany({
+        where: { role: { in: ["ADMIN", "SUPER_ADMIN"] }, isActive: true },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+      }),
+      prisma.priceList.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+      prisma.client.findMany({
+        where: { segment: { not: null } },
+        distinct: ["segment"],
+        select: { segment: true },
+        orderBy: { segment: "asc" },
+      }),
+      prisma.client.count({ where: { isActive: true } }),
+      prisma.client.count({ where: { portalUsers: { some: {} } } }),
+      prisma.client.count({ where: { requests: { some: { status: { in: [...openStatuses] } } } } }),
+      prisma.client.count({
+        where: {
+          OR: [
+            { lastActivityAt: { lt: new Date(Date.now() - 90 * 86400000) } },
+            { lastActivityAt: null },
+          ],
+        },
+      }),
+    ]);
+  const pages = Math.max(1, Math.ceil(total / size));
   return (
     <div className="space-y-6">
       <PageHeader
         title="Clientes"
-        description="Empresas y cuentas comerciales. Acá configurás precios, visibilidad y cuenta corriente. Los usuarios de portal se vinculan desde Usuarios."
-        actions={
-          <ButtonLink href="/admin/users" variant="outline">
-            Gestionar usuarios de acceso
-          </ButtonLink>
-        }
+        description="Empresas, contactos y seguimiento comercial en un solo lugar."
+        actions={<ClientFormModal owners={owners} priceLists={priceLists} />}
       />
-
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          [totalActive, "Clientes activos"],
+          [withPortal, "Con usuarios del portal"],
+          [withOpen, "Con pedidos abiertos"],
+          [old, "Sin actividad hace 90 días"],
+        ].map(([n, l]) => (
+          <Card key={String(l)}>
+            <CardContent className="p-4">
+              <p className="text-2xl font-semibold">{n}</p>
+              <p className="text-xs text-muted-foreground">{l}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
       <Card>
-        <CardContent className="p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-muted-foreground" />
-            <h2 className="heading-3">Nuevo cliente comercial</h2>
-          </div>
-          <form action={upsertClient} className="grid gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <Label htmlFor="companyName" required>Razón social / empresa</Label>
-              <Input id="companyName" name="companyName" required placeholder="Ej. Integrador Audiovisual S.A." />
-            </div>
-            <div>
-              <Label htmlFor="tradeName">Nombre comercial</Label>
-              <Input id="tradeName" name="tradeName" />
-            </div>
-            <div>
-              <Label htmlFor="taxId">CUIT</Label>
-              <Input id="taxId" name="taxId" placeholder="30-12345678-9" />
-            </div>
-            <div>
-              <Label htmlFor="contactName">Contacto principal</Label>
-              <Input id="contactName" name="contactName" />
-            </div>
-            <div>
-              <Label htmlFor="email">Email comercial</Label>
-              <Input id="email" name="email" type="email" />
-            </div>
-            <div>
-              <Label htmlFor="phone">Teléfono</Label>
-              <Input id="phone" name="phone" />
-            </div>
-            <div>
-              <Label htmlFor="assignedPriceListId">Lista de precios</Label>
-              <Select id="assignedPriceListId" name="assignedPriceListId" defaultValue="">
-                <option value="">Por defecto del sistema</option>
-                {priceLists.map((pl) => (
-                  <option key={pl.id} value={pl.id}>
-                    {pl.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="address">Dirección</Label>
-              <Input id="address" name="address" />
-            </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="notes">Notas internas</Label>
-              <Textarea id="notes" name="notes" rows={2} />
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="isActive" defaultChecked />
-              Cliente activo
-            </label>
-            <div className="sm:col-span-2 flex justify-end">
-              <Button type="submit">Crear cliente</Button>
-            </div>
+        <CardContent className="p-4">
+          <form className="grid gap-2 md:grid-cols-6">
+            <Input
+              name="q"
+              defaultValue={q}
+              placeholder="Empresa, CUIT, contacto o email"
+              className="md:col-span-2"
+            />
+            <Select name="status" defaultValue={searchParams.status || ""}>
+              <option value="">Todos los estados</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </Select>
+            <Select name="segment" defaultValue={searchParams.segment || ""}>
+              <option value="">Todos los segmentos</option>
+              {segments.map((x) => x.segment && <option key={x.segment}>{x.segment}</option>)}
+            </Select>
+            <Select name="owner" defaultValue={searchParams.owner || ""}>
+              <option value="">Todos los responsables</option>
+              {owners.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name}
+                </option>
+              ))}
+            </Select>
+            <Select name="portal" defaultValue={searchParams.portal || ""}>
+              <option value="">Con o sin acceso</option>
+              <option value="none">Sin usuarios del portal</option>
+            </Select>
+            <Select name="inactive" defaultValue={searchParams.inactive || ""}>
+              <option value="">Cualquier actividad</option>
+              <option value="30">Sin actividad +30 días</option>
+              <option value="90">Sin actividad +90 días</option>
+            </Select>
+            <Select name="size" defaultValue={String(size)}>
+              <option value="25">25 por página</option>
+              <option value="50">50 por página</option>
+            </Select>
+            <button className="h-10 rounded-md bg-primary px-4 text-sm text-primary-foreground">
+              Aplicar filtros
+            </button>
           </form>
         </CardContent>
       </Card>
-
       <Card>
         <CardContent className="p-0">
-          {clients.length === 0 ? (
-            <TableEmpty message="No hay clientes cargados. Creá el primero arriba." />
+          {!clients.length ? (
+            <TableEmpty message="No encontramos clientes con esos filtros." />
           ) : (
             <Table>
               <THead>
                 <TR>
                   <TH>Empresa</TH>
-                  <TH>Contacto</TH>
-                  <TH>Lista de precios</TH>
-                  <TH>Usuarios portal</TH>
-                  <TH>Solicitudes</TH>
+                  <TH>Contacto principal</TH>
+                  <TH>Segmento</TH>
+                  <TH>Responsable</TH>
+                  <TH>Usuarios</TH>
+                  <TH>Pedidos</TH>
+                  <TH>Última actividad</TH>
                   <TH>Estado</TH>
-                  <TH></TH>
                 </TR>
               </THead>
               <TBody>
-                {clients.map((c) => (
-                  <TR key={c.id}>
-                    <TD>
-                      <Link href={`/admin/clients/${c.id}`} className="font-medium hover:underline">
-                        {c.companyName}
-                      </Link>
-                      {c.tradeName ? (
-                        <p className="text-xs text-muted-foreground">{c.tradeName}</p>
-                      ) : null}
-                    </TD>
-                    <TD className="text-sm">
-                      {c.contactName || "—"}
-                      {c.email ? <p className="text-xs text-muted-foreground">{c.email}</p> : null}
-                    </TD>
-                    <TD className="text-sm">{c.assignedPriceList?.name || "Por defecto"}</TD>
-                    <TD>{c._count.portalUsers}</TD>
-                    <TD>{c._count.requests}</TD>
-                    <TD>{c.isActive ? <Badge tone="success">Activo</Badge> : <Badge tone="muted">Inactivo</Badge>}</TD>
-                    <TD className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                {clients.map((c) => {
+                  const contact = c.contacts[0];
+                  return (
+                    <TR key={c.id}>
+                      <TD>
                         <Link
+                          className="font-medium hover:underline"
                           href={`/admin/clients/${c.id}`}
-                          className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
                         >
-                          <ExternalLink className="h-3.5 w-3.5" /> Ver ficha
+                          {c.companyName}
                         </Link>
-                        <form action={toggleClientActive} className="inline">
-                          <input type="hidden" name="id" value={c.id} />
-                          <Button type="submit" variant="ghost" size="sm">
-                            {c.isActive ? "Desactivar" : "Activar"}
-                          </Button>
-                        </form>
-                      </div>
-                    </TD>
-                  </TR>
-                ))}
+                        {c.tradeName ? (
+                          <p className="text-xs text-muted-foreground">{c.tradeName}</p>
+                        ) : null}
+                      </TD>
+                      <TD>
+                        {contact?.name || c.contactName || "—"}
+                        <p className="text-xs text-muted-foreground">{contact?.email || c.email}</p>
+                      </TD>
+                      <TD>{c.segment ? <Badge>{c.segment}</Badge> : "—"}</TD>
+                      <TD>{c.owner?.name || "Sin asignar"}</TD>
+                      <TD>{c._count.portalUsers}</TD>
+                      <TD>{c._count.requests}</TD>
+                      <TD>{c.lastActivityAt ? formatDate(c.lastActivityAt) : "Sin actividad"}</TD>
+                      <TD>
+                        <Badge tone={c.isActive ? "success" : "muted"}>
+                          {c.isActive ? "Activo" : "Inactivo"}
+                        </Badge>
+                      </TD>
+                    </TR>
+                  );
+                })}
               </TBody>
             </Table>
           )}
         </CardContent>
       </Card>
+      <div className="flex justify-between text-sm">
+        <span>
+          Página {page} de {pages}
+        </span>
+        <div className="flex gap-3">
+          {page > 1 ? (
+            <Link href={{ query: { ...searchParams, page: page - 1 } }}>Anterior</Link>
+          ) : null}
+          {page < pages ? (
+            <Link href={{ query: { ...searchParams, page: page + 1 } }}>Siguiente</Link>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }

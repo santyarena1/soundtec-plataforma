@@ -168,7 +168,7 @@ export function ProductBundleProvider({ mainProduct, draftRequestId, children }:
             }
             showToast({
               type: "success",
-              title: `Agregaste ${items.length} producto${items.length === 1 ? "" : "s"} a tu solicitud`,
+              title: `Agregaste ${items.length} producto${items.length === 1 ? "" : "s"} a tu pedido`,
               description: `Total: ${totalUnits} unidades por ${formatUsd(subtotal)} estimado.`,
               requestId: r.requestId,
               itemsTotal: r.itemsTotal,
@@ -260,12 +260,12 @@ export function BundleStagingPanel({ draftItemCount, draftRequestId }: BundlePan
           <div className="flex-1">
             <CardTitle className="flex items-center gap-2 text-lg">
               <ShoppingBag className="h-5 w-5 text-primary" />
-              Armado para tu solicitud
+              Armado para tu pedido
             </CardTitle>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Sumá accesorios desde abajo y enviá todo junto.{" "}
               <Link href={`/portal/requests/${draftRequestId}`} className="underline hover:text-foreground">
-                Tu solicitud ya tiene {draftItemCount} producto{draftItemCount === 1 ? "" : "s"}
+                Tu pedido ya tiene {draftItemCount} producto{draftItemCount === 1 ? "" : "s"}
               </Link>
             </p>
           </div>
@@ -414,7 +414,7 @@ export function BundleStagingPanel({ draftItemCount, draftRequestId }: BundlePan
           ) : (
             <Send className="h-4 w-4" />
           )}
-          Agregar todo a mi solicitud
+          Agregar todo a mi pedido
           {ctx.items.length > 1 ? (
             <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary-foreground/20 px-1.5 text-[11px] font-bold tabular-nums">
               {ctx.items.length}
@@ -426,7 +426,7 @@ export function BundleStagingPanel({ draftItemCount, draftRequestId }: BundlePan
           href={`/portal/requests/${draftRequestId}`}
           className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
         >
-          Ver mi solicitud completa <ArrowRight className="h-3 w-3" />
+          Ver mi pedido completa <ArrowRight className="h-3 w-3" />
         </Link>
       </CardContent>
     </Card>

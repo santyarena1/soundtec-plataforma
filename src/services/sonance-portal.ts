@@ -1,6 +1,22 @@
 import https from "node:https";
 import { getSetting } from "@/lib/settings";
-import type { SonanceBrand, SonanceProduct } from "./sonance-import";
+
+export type SonanceBrand = string;
+export interface SonanceProduct {
+  name: string;
+  supplierSku: string;
+  price: number;
+  uom: string;
+  brand: SonanceBrand;
+  category: string;
+  subcategory: string;
+}
+export interface SonanceParseResult {
+  fileType: "sonance-iport" | "blaze";
+  products: SonanceProduct[];
+  brandCounts: Record<string, number>;
+  categoryCounts: Record<string, number>;
+}
 
 const BASE = "https://my.sonance.com";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";

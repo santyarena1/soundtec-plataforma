@@ -8,7 +8,7 @@ const STEP_HINT: Record<string, string> = {
   CONFIRMED: "Acuerdo cerrado",
 };
 
-/** Dónde está parada la solicitud dentro del recorrido, para ubicarse de un vistazo. */
+/** Dónde está parada el pedido dentro del recorrido, para ubicarse de un vistazo. */
 export function StatusStepper({ status }: { status: RequestStatus }) {
   const meta = REQUEST_STATUS_META[status];
 
@@ -25,7 +25,7 @@ export function StatusStepper({ status }: { status: RequestStatus }) {
             <Icon className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold">Solicitud {meta.label.toLowerCase()}</p>
+            <p className="text-sm font-semibold">Pedido {meta.label.toLowerCase()}</p>
             <p className="text-xs text-muted-foreground">{meta.adminHint}</p>
           </div>
         </CardContent>

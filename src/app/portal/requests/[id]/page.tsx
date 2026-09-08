@@ -21,12 +21,12 @@ import { productCoverImageInclude } from "@/lib/product-cover-image";
 
 const statusMap: Record<string, { tone: "muted" | "primary" | "accent" | "success" | "warning" | "destructive"; label: string }> = {
   DRAFT: { tone: "muted", label: "Borrador" },
-  SENT: { tone: "accent", label: "Enviada" },
+  SENT: { tone: "accent", label: "Enviado" },
   IN_REVIEW: { tone: "warning", label: "En revisión" },
-  ANSWERED: { tone: "primary", label: "Respondida" },
-  CONFIRMED: { tone: "success", label: "Confirmada" },
-  REJECTED: { tone: "destructive", label: "Rechazada" },
-  CLOSED: { tone: "muted", label: "Cerrada" },
+  ANSWERED: { tone: "primary", label: "Respondido" },
+  CONFIRMED: { tone: "success", label: "Confirmado" },
+  REJECTED: { tone: "destructive", label: "Rechazado" },
+  CLOSED: { tone: "muted", label: "Cerrado" },
 };
 
 function RequestItemsTable({
@@ -98,7 +98,7 @@ function RequestItemsTable({
                   ) : null}
                   {i.adminAlternativeProductId ? (
                     <p className="mt-1 text-[11px] text-muted-foreground italic">
-                      Propuesta como alternativa a otro ítem de tu solicitud.
+                      Propuesta como alternativa a otro ítem de tu pedido.
                     </p>
                   ) : null}
                 </TD>
@@ -182,11 +182,11 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-6">
       <Link href="/portal/requests" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Volver a solicitudes
+        <ArrowLeft className="h-4 w-4" /> Volver a pedidos
       </Link>
 
       <PageHeader
-        title={isDraft ? "Mi solicitud en armado" : `Solicitud #${request.id.slice(-6).toUpperCase()}`}
+        title={isDraft ? "Mi pedido en armado" : `Pedido #${request.id.slice(-6).toUpperCase()}`}
         description={
           isDraft
             ? "Agregá productos desde el catálogo y enviá cuando esté lista."
@@ -307,7 +307,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
           <CardContent className="p-4 flex items-center gap-3 text-sm text-muted-foreground">
             <ClipboardList className="h-4 w-4 shrink-0" />
             <span>
-              Tu solicitud está en estado <strong>«{status.label}»</strong>. El equipo aún no publicó una respuesta escrita.
+              Tu pedido está en estado <strong>«{status.label}»</strong>. El equipo aún no publicó una respuesta escrita.
             </span>
           </CardContent>
         </Card>
@@ -316,7 +316,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
           <CardContent className="p-4 flex items-center gap-3 text-sm">
             <ClipboardList className="h-4 w-4 text-accent shrink-0" />
             <span className="text-foreground">
-              Tu solicitud ya llegó al equipo Soundtec. Vamos a revisarla y responderte por acá mismo.
+              Tu pedido ya llegó al equipo Soundtec. Vamos a revisarlo y responderte por acá mismo.
             </span>
           </CardContent>
         </Card>
@@ -345,7 +345,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
             <CardTitle>{suggestionsItems.length > 0 ? "Productos que solicitaste" : "Productos"}</CardTitle>
           </div>
           {originalItems.length === 0 && suggestionsItems.length === 0 ? (
-            <p className="muted-text">Sin productos en esta solicitud.</p>
+            <p className="muted-text">Sin productos en este pedido.</p>
           ) : (
             <RequestItemsTable
               items={originalItems.length > 0 ? originalItems : request.items}

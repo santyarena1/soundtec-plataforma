@@ -9,7 +9,6 @@ import {
   Eye,
   FileSpreadsheet,
   Globe2,
-  Hammer,
   LayoutDashboard,
   LifeBuoy,
   ListChecks,
@@ -47,7 +46,7 @@ const groups: NavGroup[] = [
     title: "Operación",
     items: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, scope: "dashboard" },
-      { href: "/admin/requests", label: "Solicitudes", icon: ListChecks, scope: "requests.view" },
+      { href: "/admin/requests", label: "Pedidos", icon: ListChecks, scope: "requests.view" },
       { href: "/admin/quotes", label: "Cotizaciones", icon: FileSpreadsheet, scope: "quotes.view_own" },
       { href: "/admin/feedback", label: "Feedback de IA", icon: MessageSquare, scope: "ai.manage" },
     ],
@@ -61,19 +60,14 @@ const groups: NavGroup[] = [
       { href: "/admin/distributors", label: "Proveedores", icon: Truck, scope: "distributors.manage" },
       { href: "/admin/categories", label: "Categorías", icon: Building2, scope: "categories.manage" },
       { href: "/admin/families", label: "Familias", icon: Building2, scope: "families.manage" },
+      { href: "/admin/ncm", label: "Posiciones NCM", icon: PackageSearch, scope: "imports.manage" },
     ],
   },
   {
     title: "Listas e importación",
     items: [
       { href: "/admin/sync", label: "Sincronización", icon: RefreshCw, scope: "imports.manage" },
-      { href: "/admin/imports", label: "Importaciones Excel", icon: FileSpreadsheet, scope: "imports.manage" },
-      { href: "/admin/crestron-sync", label: "Sync Crestron (clásico)", icon: RefreshCw, scope: "imports.manage" },
-      { href: "/admin/sonance-import", label: "Importar Sonance/BLAZE (clásico)", icon: FileSpreadsheet, scope: "imports.manage" },
-      { href: "/admin/share-lists", label: "Listas compartibles", icon: Share2, scope: "share_lists.manage" },
-      { href: "/admin/mappings", label: "Mapeos", icon: ListChecks, scope: "imports.manage" },
-      { href: "/admin/scrapers", label: "Scrapers", icon: Hammer, scope: "scrapers.manage" },
-      { href: "/admin/ncm", label: "Posiciones NCM", icon: PackageSearch, scope: "imports.manage" },
+      { href: "/admin/imports", label: "Importar Excel", icon: FileSpreadsheet, scope: "imports.manage" },
     ],
   },
   {
@@ -82,6 +76,7 @@ const groups: NavGroup[] = [
       { href: "/admin/margins", label: "Márgenes", icon: Percent, scope: "margins.manage" },
       { href: "/admin/discounts", label: "Descuentos", icon: Receipt, scope: "discounts.manage" },
       { href: "/admin/visibility", label: "Visibilidad por cliente", icon: Eye, scope: "visibility.manage" },
+      { href: "/admin/share-lists", label: "Listas compartibles", icon: Share2, scope: "share_lists.manage" },
     ],
   },
   {

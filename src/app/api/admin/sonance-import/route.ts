@@ -3,9 +3,10 @@ import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { getSetting, setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
-import type { SonanceProduct } from "@/services/sonance-import";
+import type { SonanceProduct } from "@/services/sonance-portal";
 import { fetchFromPortal } from "@/services/sonance-portal";
 import { revalidatePath } from "next/cache";
+import { SCALAR_PRODUCT_FIELDS, changedScalarFields, mergeFieldTimestamps } from "@/lib/field-timestamps";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -337,6 +338,10 @@ export async function PUT(req: NextRequest) {
         const data: Record<string, unknown> = {};
         if (item.priceChanged) data.baseCostUsd = item.newPrice;
         Object.assign(data, catFields);
+        const current = await prisma.product.findUnique({ where: { id: item.productId } });
+        if (!current) continue;
+        const changed = changedScalarFields(current as unknown as Record<string, unknown>, data);
+        data.fieldUpdatedAt = mergeFieldTimestamps(current.fieldUpdatedAt, changed, new Date().toISOString());
         await prisma.product.update({ where: { id: item.productId }, data });
         updated++;
         if (willWriteCategory) categoryWrites++;
@@ -346,8 +351,7 @@ export async function PUT(req: NextRequest) {
           familia: item.category || null,
           tipo: item.subcategory || null,
         });
-        await prisma.product.create({
-          data: {
+        const createData: Record<string, unknown> = {
             normalizedName: item.name,
             originalName: item.name,
             supplierSku: item.supplierSku,
@@ -355,8 +359,9 @@ export async function PUT(req: NextRequest) {
             brandId,
             ...catFields,
             isActive: false,
-          },
-        });
+        };
+        createData.fieldUpdatedAt = mergeFieldTimestamps({}, SCALAR_PRODUCT_FIELDS.filter((field) => createData[field] !== undefined), new Date().toISOString());
+        await prisma.product.create({ data: createData as Parameters<typeof prisma.product.create>[0]["data"] });
         created++;
         if (Object.keys(catFields).length > 0) categoryWrites++;
       }

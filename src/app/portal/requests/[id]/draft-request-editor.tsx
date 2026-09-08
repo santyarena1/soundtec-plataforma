@@ -56,10 +56,10 @@ export function DraftRequestEditor({ requestId, items, projectDescription, subto
             <div className="flex items-start gap-2">
               <ShoppingBag className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>
-                <CardTitle className="text-lg">Tu solicitud en armado</CardTitle>
+                <CardTitle className="text-lg">Tu pedido en armado</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Acá reunís los productos que querés cotizar o pedir. Cuando esté lista,
-                  enviá la solicitud a Soundtec.{" "}
+                  enviá el pedido a Soundtec.{" "}
                   <Link href="/portal/products" className="text-accent underline">
                     Seguir agregando productos
                   </Link>
@@ -76,7 +76,7 @@ export function DraftRequestEditor({ requestId, items, projectDescription, subto
                 <Box className="h-6 w-6 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Todavía no agregaste productos a esta solicitud.
+                Todavía no agregaste productos a este pedido.
               </p>
               <Link
                 href="/portal/products"
@@ -210,7 +210,7 @@ export function DraftRequestEditor({ requestId, items, projectDescription, subto
           <CardContent className="p-3 space-y-1 text-[11px] text-muted-foreground">
             <p className="font-medium text-foreground">¿Cómo sigue?</p>
             <ol className="list-decimal list-inside space-y-0.5">
-              <li>Enviás tu solicitud.</li>
+              <li>Enviás tu pedido.</li>
               <li>El equipo Soundtec la revisa.</li>
               <li>Te responden con cotización oficial.</li>
               <li>Confirmás y avanzamos.</li>
@@ -307,7 +307,7 @@ function ItemList({
                     size="sm"
                     variant="ghost"
                     className="h-8 text-destructive hover:bg-destructive/10"
-                    title="Quitar de la solicitud"
+                    title="Quitar de el pedido"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

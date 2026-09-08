@@ -8,6 +8,8 @@ import {
   toCrestronStockStatus,
 } from "@/services/crestron-sync";
 import { revalidatePath } from "next/cache";
+import { changedScalarFields, mergeFieldTimestamps } from "@/lib/field-timestamps";
+import { mergeSourceMetadata } from "@/services/sync/source-metadata";
 
 // Crestron sync paginates through ~1400 items via DataTables — needs > default 10s
 export const maxDuration = 300;
@@ -232,7 +234,6 @@ export async function POST(req: NextRequest) {
 
     const products = await prisma.product.findMany({
       where: { internalSku: { in: skus } },
-      select: { id: true, internalSku: true, originalName: true },
     });
 
     const byCode = new Map(products.map((p) => [p.internalSku, p]));
@@ -293,7 +294,7 @@ export async function POST(req: NextRequest) {
         availabilityMessage:
           `Laredo: ${laredoAvailable} \u00b7 Miami: ${miamiAvailable}` +
           (item.U_ETDCUS ? ` \u00b7 ETD f\u00e1brica: ${item.U_ETDCUS}` : ""),
-        sourceMetadata: item as unknown as object,
+        sourceMetadata: mergeSourceMetadata(product.sourceMetadata, item, "xtrabone"),
         originalName:
           !product.originalName?.trim() && item.ItemName?.trim()
             ? item.ItemName
@@ -315,6 +316,9 @@ export async function POST(req: NextRequest) {
           categoryWrites++;
         }
       }
+
+      const changed = changedScalarFields(product as unknown as Record<string, unknown>, data);
+      data.fieldUpdatedAt = mergeFieldTimestamps(product.fieldUpdatedAt, changed, new Date().toISOString());
 
       await prisma.product.update({ where: { id: product.id }, data });
       updated++;

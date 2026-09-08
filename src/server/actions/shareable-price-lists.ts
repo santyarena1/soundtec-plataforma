@@ -144,3 +144,38 @@ export async function getShareListPublicUrl(listId: string): Promise<string | nu
   if (!list) return null;
   return shareListPublicUrl(list.shareSlug);
 }
+
+const searchSchema = z.object({
+  q: z.string().max(120).default(""),
+  brandIds: z.array(z.string()).default([]),
+  categoryIds: z.array(z.string()).default([]),
+  take: z.number().int().min(1).max(50).default(50),
+});
+
+export async function searchProductsForShareList(input: z.input<typeof searchSchema>) {
+  await requireAdmin();
+  const data = searchSchema.parse(input);
+  const q = data.q.trim();
+  const rows = await prisma.product.findMany({
+    where: { isActive: true, ...(data.brandIds.length ? { brandId: { in: data.brandIds } } : {}),
+      ...(data.categoryIds.length ? { categoryId: { in: data.categoryIds } } : {}),
+      ...(q ? { OR: [{ normalizedName: { contains: q, mode: "insensitive" } },
+        { internalSku: { contains: q, mode: "insensitive" } }, { supplierSku: { contains: q, mode: "insensitive" } }] } : {}) },
+    orderBy: { normalizedName: "asc" }, take: data.take,
+    select: { id: true, normalizedName: true, internalSku: true },
+  });
+  return rows.map((row) => ({ id: row.id, name: row.normalizedName, sku: row.internalSku }));
+}
+
+export async function duplicateShareablePriceList(id: string) {
+  await requireAdmin();
+  const source = await prisma.shareablePriceList.findUnique({ where: { id } });
+  if (!source) return { ok: false, error: "No encontramos la lista." };
+  const copy = await prisma.shareablePriceList.create({ data: {
+    name: source.name + " (copia)", description: source.description, shareSlug: newShareSlug(), status: "DRAFT",
+    filters: source.filters as Prisma.InputJsonValue, clientId: source.clientId, showSku: source.showSku,
+    showStock: source.showStock, hidePrices: source.hidePrices, expiresAt: source.expiresAt,
+  } });
+  revalidatePath("/admin/share-lists");
+  return { ok: true, id: copy.id };
+}

@@ -14,7 +14,7 @@ const navItems = [
   { href: "/portal/products", label: "Catálogo", icon: Package },
   { href: "/portal/wishlist", label: "Favoritos", icon: Heart },
   { href: "/portal/lists", label: "Mis listas", icon: Bookmark },
-  { href: "/portal/requests", label: "Mis solicitudes", icon: Send },
+  { href: "/portal/requests", label: "Mis pedidos", icon: Send },
 ];
 
 export async function PortalShell({ children }: { children: React.ReactNode }) {

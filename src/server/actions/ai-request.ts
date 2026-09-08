@@ -10,7 +10,7 @@ export async function generateRequestAiSuggestion(requestId: string) {
     where: { id: requestId },
     include: { items: { include: { product: { select: { normalizedName: true } } } } },
   });
-  if (!request) return { ok: false, error: "Solicitud no encontrada" } as const;
+  if (!request) return { ok: false, error: "Pedido no encontrado" } as const;
 
   const suggestion = await suggestRequestResponse({
     project: request.projectDescription || undefined,

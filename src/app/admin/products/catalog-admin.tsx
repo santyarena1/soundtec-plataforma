@@ -58,6 +58,8 @@ interface Row {
   shortDescription: string | null;
   longDescription: string | null;
   aiGeneratedDescription: boolean;
+  aiDescriptionFeedbackStatus: string | null;
+  openFeedbackCount: number;
   isCrestronHomeCompatible: boolean;
   updatedAt: string;
   labels: { id: string; name: string; color: string }[];
@@ -556,6 +558,10 @@ export function ProductsCatalogAdmin(props: Props) {
         <Button onClick={() => setShowDescModal(true)} disabled={selected.size === 0} size="sm" variant="outline">
           <Sparkles className="h-3.5 w-3.5" /> Descripciones IA
         </Button>
+        <Button type="button" variant="outline" size="sm" disabled={selected.size === 0}
+          onClick={() => router.push("/admin/share-lists/new?productIds=" + [...selected].join(","))}>
+          Crear lista compartible con los seleccionados
+        </Button>
         {bulkMsg ? <span className="text-xs text-muted-foreground">{bulkMsg}</span> : null}
 
         <div className="ml-auto flex items-center gap-2">
@@ -713,6 +719,8 @@ function renderCell(
             {r.kind === "ACCESORIO" ? "Accesorio" : "Principal"}
             {r.isCustomizable ? " · Configurable" : ""}
             {r.isCrestronHomeCompatible ? <Badge tone="primary">Crestron Home</Badge> : null}
+            {r.aiDescriptionFeedbackStatus === "REJECTED" ? <Badge tone="destructive">Descripción reportada</Badge> : null}
+            {r.openFeedbackCount > 0 ? <Link href={`/admin/feedback?q=${encodeURIComponent(r.name)}`}><Badge tone="destructive">Reportes: {r.openFeedbackCount}</Badge></Link> : null}
           </p>
         </div>
       );

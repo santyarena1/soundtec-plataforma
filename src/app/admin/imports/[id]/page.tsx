@@ -58,12 +58,23 @@ export default async function ImportDetailPage({ params }: { params: Promise<{ i
           <p className="muted-text mb-4">
             Confirmá la equivalencia entre cada columna del Excel y el campo canónico. La IA o la heurística sugirieron una propuesta inicial.
           </p>
-          <MappingEditor
+      <MappingEditor
             batchId={batch.id}
             headers={headers}
             mappingJson={mapping as unknown}
             canonicalFields={CANONICAL_FIELD_LIST}
-          />
+      />
+
+      <Card>
+        <CardContent className="p-4 text-sm">
+          <p className="font-medium">Campos que escribe la aprobación</p>
+          <p className="mt-1 text-muted-foreground">
+            En productos nuevos: nombre, descripciones, marca, proveedor, costo, moneda, SKU de proveedor y descuento.
+            Los productos existentes sólo actualizan precio, SKU de proveedor y descuento; nombre y descripciones se conservan.
+            Marca y proveedor sólo se completan si están vacíos.
+          </p>
+        </CardContent>
+      </Card>
         </CardContent>
       </Card>
 

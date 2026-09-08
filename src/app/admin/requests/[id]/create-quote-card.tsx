@@ -127,7 +127,7 @@ export function CreateQuoteCard({ requestId, canCreate, lines, existingQuotes }:
             </>
           ) : (
             <p className="mt-2 text-xs text-muted-foreground">
-              Todavía no hay una COT armada a partir de esta solicitud.
+              Todavía no hay una COT armada a partir de este pedido.
             </p>
           )}
 
@@ -147,7 +147,7 @@ export function CreateQuoteCard({ requestId, canCreate, lines, existingQuotes }:
         onClose={pending ? () => undefined : () => setOpen(false)}
         size="lg"
         icon={<FileText className="h-4 w-4" />}
-        title="Generar cotización desde esta solicitud"
+        title="Generar cotización desde este pedido"
         description="Se crea un borrador. Nada se emite ni se manda al cliente hasta que lo revises."
         footer={
           <>
@@ -224,7 +224,7 @@ export function CreateQuoteCard({ requestId, canCreate, lines, existingQuotes }:
               </span>
               <span className="mt-0.5 block text-xs text-muted-foreground">
                 Redacta propuesta, criterios y funcionalidad. Puede sugerir accesorios o instalación; no pisa los
-                productos que ya están en la solicitud.
+                productos que ya están en el pedido.
               </span>
             </span>
           </label>

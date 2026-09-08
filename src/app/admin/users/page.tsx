@@ -1,182 +1,142 @@
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/input";
+import { Input, Select } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { upsertUser, toggleUserActive } from "@/server/actions/admin-catalog";
+import { UserFormModal } from "@/components/admin/user-form-modal";
 import { formatDate } from "@/lib/utils";
-import { ShieldCheck, UserPlus } from "lucide-react";
-
 export const metadata = { title: "Admin · Usuarios" };
-
-const roleLabel: Record<string, string> = {
-  SUPER_ADMIN: "Super administrador",
+const label: Record<string, string> = {
+  CLIENT: "Cliente del portal",
   ADMIN: "Administrador",
-  CLIENT: "Usuario de portal",
+  SUPER_ADMIN: "Super admin",
 };
-
-export default async function AdminUsersPage() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: { q?: string; role?: string; status?: string };
+}) {
   const admin = await requireAdmin();
-  const [users, customRoles, clients] = await Promise.all([
+  const q = searchParams.q?.trim();
+  const where: Prisma.UserWhereInput = {
+    ...(q
+      ? {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { email: { contains: q, mode: "insensitive" } },
+            { client: { companyName: { contains: q, mode: "insensitive" } } },
+          ],
+        }
+      : {}),
+    ...(searchParams.role ? { role: searchParams.role as "CLIENT" | "ADMIN" | "SUPER_ADMIN" } : {}),
+    ...(searchParams.status ? { isActive: searchParams.status === "active" } : {}),
+  };
+  const [users, clients, roles] = await Promise.all([
     prisma.user.findMany({
-      orderBy: [{ role: "asc" }, { createdAt: "desc" }],
-      include: {
-        customRole: { select: { id: true, name: true, isActive: true } },
-        client: { select: { id: true, companyName: true } },
-      },
+      where,
+      orderBy: [{ role: "asc" }, { name: "asc" }],
+      include: { client: { select: { id: true, companyName: true } } },
     }),
-    prisma.customRole.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.client.findMany({
       where: { isActive: true },
       orderBy: { companyName: "asc" },
       select: { id: true, companyName: true },
     }),
+    prisma.customRole.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
   ]);
-
-  const isSuper = admin.role === "SUPER_ADMIN";
-
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Usuarios del sistema"
-        description="Personas que ingresan a la plataforma (admin, empleados, usuarios de portal). Las empresas clientes se gestionan en Clientes."
+        title="Usuarios"
+        description="Personas que ingresan a la plataforma y sus accesos."
         actions={
-          <div className="flex flex-wrap gap-2">
-            <ButtonLink href="/admin/clients" variant="outline">
-              Gestionar clientes
-            </ButtonLink>
-            <ButtonLink href="/admin/settings/roles" variant="outline">
-              <ShieldCheck className="h-4 w-4" /> Roles personalizados
-            </ButtonLink>
-          </div>
+          <UserFormModal
+            clients={clients.map((x) => ({ id: x.id, name: x.companyName }))}
+            roles={roles}
+            isSuper={admin.role === "SUPER_ADMIN"}
+          />
         }
       />
-
       <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="heading-3">Crear usuario de acceso</h2>
-              <p className="text-xs text-muted-foreground">
-                Para un usuario de portal, primero creá el cliente comercial y vinculalo acá.
-              </p>
-            </div>
-            <UserPlus className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <form action={upsertUser} className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="name" required>Nombre</Label>
-              <Input id="name" name="name" required />
-            </div>
-            <div>
-              <Label htmlFor="email" required>Email (login)</Label>
-              <Input id="email" name="email" type="email" required />
-            </div>
-            <div>
-              <Label htmlFor="role">Tipo de usuario</Label>
-              <Select id="role" name="role" defaultValue="CLIENT">
-                <option value="CLIENT">Usuario de portal</option>
-                <option value="ADMIN">Administrador</option>
-                {isSuper ? <option value="SUPER_ADMIN">Super administrador</option> : null}
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="clientId">Cliente comercial (si es portal)</Label>
-              <Select id="clientId" name="clientId" defaultValue="">
-                <option value="">— Sin cliente —</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.companyName}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="customRoleId">Rol personalizado</Label>
-              <Select id="customRoleId" name="customRoleId" defaultValue="">
-                <option value="">Ninguno</option>
-                {customRoles.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="phone">Teléfono</Label>
-              <Input id="phone" name="phone" />
-            </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="password">Contraseña inicial</Label>
-              <Input id="password" name="password" type="password" placeholder="Mínimo 8 caracteres" />
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="isActive" defaultChecked />
-              Usuario activo
-            </label>
-            <div className="sm:col-span-2 flex justify-end">
-              <Button type="submit">Crear usuario</Button>
-            </div>
+        <CardContent className="p-4">
+          <form className="grid gap-2 sm:grid-cols-4">
+            <Input name="q" defaultValue={q} placeholder="Buscar por nombre, email o cliente" />
+            <Select name="role" defaultValue={searchParams.role || ""}>
+              <option value="">Todos los roles</option>
+              <option value="CLIENT">Clientes del portal</option>
+              <option value="ADMIN">Administradores</option>
+              {admin.role === "SUPER_ADMIN" ? (
+                <option value="SUPER_ADMIN">Super admins</option>
+              ) : null}
+            </Select>
+            <Select name="status" defaultValue={searchParams.status || ""}>
+              <option value="">Todos los estados</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </Select>
+            <button className="rounded-md bg-primary px-4 text-sm text-primary-foreground">
+              Aplicar filtros
+            </button>
           </form>
         </CardContent>
       </Card>
-
       <Card>
         <CardContent className="p-0">
-          {users.length === 0 ? (
-            <TableEmpty />
+          {!users.length ? (
+            <TableEmpty message="No encontramos usuarios." />
           ) : (
             <Table>
               <THead>
                 <TR>
-                  <TH>Usuario</TH>
-                  <TH>Tipo</TH>
-                  <TH>Cliente vinculado</TH>
-                  <TH>Rol personalizado</TH>
-                  <TH>Último ingreso</TH>
+                  <TH>Nombre</TH>
+                  <TH>Email</TH>
+                  <TH>Rol</TH>
+                  <TH>Cliente</TH>
+                  <TH>Último acceso</TH>
                   <TH>Estado</TH>
-                  <TH></TH>
                 </TR>
               </THead>
               <TBody>
                 {users.map((u) => (
                   <TR key={u.id}>
                     <TD>
-                      <Link href={`/admin/users/${u.id}`} className="font-medium hover:underline">
+                      <Link className="font-medium hover:underline" href={`/admin/users/${u.id}`}>
                         {u.name}
                       </Link>
-                      <p className="text-xs text-muted-foreground">{u.email}</p>
                     </TD>
+                    <TD>{u.email}</TD>
                     <TD>
-                      <Badge tone={u.role === "CLIENT" ? "muted" : "primary"}>{roleLabel[u.role] || u.role}</Badge>
+                      <Badge tone={u.role === "CLIENT" ? "muted" : "primary"}>
+                        {label[u.role]}
+                      </Badge>
                     </TD>
                     <TD>
                       {u.client ? (
-                        <Link href={`/admin/clients/${u.client.id}`} className="text-sm text-accent hover:underline">
+                        <Link
+                          className="text-primary hover:underline"
+                          href={`/admin/clients/${u.client.id}`}
+                        >
                           {u.client.companyName}
                         </Link>
                       ) : u.role === "CLIENT" ? (
-                        <span className="text-xs text-destructive">Sin asignar</span>
+                        <Badge tone="warning">— sin cliente —</Badge>
                       ) : (
                         "—"
                       )}
                     </TD>
-                    <TD>{u.customRole?.name || "—"}</TD>
-                    <TD className="text-sm text-muted-foreground">
-                      {u.lastLoginAt ? formatDate(u.lastLoginAt) : "Nunca"}
-                    </TD>
-                    <TD>{u.isActive ? <Badge tone="success">Activo</Badge> : <Badge tone="muted">Inactivo</Badge>}</TD>
-                    <TD className="text-right">
-                      <form action={toggleUserActive} className="inline">
-                        <input type="hidden" name="id" value={u.id} />
-                        <Button type="submit" variant="ghost" size="sm">
-                          {u.isActive ? "Desactivar" : "Activar"}
-                        </Button>
-                      </form>
+                    <TD>{u.lastLoginAt ? formatDate(u.lastLoginAt) : "Nunca"}</TD>
+                    <TD>
+                      <Badge tone={u.isActive ? "success" : "muted"}>
+                        {u.isActive ? "Activo" : "Inactivo"}
+                      </Badge>
                     </TD>
                   </TR>
                 ))}

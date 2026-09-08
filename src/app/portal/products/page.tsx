@@ -73,7 +73,7 @@ export default async function ProductsPage({
             className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-4 text-sm font-medium text-primary hover:bg-primary/15"
           >
             <Send className="h-4 w-4" />
-            Mi solicitud ({draft.itemCount})
+            Mi pedido ({draft.itemCount})
           </Link>
         ) : null}
       </div>

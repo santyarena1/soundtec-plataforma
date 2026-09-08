@@ -262,13 +262,13 @@ export const TOURS: TourDef[] = [
       {
         target: "dash-stats",
         title: "Indicadores",
-        body: "Productos, solicitudes a responder, importaciones, feedback de IA y tickets abiertos.",
+        body: "Productos, pedidos a responder, importaciones, feedback de IA y tickets abiertos.",
       },
     ],
   },
   {
     id: "requests",
-    title: "Solicitudes",
+    title: "Pedidos",
     steps: [
       {
         target: "page-header",
@@ -284,7 +284,7 @@ export const TOURS: TourDef[] = [
   },
   {
     id: "request-detail",
-    title: "Una solicitud",
+    title: "Un pedido",
     steps: [
       {
         target: "page-header",

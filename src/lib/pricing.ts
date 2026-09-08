@@ -134,6 +134,48 @@ interface CalculatePriceOptions {
   discountRules?: PricingDiscountRule[];
 }
 
+export type MatchablePricingRule = {
+  id: string;
+  isActive: boolean;
+  priority: number;
+  scopeType: RuleScopeType;
+  scopeId: string | null;
+  clientId: string | null;
+  productId: string | null;
+  groupId: string | null;
+  isExemption: boolean;
+};
+
+export function pricingMatcherChain(product: ProductPricingInput, clientId: string | null) {
+  return [
+    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && r.scopeType === "PRODUCT" && r.scopeId === product.productId,
+    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && r.scopeType === "BRAND" && r.scopeId === product.brandId,
+    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && r.scopeType === "CATEGORY" && r.scopeId === product.categoryId,
+    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && r.scopeType === "FAMILY" && r.scopeId === product.familyId,
+    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && r.scopeType === "DISTRIBUTOR" && r.scopeId === product.distributorId,
+    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && (r.scopeType === "CLIENT" || r.scopeType === "GLOBAL"),
+    (r: MatchablePricingRule) => r.scopeType === "PRODUCT" && r.scopeId === product.productId && !r.clientId,
+    (r: MatchablePricingRule) => r.scopeType === "BRAND" && r.scopeId === product.brandId && !r.clientId,
+    (r: MatchablePricingRule) => r.scopeType === "DISTRIBUTOR" && r.scopeId === product.distributorId && !r.clientId,
+    (r: MatchablePricingRule) => r.scopeType === "FAMILY" && r.scopeId === product.familyId && !r.clientId,
+    (r: MatchablePricingRule) => r.scopeType === "CATEGORY" && r.scopeId === product.categoryId && !r.clientId,
+    (r: MatchablePricingRule) => r.scopeType === "GLOBAL" && !r.clientId,
+  ];
+}
+
+export function findCandidateRules<T extends MatchablePricingRule>(rules: T[], product: ProductPricingInput, clientId: string | null): T[] {
+  const skippedGroups = exemptionGroupIds(rules, product.productId, clientId);
+  const result: T[] = [];
+  const seen = new Set<string>();
+  for (const matcher of pricingMatcherChain(product, clientId)) {
+    for (const rule of rules) {
+      if (seen.has(rule.id) || !rule.isActive || rule.isExemption) continue;
+      if (rule.groupId && skippedGroups.has(rule.groupId)) continue;
+      if (matcher(rule)) { seen.add(rule.id); result.push(rule); }
+    }
+  }
+  return result;
+}
 async function loadPricingRules(clientId: string | null) {
   const [marginRules, discountRules] = await Promise.all([
     prisma.marginRule.findMany({
@@ -309,51 +351,22 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
   ]);
   const { marginRules, discountRules } = cachedRules;
 
-  type AnyRule = {
-    id: string;
-    name: string;
-    isActive: boolean;
-    priority: number;
-    scopeType: RuleScopeType;
-    scopeId: string | null;
-    clientId: string | null;
-    productId: string | null;
-    groupId: string | null;
-    isExemption: boolean;
-  };
-
   // Si un producto matchea una subregla PRODUCT marcada como excepción,
   // se salta TODO el grupo (cae a la siguiente regla de la cadena).
   const skippedMarginGroups = exemptionGroupIds(marginRules, product.productId, clientId ?? null);
   const skippedDiscountGroups = exemptionGroupIds(discountRules, product.productId, clientId ?? null);
 
   // Cadena de matchers de mayor a menor prioridad
-  const matcherChain: Array<(rule: AnyRule) => boolean> = [
-    (r) => !!clientId && r.clientId === clientId && r.scopeType === "PRODUCT" && r.scopeId === product.productId,
-    (r) => !!clientId && r.clientId === clientId && r.scopeType === "BRAND" && r.scopeId === product.brandId,
-    (r) => !!clientId && r.clientId === clientId && r.scopeType === "CATEGORY" && r.scopeId === product.categoryId,
-    (r) => !!clientId && r.clientId === clientId && r.scopeType === "FAMILY" && r.scopeId === product.familyId,
-    (r) => !!clientId && r.clientId === clientId && r.scopeType === "DISTRIBUTOR" && r.scopeId === product.distributorId,
-    (r) =>
-      !!clientId &&
-      r.clientId === clientId &&
-      (r.scopeType === "CLIENT" || r.scopeType === "GLOBAL"),
-    (r) => r.scopeType === "PRODUCT" && r.scopeId === product.productId && !r.clientId,
-    (r) => r.scopeType === "BRAND" && r.scopeId === product.brandId && !r.clientId,
-    (r) => r.scopeType === "DISTRIBUTOR" && r.scopeId === product.distributorId && !r.clientId,
-    (r) => r.scopeType === "FAMILY" && r.scopeId === product.familyId && !r.clientId,
-    (r) => r.scopeType === "CATEGORY" && r.scopeId === product.categoryId && !r.clientId,
-    (r) => r.scopeType === "GLOBAL" && !r.clientId,
-  ];
+  const matcherChain = pricingMatcherChain(product, clientId ?? null);
   const clientLevels = 6;
   const lastLevel = matcherChain.length - 1;
 
-  function findFirstMatching<T extends AnyRule>(rules: T[], skippedGroups: Set<string>): T | null {
+  function findFirstMatching<T extends MatchablePricingRule>(rules: T[], skippedGroups: Set<string>): T | null {
     for (const matcher of matcherChain) {
       const found = rules.find((r) => {
         if (r.isExemption) return false;
         if (r.groupId && skippedGroups.has(r.groupId)) return false;
-        return matcher(r as AnyRule);
+        return matcher(r);
       });
       if (found) return found;
     }
@@ -408,7 +421,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
       const found = rules.find((r) => {
         if (r.isExemption) return false;
         if (r.groupId && skippedGroups.has(r.groupId)) return false;
-        return matcherChain[i](r as AnyRule);
+        return matcherChain[i](r);
       });
       if (found) return found;
     }

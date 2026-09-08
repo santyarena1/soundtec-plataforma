@@ -15,21 +15,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-
-const SOURCES = [
-  { slug: "crestron", name: "Crestron (Xtrabon) — precios y stock" },
-  { slug: "crestron-web", name: "Crestron.com — enriquecimiento (fichas, specs, imágenes, documentos)" },
-  { slug: "sonance", name: "Sonance / IPORT / JAMES / BLAZE" },
-] as const;
-
-type SourceSlug = (typeof SOURCES)[number]["slug"];
-
-const SOURCE_HINTS: Record<SourceSlug, string> = {
-  crestron: "Precios, disponibilidad y logística desde Xtrabon. No toca contenido.",
-  "crestron-web":
-    "Fichas públicas de crestron.com: descripciones, specs, imágenes HD, documentos, accesorios, incluidos y variantes. No toca precios ni stock.",
-  sonance: "Catálogo, contenido, imágenes y relaciones.",
-};
+import { SourcePicker, SYNC_SOURCES as SOURCES, type SourceSlug } from "./_components/source-picker";
+import { SourceSettings } from "./_components/source-settings";
+import { RunPanel } from "./_components/run-panel";
+import { SchedulePanel } from "./_components/schedule-panel";
+import { RunsHistory } from "./_components/runs-history";
 type SyncMode = "preview" | "apply";
 
 const MODE_LABELS: Record<string, string> = {
@@ -556,34 +546,14 @@ export function UnifiedSyncPanel() {
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardContent className="p-5 space-y-4">
+      <RunPanel>
           <div>
             <h2 className="heading-3">Fuente de productos</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               Elegí una fuente para revisar sus cambios o aplicarlos al catálogo.
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {SOURCES.map((item) => (
-              <button
-                key={item.slug}
-                type="button"
-                onClick={() => setSource(item.slug)}
-                disabled={busy}
-                className={`rounded-md border px-4 py-3 text-left transition-colors disabled:opacity-60 ${
-                  source === item.slug
-                    ? "border-primary bg-primary/8 text-foreground"
-                    : "border-border bg-background text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                <p className="text-sm font-medium">{item.name}</p>
-                <p className="text-xs mt-0.5">
-                  {SOURCE_HINTS[item.slug]}
-                </p>
-              </button>
-            ))}
-          </div>
+          <SourcePicker value={source} disabled={busy} onChange={setSource} />
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               size="sm"
@@ -611,10 +581,11 @@ export function UnifiedSyncPanel() {
               {runningMode === "apply" ? "Sincronizando…" : "Sincronizar ahora"}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+      </RunPanel>
 
-      <Card>
+      <SourceSettings />
+
+      <SchedulePanel><Card>
         <CardContent className="p-5 space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -757,7 +728,7 @@ export function UnifiedSyncPanel() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card></SchedulePanel>
 
       {error && (
         <Card>
@@ -925,7 +896,7 @@ export function UnifiedSyncPanel() {
         </Card>
       )}
 
-      <Card>
+      <RunsHistory><Card>
         <CardContent className="p-0">
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
             <div>
@@ -1052,7 +1023,7 @@ export function UnifiedSyncPanel() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card></RunsHistory>
 
       {selectedRunId ? (
         <Card>

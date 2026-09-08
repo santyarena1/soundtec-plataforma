@@ -8,7 +8,7 @@ export interface ToastDetail {
   type: "success" | "error";
   title: string;
   description?: string;
-  /** Si está, agrega un CTA "Ver mi solicitud" al toast */
+  /** Si está, agrega un CTA "Ver mi pedido" al toast */
   requestId?: string;
   /** Contadores opcionales — si están, se renderizan en una pill */
   itemsTotal?: number;
@@ -95,7 +95,7 @@ function ToastCard({ toast, onClose }: { toast: ActiveToast; onClose: () => void
           {isSuccess && (toast.itemsTotal != null || toast.unitsTotal != null) ? (
             <div className="mt-2 inline-flex items-center gap-2 rounded-md bg-secondary/60 px-2 py-1 text-[11px]">
               <ShoppingBag className="h-3 w-3 text-primary" />
-              <span className="text-muted-foreground">En tu solicitud:</span>
+              <span className="text-muted-foreground">En tu pedido:</span>
               {toast.itemsTotal != null ? (
                 <span className="font-semibold tabular-nums">
                   {toast.itemsTotal} producto{toast.itemsTotal === 1 ? "" : "s"}
@@ -114,7 +114,7 @@ function ToastCard({ toast, onClose }: { toast: ActiveToast; onClose: () => void
               onClick={onClose}
               className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
             >
-              Ver mi solicitud <ArrowRight className="h-3 w-3" />
+              Ver mi pedido <ArrowRight className="h-3 w-3" />
             </Link>
           ) : null}
         </div>

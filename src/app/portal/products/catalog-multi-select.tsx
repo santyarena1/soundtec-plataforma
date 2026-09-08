@@ -41,7 +41,7 @@ export function CatalogMultiSelectProvider({ children, productIds }: Props) {
     start(async () => {
       const r = await bulkAddToDraftSimple([...selected]);
       if (r.ok) {
-        setMsg(`${r.added} producto(s) agregado(s) a tu solicitud.`);
+        setMsg(`${r.added} producto(s) agregado(s) a tu pedido.`);
         setSelected(new Set());
         router.refresh();
       } else {
@@ -81,7 +81,7 @@ export function CatalogMultiSelectProvider({ children, productIds }: Props) {
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             >
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
-              Agregar a solicitud
+              Agregar a pedido
             </button>
           </div>
         </div>

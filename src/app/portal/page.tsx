@@ -166,7 +166,7 @@ export default async function PortalDashboardPage() {
           <dl className="grid grid-cols-3 gap-3 self-end lg:grid-cols-1">
             <HeroStat label="Productos" value={totalProducts.toLocaleString("es-AR")} href="/portal/products" />
             <HeroStat label="Favoritos" value={favorites.toLocaleString("es-AR")} href="/portal/wishlist" />
-            <HeroStat label="Solicitudes abiertas" value={openRequests.toLocaleString("es-AR")} href="/portal/requests" />
+            <HeroStat label="Pedidos abiertos" value={openRequests.toLocaleString("es-AR")} href="/portal/requests" />
           </dl>
         </div>
       </section>
@@ -180,7 +180,7 @@ export default async function PortalDashboardPage() {
                 <ShoppingBag className="h-5 w-5" />
               </span>
               <div>
-                <p className="font-semibold">Tenés una solicitud en armado</p>
+                <p className="font-semibold">Tenés un pedido en armado</p>
                 <p className="text-sm text-muted-foreground">
                   {activeDraft.itemCount} producto(s) · {activeDraft.unitCount} unidad(es) · última edición{" "}
                   {formatDate(activeDraft.updatedAt)}
@@ -274,14 +274,14 @@ export default async function PortalDashboardPage() {
         </section>
       ) : null}
 
-      {/* Solicitudes + novedades del equipo */}
+      {/* Pedidos + novedades del equipo */}
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Send className="h-4 w-4 text-accent" />
-                Últimas solicitudes
+                Últimos pedidos
               </CardTitle>
               <Link href="/portal/requests" className="text-sm font-medium text-accent hover:underline">
                 Ver todas
@@ -290,7 +290,7 @@ export default async function PortalDashboardPage() {
             <div className="mt-4 divide-y divide-border">
               {recentRequests.length === 0 ? (
                 <div className="py-10 text-center">
-                  <p className="muted-text">Todavía no enviaste ninguna solicitud.</p>
+                  <p className="muted-text">Todavía no enviaste ningún pedido.</p>
                   <ButtonLink href="/portal/products" variant="outline" size="sm" className="mt-3">
                     Armar la primera desde el catálogo
                   </ButtonLink>
@@ -303,7 +303,7 @@ export default async function PortalDashboardPage() {
                     className="-mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-3 transition-colors hover:bg-secondary/50"
                   >
                     <div>
-                      <p className="text-sm font-medium">Solicitud #{r.id.slice(-6).toUpperCase()}</p>
+                      <p className="text-sm font-medium">Pedido #{r.id.slice(-6).toUpperCase()}</p>
                       <p className="text-xs text-muted-foreground">
                         {r._count.items} ítems · {formatDate(r.updatedAt)}
                       </p>
@@ -359,12 +359,12 @@ function HeroStat({ label, value, href }: { label: string; value: string; href: 
 function RequestStatusBadge({ status }: { status: string }) {
   const map: Record<string, { tone: "muted" | "neutral" | "primary" | "accent" | "success" | "warning" | "destructive"; label: string }> = {
     DRAFT: { tone: "muted", label: "Borrador" },
-    SENT: { tone: "accent", label: "Enviada" },
+    SENT: { tone: "accent", label: "Enviado" },
     IN_REVIEW: { tone: "warning", label: "En revisión" },
-    ANSWERED: { tone: "primary", label: "Respondida" },
-    CONFIRMED: { tone: "success", label: "Confirmada" },
-    REJECTED: { tone: "destructive", label: "Rechazada" },
-    CLOSED: { tone: "muted", label: "Cerrada" },
+    ANSWERED: { tone: "primary", label: "Respondido" },
+    CONFIRMED: { tone: "success", label: "Confirmado" },
+    REJECTED: { tone: "destructive", label: "Rechazado" },
+    CLOSED: { tone: "muted", label: "Cerrado" },
   };
   const entry = map[status] || map.DRAFT;
   return <Badge tone={entry.tone}>{entry.label}</Badge>;

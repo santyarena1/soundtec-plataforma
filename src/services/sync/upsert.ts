@@ -12,6 +12,7 @@ import {
   snapshotProductScalars,
   type FieldChange,
 } from "./snapshot";
+import { mergeSourceMetadata } from "./source-metadata";
 
 export type ApplyResult = {
   action: "create" | "update" | "noop";
@@ -114,20 +115,6 @@ async function replaceRelations(
     return true;
   }
   return false;
-}
-
-function mergeSourceMetadata(
-  existing: unknown,
-  raw: unknown,
-  rawKey: string | undefined
-): Prisma.InputJsonValue | undefined {
-  if (raw == null) return undefined;
-  if (!rawKey) return raw as Prisma.InputJsonValue;
-  const base =
-    existing && typeof existing === "object" && !Array.isArray(existing)
-      ? (existing as Record<string, unknown>)
-      : {};
-  return { ...base, [rawKey]: raw } as Prisma.InputJsonValue;
 }
 
 function jsonChanged(current: unknown, next: unknown): boolean {

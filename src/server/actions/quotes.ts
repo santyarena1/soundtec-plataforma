@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { Prisma, QuoteAssetKind, QuoteLayoutKey, QuoteNodeSource, QuoteSectionOrigin, QuoteStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { logClientActivity } from "@/server/crm/activity";
 import { requireQuotePermission, loadQuoteForUser } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { allocateQuoteNumber, getQuoteNumberingConfig, QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
@@ -62,7 +63,7 @@ type QuoteShellInput = {
 };
 
 /** Crea el cascarón de una COT: número, plantilla fija, términos y alternativa default. */
-async function createQuoteShell(input: QuoteShellInput) {
+export async function createQuoteShell(input: QuoteShellInput) {
   await ensureQuoteProfiles();
   const profile =
     (input.profileKey
@@ -86,7 +87,7 @@ async function createQuoteShell(input: QuoteShellInput) {
   );
   const bodies = await resolveQuoteModuleBodies();
 
-  return prisma.quote.create({
+  const created = await prisma.quote.create({
     data: {
       number,
       ownerId: input.ownerId,
@@ -139,6 +140,8 @@ async function createQuoteShell(input: QuoteShellInput) {
     },
     include: { alternatives: true },
   });
+  await logClientActivity({ clientId: input.clientId, title: `Se creó la cotización ${created.number}`, referenceType: "QUOTE", referenceId: created.id });
+  return created;
 }
 
 export async function createQuoteFromBrief(formData: FormData): Promise<void> {
@@ -323,7 +326,7 @@ async function backfillRequestClient(
 }
 
 /**
- * Arma un borrador de COT a partir de una solicitud:
+ * Arma un borrador de COT a partir de un pedido:
  * productos (con reemplazos resueltos), plantilla fija y brief para que la IA
  * complete textos / accesorios sin pisar lo que ya acordamos.
  */
@@ -372,7 +375,7 @@ export async function createQuoteFromRequest(input: {
         },
       },
     });
-    if (!request) return { ok: false, error: "La solicitud ya no existe." };
+    if (!request) return { ok: false, error: "El pedido ya no existe." };
 
     const clientId = await resolveClientIdForRequestQuote(request);
     const clientName = request.user.companyName || request.user.name || request.user.email || "Cliente";
@@ -406,13 +409,13 @@ export async function createQuoteFromRequest(input: {
     const shellInput = {
       ownerId: user.id,
       clientId,
-      reference: request.projectDescription?.trim().slice(0, 80) || `Solicitud #${shortId}`,
+      reference: request.projectDescription?.trim().slice(0, 80) || `Pedido #${shortId}`,
       contactName: request.user.name || null,
       brief,
       projectType: REQUEST_TYPE_PROJECT[request.type] || null,
-      notes: `Generada desde la solicitud #${shortId}.`,
+      notes: `Generada desde el pedido #${shortId}.`,
       advancedIntake: { source: "customer_request", requestId: request.id },
-      revisionSummary: `Alta desde solicitud #${shortId}`,
+      revisionSummary: `Alta desde pedido #${shortId}`,
     };
 
     let quote;
@@ -972,6 +975,7 @@ export async function duplicateQuote(formData: FormData): Promise<void> {
       termsSource: src.termsSource,
     },
   });
+  await logClientActivity({ clientId: created.clientId, title: `Se creó la cotización ${created.number}`, referenceType: "QUOTE", referenceId: created.id });
   const altMap = new Map<string, string>();
   for (const alt of src.alternatives) {
     const n = await prisma.quoteAlternative.create({

@@ -5,7 +5,7 @@ import { resolveCommercialClientId } from "@/lib/client-context";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 
-/** Solicitud en borrador más reciente del usuario, o una nueva si no hay. */
+/** Pedido en borrador más reciente del usuario, o una nueva si no hay. */
 export async function getOrCreateActiveDraft(
   userId: string,
   options?: { type?: CustomerRequestType; migrateLegacyCart?: boolean }

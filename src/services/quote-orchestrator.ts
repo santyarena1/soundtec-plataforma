@@ -297,7 +297,7 @@ Los marcados como sugeridos AÚN NO están en la cotización: el comercial los a
 Explicá QUÉ se resuelve para el cliente y, si hay equipos en la cotización, POR QUÉ esos. Podés mencionar tipos de equipo en general.
 Tono institucional, mismo registro que el resto del documento.
 SIEMPRE devolvé un cuerpo (2-4 párrafos). Aunque no haya ítems, redactá a partir del pedido.
-PROHIBIDO: pedir precios, inventar condiciones comerciales, copiar hilos de solicitud, agregar preguntas de "faltan datos", inventar marcas o modelos que no estén en la lista.
+PROHIBIDO: pedir precios, inventar condiciones comerciales, copiar hilos de pedido, agregar preguntas de "faltan datos", inventar marcas o modelos que no estén en la lista.
 Devolvé solo el cuerpo, HTML acotado (p, strong, em, ul, ol, li, br) o texto plano.`,
           `Problema a resolver:\n${problem || brief}\n\nEquipos y servicios:\n${productList}`
         );

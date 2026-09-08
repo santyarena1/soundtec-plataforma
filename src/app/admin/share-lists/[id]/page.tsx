@@ -12,8 +12,10 @@ export default async function EditShareListPage({ params }: { params: Promise<{ 
   const { id } = await params;
   await requireAdmin();
 
-  const list = await prisma.shareablePriceList.findUnique({ where: { id } });
+  const list = await prisma.shareablePriceList.findUnique({ where: { id }, include: { views: { orderBy: { viewedAt: "desc" }, take: 10 } } });
   if (!list) notFound();
+  const filters = parseShareListFilters(list.filters);
+  const selectedIds = [...new Set([...(filters.productIds || []), ...(filters.excludeProductIds || [])])];
 
   const [clients, brands, categories, families, distributors, products] = await Promise.all([
     prisma.client.findMany({ where: { isActive: true }, orderBy: { companyName: "asc" }, select: { id: true, companyName: true } }),
@@ -22,14 +24,11 @@ export default async function EditShareListPage({ params }: { params: Promise<{ 
     prisma.productFamily.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.product.findMany({
-      where: { isActive: true },
+      where: { id: { in: selectedIds } },
       orderBy: { normalizedName: "asc" },
-      take: 500,
-      select: { id: true, normalizedName: true },
+      select: { id: true, normalizedName: true, internalSku: true },
     }),
   ]);
-
-  const filters = parseShareListFilters(list.filters);
 
   return (
     <div className="space-y-6">
@@ -55,10 +54,13 @@ export default async function EditShareListPage({ params }: { params: Promise<{ 
             categories={categories}
             families={families}
             distributors={distributors}
-            products={products.map((p) => ({ id: p.id, name: p.normalizedName }))}
+            products={products.map((p) => ({ id: p.id, name: p.normalizedName, sku: p.internalSku }))}
           />
         </CardContent>
       </Card>
+      <Card><CardContent className="p-6"><h2 className="mb-3 font-semibold">Últimas vistas</h2>
+        {list.views.length ? <ul className="divide-y divide-border text-sm">{list.views.map((view) => <li key={view.id} className="flex justify-between py-2"><span>{view.userAgent?.match(/Mobile|Android|iPhone/i) ? "Móvil" : "Escritorio"}</span><span className="text-muted-foreground">{view.viewedAt.toLocaleString("es-AR")}</span></li>)}</ul> : <p className="text-sm text-muted-foreground">Todavía no hay vistas registradas.</p>}
+      </CardContent></Card>
     </div>
   );
 }

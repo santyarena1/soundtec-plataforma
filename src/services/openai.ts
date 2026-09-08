@@ -719,7 +719,7 @@ Respondé EXACTAMENTE con:
 export async function suggestRequestResponse(context: { project?: string; items: { name: string; quantity: number }[] }): Promise<string> {
   const client = await getClient();
   if (!client) {
-    return `Hola,\n\nGracias por tu solicitud${context.project ? ` para ${context.project}` : ""}. Estamos revisando los ${context.items.length} ítem(s) solicitados. En breve te enviaremos una propuesta con tiempos y condiciones.\n\nEquipo Soundtec.`;
+    return `Hola,\n\nGracias por tu pedido${context.project ? ` para ${context.project}` : ""}. Estamos revisando los ${context.items.length} ítem(s) solicitados. En breve te enviaremos una propuesta con tiempos y condiciones.\n\nEquipo Soundtec.`;
   }
   try {
     const model = await getModel();
@@ -732,7 +732,7 @@ export async function suggestRequestResponse(context: { project?: string; items:
         },
         {
           role: "user",
-          content: `Generá una respuesta inicial a una solicitud de cliente.
+          content: `Generá una respuesta inicial a una pedido de cliente.
 Proyecto: ${context.project || "(no especificado)"}
 Ítems pedidos:
 ${context.items.map((i) => `- ${i.quantity} × ${i.name}`).join("\n")}

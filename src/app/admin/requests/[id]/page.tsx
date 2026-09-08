@@ -56,7 +56,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
       select: { id: true, number: true, status: true, createdAt: true },
     });
   } catch (error) {
-    console.error("[AdminRequestDetail] no se pudieron listar cotizaciones de la solicitud", error);
+    console.error("[AdminRequestDetail] no se pudieron listar cotizaciones de el pedido", error);
   }
 
   // Precios con el cliente comercial real, para que el admin vea lo mismo que ve el cliente.
@@ -155,11 +155,11 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
         href="/admin/requests"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Volver a solicitudes
+        <ArrowLeft className="h-4 w-4" /> Volver a pedidos
       </Link>
 
       <PageHeader
-        title={`Solicitud #${request.id.slice(-6).toUpperCase()}`}
+        title={`Pedido #${request.id.slice(-6).toUpperCase()}`}
         description={`${typeLabel(request.type)} de ${clientName} · recibida ${formatRelative(request.createdAt)}`}
         actions={
           <Badge tone={statusTone(status)}>
@@ -180,7 +180,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
             <p className="text-sm font-semibold">Te toca a vos</p>
             <p className="text-xs text-muted-foreground">
               {status === "SENT"
-                ? "Nadie tomó esta solicitud todavía. Revisá los productos y respondele al cliente."
+                ? "Nadie tomó este pedido todavía. Revisá los productos y respondele al cliente."
                 : `${lastMessage?.sender.name ?? "El cliente"} escribió último y está esperando respuesta.`}
             </p>
           </div>

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { lookupCrestronCatalog } from "@/services/crestron-catalog";
 import { translateBatchCached } from "@/services/translation-cache";
+import { changedScalarFields, mergeFieldTimestamps } from "@/lib/field-timestamps";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -155,6 +156,9 @@ export async function POST(req: NextRequest) {
       if (!product.metaTitle && page.name) data.metaTitle = page.name.slice(0, 180);
       if (!product.metaDescription && shortEs) data.metaDescription = shortEs.slice(0, 300);
 
+      const changed = changedScalarFields(product as unknown as Record<string, unknown>, data as Record<string, unknown>);
+      if (product.brandId !== brandId) changed.push("brandId");
+      data.fieldUpdatedAt = mergeFieldTimestamps(product.fieldUpdatedAt, changed, new Date().toISOString());
       await prisma.product.update({ where: { id }, data });
 
       if (product.images.length === 0 && page.imageUrls.length > 0) {

@@ -19,7 +19,7 @@ interface Item {
     finalPriceUsd: number;
     priceBeforeDiscountUsd: number;
     discountPercent: number;
-  };
+  } | null;
 }
 
 interface Props {
@@ -97,12 +97,12 @@ export function ShareListTable({ items, showSku, showStock, hidePrices }: Props)
                 </div>
                 {!hidePrices && (
                   <div className="shrink-0 text-right">
-                    {item.pricing.discountPercent > 0 && (
+                    {item.pricing && item.pricing.discountPercent > 0 && (
                       <p className="text-xs text-muted-foreground line-through">
                         {formatUsd(item.pricing.priceBeforeDiscountUsd)}
                       </p>
                     )}
-                    <p className="font-semibold">{formatUsd(item.pricing.finalPriceUsd)}</p>
+                    <p className="font-semibold">{item.pricing ? formatUsd(item.pricing.finalPriceUsd) : "—"}</p>
                   </div>
                 )}
               </div>
@@ -149,12 +149,12 @@ export function ShareListTable({ items, showSku, showStock, hidePrices }: Props)
                     )}
                     {!hidePrices && (
                       <td className="px-3 py-2.5 text-right font-semibold">
-                        {item.pricing.discountPercent > 0 && (
+                        {item.pricing && item.pricing.discountPercent > 0 && (
                           <span className="mr-2 text-xs font-normal text-muted-foreground line-through">
                             {formatUsd(item.pricing.priceBeforeDiscountUsd)}
                           </span>
                         )}
-                        {formatUsd(item.pricing.finalPriceUsd)}
+                        {item.pricing ? formatUsd(item.pricing.finalPriceUsd) : "—"}
                       </td>
                     )}
                   </tr>

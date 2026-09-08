@@ -6,6 +6,7 @@ import { slugify } from "@/lib/utils";
 import { applyMapping, resolvePath } from "@/services/portal-path-resolver";
 import { openSession, resolveSonanceMyPrice, type PortalProductDetail } from "@/services/sonance-portal";
 import { revalidatePath } from "next/cache";
+import { SCALAR_PRODUCT_FIELDS, changedScalarFields, mergeFieldTimestamps } from "@/lib/field-timestamps";
 
 /**
  * Llama al API en vivo de mySonance para obtener TODOS los productNumbers
@@ -90,11 +91,15 @@ async function reassignBrandsFromSonanceApi(): Promise<{
     const BATCH = 500;
     for (let s = 0; s < allSkus.length; s += BATCH) {
       const slice = allSkus.slice(s, s + BATCH);
-      const r = await prisma.product.updateMany({
-        where: { supplierSku: { in: slice }, NOT: { brandId } },
-        data: { brandId },
+      const candidates = await prisma.product.findMany({
+        where: { supplierSku: { in: slice }, brandId: null },
+        select: { id: true, fieldUpdatedAt: true },
       });
-      perBrand[brandName].updated += r.count;
+      await prisma.$transaction(candidates.map((product) => prisma.product.update({
+        where: { id: product.id },
+        data: { brandId, fieldUpdatedAt: mergeFieldTimestamps(product.fieldUpdatedAt, ["brandId"], new Date().toISOString()) },
+      })));
+      perBrand[brandName].updated += candidates.length;
     }
   }
   return { perBrand };
@@ -600,7 +605,7 @@ export async function POST(req: NextRequest) {
         item.sku,
       ];
       const inferred = inferBrandFromKeywords(fieldsForBrandHeuristic);
-      if (inferred) {
+      if (productData.brandId === undefined && inferred) {
         const inferredId = brandIdByName.get(inferred);
         if (inferredId) productData.brandId = inferredId;
       }
@@ -608,12 +613,13 @@ export async function POST(req: NextRequest) {
       // Find existing product
       const existing = await prisma.product.findFirst({
         where: { supplierSku: item.sku },
-        select: { id: true },
       });
 
       let productId: string;
       if (existing) {
         // Update — keep required fields untouched if not in mapping
+        const changed = changedScalarFields(existing as unknown as Record<string, unknown>, productData);
+        productData.fieldUpdatedAt = mergeFieldTimestamps(existing.fieldUpdatedAt, changed, new Date().toISOString());
         await prisma.product.update({
           where: { id: existing.id },
           data: productData,
@@ -637,7 +643,7 @@ export async function POST(req: NextRequest) {
           resolveSonanceMyPrice({
             pricing,
           }) ?? 0;
-        const createData = {
+        const createData: Record<string, unknown> = {
           supplierSku: item.sku,
           normalizedName: (productData.normalizedName as string) ?? fallbackName,
           originalName: (productData.originalName as string) ?? fallbackName,
@@ -645,6 +651,11 @@ export async function POST(req: NextRequest) {
           isActive: setActive,
           ...productData,
         };
+        createData.fieldUpdatedAt = mergeFieldTimestamps(
+          {},
+          SCALAR_PRODUCT_FIELDS.filter((field) => (createData as Record<string, unknown>)[field] !== undefined),
+          new Date().toISOString()
+        );
         const newP = await prisma.product.create({
           data: createData as Parameters<typeof prisma.product.create>[0]["data"],
           select: { id: true },
@@ -783,18 +794,23 @@ export async function POST(req: NextRequest) {
                 skipDuplicates: true,
               });
               if (rel.setsCustomizable) {
+                const parent = await prisma.product.findUnique({ where: { id: parentId }, select: { fieldUpdatedAt: true } });
                 await prisma.product.update({
                   where: { id: parentId },
-                  data: { isCustomizable: true },
+                  data: { isCustomizable: true, fieldUpdatedAt: mergeFieldTimestamps(parent?.fieldUpdatedAt, ["isCustomizable"], new Date().toISOString()) },
                 });
                 // Marca también a cada accesorio con kind=ACCESORIO. Esto NO
                 // impide que se vendan standalone (accessoryRequiredWithPrimary
                 // controla eso), pero da la información visual de que están
                 // pensados como complemento.
-                await prisma.product.updateMany({
+                const accessories = await prisma.product.findMany({
                   where: { id: { in: uniqueIds } },
-                  data: { kind: "ACCESORIO" },
+                  select: { id: true, fieldUpdatedAt: true },
                 });
+                await prisma.$transaction(accessories.map((accessory) => prisma.product.update({
+                  where: { id: accessory.id },
+                  data: { kind: "ACCESORIO", fieldUpdatedAt: mergeFieldTimestamps(accessory.fieldUpdatedAt, ["kind"], new Date().toISOString()) },
+                })));
               }
               rel.counter();
             }

@@ -32,7 +32,7 @@ export default async function LoginPage({
         <div className="space-y-6">
           <p className="text-xs uppercase tracking-widest text-primary-foreground/70">Portal B2B</p>
           <h2 className="text-3xl font-semibold leading-tight">
-            Tu acceso seguro a listas de precios, configuraciones y solicitudes de presupuesto.
+            Tu acceso seguro a listas de precios, configuraciones y pedidos de cotización.
           </h2>
           <p className="max-w-md text-sm text-primary-foreground/80">
             Soundtec ofrece soluciones audiovisuales integradas para integradores, instaladores y proyectos

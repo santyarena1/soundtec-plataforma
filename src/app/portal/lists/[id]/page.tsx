@@ -66,7 +66,7 @@ export default async function ListDetailPage({ params }: { params: Promise<{ id:
               <form action={createRequestDraft}>
                 <input type="hidden" name="fromWishlistId" value={list.id} />
                 <input type="hidden" name="type" value="QUOTE" />
-                <Button type="submit">Agregar lista a mi solicitud</Button>
+                <Button type="submit">Agregar lista a mi pedido</Button>
               </form>
             ) : null}
           </>

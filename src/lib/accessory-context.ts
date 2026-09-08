@@ -85,5 +85,5 @@ export async function evaluateAccessoryPolicy(input: {
 
 export function accessoryAckNote(compatiblePrimaries: CompatiblePrimary[]): string {
   const names = compatiblePrimaries.map((p) => p.name).join(", ");
-  return `[Cliente confirmó compra de accesorio sin principal en la misma solicitud/carrito. Compatibles: ${names}]`;
+  return `[Cliente confirmó compra de accesorio sin principal en la misma pedido/carrito. Compatibles: ${names}]`;
 }

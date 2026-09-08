@@ -26,11 +26,11 @@ const STEPS: Array<{
   icon: typeof Circle;
   description: string;
 }> = [
-  { status: "DRAFT", label: "Borrador", icon: FileEdit, description: "Armando tu solicitud" },
-  { status: "SENT", label: "Enviada", icon: Send, description: "Llegó al equipo" },
+  { status: "DRAFT", label: "Borrador", icon: FileEdit, description: "Armando tu pedido" },
+  { status: "SENT", label: "Enviado", icon: Send, description: "Llegó al equipo" },
   { status: "IN_REVIEW", label: "En revisión", icon: Eye, description: "Estamos cotizando" },
-  { status: "ANSWERED", label: "Respondida", icon: MessageSquare, description: "Hay una propuesta" },
-  { status: "CONFIRMED", label: "Confirmada", icon: CheckCircle2, description: "Pedido aprobado" },
+  { status: "ANSWERED", label: "Respondido", icon: MessageSquare, description: "Hay una propuesta" },
+  { status: "CONFIRMED", label: "Confirmado", icon: CheckCircle2, description: "Pedido aprobado" },
 ];
 
 const ORDER: Record<RequestStatus, number> = {
@@ -58,7 +58,7 @@ export function RequestStatusTimeline({ status, updatedAt }: Props) {
             <XCircle className="h-5 w-5 text-destructive" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold">Solicitud rechazada</p>
+            <p className="text-sm font-semibold">Pedido rechazado</p>
             <p className="text-xs text-muted-foreground">
               Mirá los comentarios del equipo más abajo para entender el motivo.
             </p>
@@ -76,7 +76,7 @@ export function RequestStatusTimeline({ status, updatedAt }: Props) {
             <Lock className="h-5 w-5 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold">Solicitud cerrada</p>
+            <p className="text-sm font-semibold">Pedido cerrado</p>
             <p className="text-xs text-muted-foreground">
               Última actualización: {updatedAt.toLocaleDateString("es-AR")}
             </p>

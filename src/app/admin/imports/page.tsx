@@ -7,21 +7,40 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { startImportFromExcel } from "@/server/actions/imports";
+import { deleteColumnMappingProfile, startImportFromExcel } from "@/server/actions/imports";
 import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Admin · Importaciones" };
 
-export default async function AdminImportsPage() {
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pendiente", MAPPING: "Mapeo", REVIEWING: "En revisión",
+  COMPLETED: "Completada", FAILED: "Fallida", CANCELLED: "Cancelada",
+};
+
+export default async function AdminImportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; distributorId?: string }>;
+}) {
   await requireAdmin();
-  const [batches, brands, distributors] = await Promise.all([
+  const filters = await searchParams;
+  const status = filters.status && Object.hasOwn(STATUS_LABELS, filters.status) ? filters.status : undefined;
+  const [batches, brands, distributors, profiles] = await Promise.all([
     prisma.importBatch.findMany({
+      where: {
+        status: status as never,
+        distributorId: filters.distributorId || undefined,
+      },
       orderBy: { createdAt: "desc" },
       take: 30,
-      include: { priceList: { select: { name: true } } },
+      include: { priceList: { select: { name: true } }, distributor: { select: { name: true } } },
     }),
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.columnMappingProfile.findMany({
+      orderBy: { updatedAt: "desc" },
+      include: { brand: { select: { name: true } }, distributor: { select: { name: true } } },
+    }),
   ]);
 
   return (
@@ -72,6 +91,55 @@ export default async function AdminImportsPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardContent className="p-5 space-y-4">
+          <div>
+            <h2 className="heading-3">Perfiles de mapeo guardados</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Se reutilizan automáticamente cuando coinciden la marca o el proveedor y las columnas del archivo.
+            </p>
+          </div>
+          {profiles.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Todavía no guardaste ningún perfil.</p>
+          ) : (
+            <div className="divide-y divide-border rounded-md border border-border">
+              {profiles.map((profile) => (
+                <div key={profile.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium">{profile.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {profile.distributor?.name || "Sin proveedor"} · {profile.brand?.name || "Sin marca"} · {formatDate(profile.updatedAt)}
+                    </p>
+                  </div>
+                  <form action={deleteColumnMappingProfile}>
+                    <input type="hidden" name="profileId" value={profile.id} />
+                    <Button type="submit" size="sm" variant="outline">Borrar</Button>
+                  </form>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <form method="get" className="flex flex-wrap items-end gap-3 rounded-md border border-border p-4">
+        <div>
+          <Label htmlFor="status">Estado</Label>
+          <Select id="status" name="status" defaultValue={filters.status || ""}>
+            <option value="">Todos</option>
+            {Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="filterDistributorId">Proveedor</Label>
+          <Select id="filterDistributorId" name="distributorId" defaultValue={filters.distributorId || ""}>
+            <option value="">Todos</option>
+            {distributors.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </Select>
+        </div>
+        <Button type="submit" variant="outline">Filtrar</Button>
+      </form>
+
       {batches.length === 0 ? (
         <TableEmpty />
       ) : (
@@ -80,6 +148,7 @@ export default async function AdminImportsPage() {
             <TR>
               <TH>Archivo</TH>
               <TH>Lista</TH>
+              <TH>Proveedor</TH>
               <TH>Filas</TH>
               <TH>Procesadas</TH>
               <TH>Errores</TH>
@@ -93,12 +162,13 @@ export default async function AdminImportsPage() {
               <TR key={b.id}>
                 <TD className="font-medium">{b.fileName}</TD>
                 <TD>{b.priceList?.name || "—"}</TD>
+                <TD>{b.distributor?.name || "—"}</TD>
                 <TD>{b.totalRows}</TD>
                 <TD>{b.processedRows}</TD>
                 <TD>{b.errorRows}</TD>
                 <TD>
                   <Badge tone={b.status === "COMPLETED" ? "success" : b.status === "FAILED" ? "destructive" : "warning"}>
-                    {b.status}
+                    {STATUS_LABELS[b.status] ?? b.status}
                   </Badge>
                 </TD>
                 <TD>{formatDate(b.createdAt)}</TD>

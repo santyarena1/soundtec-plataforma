@@ -73,7 +73,7 @@ export default async function AdminDashboardPage() {
   const stats = [
     { label: "Productos activos", value: totalProducts, icon: Package, tone: "primary" as const, href: "/admin/products" },
     { label: "Clientes activos", value: totalUsers, icon: Users, tone: "accent" as const, href: "/admin/users" },
-    { label: "Solicitudes a responder", value: activeRequests, icon: Send, tone: "warning" as const, href: "/admin/requests" },
+    { label: "Pedidos a responder", value: activeRequests, icon: Send, tone: "warning" as const, href: "/admin/requests" },
     { label: "Importaciones pendientes", value: pendingImports, icon: FileSpreadsheet, tone: "primary" as const, href: "/admin/imports" },
     { label: "Feedback IA con errores", value: pendingFeedback, icon: Sparkles, tone: "destructive" as const, href: "/admin/feedback" },
     { label: "Tickets abiertos", value: openTickets, icon: LifeBuoy, tone: "muted" as const, href: "/admin/tickets" },
@@ -81,7 +81,8 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={`Hola, ${(user.name || "Admin").split(" ")[0]}`} description="Vista general del sistema." />
+      <PageHeader title={`Hola, ${(user.name || "Admin").split(" ")[0]}`} description="Vista general del sistema."
+        actions={<Link href="/admin/quotes/quick" className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">Cotización rápida</Link>} />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-tour="dash-stats">
         {stats.map((s) => (
@@ -105,14 +106,14 @@ export default async function AdminDashboardPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <CardTitle>Últimas solicitudes</CardTitle>
+              <CardTitle>Últimos pedidos</CardTitle>
               <Link href="/admin/requests" className="text-sm text-accent hover:underline">
                 Ver todas
               </Link>
             </div>
             <ul className="mt-3 divide-y divide-border">
               {recentRequests.length === 0 ? (
-                <p className="muted-text py-6 text-center">Sin solicitudes recientes.</p>
+                <p className="muted-text py-6 text-center">Sin pedidos recientes.</p>
               ) : (
                 recentRequests.map((r) => (
                   <li key={r.id}>

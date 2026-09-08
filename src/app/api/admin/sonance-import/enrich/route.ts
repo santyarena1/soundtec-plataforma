@@ -15,6 +15,8 @@ import {
 } from "@/services/sonance-portal";
 import { translateBatchCached } from "@/services/translation-cache";
 import { revalidatePath } from "next/cache";
+import { changedScalarFields, mergeFieldTimestamps } from "@/lib/field-timestamps";
+import { mergeSourceMetadata } from "@/services/sync/source-metadata";
 
 const CACHED_PAYLOAD_KEY = "sonance.sync_preview"; // enrich consume el preview (con items + skus)
 
@@ -247,6 +249,7 @@ export async function POST(req: NextRequest) {
             baseCostUsd: cachedItem.price,
             brandId,
             isActive: false,
+            fieldUpdatedAt: mergeFieldTimestamps({}, ["normalizedName", "originalName", "supplierSku", "baseCostUsd", "brandId", "isActive"], new Date().toISOString()),
           },
           select: { id: true, supplierSku: true },
         });
@@ -341,6 +344,8 @@ export async function POST(req: NextRequest) {
         skipped++;
         continue;
       }
+      const currentProduct = await prisma.product.findUnique({ where: { id: product.id } });
+      if (!currentProduct) { skipped++; continue; }
 
       // Normalize raw → DB shape
       const specs = normalizeSpecs(detail.attributeTypes);
@@ -352,7 +357,7 @@ export async function POST(req: NextRequest) {
 
       // Build update data
       const productUpdate: Record<string, unknown> = {
-        sourceMetadata: detail as unknown as object,
+        sourceMetadata: mergeSourceMetadata(currentProduct.sourceMetadata, detail, "sonance"),
         enrichedAt: new Date(),
       };
 
@@ -397,21 +402,24 @@ export async function POST(req: NextRequest) {
       if (videoUrl) productUpdate.videoUrl = videoUrl;
 
       if (detail.productTitle) {
-        productUpdate.normalizedName = detail.productTitle;
-        productUpdate.originalName = detail.productTitle;
+        if (!currentProduct.normalizedName.trim()) productUpdate.normalizedName = detail.productTitle;
+        if (!currentProduct.originalName.trim()) productUpdate.originalName = detail.productTitle;
       }
-      if (detail.shortDescription) {
+      const contentProtected = currentProduct.aiGeneratedDescription && !force;
+      if (!contentProtected && (force || !currentProduct.shortDescription?.trim()) && detail.shortDescription) {
         const es = translationMaps?.shortDescs.get(detail.shortDescription);
         productUpdate.shortDescription = es ?? detail.shortDescription;
       }
-      if (detail.htmlContent) {
+      if (!contentProtected && detail.htmlContent) {
         const es = translationMaps?.htmlContents.get(detail.htmlContent);
-        productUpdate.htmlContent = es ?? detail.htmlContent;
-        productUpdate.longDescription = (es ?? detail.htmlContent).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        if (force || !currentProduct.htmlContent?.trim()) productUpdate.htmlContent = es ?? detail.htmlContent;
+        if (force || !currentProduct.longDescription?.trim()) productUpdate.longDescription = (es ?? detail.htmlContent).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
       }
       if (specs.length > 0) productUpdate.specifications = specs as unknown as object;
       if (docs.length > 0) productUpdate.documents = docs as unknown as object;
       if (translationMaps) productUpdate.translatedAt = new Date();
+      const changed = changedScalarFields(currentProduct as unknown as Record<string, unknown>, productUpdate);
+      productUpdate.fieldUpdatedAt = mergeFieldTimestamps(currentProduct.fieldUpdatedAt, changed, new Date().toISOString());
 
       // Update + replace images and accessory relations atomically
       await prisma.$transaction(async (tx) => {

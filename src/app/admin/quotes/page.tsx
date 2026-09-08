@@ -139,9 +139,12 @@ export default async function AdminQuotesPage({
               </>
             )}
             {permissionsHave(permissions, "quotes.create") || permissions.fullAccess ? (
+              <div className="flex gap-2">
+              <ButtonLink href="/admin/quotes/quick" variant="outline">Cotización rápida</ButtonLink>
               <ButtonLink href="/admin/quotes/new" data-tour="quotes-new-btn">
                 Nueva cotización
               </ButtonLink>
+              </div>
             ) : null}
           </div>
         }

@@ -68,8 +68,8 @@ export function ResponseComposer({ requestId, currentStatus, savedResponse, stor
       if (r.ok) {
         toast.success(trimmed ? "Respuesta enviada al cliente" : "Estado actualizado", {
           description: trimmed
-            ? `La solicitud quedó como “${REQUEST_STATUS_META[status as keyof typeof REQUEST_STATUS_META].label}” y el texto ya está visible en su portal.`
-            : `La solicitud quedó como “${REQUEST_STATUS_META[status as keyof typeof REQUEST_STATUS_META].label}”.`,
+            ? `El pedido quedó como “${REQUEST_STATUS_META[status as keyof typeof REQUEST_STATUS_META].label}” y el texto ya está visible en su portal.`
+            : `El pedido quedó como “${REQUEST_STATUS_META[status as keyof typeof REQUEST_STATUS_META].label}”.`,
         });
         router.refresh();
       } else {
@@ -147,7 +147,7 @@ export function ResponseComposer({ requestId, currentStatus, savedResponse, stor
       </div>
 
       <div>
-        <Label htmlFor="status">Al enviar, dejar la solicitud como</Label>
+        <Label htmlFor="status">Al enviar, dejar el pedido como</Label>
         <Select id="status" value={status} onChange={(e) => setStatus(e.target.value)} className="mt-1">
           {ADMIN_ASSIGNABLE_STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -172,7 +172,7 @@ export function ResponseComposer({ requestId, currentStatus, savedResponse, stor
         onConfirm={submit}
         pending={saving}
         tone="destructive"
-        title={status === "REJECTED" ? "Rechazar la solicitud" : "Cerrar la solicitud"}
+        title={status === "REJECTED" ? "Rechazar el pedido" : "Cerrar el pedido"}
         confirmLabel={status === "REJECTED" ? "Sí, rechazar" : "Sí, cerrar"}
         description={
           <>

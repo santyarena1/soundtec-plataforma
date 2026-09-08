@@ -418,4 +418,59 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-08-2",
+    version: "1.12.1",
+    releasedAt: "2026-09-08T12:00:00.000Z",
+    summary: "Listas e importación quedó más simple y segura: unificamos la configuración y evitamos pisar contenido ya trabajado.",
+    items: [
+      { kind: "MEJORA", text: "Sincronización reúne las credenciales, el destino de categorías y las traducciones de Crestron y Sonance." },
+      { kind: "MEJORA", text: "Importar Excel permite filtrar las listas y reutiliza automáticamente los perfiles de mapeo compatibles." },
+      { kind: "FIX", text: "Al actualizar productos existentes se conservan nombres y descripciones; sólo cambian los datos operativos que corresponden." },
+      { kind: "MEJORA", text: "Las herramientas clásicas siguen disponibles como respaldo, fuera del menú principal y con una advertencia clara." },
+    ],
+  },
+  {
+    id: "ship-2026-09-08-4",
+    version: "1.12.2",
+    releasedAt: "2026-09-08T18:00:00.000Z",
+    summary: "Márgenes y descuentos ahora muestran la cobertura completa por producto.",
+    items: [
+      { kind: "NUEVO", text: "La pestaña «Por producto» separa los productos con regla y sin regla, con búsqueda, filtros y vista por cliente." },
+      { kind: "NUEVO", text: "Desde cada producto podés crear, revisar, editar, desactivar o quitar reglas y sus grupos." },
+      { kind: "MEJORA", text: "La selección múltiple permite aplicar una regla a varios productos de una sola vez." },
+    ],
+  },
+  {
+    id: "ship-2026-09-08-3",
+    version: "1.13.0",
+    releasedAt: "2026-09-08T15:00:00.000Z",
+    summary: "Clientes y usuarios ahora se gestionan con un CRM claro y unificado.",
+    items: [
+      { kind: "NUEVO", text: "La ficha del cliente reúne contactos, actividad, solicitudes, cotizaciones, cuenta corriente, precios y visibilidad." },
+      { kind: "NUEVO", text: "Los clientes pueden existir sin acceso al portal y tener varios contactos y usuarios." },
+      { kind: "MEJORA", text: "La gestión de usuarios permite generar contraseñas temporales, vincular clientes y conservar el historial al desactivar." },
+    ],
+  },
+{
+    id: "ship-2026-09-08-5",
+    version: "1.13.1",
+    releasedAt: "2026-09-08T18:00:00.000Z",
+    summary: "Listas compartibles operativas, reportes de IA detallados y cotizaciones rápidas.",
+    items: [
+      { kind: "NUEVO", text: "Las listas compartibles suman selección bajo demanda, acciones de envío, vistas y cotización directa." },
+      { kind: "MEJORA", text: "Los reportes de descripciones IA guardan motivos, comentario y el texto que vio el cliente." },
+      { kind: "NUEVO", text: "Cotización rápida permite armar, guardar o emitir una propuesta desde una sola pantalla." },
+    ],
+  },
+  {
+    id: "ship-2026-09-08-6",
+    version: "1.14.0",
+    releasedAt: "2026-09-08T19:00:00.000Z",
+    summary: "Las solicitudes pasan a llamarse Pedidos en todo el sistema (portal y admin).",
+    items: [
+      { kind: "MEJORA", text: "Pedido = lo que arma y envía el cliente; Cotización = lo que responde Soundtec. Cambia solo el nombre: los pedidos existentes, sus estados y sus links siguen iguales." },
+      { kind: "MEJORA", text: "Los estados se leen en masculino (Enviado, Respondido, Confirmado). El tipo de pedido «Pedido» ahora se llama «Compra»." },
+    ],
+  },
 ];

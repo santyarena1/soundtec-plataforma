@@ -9,6 +9,7 @@ import { requireAdmin } from "@/lib/auth-helpers";
 import { parseExcelBuffer, applyMapping, type ColumnMapping } from "@/services/excel";
 import { suggestColumnMapping, heuristicSuggestMapping } from "@/services/openai";
 import { slugify } from "@/lib/utils";
+import { changedScalarFields, mergeFieldTimestamps } from "@/lib/field-timestamps";
 
 const createSchema = z.object({
   brandId: z.string().optional().nullable(),
@@ -74,11 +75,29 @@ export async function startImportFromExcel(formData: FormData): Promise<void> {
     distributorName = d?.name;
   }
 
-  let suggestions = heuristicSuggestMapping(parsedExcel.headers);
-  try {
-    suggestions = await suggestColumnMapping(parsedExcel.headers, { brand: brandName, distributor: distributorName });
-  } catch {
-    // ya quedó la heurística.
+  const profiles = await prisma.columnMappingProfile.findMany({
+    where: { sourceType: "EXCEL" },
+    orderBy: { updatedAt: "desc" },
+  });
+  const matchingProfile = profiles.find((profile) => {
+    const identityMatches =
+      (profile.distributorId != null && profile.distributorId === distributorId) ||
+      (profile.brandId != null && profile.brandId === brandId);
+    const identityConflicts =
+      (profile.distributorId != null && profile.distributorId !== distributorId) ||
+      (profile.brandId != null && profile.brandId !== brandId);
+    if (!identityMatches || identityConflicts) return false;
+    const mapping = profile.mappingJson as Record<string, unknown>;
+    return Object.keys(mapping).every((header) => parsedExcel.headers.includes(header));
+  });
+
+  let suggestions: unknown = matchingProfile?.mappingJson ?? heuristicSuggestMapping(parsedExcel.headers);
+  if (!matchingProfile) {
+    try {
+      suggestions = await suggestColumnMapping(parsedExcel.headers, { brand: brandName, distributor: distributorName });
+    } catch {
+      // Ya quedó la heurística.
+    }
   }
 
   const batch = await prisma.importBatch.create({
@@ -162,6 +181,16 @@ export async function saveMapping(formData: FormData): Promise<{ ok: boolean; er
   return { ok: true };
 }
 
+const deleteProfileSchema = z.object({ profileId: z.string().min(1) });
+
+export async function deleteColumnMappingProfile(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const parsed = deleteProfileSchema.safeParse({ profileId: formData.get("profileId") });
+  if (!parsed.success) return;
+  await prisma.columnMappingProfile.delete({ where: { id: parsed.data.profileId } });
+  revalidatePath("/admin/imports");
+}
+
 const approveSchema = z.object({
   batchId: z.string().min(1),
 });
@@ -196,21 +225,35 @@ export async function approveAllRows(formData: FormData): Promise<{ ok: boolean;
       const supplierSku = draft.supplierSku ? String(draft.supplierSku) : null;
       const name = String(draft.name);
 
-      const product = await prisma.product.upsert({
-        where: { internalSku: sku },
-        update: {
-          normalizedName: name,
-          originalName: name,
-          supplierSku,
-          baseCostUsd: Number(draft.baseCostUsd ?? 0),
-          currency: String(draft.currency || "USD"),
-          shortDescription: draft.shortDescription ? String(draft.shortDescription) : undefined,
-          longDescription: draft.longDescription ? String(draft.longDescription) : undefined,
-          discountPercent: draft.discountPercent != null ? Number(draft.discountPercent) : undefined,
-          brandId: batch.brandId,
-          distributorId: batch.distributorId,
-        },
-        create: {
+      const existing = await prisma.product.findUnique({ where: { internalSku: sku } });
+      const alwaysUpdate = {
+        supplierSku,
+        baseCostUsd: Number(draft.baseCostUsd ?? 0),
+        currency: String(draft.currency || "USD"),
+        discountPercent: draft.discountPercent != null ? Number(draft.discountPercent) : undefined,
+      };
+      const fillOnly = existing ? {
+        normalizedName: existing.normalizedName.trim() ? undefined : name,
+        originalName: existing.originalName.trim() ? undefined : name,
+        shortDescription: existing.shortDescription?.trim() ? undefined : draft.shortDescription ? String(draft.shortDescription) : undefined,
+        longDescription: existing.longDescription?.trim() ? undefined : draft.longDescription ? String(draft.longDescription) : undefined,
+        brandId: existing.brandId || batch.brandId,
+        distributorId: existing.distributorId || batch.distributorId,
+      } : {};
+      const updateData = { ...alwaysUpdate, ...fillOnly };
+      const changed = existing
+        ? changedScalarFields(existing as unknown as Record<string, unknown>, updateData)
+        : [];
+      const product = existing
+        ? await prisma.product.update({
+            where: { id: existing.id },
+            data: {
+              ...updateData,
+              fieldUpdatedAt: mergeFieldTimestamps(existing.fieldUpdatedAt, changed, new Date().toISOString()),
+            },
+          })
+        : await prisma.product.create({
+        data: {
           internalSku: sku,
           supplierSku,
           normalizedName: name,
@@ -223,6 +266,10 @@ export async function approveAllRows(formData: FormData): Promise<{ ok: boolean;
           stockStatus: "UNKNOWN",
           brandId: batch.brandId,
           distributorId: batch.distributorId,
+          fieldUpdatedAt: mergeFieldTimestamps({}, [
+            "internalSku", "supplierSku", "normalizedName", "originalName", "baseCostUsd",
+            "currency", "shortDescription", "longDescription", "discountPercent", "brandId", "distributorId",
+          ], new Date().toISOString()),
           images: draft.imageUrl
             ? {
                 create: [

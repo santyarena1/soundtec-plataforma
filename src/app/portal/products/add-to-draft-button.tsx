@@ -56,7 +56,7 @@ export function AddToDraftButton({ productId, productName, quantity = 1, compact
         showToast({
           type: "success",
           title: `Agregaste ${result.detail?.addedQty ?? quantity} u. de «${productName}»`,
-          description: "Quedó cargado en tu solicitud en armado.",
+          description: "Quedó cargado en tu pedido en armado.",
           requestId: result.requestId,
           itemsTotal: result.detail?.itemsTotal,
           unitsTotal: result.detail?.unitsTotal,
@@ -132,7 +132,7 @@ export function AddToDraftButton({ productId, productName, quantity = 1, compact
       ) : (
         <>
           <Plus className={compact ? "h-3 w-3" : "h-4 w-4"} />
-          {compact ? "Agregar" : "Agregar a mi solicitud"}
+          {compact ? "Agregar" : "Agregar a mi pedido"}
         </>
       )}
     </button>

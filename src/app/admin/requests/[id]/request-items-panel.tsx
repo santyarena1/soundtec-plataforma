@@ -56,7 +56,7 @@ export function RequestItemsPanel({ requestId, items, readOnly = false }: Props)
     startRemove(async () => {
       const r = await adminRemoveRequestItem({ itemId: item.id });
       if (r.ok) {
-        toast.success("Producto quitado", { description: `${item.productName} ya no figura en la solicitud.` });
+        toast.success("Producto quitado", { description: `${item.productName} ya no figura en el pedido.` });
         setRemoving(null);
         router.refresh();
       } else {
@@ -129,7 +129,7 @@ export function RequestItemsPanel({ requestId, items, readOnly = false }: Props)
         onConfirm={confirmRemove}
         pending={removePending}
         tone="destructive"
-        title="Quitar producto de la solicitud"
+        title="Quitar producto de el pedido"
         confirmLabel="Sí, quitar"
         description={
           removing ? (
@@ -242,7 +242,7 @@ function ItemRow({
                 onClick={onRemove}
                 className="text-destructive hover:bg-destructive/10"
                 aria-label={`Quitar ${item.productName}`}
-                title="Quitar de la solicitud"
+                title="Quitar de el pedido"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
