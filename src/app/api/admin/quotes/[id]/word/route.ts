@@ -1,192 +1,39 @@
 import { NextResponse } from "next/server";
 import { loadQuoteForUser } from "@/lib/quote-access";
-import {
-  AI_SECTION_STUB,
-  DEFAULT_BRANDS_PLACEMENT,
-  DEFAULT_ISO_PLACEMENT,
-  getCompanyIdentity,
-  resolveImagePlacement,
-  type ImagePlacement,
-} from "@/lib/quote-defaults";
-import { isRichText, sanitizeQuoteHtml, splitParagraphs } from "@/lib/quote-richtext";
-import { formatUsd } from "@/lib/utils";
-import { quoteItemDisplay } from "@/lib/quote-product-line";
-import { buildQuoteZones } from "@/lib/quote-item-groups";
+import { buildQuoteDocumentHtml } from "@/lib/quote-document-html";
 
 export const dynamic = "force-dynamic";
-
-/** Ancho útil de la hoja A4 con márgenes de 1,4 cm, en px a 96 dpi. */
-const CONTENT_WIDTH = 680;
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
-function paragraphs(body: string) {
-  // El editor visual guarda HTML acotado; Word lo entiende tal cual con los
-  // estilos del <style> de la cabecera.
-  if (isRichText(body)) return `<div class="rt">${sanitizeQuoteHtml(body)}</div>`;
-  return splitParagraphs(body)
-    .map(
-      (chunk) =>
-        `<p style="margin:0 0 8pt;text-align:justify;font-size:10.5pt;line-height:1.45;page-break-inside:avoid">${escapeHtml(chunk).replaceAll("\n", "<br/>")}</p>`
-    )
-    .join("");
-}
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const { quote } = await loadQuoteForUser(id);
   if (!quote) return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
 
-  const rawIdentity = await getCompanyIdentity();
-  const identity = {
-    ...rawIdentity,
-    primary: rawIdentity.primary || "#1e3553",
-    brands: resolveImagePlacement(rawIdentity.brands, DEFAULT_BRANDS_PLACEMENT),
-    iso: resolveImagePlacement(rawIdentity.iso, DEFAULT_ISO_PLACEMENT),
-  };
-  const origin = new URL(req.url).origin;
-  const abs = (path: string) => (path.startsWith("http") ? path : `${origin}${path}`);
-  const color = identity.primary;
-
-  const visibleItems = quote.items.filter((item) => !item.excluded);
-  const total = visibleItems
-    .filter((item) => !item.optional)
-    .reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
-  const showDelivery = quote.showDeliveryColumn;
-  const signName = quote.owner.quoteSignName || quote.owner.name || "";
-  const signTitle = quote.owner.quoteSignTitle || "";
-  const issued = (quote.issuedAt ?? new Date()).toLocaleDateString("es-AR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
-  // Word no entiende anchos en %, hay que resolverlos contra el ancho útil.
-  const placedImage = (url: string, placement?: ImagePlacement | null) => {
-    const safe = resolveImagePlacement(placement, DEFAULT_BRANDS_PLACEMENT);
-    return `<p style="margin:8pt 0;text-align:${safe.align}"><img src="${escapeHtml(abs(url))}" width="${Math.round((CONTENT_WIDTH * safe.width) / 100)}"/></p>`;
-  };
-
-  // page-break-after:avoid evita que el título quede solo al pie de una hoja.
-  const heading = (text: string) =>
-    `<p style="margin:16pt 0 5pt;padding-bottom:2pt;border-bottom:1pt solid ${color};font-size:11pt;font-weight:bold;color:${color};text-transform:uppercase;letter-spacing:.5pt;page-break-after:avoid">${escapeHtml(text)}</p>`;
-
-  const sections = quote.sections
-    .filter((section) => section.included !== false)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((section) => {
-      if (section.type === "products_table") return "";
-      const body = (section.body ?? "").trim();
-      const hasBody = body.length > 0 && body !== AI_SECTION_STUB;
-
-      if (section.type === "letter_open" || section.type === "closing") {
-        return hasBody ? `<div style="margin-top:12pt">${paragraphs(body)}</div>` : "";
-      }
-      if (section.type === "disciplines") {
-        return hasBody
-          ? `<p style="margin:16pt 0;padding:6pt;background:${color};color:#fff;text-align:center;font-size:10pt;font-weight:bold;text-transform:uppercase;letter-spacing:1pt">${escapeHtml(body)}</p>`
-          : "";
-      }
-      if (section.type === "brands") {
-        return `${heading(section.title)}${hasBody ? paragraphs(body) : ""}${placedImage(identity.brandsUrl, identity.brands)}`;
-      }
-      if (section.type === "iso") {
-        return `${heading(section.title)}${hasBody ? paragraphs(body) : ""}${placedImage(identity.isoUrl, identity.iso)}`;
-      }
-      const sectionImages = quote.assets
-        .filter((asset) => asset.sectionId === section.id)
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((asset) => placedImage(asset.url, { width: section.layout === "images_row" ? 48 : 62, align: "center" }))
-        .join("");
-      if (!hasBody && !sectionImages) return "";
-      return `${heading(section.title)}${hasBody ? paragraphs(body) : ""}${sectionImages}`;
-    })
-    .join("");
-
-  const itemRow = (item: (typeof visibleItems)[number], index: number) => {
-    const line = quoteItemDisplay(item);
-    const detail = `<strong>${escapeHtml(line.name)}</strong>${
-      line.blurb
-        ? `<br/><span style="font-size:9pt;font-weight:normal;text-align:justify">${escapeHtml(line.blurb)}</span>`
-        : ""
-    }${item.optional ? " <i>(opcional)</i>" : ""}`;
-    return `<tr style="background:${index % 2 ? "#f3f5f8" : "#ffffff"}">
-<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.quantity)}</td>
-<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.unit)}</td>
-<td style="border:.5pt solid #c9d0d8;padding:4pt">${detail}</td>
-<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${formatUsd(Number(item.unitPriceUsd))}</td>
-<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right;font-weight:bold">${formatUsd(Number(item.lineTotalUsd))}</td>
-${showDelivery ? `<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.deliveryKey || "")}</td>` : ""}
-</tr>`;
-  };
-  const tableHead = `<table style="width:100%;font-size:9pt">
-<tr style="background:${color};color:#fff">
-<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Cant.</th>
-<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Un.</th>
-<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Descripción</th>
-<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Unitario</th>
-<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Total</th>
-${showDelivery ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Entrega</th>` : ""}
-</tr>`;
-  const zones = buildQuoteZones(visibleItems, quote.itemGroups ?? []);
-  const multiTables = (quote.itemGroups?.length ?? 0) > 0;
-  const equipmentHtml = zones
-    .map((zone) => {
-      const subtotal = zone.items.filter((item) => !item.optional).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
-      return `${heading(zone.title)}${zone.body.trim() ? paragraphs(zone.body) : ""}${tableHead}
-${zone.items.map(itemRow).join("")}
-</table>
-${multiTables ? `<p style="margin:8pt 0 0;text-align:right;font-size:10.5pt;font-weight:bold">Subtotal ${escapeHtml(zone.title)} ${formatUsd(subtotal)}</p>` : ""}`;
-    })
-    .join("<br/>");
-
-  const html = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
-<head><meta charset="utf-8"><title>${escapeHtml(quote.number)}</title>
-<style>
-@page WordSection1 { size: 21cm 29.7cm; margin: 2cm 1.4cm 2cm 1.4cm; }
-div.WordSection1 { page: WordSection1; }
-body { font-family: Calibri, Arial, sans-serif; color: #16212f; font-size: 10.5pt; }
-table { border-collapse: collapse; }
-.rt p { margin: 0 0 8pt; font-size: 10.5pt; line-height: 1.45; page-break-inside: avoid; }
-.rt h3 { margin: 0 0 3pt; font-size: 10.5pt; font-weight: bold; page-break-after: avoid; }
-.rt ul, .rt ol { margin: 0 0 8pt 18pt; }
-.rt li { margin-bottom: 2pt; font-size: 10.5pt; line-height: 1.45; }
-</style>
-</head>
-<body>
-<div class="WordSection1">
-
-<p style="margin:0"><img src="${escapeHtml(abs(identity.logoUrl))}" width="${CONTENT_WIDTH}"/></p>
-
-<p style="margin:14pt 0 0;text-align:right;font-size:10pt">Ciudad Autónoma de Buenos Aires, ${escapeHtml(issued)}</p>
-
-<table style="width:100%;margin-top:12pt;font-size:10.5pt">
-<tr><td style="width:95pt;font-weight:bold;color:${color};padding:1pt 0">Señores</td><td style="font-weight:bold;padding:1pt 0">${escapeHtml(quote.client?.companyName || "")}</td></tr>
-${quote.contactName ? `<tr><td style="font-weight:bold;color:${color};padding:1pt 0">At.</td><td style="padding:1pt 0">${escapeHtml(quote.contactName)}</td></tr>` : ""}
-<tr><td style="font-weight:bold;color:${color};padding:1pt 0">Ref.</td><td style="padding:1pt 0">${escapeHtml(quote.reference || "")}</td></tr>
-<tr><td style="font-weight:bold;color:${color};padding:1pt 0">Cotización</td><td style="font-weight:bold;color:${color};padding:1pt 0">${escapeHtml(quote.number)}</td></tr>
-</table>
-
-${sections}
-
-<br style="page-break-before:always"/>
-${equipmentHtml}
-<p style="margin:10pt 0 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total neto ${formatUsd(total)}</p>
-<p style="margin:2pt 0 0;text-align:right;font-size:8pt;color:#556">Precios en dólares estadounidenses, IVA no incluido.</p>
-
-<p style="margin-top:28pt;font-size:10.5pt"><b>${escapeHtml(signName)}</b><br/>${escapeHtml(signTitle)}<br/>${escapeHtml(identity.name)} S.R.L.</p>
-
-<p style="margin-top:24pt"><img src="${escapeHtml(abs(identity.headerUrl))}" width="${CONTENT_WIDTH}"/></p>
-
-</div>
-</body></html>`;
+  const html = await buildQuoteDocumentHtml(
+    {
+      number: quote.number,
+      reference: quote.reference,
+      contactName: quote.contactName,
+      issuedAt: quote.issuedAt,
+      showDeliveryColumn: quote.showDeliveryColumn,
+      client: quote.client,
+      owner: {
+        quoteSignName: quote.owner.quoteSignName,
+        quoteSignTitle: quote.owner.quoteSignTitle,
+        name: quote.owner.name,
+      },
+      items: quote.items,
+      itemGroups: quote.itemGroups,
+      sections: quote.sections,
+      assets: quote.assets.map((asset) => ({
+        id: asset.id,
+        url: asset.url,
+        sectionId: asset.sectionId,
+        sortOrder: asset.sortOrder,
+      })),
+    },
+    { origin: new URL(req.url).origin, forWord: true }
+  );
 
   return new NextResponse(html, {
     headers: {

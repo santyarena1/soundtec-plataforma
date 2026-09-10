@@ -1,8 +1,13 @@
 import { prisma } from "@/lib/prisma";
 
 export async function getSetting(key: string, fallback = ""): Promise<string> {
-  const row = await prisma.adminSetting.findUnique({ where: { key } });
-  return row?.value ?? fallback;
+  try {
+    const row = await prisma.adminSetting.findUnique({ where: { key } });
+    return row?.value ?? fallback;
+  } catch {
+    // Sin DB (build, smoke tests, arranque) devolvemos el default.
+    return fallback;
+  }
 }
 
 export async function getSettings(): Promise<Record<string, string>> {

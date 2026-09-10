@@ -473,4 +473,20 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Los estados se leen en masculino (Enviado, Respondido, Confirmado). El tipo de pedido «Pedido» ahora se llama «Compra»." },
     ],
   },
+  {
+    id: "ship-2026-09-10-1",
+    version: "1.14.1",
+    releasedAt: "2026-09-10T01:30:00.000Z",
+    summary: "El PDF de cotización rápida (y de cualquier emisión) usa el mismo diseño tipográfico que la cotización común.",
+    items: [
+      {
+        kind: "FIX",
+        text: "Al emitir (incluida la cotización rápida) el PDF ya no sale en texto plano: se genera desde el mismo HTML que Vista/Word (logo, tablas, secciones).",
+      },
+      {
+        kind: "MEJORA",
+        text: "Word y PDF comparten un único builder de documento; la cotización rápida sigue siendo más básica en contenido, pero con el mismo diseño.",
+      },
+    ],
+  },
 ];

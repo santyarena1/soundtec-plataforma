@@ -6,6 +6,8 @@ const nextConfig = {
       { protocol: "https", hostname: "**" },
     ],
   },
+  // Chromium para HTML→PDF de cotizaciones (no empaquetar en el bundle de webpack).
+  serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
   experimental: {
     serverActions: {
       bodySizeLimit: "50mb",

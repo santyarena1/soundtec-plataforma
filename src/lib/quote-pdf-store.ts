@@ -2,6 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { storeQuoteBlob } from "@/server/actions/quote-images";
 import { buildQuotePdf } from "@/lib/quote-pdf";
 
+function appOrigin() {
+  const raw =
+    process.env.APP_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+  return raw.replace(/\/$/, "") || undefined;
+}
+
 export async function generateAndStoreQuotePdf(quoteId: string, actorId: string) {
   const quote = await prisma.quote.findUnique({
     where: { id: quoteId },
@@ -12,17 +20,42 @@ export async function generateAndStoreQuotePdf(quoteId: string, actorId: string)
         orderBy: { sortOrder: "asc" },
         include: {
           product: {
-            select: { normalizedName: true, shortDescription: true, brand: { select: { name: true } } },
+            select: {
+              normalizedName: true,
+              shortDescription: true,
+              brand: { select: { name: true } },
+            },
           },
         },
       },
       itemGroups: { orderBy: { sortOrder: "asc" } },
       sections: { orderBy: { sortOrder: "asc" } },
+      assets: { orderBy: { sortOrder: "asc" } },
     },
   });
   if (!quote) throw new Error("La cotización ya no existe.");
 
-  const bytes = await buildQuotePdf(quote);
+  const bytes = await buildQuotePdf(
+    {
+      number: quote.number,
+      reference: quote.reference,
+      contactName: quote.contactName,
+      issuedAt: quote.issuedAt,
+      showDeliveryColumn: quote.showDeliveryColumn,
+      client: quote.client,
+      owner: quote.owner,
+      items: quote.items,
+      itemGroups: quote.itemGroups,
+      sections: quote.sections,
+      assets: quote.assets.map((asset) => ({
+        id: asset.id,
+        url: asset.url,
+        sectionId: asset.sectionId,
+        sortOrder: asset.sortOrder,
+      })),
+    },
+    appOrigin()
+  );
   const filename = `${quote.number.replace(/[^\w.-]+/g, "_")}.pdf`;
   const file = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
   const stored = await storeQuoteBlob(`quotes/${quote.id}/${filename}`, file, "application/pdf");
@@ -48,7 +81,9 @@ export async function generateAndStoreQuotePdf(quoteId: string, actorId: string)
   return { url: stored || `/api/quotes/${quote.id}/pdf`, number: quote.number, bytes };
 }
 
-export async function loadStoredQuotePdf(quoteId: string): Promise<{ bytes: Uint8Array; filename: string } | null> {
+export async function loadStoredQuotePdf(
+  quoteId: string
+): Promise<{ bytes: Uint8Array; filename: string } | null> {
   const quote = await prisma.quote.findUnique({
     where: { id: quoteId },
     select: { number: true, pdfBlobUrl: true },
