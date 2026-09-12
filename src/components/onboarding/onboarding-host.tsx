@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type CSSProperties,
+} from "react";
 import { usePathname } from "next/navigation";
 import {
   ArrowRight,
@@ -41,6 +49,13 @@ function pathMatches(pathname: string, route: string) {
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
+function escapeTourAttr(value: string) {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(value);
+  }
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 function useTargetRect(target: string | null, active: boolean, pathname: string) {
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [missing, setMissing] = useState(false);
@@ -56,13 +71,21 @@ function useTargetRect(target: string | null, active: boolean, pathname: string)
     let observer: ResizeObserver | null = null;
     let detach: (() => void) | null = null;
     let attempts = 0;
+    let timer: number | undefined;
 
     function attach(el: Element) {
-      el.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+      const isNav = Boolean(target?.startsWith("nav-"));
+      el.scrollIntoView({
+        block: isNav ? "center" : "nearest",
+        inline: "nearest",
+        behavior: "smooth",
+      });
       const update = () => {
         if (!cancelled) setRect(el.getBoundingClientRect());
       };
+      // Releer después del scroll suave para no dejar el hueco desfasado.
       update();
+      window.setTimeout(update, 320);
       window.addEventListener("resize", update);
       window.addEventListener("scroll", update, true);
       observer = new ResizeObserver(update);
@@ -76,7 +99,7 @@ function useTargetRect(target: string | null, active: boolean, pathname: string)
 
     function tryFind() {
       if (cancelled) return;
-      const found = document.querySelector(`[data-tour="${CSS.escape(target!)}"]`);
+      const found = document.querySelector(`[data-tour="${escapeTourAttr(target!)}"]`);
       if (found) {
         setMissing(false);
         attach(found);
@@ -88,12 +111,13 @@ function useTargetRect(target: string | null, active: boolean, pathname: string)
         setRect(null);
         return;
       }
-      window.setTimeout(tryFind, 100);
+      timer = window.setTimeout(tryFind, 100);
     }
 
     tryFind();
     return () => {
       cancelled = true;
+      if (timer) window.clearTimeout(timer);
       detach?.();
     };
   }, [target, active, pathname]);
@@ -101,23 +125,52 @@ function useTargetRect(target: string | null, active: boolean, pathname: string)
   return { rect, missing };
 }
 
-function tooltipStyle(rect: DOMRect | null, centered: boolean) {
+/** Coloca la tarjeta sin tapar el menú lateral ni el target resaltado. */
+function tooltipStyle(
+  rect: DOMRect | null,
+  opts: { centered: boolean; preferRight: boolean }
+): CSSProperties {
   const width = Math.min(420, typeof window === "undefined" ? 420 : window.innerWidth - 24);
-  if (!rect || centered) {
+  const maxHeight = "min(70vh, 560px)";
+
+  if (!rect || opts.centered) {
     return {
       top: "50%",
       left: "50%",
       width,
-      maxHeight: "min(70vh, 560px)",
+      maxHeight,
       transform: "translate(-50%, -50%)",
-    } as const;
+    };
   }
+
   const gap = 14;
-  const approxH = 320;
-  const below = rect.bottom + gap + approxH < window.innerHeight;
-  const top = below ? rect.bottom + gap : Math.max(12, rect.top - gap - Math.min(approxH, Math.max(80, rect.top - 12)));
-  const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
-  return { top, left, width, maxHeight: "min(70vh, 560px)", transform: undefined };
+  const approxH = 340;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // Targets del sidebar: tarjeta a la derecha del ítem, para no taparlo.
+  if (opts.preferRight) {
+    const left = Math.min(rect.right + gap, vw - width - 12);
+    const top = Math.min(Math.max(12, rect.top), Math.max(12, vh - Math.min(approxH, vh - 24)));
+    return { top, left: Math.max(12, left), width, maxHeight, transform: undefined };
+  }
+
+  const spaceBelow = vh - rect.bottom - gap;
+  const spaceAbove = rect.top - gap;
+  const placeBelow = spaceBelow >= Math.min(approxH, 220) || spaceBelow >= spaceAbove;
+  const top = placeBelow
+    ? rect.bottom + gap
+    : Math.max(12, rect.top - gap - Math.min(approxH, Math.max(120, spaceAbove)));
+  // Preferir alinear a la derecha del target si cabe; si no, clamp al viewport.
+  let left = rect.left;
+  if (left + width > vw - 12) left = vw - width - 12;
+  if (left < 12) left = 12;
+  // Si el target está a la izquierda (sidebar), empujar la tarjeta a su derecha.
+  if (rect.right < 320 && rect.left < 280) {
+    left = Math.min(Math.max(rect.right + gap, 12), vw - width - 12);
+  }
+
+  return { top, left, width, maxHeight, transform: undefined };
 }
 
 export function OnboardingHost({
@@ -135,6 +188,16 @@ export function OnboardingHost({
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const bootstrapped = useRef(false);
   const autoAdvancedFor = useRef<string | null>(null);
+  const completedIdsRef = useRef<string[]>([]);
+  const stepIndexRef = useRef(0);
+
+  useEffect(() => {
+    completedIdsRef.current = completedIds;
+  }, [completedIds]);
+
+  useEffect(() => {
+    stepIndexRef.current = stepIndex;
+  }, [stepIndex]);
 
   const step = tour.steps[stepIndex];
   const needsPath = Boolean(step?.requirePath && !pathMatches(pathname, step.requirePath));
@@ -151,12 +214,23 @@ export function OnboardingHost({
       completedStepIds?: string[];
     }) => {
       start(async () => {
-        await saveOnboardingState({
-          surface,
-          status: input.status,
-          stepIndex: input.stepIndex,
-          completedStepIds: input.completedStepIds,
-        });
+        try {
+          const result = await saveOnboardingState({
+            surface,
+            status: input.status,
+            stepIndex: input.stepIndex,
+            completedStepIds: input.completedStepIds,
+          });
+          if (result && "ok" in result && result.ok === false) {
+            toast.error("No se pudo guardar el progreso del tutorial", {
+              description: result.error ?? "Podés seguir; si recargás puede volver un paso atrás.",
+            });
+          }
+        } catch {
+          toast.error("No se pudo guardar el progreso del tutorial", {
+            description: "Podés seguir; si recargás puede volver un paso atrás.",
+          });
+        }
       });
     },
     [surface, start]
@@ -164,7 +238,9 @@ export function OnboardingHost({
 
   const openWelcome = useCallback(() => {
     setCompletedIds([]);
+    completedIdsRef.current = [];
     setStepIndex(0);
+    stepIndexRef.current = 0;
     autoAdvancedFor.current = null;
     setPhase("welcome");
     notifyOnboardingActive();
@@ -173,7 +249,9 @@ export function OnboardingHost({
   const startTour = useCallback(() => {
     setPhase("tour");
     setStepIndex(0);
+    stepIndexRef.current = 0;
     setCompletedIds([]);
+    completedIdsRef.current = [];
     autoAdvancedFor.current = null;
     notifyOnboardingActive();
     persist({ status: "in_progress", stepIndex: 0, completedStepIds: [] });
@@ -182,28 +260,48 @@ export function OnboardingHost({
   const skipAll = useCallback(() => {
     setPhase("idle");
     notifyOnboardingInactive();
-    persist({ status: "skipped", stepIndex: 0, completedStepIds: completedIds });
-  }, [persist, completedIds]);
+    persist({
+      status: "skipped",
+      stepIndex: stepIndexRef.current,
+      completedStepIds: completedIdsRef.current,
+    });
+  }, [persist]);
 
   const finish = useCallback(() => {
-    const ids = Array.from(new Set([...completedIds, step?.id].filter(Boolean) as string[]));
+    const currentStep = tour.steps[stepIndexRef.current];
+    const ids = Array.from(
+      new Set(
+        [...completedIdsRef.current, currentStep?.id].filter(Boolean) as string[]
+      )
+    );
     setCompletedIds(ids);
+    completedIdsRef.current = ids;
     setPhase("idle");
     notifyOnboardingInactive();
-    persist({ status: "completed", stepIndex: tour.steps.length - 1, completedStepIds: ids });
-  }, [completedIds, persist, step?.id, tour.steps.length]);
+    persist({
+      status: "completed",
+      stepIndex: tour.steps.length - 1,
+      completedStepIds: ids,
+    });
+  }, [persist, tour.steps]);
 
   const goToStep = useCallback(
     (nextIndex: number) => {
-      if (!tour.steps[nextIndex]) return;
-      setCompletedIds((prev) => {
-        const ids = step && !prev.includes(step.id) ? [...prev, step.id] : prev;
-        persist({ status: "in_progress", stepIndex: nextIndex, completedStepIds: ids });
-        return ids;
-      });
+      const next = tour.steps[nextIndex];
+      if (!next) return;
+      const current = tour.steps[stepIndexRef.current];
+      const prevIds = completedIdsRef.current;
+      const ids =
+        current && !prevIds.includes(current.id) ? [...prevIds, current.id] : prevIds;
+      completedIdsRef.current = ids;
+      stepIndexRef.current = nextIndex;
+      setCompletedIds(ids);
       setStepIndex(nextIndex);
+      // Fuera del updater de setState: startTransition adentro de un updater
+      // puede tumbar React con un error de cliente.
+      persist({ status: "in_progress", stepIndex: nextIndex, completedStepIds: ids });
     },
-    [tour.steps, step, persist]
+    [tour.steps, persist]
   );
 
   const restartFromScratch = useCallback(() => {
@@ -230,9 +328,12 @@ export function OnboardingHost({
       return;
     }
     if (current.status === "in_progress") {
-      const idx = Math.min(current.stepIndex ?? 0, tour.steps.length - 1);
+      const idx = Math.min(current.stepIndex ?? 0, Math.max(0, tour.steps.length - 1));
       setStepIndex(idx);
-      setCompletedIds(current.completedStepIds ?? []);
+      stepIndexRef.current = idx;
+      const ids = current.completedStepIds ?? [];
+      setCompletedIds(ids);
+      completedIdsRef.current = ids;
       setPhase("tour");
       notifyOnboardingActive();
     }
@@ -295,7 +396,10 @@ export function OnboardingHost({
               <Sparkles className="h-3.5 w-3.5" />
               Tutorial guiado
             </div>
-            <h2 id="onboarding-welcome-title" className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.7rem]">
+            <h2
+              id="onboarding-welcome-title"
+              className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.7rem]"
+            >
               {tour.welcomeTitle}
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{tour.welcomeBody}</p>
@@ -333,18 +437,23 @@ export function OnboardingHost({
 
   if (!step) return null;
 
-  const pad = 8;
-  const highlight =
-    rect && !needsPath
-      ? {
-          top: Math.max(4, rect.top - pad),
-          left: Math.max(4, rect.left - pad),
-          width: rect.width + pad * 2,
-          height: rect.height + pad * 2,
-        }
-      : null;
+  const pad = needsPath ? 6 : 8;
+  // Siempre resaltar el target (también en «tu turno»): si no, el usuario solo ve
+  // el fondo oscuro y el Siguiente apagado, sin saber qué clickear.
+  const highlight = rect
+    ? {
+        top: Math.max(4, rect.top - pad),
+        left: Math.max(4, rect.left - pad),
+        width: Math.max(24, rect.width + pad * 2),
+        height: Math.max(24, rect.height + pad * 2),
+      }
+    : null;
 
   const paragraphs = step.body.split("\n\n").filter(Boolean);
+  const navTarget = Boolean(step.target?.startsWith("nav-"));
+  const preferRight = navTarget || Boolean(rect && rect.left < 300);
+  // Con spotlight visible, la tarjeta va al costado del hueco (nunca centrada tapando el click).
+  const centered = !highlight || !step.target;
 
   return (
     <div
@@ -353,23 +462,42 @@ export function OnboardingHost({
       aria-modal="true"
       aria-label={tour.title}
     >
-      <div className="absolute inset-0 bg-[hsl(213_47%_8%/0.45)]" />
+      {/* Un solo oscurecido: si hay highlight, el box-shadow hace el “agujero” clickeable/visible.
+          Un overlay aparte encima del target lo dejaría siempre gris y sin foco. */}
       {highlight ? (
-        <div
-          className="absolute z-[101] rounded-lg transition-all duration-300"
-          style={{
-            top: highlight.top,
-            left: highlight.left,
-            width: highlight.width,
-            height: highlight.height,
-            boxShadow: "0 0 0 9999px hsl(213 47% 8% / 0.45), 0 0 0 2px hsl(213 47% 92%)",
-          }}
-        />
-      ) : null}
+        <>
+          <div
+            className="absolute z-[101] rounded-lg transition-all duration-300"
+            style={{
+              top: highlight.top,
+              left: highlight.left,
+              width: highlight.width,
+              height: highlight.height,
+              boxShadow: needsPath
+                ? "0 0 0 9999px hsl(213 47% 8% / 0.62), 0 0 0 3px hsl(32 90% 55%), 0 0 24px 4px hsl(32 90% 55% / 0.45)"
+                : "0 0 0 9999px hsl(213 47% 8% / 0.5), 0 0 0 2px hsl(213 47% 92%)",
+            }}
+          />
+          {needsPath ? (
+            <div
+              className="pointer-events-none absolute z-[101] rounded-lg border-2 border-amber-400 animate-pulse"
+              style={{
+                top: highlight.top - 2,
+                left: highlight.left - 2,
+                width: highlight.width + 4,
+                height: highlight.height + 4,
+              }}
+              aria-hidden
+            />
+          ) : null}
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-[hsl(213_47%_8%/0.55)]" />
+      )}
 
       <div
         className="pointer-events-auto absolute z-[102] flex max-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
-        style={tooltipStyle(rect, needsPath || !step.target)}
+        style={tooltipStyle(rect, { centered, preferRight })}
       >
         <div className="h-1 shrink-0 bg-secondary" aria-hidden>
           <div
@@ -397,15 +525,17 @@ export function OnboardingHost({
 
           {needsPath ? (
             <div className="space-y-3">
-              <p className="flex gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-sm text-foreground">
+              <p className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-sm text-foreground">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
                 <span>
                   <span className="font-medium">Tu turno: </span>
-                  abrí esta pantalla desde el menú. El tutorial espera a que llegues.
+                  {highlight
+                    ? "hacé click en el ítem resaltado (borde ámbar). El tutorial avanza solo cuando llegues a esa pantalla."
+                    : "abrí esa pantalla desde el menú de la izquierda. El tutorial espera a que navegues."}
                 </span>
               </p>
-              {paragraphs.map((p) => (
-                <p key={p.slice(0, 40)} className="text-sm leading-relaxed text-foreground">
+              {paragraphs.map((p, i) => (
+                <p key={`${step.id}-p-${i}`} className="text-sm leading-relaxed text-foreground">
                   {p}
                 </p>
               ))}
@@ -415,18 +545,23 @@ export function OnboardingHost({
                   <span>{step.tip}</span>
                 </p>
               ) : null}
+              {missing && step.target ? (
+                <p className="text-xs text-amber-700">
+                  No encontramos el enlace en el menú. Abrí el grupo correspondiente (CRM, Catálogo, etc.) y buscá la opción.
+                </p>
+              ) : null}
             </div>
           ) : (
             <>
-              {paragraphs.map((p) => (
-                <p key={p.slice(0, 40)} className="text-sm leading-relaxed text-foreground">
+              {paragraphs.map((p, i) => (
+                <p key={`${step.id}-p-${i}`} className="text-sm leading-relaxed text-foreground">
                   {p}
                 </p>
               ))}
               {step.bullets?.length ? (
                 <ul className="mt-3 list-disc space-y-1.5 pl-4 text-sm text-foreground/90">
-                  {step.bullets.map((b) => (
-                    <li key={b.slice(0, 40)}>{b}</li>
+                  {step.bullets.map((b, i) => (
+                    <li key={`${step.id}-b-${i}`}>{b}</li>
                   ))}
                 </ul>
               ) : null}
@@ -450,7 +585,8 @@ export function OnboardingHost({
               ) : null}
               {missing && step.target ? (
                 <p className="mt-2 text-xs text-amber-700">
-                  No encontramos el control resaltado en esta vista. Podés seguir con Siguiente o abrir la sección desde el menú.
+                  No encontramos el control resaltado en esta vista. Podés seguir con Siguiente o abrir
+                  la sección desde el menú.
                 </p>
               ) : null}
             </>
@@ -462,7 +598,13 @@ export function OnboardingHost({
             Salir del tutorial
           </button>
           <div className="flex items-center gap-1">
-            <Button type="button" size="sm" variant="outline" disabled={stepIndex === 0} onClick={() => goToStep(stepIndex - 1)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={stepIndex === 0}
+              onClick={() => goToStep(stepIndex - 1)}
+            >
               <ChevronLeft className="h-3.5 w-3.5" />
               Atrás
             </Button>

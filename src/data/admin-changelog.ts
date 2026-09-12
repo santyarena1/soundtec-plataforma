@@ -545,4 +545,24 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-12-4",
+    version: "1.15.3",
+    releasedAt: "2026-09-12T16:00:00.000Z",
+    summary: "El tutorial ya no se cae al avanzar, y en «tu turno» marca en ámbar qué tenés que clickear.",
+    items: [
+      {
+        kind: "FIX",
+        text: "Siguiente / guardar progreso ya no dispara el error genérico de cliente.",
+      },
+      {
+        kind: "FIX",
+        text: "En pasos «tu turno» se resalta el ítem del menú (borde ámbar) en lugar de oscurecer toda la pantalla sin foco.",
+      },
+      {
+        kind: "MEJORA",
+        text: "La tarjeta del tutorial se ubica al costado del resaltado para no tapar el control a clickear.",
+      },
+    ],
+  },
 ];

@@ -30,32 +30,37 @@ export async function saveOnboardingState(input: {
   stepIndex?: number;
   completedStepIds?: string[];
 }) {
-  const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Sin sesión" };
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return { ok: false as const, error: "Sin sesión" };
 
-  const current = await getOnboardingState();
-  const now = new Date().toISOString();
-  const nextSurface: OnboardingSurfaceState = {
-    status: input.status,
-    stepIndex: input.stepIndex,
-    completedStepIds: input.completedStepIds,
-    updatedAt: now,
-    ...(input.status === "completed" ? { completedAt: now } : {}),
-    ...(input.status === "skipped" ? { skippedAt: now } : {}),
-  };
-  const next: OnboardingState = {
-    ...current,
-    [input.surface]: nextSurface,
-  };
+    const current = await getOnboardingState();
+    const now = new Date().toISOString();
+    const nextSurface: OnboardingSurfaceState = {
+      status: input.status,
+      stepIndex: input.stepIndex,
+      completedStepIds: input.completedStepIds,
+      updatedAt: now,
+      ...(input.status === "completed" ? { completedAt: now } : {}),
+      ...(input.status === "skipped" ? { skippedAt: now } : {}),
+    };
+    const next: OnboardingState = {
+      ...current,
+      [input.surface]: nextSurface,
+    };
 
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { onboardingJson: next },
-  });
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { onboardingJson: next },
+    });
 
-  // No revalidatePath acá: el host maneja la UI en cliente. Un refresh a mitad
-  // del reinicio puede remountar con el estado viejo y “tragarse” el paseo.
-  return { ok: true as const, state: next };
+    // No revalidatePath acá: el host maneja la UI en cliente. Un refresh a mitad
+    // del reinicio puede remountar con el estado viejo y “tragarse” el paseo.
+    return { ok: true as const, state: next };
+  } catch {
+    // Nunca tirar al error boundary del cliente: el tour debe poder seguir.
+    return { ok: false as const, error: "No se pudo guardar" };
+  }
 }
 
 export async function resetOnboarding(surface: OnboardingSurface) {
