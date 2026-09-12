@@ -18,14 +18,25 @@ export type OnboardingState = {
 
 export type OnboardingStep = {
   id: string;
-  /** Ruta donde se muestra el paso (se navega si hace falta). */
+  /**
+   * Ruta de referencia del paso (donde suele estar el target).
+   * El host NO navega solo: si hace falta otra pantalla, se indica con requirePath.
+   */
   route: string;
-  /** data-tour del elemento a resaltar. Sin target = tooltip centrado. */
+  /** data-tour del elemento a resaltar. Sin target = tarjeta centrada. */
   target?: string;
   title: string;
   body: string;
+  bullets?: string[];
   tip?: string;
   affects?: string;
+  /**
+   * Espera a que el usuario abra esta ruta (haciendo click en el menú).
+   * Mientras tanto “Siguiente” queda bloqueado.
+   */
+  requirePath?: string;
+  /** Al cumplir requirePath, avanza solo al siguiente paso. */
+  autoAdvanceOnRoute?: boolean;
 };
 
 export type OnboardingTour = {

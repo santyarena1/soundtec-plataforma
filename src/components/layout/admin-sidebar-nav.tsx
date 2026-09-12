@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ONBOARDING_ACTIVE_EVENT,
+  ONBOARDING_INACTIVE_EVENT,
+} from "@/lib/onboarding/events";
 import {
   BookOpen,
   Building2,
@@ -38,24 +42,28 @@ type NavItem = {
   scope?: PermissionScope;
   /** Visible si el usuario tiene al menos uno de estos scopes. */
   anyScope?: PermissionScope[];
+  /** data-tour para el paseo de bienvenida. */
+  tourId?: string;
 };
-type NavGroup = { title: string; items: NavItem[] };
+type NavGroup = { title: string; items: NavItem[]; tourId?: string };
 
 const groups: NavGroup[] = [
   {
     title: "Operación",
+    tourId: "nav-operacion",
     items: [
-      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, scope: "dashboard" },
-      { href: "/admin/requests", label: "Pedidos", icon: ListChecks, scope: "requests.view" },
-      { href: "/admin/quotes", label: "Cotizaciones", icon: FileSpreadsheet, scope: "quotes.view_own" },
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, scope: "dashboard", tourId: "nav-link-dashboard" },
+      { href: "/admin/requests", label: "Pedidos", icon: ListChecks, scope: "requests.view", tourId: "nav-link-requests" },
+      { href: "/admin/quotes", label: "Cotizaciones", icon: FileSpreadsheet, scope: "quotes.view_own", tourId: "nav-link-quotes" },
       { href: "/admin/feedback", label: "Feedback de IA", icon: MessageSquare, scope: "ai.manage" },
     ],
   },
   {
     title: "Catálogo",
+    tourId: "nav-catalogo",
     items: [
-      { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view" },
-      { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage" },
+      { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view", tourId: "nav-link-products" },
+      { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage", tourId: "nav-link-brands" },
       { href: "/admin/labels", label: "Etiquetas", icon: Tags, scope: "brands.manage" },
       { href: "/admin/distributors", label: "Proveedores", icon: Truck, scope: "distributors.manage" },
       { href: "/admin/categories", label: "Categorías", icon: Building2, scope: "categories.manage" },
@@ -72,18 +80,20 @@ const groups: NavGroup[] = [
   },
   {
     title: "Precios y visibilidad",
+    tourId: "nav-precios",
     items: [
-      { href: "/admin/margins", label: "Márgenes", icon: Percent, scope: "margins.manage" },
-      { href: "/admin/discounts", label: "Descuentos", icon: Receipt, scope: "discounts.manage" },
-      { href: "/admin/visibility", label: "Visibilidad por cliente", icon: Eye, scope: "visibility.manage" },
-      { href: "/admin/share-lists", label: "Listas compartibles", icon: Share2, scope: "share_lists.manage" },
+      { href: "/admin/margins", label: "Márgenes", icon: Percent, scope: "margins.manage", tourId: "nav-link-margins" },
+      { href: "/admin/discounts", label: "Descuentos", icon: Receipt, scope: "discounts.manage", tourId: "nav-link-discounts" },
+      { href: "/admin/visibility", label: "Visibilidad por cliente", icon: Eye, scope: "visibility.manage", tourId: "nav-link-visibility" },
+      { href: "/admin/share-lists", label: "Listas compartibles", icon: Share2, scope: "share_lists.manage", tourId: "nav-link-share-lists" },
     ],
   },
   {
     title: "CRM",
+    tourId: "nav-crm",
     items: [
-      { href: "/admin/clients", label: "Clientes", icon: Users, scope: "clients.view" },
-      { href: "/admin/users", label: "Usuarios", icon: ShieldCheck, scope: "users.view" },
+      { href: "/admin/clients", label: "Clientes", icon: Users, scope: "clients.view", tourId: "nav-link-clients" },
+      { href: "/admin/users", label: "Usuarios", icon: ShieldCheck, scope: "users.view", tourId: "nav-link-users" },
     ],
   },
   {
@@ -119,6 +129,22 @@ interface Props {
 
 export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll }: Props) {
   const pathname = usePathname();
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+
+  useEffect(() => {
+    function onActive() {
+      setOnboardingOpen(true);
+    }
+    function onInactive() {
+      setOnboardingOpen(false);
+    }
+    window.addEventListener(ONBOARDING_ACTIVE_EVENT, onActive);
+    window.addEventListener(ONBOARDING_INACTIVE_EVENT, onInactive);
+    return () => {
+      window.removeEventListener(ONBOARDING_ACTIVE_EVENT, onActive);
+      window.removeEventListener(ONBOARDING_INACTIVE_EVENT, onInactive);
+    };
+  }, []);
 
   const allowSet = useMemo(() => new Set(allowedScopes), [allowedScopes]);
 
@@ -147,19 +173,9 @@ export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll }: Props)
     <nav className="flex-1 space-y-0.5 overflow-y-auto p-2" data-tour="nav-sidebar">
       {filteredGroups.map((group) => {
         const groupActive = group.title === activeGroupTitle;
-        const opened = overrides[group.title] ?? (expandAll || groupActive);
-        const tourId =
-          group.title === "Operación"
-            ? "nav-operacion"
-            : group.title === "Catálogo"
-              ? "nav-catalogo"
-              : group.title === "Precios y visibilidad"
-                ? "nav-precios"
-                : group.title === "CRM"
-                  ? "nav-crm"
-                  : undefined;
+        const opened = overrides[group.title] ?? (expandAll || onboardingOpen || groupActive);
         return (
-          <div key={group.title} data-tour={tourId}>
+          <div key={group.title} data-tour={group.tourId}>
             <button
               type="button"
               aria-expanded={opened}
@@ -181,6 +197,7 @@ export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll }: Props)
                     <Link
                       key={item.href}
                       href={item.href}
+                      data-tour={item.tourId}
                       className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] transition-colors ${
                         active
                           ? "bg-primary/8 font-medium text-primary"

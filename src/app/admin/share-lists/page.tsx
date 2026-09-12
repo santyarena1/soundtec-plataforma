@@ -37,7 +37,7 @@ export default async function AdminShareListsPage() {
         title="Listas de precios compartibles"
         description="Armá listas filtrando productos, marcas, categorías y más. Compartí cada lista con un link único sin login."
         actions={
-          <ButtonLink href="/admin/share-lists/new">
+          <ButtonLink href="/admin/share-lists/new" data-tour="share-lists-new-btn">
             <Plus className="h-4 w-4" /> Nueva lista
           </ButtonLink>
         }

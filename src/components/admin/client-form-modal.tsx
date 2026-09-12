@@ -76,7 +76,7 @@ export function ClientFormModal({
   }
   return (
     <>
-      <Button type="button" onClick={() => setOpen(true)}>
+      <Button type="button" onClick={() => setOpen(true)} data-tour="clients-new-btn">
         {triggerLabel}
       </Button>
       <Modal

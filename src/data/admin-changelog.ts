@@ -525,4 +525,24 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-12-3",
+    version: "1.15.2",
+    releasedAt: "2026-09-12T15:30:00.000Z",
+    summary: "Tutorial guiado más completo: vos navegás, el sistema te explica cada módulo en detalle.",
+    items: [
+      {
+        kind: "FIX",
+        text: "El botón Siguiente ya no se traba: el tutorial no salta de pantalla solo ni bloquea el menú.",
+      },
+      {
+        kind: "MEJORA",
+        text: "Cada módulo (clientes, usuarios, catálogo, precios, visibilidad, listas compartibles, pedidos y cotizaciones) explica cómo crear y qué hace cada opción.",
+      },
+      {
+        kind: "MEJORA",
+        text: "Para cambiar de sección, el tutorial te indica qué clickear en el menú y espera a que lo hagas vos.",
+      },
+    ],
+  },
 ];

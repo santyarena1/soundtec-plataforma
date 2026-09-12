@@ -45,7 +45,7 @@ export function UserFormModal({
   const router = useRouter();
   return (
     <>
-      <Button variant={user ? "outline" : "primary"} onClick={() => setOpen(true)}>
+      <Button variant={user ? "outline" : "primary"} onClick={() => setOpen(true)} data-tour="users-new-btn">
         {triggerLabel}
       </Button>
       <Modal
