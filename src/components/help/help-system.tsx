@@ -14,6 +14,7 @@ import {
   Compass,
   Loader2,
   Send,
+  Sparkles,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { createTicketQuick } from "@/server/actions/tickets";
 import { askHelpChat } from "@/server/actions/help-chat";
 import { moduleForPath } from "@/lib/help/modules";
 import { resolveTour, type TourDef } from "@/lib/help/tours";
+import { requestOnboardingStart } from "@/lib/onboarding/events";
 
 type ReportContext = {
   title: string;
@@ -437,6 +439,7 @@ export function HelpDock() {
     <>
       <div
         className="fixed z-[70] print:hidden"
+        data-tour="help-dock"
         style={{
           right: "max(0.75rem, env(safe-area-inset-right))",
           bottom: "max(0.75rem, env(safe-area-inset-bottom))",
@@ -474,6 +477,17 @@ export function HelpDock() {
               >
                 <Compass className="h-3 w-3" />
                 Recorrer
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                onClick={() => {
+                  setOpen(false);
+                  requestOnboardingStart();
+                }}
+              >
+                <Sparkles className="h-3 w-3" />
+                Bienvenida
               </button>
               <Link
                 href="/admin/ayuda?v=detallado"

@@ -40,6 +40,8 @@ model User {
   twoFactorEnabled Boolean @default(false)
   twoFactorSecret String?
   lastLoginAt     DateTime?
+  /// Progreso de onboarding por superficie: { admin?: Progress, portal?: Progress }.
+  onboardingJson  Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

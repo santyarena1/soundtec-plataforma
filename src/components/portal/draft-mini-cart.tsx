@@ -40,7 +40,10 @@ export function DraftMiniCart({ draft }: Props) {
 
   if (!draft || draft.itemCount === 0) {
     return (
-      <div className="fixed bottom-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))] right-[max(0.75rem,env(safe-area-inset-right))] z-50 md:bottom-6 md:right-6">
+      <div
+        className="fixed bottom-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))] right-[max(0.75rem,env(safe-area-inset-right))] z-50 md:bottom-6 md:right-6"
+        data-tour="portal-cart"
+      >
         <Link
           href="/portal/products"
           className="group flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2.5 text-sm font-medium text-muted-foreground shadow-lg transition-colors hover:bg-secondary hover:text-foreground sm:px-4 sm:py-3"
@@ -69,7 +72,7 @@ export function DraftMiniCart({ draft }: Props) {
         />
       ) : null}
 
-      <div className="fixed bottom-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))] right-[max(0.75rem,env(safe-area-inset-right))] z-50 md:bottom-6 md:right-6">
+      <div className="fixed bottom-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))] right-[max(0.75rem,env(safe-area-inset-right))] z-50 md:bottom-6 md:right-6" data-tour="portal-cart">
         {/* Panel expandible */}
         {open ? (
           <div className="mb-3 w-[calc(100vw-2rem)] max-w-sm rounded-xl border border-border bg-card shadow-2xl overflow-hidden">

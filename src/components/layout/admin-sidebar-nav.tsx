@@ -144,12 +144,22 @@ export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll }: Props)
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
 
   return (
-    <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
+    <nav className="flex-1 space-y-0.5 overflow-y-auto p-2" data-tour="nav-sidebar">
       {filteredGroups.map((group) => {
         const groupActive = group.title === activeGroupTitle;
         const opened = overrides[group.title] ?? (expandAll || groupActive);
+        const tourId =
+          group.title === "Operación"
+            ? "nav-operacion"
+            : group.title === "Catálogo"
+              ? "nav-catalogo"
+              : group.title === "Precios y visibilidad"
+                ? "nav-precios"
+                : group.title === "CRM"
+                  ? "nav-crm"
+                  : undefined;
         return (
-          <div key={group.title} className="">
+          <div key={group.title} data-tour={tourId}>
             <button
               type="button"
               aria-expanded={opened}
