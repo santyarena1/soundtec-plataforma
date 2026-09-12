@@ -607,4 +607,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-12-7",
+    version: "1.16.2",
+    releasedAt: "2026-09-12T23:15:00.000Z",
+    summary: "El tutorial del portal habla solo de lo que ve el cliente, sin mencionar configuraciones internas.",
+    items: [
+      {
+        kind: "FIX",
+        text: "En el portal ya no se habla de márgenes, descuentos ni productos ocultos: solo catálogo, precios y pedidos como los ve el usuario.",
+      },
+    ],
+  },
 ];

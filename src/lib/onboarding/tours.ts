@@ -710,11 +710,11 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       route: "/admin",
       target: "mode-client",
       title: "Probar el portal (Modo cliente)",
-      body: "El botón «Modo cliente» abre el portal con tu mismo login. Sirve para validar catálogo, precios, carrito y el pedido de punta a punta.",
+      body: "El botón «Modo cliente» abre el portal con tu mismo login. Sirve para recorrer el catálogo, el carrito y el pedido como lo ve un cliente.",
       bullets: [
         "No cambia de usuario: es la misma sesión en otra interfaz.",
         "Para volver, en el portal usá «Modo admin».",
-        "Lo que ves en el portal depende de visibilidad y precios configurados en el admin.",
+        "En el portal ves el catálogo y los precios tal como los ve el cliente: sin paneles de configuración.",
       ],
       tip: "Hacé el circuito: portal → agregar al carrito → enviar pedido → verlo en Admin → Pedidos.",
     },
@@ -729,7 +729,7 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       id: "admin-done",
       route: "/admin",
       title: "Listo para operar",
-      body: "Ya recorriste el circuito completo. Sugerencia práctica: creá un cliente de prueba, asignale un margen, mirá un producto en Modo cliente y armá una cotización rápida.",
+      body: "Ya recorriste el circuito completo. Sugerencia práctica: creá un cliente de prueba, mirá el portal en Modo cliente y armá una cotización rápida.",
       tip: "El progreso queda en tu usuario. Podés reiniciar la guía cuando quieras.",
     },
   ],
@@ -741,14 +741,14 @@ export const PORTAL_ONBOARDING: OnboardingTour = {
   subtitle: "Catálogo, listas y pedidos",
   welcomeTitle: "Bienvenido al portal Soundtec",
   welcomeBody:
-    "Desde acá consultás el catálogo con tus precios, armás listas y enviás pedidos. Te mostramos el circuito; los clicks los hacés vos.",
+    "Desde acá consultás el catálogo, armás listas y enviás pedidos. Te mostramos el circuito; los clicks los hacés vos.",
   steps: [
     {
       id: "portal-home",
       route: "/portal",
       target: "portal-home-hero",
       title: "Tu inicio",
-      body: "Buscá por modelo, marca o palabra clave. Los precios que ves ya incluyen las condiciones de tu cuenta.",
+      body: "Buscá por modelo, marca o palabra clave y navegá el catálogo desde acá.",
     },
     {
       id: "portal-nav",
@@ -771,11 +771,11 @@ export const PORTAL_ONBOARDING: OnboardingTour = {
       id: "portal-catalog",
       route: "/portal/products",
       target: "page-header",
-      title: "Catálogo con tus precios",
-      body: "Solo ves lo disponible para tu empresa. El precio ya tiene márgenes y descuentos aplicados por Soundtec.",
+      title: "Tu catálogo",
+      body: "Acá están los productos que podés consultar y pedir, con el precio que te corresponde.",
       bullets: [
-        "Filtrá por stock, descuento o favoritos cuando lo necesites.",
-        "Abrí un producto para ver ficha y agregar al carrito.",
+        "Filtrá o buscá cuando lo necesites.",
+        "Abrí un producto para ver la ficha y agregarlo al carrito.",
       ],
     },
     {
