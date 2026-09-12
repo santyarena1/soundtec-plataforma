@@ -134,6 +134,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
     <div className="space-y-6 pb-24">
       <Link
         href="/admin/products"
+        data-tour="products-back-link"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> Volver al catálogo

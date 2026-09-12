@@ -31,6 +31,11 @@ export type OnboardingStep = {
   tip?: string;
   affects?: string;
   /**
+   * Texto corto del bloque «Tu turno» cuando el paso exige navegación.
+   * Si no está, el host infiere según el target (menú vs botón vs genérico).
+   */
+  turnHint?: string;
+  /**
    * Espera a que el usuario abra esta ruta (haciendo click en el menú).
    * Mientras tanto “Siguiente” queda bloqueado.
    */

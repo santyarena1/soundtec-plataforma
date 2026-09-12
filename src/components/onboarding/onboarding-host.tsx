@@ -571,9 +571,17 @@ export function OnboardingHost({
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
                 <span>
                   <span className="font-medium">Tu turno: </span>
-                  {highlight
-                    ? "hacé click en el ítem resaltado (borde ámbar). El tutorial avanza solo cuando llegues a esa pantalla."
-                    : "abrí esa pantalla desde el menú de la izquierda. El tutorial espera a que navegues."}
+                  {step.turnHint
+                    ? step.turnHint
+                    : highlight
+                      ? step.target?.startsWith("nav-")
+                        ? "hacé click en el ítem del menú resaltado (borde ámbar). El tutorial avanza cuando llegues a esa pantalla."
+                        : step.target?.includes("btn") || step.target?.includes("back")
+                          ? "hacé click en el control resaltado (borde ámbar). El tutorial avanza cuando llegues a la pantalla pedida."
+                          : "hacé click en el elemento resaltado (borde ámbar). El tutorial avanza cuando llegues a esa pantalla."
+                      : step.target?.startsWith("nav-")
+                        ? "abrí esa pantalla desde el menú de la izquierda. El tutorial espera a que navegues."
+                        : "seguí las instrucciones de este paso para llegar a la pantalla pedida. El tutorial espera a que navegues."}
                 </span>
               </p>
               {paragraphs.map((p, i) => (
@@ -589,7 +597,11 @@ export function OnboardingHost({
               ) : null}
               {missing && step.target ? (
                 <p className="text-xs text-amber-700">
-                  No encontramos el enlace en el menú. Abrí el grupo correspondiente (CRM, Catálogo, etc.) y buscá la opción.
+                  {step.target.startsWith("nav-")
+                    ? "No encontramos el enlace en el menú. Abrí el grupo correspondiente (CRM, Catálogo, Operación, etc.) y buscá la opción."
+                    : step.target.includes("btn") || step.target.includes("back")
+                      ? "No encontramos ese botón en esta pantalla. Si estás dentro de una ficha, volvé al listado primero (menú o «Volver») y buscá el botón arriba a la derecha."
+                      : "No encontramos el control en esta vista. Revisá las instrucciones del paso o volvé a la pantalla anterior del listado."}
                 </p>
               ) : null}
             </div>
