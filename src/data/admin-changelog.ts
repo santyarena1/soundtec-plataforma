@@ -590,4 +590,21 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-12-6",
+    version: "1.16.1",
+    releasedAt: "2026-09-12T19:10:00.000Z",
+    summary:
+      "El tutorial ya no se traba al pasar de una ficha de producto/cotización a «crear de cero».",
+    items: [
+      {
+        kind: "FIX",
+        text: "Antes de «Nuevo producto» / «Nueva cotización» te pide volver al listado (el botón no está dentro de la ficha).",
+      },
+      {
+        kind: "FIX",
+        text: "El mensaje «Tu turno» ya no dice «abrí el menú» cuando hay que clickear un botón de la pantalla.",
+      },
+    ],
+  },
 ];
