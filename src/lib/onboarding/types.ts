@@ -11,9 +11,19 @@ export type OnboardingSurfaceState = {
   skippedAt?: string;
 };
 
+export type OnboardingHandoff = {
+  from: OnboardingSurface;
+  to: OnboardingSurface;
+  /** Paso del admin al que volver al terminar el desvío. */
+  resumeAdminStepId?: string;
+  createdAt: string;
+};
+
 export type OnboardingState = {
   admin?: OnboardingSurfaceState;
   portal?: OnboardingSurfaceState;
+  /** Puente entre superficies (ej. admin → portal al probar Modo cliente). */
+  handoff?: OnboardingHandoff | null;
 };
 
 export type OnboardingStep = {

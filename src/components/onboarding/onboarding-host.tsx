@@ -28,17 +28,19 @@ import {
   notifyOnboardingInactive,
   ONBOARDING_START_EVENT,
 } from "@/lib/onboarding/events";
+import { readHandoffLocal, writeHandoffLocal } from "@/lib/onboarding/handoff";
 import { tourForSurface } from "@/lib/onboarding/tours";
 import type {
+  OnboardingHandoff,
   OnboardingState,
   OnboardingStatus,
   OnboardingSurface,
   OnboardingSurfaceState,
 } from "@/lib/onboarding/types";
-import { resetOnboarding, saveOnboardingState } from "@/server/actions/onboarding";
+import { resetOnboarding, saveOnboardingState, setOnboardingHandoff } from "@/server/actions/onboarding";
 import { toast } from "sonner";
 
-type Phase = "idle" | "welcome" | "tour";
+type Phase = "idle" | "welcome" | "tour" | "handoff";
 
 function surfaceState(state: OnboardingState, surface: OnboardingSurface): OnboardingSurfaceState {
   return state[surface] ?? { status: "pending" as OnboardingStatus };
@@ -343,6 +345,20 @@ export function OnboardingHost({
   useEffect(() => {
     if (bootstrapped.current) return;
     bootstrapped.current = true;
+
+    const handoff =
+      initialState.handoff ??
+      (surface === "portal" ? readHandoffLocal() : null);
+    if (
+      surface === "portal" &&
+      handoff?.to === "portal" &&
+      handoff.from === "admin"
+    ) {
+      setPhase("handoff");
+      notifyOnboardingActive();
+      return;
+    }
+
     const current = surfaceState(initialState, surface);
     if (current.status === "pending") {
       setPhase("welcome");
@@ -404,6 +420,132 @@ export function OnboardingHost({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [phase, skipAll, goToStep, stepIndex, tour.steps.length, needsPath]);
+
+
+  // Admin → portal: al clickear Modo cliente en ese paso, dejamos handoff y avanzamos el admin.
+  useEffect(() => {
+    if (surface !== "admin" || phase !== "tour" || step?.id !== "mode-client") return;
+
+    function onClick(event: MouseEvent) {
+      const el = (event.target as Element | null)?.closest?.('[data-tour="mode-client"]');
+      if (!el) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      const nextIndex = Math.min(stepIndexRef.current + 1, tour.steps.length - 1);
+      const resumeId = tour.steps[nextIndex]?.id ?? "help-dock";
+      const handoff: OnboardingHandoff = {
+        from: "admin",
+        to: "portal",
+        resumeAdminStepId: resumeId,
+        createdAt: new Date().toISOString(),
+      };
+      writeHandoffLocal(handoff);
+
+      const current = tour.steps[stepIndexRef.current];
+      const prevIds = completedIdsRef.current;
+      const ids =
+        current && !prevIds.includes(current.id) ? [...prevIds, current.id] : prevIds;
+      completedIdsRef.current = ids;
+      stepIndexRef.current = nextIndex;
+      setCompletedIds(ids);
+      setStepIndex(nextIndex);
+
+      start(async () => {
+        try {
+          await saveOnboardingState({
+            surface: "admin",
+            status: "in_progress",
+            stepIndex: nextIndex,
+            completedStepIds: ids,
+          });
+          await setOnboardingHandoff(handoff);
+        } catch {
+          /* seguimos igual al portal */
+        }
+        window.location.assign("/portal");
+      });
+    }
+
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [surface, phase, step?.id, tour.steps, start]);
+
+  const dismissHandoff = useCallback(
+    (opts?: { startPortal?: boolean; goAdmin?: boolean }) => {
+      writeHandoffLocal(null);
+      start(async () => {
+        try {
+          await setOnboardingHandoff(null);
+        } catch {
+          /* ignore */
+        }
+      });
+      if (opts?.goAdmin) {
+        window.location.assign("/admin");
+        return;
+      }
+      if (opts?.startPortal) {
+        setPhase("welcome");
+        setStepIndex(0);
+        stepIndexRef.current = 0;
+        setCompletedIds([]);
+        completedIdsRef.current = [];
+        autoAdvancedFor.current = null;
+        notifyOnboardingActive();
+        return;
+      }
+      setPhase("idle");
+      notifyOnboardingInactive();
+    },
+    [start]
+  );
+
+  if (phase === "handoff") {
+    return (
+      <div
+        className="fixed inset-0 z-[100] flex items-end justify-center p-4 sm:items-center print:hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-handoff-title"
+      >
+        <div className="absolute inset-0 bg-[hsl(213_47%_10%/0.55)]" />
+        <div className="relative z-[101] w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl sm:p-6">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-md bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+            <Sparkles className="h-3.5 w-3.5" />
+            Tutorial
+          </div>
+          <h2 id="onboarding-handoff-title" className="text-lg font-semibold text-foreground">
+            Continuá la guía
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Viniste desde el tutorial del panel. Acá podés recorrer la guía corta del portal (catálogo y
+            pedidos) o volver al admin para terminar el paseo del panel.
+          </p>
+          <div className="mt-5 flex flex-col gap-2">
+            <Button type="button" onClick={() => dismissHandoff({ startPortal: true })} disabled={pending}>
+              Seguir con la guía del portal
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => dismissHandoff({ goAdmin: true })}
+              disabled={pending}
+            >
+              Volver al admin y seguir
+            </Button>
+            <button
+              type="button"
+              className="text-center text-xs text-muted-foreground hover:underline"
+              onClick={() => dismissHandoff()}
+            >
+              Cerrar por ahora
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (phase === "idle") return null;
 

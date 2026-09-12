@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type {
+  OnboardingHandoff,
   OnboardingState,
   OnboardingStatus,
   OnboardingSurface,
@@ -70,4 +71,25 @@ export async function resetOnboarding(surface: OnboardingSurface) {
     stepIndex: 0,
     completedStepIds: [],
   });
+}
+
+export async function setOnboardingHandoff(handoff: OnboardingHandoff | null) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return { ok: false as const, error: "Sin sesión" };
+
+    const current = await getOnboardingState();
+    const next: OnboardingState = { ...current };
+    if (handoff) next.handoff = handoff;
+    else delete next.handoff;
+
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { onboardingJson: next },
+    });
+
+    return { ok: true as const, state: next };
+  } catch {
+    return { ok: false as const, error: "No se pudo guardar" };
+  }
 }

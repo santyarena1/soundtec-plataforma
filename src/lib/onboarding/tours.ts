@@ -710,13 +710,14 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       route: "/admin",
       target: "mode-client",
       title: "Probar el portal (Modo cliente)",
-      body: "El botón «Modo cliente» abre el portal con tu mismo login. Sirve para recorrer el catálogo, el carrito y el pedido como lo ve un cliente.",
+      body: "Tocá «Modo cliente» (resaltado) para abrir el portal. Ahí vas a poder seguir con una guía corta del catálogo y los pedidos. Cuando vuelvas con «Modo admin», el tutorial del panel retoma.",
       bullets: [
         "No cambia de usuario: es la misma sesión en otra interfaz.",
-        "Para volver, en el portal usá «Modo admin».",
-        "En el portal ves el catálogo y los precios tal como los ve el cliente: sin paneles de configuración.",
+        "En el portal vas a ver un aviso para continuar la guía o volver al admin.",
+        "Si preferís no salir ahora, podés pulsar Siguiente y terminar el tutorial del panel acá.",
       ],
-      tip: "Hacé el circuito: portal → agregar al carrito → enviar pedido → verlo en Admin → Pedidos.",
+      tip: "Recomendado: abrí Modo cliente, mirá el portal un rato y volvé con Modo admin.",
+      turnHint: "hacé click en «Modo cliente» (resaltado) para continuar en el portal.",
     },
     {
       id: "help-dock",

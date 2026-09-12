@@ -619,4 +619,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-12-8",
+    version: "1.16.3",
+    releasedAt: "2026-09-12T23:20:00.000Z",
+    summary: "Al pasar a Modo cliente desde el tutorial del admin, el portal ofrece continuar la guía.",
+    items: [
+      {
+        kind: "FIX",
+        text: "Si el tutorial del panel te manda a Modo cliente, en el portal aparece un aviso para seguir la guía o volver al admin.",
+      },
+    ],
+  },
 ];
