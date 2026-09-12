@@ -268,7 +268,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         title="Productos"
         description={`${total} productos · página ${page} de ${totalPages}`}
         actions={
-          <ButtonLink href="/admin/products/new">
+          <ButtonLink href="/admin/products/new" data-tour="products-new-btn">
             <Plus className="h-4 w-4" /> Nuevo producto
           </ButtonLink>
         }

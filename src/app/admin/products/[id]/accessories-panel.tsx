@@ -27,7 +27,7 @@ interface Props {
 
 export function AccessoriesPanel({ productId, relations, candidates }: Props) {
   return (
-    <Card>
+    <Card data-tour="product-accessories">
       <CardContent className="space-y-4 p-6">
         <div>
           <h2 className="heading-3">Accesorios vinculados</h2>

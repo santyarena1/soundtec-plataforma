@@ -400,7 +400,7 @@ export function PortalDataPanel(props: PortalDataPanelProps) {
   const docs = asArray<DocItem>(props.documents);
   const badges = asArray<BadgeItem>(props.badges);
   return (
-    <Card>
+    <Card data-tour="product-supplier">
       <CardContent className="p-5 space-y-5">
         <HeaderSection enrichedAt={props.enrichedAt} translatedAt={props.translatedAt} />
         <IdentificationSection {...props} />

@@ -35,6 +35,15 @@ export type OnboardingStep = {
    * Mientras tanto “Siguiente” queda bloqueado.
    */
   requirePath?: string;
+  /**
+   * Cómo matchear requirePath:
+   * - prefix (default): la ruta o cualquier hija
+   * - exact: solo esa ruta
+   * - child: solo hijas (ej. abrir un detalle desde el listado)
+   */
+  requirePathMode?: "prefix" | "exact" | "child";
+  /** En mode child, excluye segmentos de primer nivel (ej. "new", "quick"). */
+  requirePathExclude?: string[];
   /** Al cumplir requirePath, avanza solo al siguiente paso. */
   autoAdvanceOnRoute?: boolean;
 };

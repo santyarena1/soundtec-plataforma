@@ -153,7 +153,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
       />
 
       {/* ── Navegación rápida por sección ── */}
-      <Card>
+      <Card data-tour="product-nav">
         <CardContent className="p-3">
           <div className="flex flex-wrap gap-1.5">
             {SECTIONS.map((s) => (
@@ -171,7 +171,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
       </Card>
 
       {/* ── 1. Datos generales (form principal) ── */}
-      <Card>
+      <Card data-tour="product-data">
         <CardContent className="p-6">
           <SectionHeader
             id="datos"
@@ -260,7 +260,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
       </Card>
 
       {/* ── 2. Etiquetas ── */}
-      <Card>
+      <Card data-tour="product-labels">
         <CardContent className="p-6">
           <SectionHeader
             id="etiquetas"

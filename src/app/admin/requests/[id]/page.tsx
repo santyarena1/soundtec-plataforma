@@ -169,7 +169,9 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
         }
       />
 
-      <StatusStepper status={status} />
+      <div data-tour="request-status">
+        <StatusStepper status={status} />
+      </div>
 
       {waitingOnUs && status !== "REJECTED" && status !== "CLOSED" ? (
         <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4">
@@ -202,7 +204,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
             </CardContent>
           </Card>
 
-          <Card>
+          <Card data-tour="request-items">
             <CardContent className="p-6 pt-6">
               <div className="mb-4 flex items-center gap-2">
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
@@ -300,7 +302,7 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
           />
           </div>
 
-          <Card>
+          <Card data-tour="request-status-actions">
             <CardContent className="p-5 pt-5">
               <CardTitle>Cambiar estado</CardTitle>
               <p className="mb-3 mt-1 text-xs text-muted-foreground">Ahora está en «{statusMeta.label}».</p>

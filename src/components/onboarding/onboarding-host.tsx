@@ -44,8 +44,23 @@ function surfaceState(state: OnboardingState, surface: OnboardingSurface): Onboa
   return state[surface] ?? { status: "pending" as OnboardingStatus };
 }
 
-function pathMatches(pathname: string, route: string) {
-  if (route === "/admin" || route === "/portal") return pathname === route;
+function pathMatches(
+  pathname: string,
+  route: string,
+  mode: "prefix" | "exact" | "child" = "prefix",
+  exclude: string[] = []
+) {
+  if (route === "/admin" || route === "/portal") {
+    return mode === "child" ? false : pathname === route;
+  }
+  if (mode === "exact") return pathname === route;
+  if (mode === "child") {
+    if (!pathname.startsWith(`${route}/`)) return false;
+    const first = pathname.slice(route.length + 1).split("/")[0] || "";
+    if (!first) return false;
+    if (exclude.includes(first)) return false;
+    return true;
+  }
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
@@ -200,7 +215,15 @@ export function OnboardingHost({
   }, [stepIndex]);
 
   const step = tour.steps[stepIndex];
-  const needsPath = Boolean(step?.requirePath && !pathMatches(pathname, step.requirePath));
+  const needsPath = Boolean(
+    step?.requirePath &&
+      !pathMatches(
+        pathname,
+        step.requirePath,
+        step.requirePathMode ?? "prefix",
+        step.requirePathExclude ?? []
+      )
+  );
   const { rect, missing } = useTargetRect(
     phase === "tour" ? step?.target ?? null : null,
     phase === "tour",
@@ -354,7 +377,16 @@ export function OnboardingHost({
 
   useEffect(() => {
     if (phase !== "tour" || !step?.requirePath || !step.autoAdvanceOnRoute) return;
-    if (!pathMatches(pathname, step.requirePath)) return;
+    if (
+      !pathMatches(
+        pathname,
+        step.requirePath,
+        step.requirePathMode ?? "prefix",
+        step.requirePathExclude ?? []
+      )
+    ) {
+      return;
+    }
     if (autoAdvancedFor.current === step.id) return;
     if (stepIndex >= tour.steps.length - 1) return;
     autoAdvancedFor.current = step.id;
@@ -415,6 +447,12 @@ export function OnboardingHost({
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <span>Podés salir cuando quieras y reiniciar desde Ayuda → Empezar guía de nuevo.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span>
+                  Es solo un paseo: no uses Guardar, Enviar, Emitir ni Crear. Si únicamente mirás y navegás, no se guarda nada.
+                </span>
               </li>
             </ul>
             <div className="mt-7 flex flex-wrap items-center gap-2">
@@ -522,6 +560,10 @@ export function OnboardingHost({
               <X className="h-4 w-4" />
             </button>
           </div>
+
+          <p className="mb-3 rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[11px] leading-snug text-amber-900 dark:text-amber-100">
+            Modo tutorial: mirá y navegá. No uses Guardar, Enviar, Emitir ni Crear — esas acciones sí se guardan. Si solo explorás, no se persiste nada.
+          </p>
 
           {needsPath ? (
             <div className="space-y-3">

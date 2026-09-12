@@ -318,7 +318,7 @@ export default async function AdminRequestsPage({
                     </Badge>
                   </TD>
                   <TD className="text-right">
-                    <ButtonLink href={`/admin/requests/${r.id}`} size="sm" variant={needsAction ? "primary" : "outline"}>
+                    <ButtonLink href={`/admin/requests/${r.id}`} size="sm" variant={needsAction ? "primary" : "outline"} data-tour="requests-open-row">
                       {needsAction ? "Responder" : "Abrir"}
                       <ArrowRight className="h-3.5 w-3.5" />
                     </ButtonLink>

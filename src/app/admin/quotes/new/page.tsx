@@ -52,7 +52,7 @@ export default async function NewQuotePage() {
       <Card>
         <CardContent className="p-6">
           <form action={createQuoteFromBrief} className="space-y-6">
-            <section className="space-y-3">
+            <section className="space-y-3" data-tour="quote-new-client">
               <div>
                 <h2 className="text-sm font-semibold">1. Cliente y proyecto</h2>
                 <p className="text-xs text-muted-foreground">Datos que salen en el encabezado del PDF.</p>
@@ -81,7 +81,7 @@ export default async function NewQuotePage() {
               </div>
             </section>
 
-            <section className="space-y-3">
+            <section className="space-y-3" data-tour="quote-new-brief">
               <div>
                 <h2 className="text-sm font-semibold">2. Qué hay que cotizar</h2>
                 <p className="text-xs text-muted-foreground">
@@ -102,7 +102,7 @@ export default async function NewQuotePage() {
               </div>
             </section>
 
-            <section className="space-y-3 rounded-md border border-border bg-secondary/20 p-4">
+            <section className="space-y-3 rounded-md border border-border bg-secondary/20 p-4" data-tour="quote-new-type">
               <div>
                 <h2 className="text-sm font-semibold">3. Tipo de documento</h2>
                 <p className="text-xs text-muted-foreground">Define cuántos módulos de texto trae la cotización nueva.</p>

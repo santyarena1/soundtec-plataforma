@@ -112,7 +112,7 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
   }
 
   return (
-    <Card>
+    <Card data-tour="product-images">
       <CardContent className="space-y-5 p-6">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">

@@ -565,4 +565,29 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-12-5",
+    version: "1.16.0",
+    releasedAt: "2026-09-12T18:30:00.000Z",
+    summary:
+      "Tutorial más profundo en productos, pedidos y cotizaciones: se entra a fichas existentes, se muestra el alta de cero y se aclara que el paseo no guarda cambios.",
+    items: [
+      {
+        kind: "NUEVO",
+        text: "En Productos el tutorial abre una ficha y explica qué es IA, qué viene de import/Excel y qué llega de páginas del proveedor.",
+      },
+      {
+        kind: "NUEVO",
+        text: "En Pedidos se entra a un pedido real: estados, ítems, respuesta, cotización vinculada y cómo nacen los pedidos desde el portal.",
+      },
+      {
+        kind: "NUEVO",
+        text: "En Cotizaciones se recorre una existente (asistente de 7 pasos) y las pantallas de alta completa y cotización rápida.",
+      },
+      {
+        kind: "MEJORA",
+        text: "Aviso permanente: durante el tutorial no hay que Guardar / Enviar / Emitir / Crear; si solo mirás, no se persiste nada.",
+      },
+    ],
+  },
 ];

@@ -310,7 +310,7 @@ export function ProductAiAssist({ productId, productName, brandName }: Props) {
   );
 
   return (
-    <Card>
+    <Card data-tour="product-ai">
       <CardContent className="p-5 space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">

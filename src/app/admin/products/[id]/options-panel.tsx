@@ -22,7 +22,7 @@ interface Props {
 
 export function ProductOptionsPanel({ productId, options }: Props) {
   return (
-    <Card>
+    <Card data-tour="product-options">
       <CardContent className="space-y-4 p-6">
         <div>
           <h2 className="heading-3">Opcionales / accesorios</h2>

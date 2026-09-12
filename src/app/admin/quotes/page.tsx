@@ -140,7 +140,7 @@ export default async function AdminQuotesPage({
             )}
             {permissionsHave(permissions, "quotes.create") || permissions.fullAccess ? (
               <div className="flex gap-2">
-              <ButtonLink href="/admin/quotes/quick" variant="outline">Cotización rápida</ButtonLink>
+              <ButtonLink href="/admin/quotes/quick" variant="outline" data-tour="quotes-quick-btn">Cotización rápida</ButtonLink>
               <ButtonLink href="/admin/quotes/new" data-tour="quotes-new-btn">
                 Nueva cotización
               </ButtonLink>
@@ -239,7 +239,7 @@ export default async function AdminQuotesPage({
                   <TD>{formatDate(row.createdAt)}</TD>
                   <TD>
                     <div className="flex flex-col items-end gap-1">
-                      <ButtonLink href={`/admin/quotes/${row.id}`} size="sm" variant="outline">
+                      <ButtonLink href={`/admin/quotes/${row.id}`} size="sm" variant="outline" data-tour="quotes-open-row">
                         Editar
                       </ButtonLink>
                       <QuoteRowActions quoteId={row.id} status={row.status} canEdit={canEdit} />

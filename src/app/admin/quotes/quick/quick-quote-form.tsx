@@ -181,7 +181,7 @@ export function QuickQuoteForm({
     );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-tour="quote-quick-form">
       <div className="grid gap-4 md:grid-cols-2">
         <ClientSelectWithCreate
           clients={clients}

@@ -712,7 +712,7 @@ function renderCell(
     case "name":
       return (
         <div className="min-w-[280px] max-w-[420px]">
-          <Link href={`/admin/products/${r.id}`} className="break-words font-medium hover:underline">
+          <Link href={`/admin/products/${r.id}`} data-tour="products-open-row" className="break-words font-medium hover:underline">
             {r.name}
           </Link>
           <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
@@ -814,7 +814,7 @@ function renderCell(
           >
             <Eye className="h-3.5 w-3.5" />
           </Button>
-          <Link href={`/admin/products/${r.id}`} className="text-xs text-accent hover:underline">
+          <Link href={`/admin/products/${r.id}`} data-tour="products-open-row" className="text-xs text-accent hover:underline">
             Editar
           </Link>
         </div>
@@ -902,7 +902,7 @@ function ProductPreviewModal({
             Cerrar
           </Button>
           <Link
-            href={`/admin/products/${row.id}`}
+            href={`/admin/products/${row.id}`} data-tour="products-open-row"
             className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Editar producto
