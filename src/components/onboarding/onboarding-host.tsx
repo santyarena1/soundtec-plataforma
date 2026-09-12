@@ -14,7 +14,11 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ONBOARDING_START_EVENT } from "@/lib/onboarding/events";
+import {
+  notifyOnboardingActive,
+  notifyOnboardingInactive,
+  ONBOARDING_START_EVENT,
+} from "@/lib/onboarding/events";
 import { tourForSurface } from "@/lib/onboarding/tours";
 import type {
   OnboardingState,
@@ -23,6 +27,7 @@ import type {
   OnboardingSurfaceState,
 } from "@/lib/onboarding/types";
 import { resetOnboarding, saveOnboardingState } from "@/server/actions/onboarding";
+import { toast } from "sonner";
 
 type Phase = "idle" | "welcome" | "tour";
 
@@ -157,19 +162,24 @@ export function OnboardingHost({
   );
 
   const openWelcome = useCallback(() => {
-    setPhase("welcome");
+    setCompletedIds([]);
     setStepIndex(0);
+    navigatingRef.current = false;
+    setPhase("welcome");
+    notifyOnboardingActive();
   }, []);
 
   const startTour = useCallback(() => {
     setPhase("tour");
     setStepIndex(0);
     setCompletedIds([]);
+    notifyOnboardingActive();
     persist({ status: "in_progress", stepIndex: 0, completedStepIds: [] });
   }, [persist]);
 
   const skipAll = useCallback(() => {
     setPhase("idle");
+    notifyOnboardingInactive();
     persist({ status: "skipped", stepIndex: 0, completedStepIds: completedIds });
   }, [persist, completedIds]);
 
@@ -177,8 +187,23 @@ export function OnboardingHost({
     const ids = Array.from(new Set([...completedIds, step?.id].filter(Boolean) as string[]));
     setCompletedIds(ids);
     setPhase("idle");
+    notifyOnboardingInactive();
     persist({ status: "completed", stepIndex: tour.steps.length - 1, completedStepIds: ids });
   }, [completedIds, persist, step?.id, tour.steps.length]);
+
+  /** Reinicia desde cero: abre YA la UI y persiste en background. */
+  const restartFromScratch = useCallback(() => {
+    openWelcome();
+    start(async () => {
+      try {
+        await resetOnboarding(surface);
+      } catch {
+        toast.error("No se pudo guardar el reinicio", {
+          description: "El paseo se abrió igual; si recargás la página puede volver el estado anterior.",
+        });
+      }
+    });
+  }, [openWelcome, start, surface]);
 
   const goToStep = useCallback(
     (nextIndex: number) => {
@@ -201,6 +226,7 @@ export function OnboardingHost({
     if (current.status === "pending") {
       setPhase("welcome");
       setStepIndex(0);
+      notifyOnboardingActive();
       return;
     }
     if (current.status === "in_progress") {
@@ -208,20 +234,23 @@ export function OnboardingHost({
       setStepIndex(idx);
       setCompletedIds(current.completedStepIds ?? []);
       setPhase("tour");
+      notifyOnboardingActive();
     }
   }, [initialState, surface, tour.steps.length]);
 
-  // Reinicio desde Ayuda.
+  // Reinicio desde Ayuda → Empezar guía.
   useEffect(() => {
     function onStart() {
-      start(async () => {
-        await resetOnboarding(surface);
-        openWelcome();
-      });
+      restartFromScratch();
     }
     window.addEventListener(ONBOARDING_START_EVENT, onStart);
     return () => window.removeEventListener(ONBOARDING_START_EVENT, onStart);
-  }, [surface, openWelcome, start]);
+  }, [restartFromScratch]);
+
+  useEffect(() => {
+    if (phase === "idle") notifyOnboardingInactive();
+    else notifyOnboardingActive();
+  }, [phase]);
 
   // Navegar a la ruta del paso actual.
   useEffect(() => {
@@ -236,9 +265,10 @@ export function OnboardingHost({
   }, [phase, step, pathname, router]);
 
   useEffect(() => {
-    if (phase !== "tour") return;
+    if (phase !== "welcome" && phase !== "tour") return;
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") skipAll();
+      if (phase !== "tour") return;
       if (event.key === "ArrowRight" && stepIndex < tour.steps.length - 1) goToStep(stepIndex + 1);
       if (event.key === "ArrowLeft" && stepIndex > 0) goToStep(stepIndex - 1);
     }
@@ -256,14 +286,15 @@ export function OnboardingHost({
   if (phase === "welcome") {
     return (
       <div
-        className="fixed inset-0 z-[85] flex items-center justify-center p-4 print:hidden"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 print:hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="onboarding-welcome-title"
       >
-        <div className="absolute inset-0 bg-[hsl(213_47%_10%/0.72)] backdrop-blur-[2px]" onClick={skipAll} />
+        {/* Fondo sin cerrar: el changelog ya no debe “robar” el click y saltar el paseo. */}
+        <div className="absolute inset-0 bg-[hsl(213_47%_10%/0.78)] backdrop-blur-[2px]" />
         <div
-          className="relative z-[86] w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-card shadow-2xl"
+          className="relative z-[101] w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-card shadow-2xl"
           style={{
             backgroundImage:
               "radial-gradient(ellipse 120% 80% at 0% 0%, hsl(213 47% 22% / 0.12), transparent 55%), radial-gradient(ellipse 90% 70% at 100% 100%, hsl(32 70% 48% / 0.08), transparent 50%)",
@@ -291,7 +322,7 @@ export function OnboardingHost({
               </li>
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <span>El progreso queda guardado en tu usuario; podés retomar o reiniciar desde Ayuda.</span>
+                <span>Podés reiniciar este paseo cuando quieras desde Ayuda → Empezar guía.</span>
               </li>
             </ul>
 
@@ -328,15 +359,15 @@ export function OnboardingHost({
 
   return (
     <div
-      className="fixed inset-0 z-[85] print:hidden"
+      className="fixed inset-0 z-[100] print:hidden"
       role="dialog"
       aria-modal="true"
       aria-label={tour.title}
     >
-      <div className="absolute inset-0 bg-[hsl(213_47%_8%/0.55)]" onClick={skipAll} />
+      <div className="absolute inset-0 bg-[hsl(213_47%_8%/0.55)]" />
       {highlight && !waitingRoute ? (
         <div
-          className="pointer-events-none absolute z-[86] rounded-lg transition-all duration-300"
+          className="pointer-events-none absolute z-[101] rounded-lg transition-all duration-300"
           style={{
             top: highlight.top,
             left: highlight.left,
@@ -348,13 +379,10 @@ export function OnboardingHost({
       ) : null}
 
       <div
-        className="absolute z-[87] overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
+        className="absolute z-[102] overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
         style={tooltipStyle(waitingRoute ? null : rect)}
       >
-        <div
-          className="h-1 bg-secondary"
-          aria-hidden
-        >
+        <div className="h-1 bg-secondary" aria-hidden>
           <div
             className="h-full bg-primary transition-all duration-300"
             style={{ width: `${((stepIndex + 1) / tour.steps.length) * 100}%` }}
@@ -410,11 +438,7 @@ export function OnboardingHost({
           )}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-            <button
-              type="button"
-              className="text-[11px] text-muted-foreground hover:underline"
-              onClick={skipAll}
-            >
+            <button type="button" className="text-[11px] text-muted-foreground hover:underline" onClick={skipAll}>
               Saltar paseo
             </button>
             <div className="flex items-center gap-1">

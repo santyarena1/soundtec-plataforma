@@ -2,7 +2,6 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 import type {
   OnboardingState,
   OnboardingStatus,
@@ -54,8 +53,8 @@ export async function saveOnboardingState(input: {
     data: { onboardingJson: next },
   });
 
-  revalidatePath("/admin");
-  revalidatePath("/portal");
+  // No revalidatePath acá: el host maneja la UI en cliente. Un refresh a mitad
+  // del reinicio puede remountar con el estado viejo y “tragarse” el paseo.
   return { ok: true as const, state: next };
 }
 

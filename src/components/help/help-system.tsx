@@ -462,49 +462,51 @@ export function HelpDock() {
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-1 border-b border-border px-2 py-1.5">
+            <div className="space-y-1.5 border-b border-border px-2 py-1.5">
               <button
                 type="button"
-                className="rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
-                onClick={() => send("¿Qué hace esta pantalla y qué se puede editar?")}
-              >
-                Esta pantalla
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
-                onClick={startTour}
-              >
-                <Compass className="h-3 w-3" />
-                Recorrer
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-2 py-1.5 text-[12px] font-medium text-primary-foreground hover:bg-primary/90"
                 onClick={() => {
                   setOpen(false);
                   requestOnboardingStart();
                 }}
               >
-                <Sparkles className="h-3 w-3" />
-                Bienvenida
+                <Sparkles className="h-3.5 w-3.5" />
+                Empezar guía de nuevo
               </button>
-              <Link
-                href="/admin/ayuda?v=detallado"
-                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
-                onClick={() => setOpen(false)}
-              >
-                <BookOpen className="h-3 w-3" />
-                Tutorial
-              </Link>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
-                onClick={() => openReport()}
-              >
-                <Bug className="h-3 w-3" />
-                Ticket al dev
-              </button>
+              <div className="flex flex-wrap gap-1">
+                <button
+                  type="button"
+                  className="rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                  onClick={() => send("¿Qué hace esta pantalla y qué se puede editar?")}
+                >
+                  Esta pantalla
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                  onClick={startTour}
+                >
+                  <Compass className="h-3 w-3" />
+                  Recorrer
+                </button>
+                <Link
+                  href="/admin/ayuda?v=detallado"
+                  className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                  onClick={() => setOpen(false)}
+                >
+                  <BookOpen className="h-3 w-3" />
+                  Tutorial
+                </Link>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                  onClick={() => openReport()}
+                >
+                  <Bug className="h-3 w-3" />
+                  Ticket al dev
+                </button>
+              </div>
             </div>
 
             <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">

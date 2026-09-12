@@ -127,7 +127,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
           <HelpDock />
         </Suspense>
         <OnboardingHost surface="admin" initialState={onboardingState} />
-        <ChangelogPopup entries={changelogs} />
+        <ChangelogPopup entries={changelogs} onboardingState={onboardingState} />
       </div>
     </div>
   );

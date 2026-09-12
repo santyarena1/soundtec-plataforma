@@ -12,12 +12,29 @@ import {
   unreadChangelogEntries,
 } from "@/lib/changelog-seen";
 import type { ChangelogEntryView } from "@/lib/changelog";
+import {
+  ONBOARDING_ACTIVE_EVENT,
+  ONBOARDING_INACTIVE_EVENT,
+  ONBOARDING_START_EVENT,
+} from "@/lib/onboarding/events";
+import type { OnboardingState } from "@/lib/onboarding/types";
 
-export function ChangelogPopup({ entries }: { entries: ChangelogEntryView[] }) {
+export function ChangelogPopup({
+  entries,
+  onboardingState,
+}: {
+  entries: ChangelogEntryView[];
+  /** Si el paseo de bienvenida está pendiente o en curso, no tapamos el onboarding. */
+  onboardingState?: OnboardingState;
+}) {
   const pathname = usePathname();
   const hideHere = pathname.startsWith("/admin/changelog");
   const [unread, setUnread] = useState<ChangelogEntryView[] | null>(null);
   const [open, setOpen] = useState(false);
+  const [onboardingBlocks, setOnboardingBlocks] = useState(() => {
+    const status = onboardingState?.admin?.status;
+    return status === "pending" || status === "in_progress";
+  });
 
   useEffect(() => {
     function sync() {
@@ -33,8 +50,34 @@ export function ChangelogPopup({ entries }: { entries: ChangelogEntryView[] }) {
   }, [entries]);
 
   useEffect(() => {
-    setOpen(Boolean(unread && unread.length > 0 && !hideHere));
-  }, [unread, hideHere]);
+    function block() {
+      setOnboardingBlocks(true);
+      setOpen(false);
+    }
+    function unblock() {
+      setOnboardingBlocks(false);
+    }
+    window.addEventListener(ONBOARDING_START_EVENT, block);
+    window.addEventListener(ONBOARDING_ACTIVE_EVENT, block);
+    window.addEventListener(ONBOARDING_INACTIVE_EVENT, unblock);
+    return () => {
+      window.removeEventListener(ONBOARDING_START_EVENT, block);
+      window.removeEventListener(ONBOARDING_ACTIVE_EVENT, block);
+      window.removeEventListener(ONBOARDING_INACTIVE_EVENT, unblock);
+    };
+  }, []);
+
+  useEffect(() => {
+    const status = onboardingState?.admin?.status;
+    if (status === "pending" || status === "in_progress") {
+      setOnboardingBlocks(true);
+      setOpen(false);
+    }
+  }, [onboardingState?.admin?.status]);
+
+  useEffect(() => {
+    setOpen(Boolean(unread && unread.length > 0 && !hideHere && !onboardingBlocks));
+  }, [unread, hideHere, onboardingBlocks]);
 
   function dismiss() {
     markChangelogIdsSeen((unread || []).map((entry) => entry.id));

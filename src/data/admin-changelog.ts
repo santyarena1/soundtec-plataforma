@@ -501,11 +501,27 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
       {
         kind: "NUEVO",
-        text: "El progreso queda guardado por usuario; se puede saltar, retomar o reiniciar desde Ayuda → Bienvenida.",
+        text: "El progreso queda guardado por usuario; se puede saltar, retomar o reiniciar desde Ayuda → Empezar guía de nuevo.",
       },
       {
         kind: "MEJORA",
         text: "Cada paso explica qué se edita y qué otras pantallas afecta (precios, visibilidad, modo cliente/admin).",
+      },
+    ],
+  },
+  {
+    id: "ship-2026-09-12-2",
+    version: "1.15.1",
+    releasedAt: "2026-09-12T15:10:00.000Z",
+    summary: "En Ayuda hay un botón claro para reiniciar la guía, y el changelog ya no pisa el onboarding.",
+    items: [
+      {
+        kind: "FIX",
+        text: "Ayuda → «Empezar guía de nuevo» reinicia el paseo desde cero aunque lo hayas cerrado o saltado.",
+      },
+      {
+        kind: "FIX",
+        text: "El popup de novedades no se abre encima del paseo; el fondo del onboarding ya no lo cierra de un click accidental.",
       },
     ],
   },
