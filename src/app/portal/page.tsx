@@ -100,7 +100,7 @@ export default async function PortalDashboardPage() {
   return (
     <div className="space-y-8">
       {/* Hero: búsqueda primero */}
-      <section className="relative overflow-hidden rounded-2xl bg-primary text-primary-foreground">
+      <section className="relative overflow-hidden rounded-2xl bg-primary text-primary-foreground" data-tour="portal-home-hero">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-primary-foreground/10 blur-3xl" />
         <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:p-10">

@@ -20,6 +20,7 @@ export function PortalBottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur md:hidden"
       style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
       aria-label="Navegación del portal"
+      data-tour="portal-nav"
     >
       <ul className="grid grid-cols-5">
         {items.map((item) => {

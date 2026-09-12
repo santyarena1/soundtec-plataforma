@@ -12,6 +12,8 @@ import { ChangelogPopup } from "@/components/layout/changelog-popup";
 import { getCurrentPermissions } from "@/lib/auth-helpers";
 import { listAllChangelogs } from "@/server/changelog-query";
 import { HelpDock } from "@/components/help/help-system";
+import { OnboardingHost } from "@/components/onboarding/onboarding-host";
+import { getOnboardingState } from "@/server/actions/onboarding";
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -27,13 +29,14 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
 
   const userName = session.user.name;
   const userEmail = session.user.email;
-  const [logoUrl, appName, changelogs] = await Promise.all([
+  const [logoUrl, appName, changelogs, onboardingState] = await Promise.all([
     getSetting("branding.logo_url", ""),
     getSetting("app.name", "Soundtec"),
     listAllChangelogs().catch((err) => {
       console.error("changelog unread", err);
       return [];
     }),
+    getOnboardingState(),
   ]);
 
   async function handleSignOut() {
@@ -81,7 +84,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
           <p className="font-semibold">{userName}</p>
           <p className="truncate text-muted-foreground">{userEmail}</p>
           <div className="mt-3 flex gap-1">
-            <ButtonLink href="/portal" size="sm" variant="outline" className="flex-1">
+            <ButtonLink href="/portal" size="sm" variant="outline" className="flex-1" data-tour="mode-client">
               Modo cliente
             </ButtonLink>
             <form action={handleSignOut}>
@@ -123,6 +126,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
         <Suspense fallback={null}>
           <HelpDock />
         </Suspense>
+        <OnboardingHost surface="admin" initialState={onboardingState} />
         <ChangelogPopup entries={changelogs} />
       </div>
     </div>

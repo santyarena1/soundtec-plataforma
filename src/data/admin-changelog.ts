@@ -473,4 +473,24 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Los estados se leen en masculino (Enviado, Respondido, Confirmado). El tipo de pedido «Pedido» ahora se llama «Compra»." },
     ],
   },
+  {
+    id: "ship-2026-09-12",
+    version: "1.15.0",
+    releasedAt: "2026-09-12T14:00:00.000Z",
+    summary: "Paseo de bienvenida la primera vez que entra un usuario nuevo (admin o portal).",
+    items: [
+      {
+        kind: "NUEVO",
+        text: "Al dar de alta un usuario, la primera visita abre un tutorial guiado por módulos de gestión, ventas, clientes y catálogo.",
+      },
+      {
+        kind: "NUEVO",
+        text: "El progreso queda guardado por usuario; se puede saltar, retomar o reiniciar desde Ayuda → Bienvenida.",
+      },
+      {
+        kind: "MEJORA",
+        text: "Cada paso explica qué se edita y qué otras pantallas afecta (precios, visibilidad, modo cliente/admin).",
+      },
+    ],
+  },
 ];

@@ -8,6 +8,9 @@ import { DraftMiniCart } from "@/components/portal/draft-mini-cart";
 import { PortalToaster } from "@/components/portal/portal-toaster";
 import { PortalBottomNav } from "@/components/layout/portal-bottom-nav";
 import { getActiveDraftSummary } from "@/lib/draft-request";
+import { OnboardingHost } from "@/components/onboarding/onboarding-host";
+import { PortalOnboardingButton } from "@/components/onboarding/portal-onboarding-button";
+import { getOnboardingState } from "@/server/actions/onboarding";
 
 const navItems = [
   { href: "/portal", label: "Inicio", icon: LayoutDashboard },
@@ -20,10 +23,11 @@ const navItems = [
 export async function PortalShell({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/portal");
-  const [logoUrl, appName, draftSummary] = await Promise.all([
+  const [logoUrl, appName, draftSummary, onboardingState] = await Promise.all([
     getSetting("branding.logo_url", ""),
     getSetting("app.name", "Soundtec"),
     getActiveDraftSummary(session.user.id),
+    getOnboardingState(),
   ]);
 
   async function handleSignOut() {
@@ -54,7 +58,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
             </div>
           </Link>
 
-          <nav className="hidden gap-1 md:flex">
+          <nav className="hidden gap-1 md:flex" data-tour="portal-nav">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -68,8 +72,15 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
+            <PortalOnboardingButton />
             {(session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") && (
-              <ButtonLink href="/admin" size="sm" variant="outline" className="hidden sm:inline-flex">
+              <ButtonLink
+                href="/admin"
+                size="sm"
+                variant="outline"
+                className="hidden sm:inline-flex"
+                data-tour="mode-admin"
+              >
                 Modo admin
               </ButtonLink>
             )}
@@ -99,6 +110,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
       <DraftMiniCart draft={draftSummary} />
       <PortalBottomNav />
       <PortalToaster />
+      <OnboardingHost surface="portal" initialState={onboardingState} />
     </div>
   );
 }
