@@ -13,6 +13,8 @@ export const QUOTE_SETTING_KEYS = {
   alternativesDefault: "quotes.alternatives_default",
   deliveryOptions: "quotes.delivery_options",
   defaultIva: "quotes.default_iva",
+  defaultUnit: "quotes.default_unit",
+  defaultDelivery: "quotes.default_delivery",
   showDeliveryDefault: "quotes.show_delivery_default",
   validityDays: "quotes.terms.validity_days",
   paymentReference: "quotes.terms.payment_reference",

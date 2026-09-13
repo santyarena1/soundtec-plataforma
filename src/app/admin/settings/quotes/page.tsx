@@ -102,6 +102,8 @@ export default async function SettingsQuotesPage() {
     defaultLayout,
     defaultProfile,
     defaultIva,
+    defaultUnit,
+    defaultDelivery,
     showDelivery,
     deliveryOptions,
     validityDays,
@@ -129,6 +131,8 @@ export default async function SettingsQuotesPage() {
     getSetting(QUOTE_SETTING_KEYS.defaultLayout, "STANDARD"),
     getSetting(QUOTE_SETTING_KEYS.defaultProfile, "tecnico"),
     getSetting(QUOTE_SETTING_KEYS.defaultIva, "21"),
+    getSetting(QUOTE_SETTING_KEYS.defaultUnit, "u"),
+    getSetting(QUOTE_SETTING_KEYS.defaultDelivery, ""),
     getSetting(QUOTE_SETTING_KEYS.showDeliveryDefault, "true"),
     getSetting(QUOTE_SETTING_KEYS.deliveryOptions, ""),
     getSetting(QUOTE_SETTING_KEYS.validityDays, "5"),
@@ -286,6 +290,18 @@ export default async function SettingsQuotesPage() {
           ]}
         />
         <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.defaultIva} label="IVA (%)" defaultValue={defaultIva} />
+        <QuoteSettingField
+          settingKey={QUOTE_SETTING_KEYS.defaultUnit}
+          label="Unidad por defecto"
+          hint="Con la que nace cada fila nueva: u, global, ml, hs…"
+          defaultValue={defaultUnit}
+        />
+        <QuoteSettingField
+          settingKey={QUOTE_SETTING_KEYS.defaultDelivery}
+          label="Entrega por defecto"
+          hint="Se aplica a cada fila nueva. Vacío significa cargarla a mano, y sin entrega no se puede emitir."
+          defaultValue={defaultDelivery}
+        />
         <QuoteSettingField
           settingKey={QUOTE_SETTING_KEYS.showDeliveryDefault}
           label="Mostrar columna de entrega"

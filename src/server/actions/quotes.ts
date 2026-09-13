@@ -431,6 +431,10 @@ export async function createQuoteFromRequest(input: {
 
     const altId = quote.alternatives.find((a) => a.isDefault)?.id ?? quote.alternatives[0]?.id;
     const defaultIva = Number(await getSetting(QUOTE_SETTING_KEYS.defaultIva, "21")) || 21;
+  // La unidad y la entrega estaban fijas en el código: toda fila nacía en
+  // "u" y sin entrega, y la entrega vacía después bloquea la emisión.
+  const defaultUnit = (await getSetting(QUOTE_SETTING_KEYS.defaultUnit, "u")).trim() || "u";
+  const defaultDelivery = (await getSetting(QUOTE_SETTING_KEYS.defaultDelivery, "")).trim();
     const global = await getGlobalMarginPercent();
     const prices = await calculatePricesForProducts(
       request.items.map((i) => ({
@@ -478,7 +482,8 @@ export async function createQuoteFromRequest(input: {
             kind: "PRODUCT",
             productId: item.product.id,
             quantity: new Prisma.Decimal(qty),
-            unit: "u",
+      unit: defaultUnit,
+      deliveryKey: defaultDelivery || null,
             description: desc,
             unitPriceUsd: new Prisma.Decimal(Number.isFinite(unit) ? unit : 0),
             lineTotalUsd: new Prisma.Decimal(Number.isFinite(unit) ? unit * qty : 0),

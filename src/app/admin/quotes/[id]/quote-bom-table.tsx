@@ -350,6 +350,12 @@ export function QuoteBomTable({
   );
 
   const activeCount = items.filter((item) => !item.optional).length;
+  // Una fila a cero o sin entrega no se distingue de una correcta hasta que
+  // se intenta emitir. Mejor decirlo acá.
+  const zeroPriced = items.filter((item) => !item.excluded && item.unitPriceUsd <= 0).length;
+  const missingDelivery = showDelivery
+    ? items.filter((item) => !item.excluded && !item.optional && !item.deliveryKey).length
+    : 0;
   const needle = filter.trim().toLowerCase();
 
   const filteredZones = useMemo(() => {
@@ -378,6 +384,18 @@ export function QuoteBomTable({
             <p className="text-xs text-muted-foreground">
               {activeCount} ítem{activeCount === 1 ? "" : "s"} · Neto {formatUsd(total)}
             </p>
+            {zeroPriced > 0 || missingDelivery > 0 ? (
+              <p className="mt-1 text-xs text-warning">
+                {[
+                  zeroPriced > 0 ? `${zeroPriced} ${zeroPriced === 1 ? "fila sin precio" : "filas sin precio"}` : null,
+                  missingDelivery > 0
+                    ? `${missingDelivery} ${missingDelivery === 1 ? "fila sin entrega" : "filas sin entrega"}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            ) : null}
           </div>
           <div className="flex min-w-[220px] flex-1 flex-wrap items-center justify-end gap-2 sm:max-w-md">
             <div className="relative min-w-[180px] flex-1">

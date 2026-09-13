@@ -145,7 +145,12 @@ export default async function QuoteEditorPage({
   }));
 
   const issued = quote.status === "ISSUED";
-  const total = quote.items.reduce((s, i) => s + Number(i.lineTotalUsd), 0);
+  // Mismo criterio que el documento: los opcionales se cotizan aparte y los
+  // excluidos no van. Antes la planilla mostraba un neto que no coincidía
+  // con el del PDF en cuanto había un opcional cargado.
+  const total = quote.items
+    .filter((i) => !i.optional && !i.excluded)
+    .reduce((s, i) => s + Number(i.lineTotalUsd), 0);
   // Cuánto suma cada opción, para verlo sin abrir el PDF.
   const alternativeTotals = new Map<string, { count: number; amount: number }>();
   for (const item of quote.items) {

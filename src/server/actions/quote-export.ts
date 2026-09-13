@@ -9,6 +9,8 @@ import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import * as XLSX from "xlsx";
 import { generateAndStoreQuotePdf } from "@/lib/quote-pdf-store";
+import { getSetting } from "@/lib/settings";
+import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 
 export async function issueQuote(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const id = String(formData.get("quoteId") || "");
@@ -135,6 +137,10 @@ export async function addServiceToQuote(formData: FormData): Promise<void> {
   if (!description) return;
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  // El servicio usaba 21 fijo e ignoraba el IVA configurado.
+  const serviceIva = Number(await getSetting(QUOTE_SETTING_KEYS.defaultIva, "21")) || 21;
+  const serviceUnit = (await getSetting(QUOTE_SETTING_KEYS.defaultUnit, "u")).trim() || "u";
+  const serviceDelivery = (await getSetting(QUOTE_SETTING_KEYS.defaultDelivery, "")).trim();
   const sort = loaded.quote.items.reduce((m, i) => Math.max(m, i.sortOrder), -1) + 1;
   const groupId = String(formData.get("groupId") || "").trim() || null;
   await prisma.quoteItem.create({
@@ -148,7 +154,9 @@ export async function addServiceToQuote(formData: FormData): Promise<void> {
       description,
       unitPriceUsd: new Prisma.Decimal(unitPrice),
       lineTotalUsd: new Prisma.Decimal(unitPrice * qty),
-      ivaRate: new Prisma.Decimal(21),
+      unit: serviceUnit,
+      deliveryKey: serviceDelivery || null,
+      ivaRate: new Prisma.Decimal(serviceIva),
       source: "MANUAL",
       sortOrder: sort,
     },
