@@ -671,21 +671,6 @@ export async function deleteQuoteItem(formData: FormData): Promise<void> {
   revalidatePath(`/admin/quotes/${item.quoteId}`);
 }
 
-export async function updateQuoteSection(formData: FormData): Promise<void> {
-  await requireQuotePermission("quotes.edit");
-  const id = String(formData.get("sectionId") || "");
-  const body = String(formData.get("body") || "");
-  const section = await prisma.quoteSection.findUnique({ where: { id } });
-  if (!section) return;
-  const loaded = await loadQuoteForUser(section.quoteId);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
-  await prisma.quoteSection.update({
-    where: { id },
-    data: { body: sanitizeQuoteHtml(body), source: QuoteNodeSource.MANUAL, stale: false },
-  });
-  revalidatePath(`/admin/quotes/${section.quoteId}`);
-}
-
 /** Edición humana de un módulo. El candado sólo le dice a la IA que no lo reescriba. */
 export async function saveQuoteSectionBody(input: {
   sectionId: string;
@@ -829,27 +814,57 @@ export async function saveQuoteTerms(formData: FormData): Promise<void> {
   if (!loaded.quote || loaded.quote.status === "ISSUED") return;
   const sourceRaw = String(formData.get("termsSource") || "SYSTEM");
   const termsSource = sourceRaw === "CLIENT_PREVIOUS" || sourceRaw === "CUSTOM" ? sourceRaw : "SYSTEM";
+
+  const fromForm = {
+    paymentTerms: String(formData.get("paymentTerms") || "") || null,
+    paymentReference: String(formData.get("paymentReference") || "") || null,
+    deliveryText: String(formData.get("deliveryText") || "") || null,
+    validityDays: Number(formData.get("validityDays") || "5") || 5,
+    productWarranty: String(formData.get("productWarranty") || "") || null,
+  };
+
+  // El origen elegido decide de dónde salen las condiciones. Antes se
+  // guardaba el enum y se escribía igual lo del formulario, así que elegir
+  // "las que este cliente usó antes" no traía nada.
+  let values = fromForm;
+  if (termsSource === "SYSTEM") {
+    const defaults = await defaultTerms();
+    values = {
+      paymentTerms: defaults.paymentTerms,
+      paymentReference: defaults.paymentReference,
+      deliveryText: defaults.deliveryText,
+      validityDays: defaults.validityDays,
+      productWarranty: defaults.productWarranty,
+    };
+  } else if (termsSource === "CLIENT_PREVIOUS" && loaded.quote.clientId) {
+    const previous = await prisma.quote.findFirst({
+      where: {
+        clientId: loaded.quote.clientId,
+        id: { not: id },
+        terms: { isNot: null },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: { terms: true },
+    });
+    if (previous?.terms) {
+      values = {
+        paymentTerms: previous.terms.paymentTerms,
+        paymentReference: previous.terms.paymentReference,
+        deliveryText: previous.terms.deliveryText,
+        validityDays: previous.terms.validityDays,
+        productWarranty: previous.terms.productWarranty,
+      };
+    }
+  }
+
   await prisma.quote.update({
     where: { id },
     data: { termsSource },
   });
   await prisma.quoteCommercialTerms.upsert({
     where: { quoteId: id },
-    create: {
-      quoteId: id,
-      paymentTerms: String(formData.get("paymentTerms") || "") || null,
-      paymentReference: String(formData.get("paymentReference") || "") || null,
-      deliveryText: String(formData.get("deliveryText") || "") || null,
-      validityDays: Number(formData.get("validityDays") || "5") || 5,
-      productWarranty: String(formData.get("productWarranty") || "") || null,
-    },
-    update: {
-      paymentTerms: String(formData.get("paymentTerms") || "") || null,
-      paymentReference: String(formData.get("paymentReference") || "") || null,
-      deliveryText: String(formData.get("deliveryText") || "") || null,
-      validityDays: Number(formData.get("validityDays") || "5") || 5,
-      productWarranty: String(formData.get("productWarranty") || "") || null,
-    },
+    create: { quoteId: id, ...values },
+    update: values,
   });
   revalidatePath(`/admin/quotes/${id}`);
 }
@@ -867,12 +882,6 @@ export async function toggleQuoteModule(formData: FormData): Promise<void> {
     data: { included: !section.included },
   });
   revalidatePath(`/admin/quotes/${section.quoteId}`);
-}
-
-export async function previewQuoteNumber(): Promise<string> {
-  await requireQuotePermission("quotes.create");
-  const cfg = await getQuoteNumberingConfig();
-  return (await import("@/lib/quote-settings")).formatQuoteNumber({ ...cfg, sequence: cfg.nextSequence });
 }
 
 const QUOTE_STATUSES = new Set<QuoteStatus>([
@@ -893,6 +902,14 @@ export async function setQuoteStatus(formData: FormData): Promise<{ ok: boolean;
   const loaded = await loadQuoteForUser(id);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
 
+  // Emitir es más que cambiar un estado: genera el PDF, el Excel y el
+  // snapshot de la versión. Ese camino vive en issueQuote.
+  if (status === "ISSUED" && loaded.quote.status !== "ISSUED") {
+    return {
+      ok: false,
+      error: "Para emitir entrá a la cotización: ahí se genera el PDF y queda registrada la versión.",
+    };
+  }
   if (status === "ISSUED") {
     if (!permissionsHave(loaded.permissions, "quotes.issue") && !loaded.permissions.fullAccess) {
       return { ok: false, error: "Sin permiso para emitir." };
@@ -1098,24 +1115,6 @@ export async function saveQuoteModuleSetting(formData: FormData): Promise<void> 
   revalidatePath("/admin/quotes/config");
   revalidatePath("/admin/settings/quotes");
   revalidatePath("/admin/quotes");
-}
-
-export async function saveQuoteBlockTemplate(formData: FormData): Promise<void> {
-  const { permissions } = await requireQuotePermission("quotes.manage_library");
-  if (!permissions.fullAccess && !permissionsHave(permissions, "quotes.manage_library")) return;
-  const id = String(formData.get("blockId") || "");
-  const title = String(formData.get("title") || "").trim();
-  const body = String(formData.get("body") || "");
-  if (!id) return;
-  await prisma.quoteBlock.update({
-    where: { id },
-    data: {
-      ...(title ? { title } : {}),
-      body,
-    },
-  });
-  revalidatePath("/admin/quotes/config");
-  revalidatePath("/admin/settings/quotes");
 }
 
 /**

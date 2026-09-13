@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
 import { deleteQuote, duplicateQuote, setQuoteStatus } from "@/server/actions/quotes";
 
+// "Emitida" no está en la lista a propósito: emitir genera el PDF, el Excel y
+// el snapshot de la versión, y eso solo ocurre desde la pantalla de la
+// cotización. Cambiarlo acá dejaba una cotización emitida sin documento.
 const STATUSES = [
   { value: "DRAFT", label: "Borrador" },
   { value: "IN_REVIEW", label: "En revisión" },
   { value: "READY", label: "Lista" },
-  { value: "ISSUED", label: "Emitida" },
   { value: "SUPERSEDED", label: "Reemplazada" },
   { value: "ARCHIVED", label: "Archivada" },
 ];

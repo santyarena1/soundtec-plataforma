@@ -35,7 +35,3 @@ export function buildQuoteZones<T extends { groupId?: string | null }>(
   }
   return zones;
 }
-
-export function quoteHasMultipleTables(groups: QuoteGroupRecord[]) {
-  return groups.length > 0;
-}

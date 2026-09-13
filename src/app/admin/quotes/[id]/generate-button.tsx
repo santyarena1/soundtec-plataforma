@@ -38,7 +38,7 @@ export function GenerateProposalButton({ quoteId, auto = false }: { quoteId: str
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
         <Button type="button" disabled={pending} onClick={run}>
-          {pending ? "Armando propuesta…" : "Generar propuesta con IA"}
+          {pending ? "Armando propuesta…" : "Generar propuesta y sugerir equipos"}
         </Button>
         {pending ? (
           <p className="text-sm text-muted-foreground">

@@ -13,7 +13,6 @@ export const QUOTE_STEPS = [
   { id: 7, key: "emitir", title: "Emitir" },
 ] as const;
 
-export type QuoteStepKey = (typeof QUOTE_STEPS)[number]["key"];
 
 export function parseQuoteStep(raw: string | undefined): number {
   if (raw == null || raw === "") return 2;
@@ -56,7 +55,6 @@ export const QUOTE_CORPORATE_ASSETS = {
   iso: "/quotes/iso-iram-iqnet.jpeg",
 } as const;
 
-export const CORPORATE_BODIES: Record<string, string> = {};
 
 export const QUOTE_MODULES: QuoteModuleDef[] = [
   {
@@ -255,7 +253,6 @@ SOUNDTEC s.r.l. es una empresa orientada a lograr altos niveles de satisfacción
 ];
 
 for (const m of QUOTE_MODULES) {
-  if (m.body) CORPORATE_BODIES[m.key] = m.body;
 }
 
 export const AI_MODULE_KEYS = QUOTE_MODULES.filter((m) => m.kind === "ai").map((m) => m.key);

@@ -799,7 +799,7 @@ export default async function QuoteEditorPage({
               </Card>
               <div className="flex flex-wrap gap-2">
                 <ButtonLink href={`/admin/quotes/${quote.id}/print`} size="sm">
-                  PDF / imprimir
+                  Vista PDF
                 </ButtonLink>
                 <ButtonLink href={`/api/admin/quotes/${quote.id}/word`} size="sm" variant="outline">
                   Word
