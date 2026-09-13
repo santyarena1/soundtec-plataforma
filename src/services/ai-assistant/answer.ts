@@ -19,7 +19,7 @@ import {
 import { analyzeQuestion } from "./intent";
 import { askModel } from "./llm";
 import { buildUserMessage } from "./prompt";
-import { getBrandNames, retrieveCandidates } from "./retrieval";
+import { getBrandNames, retrieveCandidates, structuredFilterNote } from "./retrieval";
 import { LIMITS } from "./budget";
 import type {
   AnswerConfidence,
@@ -191,6 +191,7 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
     candidates: context.used,
     history,
     scope,
+    filterNote: structuredFilterNote(analysis),
   });
 
   const outcome = await askModel(userMessage);

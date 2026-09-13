@@ -245,7 +245,9 @@ function searchQueryFrom(analysis: QuestionAnalysis): string {
 const GENERIC_TOKENS = new Set([
   "producto", "productos", "modelo", "modelos", "marca", "marcas", "tienen", "tiene", "hay",
   "sirve", "sirven", "puedo", "quiero", "cual", "cuales", "que", "como", "donde", "para",
-  "tipo", "tipos", "opcion", "opciones", "info", "informacion",
+  "tipo", "tipos", "opcion", "opciones", "opciónes", "alternativa", "alternativas",
+  "info", "informacion", "dame", "mostrame", "listame", "necesito", "busco", "quiero",
+
 ]);
 
 /**
@@ -297,51 +299,118 @@ function structuredFilterFor(analysis: QuestionAnalysis): Prisma.ProductWhereInp
 }
 
 /**
- * Búsqueda por concepto: OR entre términos (incluida su traducción al
- * inglés) y ranking por cuántos términos distintos aparecen en la ficha.
+ * Un concepto de la pregunta con todas sus variantes: "techo" también busca
+ * "ceiling" e "in-ceiling". Cada grupo es una condición que el producto debe
+ * cumplir; dentro del grupo alcanza con una variante.
+ */
+interface TermGroup {
+  /** Cuánto importa que el producto cumpla este grupo. */
+  weight: number;
+  variants: string[];
+}
+
+function groupFor(token: string, weight: number): TermGroup | null {
+  const variants = expandSearchTerms([token], 5);
+  if (variants.length === 0) return null;
+  return { weight, variants };
+}
+
+/** Grupos ordenados de más a menos importante para la consulta. */
+function buildTermGroups(analysis: QuestionAnalysis): TermGroup[] {
+  const groups: TermGroup[] = [];
+  const seen = new Set<string>();
+
+  const add = (token: string, weight: number) => {
+    const key = token.toLowerCase();
+    if (!key || seen.has(key) || GENERIC_TOKENS.has(key)) return;
+    seen.add(key);
+    const group = groupFor(key, weight);
+    if (group) groups.push(group);
+  };
+
+  // La aplicación (exterior, restaurante) y la marca son lo que no se negocia.
+  for (const term of analysis.applicationTerms) add(term, 3);
+  for (const brand of analysis.brandNames) add(brand, 3);
+  for (const token of analysis.tokens) {
+    if (token.length < 3) continue;
+    add(token, 1);
+  }
+  return groups.sort((a, b) => b.weight - a.weight).slice(0, 5);
+}
+
+function whereForGroup(group: TermGroup): Prisma.ProductWhereInput {
+  return { OR: group.variants.flatMap((variant) => [...productTokenOr(variant), ...jsonMatchers(variant)]) };
+}
+
+/**
+ * Búsqueda por concepto con relajación progresiva.
+ *
+ * Primero se exige que el producto cumpla TODOS los conceptos de la pregunta
+ * ("parlante" Y "techo"): así no vuelven 400 filas cualesquiera de las que
+ * después hay que adivinar. Si eso no da resultados, se va soltando el
+ * concepto menos importante hasta que aparezca algo.
  */
 async function findByConcept(analysis: QuestionAnalysis, limit: number): Promise<ProductRow[]> {
-  const base = [
-    ...analysis.brandNames,
-    ...analysis.applicationTerms,
-    ...analysis.tokens.filter((token) => token.length >= 3 && !GENERIC_TOKENS.has(token)),
-  ];
-  const terms = expandSearchTerms(base, 10);
   const structured = structuredFilterFor(analysis);
-  if (terms.length === 0 && !structured) return [];
+  const groups = buildTermGroups(analysis);
+  if (groups.length === 0 && !structured) return [];
 
-  const rows = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      kind: "PRINCIPAL",
-      ...(structured ?? {}),
-      ...(terms.length > 0 && !structured
-        ? { OR: terms.flatMap((term) => [...productTokenOr(term), ...jsonMatchers(term)]) }
-        : {}),
-    },
-    select: PRODUCT_SELECT,
-    take: LIMITS.candidateFetchCap * 3,
-  });
+  const baseWhere: Prisma.ProductWhereInput = {
+    isActive: true,
+    kind: "PRINCIPAL",
+    ...(structured ?? {}),
+  };
+
+  let rows: ProductRow[] = [];
+  let usedGroups: TermGroup[] = groups;
+
+  for (let drop = 0; drop <= groups.length; drop++) {
+    const active = groups.slice(0, groups.length - drop);
+    if (active.length === 0 && !structured) break;
+    rows = await prisma.product.findMany({
+      where: active.length > 0 ? { ...baseWhere, AND: active.map(whereForGroup) } : baseWhere,
+      select: PRODUCT_SELECT,
+      orderBy: [{ isDiscontinued: "asc" }, { enrichedAt: "desc" }, { normalizedName: "asc" }],
+      take: LIMITS.candidateFetchCap * 2,
+    });
+    if (rows.length > 0) {
+      usedGroups = active;
+      break;
+    }
+  }
   if (rows.length === 0) return [];
 
-  // Los términos de aplicación (exterior, hotel…) pesan más que una palabra suelta.
-  const strong = new Set(expandSearchTerms(analysis.applicationTerms, 12));
+  // Ranking fino sobre un conjunto ya relevante: gana el que cumple más
+  // conceptos y, entre esos, el que los menciona en el título o las specs.
+  const scored = rows.map((row) => {
+    const haystack = haystackOf(row);
+    const title = `${row.normalizedName} ${row.originalName} ${row.brand?.name ?? ""} ${
+      row.category?.name ?? ""
+    }`.toLowerCase();
+    let score = structured ? 2 : 0;
+    for (const group of usedGroups) {
+      const hit = group.variants.find((variant) => haystack.includes(variant));
+      if (!hit) continue;
+      score += group.weight;
+      if (title.includes(hit)) score += group.weight;
+    }
+    if (row.isDiscontinued) score -= 3;
+    return { row, score };
+  });
 
-  return rows
-    .map((row) => {
-      const haystack = haystackOf(row);
-      let score = 0;
-      for (const term of terms) {
-        if (!haystack.includes(term)) continue;
-        score += strong.has(term) ? 3 : 1;
-      }
-      if (row.isDiscontinued) score -= 2;
-      return { row, score };
-    })
-    .filter((entry) => entry.score > 0 || structured !== null)
+  return scored
+    .filter((entry) => entry.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((entry) => entry.row);
+}
+
+/** Texto para el prompt cuando el filtro ya garantiza una característica. */
+export function structuredFilterNote(analysis: QuestionAnalysis): string | null {
+  if (analysis.attributes.some((attribute) => attribute.key === "crestron_home")) {
+    return "Todos los productos del contexto ya están filtrados por compatibilidad con Crestron Home: listalos.";
+  }
+  return null;
 }
 
 export interface RetrievalResult {

@@ -44,7 +44,9 @@ Nunca menciones precios, costos, márgenes ni identificadores internos que no es
 ESTILO
 Español rioplatense, técnico y directo. Entre 2 y 5 oraciones o una lista breve; para comparaciones, una tabla corta.
 No traduzcas modelos, SKUs, siglas ni unidades. Los documentos están en inglés: la respuesta va en español igual.
-No hables de cómo funcionás por dentro (búsquedas, contexto, documentos indexados, tokens).
+No hables de cómo funcionás por dentro. Nunca escribas las palabras "CONTEXTO", "etiqueta", "P1",
+"base de datos", "búsqueda" ni "sistema": el visitante no sabe que existen. Decí "en nuestro catálogo"
+o "según la ficha técnica".
 
 FORMATO DE SALIDA
 Devolvés SOLO un JSON válido con esta forma:
@@ -81,6 +83,8 @@ export function buildUserMessage(input: {
   candidates: CandidateProduct[];
   history: Array<{ role: "user" | "assistant"; content: string }>;
   scope: AssistantScope;
+  /** Aviso cuando el filtro ya garantiza una característica. */
+  filterNote?: string | null;
 }): string {
   const parts: string[] = [];
 
@@ -98,6 +102,8 @@ export function buildUserMessage(input: {
 
   const etiquetas = input.candidates.map((candidate) => candidate.label).join(", ") || "(ninguna)";
   parts.push(`Etiquetas válidas para productRefs/sourceRefs: ${etiquetas}. No uses ninguna otra.`);
+
+  if (input.filterNote) parts.push(input.filterNote);
 
   const hint = INTENT_HINTS[input.analysis.intent];
   if (hint) parts.push(hint);
