@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ZoomIn, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ZoomIn, ZoomOut, X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 
 interface Image {
   id: string;
@@ -14,17 +14,101 @@ interface Props {
   productName: string;
 }
 
+const MIN_SCALE = 1;
+const MAX_SCALE = 6;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
 /**
- * Galería de imágenes del producto con thumbnails clickeables y lightbox.
+ * Galería del producto con lightbox y zoom.
  *
- * - La imagen grande es la activa; los thumbnails permiten cambiarla.
- * - Click en la imagen grande abre lightbox a pantalla completa.
- * - En el lightbox, flechas izq/der navegan entre imágenes.
- * - Botón Esc o click fuera cierra.
+ * El zoom importa: en una ficha técnica lo que se quiere mirar de cerca son los
+ * bornes, los conectores y las medidas, y hasta ahora la imagen ampliada
+ * quedaba fija al alto de la pantalla sin poder acercarse.
+ *
+ * Se puede con la rueda del mouse, con dos dedos en una pantalla táctil, con
+ * doble click y con los botones. Con la imagen ampliada se arrastra para
+ * recorrerla.
  */
 export function ProductGallery({ images, productName }: Props) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [lightbox, setLightbox] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+  const frameRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinchStart = useRef<{ distance: number; scale: number } | null>(null);
+
+  const reset = useCallback(() => {
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
+  }, []);
+
+  const close = useCallback(() => {
+    setLightbox(false);
+    reset();
+  }, [reset]);
+
+  const go = useCallback(
+    (delta: number) => {
+      setActiveIdx((i) => (i + delta + images.length) % images.length);
+      reset();
+    },
+    [images.length, reset]
+  );
+
+  /**
+   * Zoom hacia un punto: lo que está bajo el cursor se queda quieto, que es lo
+   * que uno espera al acercarse sobre un detalle.
+   */
+  const zoomAt = useCallback((nextScale: number, clientX?: number, clientY?: number) => {
+    const frame = frameRef.current;
+    setScale((current) => {
+      const target = clamp(nextScale, MIN_SCALE, MAX_SCALE);
+      if (frame && clientX !== undefined && clientY !== undefined && target !== current) {
+        const rect = frame.getBoundingClientRect();
+        const px = clientX - rect.left - rect.width / 2;
+        const py = clientY - rect.top - rect.height / 2;
+        const ratio = target / current;
+        setOffset((prev) => ({
+          x: target === MIN_SCALE ? 0 : px - (px - prev.x) * ratio,
+          y: target === MIN_SCALE ? 0 : py - (py - prev.y) * ratio,
+        }));
+      } else if (target === MIN_SCALE) {
+        setOffset({ x: 0, y: 0 });
+      }
+      return target;
+    });
+  }, []);
+
+  // Teclado: cerrar, navegar y acercar sin tocar el mouse.
+  useEffect(() => {
+    if (!lightbox) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") close();
+      else if (event.key === "ArrowRight" && images.length > 1) go(1);
+      else if (event.key === "ArrowLeft" && images.length > 1) go(-1);
+      else if (event.key === "+" || event.key === "=") zoomAt(scale * 1.4);
+      else if (event.key === "-") zoomAt(scale / 1.4);
+      else if (event.key === "0") reset();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox, close, go, images.length, scale, zoomAt, reset]);
+
+  // Con el lightbox abierto la página de atrás no se mueve.
+  useEffect(() => {
+    if (!lightbox) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [lightbox]);
 
   if (images.length === 0) {
     return (
@@ -38,12 +122,51 @@ export function ProductGallery({ images, productName }: Props) {
 
   const active = images[activeIdx] ?? images[0];
 
-  function next() {
-    setActiveIdx((i) => (i + 1) % images.length);
+  function onWheel(event: React.WheelEvent) {
+    event.preventDefault();
+    zoomAt(scale * (event.deltaY < 0 ? 1.2 : 1 / 1.2), event.clientX, event.clientY);
   }
-  function prev() {
-    setActiveIdx((i) => (i - 1 + images.length) % images.length);
+
+  function onPointerDown(event: React.PointerEvent) {
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      pinchStart.current = { distance: Math.hypot(a.x - b.x, a.y - b.y), scale };
+      drag.current = null;
+      return;
+    }
+    if (scale > 1) {
+      (event.target as HTMLElement).setPointerCapture?.(event.pointerId);
+      drag.current = { x: event.clientX, y: event.clientY, ox: offset.x, oy: offset.y };
+    }
   }
+
+  function onPointerMove(event: React.PointerEvent) {
+    if (!pointers.current.has(event.pointerId)) return;
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (pointers.current.size === 2 && pinchStart.current) {
+      const [a, b] = [...pointers.current.values()];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+      const factor = distance / pinchStart.current.distance;
+      zoomAt(pinchStart.current.scale * factor, (a.x + b.x) / 2, (a.y + b.y) / 2);
+      return;
+    }
+
+    if (!drag.current) return;
+    setOffset({
+      x: drag.current.ox + (event.clientX - drag.current.x),
+      y: drag.current.oy + (event.clientY - drag.current.y),
+    });
+  }
+
+  function onPointerUp(event: React.PointerEvent) {
+    pointers.current.delete(event.pointerId);
+    if (pointers.current.size < 2) pinchStart.current = null;
+    if (pointers.current.size === 0) drag.current = null;
+  }
+
+  const zoomed = scale > 1;
 
   return (
     <div className="space-y-3">
@@ -79,7 +202,10 @@ export function ProductGallery({ images, productName }: Props) {
               <button
                 key={img.id}
                 type="button"
-                onClick={() => setActiveIdx(i)}
+                onClick={() => {
+                  setActiveIdx(i);
+                  reset();
+                }}
                 className={`aspect-square overflow-hidden rounded-md border-2 bg-white transition-all ${
                   isActive
                     ? "border-primary ring-2 ring-primary/30"
@@ -103,66 +229,115 @@ export function ProductGallery({ images, productName }: Props) {
       {/* Lightbox */}
       {lightbox ? (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4 animate-in fade-in duration-200"
-          onClick={() => setLightbox(false)}
+          className="fixed inset-0 z-[60] flex flex-col bg-black/90 animate-in fade-in duration-200"
           role="dialog"
           aria-modal="true"
+          aria-label={`${productName}, imagen ampliada`}
         >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightbox(false);
-            }}
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-            aria-label="Cerrar"
-          >
-            <X className="h-5 w-5" />
-          </button>
-
-          {images.length > 1 ? (
-            <>
+          {/* Barra de controles */}
+          <div className="flex items-center justify-between gap-2 px-3 py-2 text-white sm:px-4">
+            <p className="truncate text-sm text-white/80">
+              {productName}
+              {images.length > 1 ? ` · ${activeIdx + 1} de ${images.length}` : ""}
+            </p>
+            <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  prev();
-                }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-                aria-label="Anterior"
+                onClick={() => zoomAt(scale / 1.4)}
+                disabled={scale <= MIN_SCALE}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-40"
+                aria-label="Alejar"
               >
-                <ChevronLeft className="h-6 w-6" />
+                <ZoomOut className="h-4 w-4" />
+              </button>
+              <span className="min-w-[3.5rem] text-center text-xs tabular-nums text-white/80">
+                {Math.round(scale * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={() => zoomAt(scale * 1.4)}
+                disabled={scale >= MAX_SCALE}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-40"
+                aria-label="Acercar"
+              >
+                <ZoomIn className="h-4 w-4" />
               </button>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  next();
-                }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-                aria-label="Siguiente"
+                onClick={reset}
+                disabled={!zoomed}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-40"
+                aria-label="Ajustar a la pantalla"
               >
-                <ChevronRight className="h-6 w-6" />
+                <Maximize2 className="h-4 w-4" />
               </button>
-            </>
-          ) : null}
+              <button
+                type="button"
+                onClick={close}
+                className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20"
+                aria-label="Cerrar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
 
+          {/* Lienzo */}
           <div
-            className="relative max-h-full max-w-6xl"
-            onClick={(e) => e.stopPropagation()}
+            ref={frameRef}
+            className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden"
+            onWheel={onWheel}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onDoubleClick={(event) =>
+              zoomed ? reset() : zoomAt(2.5, event.clientX, event.clientY)
+            }
+            onClick={(event) => {
+              // Un click en el fondo cierra; sobre la imagen, no.
+              if (event.target === event.currentTarget && !zoomed) close();
+            }}
+            style={{ touchAction: "none", cursor: zoomed ? (drag.current ? "grabbing" : "grab") : "zoom-in" }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={active.url}
               alt={active.alt || productName}
-              className="max-h-[85vh] max-w-full object-contain"
+              draggable={false}
+              className="max-h-full max-w-full select-none object-contain"
+              style={{
+                transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+                transition: drag.current || pinchStart.current ? "none" : "transform 120ms ease-out",
+              }}
             />
+
             {images.length > 1 ? (
-              <p className="mt-3 text-center text-sm text-white/80">
-                {activeIdx + 1} de {images.length}
-              </p>
+              <>
+                <button
+                  type="button"
+                  onClick={() => go(-1)}
+                  className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                  aria-label="Anterior"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => go(1)}
+                  className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                  aria-label="Siguiente"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              </>
             ) : null}
           </div>
+
+          <p className="px-4 pb-3 text-center text-[11px] text-white/50">
+            Rueda del mouse o dos dedos para acercar · doble click para alternar · arrastrá para
+            recorrer · Esc para cerrar
+          </p>
         </div>
       ) : null}
     </div>
