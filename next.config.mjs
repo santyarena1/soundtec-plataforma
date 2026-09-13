@@ -9,6 +9,20 @@ const nextConfig = {
   // Chromium para HTML→PDF de cotizaciones (no empaquetar en el bundle de webpack).
   serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
   experimental: {
+    /**
+     * El binario de Chromium viene como archivos sueltos dentro del paquete y
+     * el rastreo de dependencias no los ve, así que la función se desplegaba
+     * sin ellos y generar el PDF fallaba con «the input directory does not
+     * exist». Se incluyen a mano en las rutas que arman documentos.
+     */
+    outputFileTracingIncludes: {
+      "/api/admin/quotes/[id]/preview-pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
+      "/api/quotes/[id]/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
+      "/api/portal/requests/[id]/quote-pdf/[quoteId]": ["./node_modules/@sparticuz/chromium/bin/**"],
+      "/admin/quotes/[id]": ["./node_modules/@sparticuz/chromium/bin/**"],
+      "/admin/requests/[id]": ["./node_modules/@sparticuz/chromium/bin/**"],
+      "/admin/quotes/quick": ["./node_modules/@sparticuz/chromium/bin/**"],
+    },
     serverActions: {
       bodySizeLimit: "50mb",
     },
