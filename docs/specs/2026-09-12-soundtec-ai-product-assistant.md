@@ -59,6 +59,28 @@ pregunta
 **Una pregunta = como máximo 1 llamada al LLM.** Nunca dos. Sin llamadas extra para clasificar,
 reformular, resumir ni generar sugerencias (§5 y §9).
 
+### Ajustes tras probar contra el catálogo real (2026-09-12)
+
+Lo que se corrigió después de medir con consultas reales, en orden de impacto:
+
+1. **Búsqueda por conceptos, no por bolsa de palabras.** Cada concepto de la pregunta
+   ("parlante", "techo", "exterior") es un grupo con sus variantes en inglés y el producto debe
+   cumplirlos todos. Si no hay resultados, se suelta el concepto menos importante y se reintenta.
+   Antes se pedía OR entre términos y se cortaba en las primeras filas que devolvía Postgres.
+2. **Los conceptos fuertes solo cuentan donde el dato es afirmativo** (título, categoría,
+   descripción corta, specs). El HTML del fabricante nombra "outdoor" hasta para decir que un
+   producto NO es para exterior.
+3. **Puente español → inglés** (`synonyms.ts`): las fichas están en inglés y la pregunta en español.
+4. **Specs y key features se buscan dentro del JSON**: sin eso, "¿qué parlantes tienen IP66?" no
+   encontraba nada porque el buscador del catálogo no alcanza esas columnas.
+5. **Los datos duros (IP66, 70V, 4K) son los últimos en soltarse** al relajar la búsqueda.
+6. **La cantidad la define el visitante**: "dame 5 opciones" sube el tope de candidatos y viaja al
+   prompt; las consultas de listado abren a 8 aunque no digan un número.
+7. **Filtro estructurado** para lo que es una columna y no texto (compatibilidad con Crestron Home).
+8. **Parsing tolerante de la salida del modelo**: solo el texto es obligatorio. Antes, una etiqueta
+   con formato inesperado tiraba abajo toda la respuesta (las comparaciones fallaban siempre).
+9. **Render de tablas, listas y negritas** en el chat, con scroll horizontal en el teléfono.
+
 ### Fase 1 (este documento, implementada) vs Fase 2+
 
 - **Fase 1**: retrieval sobre datos ya existentes (`Product` + specs + features + relaciones + descripciones).
@@ -190,11 +212,11 @@ Presupuesto duro (`budget.ts`):
 
 | Límite | Valor |
 |---|---|
-| Candidatos al contexto | 6 (3 si la intención es `SPEC_LOOKUP`, 2 si es `COMPARISON`) |
+| Candidatos al contexto | 6 (3 en `SPEC_LOOKUP`, 2 en `COMPARISON`, 8 en listados, hasta 10 si el visitante pide una cantidad) |
 | Specs por producto | 12 (priorizando las que matchean el atributo consultado) |
 | Caracteres de contexto | 6 000 (recorte duro, se descartan productos de cola) |
 | Historial | `activeProductIds` + últimos 2 turnos truncados a 350 caracteres |
-| `max_tokens` de salida | 550 |
+| `max_tokens` de salida | 650 (950 en comparaciones, para que la tabla no se corte) |
 
 **Redacción por scope, server-side (§26 del pedido).** La ficha se arma con una allow-list de campos:
 `baseCostUsd`, `salePriceUsd`, `coefNac`, `coefVta`, `coefVtaFob`, `ivaPercent`, `impIntPercent`,
