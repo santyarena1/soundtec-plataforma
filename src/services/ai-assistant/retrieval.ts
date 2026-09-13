@@ -241,13 +241,26 @@ function searchQueryFrom(analysis: QuestionAnalysis): string {
   return Array.from(new Set(parts)).join(" ").trim();
 }
 
-/** Intenciones donde conviene abrir la búsqueda en vez de exigir todos los términos. */
-const WIDE_INTENTS = new Set<QuestionAnalysis["intent"]>([
-  "RECOMMENDATION",
-  "GENERAL",
-  "COMPATIBILITY",
-  "ACCESSORY",
+/** Palabras que no ayudan a encontrar un producto. */
+const GENERIC_TOKENS = new Set([
+  "producto", "productos", "modelo", "modelos", "marca", "marcas", "tienen", "tiene", "hay",
+  "sirve", "sirven", "puedo", "quiero", "cual", "cuales", "que", "como", "donde", "para",
+  "tipo", "tipos", "opcion", "opciones", "info", "informacion",
 ]);
+
+/**
+ * Las specs y los key features viven en columnas JSON, así que el buscador
+ * del catálogo no los alcanza. Para "¿qué parlantes tienen IP66?" el dato
+ * está justo ahí, así que se consulta el JSON como texto.
+ */
+function jsonMatchers(term: string): Prisma.ProductWhereInput[] {
+  if (term.length < 3) return [];
+  const variants = Array.from(new Set([term, term.toUpperCase()]));
+  return variants.flatMap((value) => [
+    { specifications: { string_contains: value } },
+    { keyFeatures: { string_contains: value } },
+  ]);
+}
 
 /** Texto del producto contra el que se cuentan los términos que matchean. */
 function haystackOf(row: ProductRow): string {
@@ -279,7 +292,7 @@ async function findByConcept(analysis: QuestionAnalysis, limit: number): Promise
   const base = [
     ...analysis.brandNames,
     ...analysis.applicationTerms,
-    ...analysis.tokens.filter((token) => token.length >= 4),
+    ...analysis.tokens.filter((token) => token.length >= 3 && !GENERIC_TOKENS.has(token)),
   ];
   const terms = expandSearchTerms(base, 8);
   if (terms.length === 0) return [];
@@ -288,7 +301,7 @@ async function findByConcept(analysis: QuestionAnalysis, limit: number): Promise
     where: {
       isActive: true,
       kind: "PRINCIPAL",
-      OR: terms.flatMap((term) => productTokenOr(term)),
+      OR: terms.flatMap((term) => [...productTokenOr(term), ...jsonMatchers(term)]),
     },
     select: PRODUCT_SELECT,
     take: LIMITS.candidateFetchCap * 3,
@@ -360,11 +373,11 @@ export async function retrieveCandidates(input: {
     }
   }
 
-  // 3) Búsqueda amplia por concepto: para "necesito un parlante para
-  // exterior" no sirve exigir que todos los términos estén en el mismo
-  // producto, y además hay que buscar en inglés, que es el idioma de las
-  // fichas del fabricante.
-  if (WIDE_INTENTS.has(analysis.intent)) {
+  // 3) Sin un modelo puntual, la pregunta es sobre el catálogo ("qué
+  // parlantes tienen IP66"): conviene abrir la búsqueda por concepto en vez
+  // de exigir que todos los términos caigan en el mismo producto. Además hay
+  // que buscar en inglés, que es el idioma de las fichas del fabricante.
+  if (analysis.modelCodes.length === 0) {
     const wide = await findByConcept(analysis, limit);
     if (wide.length > 0) {
       return {
