@@ -157,7 +157,8 @@ function ZoneTable({
                       form={formId}
                       name="description"
                       defaultValue={item.description || item.name}
-                      rows={2}
+                      placeholder="Título de la fila&#10;Descripción que sale debajo en el documento"
+                      rows={3}
                       disabled={readOnly}
                       className="mb-1 min-h-[40px] font-bold leading-snug"
                       onChange={(e) => {
@@ -166,13 +167,14 @@ function ZoneTable({
                       }}
                       onBlur={(e) => saveRow(e.currentTarget.form)}
                     />
+                    <p className="mb-1 text-[11px] text-muted-foreground">
+                      Primera línea: título. Lo que escribas debajo sale como descripción de esta fila.
+                    </p>
                     {item.blurb ? (
                       <p className="mb-1 text-xs leading-snug text-foreground/80" style={{ textAlign: "justify" }}>
                         {item.blurb}
                       </p>
-                    ) : (
-                      <p className="mb-1 text-[11px] text-muted-foreground">Sin descripción corta.</p>
-                    )}
+                    ) : null}
                     {item.productId && !readOnly ? (
                       <RegenerateShortDescription quoteId={quoteId} productId={item.productId} />
                     ) : null}
