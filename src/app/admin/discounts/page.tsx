@@ -8,6 +8,7 @@ import { deleteDiscountRule, deleteDiscountRuleGroup } from "@/server/actions/pr
 import { badgeLabel, isManufacturerPromoLabel } from "@/lib/manufacturer-promo";
 import { ManufacturerPromosPanel, ProductDiscountsPanel } from "./product-discounts-panel";
 import { toFiniteNumber, toPricingRuleRow, attachRuleExemptions } from "@/lib/pricing-scope";
+import { QUERY_CAPS } from "@/lib/query-caps";
 
 export const metadata = { title: "Admin · Descuentos" };
 
@@ -28,7 +29,7 @@ export default async function AdminDiscountsPage() {
       prisma.product.findMany({
         orderBy: { normalizedName: "asc" },
         select: { id: true, normalizedName: true },
-        take: 4000,
+        take: QUERY_CAPS.adminPicker,
       }),
       prisma.product.findMany({
         where: { discountPercent: { gt: 0 } },

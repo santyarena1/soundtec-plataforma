@@ -63,6 +63,24 @@ function htmlToText(html: string): string {
     .join("\n");
 }
 
+/**
+ * Los nombres del sitio traen basura de NetSuite: prefijo "(Marca) ", tokens
+ * "{}B" / "{J}" y un sufijo " MPN XXX" con el part number del fabricante.
+ */
+export function cleanDisplayName(raw: string): { name: string; mpn?: string } {
+  let mpn: string | undefined;
+  const name = raw
+    .replace(/^([^)]{2,40})s*/, "")
+    .replace(/s*{[A-Z]?}[A-Z]?(?=s|$)/g, " ")
+    .replace(/s+MPNs+(S+)s*$/i, (_m, value: string) => {
+      mpn = value;
+      return " ";
+    })
+    .replace(/s+/g, " ")
+    .trim();
+  return { name: name || raw.trim(), mpn };
+}
+
 function finite(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
@@ -161,7 +179,8 @@ export function toNormalizedProduct(
   category: SoundTubeCategoryConfig
 ): NormalizedProduct {
   const sku = item.itemid.trim();
-  const displayName = text(item.displayname) ?? sku;
+  const cleaned = cleanDisplayName(text(item.displayname) ?? sku);
+  const displayName = cleaned.name;
   const html = text(item.storedetaileddescription);
   const short = text(item.storedescription) ?? text(item.featureddescription);
   const price = finite(item[priceField]) ?? finite(item.onlinecustomerprice);
@@ -194,7 +213,7 @@ export function toNormalizedProduct(
     longDescription: html ? htmlToText(html) : undefined,
     metaTitle: text(item.pagetitle) ?? displayName,
     modelNumber: sku,
-    manufacturerItem: sku,
+    manufacturerItem: cleaned.mpn ?? sku,
     urlSlug: text(item.urlcomponent),
     vendorProductUrl: soundTubeProductUrl(item),
     weight: weightKg(item),

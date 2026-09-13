@@ -108,6 +108,7 @@ export default async function Page({
           .join(" · ")}
         actions={
           <div className="flex flex-wrap gap-2">
+            <ButtonLink href={`/api/admin/clients/${id}/export`}>Exportar datos</ButtonLink>
             <ButtonLink href={`/admin/quotes/new?clientId=${id}`}>Nueva cotización</ButtonLink>
             <ClientFormModal
               client={client}

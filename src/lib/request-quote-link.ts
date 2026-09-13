@@ -29,6 +29,9 @@ export function requestShortId(requestId: string) {
 }
 
 export function clientQuotePdfHref(requestId: string, att: QuoteMessageAttachment) {
-  if (att.pdfUrl.startsWith("http")) return att.pdfUrl;
   return `/api/portal/requests/${requestId}/quote-pdf/${att.quoteId}`;
+}
+
+export function staffQuotePdfHref(quoteId: string) {
+  return `/api/quotes/${quoteId}/pdf`;
 }

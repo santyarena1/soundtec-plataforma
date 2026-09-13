@@ -2,9 +2,10 @@ import NextAuth, { type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { basePrisma } from "@/lib/prisma";
 import type { UserRole } from "@prisma/client";
 import { parsePermissions, type Permissions } from "@/lib/permissions";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 declare module "next-auth" {
   interface Session {
@@ -12,23 +13,26 @@ declare module "next-auth" {
       id: string;
       role: UserRole;
       companyName?: string | null;
+      clientId?: string | null;
+      sessionVersion?: number;
       perms?: Permissions | null;
     } & DefaultSession["user"];
   }
   interface User {
     role: UserRole;
     companyName?: string | null;
+    clientId?: string | null;
+    sessionVersion?: number;
     perms?: Permissions | null;
   }
 }
-
-// Nota: la augmentación del JWT se hace de forma laxa en los callbacks (cast),
-// porque el módulo "next-auth/jwt" en la beta de v5 no expone tipos estables.
 
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
+
+type TokenBag = Record<string, unknown>;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt", maxAge: 60 * 60 * 8 },
@@ -47,8 +51,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = credentialsSchema.safeParse(raw);
         if (!parsed.success) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email.toLowerCase() },
+        const email = parsed.data.email.toLowerCase();
+        const limited = await enforceRateLimit(`login:${email}`, { limit: 8, windowMs: 15 * 60 * 1000 });
+        if (!limited.ok) return null;
+
+        const user = await basePrisma.user.findUnique({
+          where: { email },
           include: { customRole: { select: { permissionsJson: true, isActive: true } } },
         });
         if (!user || !user.isActive) return null;
@@ -56,7 +64,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
         if (!ok) return null;
 
-        await prisma.user
+        await basePrisma.user
           .update({
             where: { id: user.id },
             data: { lastLoginAt: new Date() },
@@ -73,6 +81,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           role: user.role,
           companyName: user.companyName,
+          clientId: user.clientId,
+          sessionVersion: user.sessionVersion,
           perms,
         };
       },
@@ -80,32 +90,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     jwt: ({ token, user }) => {
+      const t = token as TokenBag;
       if (user) {
         const u = user as {
           id?: string;
           role?: UserRole;
           companyName?: string | null;
+          clientId?: string | null;
+          sessionVersion?: number;
           perms?: Permissions | null;
         };
-        if (u.id) (token as Record<string, unknown>).id = u.id;
-        if (u.role) (token as Record<string, unknown>).role = u.role;
-        (token as Record<string, unknown>).companyName = u.companyName ?? null;
-        (token as Record<string, unknown>).perms = u.perms ?? null;
+        if (u.id) t.id = u.id;
+        if (u.role) t.role = u.role;
+        t.companyName = u.companyName ?? null;
+        t.clientId = u.clientId ?? null;
+        t.sv = u.sessionVersion ?? 0;
+        t.perms = u.perms ?? null;
       }
-      return token;
+      return t;
     },
     session: ({ session, token }) => {
+      const t = token as TokenBag;
       if (session.user) {
-        const t = token as {
-          id?: string;
-          role?: UserRole;
-          companyName?: string | null;
-          perms?: Permissions | null;
-        };
-        if (t.id) session.user.id = t.id;
-        if (t.role) session.user.role = t.role;
-        session.user.companyName = t.companyName ?? null;
-        session.user.perms = t.perms ?? null;
+        if (typeof t.id === "string") session.user.id = t.id;
+        if (t.role) session.user.role = t.role as UserRole;
+        session.user.companyName = (t.companyName as string | null) ?? null;
+        session.user.clientId = (t.clientId as string | null) ?? null;
+        session.user.sessionVersion = typeof t.sv === "number" ? t.sv : 0;
+        session.user.perms = (t.perms as Permissions | null) ?? null;
       }
       return session;
     },

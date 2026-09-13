@@ -352,7 +352,7 @@ export async function resetPortalUserPassword(f: FormData): Promise<ActionResult
   try {
     await prisma.user.update({
       where: { id, role: "CLIENT" },
-      data: { passwordHash: await bcrypt.hash(pwd, 12) },
+      data: { passwordHash: await bcrypt.hash(pwd, 12), sessionVersion: { increment: 1 } },
     });
     if (clientId) refresh(clientId);
     return { ok: true, id, password: pwd };
@@ -371,7 +371,10 @@ export async function togglePortalUserActive(f: FormData): Promise<ActionResult>
   });
   if (!user || user.role !== "CLIENT")
     return { ok: false, error: "El usuario de portal no existe." };
-  await prisma.user.update({ where: { id }, data: { isActive: !user.isActive } });
+  await prisma.user.update({
+    where: { id },
+    data: { isActive: !user.isActive, sessionVersion: { increment: 1 } },
+  });
   if (clientId) refresh(clientId);
   return { ok: true, id };
 }

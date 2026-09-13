@@ -92,7 +92,7 @@ export function RequestConversation({ requestId, messages, clientName }: Props) 
                           Abrir editor {att.number}
                         </a>
                         <a
-                          href={att.pdfUrl.startsWith("http") ? att.pdfUrl : `/api/quotes/${att.quoteId}/pdf`}
+                          href={`/api/quotes/${att.quoteId}/pdf`}
                           className="text-xs font-medium text-muted-foreground hover:underline"
                         >
                           Descargar PDF

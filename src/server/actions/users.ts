@@ -94,6 +94,7 @@ export async function updateUser(f: FormData): Promise<UserActionResult> {
         ...data,
         clientId: data.role === "CLIENT" ? data.clientId : null,
         companyName: data.role === "CLIENT" ? checked.companyName : null,
+        sessionVersion: { increment: 1 },
       },
     });
     refresh(id);
@@ -109,7 +110,10 @@ export async function resetUserPassword(f: FormData): Promise<UserActionResult> 
   if (!id) return { ok: false, error: "Falta el usuario." };
   const pwd = generated();
   try {
-    await prisma.user.update({ where: { id }, data: { passwordHash: await bcrypt.hash(pwd, 12) } });
+    await prisma.user.update({
+      where: { id },
+      data: { passwordHash: await bcrypt.hash(pwd, 12), sessionVersion: { increment: 1 } },
+    });
     refresh(id);
     return { ok: true, id, password: pwd };
   } catch {
@@ -122,7 +126,10 @@ export async function toggleUserActive(f: FormData): Promise<UserActionResult> {
   if (!id) return { ok: false, error: "Falta el usuario." };
   const row = await prisma.user.findUnique({ where: { id }, select: { isActive: true } });
   if (!row) return { ok: false, error: "El usuario no existe." };
-  await prisma.user.update({ where: { id }, data: { isActive: !row.isActive } });
+  await prisma.user.update({
+    where: { id },
+    data: { isActive: !row.isActive, sessionVersion: { increment: 1 } },
+  });
   refresh(id);
   return { ok: true, id };
 }

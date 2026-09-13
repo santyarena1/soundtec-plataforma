@@ -190,7 +190,10 @@ export async function updateUserFull(formData: FormData): Promise<void> {
 
   await prisma.user.update({
     where: { id: parsed.data.id },
-    data,
+    data: {
+      ...data,
+      sessionVersion: { increment: 1 },
+    },
   });
 
   revalidatePath("/admin/users");

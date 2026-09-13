@@ -108,7 +108,7 @@ export async function createQuickQuote(input: QuickQuoteInput) {
     ok: true,
     quoteId: quote.id,
     number: quote.number,
-    pdfUrl: fresh?.pdfBlobUrl || undefined,
+    pdfUrl: `/api/quotes/${quote.id}/pdf`,
   };
 }
 

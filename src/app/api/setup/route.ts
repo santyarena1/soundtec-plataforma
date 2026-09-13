@@ -1,32 +1,38 @@
 import { NextResponse } from "next/server";
-import { PrismaClient, UserRole, RuleScopeType, StockStatus } from "@prisma/client";
+import { PrismaClient, UserRole, RuleScopeType } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-// One-time setup endpoint - protected by a setup token
-// Call: POST /api/setup with header X-Setup-Token matching SETUP_TOKEN env var
-
 export async function POST(req: Request) {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_SETUP !== "true") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const token = req.headers.get("x-setup-token");
   const expected = process.env.SETUP_TOKEN;
-
   if (!expected || token !== expected) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const adminEmail = process.env.SEED_ADMIN_EMAIL;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  const adminName = process.env.SEED_ADMIN_NAME || "Administrador Soundtec";
+  if (!adminEmail || !adminPassword || adminPassword.length < 12) {
+    return NextResponse.json(
+      { error: "SETUP requiere SEED_ADMIN_EMAIL y SEED_ADMIN_PASSWORD (12+ caracteres)." },
+      { status: 400 }
+    );
   }
 
   const prisma = new PrismaClient();
 
   try {
-    const adminEmail = process.env.SEED_ADMIN_EMAIL || "admin@soundtec.com.ar";
-    const adminPassword = process.env.SEED_ADMIN_PASSWORD || "Soundtec!2026";
-    const adminName = process.env.SEED_ADMIN_NAME || "Administrador Soundtec";
-
     const passwordHash = await bcrypt.hash(adminPassword, 12);
 
     const admin = await prisma.user.upsert({
-      where: { email: adminEmail },
+      where: { email: adminEmail.toLowerCase() },
       update: { passwordHash, role: UserRole.SUPER_ADMIN, isActive: true, name: adminName },
       create: {
-        email: adminEmail,
+        email: adminEmail.toLowerCase(),
         name: adminName,
         passwordHash,
         role: UserRole.SUPER_ADMIN,
@@ -35,7 +41,6 @@ export async function POST(req: Request) {
       },
     });
 
-    const clientPassword = await bcrypt.hash("Cliente!2026", 12);
     const demoClient = await prisma.client.upsert({
       where: { id: "seed-client-demo" },
       update: { companyName: "Integrador Demo S.A.", isActive: true },
@@ -56,7 +61,7 @@ export async function POST(req: Request) {
       create: {
         email: "cliente.demo@soundtec.com.ar",
         name: "Usuario Portal Demo",
-        passwordHash: clientPassword,
+        passwordHash: await bcrypt.hash(adminPassword, 12),
         role: UserRole.CLIENT,
         companyName: "Integrador Demo S.A.",
         isActive: true,
@@ -116,7 +121,7 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: "No se pudo completar el setup." }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }

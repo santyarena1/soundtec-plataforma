@@ -5,6 +5,7 @@ import { getCurrentPermissions } from "@/lib/auth-helpers";
 import { buildHelpKnowledge } from "@/lib/help/knowledge";
 import { moduleForPath } from "@/lib/help/modules";
 import { getSetting } from "@/lib/settings";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const schema = z.object({
   message: z.string().min(2).max(2000),
@@ -70,6 +71,8 @@ function localAnswer(message: string, pathname: string): string {
 
 export async function askHelpChat(input: unknown): Promise<HelpChatResult | { ok: false; error: string }> {
   const { user, permissions } = await getCurrentPermissions();
+  const limited = await enforceRateLimit(`help:${user.id}`, { limit: 20, windowMs: 60_000 });
+  if (!limited.ok) return { ok: false, error: "Demasiadas consultas. Esperá un minuto." };
   const isBaseAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
   const hasAdmin =
     permissions.fullAccess || isBaseAdmin || permissions.scopes.some((scope) => !scope.startsWith("portal."));

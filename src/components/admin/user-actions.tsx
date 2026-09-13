@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/dialog";
 import { FieldError } from "@/components/ui/input";
 import { PasswordReveal } from "@/components/admin/password-reveal";
 import { deleteUser, resetUserPassword, toggleUserActive } from "@/server/actions/users";
+import { anonymizeUser } from "@/server/actions/privacy";
 export function UserActions({
   id,
   isActive,
@@ -52,6 +53,24 @@ export function UserActions({
           }
         >
           {isActive ? "Desactivar" : "Activar"}
+        </Button>
+        <Button
+          variant="outline"
+          disabled={pending}
+          onClick={() => {
+            if (
+              confirm(
+                "¿Anonimizar este usuario? Se borran nombre, email y teléfono. Quedan pedidos y cotizaciones."
+              )
+            )
+              start(async () => {
+                const r = await anonymizeUser(data());
+                if (!r.ok) setError(r.error);
+                else router.refresh();
+              });
+          }}
+        >
+          Anonimizar datos
         </Button>
         {canDelete ? (
           <Button

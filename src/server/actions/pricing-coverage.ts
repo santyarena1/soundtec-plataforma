@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { calculatePricesForProducts, findCandidateRules, type AppliedRule, type ProductPricingInput } from "@/lib/pricing";
 import { attachRuleExemptions, toFiniteNumber, toPricingRuleRow } from "@/lib/pricing-scope";
 import type { PricingRuleRow } from "@/components/admin/pricing-rules-table";
+import { QUERY_CAPS } from "@/lib/query-caps";
 
 export type CoverageSource = "RULE" | "PRODUCT_FIELD" | "COEF_VTA" | "DEFAULT" | "NONE";
 export type ProductCoverageRow = {
@@ -95,7 +96,12 @@ export async function listProductRuleCoverage(input: {
     await requireAdmin();
     const where = productWhere(input); const clientId = input.clientId || null;
     const page = Math.max(1, input.page || 1); const pageSize = [25, 50, 100].includes(input.pageSize || 0) ? input.pageSize! : 25;
-    const all = await prisma.product.findMany({ where, orderBy: { normalizedName: "asc" }, select: pricingSelect });
+    const all = await prisma.product.findMany({
+      where,
+      orderBy: { normalizedName: "asc" },
+      take: QUERY_CAPS.coverageScan,
+      select: pricingSelect,
+    });
     const breakdowns = new Map<string, Awaited<ReturnType<typeof calculatePricesForProducts>> extends Map<string, infer B> ? B : never>();
     for (let i = 0; i < all.length; i += 500) {
       const batch = await calculatePricesForProducts(all.slice(i, i + 500).map(pricingInput), clientId);

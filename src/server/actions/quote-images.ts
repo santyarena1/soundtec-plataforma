@@ -2,6 +2,7 @@
 
 import { QuoteAiCapability, QuoteAssetKind, QuoteNodeSource } from "@prisma/client";
 import { put } from "@vercel/blob";
+import { fetchPublicHttps } from "@/lib/safe-url";
 import { prisma } from "@/lib/prisma";
 import { loadQuoteForUser } from "@/lib/quote-access";
 import { getCurrentPermissions } from "@/lib/auth-helpers";
@@ -16,11 +17,43 @@ import {
   upsertQuoteProductImage,
 } from "@/lib/quote-product-images";
 
+const ALLOWED_BLOB_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+]);
+const MAX_BLOB_BYTES = 12 * 1024 * 1024;
+
+function resolveBlobType(contentType: string, pathname: string) {
+  const type = (contentType.split(";")[0] || "").trim().toLowerCase();
+  if (ALLOWED_BLOB_TYPES.has(type) || type.startsWith("image/")) return type;
+  const lower = pathname.toLowerCase();
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".gif")) return "image/gif";
+  if (lower.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  return "";
+}
+
 async function storeImage(pathname: string, bytes: ArrayBuffer, contentType: string) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+  const type = resolveBlobType(contentType, pathname);
+  if (!type) {
+    throw new Error("Tipo de archivo no permitido.");
+  }
+  if (bytes.byteLength > MAX_BLOB_BYTES) {
+    throw new Error("El archivo supera el máximo de 12 MB.");
+  }
   const blob = await put(pathname, Buffer.from(bytes), {
     access: "public",
-    contentType,
+    addRandomSuffix: true,
+    contentType: type,
+    cacheControlMaxAge: 0,
   });
   return blob.url;
 }
@@ -46,7 +79,7 @@ export async function attachSerperImage(input: {
   if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
   let url = input.url;
   try {
-    const res = await fetch(input.url);
+    const res = await fetchPublicHttps(input.url);
     if (res.ok) {
       const buf = await res.arrayBuffer();
       const stored = await storeImage(
@@ -178,19 +211,23 @@ export async function attachQuotePlan(formData: FormData): Promise<{ ok: boolean
   const urlField = String(formData.get("url") || "").trim();
   let url = urlField;
   if (file instanceof File && file.size > 0) {
-    const buf = await file.arrayBuffer();
-    const stored = await storeImage(
-      `quotes/${quoteId}/plan-${Date.now()}-${file.name}`,
-      buf,
-      file.type || "application/octet-stream"
-    );
-    if (!stored) {
-      return {
-        ok: false,
-        error: "Para subir planos hace falta BLOB_READ_WRITE_TOKEN en el entorno. Pegá una URL pública mientras tanto.",
-      };
+    try {
+      const buf = await file.arrayBuffer();
+      const stored = await storeImage(
+        `quotes/${quoteId}/plan-${Date.now()}-${file.name}`,
+        buf,
+        file.type || "application/octet-stream"
+      );
+      if (!stored) {
+        return {
+          ok: false,
+          error: "Para subir planos hace falta BLOB_READ_WRITE_TOKEN en el entorno. Pegá una URL pública mientras tanto.",
+        };
+      }
+      url = stored;
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "No se pudo subir el archivo." };
     }
-    url = stored;
   }
   if (!url) return { ok: false, error: "Subí un archivo o pegá una URL." };
   await prisma.quoteAsset.create({

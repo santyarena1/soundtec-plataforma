@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
+const PUBLIC_API = [/^\/api\/auth(?:\/|$)/, /^\/api\/cron(?:\/|$)/, /^\/api\/setup(?:\/|$)/];
+
 export default auth((req) => {
   // Server Actions POST al URL de la página. Un 302 acá hace que
   // `await action()` resuelva a undefined y el cliente reviente en `.error`.
@@ -18,6 +20,20 @@ export default auth((req) => {
     perms?.fullAccess === true ||
     (Array.isArray(perms?.scopes) && perms.scopes.some((s) => !s.startsWith("portal.")));
 
+  if (pathname.startsWith("/api")) {
+    if (PUBLIC_API.some((re) => re.test(pathname))) return NextResponse.next();
+    if (!isLogged) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (pathname.startsWith("/api/admin") && !isAdminBase && !hasAdminScope) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (pathname.startsWith("/api/portal") && !isLogged) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/admin")) {
     if (!isLogged) {
       const loginUrl = new URL("/login", req.nextUrl);
@@ -31,7 +47,6 @@ export default auth((req) => {
 
   if (pathname.startsWith("/portal")) {
     if (!isLogged) {
-      // Un link de producto compartido debe abrir igual: versión pública sin precios.
       const productMatch = pathname.match(/^\/portal\/products(?:\/([^/]+))?\/?$/);
       if (productMatch) {
         const publicUrl = new URL(
@@ -56,5 +71,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

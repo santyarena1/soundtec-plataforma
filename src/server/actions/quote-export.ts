@@ -42,7 +42,9 @@ export async function issueQuote(formData: FormData): Promise<{ ok: boolean; err
       const { bytes, filename } = await buildQuoteWorkbook(id);
       const blob = await put(`quotes/${id}/${filename}`, Buffer.from(bytes), {
         access: "public",
+        addRandomSuffix: true,
         contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        cacheControlMaxAge: 0,
       });
       xlsxBlobUrl = blob.url;
     }

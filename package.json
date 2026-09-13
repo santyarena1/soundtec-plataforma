@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma db push --skip-generate --accept-data-loss && tsx scripts/sync-changelog.ts && next build",
+    "build": "prisma generate && prisma db push --skip-generate && tsx scripts/sync-changelog.ts && next build",
+    "test": "tsx --test src/lib/tenant-policy.test.ts src/lib/secret-box.test.ts src/lib/sanitize-html.test.ts src/services/sonance-portal-price.test.ts",
     "changelog:sync": "tsx scripts/sync-changelog.ts",
     "start": "next start",
     "lint": "next lint",

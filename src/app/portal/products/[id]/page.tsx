@@ -274,7 +274,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               {pricing.discountPercent > 0 ? (
                 <Badge tone="success">Descuento {formatPercent(pricing.discountPercent)}</Badge>
               ) : null}
-              <span className="text-xs text-muted-foreground">SKU: {product.internalSku || "—"}</span>
+              <span className="text-xs text-muted-foreground">SKU: {product.internalSku || product.modelNumber || product.supplierSku || "—"}</span>
             </div>
           </div>
 

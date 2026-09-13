@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { suggestNcmPosition } from "@/services/openai";
 import type { NcmResult } from "@/app/api/admin/ncm-search/route";
+import { requireApiStaff } from "@/lib/auth-api";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 function extractKeywords(name: string): string {
   const stopWords = new Set(["con", "de", "del", "la", "el", "los", "las", "para", "por", "en", "y", "o", "a", "al"]);
@@ -75,8 +76,10 @@ async function searchPcram(q: string): Promise<NcmResult[]> {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authz = await requireApiStaff();
+  if ("error" in authz) return authz.error;
+  const limited = await enforceRateLimit(`ncm-suggest:${authz.user.id}`, { limit: 10, windowMs: 60_000 });
+  if (!limited.ok) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const { productId } = await req.json() as { productId: string };
   if (!productId) return NextResponse.json({ error: "Missing productId" }, { status: 400 });

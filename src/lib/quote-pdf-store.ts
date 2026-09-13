@@ -59,10 +59,11 @@ export async function generateAndStoreQuotePdf(quoteId: string, actorId: string)
   const filename = `${quote.number.replace(/[^\w.-]+/g, "_")}.pdf`;
   const file = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
   const stored = await storeQuoteBlob(`quotes/${quote.id}/${filename}`, file, "application/pdf");
+  const publicUrl = `/api/quotes/${quote.id}/pdf`;
 
   await prisma.quote.update({
     where: { id: quote.id },
-    data: { pdfBlobUrl: stored || `/api/quotes/${quote.id}/pdf` },
+    data: { pdfBlobUrl: stored || publicUrl },
   });
 
   await prisma.quoteRevision.create({
@@ -78,7 +79,7 @@ export async function generateAndStoreQuotePdf(quoteId: string, actorId: string)
     },
   });
 
-  return { url: stored || `/api/quotes/${quote.id}/pdf`, number: quote.number, bytes };
+  return { url: publicUrl, number: quote.number, bytes };
 }
 
 export async function loadStoredQuotePdf(

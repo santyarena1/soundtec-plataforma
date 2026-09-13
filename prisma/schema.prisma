@@ -39,6 +39,8 @@ model User {
   isActive        Boolean  @default(true)
   twoFactorEnabled Boolean @default(false)
   twoFactorSecret String?
+  /// Sube en cada reset de clave, baja o cambio de rol. Invalida JWT viejos.
+  sessionVersion  Int      @default(0)
   lastLoginAt     DateTime?
   /// Progreso de onboarding por superficie: { admin?: Progress, portal?: Progress }.
   onboardingJson  Json?
@@ -810,6 +812,15 @@ model AdminSetting {
   description String?
   updatedAt   DateTime @updatedAt
   createdAt   DateTime @default(now())
+}
+
+model RateLimitBucket {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime
+  updatedAt   DateTime @updatedAt
+
+  @@index([windowStart])
 }
 
 // ---------------------------------------------

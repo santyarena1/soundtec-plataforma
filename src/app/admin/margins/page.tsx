@@ -5,6 +5,7 @@ import { PriceLogicHint } from "@/components/admin/price-logic-hint";
 import { PricingRulesWorkspace } from "../_rules/workspace";
 import { deleteMarginRule, deleteMarginRuleGroup } from "@/server/actions/pricing-rules";
 import { toFiniteNumber, toPricingRuleRow, attachRuleExemptions } from "@/lib/pricing-scope";
+import { QUERY_CAPS } from "@/lib/query-caps";
 
 export const metadata = { title: "Admin · Márgenes" };
 
@@ -26,7 +27,7 @@ export default async function AdminMarginsPage() {
       prisma.product.findMany({
         orderBy: { normalizedName: "asc" },
         select: { id: true, normalizedName: true },
-        take: 4000,
+        take: QUERY_CAPS.adminPicker,
       }),
     ]);
 
