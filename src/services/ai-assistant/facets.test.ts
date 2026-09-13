@@ -543,3 +543,27 @@ describe("utilidades", () => {
     assert.equal(cosineSimilarity([], [1]), 0);
   });
 });
+
+describe("consultas de catálogo que antes se clasificaban mal", () => {
+  it("«¿qué parlantes tienen para exterior?» es un listado, no una spec", () => {
+    const analysis = analyzeQuestion("¿Qué parlantes tienen para exterior?");
+    assert.notEqual(analysis.intent, "SPEC_LOOKUP");
+    assert.equal(shouldUseListing(analysis, detectFacets({ question: analysis.raw })), true);
+  });
+
+  it("«¿qué productos son compatibles con Crestron Home?» se lista", () => {
+    const analysis = analyzeQuestion("¿Qué productos son compatibles con Crestron Home?");
+    assert.equal(shouldUseListing(analysis, detectFacets({ question: analysis.raw })), true);
+  });
+
+  it("preguntar por un modelo puntual sigue sin listarse", () => {
+    const analysis = analyzeQuestion("¿El CP4N es compatible con Crestron Home?");
+    assert.equal(shouldUseListing(analysis, detectFacets({ question: analysis.raw })), false);
+  });
+
+  it("un dato puntual de un producto sigue siendo una spec", () => {
+    const analysis = analyzeQuestion("¿cuánto pesa el CP4N?");
+    assert.equal(analysis.intent, "SPEC_LOOKUP");
+    assert.equal(shouldUseListing(analysis, detectFacets({ question: analysis.raw })), false);
+  });
+});

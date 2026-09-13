@@ -196,6 +196,10 @@ function detectIntent(raw: string, modelCodes: string[]): QuestionIntent {
   if (/necesito|busco|recomend|qu[ée]\s+me\s+(sirve|conviene|recomend)|soluci[óo]n|opciones|alternativas|para\s+un[a]?\s/i.test(raw)) {
     return "RECOMMENDATION";
   }
+  // Antes de mirar el verbo: "¿qué parlantes tienen para exterior?" pregunta
+  // por el catálogo, no por la especificación de un producto puntual. Sin un
+  // modelo nombrado, el pedido de listado manda sobre el verbo.
+  if (detectWantsList(raw) && modelCodes.length === 0) return "GENERAL";
   if (/cu[áa]nt|tiene|es\s+|soporta|admite|viene\s+con|incluye|qu[ée]\s+(potencia|peso|modelo|color)/i.test(raw)) {
     return "SPEC_LOOKUP";
   }

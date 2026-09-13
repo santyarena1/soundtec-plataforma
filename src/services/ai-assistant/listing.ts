@@ -37,13 +37,16 @@ export function shouldUseListing(analysis: QuestionAnalysis, filter: CanonicalFi
   if (analysis.modelCodes.length > 0) return false;
   if (
     analysis.intent === "COMPARISON" ||
-    analysis.intent === "SPEC_LOOKUP" ||
     analysis.intent === "ACCESSORY" ||
     analysis.intent === "GREETING" ||
     analysis.intent === "RECOMMENDATION"
   ) {
     return false;
   }
+  // Un dato puntual se lista solo si además se pidieron varias opciones. Una
+  // compatibilidad sin modelo nombrado ("¿qué productos funcionan con Crestron
+  // Home?") sí es una consulta de catálogo: la resuelve la regla de abajo.
+  if (analysis.intent === "SPEC_LOOKUP" && !analysis.wantsList) return false;
   if (filterWeight(filter) === 0) return false;
   return Boolean(analysis.wantsList || analysis.requestedCount || filterWeight(filter) >= 2);
 }
