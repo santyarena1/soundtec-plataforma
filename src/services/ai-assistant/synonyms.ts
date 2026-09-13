@@ -70,6 +70,16 @@ const SYNONYMS: Record<string, string[]> = {
   videoconferencia: ["video conferencing", "conferencing", "uc"],
 
   // Características
+  proteccion: ["protection", "rating", "proteccion"],
+  protección: ["protection", "rating"],
+  resistencia: ["resistant", "rating"],
+  montaje: ["mount", "mounting", "montaje"],
+  entrada: ["input", "entrada"],
+  entradas: ["input", "inputs"],
+  salida: ["output", "salida"],
+  salidas: ["output", "outputs"],
+  canal: ["channel"],
+  canales: ["channel", "channels"],
   resistente: ["resistant", "weather", "rugged"],
   agua: ["water", "weather", "waterproof"],
   potencia: ["power", "watt"],

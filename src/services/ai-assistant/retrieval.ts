@@ -333,7 +333,9 @@ function buildTermGroups(analysis: QuestionAnalysis): TermGroup[] {
   for (const brand of analysis.brandNames) add(brand, 3);
   for (const token of analysis.tokens) {
     if (token.length < 3) continue;
-    add(token, 1);
+    // Un token con números es un dato duro (IP66, 70V, 4K): si se suelta,
+    // la respuesta deja de ser la que se pidió. Pesa más que una palabra suelta.
+    add(token, /[0-9]/.test(token) ? 2 : 1);
   }
   return groups.sort((a, b) => b.weight - a.weight).slice(0, 5);
 }
