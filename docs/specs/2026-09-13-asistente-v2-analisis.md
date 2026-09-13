@@ -163,7 +163,57 @@ La búsqueda por texto anterior sigue viva como respaldo: si el perfil todavía 
 
 ---
 
-## 5. Qué falta
+## 5. Resultado medido en producción (2026-09-13)
+
+Pase completo de perfiles: **2.905 de 2.905 productos, 0 errores**, 6,2 M tokens de entrada y
+0,55 M de salida, **USD 1,26** en total y alrededor de 75 minutos. Ambiente determinado:
+
+| Ambiente | Productos |
+|---|---|
+| Interior | 1.940 |
+| Exterior | 294 |
+| Interior y exterior | 144 |
+| Sin determinar | 527 |
+
+Los 527 sin determinar son en su mayoría accesorios, soportes y cables: productos que
+efectivamente pueden ir en cualquier lado. Es la respuesta correcta, no una falta de dato.
+
+Comportamiento del asistente, antes y después:
+
+| Consulta | Antes | Ahora | Tokens | Tiempo |
+|---|---|---|---|---|
+| Parlantes para exterior | 2 a 8 productos | **153**, con evidencia por producto | 0 | 0,3 s |
+| Compatibles con Crestron Home | 4 | **29** reales, no los 295 que mencionaban la frase | 0 | 0,9 s |
+| Parlantes de embutir en techo | hasta 8 | **98** | 0 | 0,3 s |
+| «Y cuáles admiten 70V» | rehacía la búsqueda | refina a **18** sobre los 153 anteriores | 0 | 0,04 s |
+| «Mostrame más» | no existía | continúa: van 16 de 153 | 0 | 0,03 s |
+| Comparar CP4 y CP4N | tabla | tabla (sigue yendo al modelo) | ~1.900 | 3,2 s |
+| Recomendación para un restaurante | lista genérica | candidatos por facetas + criterio del modelo | ~1.500 | 2,4 s |
+
+El costo interno sigue invisible en público: pedirlo diciéndose parte del equipo devuelve una
+negativa, y desde el admin el mismo asistente responde costo y stock.
+
+### Defectos encontrados midiendo, y corregidos
+
+Cada uno apareció probando contra el catálogo real, no razonando sobre el código:
+
+1. **42 de los primeros 43 productos quedaban sin ambiente.** El prompt exigía una cita textual,
+   y un procesador de rack no dice «para interior» en ninguna frase. Se separó la decisión de su
+   respaldo (declarado o deducido).
+2. **«Reprocesar todo» no avanzaba**: cada tanda tomaba los mismos 20 productos. Se versionó el
+   extractor.
+3. **«¿Qué parlantes tienen para exterior?» se clasificaba como consulta de una especificación**
+   por la palabra «tienen», y «compatibles con…» quedaba excluida del listado.
+4. **El filtro se pisaba a sí mismo**: «parlantes» viajaba como tipo de producto y además como
+   texto a buscar, lo que dejaba afuera todo producto cuya ficha dice «speaker». Devolvía 5 de 153.
+5. **Nombrar un ecosistema restringía la marca**: «compatible con Crestron Home» exigía además
+   que el producto fuera de Crestron.
+6. **Un producto mostraba como evidencia el texto de ejemplo del prompt**, que el modelo copió.
+   Se descarta al validar y se limpió la fila afectada sin gastar tokens.
+7. **Los verbos de la pregunta ensuciaban la búsqueda** y obligaban a relajar condiciones,
+   con una explicación que sobraba delante de un resultado correcto.
+
+## 6. Qué falta
 
 1. **Correr el pase de perfiles en producción** desde `/admin/assistant/profiles`. Hasta que la
    cobertura pase el 25 %, el asistente sigue respondiendo con el camino anterior.
@@ -176,7 +226,7 @@ La búsqueda por texto anterior sigue viva como respaldo: si el perfil todavía 
 
 ---
 
-## 6. Otros cambios de esta sesión
+## 7. Otros cambios de esta sesión
 
 - `/admin/assistant/leads` y `/admin/assistant/leads/[id]`: sesiones, datos de contacto, productos
   consultados, uso de tokens, conversación completa y las preguntas que no se pudieron responder.
