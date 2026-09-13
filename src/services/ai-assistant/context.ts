@@ -22,6 +22,34 @@ const RELATION_LABELS: Record<string, string> = {
   ALSO_PURCHASED: "suele comprarse junto a",
 };
 
+const ENVIRONMENT_TEXT: Record<string, string> = {
+  OUTDOOR: "apto para exterior",
+  INDOOR: "para interior",
+  BOTH: "interior y exterior",
+};
+
+/**
+ * Facetas del perfil en una línea. Es información que antes el modelo tenía
+ * que deducir leyendo la ficha entera, con el riesgo de equivocarse.
+ */
+function describeFacets(candidate: CandidateProduct): string {
+  const profile = candidate.profile;
+  if (!profile) return "";
+  const parts: string[] = [];
+  if (profile.environment && ENVIRONMENT_TEXT[profile.environment]) {
+    parts.push(ENVIRONMENT_TEXT[profile.environment]);
+  }
+  if (profile.ipRating) parts.push(`protección ${profile.ipRating}`);
+  if (profile.mountTypes.length > 0) parts.push(`montaje ${profile.mountTypes.join(", ")}`);
+  if (profile.audioLine) {
+    parts.push(profile.audioLine === "BOTH" ? "línea 70/100 V" : `línea ${profile.audioLine}`);
+  }
+  if (profile.powerWatts) parts.push(`${profile.powerWatts} W`);
+  if (profile.ecosystems.length > 0) parts.push(`compatible con ${profile.ecosystems.join(", ")}`);
+  if (profile.applications.length > 0) parts.push(`usos: ${profile.applications.join(", ")}`);
+  return parts.join(" · ");
+}
+
 function truncate(value: string, max: number): string {
   const clean = value.replace(/\s+/g, " ").trim();
   if (clean.length <= max) return clean;
@@ -75,9 +103,17 @@ export function buildProductSheet(
   ].filter(Boolean);
   if (identity.length > 0) lines.push(identity.join(" · "));
 
-  if (candidate.shortDescription) {
+  // El resumen precomputado dice lo mismo que la descripción del fabricante
+  // en la mitad de caracteres y en español. Cuando existe, es la descripción.
+  const summary = candidate.profile?.summaryEs;
+  if (summary) {
+    lines.push(`Resumen: ${truncate(summary, 320)}`);
+  } else if (candidate.shortDescription) {
     lines.push(`Descripción: ${truncate(candidate.shortDescription, 240)}`);
   }
+
+  const facets = describeFacets(candidate);
+  if (facets) lines.push(`Clasificación: ${facets}`);
 
   const features = candidate.keyFeatures.slice(0, LIMITS.maxFeaturesPerProduct);
   if (features.length > 0) {
@@ -122,10 +158,10 @@ export function buildProductSheet(
   }
   if (flags.length > 0) lines.push(`Datos: ${flags.join(" · ")}`);
 
-  // Si sobra presupuesto, se completa con la descripción larga o el HTML
-  // enriquecido, que es donde suele estar la info de aplicación.
+  // Solo si no hay resumen precomputado se recurre al texto largo del
+  // fabricante: es caro en tokens y viene en inglés.
   const soFar = lines.join("\n").length;
-  if (soFar < maxChars - 260) {
+  if (!summary && soFar < maxChars - 260) {
     const extra = candidate.longDescription || candidate.htmlText;
     if (extra) lines.push(`Detalle: ${truncate(extra, maxChars - soFar - 40)}`);
   }

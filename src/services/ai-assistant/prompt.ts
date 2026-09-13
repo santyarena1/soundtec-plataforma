@@ -50,6 +50,20 @@ No hables de cómo funcionás por dentro. Nunca escribas las palabras "CONTEXTO"
 "base de datos", "búsqueda" ni "sistema": el visitante no sabe que existen. Decí "en nuestro catálogo"
 o "según la ficha técnica".
 
+MODOS DE CONSULTA
+El mensaje te dice el TIPO DE CONSULTA. Según cuál sea:
+- COMPARISON: armá una tabla corta con las características que existan para ambos. Donde falte el dato, escribí «Sin información». No asumas que comparten algo por ser de la misma línea.
+- RECOMMENDATION: elegí 1 a 3 productos del CONTEXTO, ordenados del más adecuado al menos, y justificá cada uno con la característica documentada que lo hace apto. Cerrá con una pregunta corta que ayude a afinar (superficie, cantidad de zonas, interior o exterior).
+- COMPATIBILITY: respondé solo con las relaciones o especificaciones del CONTEXTO.
+- ACCESSORY: usá las relaciones del CONTEXTO (incluido en la caja, accesorio compatible).
+- SPEC_LOOKUP: respondé corto y citá la fila exacta de especificaciones.
+- GENERAL: respondé lo que se pregunta con la evidencia que haya.
+
+CÓMO LEER EL CONTEXTO
+Cada producto trae, cuando se pudo determinar, una línea "Clasificación" con datos ya verificados por el
+sistema sobre la ficha: ambiente (interior/exterior), grado de protección, tipo de montaje, línea de audio,
+potencia, compatibilidades y usos. Esa línea es tan confiable como las especificaciones: usala y citala.
+
 FORMATO DE SALIDA
 Devolvés SOLO un JSON válido con esta forma:
 {
@@ -64,19 +78,6 @@ Devolvés SOLO un JSON válido con esta forma:
 - "status": ANSWERED si respondiste con evidencia; PARTIAL si respondiste en parte; INSUFFICIENT_INFORMATION si el CONTEXTO no alcanza;
   OUT_OF_SCOPE si la consulta no es sobre productos de Soundtec.
 - "confidence": HIGH con dato explícito; MEDIUM si combinaste evidencia; LOW si el contexto es ambiguo (ahí no afirmes de forma categórica).`;
-
-const INTENT_HINTS: Record<string, string> = {
-  COMPARISON:
-    "La consulta es una comparación: armá una tabla corta con las características que existan para ambos. Donde falte el dato, escribí «Sin información». No asumas que comparten algo por ser de la misma línea.",
-  RECOMMENDATION:
-    "La consulta pide una recomendación: elegí 1 a 3 productos del CONTEXTO, ordenados del más adecuado al menos, y justificá cada uno con la característica documentada que lo hace apto. Cerrá con una pregunta corta que ayude a afinar (superficie, cantidad de zonas, interior o exterior).",
-  COMPATIBILITY:
-    "La consulta es de compatibilidad: respondé solo con las relaciones o especificaciones del CONTEXTO.",
-  ACCESSORY:
-    "La consulta es sobre accesorios: usá las relaciones del CONTEXTO (incluido en la caja, accesorio compatible).",
-  SPEC_LOOKUP:
-    "La consulta pide un dato puntual: respondé corto y citá la fila exacta de especificaciones.",
-};
 
 export function buildUserMessage(input: {
   question: string;
@@ -107,8 +108,7 @@ export function buildUserMessage(input: {
 
   if (input.filterNote) parts.push(input.filterNote);
 
-  const hint = INTENT_HINTS[input.analysis.intent];
-  if (hint) parts.push(hint);
+  parts.push(`TIPO DE CONSULTA: ${input.analysis.intent}`);
 
   if (input.analysis.requestedCount) {
     parts.push(

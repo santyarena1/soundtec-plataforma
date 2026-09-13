@@ -376,6 +376,7 @@ model Product {
   taxonomySuggestions TaxonomySuggestion[]
   labels          ProductLabel[]
   quoteItems      QuoteItem[]
+  aiProfile       ProductAiProfile?
 
   @@index([normalizedName])
   @@index([searchKey])
@@ -1635,6 +1636,12 @@ model AiChatSession {
   messages AiChatMessage[]
   lead     ExpoLead?
 
+  /// Filtro canónico vigente en la conversación ("parlantes de exterior con 70V").
+  /// Permite refinar ("¿y con 70V?") y paginar ("mostrame más") sin rehacer todo.
+  activeFilterJson Json?
+  /// Cuántos resultados del listado vigente ya se mostraron.
+  listingOffset    Int   @default(0)
+
   @@index([surface, startedAt])
   @@index([anonymousId])
 }
@@ -1685,6 +1692,60 @@ model ExpoLead {
   updatedAt DateTime @updatedAt
 
   @@index([createdAt])
+}
+
+/// Perfil técnico canónico de un producto, extraído una sola vez por lote.
+///
+/// Existe para que el asistente no tenga que volver a adivinar en cada
+/// consulta lo que está enterrado en el HTML del fabricante: si un producto es
+/// de exterior, qué grado IP declara, cómo se monta, en qué línea de audio
+/// trabaja. Todo lo que acá es una columna, allá era un `contains` sobre texto.
+model ProductAiProfile {
+  id        String  @id @default(cuid())
+  productId String  @unique
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  /// Tipo canónico: speaker, subwoofer, amplifier, processor, control,
+  /// touchpanel, display, switcher, camera, microphone, mount, cable,
+  /// lighting, power, network, accessory, other.
+  productType         String?
+  /// INDOOR | OUTDOOR | BOTH | UNKNOWN
+  environment         String?
+  /// Frase de la ficha que justifica el ambiente declarado.
+  environmentEvidence String?
+  /// Grado de protección declarado, normalizado ("IP66").
+  ipRating            String?
+  /// in-ceiling, in-wall, surface, pendant, rack, landscape, pole, desktop…
+  mountTypes          String[] @default([])
+  /// LOW_Z | 70V | 100V | BOTH
+  audioLine           String?
+  powerWatts          Float?
+  impedanceOhms       Float?
+  hdmiInputs          Int?
+  /// Crestron Home, Dante, AES67, PoE, AirPlay, Sonos…
+  ecosystems          String[] @default([])
+  /// residencial, restaurante, hotel, oficina, retail, auditorio, gimnasio…
+  applications        String[] @default([])
+  /// 2-3 oraciones en español: la ficha compacta que ve el modelo.
+  summaryEs           String?  @db.Text
+  /// Keywords en español e inglés para búsqueda sin diccionario a mano.
+  searchTextEs        String?  @db.Text
+
+  /// Embedding reducido (256 dims) del resumen. Se rankea en Node sobre el
+  /// subconjunto ya filtrado, así no hace falta pgvector para funcionar.
+  embedding Float[] @default([])
+
+  /// sha256 de los campos fuente: si no cambió, no se vuelve a gastar tokens.
+  sourceHash String
+  model      String?
+  builtAt    DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([productType])
+  @@index([environment])
+  @@index([audioLine])
+  @@index([ipRating])
+  @@index([builtAt])
 }
 
 model AiAnswerCache {

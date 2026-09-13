@@ -248,6 +248,10 @@ export function detectWantsList(raw: string): boolean {
     String.raw`\blistame\b`,
     String.raw`\bmodelos\b`,
     String.raw`\bqu[ée]\s+\w+s\b[^?]{0,40}\b(tienen|hay|ten[ée]s|manejan|trabajan)\b`,
+    // "¿Qué productos son compatibles con…?", "¿qué parlantes sirven para…?"
+    String.raw`\bqu[ée]\s+\w+s\b[^?]{0,40}\b(son|sirven|funcionan|admiten|soportan|vienen)\b`,
+    String.raw`\btod[oa]s\s+l[oa]s\b`,
+    String.raw`\blistado\b`,
   ];
   return new RegExp(patterns.join("|"), "i").test(raw);
 }

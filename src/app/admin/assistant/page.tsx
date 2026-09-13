@@ -16,9 +16,14 @@ export default async function AdminAssistantPage() {
         title="Asistente de productos"
         description="Consultas técnicas sobre el catálogo. Responde solo con datos de Soundtec: fichas, especificaciones y relaciones cargadas. Con tu sesión de admin puede además ver costo base y stock."
         actions={
-          <Link href="/admin/assistant/leads" className="text-sm text-primary hover:underline">
-            Ver leads y conversaciones
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/admin/assistant/profiles" className="text-sm text-primary hover:underline">
+              Perfiles de producto
+            </Link>
+            <Link href="/admin/assistant/leads" className="text-sm text-primary hover:underline">
+              Ver leads y conversaciones
+            </Link>
+          </div>
         }
       />
       <AdminAssistantChat />

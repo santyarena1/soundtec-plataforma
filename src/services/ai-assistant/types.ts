@@ -19,7 +19,7 @@ export type AnswerStatus =
 export type AnswerConfidence = "HIGH" | "MEDIUM" | "LOW";
 
 /** Cómo se resolvieron los productos candidatos. */
-export type RetrievalMode = "EXACT" | "SEARCH" | "CONTEXT" | "NONE";
+export type RetrievalMode = "EXACT" | "FACET" | "SEARCH" | "CONTEXT" | "NONE";
 
 export type QuestionIntent =
   | "SPEC_LOOKUP"
@@ -61,6 +61,25 @@ export interface QuestionAnalysis {
   wantsList: boolean;
 }
 
+/**
+ * Facetas precomputadas del producto (tabla ProductAiProfile). Es lo que
+ * permite responder "¿cuáles son de exterior?" sin releer la ficha entera.
+ */
+export interface CandidateProfile {
+  productType: string | null;
+  environment: string | null;
+  environmentEvidence: string | null;
+  ipRating: string | null;
+  mountTypes: string[];
+  audioLine: string | null;
+  powerWatts: number | null;
+  impedanceOhms: number | null;
+  hdmiInputs: number | null;
+  ecosystems: string[];
+  applications: string[];
+  summaryEs: string | null;
+}
+
 export interface SpecRow {
   label: string;
   value: string;
@@ -98,6 +117,8 @@ export interface CandidateProduct {
   weightKg: number | null;
   dimensionsCm: { width: number | null; height: number | null; depth: number | null };
   imageUrl: string | null;
+  /** Perfil canónico precomputado. Null mientras no se haya construido. */
+  profile: CandidateProfile | null;
   /** Marca de tiempo del producto: alimenta el hash de conocimiento de la cache. */
   updatedAtMs: number;
   /** Solo se completa en scope ADMIN. */
@@ -130,6 +151,15 @@ export interface AnswerProduct {
   reason?: string;
 }
 
+/** Estado de un listado paginado: permite "mostrame más" sin rehacer la búsqueda. */
+export interface ListingState {
+  total: number;
+  shown: number;
+  offset: number;
+  /** Descripción en español de lo que se está listando. */
+  description: string;
+}
+
 export interface AssistantAnswer {
   answer: string;
   status: AnswerStatus;
@@ -137,6 +167,13 @@ export interface AssistantAnswer {
   products: AnswerProduct[];
   sources: AnswerSource[];
   suggestions: string[];
+  /** Solo en respuestas de listado. */
+  listing?: ListingState;
+  /**
+   * Estado que la sesión tiene que recordar (filtro vigente y paginación).
+   * Es interno: la ruta lo persiste y lo saca antes de responderle al visitante.
+   */
+  state?: { filter: unknown; listingOffset: number };
   meta: {
     usedLlm: boolean;
     cacheHit: boolean;
@@ -160,4 +197,8 @@ export interface AskInput {
   initialProductId?: string | null;
   /** Últimos turnos ya recortados. */
   history?: Array<{ role: "user" | "assistant"; content: string }>;
+  /** Filtro canónico vigente en la sesión (para refinar y paginar). */
+  activeFilter?: unknown;
+  /** Cuántos resultados del listado ya se mostraron. */
+  listingOffset?: number;
 }

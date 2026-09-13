@@ -76,6 +76,8 @@ export async function POST(req: NextRequest) {
       activeProductIds: session.activeProductIds,
       initialProductId: session.initialProductId ?? productId ?? null,
       history,
+      activeFilter: session.activeFilter,
+      listingOffset: session.listingOffset,
     });
 
     const turn = await recordTurn({ sessionId: session.id, question: message, answer });
@@ -96,7 +98,8 @@ export async function POST(req: NextRequest) {
       questionCount: turn.questionCount,
       showLeadReminder,
       ...answer,
-      // La metadata de tokens es interna: al visitante no le sirve y no se muestra.
+      // Estado y tokens son internos: ya se persistieron en la sesión.
+      state: undefined,
       meta: { ...answer.meta, inputTokens: undefined, outputTokens: undefined },
     });
   } catch (error) {

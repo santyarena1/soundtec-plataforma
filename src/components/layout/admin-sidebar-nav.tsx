@@ -65,6 +65,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view", tourId: "nav-link-products" },
       { href: "/admin/assistant", label: "Asistente de productos", icon: Sparkles, scope: "products.view" },
+      { href: "/admin/assistant/profiles", label: "Perfiles del asistente", icon: Sparkles, scope: "products.view" },
       { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage", tourId: "nav-link-brands" },
       { href: "/admin/labels", label: "Etiquetas", icon: Tags, scope: "brands.manage" },
       { href: "/admin/distributors", label: "Proveedores", icon: Truck, scope: "distributors.manage" },

@@ -14,7 +14,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "test": "tsx --test src/services/sonance-portal-price.test.ts src/services/ai-assistant/assistant.test.ts"
+    "test": "tsx --test src/services/sonance-portal-price.test.ts src/services/ai-assistant/assistant.test.ts src/services/ai-assistant/facets.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -22,6 +22,9 @@ export interface SessionState {
   initialProductId: string | null;
   reminderDismissedAt: Date | null;
   reminderShownAt: Date | null;
+  /** Filtro canónico vigente: permite refinar y paginar sin rehacer todo. */
+  activeFilter: unknown;
+  listingOffset: number;
 }
 
 export function newAnonymousId(): string {
@@ -37,6 +40,8 @@ function toState(row: {
   initialProductId: string | null;
   reminderDismissedAt: Date | null;
   reminderShownAt: Date | null;
+  activeFilterJson: unknown;
+  listingOffset: number;
 }): SessionState {
   return {
     id: row.id,
@@ -47,6 +52,8 @@ function toState(row: {
     initialProductId: row.initialProductId,
     reminderDismissedAt: row.reminderDismissedAt,
     reminderShownAt: row.reminderShownAt,
+    activeFilter: row.activeFilterJson ?? null,
+    listingOffset: row.listingOffset,
   };
 }
 
@@ -98,6 +105,9 @@ export async function recordTurn(input: {
   answer: AssistantAnswer;
 }): Promise<{ questionCount: number; activeProductIds: string[] }> {
   const productIds = input.answer.products.map((product) => product.id);
+  // El filtro y la paginación viajan con la respuesta: así "mostrame más"
+  // continúa la misma búsqueda en el turno siguiente.
+  const state = input.answer.state;
 
   const [, , session] = await prisma.$transaction([
     prisma.aiChatMessage.create({
@@ -133,6 +143,12 @@ export async function recordTurn(input: {
         lastActivityAt: new Date(),
         // Memoria de la conversación: los últimos productos en juego.
         ...(productIds.length > 0 ? { activeProductIds: productIds.slice(0, 4) } : {}),
+        ...(state
+          ? {
+              activeFilterJson: state.filter as object,
+              listingOffset: state.listingOffset,
+            }
+          : {}),
       },
       select: { questionCount: true, activeProductIds: true },
     }),

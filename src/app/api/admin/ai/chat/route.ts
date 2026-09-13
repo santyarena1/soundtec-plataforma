@@ -47,10 +47,12 @@ export async function POST(req: NextRequest) {
       sessionId: chat.id,
       activeProductIds: chat.activeProductIds,
       history,
+      activeFilter: chat.activeFilter,
+      listingOffset: chat.listingOffset,
     });
     await recordTurn({ sessionId: chat.id, question: parsed.data.message, answer });
 
-    return NextResponse.json({ ok: true, sessionId: chat.id, ...answer });
+    return NextResponse.json({ ok: true, sessionId: chat.id, ...answer, state: undefined });
   } catch (error) {
     console.error("admin ai chat error", error);
     return NextResponse.json({ ok: false, error: "No se pudo consultar el asistente." }, { status: 500 });

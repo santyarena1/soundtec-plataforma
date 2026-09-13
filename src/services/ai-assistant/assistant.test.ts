@@ -55,6 +55,7 @@ function makeCandidate(overrides: Partial<CandidateProduct> = {}): CandidateProd
     weightKg: 4.5,
     dimensionsCm: { width: 43, height: 4.4, depth: 30 },
     imageUrl: null,
+    profile: null,
     updatedAtMs: 1_700_000_000_000,
     ...overrides,
   };

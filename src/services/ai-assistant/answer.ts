@@ -1,9 +1,13 @@
 /**
- * Orquestador del asistente: es el único punto que decide si hace falta el
+ * Orquestador del asistente: el único punto que decide si hace falta el
  * modelo y qué se le manda.
  *
- * Camino: análisis → retrieval → cache → atajo determinístico → LLM →
- * validación contra la base. Como máximo UNA llamada al modelo por consulta.
+ * Tres caminos, de más barato a más caro:
+ *   1. Listado por facetas   → 0 tokens. Consultas de catálogo ("cuáles son
+ *      de exterior"): el backend ya sabe cuántos hay y cuáles son.
+ *   2. Atajo determinístico  → 0 tokens. Un dato puntual de un producto.
+ *   3. Una (1) llamada al modelo → cuando hace falta criterio: comparar,
+ *      recomendar, interpretar. Nunca dos llamadas.
  */
 
 import { buildContext, compressHistory } from "./context";
@@ -16,11 +20,29 @@ import {
   tryDeterministicAnswer,
   SPEC_SOURCE_TITLE,
 } from "./deterministic";
+import {
+  deserializeFilter,
+  describeFilter,
+  detectFacets,
+  filterWeight,
+  isEmptyFilter,
+  isMoreRequest,
+  mergeFilters,
+  serializeFilter,
+  type CanonicalFilter,
+} from "./facets";
+import { facetSearch, profileCoverage } from "./facet-search";
 import { analyzeQuestion } from "./intent";
 import { askModel } from "./llm";
+import {
+  buildListingAnswer,
+  emptyListingAnswer,
+  listingPageSize,
+  shouldUseListing,
+} from "./listing";
 import { buildUserMessage } from "./prompt";
-import { getBrandNames, retrieveCandidates, structuredFilterNote } from "./retrieval";
-import { LIMITS } from "./budget";
+import { getBrandNames, retrieveCandidates } from "./retrieval";
+import { LIMITS, candidateLimitFor } from "./budget";
 import type {
   AnswerConfidence,
   AnswerSource,
@@ -37,6 +59,13 @@ const FALLBACK_NO_AI =
 const FALLBACK_BUSY =
   "Hay muchas consultas en este momento. Probá de nuevo en unos segundos: mientras tanto podés " +
   "seguir usando el buscador del catálogo.";
+
+/**
+ * Cobertura mínima de perfiles para confiar en el camino por facetas.
+ * Por debajo de esto el catálogo todavía se está procesando y el filtro
+ * daría una foto parcial, así que se usa la búsqueda por texto.
+ */
+const MIN_COVERAGE = 0.25;
 
 function errorAnswer(text: string, latencyMs: number, candidateCount: number): AssistantAnswer {
   return {
@@ -60,10 +89,7 @@ function errorAnswer(text: string, latencyMs: number, candidateCount: number): A
  * Traduce las etiquetas del modelo (P1, P2…) a productos reales.
  * Si el modelo nombra algo que no está en el contexto, se descarta.
  */
-function resolveRefs(
-  refs: string[] | undefined,
-  used: CandidateProduct[]
-): CandidateProduct[] {
+function resolveRefs(refs: string[] | undefined, used: CandidateProduct[]): CandidateProduct[] {
   if (!refs?.length) return [];
   const byLabel = new Map(used.map((candidate) => [candidate.label.toUpperCase(), candidate]));
   const out: CandidateProduct[] = [];
@@ -85,9 +111,7 @@ function buildSources(
     const candidate = byLabel.get(String(source.ref).trim().toUpperCase());
     if (!candidate) continue;
     const detail = source.detail?.trim().slice(0, 300);
-    const duplicate = out.some(
-      (item) => item.productId === candidate.id && item.detail === detail
-    );
+    const duplicate = out.some((item) => item.productId === candidate.id && item.detail === detail);
     if (duplicate) continue;
     out.push({
       type: "SPECIFICATION",
@@ -111,6 +135,26 @@ function ensureSources(sources: AnswerSource[], products: CandidateProduct[]): A
   }));
 }
 
+/**
+ * Filtro vigente de la conversación. Una pregunta nueva lo reemplaza; un
+ * seguimiento ("¿y con 70V?", "mostrame más") lo refina.
+ */
+function resolveFilter(input: {
+  question: string;
+  previous: CanonicalFilter | null;
+  detected: CanonicalFilter;
+  isFollowUp: boolean;
+  isMore: boolean;
+}): CanonicalFilter {
+  const { previous, detected, isMore, isFollowUp } = input;
+  if (!previous || isEmptyFilter(previous)) return detected;
+  if (isMore) return previous;
+  if (isFollowUp || filterWeight(detected) < filterWeight(previous)) {
+    return mergeFilters(previous, detected);
+  }
+  return detected;
+}
+
 export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
   const startedAt = Date.now();
   const question = input.question.trim().slice(0, LIMITS.maxQuestionChars);
@@ -124,20 +168,111 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
     answer.suggestions = [
       "¿Qué parlantes de embutir en techo tienen?",
       "Dame 5 opciones de parlantes para exterior",
-      "¿Qué parlantes tienen protección IP66?",
+      "¿Qué productos son compatibles con Crestron Home?",
     ];
     answer.meta.latencyMs = Date.now() - startedAt;
     return answer;
   }
 
-  const retrieval = await retrieveCandidates({
-    analysis,
-    scope,
-    activeProductIds: input.activeProductIds,
-    initialProductId: input.initialProductId,
+  const previousFilter = deserializeFilter(input.activeFilter);
+  const detected = detectFacets({ question, brandNames, tokens: analysis.tokens });
+  const isMore = isMoreRequest(question) && Boolean(previousFilter) && !isEmptyFilter(previousFilter!);
+  const filter = resolveFilter({
+    question,
+    previous: previousFilter,
+    detected,
+    isFollowUp: analysis.isFollowUp,
+    isMore,
+  });
+  const offset = isMore ? Math.max(0, input.listingOffset ?? 0) : 0;
+
+  const coverage = await profileCoverage();
+  const canUseFacets =
+    coverage >= MIN_COVERAGE && filterWeight(filter) > 0 && analysis.modelCodes.length === 0;
+
+  // ---------------------------------------------------------------
+  // 1) Listado por facetas: la consulta de catálogo, sin modelo.
+  // ---------------------------------------------------------------
+  if (canUseFacets && (isMore || shouldUseListing(analysis, filter))) {
+    const pageSize = listingPageSize(analysis);
+    const result = await facetSearch({
+      filter,
+      scope,
+      limit: pageSize,
+      offset,
+      question,
+      semantic: filter.freeTerms.length > 0 || filter.applications.length > 0,
+    });
+
+    if (result.total > 0 && result.candidates.length > 0) {
+      const answer = buildListingAnswer({
+        candidates: result.candidates,
+        total: result.total,
+        offset,
+        filter: result.usedFilter,
+        relaxed: result.relaxed,
+        scope,
+        isContinuation: isMore,
+      });
+      answer.meta.latencyMs = Date.now() - startedAt;
+      answer.state = {
+        filter: serializeFilter(result.usedFilter),
+        listingOffset: offset + result.candidates.length,
+      };
+      return answer;
+    }
+
+    // El filtro es específico y no hay nada: decirlo es la respuesta correcta.
+    if (filterWeight(filter) >= 2) {
+      const answer = emptyListingAnswer(filter);
+      answer.meta.latencyMs = Date.now() - startedAt;
+      answer.state = { filter: serializeFilter(filter), listingOffset: 0 };
+      return answer;
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // 2) Candidatos para razonar: facetas primero, texto como respaldo.
+  // ---------------------------------------------------------------
+  const limit = candidateLimitFor(analysis.intent, {
+    requestedCount: analysis.requestedCount,
+    wantsList: analysis.wantsList,
   });
 
-  if (retrieval.candidates.length === 0) {
+  let candidates: CandidateProduct[] = [];
+  let retrievalMode: AssistantAnswer["meta"]["retrievalMode"] = "NONE";
+  let facetTotal = 0;
+  let facetFilter: CanonicalFilter | null = null;
+
+  if (canUseFacets) {
+    const result = await facetSearch({
+      filter,
+      scope,
+      limit,
+      offset: 0,
+      question,
+      semantic: true,
+    });
+    if (result.candidates.length > 0) {
+      candidates = result.candidates;
+      retrievalMode = "FACET";
+      facetTotal = result.total;
+      facetFilter = result.usedFilter;
+    }
+  }
+
+  if (candidates.length === 0) {
+    const retrieval = await retrieveCandidates({
+      analysis,
+      scope,
+      activeProductIds: input.activeProductIds,
+      initialProductId: input.initialProductId,
+    });
+    candidates = retrieval.candidates;
+    retrievalMode = retrieval.mode;
+  }
+
+  if (candidates.length === 0) {
     const answer = noCandidatesAnswer(question);
     answer.suggestions = buildSuggestions({ analysis, candidates: [] });
     answer.meta.latencyMs = Date.now() - startedAt;
@@ -145,14 +280,14 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
     return answer;
   }
 
-  const suggestions = buildSuggestions({ analysis, candidates: retrieval.candidates });
+  const suggestions = buildSuggestions({ analysis, candidates });
 
-  // 1) Cache: misma pregunta, mismos productos, mismo conocimiento.
-  const version = knowledgeVersion(retrieval.candidates);
+  // 3) Cache: misma pregunta, mismos productos, mismo conocimiento.
+  const version = knowledgeVersion(candidates);
   const cacheKey = buildCacheKey({
     scope,
     question,
-    productIds: retrieval.candidates.map((candidate) => candidate.id),
+    productIds: candidates.map((candidate) => candidate.id),
     knowledgeVersion: version,
   });
   const cached = await readCache(cacheKey, scope);
@@ -164,8 +299,8 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
     };
   }
 
-  // 2) Atajo sin modelo cuando el dato es inequívoco.
-  const deterministic = tryDeterministicAnswer({ analysis, candidates: retrieval.candidates, scope });
+  // 4) Atajo sin modelo cuando el dato es inequívoco.
+  const deterministic = tryDeterministicAnswer({ analysis, candidates, scope });
   if (deterministic) {
     const answer: AssistantAnswer = {
       ...deterministic,
@@ -173,17 +308,24 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
       meta: {
         ...deterministic.meta,
         latencyMs: Date.now() - startedAt,
-        candidateCount: retrieval.candidates.length,
-        retrievalMode: retrieval.mode,
+        candidateCount: candidates.length,
+        retrievalMode,
       },
     };
     await writeCache({ key: cacheKey, scope, question, knowledgeVersion: version, answer });
     return answer;
   }
 
-  // 3) Contexto acotado y una sola llamada al modelo.
-  const context = buildContext(retrieval.candidates, analysis, scope);
+  // 5) Contexto acotado y una sola llamada al modelo.
+  const context = buildContext(candidates, analysis, scope);
   const history = compressHistory(input.history ?? []);
+  const filterNote = facetFilter
+    ? `Todos los productos del CONTEXTO ya fueron filtrados y cumplen: ${describeFilter(facetFilter)}.` +
+      (facetTotal > candidates.length
+        ? ` En el catálogo hay ${facetTotal} que cumplen; en el CONTEXTO están los ${candidates.length} más pertinentes, así que podés decir cuántos hay en total.`
+        : "")
+    : null;
+
   const userMessage = buildUserMessage({
     question,
     analysis,
@@ -191,14 +333,12 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
     candidates: context.used,
     history,
     scope,
-    filterNote: structuredFilterNote(analysis),
+    filterNote,
   });
 
   const outcome = await askModel(userMessage, {
     maxTokens:
-      analysis.intent === "COMPARISON"
-        ? LIMITS.maxOutputTokensComparison
-        : LIMITS.maxOutputTokens,
+      analysis.intent === "COMPARISON" ? LIMITS.maxOutputTokensComparison : LIMITS.maxOutputTokens,
   });
 
   if (!outcome.ok) {
@@ -209,20 +349,20 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
         answer: FALLBACK_NO_AI,
         status: "ERROR",
         confidence: "LOW",
-        products: retrieval.candidates.slice(0, 3).map((candidate) => toAnswerProduct(candidate, scope)),
+        products: candidates.slice(0, 3).map((candidate) => toAnswerProduct(candidate, scope)),
         sources: [],
         suggestions,
         meta: {
           usedLlm: false,
           cacheHit: false,
           latencyMs: latency,
-          candidateCount: retrieval.candidates.length,
-          retrievalMode: retrieval.mode,
+          candidateCount: candidates.length,
+          retrievalMode,
         },
       };
     }
     const busy = outcome.reason === "RATE_LIMITED" || outcome.reason === "TIMEOUT";
-    return errorAnswer(busy ? FALLBACK_BUSY : FALLBACK_NO_AI, latency, retrieval.candidates.length);
+    return errorAnswer(busy ? FALLBACK_BUSY : FALLBACK_NO_AI, latency, candidates.length);
   }
 
   const products = resolveRefs(outcome.data.productRefs, context.used);
@@ -247,13 +387,17 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
       usedLlm: true,
       cacheHit: false,
       latencyMs: Date.now() - startedAt,
-      candidateCount: retrieval.candidates.length,
-      retrievalMode: retrieval.mode,
+      candidateCount: candidates.length,
+      retrievalMode,
       model: outcome.model,
       inputTokens: outcome.inputTokens,
       outputTokens: outcome.outputTokens,
     },
   };
+
+  if (facetFilter) {
+    answer.state = { filter: serializeFilter(facetFilter), listingOffset: 0 };
+  }
 
   if (status === "ANSWERED" || status === "INSUFFICIENT_INFORMATION") {
     await writeCache({ key: cacheKey, scope, question, knowledgeVersion: version, answer });
