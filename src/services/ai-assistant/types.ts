@@ -55,6 +55,10 @@ export interface QuestionAnalysis {
   applicationTerms: string[];
   /** La pregunta depende del contexto previo ("¿y cuál para exterior?"). */
   isFollowUp: boolean;
+  /** "dame 5 opciones" → 5. El visitante manda sobre cualquier tope por defecto. */
+  requestedCount?: number;
+  /** Consulta de listado del catálogo ("qué parlantes tienen…", "opciones de…"). */
+  wantsList: boolean;
 }
 
 export interface SpecRow {

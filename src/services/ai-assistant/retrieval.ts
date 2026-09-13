@@ -285,6 +285,18 @@ function haystackOf(row: ProductRow): string {
 }
 
 /**
+ * Algunos atributos no son texto sino una columna del producto. Para
+ * "¿qué productos son compatibles con Crestron Home?" el dato está en un
+ * booleano, así que se filtra por ahí en vez de buscar la frase.
+ */
+function structuredFilterFor(analysis: QuestionAnalysis): Prisma.ProductWhereInput | null {
+  if (analysis.attributes.some((attribute) => attribute.key === "crestron_home")) {
+    return { isCrestronHomeCompatible: true };
+  }
+  return null;
+}
+
+/**
  * Búsqueda por concepto: OR entre términos (incluida su traducción al
  * inglés) y ranking por cuántos términos distintos aparecen en la ficha.
  */
@@ -294,14 +306,18 @@ async function findByConcept(analysis: QuestionAnalysis, limit: number): Promise
     ...analysis.applicationTerms,
     ...analysis.tokens.filter((token) => token.length >= 3 && !GENERIC_TOKENS.has(token)),
   ];
-  const terms = expandSearchTerms(base, 8);
-  if (terms.length === 0) return [];
+  const terms = expandSearchTerms(base, 10);
+  const structured = structuredFilterFor(analysis);
+  if (terms.length === 0 && !structured) return [];
 
   const rows = await prisma.product.findMany({
     where: {
       isActive: true,
       kind: "PRINCIPAL",
-      OR: terms.flatMap((term) => [...productTokenOr(term), ...jsonMatchers(term)]),
+      ...(structured ?? {}),
+      ...(terms.length > 0 && !structured
+        ? { OR: terms.flatMap((term) => [...productTokenOr(term), ...jsonMatchers(term)]) }
+        : {}),
     },
     select: PRODUCT_SELECT,
     take: LIMITS.candidateFetchCap * 3,
@@ -322,7 +338,7 @@ async function findByConcept(analysis: QuestionAnalysis, limit: number): Promise
       if (row.isDiscontinued) score -= 2;
       return { row, score };
     })
-    .filter((entry) => entry.score > 0)
+    .filter((entry) => entry.score > 0 || structured !== null)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((entry) => entry.row);
@@ -342,7 +358,10 @@ export async function retrieveCandidates(input: {
   initialProductId?: string | null;
 }): Promise<RetrievalResult> {
   const { analysis, scope } = input;
-  const limit = candidateLimitFor(analysis.intent);
+  const limit = candidateLimitFor(analysis.intent, {
+    requestedCount: analysis.requestedCount,
+    wantsList: analysis.wantsList,
+  });
   const contextIds = [
     ...(input.initialProductId ? [input.initialProductId] : []),
     ...(input.activeProductIds ?? []),

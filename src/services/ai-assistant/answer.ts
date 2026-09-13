@@ -71,7 +71,7 @@ function resolveRefs(
     const candidate = byLabel.get(String(ref).trim().toUpperCase());
     if (candidate && !out.some((item) => item.id === candidate.id)) out.push(candidate);
   }
-  return out.slice(0, 4);
+  return out.slice(0, 8);
 }
 
 function buildSources(

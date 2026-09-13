@@ -216,6 +216,42 @@ function detectAttributes(raw: string): AttributeQuery[] {
   return found.slice(0, 3);
 }
 
+const NUMBER_WORDS: Record<string, number> = {
+  dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10,
+};
+
+/** "dame 5 opciones", "tres alternativas": el visitante define cuántas quiere. */
+export function detectRequestedCount(raw: string): number | undefined {
+  const nouns = "(?:opciones?|alternativas?|modelos?|productos?|parlantes?|equipos?|variantes?|marcas?)";
+  const digits = raw.match(new RegExp(String.raw`\b(\d{1,2})\s+(?:\w+\s+){0,2}?` + nouns + String.raw`\b`, "i"));
+  if (digits) {
+    const value = Number(digits[1]);
+    if (value >= 1 && value <= 10) return value;
+  }
+  const words = raw.match(
+    new RegExp(
+      String.raw`\b(dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+(?:\w+\s+){0,2}?` + nouns + String.raw`\b`,
+      "i"
+    )
+  );
+  if (words) return NUMBER_WORDS[words[1].toLowerCase()];
+  return undefined;
+}
+
+/** Preguntas de catálogo: piden varias opciones, no un dato de un producto. */
+export function detectWantsList(raw: string): boolean {
+  const patterns = [
+    String.raw`\bopciones?\b`,
+    String.raw`\balternativas?\b`,
+    String.raw`\bcu[áa]les\b`,
+    String.raw`\bmostrame\b`,
+    String.raw`\blistame\b`,
+    String.raw`\bmodelos\b`,
+    String.raw`\bqu[ée]\s+\w+s\b[^?]{0,40}\b(tienen|hay|ten[ée]s|manejan|trabajan)\b`,
+  ];
+  return new RegExp(patterns.join("|"), "i").test(raw);
+}
+
 function detectApplicationTerms(raw: string): string[] {
   return APPLICATION_TERMS.filter(({ re }) => re.test(raw)).map(({ term }) => term);
 }
@@ -253,5 +289,7 @@ export function analyzeQuestion(raw: string, brandNames: string[] = []): Questio
     attributes: detectAttributes(raw),
     applicationTerms: detectApplicationTerms(raw),
     isFollowUp: detectFollowUp(raw, modelCodes),
+    requestedCount: detectRequestedCount(raw),
+    wantsList: detectWantsList(raw),
   };
 }

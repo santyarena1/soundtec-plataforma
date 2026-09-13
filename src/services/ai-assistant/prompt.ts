@@ -55,7 +55,7 @@ Devolvés SOLO un JSON válido con esta forma:
   "productRefs": ["P1"],
   "sourceRefs": [{ "ref": "P1", "detail": "IP Rating: IP66" }]
 }
-- "productRefs": etiquetas del CONTEXTO que el visitante debería ver como tarjeta. Solo etiquetas que existan. Máximo 4.
+- "productRefs": etiquetas del CONTEXTO que el visitante debería ver como tarjeta. Solo etiquetas que existan. Máximo 8.
 - "sourceRefs": de dónde sale cada afirmación técnica: "ref" es la etiqueta y "detail" el dato exacto copiado del CONTEXTO.
 - "status": ANSWERED si respondiste con evidencia; PARTIAL si respondiste en parte; INSUFFICIENT_INFORMATION si el CONTEXTO no alcanza;
   OUT_OF_SCOPE si la consulta no es sobre productos de Soundtec.
@@ -101,6 +101,16 @@ export function buildUserMessage(input: {
 
   const hint = INTENT_HINTS[input.analysis.intent];
   if (hint) parts.push(hint);
+
+  if (input.analysis.requestedCount) {
+    parts.push(
+      `El visitante pidió ${input.analysis.requestedCount} opciones: listá hasta ${input.analysis.requestedCount} productos del CONTEXTO que apliquen, cada uno con su razón. Si en el CONTEXTO hay menos, decí cuántos hay y por qué.`
+    );
+  } else if (input.analysis.wantsList) {
+    parts.push(
+      "Es una consulta de listado: mostrá todas las opciones del CONTEXTO que apliquen (hasta 6), cada una con la característica documentada que la hace apta."
+    );
+  }
 
   if (input.analysis.applicationTerms.length > 0) {
     parts.push(

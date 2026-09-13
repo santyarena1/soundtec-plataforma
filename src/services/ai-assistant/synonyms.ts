@@ -83,7 +83,7 @@ const SYNONYMS: Record<string, string[]> = {
  * Expande los términos de la pregunta con sus equivalentes en inglés.
  * Devuelve como mucho `max` términos: el retrieval tiene que seguir siendo barato.
  */
-export function expandSearchTerms(tokens: string[], max = 8): string[] {
+export function expandSearchTerms(tokens: string[], max = 10): string[] {
   const out: string[] = [];
   const push = (value: string) => {
     const clean = value.trim().toLowerCase();
@@ -91,10 +91,18 @@ export function expandSearchTerms(tokens: string[], max = 8): string[] {
     if (!out.includes(clean)) out.push(clean);
   };
 
-  for (const token of tokens) {
-    const key = token.toLowerCase();
-    push(key);
-    for (const synonym of SYNONYMS[key] ?? []) push(synonym);
+  // Primero todos los términos originales, después las traducciones en
+  // rondas. Así el recorte final nunca deja afuera un concepto entero:
+  // "parlante de embutir en techo" conserva speaker, in-ceiling y ceiling.
+  const keys = tokens.map((token) => token.toLowerCase());
+  for (const key of keys) push(key);
+
+  const depth = Math.max(0, ...keys.map((key) => (SYNONYMS[key] ?? []).length));
+  for (let round = 0; round < depth; round++) {
+    for (const key of keys) {
+      const synonym = (SYNONYMS[key] ?? [])[round];
+      if (synonym) push(synonym);
+    }
   }
   return out.slice(0, max);
 }

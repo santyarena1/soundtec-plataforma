@@ -9,7 +9,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { analyzeQuestion, extractModelCodes, normalizeQuestion } from "./intent";
+import {
+  analyzeQuestion,
+  detectRequestedCount,
+  detectWantsList,
+  extractModelCodes,
+  normalizeQuestion,
+} from "./intent";
 import { buildContext, buildProductSheet, compressHistory, prioritizeSpecs } from "./context";
 import { buildSuggestions, noCandidatesAnswer, tryDeterministicAnswer } from "./deterministic";
 import { buildCacheKey, cacheNormalizeQuestion, knowledgeVersion } from "./cache";
@@ -98,6 +104,32 @@ describe("análisis de la pregunta", () => {
   });
 });
 
+describe("cuántas opciones devolver", () => {
+  it("respeta la cantidad que pidió el visitante", () => {
+    assert.equal(detectRequestedCount("dame 5 opciones de parlantes para exterior"), 5);
+    assert.equal(detectRequestedCount("mostrame tres alternativas"), 3);
+    assert.equal(detectRequestedCount("¿es IP66?"), undefined);
+  });
+
+  it("reconoce una consulta de listado", () => {
+    assert.equal(detectWantsList("¿qué parlantes tienen para exterior?"), true);
+    assert.equal(detectWantsList("dame opciones de amplificadores"), true);
+    assert.equal(detectWantsList("¿cuánto pesa el SA68?"), false);
+  });
+
+  it("pedir 5 opciones trae más candidatos que el tope por defecto", () => {
+    const porDefecto = candidateLimitFor("SPEC_LOOKUP");
+    const pedidas = candidateLimitFor("SPEC_LOOKUP", { requestedCount: 5 });
+    assert.ok(pedidas >= 5, "entran al menos las 5 pedidas");
+    assert.ok(pedidas > porDefecto);
+    assert.ok(candidateLimitFor("GENERAL", { requestedCount: 50 }) <= 10, "con tope duro");
+  });
+
+  it("una consulta de listado abre el tope aunque no diga un número", () => {
+    assert.ok(candidateLimitFor("SPEC_LOOKUP", { wantsList: true }) >= 6);
+  });
+});
+
 describe("contexto y presupuesto", () => {
   it("pone primero la spec que responde la pregunta", () => {
     const candidate = makeCandidate();
@@ -138,7 +170,9 @@ describe("contexto y presupuesto", () => {
       label: `Característica número ${index}`,
       value: `Valor bastante largo para ocupar espacio en la ficha ${index}`,
     }));
-    const candidates = Array.from({ length: 8 }, (_, index) =>
+    // Muchos productos, fichas largas: aunque se achiquen al mínimo no entran
+    // todas, así que la cola se descarta antes que romper el presupuesto.
+    const candidates = Array.from({ length: 20 }, (_, index) =>
       makeCandidate({
         id: `p${index}`,
         label: `P${index + 1}`,
@@ -149,6 +183,15 @@ describe("contexto y presupuesto", () => {
     const context = buildContext(candidates, analyze("necesito algo para exterior"), "PUBLIC");
     assert.ok(context.chars <= LIMITS.maxContextChars + LIMITS.maxProductSheetChars);
     assert.ok(context.used.length < candidates.length);
+  });
+
+  it("con un listado largo entran todas las opciones, con fichas más cortas", () => {
+    const candidates = Array.from({ length: 8 }, (_, index) =>
+      makeCandidate({ id: `p${index}`, label: `P${index + 1}`, longDescription: "z".repeat(3000) })
+    );
+    const context = buildContext(candidates, analyze("dame 8 opciones de parlantes"), "PUBLIC");
+    assert.equal(context.used.length, 8);
+    assert.ok(context.chars <= LIMITS.maxContextChars);
   });
 
   it("limita los candidatos según la intención", () => {

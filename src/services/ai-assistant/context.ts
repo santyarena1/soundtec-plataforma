@@ -120,8 +120,6 @@ export function buildProductSheet(
   }
   if (flags.length > 0) lines.push(`Datos: ${flags.join(" · ")}`);
 
-  // Si la ficha quedó pobre, se completa con la descripción larga o el HTML
-  // enriquecido, que es donde suele estar la info de aplicación.
   // Si sobra presupuesto, se completa con la descripción larga o el HTML
   // enriquecido, que es donde suele estar la info de aplicación.
   const soFar = lines.join("\n").length;
@@ -148,9 +146,15 @@ export function buildContext(
   const used: CandidateProduct[] = [];
   const blocks: string[] = [];
   let chars = 0;
-  // Pocos productos en juego = se puede gastar más ficha en cada uno.
+  // El presupuesto se reparte: pocos productos = fichas más ricas; un
+  // listado largo = fichas más cortas, pero entran todas las opciones.
   const sheetCap =
-    candidates.length <= 2 ? LIMITS.maxProductSheetChars * 2 : LIMITS.maxProductSheetChars;
+    candidates.length <= 2
+      ? LIMITS.maxProductSheetChars * 2
+      : Math.max(
+          420,
+          Math.min(LIMITS.maxProductSheetChars, Math.floor(LIMITS.maxContextChars / candidates.length))
+        );
 
   for (const candidate of candidates) {
     const sheet = buildProductSheet(candidate, analysis, scope, sheetCap);

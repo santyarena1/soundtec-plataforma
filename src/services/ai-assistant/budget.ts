@@ -33,8 +33,22 @@ export const LIMITS = {
   cacheTtlMs: 7 * 24 * 60 * 60 * 1000,
 } as const;
 
-/** Cuántos productos entran al contexto según lo que se preguntó. */
-export function candidateLimitFor(intent: QuestionIntent): number {
+/** Tope duro: más de esto no entra en el presupuesto de contexto. */
+export const MAX_CANDIDATES = 10;
+
+/**
+ * Cuántos productos entran al contexto. Si el visitante pidió una cantidad
+ * ("dame 5 opciones"), manda eso: se traen algunos más para que el modelo
+ * pueda descartar los que no aplican.
+ */
+export function candidateLimitFor(
+  intent: QuestionIntent,
+  options?: { requestedCount?: number; wantsList?: boolean }
+): number {
+  if (options?.requestedCount) {
+    return Math.min(MAX_CANDIDATES, Math.max(3, options.requestedCount + 2));
+  }
+  if (options?.wantsList) return 8;
   switch (intent) {
     case "SPEC_LOOKUP":
       return 3;
