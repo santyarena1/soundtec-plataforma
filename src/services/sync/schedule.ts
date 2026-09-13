@@ -2,7 +2,7 @@ import type { SyncSourceKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSetting, setSetting } from "@/lib/settings";
 
-type ScheduledSource = "crestron" | "crestron-web" | "sonance";
+type ScheduledSource = "crestron" | "crestron-web" | "sonance" | "soundtube";
 
 export interface SyncSourceSchedule {
   enabled: boolean;
@@ -14,6 +14,7 @@ export interface SyncScheduleConfig {
   crestron: SyncSourceSchedule;
   "crestron-web": SyncSourceSchedule;
   sonance: SyncSourceSchedule;
+  soundtube: SyncSourceSchedule;
 }
 
 const SCHEDULE_KEY = "sync.schedule";
@@ -22,6 +23,7 @@ export const DEFAULT_SCHEDULE: SyncScheduleConfig = {
   crestron: { enabled: true, everyHours: 24, atHourArg: 8 },
   "crestron-web": { enabled: false, everyHours: 168, atHourArg: 4 },
   sonance: { enabled: true, everyHours: 168, atHourArg: 6 },
+  soundtube: { enabled: true, everyHours: 168, atHourArg: 7 },
 };
 
 function normalizedSource(
@@ -65,6 +67,7 @@ export async function getSchedule(): Promise<SyncScheduleConfig> {
         crestron: { ...DEFAULT_SCHEDULE.crestron },
         "crestron-web": { ...DEFAULT_SCHEDULE["crestron-web"] },
         sonance: { ...DEFAULT_SCHEDULE.sonance },
+        soundtube: { ...DEFAULT_SCHEDULE.soundtube },
       };
     }
     const parsed = JSON.parse(raw) as Record<string, unknown>;
@@ -81,12 +84,14 @@ export async function getSchedule(): Promise<SyncScheduleConfig> {
         parsed?.sonance,
         DEFAULT_SCHEDULE.sonance
       ),
+      soundtube: normalizedSource(parsed?.soundtube, DEFAULT_SCHEDULE.soundtube),
     };
   } catch {
     return {
       crestron: { ...DEFAULT_SCHEDULE.crestron },
       "crestron-web": { ...DEFAULT_SCHEDULE["crestron-web"] },
       sonance: { ...DEFAULT_SCHEDULE.sonance },
+      soundtube: { ...DEFAULT_SCHEDULE.soundtube },
     };
   }
 }
@@ -126,6 +131,7 @@ export async function lastCompletedRunMs(
     crestron: "CRESTRON",
     "crestron-web": "CRESTRON_WEB",
     sonance: "SONANCE",
+    soundtube: "SOUNDTUBE",
   };
   const run = await prisma.syncRun.findFirst({
     where: { source: sourceKind[source], status: "COMPLETED" },

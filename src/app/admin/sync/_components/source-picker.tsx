@@ -2,6 +2,7 @@ export const SYNC_SOURCES = [
   { slug: "crestron", name: "Crestron (Xtrabone) — precios y stock", hint: "Precios, disponibilidad y logística desde Xtrabone. No toca contenido." },
   { slug: "crestron-web", name: "Crestron.com — enriquecimiento", hint: "Fichas, especificaciones, imágenes y documentos. No toca precios ni stock." },
   { slug: "sonance", name: "Sonance / IPORT / JAMES / BLAZE", hint: "Catálogo, contenido, imágenes y relaciones." },
+  { slug: "soundtube", name: "SoundTube / Soundsphere / Phase Tech / Rockustics", hint: "Catálogo público de soundtube.com: precio (nivel configurable), stock, descripciones, imágenes, documentos y atributos. Sin login." },
 ] as const;
 export type SourceSlug = (typeof SYNC_SOURCES)[number]["slug"];
 

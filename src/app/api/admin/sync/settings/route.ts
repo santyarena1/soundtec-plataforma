@@ -10,7 +10,13 @@ const sourceSchema = z.object({
   categoryTarget: targetSchema,
   translations: z.record(z.string(), z.string().max(500)),
 });
-const settingsSchema = z.object({ crestron: sourceSchema, sonance: sourceSchema });
+const soundtubeSchema = z.object({
+  priceField: z.enum(["pricelevel1", "pricelevel30", "onlinecustomerprice"]),
+  categoryTarget: targetSchema,
+  translations: z.record(z.string(), z.string().max(500)),
+});
+const settingsSchema = z.object({ crestron: sourceSchema, sonance: sourceSchema, soundtube: soundtubeSchema.optional() });
+const SOUNDTUBE_KEYS = { priceField: "soundtube.price_field", target: "soundtube.category_target", translations: "soundtube.category_translations" } as const;
 
 const KEYS = {
   crestron: { username: "crestron.username", password: "crestron.password", target: "crestron.category_target", translations: "crestron.category_translations" },
@@ -34,6 +40,12 @@ export async function GET() {
     ]);
     response[source] = { username, passwordConfigured: Boolean(password), categoryTarget, translations: parseTranslations(translations) };
   }
+  const [stPrice, stTarget, stTranslations] = await Promise.all([
+    getSetting(SOUNDTUBE_KEYS.priceField, "pricelevel1"),
+    getSetting(SOUNDTUBE_KEYS.target, "categoria"),
+    getSetting(SOUNDTUBE_KEYS.translations, "{}"),
+  ]);
+  response.soundtube = { priceField: stPrice, categoryTarget: stTarget, translations: parseTranslations(stTranslations) };
   return NextResponse.json({ ok: true, settings: response });
 }
 
@@ -49,6 +61,14 @@ export async function POST(request: NextRequest) {
       value.password ? setSetting(keys.password, value.password, { isSecret: true }) : Promise.resolve(),
       setSetting(keys.target, value.categoryTarget),
       setSetting(keys.translations, JSON.stringify(value.translations)),
+    ]);
+  }
+  if (parsed.data.soundtube) {
+    const st = parsed.data.soundtube;
+    await Promise.all([
+      setSetting(SOUNDTUBE_KEYS.priceField, st.priceField),
+      setSetting(SOUNDTUBE_KEYS.target, st.categoryTarget),
+      setSetting(SOUNDTUBE_KEYS.translations, JSON.stringify(st.translations)),
     ]);
   }
   return NextResponse.json({ ok: true });

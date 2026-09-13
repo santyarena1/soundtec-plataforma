@@ -631,4 +631,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       },
     ],
   },
+  {
+    id: "ship-2026-09-12-soundtube",
+    version: "1.17.0",
+    releasedAt: "2026-09-13T01:00:00.000Z",
+    summary: "Nueva fuente SoundTube: catálogo completo de soundtube.com (SoundTube, Soundsphere, Phase Technology, Rockustics, dARTS y más).",
+    items: [
+      { kind: "NUEVO", text: "En Sincronización aparece SoundTube. Trae precio, stock, descripciones, imágenes, documentos, atributos y categoría de 596 productos, sin login." },
+      { kind: "NUEVO", text: "El nivel de precio que se toma como costo (dealer o lista) se elige en Configuración de fuentes." },
+      { kind: "MEJORA", text: "SoundTube entra en el cron semanal junto a Crestron y Sonance." },
+    ],
+  },
 ];

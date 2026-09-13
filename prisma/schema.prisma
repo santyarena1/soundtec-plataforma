@@ -1509,6 +1509,7 @@ enum SyncSourceKind {
   CRESTRON
   CRESTRON_WEB
   SONANCE
+  SOUNDTUBE
   EXCEL
   MANUAL
 }

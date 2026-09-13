@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 const SOURCES = new Set<SyncSourceKind>([
   "CRESTRON",
   "SONANCE",
+  "SOUNDTUBE",
 ]);
 
 export async function GET(req: NextRequest) {
