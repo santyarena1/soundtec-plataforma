@@ -61,10 +61,25 @@ export function ProductGallery({ images, productName }: Props) {
     [images.length, reset]
   );
 
-  /**
-   * Zoom hacia un punto: lo que está bajo el cursor se queda quieto, que es lo
-   * que uno espera al acercarse sobre un detalle.
-   */
+  /** Multiplica el zoom vigente. Seguro ante clicks rápidos o teclas repetidas. */
+  const zoomBy = useCallback((factor: number, clientX?: number, clientY?: number) => {
+    const frame = frameRef.current;
+    setScale((current) => {
+      const target = clamp(current * factor, MIN_SCALE, MAX_SCALE);
+      if (target === MIN_SCALE) {
+        setOffset({ x: 0, y: 0 });
+      } else if (frame && clientX !== undefined && clientY !== undefined && target !== current) {
+        const rect = frame.getBoundingClientRect();
+        const px = clientX - rect.left - rect.width / 2;
+        const py = clientY - rect.top - rect.height / 2;
+        const ratio = target / current;
+        setOffset((prev) => ({ x: px - (px - prev.x) * ratio, y: py - (py - prev.y) * ratio }));
+      }
+      return target;
+    });
+  }, []);
+
+  /** Fija un zoom exacto. Lo usa el gesto de dos dedos, que parte de una escala conocida. */
   const zoomAt = useCallback((nextScale: number, clientX?: number, clientY?: number) => {
     const frame = frameRef.current;
     setScale((current) => {
@@ -92,13 +107,13 @@ export function ProductGallery({ images, productName }: Props) {
       if (event.key === "Escape") close();
       else if (event.key === "ArrowRight" && images.length > 1) go(1);
       else if (event.key === "ArrowLeft" && images.length > 1) go(-1);
-      else if (event.key === "+" || event.key === "=") zoomAt(scale * 1.4);
-      else if (event.key === "-") zoomAt(scale / 1.4);
+      else if (event.key === "+" || event.key === "=") zoomBy(1.4);
+      else if (event.key === "-") zoomBy(1 / 1.4);
       else if (event.key === "0") reset();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [lightbox, close, go, images.length, scale, zoomAt, reset]);
+  }, [lightbox, close, go, images.length, zoomBy, reset]);
 
   // Con el lightbox abierto la página de atrás no se mueve.
   useEffect(() => {
@@ -124,7 +139,7 @@ export function ProductGallery({ images, productName }: Props) {
 
   function onWheel(event: React.WheelEvent) {
     event.preventDefault();
-    zoomAt(scale * (event.deltaY < 0 ? 1.2 : 1 / 1.2), event.clientX, event.clientY);
+    zoomBy(event.deltaY < 0 ? 1.2 : 1 / 1.2, event.clientX, event.clientY);
   }
 
   function onPointerDown(event: React.PointerEvent) {
@@ -243,7 +258,7 @@ export function ProductGallery({ images, productName }: Props) {
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => zoomAt(scale / 1.4)}
+                onClick={() => zoomBy(1 / 1.4)}
                 disabled={scale <= MIN_SCALE}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-40"
                 aria-label="Alejar"
@@ -255,7 +270,7 @@ export function ProductGallery({ images, productName }: Props) {
               </span>
               <button
                 type="button"
-                onClick={() => zoomAt(scale * 1.4)}
+                onClick={() => zoomBy(1.4)}
                 disabled={scale >= MAX_SCALE}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-40"
                 aria-label="Acercar"
