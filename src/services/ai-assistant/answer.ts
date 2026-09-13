@@ -122,9 +122,9 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
   if (analysis.intent === "GREETING") {
     const answer = greetingAnswer();
     answer.suggestions = [
-      "¿Qué parlante sirve para exterior?",
-      "¿Qué procesador Crestron necesito para 3 salas?",
-      "Busco una solución de audio para un restaurante",
+      "¿Qué parlantes de embutir en techo tienen?",
+      "Dame 5 opciones de parlantes para exterior",
+      "¿Qué parlantes tienen protección IP66?",
     ];
     answer.meta.latencyMs = Date.now() - startedAt;
     return answer;
@@ -194,7 +194,12 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
     filterNote: structuredFilterNote(analysis),
   });
 
-  const outcome = await askModel(userMessage);
+  const outcome = await askModel(userMessage, {
+    maxTokens:
+      analysis.intent === "COMPARISON"
+        ? LIMITS.maxOutputTokensComparison
+        : LIMITS.maxOutputTokens,
+  });
 
   if (!outcome.ok) {
     const latency = Date.now() - startedAt;

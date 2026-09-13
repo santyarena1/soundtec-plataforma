@@ -12,10 +12,10 @@ import { ThinkingIndicator } from "./thinking-indicator";
 import type { ChatApiResponse, ChatProduct, ChatTurn, LeadFormValues } from "./types";
 
 const DEFAULT_SUGGESTIONS = [
-  "¿Qué parlante sirve para exterior?",
-  "¿Qué procesador Crestron necesito para 3 salas?",
-  "Comparame dos amplificadores",
-  "Busco una solución de audio para un restaurante",
+  "¿Qué parlantes de embutir en techo tienen?",
+  "Dame 5 opciones de parlantes para exterior",
+  "¿Qué parlantes tienen protección IP66?",
+  "¿Qué productos son compatibles con Crestron Home?",
 ];
 
 function productSuggestions(product: ChatProduct): string[] {

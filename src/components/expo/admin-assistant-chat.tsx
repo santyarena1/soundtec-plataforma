@@ -8,10 +8,10 @@ import { ThinkingIndicator } from "./thinking-indicator";
 import type { ChatApiResponse, ChatTurn } from "./types";
 
 const SUGGESTIONS = [
-  "¿Qué procesador Crestron sirve para tres salas?",
-  "Comparame CP4 y CP4N",
-  "¿Qué parlantes tenemos aptos para exterior?",
-  "¿Qué accesorios necesita este producto?",
+  "¿Qué parlantes tenemos con protección IP66?",
+  "Dame 5 opciones de parlantes para exterior",
+  "¿Qué amplificadores Sonance tenemos?",
+  "¿Qué productos son compatibles con Crestron Home?",
 ];
 
 let counter = 0;

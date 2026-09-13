@@ -209,7 +209,7 @@ export function buildSuggestions(input: {
     if (analysis.intent !== "SPEC_LOOKUP") out.push("Ver especificaciones principales");
   }
   if (out.length === 0) {
-    out.push("¿Qué parlante sirve para exterior?", "Necesito una solución para un restaurante");
+    out.push("Dame 5 opciones de parlantes para exterior", "¿Qué parlantes de embutir en techo tienen?");
   }
   return Array.from(new Set(out)).slice(0, 4);
 }

@@ -26,7 +26,9 @@ export const LIMITS = {
   maxHistoryTurns: 2,
   maxHistoryChars: 350,
   /** Tokens de salida del modelo. */
-  maxOutputTokens: 550,
+  maxOutputTokens: 650,
+  /** Una comparación necesita lugar para la tabla. */
+  maxOutputTokensComparison: 950,
   /** Timeout de la llamada al modelo. */
   llmTimeoutMs: 20_000,
   /** TTL de la cache de respuestas. */

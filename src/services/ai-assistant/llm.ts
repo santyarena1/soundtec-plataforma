@@ -35,7 +35,28 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function askModel(userMessage: string): Promise<LlmOutcome> {
+/**
+ * Si el modelo se quedó sin tokens a mitad del JSON, se rescata el texto de
+ * "answer": una respuesta sin tarjetas es mucho mejor que un error.
+ */
+function salvageAnswer(raw: string): RawLlmAnswer | null {
+  const match = raw.match(new RegExp(String.raw`"answer"\s*:\s*"((?:[^"\\]|\\.)*)`));
+  if (!match) return null;
+  let text: string;
+  try {
+    text = JSON.parse(`"${match[1]}"`) as string;
+  } catch {
+    return null;
+  }
+  const clean = text.trim();
+  if (clean.length < 40) return null;
+  return { answer: clean, status: "PARTIAL", confidence: "MEDIUM" };
+}
+
+export async function askModel(
+  userMessage: string,
+  options?: { maxTokens?: number }
+): Promise<LlmOutcome> {
   const client = await getOpenAiClient();
   if (!client) return { ok: false, reason: "NOT_CONFIGURED" };
   const model = await getOpenAiChatModel();
@@ -46,7 +67,7 @@ export async function askModel(userMessage: string): Promise<LlmOutcome> {
         {
           model,
           temperature: 0.2,
-          max_tokens: LIMITS.maxOutputTokens,
+          max_tokens: options?.maxTokens ?? LIMITS.maxOutputTokens,
           response_format: { type: "json_object" },
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
@@ -61,7 +82,15 @@ export async function askModel(userMessage: string): Promise<LlmOutcome> {
       try {
         parsedJson = JSON.parse(raw);
       } catch {
-        return { ok: false, reason: "ERROR" };
+        const salvaged = salvageAnswer(raw);
+        if (!salvaged) return { ok: false, reason: "ERROR" };
+        return {
+          ok: true,
+          data: salvaged,
+          model,
+          inputTokens: response.usage?.prompt_tokens,
+          outputTokens: response.usage?.completion_tokens,
+        };
       }
       const parsed = rawAnswerSchema.safeParse(parsedJson);
       if (!parsed.success) return { ok: false, reason: "ERROR" };
