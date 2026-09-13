@@ -1713,6 +1713,9 @@ model ProductAiProfile {
   environment         String?
   /// Frase de la ficha que justifica el ambiente declarado.
   environmentEvidence String?
+  /// DECLARED (la ficha lo dice) | INFERRED (se deduce del tipo de equipo).
+  /// Permite que el asistente afirme un dato o lo presente como deducción.
+  environmentBasis    String?
   /// Grado de protección declarado, normalizado ("IP66").
   ipRating            String?
   /// in-ceiling, in-wall, surface, pendant, rack, landscape, pole, desktop…

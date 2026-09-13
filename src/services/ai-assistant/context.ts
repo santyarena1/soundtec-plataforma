@@ -37,7 +37,9 @@ function describeFacets(candidate: CandidateProduct): string {
   if (!profile) return "";
   const parts: string[] = [];
   if (profile.environment && ENVIRONMENT_TEXT[profile.environment]) {
-    parts.push(ENVIRONMENT_TEXT[profile.environment]);
+    // Un dato declarado se puede afirmar; uno deducido se presenta como tal.
+    const suffix = profile.environmentBasis === "INFERRED" ? " (deducido, no declarado en la ficha)" : "";
+    parts.push(`${ENVIRONMENT_TEXT[profile.environment]}${suffix}`);
   }
   if (profile.ipRating) parts.push(`protección ${profile.ipRating}`);
   if (profile.mountTypes.length > 0) parts.push(`montaje ${profile.mountTypes.join(", ")}`);

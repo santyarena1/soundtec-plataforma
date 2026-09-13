@@ -68,6 +68,8 @@ export interface QuestionAnalysis {
 export interface CandidateProfile {
   productType: string | null;
   environment: string | null;
+  /** DECLARED: la ficha lo dice. INFERRED: se deduce del tipo de equipo. */
+  environmentBasis: string | null;
   environmentEvidence: string | null;
   ipRating: string | null;
   mountTypes: string[];

@@ -29,6 +29,7 @@ import {
 import { analyzeQuestion } from "./intent";
 import { deriveHardFacts, rawMetadataText, type ProfileSourceRow } from "./profile/source";
 import { normalizeExtraction } from "./profile/extract";
+import { resolveEnvironment } from "./profile/build";
 import { cosineSimilarity } from "./profile/embedding";
 import { keepKnown, MOUNT_TYPES } from "./profile/vocab";
 import type { CandidateProduct } from "./types";
@@ -61,6 +62,7 @@ function candidate(overrides: Partial<CandidateProduct> = {}): CandidateProduct 
     profile: {
       productType: "speaker",
       environment: "OUTDOOR",
+      environmentBasis: "DECLARED",
       environmentEvidence: "Designed for outdoor installations",
       ipRating: "IP66",
       mountTypes: ["surface"],
@@ -328,6 +330,20 @@ describe("describeEvidence", () => {
     assert.match(describeEvidence(product, filter), /Weather-resistant/);
   });
 
+  it("un ambiente deducido se presenta como deducción, no como dato", () => {
+    const filter = detectFacets({ question: "procesadores para interior" });
+    const product = candidate({
+      profile: {
+        ...candidate().profile!,
+        ipRating: null,
+        environment: "INDOOR",
+        environmentBasis: "INFERRED",
+        environmentEvidence: "Tipo de equipo (processor): instalación en interior.",
+      },
+    });
+    assert.match(describeEvidence(product, filter), /se deduce:/);
+  });
+
   it("marca los discontinuados", () => {
     const filter = detectFacets({ question: "parlantes para exterior" });
     assert.match(describeEvidence(candidate({ isDiscontinued: true }), filter), /discontinuado/);
@@ -392,11 +408,80 @@ describe("hechos duros del perfil", () => {
   });
 });
 
+describe("resolveEnvironment", () => {
+  const base = {
+    productType: "processor" as const,
+    environment: "UNKNOWN" as const,
+    environmentBasis: null,
+    environmentEvidence: null,
+    mountTypes: [],
+    ecosystems: [],
+    applications: [],
+    summaryEs: "Un procesador del catálogo.",
+    keywords: [],
+  };
+
+  it("un grado IP declarado manda sobre lo que diga el modelo", () => {
+    const result = resolveEnvironment({
+      profile: { ...base, productType: "speaker", environment: "INDOOR", environmentBasis: "INFERRED" },
+      ipRating: "IP66",
+      mountTypes: [],
+    });
+    assert.equal(result.environment, "OUTDOOR");
+    assert.equal(result.environmentBasis, "DECLARED");
+    assert.match(result.environmentEvidence ?? "", /IP66/);
+  });
+
+  it("un equipo de interior por naturaleza no queda sin determinar", () => {
+    const result = resolveEnvironment({ profile: base, ipRating: null, mountTypes: [] });
+    assert.equal(result.environment, "INDOOR");
+    assert.equal(result.environmentBasis, "INFERRED");
+    assert.match(result.environmentEvidence ?? "", /processor/);
+  });
+
+  it("un equipo de rack se deduce de interior", () => {
+    const result = resolveEnvironment({
+      profile: { ...base, productType: "amplifier" },
+      ipRating: null,
+      mountTypes: ["rack"],
+    });
+    assert.equal(result.environment, "INDOOR");
+    assert.equal(result.environmentBasis, "INFERRED");
+  });
+
+  it("lo que realmente puede ir en cualquier lado queda sin determinar", () => {
+    const result = resolveEnvironment({
+      profile: { ...base, productType: "cable" },
+      ipRating: null,
+      mountTypes: [],
+    });
+    assert.equal(result.environment, "UNKNOWN");
+    assert.equal(result.environmentBasis, null);
+  });
+
+  it("respeta lo que el modelo decidió cuando se jugó", () => {
+    const result = resolveEnvironment({
+      profile: {
+        ...base,
+        productType: "speaker",
+        environment: "BOTH",
+        environmentBasis: "DECLARED",
+        environmentEvidence: "Indoor and outdoor use",
+      },
+      ipRating: null,
+      mountTypes: [],
+    });
+    assert.equal(result.environment, "BOTH");
+    assert.equal(result.environmentEvidence, "Indoor and outdoor use");
+  });
+});
+
 describe("normalizeExtraction", () => {
   it("acepta una salida válida y recorta al vocabulario", () => {
     const profile = normalizeExtraction({
       productType: "speaker",
       environment: "OUTDOOR",
+      environmentBasis: "DECLARED",
       environmentEvidence: "Designed for outdoor use",
       mountTypes: ["in-ceiling", "inventado"],
       ecosystems: ["dante", "no-existe"],
@@ -407,6 +492,16 @@ describe("normalizeExtraction", () => {
     assert.ok(profile);
     assert.deepEqual(profile?.mountTypes, ["in-ceiling"]);
     assert.deepEqual(profile?.ecosystems, ["dante"]);
+    assert.equal(profile?.environmentBasis, "DECLARED");
+  });
+
+  it("sin respaldo explícito, el ambiente se marca como deducción", () => {
+    const profile = normalizeExtraction({
+      productType: "speaker",
+      environment: "INDOOR",
+      summaryEs: "Parlante de embutir para instalaciones de interior.",
+    });
+    assert.equal(profile?.environmentBasis, "INFERRED");
   });
 
   it("rechaza una salida sin resumen", () => {
@@ -432,6 +527,7 @@ describe("normalizeExtraction", () => {
       summaryEs: "Un parlante del catálogo de Soundtec para instalación fija.",
     });
     assert.equal(profile?.environmentEvidence, null);
+    assert.equal(profile?.environmentBasis, null);
   });
 });
 

@@ -21,7 +21,7 @@ const MAX_LIMIT = 60;
 
 export async function GET() {
   await requireAdmin();
-  const [{ total, withProfile }, lastBuilt, environments] = await Promise.all([
+  const [{ total, withProfile }, lastBuilt, environments, sample] = await Promise.all([
     countPending(),
     prisma.productAiProfile.findFirst({
       orderBy: { builtAt: "desc" },
@@ -30,6 +30,25 @@ export async function GET() {
     prisma.productAiProfile.groupBy({
       by: ["environment"],
       _count: { _all: true },
+    }),
+    // Muestra reciente: sirve para auditar a ojo que la clasificación tenga
+    // sentido antes de confiar en ella para responderle a un visitante.
+    prisma.productAiProfile.findMany({
+      orderBy: { builtAt: "desc" },
+      take: 12,
+      select: {
+        environment: true,
+        environmentBasis: true,
+        environmentEvidence: true,
+        productType: true,
+        ipRating: true,
+        mountTypes: true,
+        audioLine: true,
+        ecosystems: true,
+        applications: true,
+        summaryEs: true,
+        product: { select: { id: true, normalizedName: true } },
+      },
     }),
   ]);
 
@@ -43,6 +62,20 @@ export async function GET() {
     byEnvironment: environments.map((row) => ({
       environment: row.environment ?? "SIN DATO",
       count: row._count._all,
+    })),
+    sample: sample.map((row) => ({
+      id: row.product.id,
+      name: row.product.normalizedName,
+      productType: row.productType,
+      environment: row.environment,
+      environmentBasis: row.environmentBasis,
+      environmentEvidence: row.environmentEvidence,
+      ipRating: row.ipRating,
+      mountTypes: row.mountTypes,
+      audioLine: row.audioLine,
+      ecosystems: row.ecosystems,
+      applications: row.applications,
+      summaryEs: row.summaryEs,
     })),
   });
 }

@@ -11,6 +11,21 @@ import { Badge } from "@/components/ui/badge";
  * catálogo sin chocar con el límite de tiempo de una función.
  */
 
+interface SampleRow {
+  id: string;
+  name: string;
+  productType: string | null;
+  environment: string | null;
+  environmentBasis: string | null;
+  environmentEvidence: string | null;
+  ipRating: string | null;
+  mountTypes: string[];
+  audioLine: string | null;
+  ecosystems: string[];
+  applications: string[];
+  summaryEs: string | null;
+}
+
 interface Status {
   total: number;
   withProfile: number;
@@ -18,6 +33,7 @@ interface Status {
   lastBuiltAt: string | null;
   model: string | null;
   byEnvironment: Array<{ environment: string; count: number }>;
+  sample: SampleRow[];
 }
 
 interface BatchStats {
@@ -204,6 +220,57 @@ export function ProfilesPanel() {
                     </Badge>
                   </li>
                 ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {status?.sample?.length ? (
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm font-medium">Últimos productos procesados</p>
+            <p className="text-xs text-muted-foreground">
+              Para revisar a ojo que la clasificación tenga sentido antes de confiar en ella.
+            </p>
+            <ul className="mt-3 space-y-3">
+              {status.sample.map((row) => (
+                <li key={row.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      className="text-sm font-medium hover:underline"
+                      href={`/admin/products/${row.id}`}
+                    >
+                      {row.name}
+                    </a>
+                    {row.productType ? <Badge tone="muted">{row.productType}</Badge> : null}
+                    {row.environment && row.environment !== "UNKNOWN" ? (
+                      <Badge tone={row.environment === "OUTDOOR" ? "accent" : "primary"}>
+                        {ENVIRONMENT_LABEL[row.environment] ?? row.environment}
+                        {row.environmentBasis === "INFERRED" ? " (deducido)" : ""}
+                      </Badge>
+                    ) : (
+                      <Badge tone="muted">Ambiente sin determinar</Badge>
+                    )}
+                    {row.ipRating ? <Badge tone="success">{row.ipRating}</Badge> : null}
+                    {row.audioLine ? <Badge tone="muted">{row.audioLine}</Badge> : null}
+                  </div>
+                  {row.environmentEvidence ? (
+                    <p className="mt-1 text-xs italic text-muted-foreground">
+                      «{row.environmentEvidence}»
+                    </p>
+                  ) : null}
+                  {row.summaryEs ? <p className="mt-1 text-xs">{row.summaryEs}</p> : null}
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {[
+                      row.mountTypes.length ? `montaje: ${row.mountTypes.join(", ")}` : null,
+                      row.ecosystems.length ? `compatible: ${row.ecosystems.join(", ")}` : null,
+                      row.applications.length ? `usos: ${row.applications.join(", ")}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </li>
+              ))}
             </ul>
           </CardContent>
         </Card>

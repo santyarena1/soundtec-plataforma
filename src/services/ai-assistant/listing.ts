@@ -66,10 +66,17 @@ export function describeEvidence(candidate: CandidateProduct, filter: CanonicalF
 
   if (profile?.ipRating) {
     parts.push(`declara ${profile.ipRating}`);
-  } else if (filter.environment === "OUTDOOR" && profile?.environmentEvidence) {
-    parts.push(profile.environmentEvidence.slice(0, 90));
-  } else if (filter.environment === "OUTDOOR" && profile?.environment) {
-    parts.push(profile.environment === "BOTH" ? "apto para interior y exterior" : "declarado para exterior");
+  } else if (filter.environment && profile?.environmentEvidence) {
+    const prefix = profile.environmentBasis === "INFERRED" ? "se deduce: " : "";
+    parts.push(`${prefix}${profile.environmentEvidence.slice(0, 90)}`);
+  } else if (filter.environment && profile?.environment) {
+    parts.push(
+      profile.environment === "BOTH"
+        ? "apto para interior y exterior"
+        : profile.environment === "OUTDOOR"
+          ? "declarado para exterior"
+          : "para interior"
+    );
   }
 
   if (filter.mountTypes.length > 0 && profile?.mountTypes?.length) {

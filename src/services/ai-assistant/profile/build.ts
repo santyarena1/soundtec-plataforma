@@ -9,8 +9,9 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { embedTexts } from "./embedding";
-import { buildSearchText, extractProfile } from "./extract";
+import { buildSearchText, extractProfile, type ExtractedProfile } from "./extract";
 import { buildSource, type ProfileSourceRow } from "./source";
+import { INDOOR_BY_NATURE } from "./vocab";
 
 const SOURCE_SELECT = {
   id: true,
@@ -53,6 +54,60 @@ export interface BuildOptions {
   force?: boolean;
   /** Corta la tanda al acercarse al límite de la función. */
   deadlineMs?: number;
+}
+
+/**
+ * Ambiente final del producto. Se decide en tres pasos, del dato más duro al
+ * más blando, y siempre queda registrado con qué respaldo se decidió:
+ *  1. Un grado de protección declarado es exterior, diga lo que diga el texto.
+ *  2. Un equipo de rack o de cielorraso interior no va a la intemperie.
+ *  3. Lo que dijo el modelo.
+ * Solo queda sin determinar lo que realmente puede ir en cualquier lado.
+ */
+export function resolveEnvironment(input: {
+  profile: ExtractedProfile;
+  ipRating: string | null;
+  mountTypes: string[];
+}): { environment: string; environmentBasis: string | null; environmentEvidence: string | null } {
+  const { profile, ipRating } = input;
+
+  if (ipRating && profile.environment !== "BOTH") {
+    return {
+      environment: "OUTDOOR",
+      environmentBasis: "DECLARED",
+      environmentEvidence:
+        profile.environment === "OUTDOOR" && profile.environmentBasis === "DECLARED"
+          ? profile.environmentEvidence
+          : `Grado de protección declarado: ${ipRating}`,
+    };
+  }
+
+  if (profile.environment !== "UNKNOWN") {
+    return {
+      environment: profile.environment,
+      environmentBasis: profile.environmentBasis,
+      environmentEvidence: profile.environmentEvidence,
+    };
+  }
+
+  // El modelo no se jugó: si el tipo de equipo o el montaje lo resuelven, se
+  // resuelve acá y se marca como deducción.
+  if (INDOOR_BY_NATURE.includes(profile.productType)) {
+    return {
+      environment: "INDOOR",
+      environmentBasis: "INFERRED",
+      environmentEvidence: `Tipo de equipo (${profile.productType}): instalación en interior.`,
+    };
+  }
+  if (input.mountTypes.includes("rack")) {
+    return {
+      environment: "INDOOR",
+      environmentBasis: "INFERRED",
+      environmentEvidence: "Equipo de rack: instalación en interior.",
+    };
+  }
+
+  return { environment: "UNKNOWN", environmentBasis: null, environmentEvidence: null };
 }
 
 const DEFAULT_LIMIT = 20;
@@ -139,9 +194,11 @@ export async function buildProfiles(options: BuildOptions = {}): Promise<BuildSt
     // Los datos duros ganan: salen de la ficha, no del criterio del modelo.
     const mountTypes = Array.from(new Set([...hard.mountTypes, ...profile.mountTypes])).slice(0, 6);
     const ecosystems = Array.from(new Set([...hard.ecosystems, ...profile.ecosystems])).slice(0, 10);
-    // Un grado IP declarado es evidencia de exterior aunque el texto no lo diga.
-    const environment =
-      profile.environment === "UNKNOWN" && hard.ipRating ? "OUTDOOR" : profile.environment;
+    const { environment, environmentBasis, environmentEvidence } = resolveEnvironment({
+      profile,
+      ipRating: hard.ipRating,
+      mountTypes,
+    });
 
     pendingRows.push({
       row,
@@ -150,9 +207,8 @@ export async function buildProfiles(options: BuildOptions = {}): Promise<BuildSt
       data: {
         productType: profile.productType,
         environment,
-        environmentEvidence:
-          profile.environmentEvidence ??
-          (hard.ipRating ? `Grado de protección declarado: ${hard.ipRating}` : null),
+        environmentBasis,
+        environmentEvidence,
         ipRating: hard.ipRating,
         mountTypes,
         audioLine: hard.audioLine,

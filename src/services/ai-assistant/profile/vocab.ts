@@ -31,6 +31,31 @@ export type ProductType = (typeof PRODUCT_TYPES)[number];
 export const ENVIRONMENTS = ["INDOOR", "OUTDOOR", "BOTH", "UNKNOWN"] as const;
 export type Environment = (typeof ENVIRONMENTS)[number];
 
+/**
+ * De dónde sale el ambiente: declarado en la ficha o deducido del tipo de
+ * equipo. Un procesador de rack es de interior aunque ninguna frase lo diga,
+ * pero eso es una deducción y el asistente tiene que poder decirlo así.
+ */
+export const ENVIRONMENT_BASES = ["DECLARED", "INFERRED"] as const;
+export type EnvironmentBasis = (typeof ENVIRONMENT_BASES)[number];
+
+/**
+ * Equipos que viven dentro de un edificio por su naturaleza. Si la ficha no
+ * declara nada, el ambiente se deduce de acá en vez de quedar sin determinar.
+ */
+export const INDOOR_BY_NATURE: readonly ProductType[] = [
+  "processor",
+  "control",
+  "touchpanel",
+  "switcher",
+  "network",
+  "power",
+];
+
+export function isEnvironmentBasis(value: unknown): value is EnvironmentBasis {
+  return typeof value === "string" && (ENVIRONMENT_BASES as readonly string[]).includes(value);
+}
+
 export const MOUNT_TYPES = [
   "in-ceiling",
   "in-wall",

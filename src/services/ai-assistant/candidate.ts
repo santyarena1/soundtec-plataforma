@@ -52,6 +52,7 @@ export const PRODUCT_SELECT = {
     select: {
       productType: true,
       environment: true,
+      environmentBasis: true,
       environmentEvidence: true,
       ipRating: true,
       mountTypes: true,
@@ -136,6 +137,7 @@ function toProfile(row: ProductRow): CandidateProfile | null {
   return {
     productType: profile.productType,
     environment: profile.environment,
+    environmentBasis: profile.environmentBasis,
     environmentEvidence: profile.environmentEvidence,
     ipRating: profile.ipRating,
     mountTypes: profile.mountTypes,

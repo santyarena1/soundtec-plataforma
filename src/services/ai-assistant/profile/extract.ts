@@ -15,11 +15,13 @@ import {
   MOUNT_TYPES,
   PRODUCT_TYPES,
   isEnvironment,
+  isEnvironmentBasis,
   isProductType,
   keepKnown,
   type Application,
   type Ecosystem,
   type Environment,
+  type EnvironmentBasis,
   type MountType,
   type ProductType,
 } from "./vocab";
@@ -27,6 +29,7 @@ import {
 export interface ExtractedProfile {
   productType: ProductType;
   environment: Environment;
+  environmentBasis: EnvironmentBasis | null;
   environmentEvidence: string | null;
   mountTypes: MountType[];
   ecosystems: Ecosystem[];
@@ -41,14 +44,27 @@ Leés la ficha de UN producto y devolvés su clasificación canónica. Trabajás
 si un dato no está, va "UNKNOWN" o la lista vacía. Nunca completes con conocimiento general del modelo.
 
 CRITERIO DE AMBIENTE (el más importante)
-- "OUTDOOR": la ficha declara uso en exterior, intemperie, jardín, piscina, marino, o un grado de protección IP/IPX.
-- "INDOOR": la ficha lo describe para interior, o es un equipo de rack, panel táctil, procesador o similar.
-- "BOTH": la ficha dice explícitamente que sirve para interior y exterior.
-- "UNKNOWN": no se puede afirmar.
+Son dos preguntas separadas: QUÉ ambiente y CON QUÉ RESPALDO.
+
+"environment":
+- "OUTDOOR": sirve a la intemperie. Vale tanto si la ficha lo declara como si tiene grado de protección IP/IPX.
+- "INDOOR": va dentro de un edificio. Vale tanto si la ficha lo declara como si se deduce del tipo de equipo:
+  un procesador, un panel táctil, un keypad, un switcher, una fuente, un equipo de rack o de embutir en
+  cielorraso interior NO se instala a la intemperie aunque ninguna frase lo aclare.
+- "BOTH": la ficha dice que sirve para interior y exterior.
+- "UNKNOWN": SOLO cuando el producto podría ir en cualquier lado y no hay nada que incline la balanza
+  (cables, soportes genéricos, accesorios sueltos). No uses UNKNOWN por no encontrar una frase literal:
+  si por el tipo de equipo es evidente, decidí y marcalo como deducción.
+
+"environmentBasis":
+- "DECLARED": la ficha lo dice, o declara un grado de protección IP. En "environmentEvidence" copiá
+  TEXTUAL la frase de la ficha que lo justifica (máximo 160 caracteres).
+- "INFERRED": lo deducís del tipo de equipo. En "environmentEvidence" escribí en español la razón,
+  corta y concreta ("procesador de rack: instalación en interior").
+Si "environment" es "UNKNOWN", "environmentBasis" y "environmentEvidence" van null.
+
 Cuidado: los textos del fabricante nombran "outdoor" también para ACLARAR QUE NO ES para exterior
 ("not for outdoor use", "indoor only"). Leé la frase completa antes de decidir.
-En "environmentEvidence" copiá textual la frase de la ficha que justifica tu decisión (máximo 160 caracteres).
-Si el ambiente es UNKNOWN, "environmentEvidence" va null.
 
 RESUMEN
 "summaryEs": 2 o 3 oraciones en español rioplatense, técnicas y concretas, que le sirvan a un vendedor:
@@ -63,7 +79,8 @@ Devolvés SOLO un JSON válido:
 {
   "productType": uno de [${PRODUCT_TYPES.join(", ")}],
   "environment": "INDOOR" | "OUTDOOR" | "BOTH" | "UNKNOWN",
-  "environmentEvidence": "frase textual de la ficha" | null,
+  "environmentBasis": "DECLARED" | "INFERRED" | null,
+  "environmentEvidence": "frase textual de la ficha, o la razón de la deducción" | null,
   "mountTypes": subconjunto de [${MOUNT_TYPES.join(", ")}],
   "ecosystems": subconjunto de [${ECOSYSTEMS.join(", ")}],
   "applications": subconjunto de [${APPLICATIONS.join(", ")}],
@@ -96,10 +113,15 @@ export function normalizeExtraction(parsed: unknown): ExtractedProfile | null {
       : null;
 
   const environment: Environment = isEnvironment(row.environment) ? row.environment : "UNKNOWN";
+  // Sin ambiente no hay respaldo que guardar; con ambiente y sin respaldo
+  // explícito se asume deducción, que es la lectura conservadora.
+  const basis: EnvironmentBasis | null =
+    environment === "UNKNOWN" ? null : isEnvironmentBasis(row.environmentBasis) ? row.environmentBasis : "INFERRED";
 
   return {
     productType: isProductType(row.productType) ? row.productType : "other",
     environment,
+    environmentBasis: basis,
     environmentEvidence: environment === "UNKNOWN" ? null : evidence,
     mountTypes: keepKnown(row.mountTypes, MOUNT_TYPES, 5),
     ecosystems: keepKnown(row.ecosystems, ECOSYSTEMS, 8),
