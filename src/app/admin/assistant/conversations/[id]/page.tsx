@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
+import { DeleteConversation } from "@/components/expo/delete-conversation";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -72,9 +73,12 @@ export default async function Page({ params }: { params: { id: string } }) {
         title={lead?.name || lead?.company || "Conversación del asistente"}
         description={`Iniciada el ${formatDate(session.startedAt)} · ${session.questionCount} pregunta(s) · origen ${session.surface}`}
         actions={
+          <div className="flex items-center gap-2">
           <ButtonLink href="/admin/assistant/conversations" variant="outline">
             Volver a conversaciones
           </ButtonLink>
+            <DeleteConversation sessionId={session.id} />
+          </div>
         }
       />
 
