@@ -146,6 +146,11 @@ const NOISE_TERMS = new Set([
   "cual", "cuales", "como", "donde", "dame", "mostrame", "listame", "necesito", "busco",
   "quiero", "todos", "todas", "algun", "alguna", "algunos", "algunas", "mejor", "mejores",
   "info", "informacion", "con", "sin", "una", "uno", "unos", "unas", "los", "las", "del",
+  // Verbos de la pregunta: no describen al producto, y exigirlos como texto
+  // obligaba a relajar la búsqueda y a dar una explicación que sobra.
+  "admiten", "admite", "soportan", "soporta", "funcionan", "funciona", "sirven",
+  "manejan", "trabajan", "vienen", "traen", "usan", "permiten", "incluyen", "incluye",
+  "tengan", "tenes", "tienen", "haya", "sean", "estan", "puede", "pueden", "tiene",
 ]);
 
 const COMBINING_MARKS = new RegExp("[̀-ͯ]", "g");

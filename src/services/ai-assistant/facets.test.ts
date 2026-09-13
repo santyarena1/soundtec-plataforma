@@ -338,7 +338,9 @@ describe("describeEvidence", () => {
         ipRating: null,
         environment: "INDOOR",
         environmentBasis: "INFERRED",
-        environmentEvidence: "Tipo de equipo (processor): instalación en interior.",
+        // Una deducción del modelo con sus palabras: acá el prefijo hace falta
+        // para que el visitante sepa que no es una cita de la ficha.
+        environmentEvidence: "Equipo pensado para montarse en un bastidor cerrado",
       },
     });
     assert.match(describeEvidence(product, filter), /se deduce:/);
@@ -627,5 +629,29 @@ describe("evidencia del ambiente", () => {
     const resolved = resolveEnvironment({ profile: profile!, ipRating: null, mountTypes: [] });
     assert.equal(resolved.environmentBasis, "INFERRED");
     assert.match(resolved.environmentEvidence ?? "", /Tipo de equipo/);
+  });
+});
+
+describe("los verbos de la pregunta no ensucian la búsqueda", () => {
+  it("«¿y cuáles admiten 70V?» no arrastra el verbo como término", () => {
+    const analysis = analyzeQuestion("¿y cuáles admiten 70V?");
+    const filter = detectFacets({ question: analysis.raw, tokens: analysis.tokens });
+    assert.equal(filter.audioLine, "70V");
+    assert.deepEqual(filter.freeTerms, []);
+  });
+
+  it("una razón que arma el sistema no se prefija con «se deduce»", () => {
+    const filter = detectFacets({ question: "parlantes para exterior" });
+    const product = candidate({
+      profile: {
+        ...candidate().profile!,
+        ipRating: null,
+        environmentBasis: "INFERRED",
+        environmentEvidence: "Tipo de equipo (speaker): apto para intemperie.",
+      },
+    });
+    const reason = describeEvidence(product, filter);
+    assert.match(reason, /Tipo de equipo/);
+    assert.equal(/se deduce/.test(reason), false);
   });
 });

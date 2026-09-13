@@ -70,7 +70,10 @@ export function describeEvidence(candidate: CandidateProduct, filter: CanonicalF
   if (profile?.ipRating) {
     parts.push(`declara ${profile.ipRating}`);
   } else if (filter.environment && profile?.environmentEvidence) {
-    const prefix = profile.environmentBasis === "INFERRED" ? "se deduce: " : "";
+    // La razón que arma el sistema ya se lee como deducción ("Tipo de
+    // equipo…"); anteponerle "se deduce" la vuelve redundante.
+    const selfExplaining = /^tipo de equipo/i.test(profile.environmentEvidence);
+    const prefix = profile.environmentBasis === "INFERRED" && !selfExplaining ? "se deduce: " : "";
     parts.push(`${prefix}${profile.environmentEvidence.slice(0, 90)}`);
   } else if (filter.environment && profile?.environment) {
     parts.push(
