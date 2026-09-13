@@ -70,13 +70,13 @@ function htmlToText(html: string): string {
 export function cleanDisplayName(raw: string): { name: string; mpn?: string } {
   let mpn: string | undefined;
   const name = raw
-    .replace(/^([^)]{2,40})s*/, "")
-    .replace(/s*{[A-Z]?}[A-Z]?(?=s|$)/g, " ")
-    .replace(/s+MPNs+(S+)s*$/i, (_m, value: string) => {
+    .replace(/^\([^)]{2,40}\)\s*/, "")
+    .replace(/\s*\{[A-Z]?\}[A-Z]?(?=\s|$)/g, " ")
+    .replace(/\s+MPN\s+(\S+)\s*$/i, (_m, value: string) => {
       mpn = value;
       return " ";
     })
-    .replace(/s+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
   return { name: name || raw.trim(), mpn };
 }
