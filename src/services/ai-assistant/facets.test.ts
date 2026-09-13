@@ -567,3 +567,36 @@ describe("consultas de catálogo que antes se clasificaban mal", () => {
     assert.equal(shouldUseListing(analysis, detectFacets({ question: analysis.raw })), false);
   });
 });
+
+describe("el filtro no se pisa a sí mismo", () => {
+  it("un término que ya es faceta no se exige además como texto", () => {
+    const analysis = analyzeQuestion("¿Qué parlantes tienen para exterior?");
+    const filter = detectFacets({ question: analysis.raw, tokens: analysis.tokens });
+    assert.equal(filter.productType, "speaker");
+    assert.equal(filter.environment, "OUTDOOR");
+    assert.deepEqual(filter.freeTerms, []);
+  });
+
+  it("un término que no es faceta sí queda como texto libre", () => {
+    const analysis = analyzeQuestion("parlantes bluetooth marca genelec");
+    const filter = detectFacets({ question: analysis.raw, tokens: analysis.tokens });
+    assert.ok(filter.freeTerms.includes("genelec"));
+  });
+
+  it("nombrar un ecosistema no restringe la marca del producto", () => {
+    const filter = detectFacets({
+      question: "¿Qué productos son compatibles con Crestron Home?",
+      brandNames: ["Crestron", "Sonance"],
+    });
+    assert.deepEqual(filter.ecosystems, ["crestron-home"]);
+    assert.deepEqual(filter.brandNames, []);
+  });
+
+  it("pedir una marca explícita sí la conserva", () => {
+    const filter = detectFacets({
+      question: "parlantes Sonance para exterior",
+      brandNames: ["Crestron", "Sonance"],
+    });
+    assert.deepEqual(filter.brandNames, ["Sonance"]);
+  });
+});

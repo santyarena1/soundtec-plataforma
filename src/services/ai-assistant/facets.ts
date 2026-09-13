@@ -170,6 +170,21 @@ function findAudioLine(raw: string): AudioLine | undefined {
   return undefined;
 }
 
+/**
+ * ¿Este término ya está representado por alguna faceta? Se prueba el token
+ * aislado contra los mismos patrones: si alcanza para disparar una faceta,
+ * la faceta ya lo dice mejor que un `contains` sobre texto.
+ */
+function isFacetedTerm(token: string): boolean {
+  return (
+    TYPE_PATTERNS.some(({ re }) => re.test(token)) ||
+    ENVIRONMENT_PATTERNS.some(({ re }) => re.test(token)) ||
+    MOUNT_PATTERNS.some(({ re }) => re.test(token)) ||
+    ECOSYSTEM_PATTERNS.some(({ re }) => re.test(token)) ||
+    APPLICATION_PATTERNS.some(({ re }) => re.test(token))
+  );
+}
+
 export interface DetectFacetsInput {
   question: string;
   brandNames?: string[];
@@ -200,16 +215,28 @@ export function detectFacets(input: DetectFacetsInput): CanonicalFilter {
   const audioLine = findAudioLine(raw);
   if (audioLine) filter.audioLine = audioLine;
 
-  const normalized = stripAccents(raw.toLowerCase());
+  // La marca se busca fuera de las frases que ya se leyeron como ecosistema:
+  // "compatible con Crestron Home" nombra un ecosistema, no pide que el
+  // producto sea de Crestron. Otras marcas también pueden ser compatibles.
+  let brandHaystack = raw;
+  for (const { re } of ECOSYSTEM_PATTERNS) {
+    if (re.test(raw)) brandHaystack = brandHaystack.replace(new RegExp(re.source, "gi"), " ");
+  }
+  const normalized = stripAccents(brandHaystack.toLowerCase());
   for (const brand of input.brandNames ?? []) {
     const needle = stripAccents(brand.toLowerCase());
     if (needle.length >= 3 && normalized.includes(needle)) filter.brandNames.push(brand);
   }
   filter.brandNames = filter.brandNames.slice(0, 2);
 
+  // Un término que ya se convirtió en faceta no puede volver a exigirse como
+  // texto: "parlantes" ya es productType, y pedirlo además dentro del texto
+  // deja afuera a los productos cuya ficha dice "parlante" en singular o
+  // "speaker" en inglés. Es lo que hacía que un filtro correcto devolviera
+  // cinco resultados en vez de cientos.
   filter.freeTerms = (input.tokens ?? [])
     .map((token) => stripAccents(token.toLowerCase()))
-    .filter((token) => token.length >= 4 && !NOISE_TERMS.has(token))
+    .filter((token) => token.length >= 4 && !NOISE_TERMS.has(token) && !isFacetedTerm(token))
     .slice(0, 4);
 
   return filter;
