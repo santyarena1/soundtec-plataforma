@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ExternalLink, FileText, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RichAnswer } from "./rich-answer";
 import type { ChatProduct, ChatSource, ChatTurn } from "./types";
 
 function ProductCard({ product }: { product: ChatProduct }) {
@@ -121,7 +122,7 @@ export function ChatMessage({
           turn.error ? "bg-warning/10 text-foreground" : "bg-secondary text-secondary-foreground"
         )}
       >
-        <p className="whitespace-pre-wrap">{turn.content}</p>
+        <RichAnswer text={turn.content} />
         {turn.sources && turn.sources.length > 0 ? <SourceList sources={turn.sources} /> : null}
       </div>
 
