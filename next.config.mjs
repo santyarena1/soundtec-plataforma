@@ -7,8 +7,10 @@ const nextConfig = {
     ],
   },
   // Chromium para HTML→PDF de cotizaciones (no empaquetar en el bundle de webpack).
+  // serverExternalPackages es de Next 15; en 14 la clave vive en experimental.
   serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
   experimental: {
+    serverComponentsExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
     /**
      * El binario de Chromium viene como archivos sueltos dentro del paquete y
      * el rastreo de dependencias no los ve, así que la función se desplegaba
