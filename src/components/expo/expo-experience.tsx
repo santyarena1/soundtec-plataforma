@@ -189,7 +189,13 @@ export function ExpoExperience({
       <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logoUrl} alt="Soundtec" className="h-7 w-auto shrink-0 object-contain sm:h-8" />
+          <img
+            src={logoUrl}
+            alt="Soundtec"
+            width={389}
+            height={60}
+            className="h-6 w-auto shrink-0 object-contain sm:h-7"
+          />
           <span className="hidden h-5 w-px bg-border sm:block" />
           <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
             Asistente técnico de productos
@@ -216,7 +222,9 @@ export function ExpoExperience({
               <img
                 src={logoUrl}
                 alt="Soundtec"
-                className="ai-pop mx-auto h-12 w-auto object-contain sm:h-16"
+                width={389}
+                height={60}
+                className="ai-pop mx-auto h-9 w-auto max-w-[70vw] object-contain sm:h-12"
               />
               <h1 className="heading-2 mt-5">Preguntanos sobre nuestros productos</h1>
               <p className="muted-text mx-auto mt-2 max-w-md">

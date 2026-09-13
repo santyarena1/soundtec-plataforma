@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { getSetting } from "@/lib/settings";
 import { ExpoExperience } from "@/components/expo/expo-experience";
 import type { ChatProduct } from "@/components/expo/types";
 
@@ -55,11 +54,6 @@ export default async function ExpoPage({
 }) {
   const params = await searchParams;
   const raw = Array.isArray(params.product) ? params.product[0] : params.product;
-  const [initialProduct, logoUrl] = await Promise.all([
-    resolveInitialProduct(raw),
-    getSetting("branding.logo_url", "").catch(() => ""),
-  ]);
-  return (
-    <ExpoExperience initialProduct={initialProduct} logoUrl={logoUrl || "/landing/logo_soundtec.png"} />
-  );
+  const initialProduct = await resolveInitialProduct(raw);
+  return <ExpoExperience initialProduct={initialProduct} logoUrl="/landing/logo_soundtec.png" />;
 }
