@@ -17,7 +17,6 @@ import {
   Clock,
   Sparkles,
 } from "lucide-react";
-import { sanitizeHtml } from "@/lib/sanitize-html";
 
 import { filterCustomerBadges } from "@/lib/manufacturer-promo";
 
@@ -381,7 +380,7 @@ export function ProductRichInfo(props: ProductRichInfoProps) {
             {showHtml ? (
               <div
                 className="prose prose-sm max-w-none border-t border-border pt-3 text-sm"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(props.htmlContent) }}
+                dangerouslySetInnerHTML={{ __html: props.htmlContent }}
               />
             ) : null}
           </CardContent>

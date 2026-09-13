@@ -4,7 +4,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PriceLogicHint } from "@/components/admin/price-logic-hint";
 import { deleteVisibility, toggleVisibilityCanView } from "@/server/actions/pricing-rules";
 import { VisibilityRulesWorkspace } from "./visibility-rules-workspace";
-import { QUERY_CAPS } from "@/lib/query-caps";
 
 export const metadata = { title: "Admin · Visibilidad" };
 
@@ -20,11 +19,7 @@ export default async function AdminVisibilityPage() {
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.product.findMany({
-      orderBy: { normalizedName: "asc" },
-      select: { id: true, normalizedName: true },
-      take: QUERY_CAPS.adminPicker,
-    }),
+    prisma.product.findMany({ orderBy: { normalizedName: "asc" }, select: { id: true, normalizedName: true } }),
     prisma.visibilityRule.findMany({
       orderBy: { createdAt: "desc" },
       include: { client: { select: { companyName: true, contactName: true } } },

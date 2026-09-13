@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiStaff } from "@/lib/auth-api";
-import { enforceRateLimit, clientIpFromHeaders } from "@/lib/rate-limit";
+import { auth } from "@/lib/auth";
 
 interface TaxEntry {
   position: string;
@@ -88,15 +87,9 @@ function parseNcmTable(
 }
 
 export async function GET(req: NextRequest) {
-  const authz = await requireApiStaff();
-  if ("error" in authz) return authz.error;
-
-  const limited = await enforceRateLimit(`ncm:${authz.user.id}:${clientIpFromHeaders(req.headers)}`, {
-    limit: 30,
-    windowMs: 60_000,
-  });
-  if (!limited.ok) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";

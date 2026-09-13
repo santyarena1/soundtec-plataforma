@@ -420,13 +420,10 @@ export async function processBatch(
 export async function runToCompletion(
   runId: string,
   batchSize = 25,
-  maxBatches = 200,
-  budgetMs = 240_000
+  maxBatches = 200
 ): Promise<void> {
   const limit = Math.max(0, Math.trunc(maxBatches));
-  const deadline = Date.now() + Math.max(10_000, budgetMs);
   for (let batch = 0; batch < limit; batch++) {
-    if (Date.now() >= deadline) return;
     const result = await processBatch(runId, batchSize);
     if (result.done) return;
   }

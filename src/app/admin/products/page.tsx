@@ -16,7 +16,7 @@ import { calculatePricesForProducts } from "@/lib/pricing";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { buildProductSearchAnd, SEARCH_RANK_SELECT, sortBySearchRelevance } from "@/lib/product-search";
 
-import { QUERY_CAPS } from "@/lib/query-caps";
+const SEARCH_RANK_CAP = 3000;
 
 interface SP {
   q?: string;
@@ -117,7 +117,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         const candidates = await prisma.product.findMany({
           where,
           orderBy,
-          take: QUERY_CAPS.adminSearch,
+          take: SEARCH_RANK_CAP,
           select: { id: true, ...SEARCH_RANK_SELECT, brand: { select: { name: true } } },
         });
         const ranked = sortBySearchRelevance(candidates, searchQuery, (c) => ({
@@ -134,7 +134,6 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       prisma.product.findMany({
         where: { isActive: true },
         orderBy: [{ isCrestronHomeCompatible: "desc" }, { normalizedName: "asc" }],
-        take: QUERY_CAPS.crestronList,
         select: { id: true, internalSku: true, normalizedName: true, isCrestronHomeCompatible: true },
       }),
       prisma.product.count({ where: { isCrestronHomeCompatible: true } }),

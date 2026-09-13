@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireAdmin, getCurrentPermissions } from "@/lib/auth-helpers";
-import { permissionsHave } from "@/lib/permissions";
+import { requireUser, requireAdmin } from "@/lib/auth-helpers";
 import { calculatePricesForProducts, isProductVisibleToClient } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { requireCommercialClientId, resolveCommercialClientId } from "@/lib/client-context";
@@ -625,18 +624,14 @@ const messageSchema = z.object({
 });
 
 export async function postRequestMessage(formData: FormData): Promise<void> {
-  const { user, permissions } = await getCurrentPermissions();
+  const user = await requireUser();
   const parsed = messageSchema.safeParse({
     requestId: formData.get("requestId"),
     message: formData.get("message"),
   });
   if (!parsed.success) return;
 
-  const isStaff =
-    user.role === "ADMIN" ||
-    user.role === "SUPER_ADMIN" ||
-    permissions.fullAccess ||
-    permissionsHave(permissions, "requests.respond");
+  const isStaff = user.role !== "CLIENT";
   const request = await prisma.customerRequest.findFirst({
     where: isStaff
       ? { id: parsed.data.requestId }
@@ -1015,17 +1010,16 @@ export async function attachQuoteAsRequestResponse(input: {
     await prisma.quote.update({ where: { id: quote.id }, data: { sourceRequestId: request.id } });
   }
 
-  let generatedOk = false;
+  let pdfUrl = quote.pdfBlobUrl;
   try {
-    await generateAndStoreQuotePdf(quote.id, admin.id);
-    generatedOk = true;
+    const generated = await generateAndStoreQuotePdf(quote.id, admin.id);
+    pdfUrl = generated.url;
   } catch (error) {
     console.error("attachQuoteAsRequestResponse pdf", error);
   }
-  if (!generatedOk && !quote.pdfBlobUrl) {
+  if (!pdfUrl) {
     return { ok: false, error: "No se pudo generar el PDF. Reintentá o emití la cotización primero." };
   }
-  const pdfUrl = `/api/quotes/${quote.id}/pdf`;
 
   const already = await prisma.requestMessage.findFirst({
     where: { requestId: request.id, message: { contains: quote.number } },

@@ -9,16 +9,10 @@ import {
   type Permissions,
   type PermissionScope,
 } from "@/lib/permissions";
-import { bindTenantFromUserId } from "@/lib/tenant-bind";
 
 export async function requireUser() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-  const actor = await bindTenantFromUserId(session.user.id, session.user.sessionVersion);
-  if (!actor) redirect("/login?reason=disabled");
-  if (actor.kind === "client") {
-    session.user.clientId = actor.clientId || null;
-  }
+  if (!session?.user) redirect("/login");
   return session.user;
 }
 

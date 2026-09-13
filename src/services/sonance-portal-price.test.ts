@@ -1,34 +1,29 @@
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { resolveSonanceMyPrice } from "./sonance-portal";
 
-describe("resolveSonanceMyPrice", () => {
-  it("usa My Price cuando existe", () => {
-    assert.equal(
-      resolveSonanceMyPrice({
-        pricing: { unitNetPrice: 768, unitListPrice: 960 },
-        unitListPrice: 960,
-        listingPrice: 960,
-        basicListPrice: 960,
-      }),
-      768
-    );
-  });
+// Caso real SKU 93802: My Price 768, wholesale/list 960.
+assert.equal(
+  resolveSonanceMyPrice({
+    pricing: { unitNetPrice: 768, unitListPrice: 960 },
+    unitListPrice: 960,
+    listingPrice: 960,
+    basicListPrice: 960,
+  }),
+  768
+);
 
-  it("no inventa wholesale si no hay My Price", () => {
-    assert.equal(
-      resolveSonanceMyPrice({
-        pricing: { unitListPrice: 960 },
-        unitListPrice: 960,
-        listingPrice: 960,
-        basicListPrice: 960,
-      }),
-      undefined
-    );
-  });
+// Sin My Price no inventamos wholesale.
+assert.equal(
+  resolveSonanceMyPrice({
+    pricing: { unitListPrice: 960 },
+    unitListPrice: 960,
+    listingPrice: 960,
+    basicListPrice: 960,
+  }),
+  undefined
+);
 
-  it("ignora pricing vacío o cero", () => {
-    assert.equal(resolveSonanceMyPrice({ pricing: null }), undefined);
-    assert.equal(resolveSonanceMyPrice({ pricing: { unitNetPrice: 0 } }), undefined);
-  });
-});
+assert.equal(resolveSonanceMyPrice({ pricing: null }), undefined);
+assert.equal(resolveSonanceMyPrice({ pricing: { unitNetPrice: 0 } }), undefined);
+
+console.log("sonance-portal-price.test.ts OK");

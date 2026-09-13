@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, ChevronDown, ChevronUp, FileText, ImageIcon, Code } from "lucide-react";
-import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface SpecItem {
   label?: string;
@@ -292,7 +291,7 @@ function HtmlSection({ htmlContent }: { htmlContent: string | null }) {
       {open ? (
         <div
           className="prose prose-sm max-w-none rounded-md border border-border p-3 bg-muted/30 text-sm"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlContent) }}
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
       ) : null}
     </section>

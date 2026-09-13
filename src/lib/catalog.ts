@@ -7,7 +7,6 @@ import {
   type ProductPricingInput,
 } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
-import { QUERY_CAPS } from "@/lib/query-caps";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { buildProductSearchAnd, productTokenOr, searchRank } from "@/lib/product-search";
 
@@ -93,7 +92,7 @@ export interface CatalogSidebarMeta {
   totalMatching: number;
 }
 
-const CATALOG_FETCH_CAP = QUERY_CAPS.catalogPage;
+const CATALOG_FETCH_CAP = 2500;
 
 export type CatalogContext = {
   commercialClientId: string | null;

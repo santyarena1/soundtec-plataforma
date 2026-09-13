@@ -12,11 +12,7 @@ export async function resolveCommercialClientId(userId: string): Promise<string 
   });
   if (!user) return null;
   if (user.clientId) return user.clientId;
-  // Legacy: algunos CLIENT viejos usaban userId como Client.id. Solo si el Client existe.
-  if (user.role === "CLIENT") {
-    const legacy = await prisma.client.findUnique({ where: { id: userId }, select: { id: true } });
-    return legacy?.id ?? null;
-  }
+  if (user.role === "CLIENT") return userId;
   return null;
 }
 
