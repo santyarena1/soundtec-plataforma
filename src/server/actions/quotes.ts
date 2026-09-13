@@ -1,5 +1,6 @@
 "use server";
 
+import { isTaxMode, type QuoteTaxMode } from "@/lib/quote-totals";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -54,6 +55,7 @@ type QuoteShellInput = {
   brief?: string | null;
   projectType?: string | null;
   layoutKey?: QuoteLayoutKey;
+  taxMode?: QuoteTaxMode;
   profileKey?: string | null;
   alternativesEnabled?: boolean;
   notes?: string | null;
@@ -95,6 +97,7 @@ export async function createQuoteShell(input: QuoteShellInput) {
       reference: input.reference || input.projectType || null,
       contactName: input.contactName || null,
       layoutKey,
+      taxMode: input.taxMode ?? "NOTE",
       contentProfileId: profile?.id ?? null,
       alternativesEnabled: Boolean(input.alternativesEnabled),
       showDeliveryColumn: showDelivery,
@@ -795,6 +798,8 @@ export async function saveQuoteMeta(formData: FormData): Promise<void> {
     layoutRaw === "COMPACT" || layoutRaw === "EDITORIAL" || layoutRaw === "STANDARD"
       ? layoutRaw
       : loaded.quote.layoutKey;
+  const taxRaw = String(formData.get("taxMode") || loaded.quote.taxMode);
+  const taxMode = isTaxMode(taxRaw) ? taxRaw : loaded.quote.taxMode;
   const isHeader = formData.get("metaKind") === "header";
   await prisma.quote.update({
     where: { id },
@@ -804,6 +809,7 @@ export async function saveQuoteMeta(formData: FormData): Promise<void> {
       ...(formData.has("clientId") ? { clientId: String(formData.get("clientId") || "") || null } : {}),
       ...(formData.has("brief") ? { brief: String(formData.get("brief") || "") || null } : {}),
       layoutKey,
+      taxMode,
       ...(isHeader
         ? {
             alternativesEnabled: formData.get("alternativesEnabled") === "on",

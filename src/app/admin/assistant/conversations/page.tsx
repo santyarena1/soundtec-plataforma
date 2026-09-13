@@ -8,7 +8,8 @@ import { Input, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/lib/utils";
-import { getUsageSummary, MODEL_PRICING } from "@/services/ai-assistant/usage";
+import { getUsageSummary } from "@/services/ai-assistant/usage";
+import { PricingEditor } from "@/components/expo/pricing-editor";
 import { MessagesSquare, UserPlus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -198,10 +199,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
         <CardContent className="space-y-3 p-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-sm font-medium">Uso y costo del modelo</p>
-            <p className="text-xs text-muted-foreground">
-              {MODEL_PRICING.model} · USD {MODEL_PRICING.inputPerMillion} por millón de tokens de entrada y{" "}
-              {MODEL_PRICING.outputPerMillion} de salida
-            </p>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span>
+                {usage.model ?? "gpt-4o-mini"} · USD {usage.pricing.inputPerMillion} por millón de entrada y{" "}
+                {usage.pricing.outputPerMillion} de salida
+              </span>
+              <PricingEditor
+                input={usage.pricing.inputPerMillion}
+                output={usage.pricing.outputPerMillion}
+                configured={usage.pricing.configured}
+              />
+            </div>
           </div>
           <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
             {[

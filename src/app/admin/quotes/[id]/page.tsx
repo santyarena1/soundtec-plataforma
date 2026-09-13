@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { loadQuoteForUser } from "@/lib/quote-access";
 import { APP_TIME_ZONE } from "@/lib/utils";
+import { TAX_MODES } from "@/lib/quote-totals";
 import { getDeliveryOptions } from "@/lib/quote-settings";
 import { Settings } from "lucide-react";
 import { ensureQuoteSections, getCompanyIdentity, moduleByKey, parseQuoteStep, QUOTE_STEPS } from "@/lib/quote-defaults";
@@ -398,6 +399,19 @@ export default async function QuoteEditorPage({
                   <option value="STANDARD">Estándar</option>
                   <option value="EDITORIAL">Editorial</option>
                 </Select>
+              </div>
+              <div>
+                <Label htmlFor="taxMode">Impuestos</Label>
+                <Select id="taxMode" name="taxMode" defaultValue={quote.taxMode} disabled={issued}>
+                  {TAX_MODES.map((mode) => (
+                    <option key={mode.key} value={mode.key}>
+                      {mode.label}
+                    </option>
+                  ))}
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {TAX_MODES.find((mode) => mode.key === quote.taxMode)?.hint}
+                </p>
               </div>
               <div className="flex flex-col justify-end gap-2 text-sm">
                 <label className="flex items-center gap-2">

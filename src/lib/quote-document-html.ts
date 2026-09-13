@@ -12,6 +12,12 @@ import { isRichText, sanitizeQuoteHtml, splitParagraphs } from "@/lib/quote-rich
 import { formatUsd } from "@/lib/utils";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
 import { buildQuoteZones, type QuoteGroupRecord } from "@/lib/quote-item-groups";
+import {
+  computeQuoteTotals,
+  taxLabel,
+  taxNote,
+  type QuoteTaxMode,
+} from "@/lib/quote-totals";
 
 const CONTENT_WIDTH = 680;
 
@@ -38,6 +44,7 @@ export type QuoteDocumentHtmlInput = {
   contactName: string | null;
   issuedAt: Date | null;
   showDeliveryColumn: boolean;
+  taxMode?: QuoteTaxMode | null;
   client: { companyName: string; tradeName: string | null } | null;
   owner: {
     quoteSignName: string | null;
@@ -202,13 +209,14 @@ export async function buildQuoteDocumentHtml(
       )
     ).join("");
     if (!hasBody && !sectionImages) continue;
+    // Sin cuerpo real ni imágenes no hay nada que mostrar: imprimir solo el
+    // título deja un bloque vacío en un documento que ve el cliente.
+    if (!hasBody && !sectionImages) continue;
     sectionChunks.push(`${heading(section.title)}${hasBody ? paragraphs(body) : ""}${sectionImages}`);
   }
 
   const visibleItems = quote.items.filter((item) => !item.excluded);
-  const total = visibleItems
-    .filter((item) => !item.optional)
-    .reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+  const totals = computeQuoteTotals(quote.items, quote.taxMode ?? "NOTE");
 
   const itemRow = (item: QuoteDocumentHtmlItem, index: number) => {
     const line = quoteItemDisplay({ description: item.description, product: item.product });
@@ -291,8 +299,14 @@ ${sectionChunks.join("")}
 
 <div style="page-break-before:always"></div>
 ${equipmentHtml}
-<p style="margin:10pt 0 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total neto ${formatUsd(total)}</p>
-<p style="margin:2pt 0 0;text-align:right;font-size:8pt;color:#556">Precios en dólares estadounidenses, IVA no incluido.</p>
+${totals.mode === "ADDED"
+  ? `<table style="margin:10pt 0 0;margin-left:auto;font-size:10.5pt">
+<tr><td style="padding:1pt 10pt 1pt 0;text-align:right">Neto</td><td style="padding:1pt 0;text-align:right">${formatUsd(totals.net)}</td></tr>
+<tr><td style="padding:1pt 10pt 1pt 0;text-align:right">${escapeHtml(taxLabel(totals))}</td><td style="padding:1pt 0;text-align:right">${formatUsd(totals.tax)}</td></tr>
+<tr><td style="padding:3pt 10pt 1pt 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total</td><td style="padding:3pt 0 1pt;text-align:right;font-size:12pt;font-weight:bold;color:${color}">${formatUsd(totals.total)}</td></tr>
+</table>`
+  : `<p style="margin:10pt 0 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total neto ${formatUsd(totals.net)}</p>`}
+${taxNote(totals) ? `<p style="margin:2pt 0 0;text-align:right;font-size:8pt;color:#556">${escapeHtml(taxNote(totals) as string)}</p>` : ""}
 
 <p style="margin-top:28pt;font-size:10.5pt"><b>${escapeHtml(signName)}</b><br/>${escapeHtml(signTitle)}<br/>${escapeHtml(identity.name)} S.R.L.</p>
 

@@ -19,11 +19,23 @@ const itemSchema = z.object({
   note: z.string().max(1000).default(""),
   included: z.boolean().default(false),
 });
+/**
+ * El diseño elegido define cuánto contenido lleva el PDF. Antes la rápida
+ * armaba siempre una carta corta, así que elegir "Estándar" o "Editorial" no
+ * cambiaba nada: salía el mismo documento de una carilla.
+ */
+const PROFILE_BY_LAYOUT = {
+  COMPACT: "resumido",
+  STANDARD: "tecnico",
+  EDITORIAL: "premium",
+} as const;
+
 const schema = z.object({
   clientId: z.string().nullable(),
   contactName: z.string().max(160).default(""),
   reference: z.string().min(1).max(200),
   layoutKey: z.enum(["COMPACT", "STANDARD", "EDITORIAL"]).default("COMPACT"),
+  taxMode: z.enum(["NOTE", "NONE", "ADDED"]).default("NOTE"),
   validityDays: z.number().int().min(1).max(365),
   issue: z.boolean(),
   items: z.array(itemSchema).min(1),
@@ -50,7 +62,8 @@ export async function createQuickQuote(input: QuickQuoteInput) {
     reference: parsed.data.reference,
     contactName: parsed.data.contactName || null,
     layoutKey: parsed.data.layoutKey,
-    profileKey: "resumido",
+    profileKey: PROFILE_BY_LAYOUT[parsed.data.layoutKey],
+    taxMode: parsed.data.taxMode,
   });
   const alternative = quote.alternatives[0];
   const defaultIva = Number(await getSetting(QUOTE_SETTING_KEYS.defaultIva, "21")) || 21;

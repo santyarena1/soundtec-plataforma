@@ -1,4 +1,5 @@
 import { formatUsd } from "@/lib/utils";
+import { computeQuoteTotals, isTaxMode, taxLabel } from "@/lib/quote-totals";
 import {
   AI_SECTION_STUB,
   DEFAULT_BRANDS_PLACEMENT,
@@ -92,7 +93,9 @@ function ProductsTable({
   showNote?: boolean;
 }) {
   const visible = (items ?? quote.items).filter((item) => !item.excluded);
-  const total = visible.filter((item) => !item.optional).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+  const taxMode = isTaxMode((quote as { taxMode?: unknown }).taxMode) ? (quote as { taxMode: "NOTE" | "NONE" | "ADDED" }).taxMode : "NOTE";
+  const totals = computeQuoteTotals(visible, taxMode);
+  const total = totals.net;
   const showDelivery = quote.showDeliveryColumn;
   const anyPhoto = visible.some((item) => item.productId && photos.has(item.productId));
 
@@ -185,12 +188,32 @@ function ProductsTable({
             <td className="px-[2mm] py-[2mm] text-right text-[10.5pt] font-bold tabular-nums">{formatUsd(total)}</td>
             <td colSpan={showDelivery ? 2 : 1} />
           </tr>
+          {totals.mode === "ADDED" ? (
+            <>
+              <tr>
+                <td className="px-[2mm] py-[1.4mm] text-right text-neutral-600" colSpan={cols - 3}>
+                  {taxLabel(totals)}
+                </td>
+                <td className="px-[2mm] py-[1.4mm] text-right tabular-nums">{formatUsd(totals.tax)}</td>
+                <td colSpan={showDelivery ? 2 : 1} />
+              </tr>
+              <tr style={{ background: color, color: "#fff" }}>
+                <td className="px-[2mm] py-[2mm] text-right font-bold uppercase tracking-[0.08em]" colSpan={cols - 3}>
+                  Total con IVA
+                </td>
+                <td className="px-[2mm] py-[2mm] text-right text-[10.5pt] font-bold tabular-nums">
+                  {formatUsd(totals.total)}
+                </td>
+                <td colSpan={showDelivery ? 2 : 1} />
+              </tr>
+            </>
+          ) : null}
         </tbody>
       </table>
 
       {showNote ? (
         <p className="quote-doc__block mt-[2.5mm] text-[8.5pt] leading-snug text-neutral-600">
-          Precios expresados en DÓLARES billete según tipo de cambio vendedor del BNA. No incluyen IVA.
+          Precios expresados en DÓLARES billete según tipo de cambio vendedor del BNA.{totals.mode === "NONE" ? "" : totals.mode === "ADDED" ? " IVA discriminado." : " No incluyen IVA."}
           {visible.some((item) => item.optional) ? " Los ítems marcados como opcionales no se suman al total." : ""}
         </p>
       ) : null}

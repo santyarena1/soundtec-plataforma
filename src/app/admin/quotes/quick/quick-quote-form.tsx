@@ -1,5 +1,6 @@
 "use client";
 
+import { TAX_MODES } from "@/lib/quote-totals";
 import { useEffect, useState, useTransition } from "react";
 import { ClientSelectWithCreate } from "@/components/admin/client-select-with-create";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
@@ -35,6 +36,7 @@ export function QuickQuoteForm({
     `Cotización rápida ${new Date().toLocaleDateString("es-AR")}`,
   );
   const [layoutKey, setLayoutKey] = useState("COMPACT");
+  const [taxMode, setTaxMode] = useState<"NOTE" | "NONE" | "ADDED">("NOTE");
   const [validity, setValidity] = useState(validityDays);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Product[]>([]);
@@ -122,6 +124,7 @@ export function QuickQuoteForm({
         contactName: contact,
         reference,
         layoutKey: layoutKey as "COMPACT",
+        taxMode,
         validityDays: validity,
         issue,
         items,
@@ -203,10 +206,30 @@ export function QuickQuoteForm({
           <div>
             <Label>Plantilla</Label>
             <Select value={layoutKey} onChange={(e) => setLayoutKey(e.target.value)}>
-              <option value="COMPACT">Compacta</option>
-              <option value="STANDARD">Estándar</option>
-              <option value="EDITORIAL">Editorial</option>
+              <option value="COMPACT">Compacta · solo la tabla y las condiciones</option>
+              <option value="STANDARD">Estándar · propuesta, marcas y condiciones</option>
+              <option value="EDITORIAL">Editorial · el documento completo</option>
             </Select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {layoutKey === "COMPACT"
+                ? "Una carilla: encabezado, productos y condiciones comerciales."
+                : layoutKey === "STANDARD"
+                  ? "Varias páginas, igual que una cotización común: nuestra propuesta, marcas, instalación y garantías."
+                  : "Todo el documento, con criterios de diseño, productos clave y funcionalidad."}
+            </p>
+          </div>
+          <div>
+            <Label>Impuestos</Label>
+            <Select value={taxMode} onChange={(e) => setTaxMode(e.target.value as "NOTE")}>
+              {TAX_MODES.map((mode) => (
+                <option key={mode.key} value={mode.key}>
+                  {mode.label}
+                </option>
+              ))}
+            </Select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {TAX_MODES.find((mode) => mode.key === taxMode)?.hint}
+            </p>
           </div>
           <div>
             <Label>Validez (días)</Label>

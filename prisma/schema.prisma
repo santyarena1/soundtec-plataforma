@@ -1045,6 +1045,17 @@ enum QuoteStatus {
   ARCHIVED
 }
 
+/// Cómo se muestran los impuestos en el documento. No todo lo que se cotiza
+/// lleva IVA, así que se decide por cotización.
+enum QuoteTaxMode {
+  /// Solo la leyenda aclaratoria. Es lo que se hacía siempre.
+  NOTE
+  /// Sin ninguna mención al impuesto.
+  NONE
+  /// Se discrimina el IVA y se muestra el total final.
+  ADDED
+}
+
 enum QuoteLayoutKey {
   COMPACT
   STANDARD
@@ -1212,6 +1223,7 @@ model Quote {
   ownerId                String
   owner                  User              @relation("QuoteOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   layoutKey              QuoteLayoutKey    @default(STANDARD)
+  taxMode                QuoteTaxMode      @default(NOTE)
   contentProfileId       String?
   contentProfile         QuoteContentProfile? @relation(fields: [contentProfileId], references: [id], onDelete: SetNull)
   alternativesEnabled    Boolean           @default(false)
