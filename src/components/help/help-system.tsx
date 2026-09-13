@@ -23,6 +23,7 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/dialog";
 import { createTicketQuick } from "@/server/actions/tickets";
 import { askHelpChat } from "@/server/actions/help-chat";
+import { RichAnswer } from "@/components/expo/rich-answer";
 import { moduleForPath } from "@/lib/help/modules";
 import { resolveTour, type TourDef } from "@/lib/help/tours";
 import { requestOnboardingStart } from "@/lib/onboarding/events";
@@ -631,7 +632,7 @@ export function HelpDock() {
                         : "bg-secondary text-foreground"
                     }`}
                   >
-                    {msg.content}
+                    {msg.role === "assistant" && onProducts ? <RichAnswer text={msg.content} /> : msg.content}
                   </div>
                   {msg.products && msg.products.length > 0 ? (
                     <ul className="mt-1.5 max-w-[92%] space-y-1">
