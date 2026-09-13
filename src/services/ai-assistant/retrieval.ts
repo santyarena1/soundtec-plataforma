@@ -338,8 +338,33 @@ function buildTermGroups(analysis: QuestionAnalysis): TermGroup[] {
   return groups.sort((a, b) => b.weight - a.weight).slice(0, 5);
 }
 
+/**
+ * Para los conceptos que definen la consulta (exterior, marca) se busca solo
+ * donde el dato es afirmativo: título, categoría, descripción corta y specs.
+ * El HTML largo del fabricante nombra "outdoor" hasta para decir que el
+ * producto NO es para exterior, y así entraban productos equivocados.
+ */
+function narrowTokenOr(term: string): Prisma.ProductWhereInput[] {
+  const contains = { contains: term, mode: "insensitive" as const };
+  return [
+    { normalizedName: contains },
+    { originalName: contains },
+    { shortDescription: contains },
+    { sourceCategoryPath: contains },
+    { productLine: contains },
+    { brand: { name: contains } },
+    { category: { name: contains } },
+    { family: { name: contains } },
+    ...jsonMatchers(term),
+  ];
+}
+
 function whereForGroup(group: TermGroup): Prisma.ProductWhereInput {
-  return { OR: group.variants.flatMap((variant) => [...productTokenOr(variant), ...jsonMatchers(variant)]) };
+  const build = group.weight >= 3 ? narrowTokenOr : (variant: string) => [
+    ...productTokenOr(variant),
+    ...jsonMatchers(variant),
+  ];
+  return { OR: group.variants.flatMap((variant) => build(variant)) };
 }
 
 /**
@@ -388,8 +413,22 @@ async function findByConcept(analysis: QuestionAnalysis, limit: number): Promise
       row.category?.name ?? ""
     }`.toLowerCase();
     let score = structured ? 2 : 0;
+    const strongHaystack = [
+      row.normalizedName,
+      row.originalName,
+      row.shortDescription,
+      row.sourceCategoryPath,
+      row.category?.name,
+      parseFeatures(row.keyFeatures).join(" "),
+      parseSpecs(row.specifications).map((spec) => `${spec.label} ${spec.value}`).join(" "),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
     for (const group of usedGroups) {
-      const hit = group.variants.find((variant) => haystack.includes(variant));
+      const source = group.weight >= 3 ? strongHaystack : haystack;
+      const hit = group.variants.find((variant) => source.includes(variant));
       if (!hit) continue;
       score += group.weight;
       if (title.includes(hit)) score += group.weight;
