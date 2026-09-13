@@ -31,6 +31,7 @@ export type QuoteDocumentHtmlItem = {
   excluded: boolean;
   deliveryKey: string | null;
   groupId?: string | null;
+  alternativeId?: string | null;
   product?: {
     normalizedName: string;
     shortDescription: string | null;
@@ -53,6 +54,8 @@ export type QuoteDocumentHtmlInput = {
   };
   items: QuoteDocumentHtmlItem[];
   itemGroups?: QuoteGroupRecord[];
+  /** Opciones cotizadas. Con más de una, cada una lleva su tabla y su total. */
+  alternatives?: Array<{ id: string; name: string; purpose: string | null; sortOrder: number }>;
   sections: Array<{
     id?: string;
     type: string;
@@ -245,19 +248,45 @@ ${showDelivery ? `<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml
 ${showDelivery ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Entrega</th>` : ""}
 </tr>`;
 
-  const zones = buildQuoteZones(visibleItems, quote.itemGroups ?? []);
-  const multiTables = (quote.itemGroups?.length ?? 0) > 0;
-  const equipmentHtml = zones
-    .map((zone) => {
-      const subtotal = zone.items
-        .filter((item) => !item.optional)
-        .reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
-      return `${heading(zone.title)}${zone.body.trim() ? paragraphs(zone.body) : ""}${tableHead}
+  // Con una sola opción el documento se arma como siempre. Con más de una,
+  // cada opción lleva su tabla y su total: sumarlas daría un precio que
+  // nadie va a pagar, porque el cliente elige una.
+  const alternatives = (quote.alternatives ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
+  const usedAlternatives = alternatives.filter((alternative) =>
+    visibleItems.some((item) => item.alternativeId === alternative.id)
+  );
+  const multiAlternative = usedAlternatives.length > 1;
+
+  const renderItems = (items: QuoteDocumentHtmlItem[]) => {
+    const zones = buildQuoteZones(items, quote.itemGroups ?? []);
+    const multiTables = (quote.itemGroups?.length ?? 0) > 0;
+    return zones
+      .map((zone) => {
+        const subtotal = zone.items
+          .filter((item) => !item.optional)
+          .reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+        return `${heading(zone.title)}${zone.body.trim() ? paragraphs(zone.body) : ""}${tableHead}
 ${zone.items.map(itemRow).join("")}
 </table>
 ${multiTables ? `<p style="margin:8pt 0 0;text-align:right;font-size:10.5pt;font-weight:bold">Subtotal ${escapeHtml(zone.title)} ${formatUsd(subtotal)}</p>` : ""}`;
-    })
-    .join("<br/>");
+      })
+      .join("<br/>");
+  };
+
+  const equipmentHtml = multiAlternative
+    ? usedAlternatives
+        .map((alternative) => {
+          const items = visibleItems.filter((item) => item.alternativeId === alternative.id);
+          const optionTotal = computeQuoteTotals(items, quote.taxMode ?? "NOTE");
+          return `${heading(alternative.name)}${
+            alternative.purpose ? paragraphs(alternative.purpose) : ""
+          }${renderItems(items)}
+<p style="margin:8pt 0 0;text-align:right;font-size:11pt;font-weight:bold;color:${color}">Total ${escapeHtml(
+            alternative.name
+          )} ${formatUsd(optionTotal.total)}</p>`;
+        })
+        .join('<div style="height:10pt"></div>')
+    : renderItems(visibleItems);
 
   const wordMeta = options?.forWord
     ? `xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"`
@@ -299,14 +328,14 @@ ${sectionChunks.join("")}
 
 <div style="page-break-before:always"></div>
 ${equipmentHtml}
-${totals.mode === "ADDED"
+${multiAlternative ? "" : totals.mode === "ADDED"
   ? `<table style="margin:10pt 0 0;margin-left:auto;font-size:10.5pt">
 <tr><td style="padding:1pt 10pt 1pt 0;text-align:right">Neto</td><td style="padding:1pt 0;text-align:right">${formatUsd(totals.net)}</td></tr>
 <tr><td style="padding:1pt 10pt 1pt 0;text-align:right">${escapeHtml(taxLabel(totals))}</td><td style="padding:1pt 0;text-align:right">${formatUsd(totals.tax)}</td></tr>
 <tr><td style="padding:3pt 10pt 1pt 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total</td><td style="padding:3pt 0 1pt;text-align:right;font-size:12pt;font-weight:bold;color:${color}">${formatUsd(totals.total)}</td></tr>
 </table>`
   : `<p style="margin:10pt 0 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total neto ${formatUsd(totals.net)}</p>`}
-${taxNote(totals) ? `<p style="margin:2pt 0 0;text-align:right;font-size:8pt;color:#556">${escapeHtml(taxNote(totals) as string)}</p>` : ""}
+${!multiAlternative && taxNote(totals) ? `<p style="margin:2pt 0 0;text-align:right;font-size:8pt;color:#556">${escapeHtml(taxNote(totals) as string)}</p>` : ""}
 
 <p style="margin-top:28pt;font-size:10.5pt"><b>${escapeHtml(signName)}</b><br/>${escapeHtml(signTitle)}<br/>${escapeHtml(identity.name)} S.R.L.</p>
 

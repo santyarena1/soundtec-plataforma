@@ -10,6 +10,7 @@ import { resolveBrandsDisplayMode } from "@/lib/quote-brands";
 import { listBrandLibrary } from "@/server/actions/quote-brands";
 import { SectionVariantPicker } from "@/components/quotes/section-variant-picker";
 import { QuoteBrandsEditor } from "@/components/quotes/quote-brands-editor";
+import { QuoteAlternativesPanel } from "@/components/quotes/quote-alternatives-panel";
 import { LiveQuoteCanvas } from "@/components/quotes/live-quote-canvas";
 import { prisma } from "@/lib/prisma";
 import { permissionsHave } from "@/lib/permissions";
@@ -145,6 +146,15 @@ export default async function QuoteEditorPage({
 
   const issued = quote.status === "ISSUED";
   const total = quote.items.reduce((s, i) => s + Number(i.lineTotalUsd), 0);
+  // Cuánto suma cada opción, para verlo sin abrir el PDF.
+  const alternativeTotals = new Map<string, { count: number; amount: number }>();
+  for (const item of quote.items) {
+    if (!item.alternativeId || item.excluded) continue;
+    const current = alternativeTotals.get(item.alternativeId) ?? { count: 0, amount: 0 };
+    current.count += 1;
+    if (!item.optional) current.amount += Number(item.lineTotalUsd);
+    alternativeTotals.set(item.alternativeId, current);
+  }
   const canIssue = permissions.fullAccess || permissionsHave(permissions, "quotes.issue");
   const issueCheck = quoteIssueCheck(quote);
   const onQuoteProductIds = new Set(productIds);
@@ -187,6 +197,7 @@ export default async function QuoteEditorPage({
       ivaRate: Number(i.ivaRate),
       deliveryKey: i.deliveryKey || "",
       optional: i.optional,
+      excluded: i.excluded,
       locked: i.locked,
       photoUrl: asset?.url || (i.productId ? catalogByProduct.get(i.productId) || null : null),
       productId: i.productId,
@@ -255,6 +266,7 @@ export default async function QuoteEditorPage({
             lineTotal: Number(item.lineTotalUsd),
             ivaRate: Number(item.ivaRate),
             optional: item.optional,
+            excluded: item.excluded,
             deliveryKey: item.deliveryKey || "",
             photoUrl: asset?.url || (item.productId ? catalogByProduct.get(item.productId) || null : null),
             productId: item.productId,
@@ -418,10 +430,6 @@ export default async function QuoteEditorPage({
                   <input type="checkbox" name="showDeliveryColumn" defaultChecked={quote.showDeliveryColumn} disabled={issued} />
                   Columna entrega
                 </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" name="alternativesEnabled" defaultChecked={quote.alternativesEnabled} disabled={issued} />
-                  Alternativas
-                </label>
               </div>
               {!issued ? (
                 <Button type="submit" size="sm">
@@ -578,6 +586,14 @@ export default async function QuoteEditorPage({
                             </Button>
                           </form>
                         )}
+                        {moduleByKey(section.type)?.kind === "ai" && !issued ? (
+                          <form action={toggleQuoteSectionLock}>
+                            <input type="hidden" name="sectionId" value={section.id} />
+                            <Button type="submit" size="sm" variant="ghost" title="Fijar evita que «Generar propuesta» pise este texto">
+                              {section.locked ? "Desfijar" : "Fijar"}
+                            </Button>
+                          </form>
+                        ) : null}
                       </div>
                     </CardContent>
                   </Card>
@@ -588,6 +604,12 @@ export default async function QuoteEditorPage({
 
           {step === 4 ? (
             <div className="space-y-4">
+              <QuoteAlternativesPanel
+                quoteId={quote.id}
+                alternatives={quote.alternatives}
+                totals={alternativeTotals}
+                issued={issued}
+              />
               {!issued ? (
                 <div data-tour="quote-generate-products">
                   <GenerateProposalButton quoteId={quote.id} auto={autogen} />
@@ -637,40 +659,6 @@ export default async function QuoteEditorPage({
           ) : null}
 
           {step === 5 ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Textos de proyecto. Editá en el documento de la derecha. Fijar evita que Generar propuesta los pise.
-              </p>
-              {!issued ? (
-                <div data-tour="quote-generate-texts">
-                  <GenerateProposalButton quoteId={quote.id} />
-                </div>
-              ) : null}
-              {aiSections.map((section) => (
-                <Card key={section.id}>
-                  <CardContent className="space-y-2 p-5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <h3 className="font-medium">{section.title}</h3>
-                        <p className="text-xs text-muted-foreground">{moduleByKey(section.type)?.description}</p>
-                      </div>
-                      {section.included ? <Badge tone="success">En el documento</Badge> : <Badge tone="muted">Apagado</Badge>}
-                    </div>
-                    {!issued ? (
-                      <form action={toggleQuoteSectionLock}>
-                        <input type="hidden" name="sectionId" value={section.id} />
-                        <Button type="submit" size="sm" variant="ghost">
-                          {section.locked ? "Desfijar" : "Fijar"}
-                        </Button>
-                      </form>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : null}
-
-          {step === 6 ? (
             <div className="space-y-6">
               <Card>
                 <CardContent className="space-y-4 p-5">
@@ -730,7 +718,7 @@ export default async function QuoteEditorPage({
             </div>
           ) : null}
 
-          {step === 7 ? (
+          {step === 6 ? (
             <div className="space-y-6" data-tour="quote-issue">
               <Card>
                 <CardContent className="space-y-3 p-5">

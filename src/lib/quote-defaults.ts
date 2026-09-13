@@ -6,11 +6,10 @@ import { defaultBlockVariantBody, isVariantBlockKey, resolveBlockVariantBody, li
 export const QUOTE_STEPS = [
   { id: 1, key: "datos", title: "Encabezado" },
   { id: 2, key: "brief", title: "Brief y generación" },
-  { id: 3, key: "modulos", title: "Módulos" },
+  { id: 3, key: "modulos", title: "Módulos y textos" },
   { id: 4, key: "productos", title: "Productos" },
-  { id: 5, key: "textos", title: "Textos con IA" },
-  { id: 6, key: "imagenes", title: "Imágenes" },
-  { id: 7, key: "emitir", title: "Emitir" },
+  { id: 5, key: "imagenes", title: "Imágenes" },
+  { id: 6, key: "emitir", title: "Emitir" },
 ] as const;
 
 

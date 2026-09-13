@@ -16,6 +16,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       contactName: quote.contactName,
       issuedAt: quote.issuedAt,
       showDeliveryColumn: quote.showDeliveryColumn,
+      taxMode: quote.taxMode,
       client: quote.client,
       owner: {
         quoteSignName: quote.owner.quoteSignName,
@@ -24,6 +25,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       },
       items: quote.items,
       itemGroups: quote.itemGroups,
+      alternatives: quote.alternatives,
       sections: quote.sections,
       assets: quote.assets.map((asset) => ({
         id: asset.id,

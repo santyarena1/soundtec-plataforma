@@ -26,6 +26,8 @@ type DocQuote = Quote & {
   owner: Pick<User, "id" | "name" | "email" | "quoteSignName" | "quoteSignTitle">;
   items: QuoteItemWithProduct[];
   itemGroups?: { id: string; title: string; body: string; sortOrder: number }[];
+  /** Opciones cotizadas; con más de una, el documento las muestra por separado. */
+  alternatives?: { id: string; name: string; purpose: string | null; sortOrder: number }[];
   sections: QuoteSection[];
   assets: QuoteAsset[];
   terms: QuoteCommercialTerms | null;
@@ -320,40 +322,90 @@ function SectionBlock({
   }
 
   if (section.type === "products_table") {
-    const zones = buildQuoteZones(
-      quote.items.filter((item) => !item.excluded),
-      quote.itemGroups ?? []
-    );
-    const multi = (quote.itemGroups?.length ?? 0) > 0;
-    const grand = quote.items
-      .filter((item) => !item.excluded && !item.optional)
-      .reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+    const payable = quote.items.filter((item) => !item.excluded);
+    // Cada opción cotizada lleva su propia tabla y su propio total: el cliente
+    // elige una, así que sumarlas daría un número que nadie va a pagar.
+    const alternatives = (quote.alternatives ?? [])
+      .slice()
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .filter((alternative) => payable.some((item) => item.alternativeId === alternative.id));
+    const multiAlternative = alternatives.length > 1;
+
+    const renderZones = (items: QuoteItemWithProduct[], key: string) => {
+      const zones = buildQuoteZones(items, quote.itemGroups ?? []);
+      const multi = (quote.itemGroups?.length ?? 0) > 0;
+      const zoneTotals = computeQuoteTotals(
+        items,
+        isTaxMode((quote as { taxMode?: unknown }).taxMode)
+          ? ((quote as { taxMode: "NOTE" | "NONE" | "ADDED" }).taxMode)
+          : "NOTE"
+      );
+      return (
+        <div key={key}>
+          {zones.map((zone) => (
+            <div key={zone.id || "general"} className="quote-doc__block mt-[7mm] first:mt-0">
+              <SectionTitle color={color}>{zone.title}</SectionTitle>
+              {zone.body.trim() ? <Paragraphs body={zone.body} /> : null}
+              <ProductsTable
+                quote={quote}
+                photos={photos}
+                color={color}
+                items={zone.items}
+                totalLabel={multi ? `Subtotal ${zone.title}` : "Total"}
+                showNote={!multi && !multiAlternative}
+              />
+            </div>
+          ))}
+          {multi ? (
+            <div className="mt-[4mm] text-right">
+              {zoneTotals.mode === "ADDED" ? (
+                <>
+                  <p className="text-[10pt] text-neutral-600">Neto {formatUsd(zoneTotals.net)}</p>
+                  <p className="text-[10pt] text-neutral-600">
+                    {taxLabel(zoneTotals)} {formatUsd(zoneTotals.tax)}
+                  </p>
+                  <p className="text-[12pt] font-bold" style={{ color }}>
+                    Total {formatUsd(zoneTotals.total)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-[12pt] font-bold" style={{ color }}>
+                  Total neto {formatUsd(zoneTotals.net)}
+                </p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      );
+    };
+
+    if (!multiAlternative) {
+      return <div className={spacing}>{renderZones(payable, "single")}</div>;
+    }
+
     return (
       <div className={spacing}>
-        {zones.map((zone) => (
-          <div key={zone.id || "general"} className="quote-doc__block mt-[7mm] first:mt-0">
-            <SectionTitle color={color}>{zone.title}</SectionTitle>
-            {zone.body.trim() ? <Paragraphs body={zone.body} /> : null}
-            <ProductsTable
-              quote={quote}
-              photos={photos}
-              color={color}
-              items={zone.items}
-              totalLabel={multi ? `Subtotal ${zone.title}` : "Total"}
-              showNote={!multi}
-            />
-          </div>
-        ))}
-        {multi ? (
-          <>
-            <p className="mt-[4mm] text-right text-[12pt] font-bold" style={{ color }}>
-              Total neto {formatUsd(grand)}
-            </p>
-            <p className="quote-doc__block mt-[2.5mm] text-[8.5pt] leading-snug text-neutral-600">
-              Precios expresados en DÓLARES billete según tipo de cambio vendedor del BNA. No incluyen IVA.
-            </p>
-          </>
-        ) : null}
+        {alternatives.map((alternative) => {
+          const items = payable.filter((item) => item.alternativeId === alternative.id);
+          const optionTotal = items
+            .filter((item) => !item.optional)
+            .reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+          return (
+            <div key={alternative.id} className="mt-[9mm] first:mt-0">
+              <SectionTitle color={color}>{alternative.name}</SectionTitle>
+              {alternative.purpose ? (
+                <p className="quote-doc__block mb-[2mm] text-[9.5pt] text-neutral-600">{alternative.purpose}</p>
+              ) : null}
+              {renderZones(items, alternative.id)}
+              <p className="mt-[3mm] text-right text-[11pt] font-bold" style={{ color }}>
+                Total {alternative.name} {formatUsd(optionTotal)}
+              </p>
+            </div>
+          );
+        })}
+        <p className="quote-doc__block mt-[3mm] text-[8.5pt] leading-snug text-neutral-600">
+          Cada opción es excluyente: el total corresponde a la opción elegida.
+        </p>
       </div>
     );
   }

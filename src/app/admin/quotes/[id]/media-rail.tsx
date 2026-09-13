@@ -22,7 +22,7 @@ export function QuoteMediaRail({
       </Link>
       <span className="text-border">|</span>
       <Link
-        href={`/admin/quotes/${quoteId}?paso=6`}
+        href={`/admin/quotes/${quoteId}?paso=5`}
         className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-secondary"
       >
         <FileImage className="h-4 w-4 text-[#1e3553]" />

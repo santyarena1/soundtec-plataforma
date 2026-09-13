@@ -3,7 +3,7 @@
 import { QuoteAiCapability, QuoteAssetKind, QuoteNodeSource } from "@prisma/client";
 import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
-import { loadQuoteForUser } from "@/lib/quote-access";
+import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
 import { getCurrentPermissions } from "@/lib/auth-helpers";
 import { searchProductImages } from "@/services/serper";
 import { getSetting } from "@/lib/settings";
@@ -25,12 +25,17 @@ async function storeImage(pathname: string, bytes: ArrayBuffer, contentType: str
   return blob.url;
 }
 
+/**
+ * Subida de un archivo de cotización. Exige permiso: es una server action
+ * expuesta al cliente y antes cualquiera podía escribir en el blob público.
+ */
 export async function storeQuoteBlob(pathname: string, bytes: ArrayBuffer, contentType: string) {
+  await requireQuotePermission("quotes.edit");
   return storeImage(pathname, bytes, contentType);
 }
 
 export async function searchQuoteImages(query: string) {
-  await getCurrentPermissions();
+  await requireQuotePermission("quotes.edit");
   return searchProductImages(query, 8);
 }
 

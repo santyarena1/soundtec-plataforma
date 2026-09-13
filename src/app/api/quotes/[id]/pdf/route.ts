@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentPermissions } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { generateAndStoreQuotePdf, loadStoredQuotePdf } from "@/lib/quote-pdf-store";
+import { canViewQuote } from "@/lib/quote-access";
 import { parseQuoteAttachments } from "@/lib/request-quote-link";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   });
   if (!quote) return NextResponse.json({ error: "No encontrada" }, { status: 404 });
 
-  const isStaff = user.role !== "CLIENT" && (permissions.fullAccess || permissions.scopes.some((s) => s.startsWith("quotes.")));
+  // Del staff, solo quien puede ver ESTA cotización: antes alcanzaba con
+  // tener cualquier permiso de cotizaciones para bajar la de otro vendedor.
+  const isStaff =
+    user.role !== "CLIENT" &&
+    canViewQuote({ ownerId: quote.ownerId, userId: user.id, permissions });
   if (!isStaff) {
     if (!quote.sourceRequestId) return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
     const request = await prisma.customerRequest.findFirst({

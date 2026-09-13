@@ -12,6 +12,7 @@ import {
   deleteQuoteItem,
   toggleQuoteItemLock,
   toggleQuoteItemOptional,
+  toggleQuoteItemExcluded,
   updateQuoteItem,
 } from "@/server/actions/quotes";
 import {
@@ -39,6 +40,7 @@ export type QuoteBomRow = {
   ivaRate: number;
   deliveryKey: string;
   optional: boolean;
+  excluded: boolean;
   locked: boolean;
   photoUrl: string | null;
   productId: string | null;
@@ -266,9 +268,32 @@ function ZoneTable({
                             {item.locked ? "Desfijar IA" : "Fijar IA"}
                           </Button>
                         </form>
+                        <form action={toggleQuoteItemExcluded}>
+                          <input type="hidden" name="itemId" value={item.id} />
+                          <Button
+                            type="submit"
+                            size="sm"
+                            variant="ghost"
+                            className="w-full"
+                            title="Queda guardado en la cotización pero no sale en el documento ni suma al total"
+                          >
+                            {item.excluded ? "Volver a incluir" : "Dejar afuera"}
+                          </Button>
+                        </form>
                         <form action={deleteQuoteItem}>
                           <input type="hidden" name="itemId" value={item.id} />
-                          <Button type="submit" size="sm" variant="ghost" className="w-full">
+                          <Button
+                            type="submit"
+                            size="sm"
+                            variant="ghost"
+                            className="w-full"
+                            onClick={(event) => {
+                              // Se lleva el precio negociado y la entrega cargada.
+                              if (!window.confirm("¿Quitar este ítem? Se pierde el precio y la entrega cargados.")) {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
                             Quitar
                           </Button>
                         </form>

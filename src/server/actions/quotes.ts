@@ -660,6 +660,23 @@ export async function toggleQuoteItemOptional(formData: FormData): Promise<void>
   revalidatePath(`/admin/quotes/${item.quoteId}`);
 }
 
+/**
+ * Deja el ítem en la cotización pero fuera del documento y del total.
+ * Sirve para guardar algo que se evaluó y se descartó, sin perder el precio
+ * cargado por si el cliente vuelve a preguntarlo. Los renderers ya lo
+ * respetaban; lo que faltaba era la forma de activarlo.
+ */
+export async function toggleQuoteItemExcluded(formData: FormData): Promise<void> {
+  await requireQuotePermission("quotes.edit");
+  const id = String(formData.get("itemId") || "");
+  const item = await prisma.quoteItem.findUnique({ where: { id } });
+  if (!item) return;
+  const loaded = await loadQuoteForUser(item.quoteId);
+  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  await prisma.quoteItem.update({ where: { id }, data: { excluded: !item.excluded } });
+  revalidatePath(`/admin/quotes/${item.quoteId}`);
+}
+
 export async function deleteQuoteItem(formData: FormData): Promise<void> {
   await requireQuotePermission("quotes.edit");
   const id = String(formData.get("itemId") || "");
