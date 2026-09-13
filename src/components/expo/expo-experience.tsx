@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { MessageSquareText, Search, Sparkles } from "lucide-react";
+import { Search } from "lucide-react";
 import { Modal } from "@/components/ui/dialog";
 import { ChatMessage } from "./chat-message";
 import { Composer } from "./composer";
@@ -34,7 +34,13 @@ function nextTurnId(): string {
   return `t${turnCounter}-${Date.now()}`;
 }
 
-export function ExpoExperience({ initialProduct }: { initialProduct: ChatProduct | null }) {
+export function ExpoExperience({
+  initialProduct,
+  logoUrl,
+}: {
+  initialProduct: ChatProduct | null;
+  logoUrl: string;
+}) {
   const [contactOpen, setContactOpen] = useState(true);
   const [contactPending, setContactPending] = useState(false);
   const [leadSaved, setLeadSaved] = useState(false);
@@ -181,14 +187,13 @@ export function ExpoExperience({ initialProduct }: { initialProduct: ChatProduct
   return (
     <div className="flex h-dvh flex-col bg-background">
       <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold leading-none text-foreground">Soundtec</p>
-            <p className="text-[11px] text-muted-foreground">Asistente técnico de productos</p>
-          </div>
+        <div className="flex min-w-0 items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logoUrl} alt="Soundtec" className="h-7 w-auto shrink-0 object-contain sm:h-8" />
+          <span className="hidden h-5 w-px bg-border sm:block" />
+          <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
+            Asistente técnico de productos
+          </p>
         </div>
         <Link
           href="/catalogo"
@@ -207,10 +212,13 @@ export function ExpoExperience({ initialProduct }: { initialProduct: ChatProduct
         <div className="mx-auto w-full max-w-3xl space-y-4">
           {empty ? (
             <section className="ai-enter pt-6 text-center sm:pt-12">
-              <span className="ai-pop mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                <MessageSquareText className="h-6 w-6" aria-hidden="true" />
-              </span>
-              <h1 className="heading-2 mt-4">Preguntanos sobre nuestros productos</h1>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoUrl}
+                alt="Soundtec"
+                className="ai-pop mx-auto h-12 w-auto object-contain sm:h-16"
+              />
+              <h1 className="heading-2 mt-5">Preguntanos sobre nuestros productos</h1>
               <p className="muted-text mx-auto mt-2 max-w-md">
                 Podés consultar modelos, compatibilidad, aplicaciones o especificaciones. Respondo con la
                 información técnica que tenemos documentada.

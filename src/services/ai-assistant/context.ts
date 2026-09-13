@@ -46,9 +46,14 @@ export function prioritizeSpecs(specs: SpecRow[], analysis: QuestionAnalysis): S
     return { spec, score, index };
   });
 
+  const cap =
+    analysis.intent === "COMPARISON"
+      ? LIMITS.maxSpecsPerProductComparison
+      : LIMITS.maxSpecsPerProduct;
+
   return scored
     .sort((a, b) => (b.score !== a.score ? b.score - a.score : a.index - b.index))
-    .slice(0, LIMITS.maxSpecsPerProduct)
+    .slice(0, cap)
     .map((entry) => entry.spec);
 }
 
@@ -56,7 +61,8 @@ export function prioritizeSpecs(specs: SpecRow[], analysis: QuestionAnalysis): S
 export function buildProductSheet(
   candidate: CandidateProduct,
   analysis: QuestionAnalysis,
-  scope: AssistantScope
+  scope: AssistantScope,
+  maxChars: number = LIMITS.maxProductSheetChars
 ): string {
   const lines: string[] = [];
   lines.push(`[${candidate.label}] ${candidate.name}`);
@@ -116,13 +122,15 @@ export function buildProductSheet(
 
   // Si la ficha quedó pobre, se completa con la descripción larga o el HTML
   // enriquecido, que es donde suele estar la info de aplicación.
+  // Si sobra presupuesto, se completa con la descripción larga o el HTML
+  // enriquecido, que es donde suele estar la info de aplicación.
   const soFar = lines.join("\n").length;
-  if (soFar < 420) {
+  if (soFar < maxChars - 260) {
     const extra = candidate.longDescription || candidate.htmlText;
-    if (extra) lines.push(`Detalle: ${truncate(extra, LIMITS.maxProductSheetChars - soFar - 40)}`);
+    if (extra) lines.push(`Detalle: ${truncate(extra, maxChars - soFar - 40)}`);
   }
 
-  return truncate(lines.join("\n"), LIMITS.maxProductSheetChars).replace(/… ?$/, "…");
+  return truncate(lines.join("\n"), maxChars).replace(/… ?$/, "…");
 }
 
 export interface BuiltContext {
@@ -140,9 +148,12 @@ export function buildContext(
   const used: CandidateProduct[] = [];
   const blocks: string[] = [];
   let chars = 0;
+  // Pocos productos en juego = se puede gastar más ficha en cada uno.
+  const sheetCap =
+    candidates.length <= 2 ? LIMITS.maxProductSheetChars * 2 : LIMITS.maxProductSheetChars;
 
   for (const candidate of candidates) {
-    const sheet = buildProductSheet(candidate, analysis, scope);
+    const sheet = buildProductSheet(candidate, analysis, scope, sheetCap);
     if (chars + sheet.length > LIMITS.maxContextChars && used.length > 0) break;
     blocks.push(sheet);
     used.push(candidate);

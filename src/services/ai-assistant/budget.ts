@@ -16,6 +16,8 @@ export const LIMITS = {
   maxProductSheetChars: 900,
   /** Specs por producto en el contexto. */
   maxSpecsPerProduct: 12,
+  /** En una comparación conviene ver más filas de cada producto. */
+  maxSpecsPerProductComparison: 18,
   /** Relaciones (accesorios/compatibles) por producto. */
   maxRelationsPerProduct: 8,
   /** Features por producto. */
