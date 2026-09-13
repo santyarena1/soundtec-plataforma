@@ -46,6 +46,28 @@ async function getModel(): Promise<string> {
   return fromDb || process.env.OPENAI_MODEL || "gpt-4o-mini";
 }
 
+/**
+ * Mismo cliente y misma configuración para el resto de la app (asistente
+ * técnico de productos, etc.). No crear un segundo mecanismo de credenciales.
+ */
+export async function getOpenAiClient(): Promise<OpenAI | null> {
+  return getClient();
+}
+
+export async function getOpenAiModel(): Promise<string> {
+  return getModel();
+}
+
+/**
+ * Modelo para tareas conversacionales. Permite usar un modelo distinto en el
+ * asistente sin tocar el de enriquecimiento: si `ai.assistant.model` no está
+ * configurado, cae al modelo general.
+ */
+export async function getOpenAiChatModel(): Promise<string> {
+  const specific = await getSetting("ai.assistant.model", "");
+  return specific || getModel();
+}
+
 export interface MappingSuggestion {
   source: string;
   target: CanonicalField | null;

@@ -7,6 +7,7 @@ import { CatalogLayout } from "@/app/portal/products/catalog-sidebar";
 import { CatalogGrid } from "@/app/portal/products/catalog-grid";
 import { CatalogTable } from "@/app/portal/products/catalog-table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { AssistantEntry } from "@/components/expo/assistant-entry";
 import { ArrowRight, Lock, Package } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -98,6 +99,8 @@ export default async function PublicCatalogPage({
           </div>
         )}
       </div>
+
+      <AssistantEntry className="lg:max-w-2xl" />
 
       <CatalogLayout
         state={urlState}

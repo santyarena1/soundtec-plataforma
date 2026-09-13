@@ -1587,3 +1587,118 @@ model SyncStagedProduct {
   @@index([syncRunId])
   @@index([matchValue])
 }
+
+// ---------------------------------------------
+// IA: asistente técnico de productos (Expo / catálogo / admin)
+// ---------------------------------------------
+
+enum AiChatSurface {
+  PUBLIC
+  ADMIN
+  EXPO
+}
+
+enum AiAnswerStatus {
+  ANSWERED
+  PARTIAL
+  INSUFFICIENT_INFORMATION
+  OUT_OF_SCOPE
+  ERROR
+}
+
+enum AiAnswerConfidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model AiChatSession {
+  id                  String        @id @default(cuid())
+  surface             AiChatSurface
+  /// Sin FK a User a propósito: la sesión sobrevive al borrado del usuario.
+  userId              String?
+  /// Identificador anónimo generado server-side (nunca fingerprinting).
+  anonymousId         String?
+  /// Producto del QR con el que se abrió la experiencia.
+  initialProductId    String?
+  questionCount       Int           @default(0)
+  leadCaptured        Boolean       @default(false)
+  reminderShownAt     DateTime?
+  reminderDismissedAt DateTime?
+  /// Memoria determinística de la conversación (sin gastar tokens).
+  activeProductIds    String[]      @default([])
+  /// sha256(ip + AUTH_SECRET). Nunca se guarda la IP en claro.
+  ipHash              String?
+  startedAt           DateTime      @default(now())
+  lastActivityAt      DateTime      @default(now())
+
+  messages AiChatMessage[]
+  lead     ExpoLead?
+
+  @@index([surface, startedAt])
+  @@index([anonymousId])
+}
+
+model AiChatMessage {
+  id             String              @id @default(cuid())
+  sessionId      String
+  session        AiChatSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// "user" | "assistant"
+  role           String
+  content        String              @db.Text
+  /// [{type, productId, productName, title, detail, url}]
+  sourcesJson    Json?
+  productIds     String[]            @default([])
+  answerStatus   AiAnswerStatus?
+  confidence     AiAnswerConfidence?
+  model          String?
+  inputTokens    Int?
+  outputTokens   Int?
+  latencyMs      Int?
+  cacheHit       Boolean             @default(false)
+  usedLlm        Boolean             @default(false)
+  /// "EXACT" | "SEARCH" | "CONTEXT" | "NONE"
+  retrievalMode  String?
+  candidateCount Int?
+  createdAt      DateTime            @default(now())
+
+  @@index([sessionId, createdAt])
+  @@index([answerStatus])
+}
+
+model ExpoLead {
+  id        String        @id @default(cuid())
+  sessionId String        @unique
+  session   AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  name        String?
+  email       String?
+  phone       String?
+  company     String?
+  projectInfo String? @db.Text
+
+  initialProductId    String?
+  productsOfInterest  String[] @default([])
+  conversationSummary String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
+model AiAnswerCache {
+  /// sha256(scope | pregunta normalizada | ids candidatos | knowledgeVersion)
+  key              String   @id
+  /// "PUBLIC" | "ADMIN": nunca se sirve una respuesta admin a un visitante.
+  scope            String
+  question         String
+  payload          Json
+  knowledgeVersion String
+  hits             Int      @default(0)
+  createdAt        DateTime @default(now())
+  lastUsedAt       DateTime @default(now())
+  expiresAt        DateTime
+
+  @@index([expiresAt])
+}
