@@ -145,6 +145,12 @@ export default async function QuoteEditorPage({
   }));
 
   const issued = quote.status === "ISSUED";
+  /**
+   * Una cotización emitida se sigue pudiendo editar: antes la pantalla quedaba
+   * de solo lectura y no se podía corregir ni un precio. Lo único que cambia es
+   * que hay que volver a emitirla para que el cliente reciba el PDF nuevo.
+   */
+  const canEdit = permissions.fullAccess || permissionsHave(permissions, "quotes.edit");
   // Mismo criterio que el documento: los opcionales se cotizan aparte y los
   // excluidos no van. Antes la planilla mostraba un neto que no coincidía
   // con el del PDF en cuanto había un opcional cargado.
@@ -222,7 +228,7 @@ export default async function QuoteEditorPage({
       key={quote.id}
       scope="quote"
       quoteId={quote.id}
-      issued={issued}
+      issued={!canEdit}
       identity={identity}
       header={{
         dateLabel: `Buenos Aires, ${(quote.issuedAt ?? new Date()).toLocaleDateString("es-AR", {
@@ -309,7 +315,7 @@ export default async function QuoteEditorPage({
 
   return (
     <div className="space-y-4">
-      {!issued ? <QuoteEditHistoryPanel quoteId={quote.id} /> : null}
+      {canEdit ? <QuoteEditHistoryPanel quoteId={quote.id} /> : null}
       <PageHeader
         title={quote.number}
         description={
@@ -336,15 +342,23 @@ export default async function QuoteEditorPage({
             <ButtonLink href={`/admin/quotes/${quote.id}/print`} size="sm" variant="outline">
               Vista PDF
             </ButtonLink>
-            {!issued ? <QuoteFocusToggle /> : null}
+            {canEdit ? <QuoteFocusToggle /> : null}
           </div>
         }
       />
       <QuoteWizardNav quoteId={quote.id} step={step} />
+      {issued ? (
+        <div className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-2.5 text-sm">
+          Esta cotización ya fue emitida. Podés seguir editándola, pero el PDF que tiene el cliente
+          es el de la emisión: volvé a emitirla para regenerarlo.
+        </div>
+      ) : null}
       <QuoteMediaRail quoteId={quote.id} planCount={plans.length} imageCount={extraImages.length} />
-      {!issued ? <FillMissingShortDescriptions quoteId={quote.id} needed={needsShortDescriptions} /> : null}
+      {canEdit ? <FillMissingShortDescriptions quoteId={quote.id} needed={needsShortDescriptions} /> : null}
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(420px,44%)]">
+      <div className={`grid items-start gap-6 ${
+          step === 4 ? "" : "xl:grid-cols-[minmax(0,1fr)_minmax(420px,44%)]"
+        }`}>
         <div className="min-w-0 space-y-4">
           {step === 1 ? (
             <form
@@ -362,9 +376,9 @@ export default async function QuoteEditorPage({
               <QuoteClassifierFields
                 classifiers={classifiers}
                 picks={Object.fromEntries(quote.classifierPicks.map((pick) => [pick.classifierId, pick.optionId]))}
-                issued={issued}
+                issued={!canEdit}
               />
-              {!issued ? (
+              {canEdit ? (
                 <Button type="submit" size="sm">
                   Guardar clasificación
                 </Button>
@@ -378,7 +392,7 @@ export default async function QuoteEditorPage({
                 summary={patterns.summary}
                 similar={patterns.similar}
                 suggestions={patterns.suggestions}
-                issued={issued}
+                issued={!canEdit}
               />
             </div>
           ) : null}
@@ -392,7 +406,7 @@ export default async function QuoteEditorPage({
               <input type="hidden" name="metaKind" value="header" />
               <div>
                 <Label htmlFor="clientId">Cliente</Label>
-                <Select id="clientId" name="clientId" defaultValue={quote.clientId || ""} disabled={issued}>
+                <Select id="clientId" name="clientId" defaultValue={quote.clientId || ""}>
                   <option value="">Sin cliente</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -403,15 +417,15 @@ export default async function QuoteEditorPage({
               </div>
               <div>
                 <Label htmlFor="contactName">Contacto</Label>
-                <Input id="contactName" name="contactName" defaultValue={quote.contactName || ""} disabled={issued} />
+                <Input id="contactName" name="contactName" defaultValue={quote.contactName || ""} />
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="reference">Referencia</Label>
-                <Input id="reference" name="reference" defaultValue={quote.reference || ""} disabled={issued} />
+                <Input id="reference" name="reference" defaultValue={quote.reference || ""} />
               </div>
               <div>
                 <Label htmlFor="layoutKey">Layout visual</Label>
-                <Select id="layoutKey" name="layoutKey" defaultValue={quote.layoutKey} disabled={issued}>
+                <Select id="layoutKey" name="layoutKey" defaultValue={quote.layoutKey}>
                   <option value="COMPACT">Compacto</option>
                   <option value="STANDARD">Estándar</option>
                   <option value="EDITORIAL">Editorial</option>
@@ -419,7 +433,7 @@ export default async function QuoteEditorPage({
               </div>
               <div>
                 <Label htmlFor="taxMode">Impuestos</Label>
-                <Select id="taxMode" name="taxMode" defaultValue={quote.taxMode} disabled={issued}>
+                <Select id="taxMode" name="taxMode" defaultValue={quote.taxMode}>
                   {TAX_MODES.map((mode) => (
                     <option key={mode.key} value={mode.key}>
                       {mode.label}
@@ -432,11 +446,11 @@ export default async function QuoteEditorPage({
               </div>
               <div className="flex flex-col justify-end gap-2 text-sm">
                 <label className="flex items-center gap-2">
-                  <input type="checkbox" name="showDeliveryColumn" defaultChecked={quote.showDeliveryColumn} disabled={issued} />
+                  <input type="checkbox" name="showDeliveryColumn" defaultChecked={quote.showDeliveryColumn} />
                   Columna entrega
                 </label>
               </div>
-              {!issued ? (
+              {canEdit ? (
                 <Button type="submit" size="sm">
                   Guardar y seguir
                 </Button>
@@ -459,15 +473,15 @@ export default async function QuoteEditorPage({
                   <input type="hidden" name="quoteId" value={quote.id} />
                   <input type="hidden" name="metaKind" value="brief" />
                   <Label htmlFor="brief">Brief del proyecto</Label>
-                  <Textarea id="brief" name="brief" rows={8} defaultValue={quote.brief || ""} disabled={issued} className="min-h-[160px]" />
-                  {!issued ? (
+                  <Textarea id="brief" name="brief" rows={8} defaultValue={quote.brief || ""} className="min-h-[160px]" />
+                  {canEdit ? (
                     <Button type="submit" size="sm" variant="outline">
                       Guardar brief
                     </Button>
                   ) : null}
                 </form>
-                <QuotePlanUpload quoteId={quote.id} plans={plans} disabled={issued} />
-                {!issued ? (
+                <QuotePlanUpload quoteId={quote.id} plans={plans} />
+                {canEdit ? (
                   <div data-tour="quote-generate">
                     <GenerateProposalButton quoteId={quote.id} auto={autogen} />
                   </div>
@@ -522,7 +536,7 @@ export default async function QuoteEditorPage({
                   actualiza en tiempo real a la derecha.
                 </p>
                 <div className="flex flex-wrap gap-2" data-tour="quote-add-module">
-                  <AddCustomModule quoteId={quote.id} issued={issued} />
+                  <AddCustomModule quoteId={quote.id} issued={!canEdit} />
                   <ButtonLink href="/admin/settings/quotes/plantilla" size="sm" variant="outline">
                     <Settings className="mr-1 h-3.5 w-3.5" />
                     Textos maestros
@@ -554,20 +568,20 @@ export default async function QuoteEditorPage({
                               </div>
                             </details>
                           ) : null}
-                          {custom ? <RemoveCustomModule sectionId={section.id} issued={issued} /> : null}
+                          {custom ? <RemoveCustomModule sectionId={section.id} issued={!canEdit} /> : null}
                           {isVariantBlockKey(section.type) ? (
                             <SectionVariantPicker
                               sectionId={section.id}
                               blockKey={section.type}
                               currentSlug={section.variantSlug}
                               variants={variantsByBlock[section.type] || []}
-                              issued={issued}
+                              issued={!canEdit}
                             />
                           ) : null}
                           {section.type === "brands" && section.included ? (
                             <QuoteBrandsEditor
                               quoteId={quote.id}
-                              issued={issued}
+                              issued={!canEdit}
                               globalMode={identity.brandsDisplayMode}
                               quoteMode={brandsMode}
                               quoteBrandsModeRaw={quote.brandsMode}
@@ -586,7 +600,7 @@ export default async function QuoteEditorPage({
                         ) : (
                           <form action={toggleQuoteModule}>
                             <input type="hidden" name="sectionId" value={section.id} />
-                            <Button type="submit" size="sm" variant={section.included ? "primary" : "outline"} disabled={issued}>
+                            <Button type="submit" size="sm" variant={section.included ? "primary" : "outline"}>
                               {section.included ? "Incluido" : "No va"}
                             </Button>
                           </form>
@@ -613,15 +627,15 @@ export default async function QuoteEditorPage({
                 quoteId={quote.id}
                 alternatives={quote.alternatives}
                 totals={alternativeTotals}
-                issued={issued}
+                issued={!canEdit}
               />
-              {!issued ? (
+              {canEdit ? (
                 <div data-tour="quote-generate-products">
                   <GenerateProposalButton quoteId={quote.id} auto={autogen} />
                 </div>
               ) : null}
-              {!issued ? (
-                <QuoteAiSuggestions quoteId={quote.id} suggestions={aiSuggestions} issued={issued} />
+              {canEdit ? (
+                <QuoteAiSuggestions quoteId={quote.id} suggestions={aiSuggestions} issued={!canEdit} />
               ) : null}
               <QuoteBomTable
                 quoteId={quote.id}
@@ -633,7 +647,7 @@ export default async function QuoteEditorPage({
                 }))}
                 deliveryOptions={deliveryOptions}
                 showDelivery={quote.showDeliveryColumn}
-                issued={issued}
+                readOnly={!canEdit}
                 total={total}
               />
               {accessoryHints.length > 0 && !issued ? (
@@ -670,7 +684,7 @@ export default async function QuoteEditorPage({
                   <p className="text-sm text-muted-foreground">
                     Foto de producto: catálogo, Serper o archivo propio. No reemplaza el collage institucional.
                   </p>
-                  {!issued ? (
+                  {canEdit ? (
                     <QuoteProductPhotos quoteId={quote.id} rows={productPhotoRows} />
                   ) : (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -717,7 +731,7 @@ export default async function QuoteEditorPage({
                         ))}
                     </div>
                   ) : null}
-                  {!issued ? <QuoteImagesPanel quoteId={quote.id} /> : null}
+                  {canEdit ? <QuoteImagesPanel quoteId={quote.id} /> : null}
                 </CardContent>
               </Card>
             </div>
@@ -732,7 +746,7 @@ export default async function QuoteEditorPage({
                     <input type="hidden" name="quoteId" value={quote.id} />
                     <div>
                       <Label htmlFor="termsSource">Origen</Label>
-                      <Select id="termsSource" name="termsSource" defaultValue={quote.termsSource} disabled={issued}>
+                      <Select id="termsSource" name="termsSource" defaultValue={quote.termsSource}>
                         <option value="SYSTEM">Del sistema</option>
                         <option value="CLIENT_PREVIOUS">Las que este cliente usó antes</option>
                         <option value="CUSTOM">Nuevas para esta COT</option>
@@ -740,17 +754,17 @@ export default async function QuoteEditorPage({
                     </div>
                     <div>
                       <Label htmlFor="paymentTerms">Forma de pago</Label>
-                      <Textarea id="paymentTerms" name="paymentTerms" rows={2} defaultValue={quote.terms?.paymentTerms || ""} disabled={issued} />
+                      <Textarea id="paymentTerms" name="paymentTerms" rows={2} defaultValue={quote.terms?.paymentTerms || ""} />
                     </div>
                     <div>
                       <Label htmlFor="paymentReference">Referencia de pago</Label>
-                      <Textarea id="paymentReference" name="paymentReference" rows={3} defaultValue={quote.terms?.paymentReference || ""} disabled={issued} />
+                      <Textarea id="paymentReference" name="paymentReference" rows={3} defaultValue={quote.terms?.paymentReference || ""} />
                     </div>
                     <div>
                       <Label htmlFor="validityDays">Vigencia (días)</Label>
-                      <Input id="validityDays" name="validityDays" defaultValue={quote.terms?.validityDays ?? 5} disabled={issued} />
+                      <Input id="validityDays" name="validityDays" defaultValue={quote.terms?.validityDays ?? 5} />
                     </div>
-                    {!issued ? (
+                    {canEdit ? (
                       <Button type="submit" size="sm" variant="outline">
                         Guardar condiciones
                       </Button>
@@ -800,13 +814,13 @@ export default async function QuoteEditorPage({
                 <ButtonLink href={`/api/admin/quotes/${quote.id}/excel`} size="sm" variant="outline">
                   Excel
                 </ButtonLink>
-                <QuoteIssueBar quoteId={quote.id} canIssue={canIssue} issued={issued} />
+                <QuoteIssueBar quoteId={quote.id} canIssue={canIssue} issued={!canEdit} />
               </div>
             </div>
           ) : null}
         </div>
 
-        <aside className="xl:sticky xl:top-4">
+        <aside className={step === 4 ? "" : "xl:sticky xl:top-4"}>
           <div className="overflow-auto rounded-xl border border-border bg-neutral-200/60 shadow-sm">
             <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

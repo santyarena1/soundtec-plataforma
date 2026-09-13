@@ -55,7 +55,7 @@ export async function applyQuoteClassifierPicks(quoteId: string, picks: Record<s
 export async function saveQuoteClassifierPicks(formData: FormData): Promise<void> {
   const quoteId = String(formData.get("quoteId") || "");
   const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  if (!loaded.quote) return;
   const { picks } = await readClassifierPicksFromForm(formData);
   await applyQuoteClassifierPicks(quoteId, picks);
   revalidateClassifiers(quoteId);

@@ -136,7 +136,7 @@ export async function addServiceToQuote(formData: FormData): Promise<void> {
   const unitPrice = Number(formData.get("unitPriceUsd") || "0") || 0;
   if (!description) return;
   const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  if (!loaded.quote) return;
   // El servicio usaba 21 fijo e ignoraba el IVA configurado.
   const serviceIva = Number(await getSetting(QUOTE_SETTING_KEYS.defaultIva, "21")) || 21;
   const serviceUnit = (await getSetting(QUOTE_SETTING_KEYS.defaultUnit, "u")).trim() || "u";

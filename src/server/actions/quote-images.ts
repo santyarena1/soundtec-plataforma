@@ -48,7 +48,6 @@ export async function attachSerperImage(input: {
 }): Promise<{ ok: boolean; error?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
   let url = input.url;
   try {
     const res = await fetch(input.url);
@@ -109,7 +108,6 @@ export async function generateQuoteConceptImage(input: {
 }): Promise<{ ok: boolean; error?: string; message?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
 
   const provider = await getSetting(QUOTE_SETTING_KEYS.imageGenProvider, "openai");
   if (provider === "higgsfield") {
@@ -178,7 +176,6 @@ export async function attachQuotePlan(formData: FormData): Promise<{ ok: boolean
   const quoteId = String(formData.get("quoteId") || "");
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
   const file = formData.get("file");
   const urlField = String(formData.get("url") || "").trim();
   let url = urlField;
@@ -218,7 +215,7 @@ export async function deleteQuoteAsset(formData: FormData): Promise<void> {
   const asset = await prisma.quoteAsset.findUnique({ where: { id } });
   if (!asset || asset.locked) return;
   const loaded = await loadQuoteForUser(asset.quoteId);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  if (!loaded.quote) return;
   await prisma.quoteAsset.delete({ where: { id } });
   revalidatePath(`/admin/quotes/${asset.quoteId}`);
 }
@@ -226,7 +223,6 @@ export async function deleteQuoteAsset(formData: FormData): Promise<void> {
 export async function fillQuoteProductImagesFromCatalog(quoteId: string): Promise<{ ok: boolean; error?: string }> {
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
   await fillMissingQuoteProductImages(quoteId);
   revalidatePath(`/admin/quotes/${quoteId}`);
   return { ok: true };
@@ -238,7 +234,6 @@ export async function restoreQuoteProductCatalogImage(input: {
 }): Promise<{ ok: boolean; error?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
   const img = await catalogPrimaryImage(input.productId);
   if (!img) return { ok: false, error: "Este producto no tiene foto en el catálogo." };
   const item = loaded.quote.items.find((i) => i.productId === input.productId);
@@ -258,7 +253,6 @@ export async function uploadQuoteProductImage(formData: FormData): Promise<{ ok:
   const productId = String(formData.get("productId") || "");
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
   if (!productId) return { ok: false, error: "Falta el producto." };
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Elegí un archivo." };
@@ -287,7 +281,6 @@ export async function uploadQuoteContextImage(formData: FormData): Promise<{ ok:
   const quoteId = String(formData.get("quoteId") || "");
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Elegí un archivo." };
   const buf = await file.arrayBuffer();

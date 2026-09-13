@@ -15,7 +15,6 @@ export async function createQuoteItemGroup(input: {
 }): Promise<{ ok: boolean; error?: string; groupId?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
 
   const count = await prisma.quoteItemGroup.count({ where: { quoteId: input.quoteId } });
   const title = (input.title || "").trim() || `Ambiente ${count + 1}`;
@@ -40,7 +39,6 @@ export async function updateQuoteItemGroup(input: {
   if (!group) return { ok: false, error: "Ese ambiente ya no existe." };
   const loaded = await loadQuoteForUser(group.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
 
   const data: { title?: string; body?: string } = {};
   if (input.title != null) {
@@ -61,7 +59,6 @@ export async function deleteQuoteItemGroup(input: {
   if (!group) return { ok: false, error: "Ese ambiente ya no existe." };
   const loaded = await loadQuoteForUser(group.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
 
   await prisma.quoteItem.updateMany({ where: { groupId: group.id }, data: { groupId: null } });
   await prisma.quoteItemGroup.delete({ where: { id: group.id } });
@@ -77,7 +74,6 @@ export async function moveQuoteItemToGroup(input: {
   if (!item) return { ok: false, error: "El ítem ya no existe." };
   const loaded = await loadQuoteForUser(item.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
 
   if (input.groupId) {
     const group = await prisma.quoteItemGroup.findFirst({

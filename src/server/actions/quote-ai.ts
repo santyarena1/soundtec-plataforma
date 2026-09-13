@@ -40,7 +40,6 @@ export async function previewReviseQuoteNode(input: {
 }): Promise<{ ok: boolean; error?: string; body?: string; previousBody?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
   const instruction = input.instruction.trim();
   if (instruction.length < 3) return { ok: false, error: "Escribí una instrucción." };
   const oa = await getQuoteOpenAI();
@@ -61,7 +60,6 @@ export async function reviseQuoteNode(input: {
 }): Promise<{ ok: boolean; error?: string; message?: string; body?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
   const instruction = input.instruction.trim();
   if (instruction.length < 3) return { ok: false, error: "Escribí una instrucción." };
 
@@ -175,7 +173,6 @@ export async function regenerateQuoteProductShortDescription(input: {
 }): Promise<{ ok: boolean; text?: string; error?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
   const onQuote = loaded.quote.items.some((item) => item.productId === input.productId);
   if (!onQuote) return { ok: false, error: "Ese producto no está en la planilla." };
   try {

@@ -25,7 +25,7 @@ function slug(value: string, fallback: string): string {
 
 async function editableQuote(quoteId: string) {
   const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return null;
+  if (!loaded.quote) return null;
   return loaded.quote;
 }
 

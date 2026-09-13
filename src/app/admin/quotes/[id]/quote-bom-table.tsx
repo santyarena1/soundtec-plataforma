@@ -65,7 +65,7 @@ function ZoneTable({
   groups,
   deliveryOptions,
   showDelivery,
-  issued,
+  readOnly,
   totalLabel,
   total,
 }: {
@@ -74,7 +74,7 @@ function ZoneTable({
   groups: QuoteBomGroup[];
   deliveryOptions: string[];
   showDelivery: boolean;
-  issued: boolean;
+  readOnly: boolean;
   totalLabel: string;
   total: number;
 }) {
@@ -117,7 +117,7 @@ function ZoneTable({
                         productId={item.productId}
                         caption={item.name}
                         photoUrl={item.photoUrl}
-                        issued={issued}
+                        issued={readOnly}
                       />
                     ) : (
                       <div className="flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-md border border-border bg-white">
@@ -137,7 +137,7 @@ function ZoneTable({
                       form={formId}
                       name="quantity"
                       defaultValue={item.quantity}
-                      disabled={issued}
+                      disabled={readOnly}
                       className="h-9 w-[4.25rem] text-right tabular-nums"
                       onBlur={(e) => saveRow(e.currentTarget.form)}
                     />
@@ -147,7 +147,7 @@ function ZoneTable({
                       form={formId}
                       name="unit"
                       defaultValue={item.unit}
-                      disabled={issued}
+                      disabled={readOnly}
                       className="h-9 w-[3.25rem]"
                       onBlur={(e) => saveRow(e.currentTarget.form)}
                     />
@@ -158,7 +158,7 @@ function ZoneTable({
                       name="description"
                       defaultValue={item.description || item.name}
                       rows={2}
-                      disabled={issued}
+                      disabled={readOnly}
                       className="mb-1 min-h-[40px] font-bold leading-snug"
                       onChange={(e) => {
                         const form = e.currentTarget.form;
@@ -173,7 +173,7 @@ function ZoneTable({
                     ) : (
                       <p className="mb-1 text-[11px] text-muted-foreground">Sin descripción corta.</p>
                     )}
-                    {item.productId && !issued ? (
+                    {item.productId && !readOnly ? (
                       <RegenerateShortDescription quoteId={quoteId} productId={item.productId} />
                     ) : null}
                   </td>
@@ -182,7 +182,7 @@ function ZoneTable({
                       form={formId}
                       name="unitPriceUsd"
                       defaultValue={item.unitPriceUsd}
-                      disabled={issued}
+                      disabled={readOnly}
                       className="h-9 w-[7rem] text-right tabular-nums"
                       onBlur={(e) => saveRow(e.currentTarget.form)}
                     />
@@ -193,7 +193,7 @@ function ZoneTable({
                       form={formId}
                       name="ivaRate"
                       defaultValue={item.ivaRate}
-                      disabled={issued}
+                      disabled={readOnly}
                       className="h-9 w-14 text-right tabular-nums"
                       onBlur={(e) => saveRow(e.currentTarget.form)}
                     />
@@ -204,7 +204,7 @@ function ZoneTable({
                         form={formId}
                         name="deliveryKey"
                         defaultValue={item.deliveryKey}
-                        disabled={issued}
+                        disabled={readOnly}
                         className="h-9 min-w-[8rem]"
                         onChange={(e) => {
                           const form = e.currentTarget.form;
@@ -224,7 +224,7 @@ function ZoneTable({
                     </td>
                   ) : null}
                   <td className="px-2 py-2">
-                    {!issued ? (
+                    {!readOnly ? (
                       <div className="flex flex-col items-stretch gap-1">
                         {item.optional ? <Badge tone="accent">Opcional</Badge> : null}
                         {groups.length > 0 ? (
@@ -328,7 +328,7 @@ export function QuoteBomTable({
   groups,
   deliveryOptions,
   showDelivery,
-  issued,
+  readOnly,
   total,
 }: {
   quoteId: string;
@@ -336,7 +336,7 @@ export function QuoteBomTable({
   groups: QuoteBomGroup[];
   deliveryOptions: string[];
   showDelivery: boolean;
-  issued: boolean;
+  readOnly: boolean;
   total: number;
 }) {
   const router = useRouter();
@@ -407,7 +407,7 @@ export function QuoteBomTable({
                 className="h-9 pl-8"
               />
             </div>
-            {!issued ? (
+            {!readOnly ? (
               <Button
                 type="button"
                 size="sm"
@@ -466,7 +466,7 @@ export function QuoteBomTable({
               <div className="space-y-3 p-3">
             {multi ? (
               <div className="space-y-2">
-                {zone.id && !issued ? (
+                {zone.id && !readOnly ? (
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <Input
                       defaultValue={zone.title}
@@ -504,10 +504,10 @@ export function QuoteBomTable({
                   <Textarea
                     defaultValue={zone.body}
                     rows={3}
-                    disabled={issued}
+                    disabled={readOnly}
                     placeholder="Explicación de este ambiente: qué se propone, por qué estos equipos…"
                     onBlur={(e) => {
-                      if (issued || e.target.value === zone.body) return;
+                      if (readOnly || e.target.value === zone.body) return;
                       start(async () => {
                         const result = await updateQuoteItemGroup({
                           groupId: zone.id as string,
@@ -525,8 +525,8 @@ export function QuoteBomTable({
               </div>
             ) : null}
 
-            {!issued ? <QuoteProductPicker quoteId={quoteId} groupId={zone.id} /> : null}
-            {!issued ? (
+            {!readOnly ? <QuoteProductPicker quoteId={quoteId} groupId={zone.id} /> : null}
+            {!readOnly ? (
               <form action={addServiceToQuote} className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-secondary/10 p-3">
                 <input type="hidden" name="quoteId" value={quoteId} />
                 {zone.id ? <input type="hidden" name="groupId" value={zone.id} /> : null}
@@ -545,7 +545,7 @@ export function QuoteBomTable({
               groups={groups}
               deliveryOptions={deliveryOptions}
               showDelivery={showDelivery}
-              issued={issued}
+              readOnly={readOnly}
               totalLabel={multi ? `Subtotal ${zone.title}` : "Total neto USD"}
               total={multi ? subtotal : total}
             />

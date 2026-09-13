@@ -92,7 +92,6 @@ export async function setQuoteBrandsMode(
 ): Promise<{ ok: boolean; error?: string }> {
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
 
   await prisma.quote.update({
     where: { id: quoteId },
@@ -181,7 +180,7 @@ export async function toggleQuoteBrandVisibility(
   const row = await prisma.quoteBrandSelection.findUnique({ where: { id: selectionId } });
   if (!row) return { ok: false, error: "Logo no encontrado." };
   const loaded = await loadQuoteForUser(row.quoteId);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return { ok: false, error: "No editable." };
+  if (!loaded.quote) return { ok: false, error: "No editable." };
 
   await prisma.quoteBrandSelection.update({ where: { id: selectionId }, data: { visible } });
   revalidatePath(`/admin/quotes/${row.quoteId}`);
@@ -192,7 +191,7 @@ export async function removeQuoteBrandSelection(selectionId: string): Promise<{ 
   const row = await prisma.quoteBrandSelection.findUnique({ where: { id: selectionId } });
   if (!row) return { ok: false, error: "Logo no encontrado." };
   const loaded = await loadQuoteForUser(row.quoteId);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return { ok: false, error: "No editable." };
+  if (!loaded.quote) return { ok: false, error: "No editable." };
 
   await prisma.quoteBrandSelection.delete({ where: { id: selectionId } });
   revalidatePath(`/admin/quotes/${row.quoteId}`);
@@ -208,7 +207,6 @@ export async function addQuoteBrandSelection(input: {
 }): Promise<{ ok: boolean; error?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
 
   const label = input.label.trim();
   let url = input.url.trim();
@@ -256,7 +254,6 @@ export async function addLibraryLogoToQuote(
 ): Promise<{ ok: boolean; error?: string }> {
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
 
   const lib = await prisma.quoteBrandLogo.findUnique({ where: { id: libraryLogoId } });
   if (!lib || !lib.isActive) return { ok: false, error: "Logo no encontrado." };

@@ -71,7 +71,6 @@ export async function createCustomQuoteModule(input: {
 }): Promise<{ ok: boolean; error?: string; sectionId?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
 
   const title = input.title.trim();
   if (!title) return { ok: false, error: "Poné un título para el módulo." };
@@ -135,7 +134,6 @@ export async function insertLibraryModule(input: {
 }): Promise<{ ok: boolean; error?: string }> {
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
 
   const draft = await prisma.quoteModuleLibrary.findUnique({
     where: { id: input.libraryId },
@@ -186,7 +184,6 @@ export async function updateQuoteSectionLayout(input: {
   if (!section) return { ok: false, error: "El módulo ya no existe." };
   const loaded = await loadQuoteForUser(section.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
   await prisma.quoteSection.update({
     where: { id: section.id },
     data: { layout: parseQuoteModuleLayout(input.layout) },
@@ -252,7 +249,6 @@ export async function removeCustomQuoteModule(input: {
   if (section.type !== CUSTOM_SECTION_TYPE) return { ok: false, error: "Sólo se pueden quitar módulos extra." };
   const loaded = await loadQuoteForUser(section.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
   await prisma.quoteAsset.deleteMany({ where: { sectionId: section.id } });
   await prisma.quoteSection.delete({ where: { id: section.id } });
   revalidateQuote(section.quoteId);

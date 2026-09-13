@@ -556,7 +556,6 @@ export async function addProductToQuote(formData: FormData): Promise<{ ok: boole
   const qty = Number(formData.get("quantity") || "1") || 1;
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote) return { ok: false, error: "Cotización no encontrada." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "Una COT emitida no se edita. Duplicá a una nueva versión." };
 
   const product = await prisma.product.findUnique({
     where: { id: productId },
@@ -660,7 +659,7 @@ export async function toggleQuoteItemOptional(formData: FormData): Promise<void>
   const item = await prisma.quoteItem.findUnique({ where: { id } });
   if (!item) return;
   const loaded = await loadQuoteForUser(item.quoteId);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  if (!loaded.quote) return;
   await prisma.quoteItem.update({ where: { id }, data: { optional: !item.optional } });
   revalidatePath(`/admin/quotes/${item.quoteId}`);
 }
@@ -677,7 +676,7 @@ export async function toggleQuoteItemExcluded(formData: FormData): Promise<void>
   const item = await prisma.quoteItem.findUnique({ where: { id } });
   if (!item) return;
   const loaded = await loadQuoteForUser(item.quoteId);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  if (!loaded.quote) return;
   await prisma.quoteItem.update({ where: { id }, data: { excluded: !item.excluded } });
   revalidatePath(`/admin/quotes/${item.quoteId}`);
 }
@@ -688,7 +687,7 @@ export async function deleteQuoteItem(formData: FormData): Promise<void> {
   const item = await prisma.quoteItem.findUnique({ where: { id } });
   if (!item) return;
   const loaded = await loadQuoteForUser(item.quoteId);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  if (!loaded.quote) return;
   await prisma.quoteItem.delete({ where: { id } });
   revalidatePath(`/admin/quotes/${item.quoteId}`);
 }
@@ -704,7 +703,6 @@ export async function saveQuoteSectionBody(input: {
   if (!section) return { ok: false, error: "El módulo ya no existe." };
   const loaded = await loadQuoteForUser(section.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso a esta cotización." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
   const title = (input.title || "").trim();
   await recordQuoteSnapshot({
     quoteId: section.quoteId,
@@ -737,7 +735,6 @@ export async function applySectionVariant(input: {
   if (!section) return { ok: false, error: "El módulo ya no existe." };
   const loaded = await loadQuoteForUser(section.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (loaded.quote.status === "ISSUED") return { ok: false, error: "COT emitida." };
 
   const def = moduleByKey(input.blockKey);
   const fallback = def?.body || section.body;
@@ -772,7 +769,6 @@ export async function saveQuoteItemBody(input: {
   if (!item) return { ok: false, error: "El ítem ya no existe." };
   const loaded = await loadQuoteForUser(item.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-  if (item.locked || loaded.quote.status === "ISSUED") return { ok: false, error: "No editable." };
   await recordQuoteSnapshot({
     quoteId: item.quoteId,
     actorId: loaded.user.id,
@@ -799,7 +795,7 @@ export async function saveQuoteMeta(formData: FormData): Promise<void> {
   await requireQuotePermission("quotes.edit");
   const id = String(formData.get("quoteId") || "");
   const loaded = await loadQuoteForUser(id);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  if (!loaded.quote) return;
   const layoutRaw = String(formData.get("layoutKey") || loaded.quote.layoutKey);
   const layoutKey =
     layoutRaw === "COMPACT" || layoutRaw === "EDITORIAL" || layoutRaw === "STANDARD"
@@ -833,7 +829,7 @@ export async function saveQuoteTerms(formData: FormData): Promise<void> {
   await requireQuotePermission("quotes.edit");
   const id = String(formData.get("quoteId") || "");
   const loaded = await loadQuoteForUser(id);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  if (!loaded.quote) return;
   const sourceRaw = String(formData.get("termsSource") || "SYSTEM");
   const termsSource = sourceRaw === "CLIENT_PREVIOUS" || sourceRaw === "CUSTOM" ? sourceRaw : "SYSTEM";
 
@@ -897,7 +893,7 @@ export async function toggleQuoteModule(formData: FormData): Promise<void> {
   const section = await prisma.quoteSection.findUnique({ where: { id } });
   if (!section) return;
   const loaded = await loadQuoteForUser(section.quoteId);
-  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
+  if (!loaded.quote) return;
   if (section.type === "products_table") return;
   await prisma.quoteSection.update({
     where: { id },
@@ -997,6 +993,9 @@ export async function duplicateQuote(formData: FormData): Promise<void> {
     include: {
       alternatives: true,
       items: true,
+      itemGroups: true,
+      classifierPicks: true,
+      brandSelections: true,
       sections: true,
       assets: true,
       context: true,
@@ -1021,6 +1020,13 @@ export async function duplicateQuote(formData: FormData): Promise<void> {
       advancedIntake: src.advancedIntake ?? undefined,
       status: "DRAFT",
       termsSource: src.termsSource,
+      // Antes se perdían en la copia: la nueva salía sin IVA configurado, en
+      // otra moneda y sin el modo de marcas elegido.
+      taxMode: src.taxMode,
+      currency: src.currency,
+      language: src.language,
+      brandsMode: src.brandsMode,
+      sourceRequestId: src.sourceRequestId,
     },
   });
   await logClientActivity({ clientId: created.clientId, title: `Se creó la cotización ${created.number}`, referenceType: "QUOTE", referenceId: created.id });
@@ -1038,10 +1044,25 @@ export async function duplicateQuote(formData: FormData): Promise<void> {
     });
     altMap.set(alt.id, n.id);
   }
+  // Los ambientes se copian antes que los ítems para poder reasignarlos.
+  const groupMap = new Map<string, string>();
+  for (const group of src.itemGroups) {
+    const created2 = await prisma.quoteItemGroup.create({
+      data: {
+        quoteId: created.id,
+        title: group.title,
+        body: group.body,
+        sortOrder: group.sortOrder,
+      },
+    });
+    groupMap.set(group.id, created2.id);
+  }
+
   for (const item of src.items) {
     await prisma.quoteItem.create({
       data: {
         quoteId: created.id,
+        groupId: item.groupId ? groupMap.get(item.groupId) ?? null : null,
         alternativeId: item.alternativeId ? altMap.get(item.alternativeId) ?? null : null,
         kind: item.kind,
         productId: item.productId,
@@ -1054,6 +1075,8 @@ export async function duplicateQuote(formData: FormData): Promise<void> {
         ivaRate: item.ivaRate,
         deliveryKey: item.deliveryKey,
         optional: item.optional,
+        excluded: item.excluded,
+        notes: item.notes,
         source: "MANUAL",
         sortOrder: item.sortOrder,
       },
