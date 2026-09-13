@@ -113,10 +113,12 @@ export function buildProductSheet(
     flags.push(`${candidate.documents.length} documento(s) disponibles (contenido no indexado todavía)`);
   }
   if (scope === "ADMIN" && candidate.admin) {
-    flags.push(`stock ${candidate.admin.stockStatus}${
+    flags.push(`Stock: ${candidate.admin.stockStatus}${
       candidate.admin.stockQuantity !== null ? ` (${candidate.admin.stockQuantity})` : ""
     }`);
-    if (candidate.admin.baseCostUsd !== null) flags.push(`costo base USD ${candidate.admin.baseCostUsd}`);
+    if (candidate.admin.baseCostUsd !== null) {
+      flags.push(`Costo base (dato interno autorizado): USD ${candidate.admin.baseCostUsd}`);
+    }
   }
   if (flags.length > 0) lines.push(`Datos: ${flags.join(" · ")}`);
 
