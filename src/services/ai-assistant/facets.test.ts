@@ -655,3 +655,22 @@ describe("los verbos de la pregunta no ensucian la búsqueda", () => {
     assert.equal(/se deduce/.test(reason), false);
   });
 });
+
+describe("montaje de embutir", () => {
+  it("«de embutir» sin decir dónde abarca techo y pared", () => {
+    const filter = detectFacets({ question: "¿qué parlantes de embutir tienen?" });
+    assert.deepEqual(filter.mountTypes, ["in-ceiling", "in-wall"]);
+  });
+
+  it("«embutir en techo» sigue siendo solo techo", () => {
+    const filter = detectFacets({ question: "parlantes de embutir en techo" });
+    assert.deepEqual(filter.mountTypes, ["in-ceiling"]);
+  });
+
+  it("no queda además como término de texto", () => {
+    const analysis = analyzeQuestion("¿Qué parlantes de embutir en techo tienen?");
+    const filter = detectFacets({ question: analysis.raw, tokens: analysis.tokens });
+    assert.deepEqual(filter.mountTypes, ["in-ceiling"]);
+    assert.deepEqual(filter.freeTerms, []);
+  });
+});

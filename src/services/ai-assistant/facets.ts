@@ -96,7 +96,8 @@ const ENVIRONMENT_PATTERNS: Array<{ environment: Environment; re: RegExp }> = [
 const MOUNT_PATTERNS: Array<{ mount: MountType; re: RegExp }> = [
   {
     mount: "in-ceiling",
-    re: /\bde?\s*techo\b|\bcielorraso\b|\bin[-\s]?ceiling\b|\bembutir\s+en\s+(el\s+)?techo\b|\bplafon\b/i,
+    // "Bajo techo" habla del ambiente, no del montaje: se excluye.
+    re: /(?<!\bbajo\s)\btechos?\b|\bcielorraso\b|\bin[-\s]?ceiling\b|\bplafon\b/i,
   },
   { mount: "in-wall", re: /\bembutir\s+en\s+(la\s+)?pared\b|\bin[-\s]?wall\b|\bdentro\s+de\s+la\s+pared\b/i },
   { mount: "on-wall", re: /\bsobre\s+(la\s+)?pared\b|\bon[-\s]?wall\b|\bde\s+pared\b/i },
@@ -140,6 +141,9 @@ const APPLICATION_PATTERNS: Array<{ key: Application; re: RegExp }> = [
   { key: "industrial", re: /\bindustrial(es)?\b|\bf[áa]bricas?\b|\bdep[óo]sitos?\b|\bplantas?\b/i },
 ];
 
+/** Pedir algo "de embutir" es pedir montaje enrasado, sin decir en qué superficie. */
+const FLUSH_RE = /\bembutir\b|\bembutid[oa]s?\b|\bempotrar\b|\bempotrad[oa]s?\b|\bflush\b/i;
+
 const NOISE_TERMS = new Set([
   "producto", "productos", "modelo", "modelos", "marca", "marcas", "opcion", "opciones",
   "alternativa", "alternativas", "tienen", "tiene", "hay", "sirve", "sirven", "para", "que",
@@ -182,6 +186,7 @@ function findAudioLine(raw: string): AudioLine | undefined {
  */
 function isFacetedTerm(token: string): boolean {
   return (
+    FLUSH_RE.test(token) ||
     TYPE_PATTERNS.some(({ re }) => re.test(token)) ||
     ENVIRONMENT_PATTERNS.some(({ re }) => re.test(token)) ||
     MOUNT_PATTERNS.some(({ re }) => re.test(token)) ||
@@ -207,6 +212,11 @@ export function detectFacets(input: DetectFacetsInput): CanonicalFilter {
   if (environment) filter.environment = environment.environment;
 
   filter.mountTypes = MOUNT_PATTERNS.filter(({ re }) => re.test(raw)).map(({ mount }) => mount).slice(0, 3);
+  // "De embutir" sin decir dónde es techo o pared, las dos cosas. Solo aplica
+  // cuando no se nombró un lugar: "embutir en techo" ya quedó resuelto arriba.
+  if (filter.mountTypes.length === 0 && FLUSH_RE.test(raw)) {
+    filter.mountTypes = ["in-ceiling", "in-wall"];
+  }
   filter.ecosystems = ECOSYSTEM_PATTERNS.filter(({ re }) => re.test(raw)).map(({ key }) => key).slice(0, 3);
   filter.applications = APPLICATION_PATTERNS.filter(({ re }) => re.test(raw)).map(({ key }) => key).slice(0, 3);
 
