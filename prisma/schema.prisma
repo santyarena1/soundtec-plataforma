@@ -1740,6 +1740,9 @@ model ProductAiProfile {
 
   /// sha256 de los campos fuente: si no cambió, no se vuelve a gastar tokens.
   sourceHash String
+  /// Versión del extractor que construyó este perfil. Al subirla en el código,
+  /// todo el catálogo queda pendiente y se reprocesa con el criterio nuevo.
+  profileVersion Int @default(1)
   model      String?
   builtAt    DateTime @default(now())
   updatedAt  DateTime @updatedAt

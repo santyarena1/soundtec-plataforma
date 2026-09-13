@@ -31,7 +31,7 @@ const SOURCE_SELECT = {
   brand: { select: { name: true } },
   category: { select: { name: true } },
   family: { select: { name: true } },
-  aiProfile: { select: { sourceHash: true, embedding: true } },
+  aiProfile: { select: { sourceHash: true, profileVersion: true, builtAt: true } },
 } satisfies Prisma.ProductSelect;
 
 export interface BuildStats {
@@ -110,16 +110,42 @@ export function resolveEnvironment(input: {
   return { environment: "UNKNOWN", environmentBasis: null, environmentEvidence: null };
 }
 
+/**
+ * Versión del extractor. Subirla marca todo el catálogo como pendiente:
+ * es la forma de propagar un cambio de criterio sin tocar la base a mano.
+ *   1 → primera versión.
+ *   2 → el ambiente se decide siempre que se pueda, con respaldo declarado o deducido.
+ */
+export const PROFILE_VERSION = 2;
+
+/** Productos que todavía no tienen un perfil de la versión vigente. */
+function pendingWhere(): Prisma.ProductWhereInput {
+  return {
+    isActive: true,
+    OR: [
+      { aiProfile: { is: null } },
+      { aiProfile: { is: { profileVersion: { lt: PROFILE_VERSION } } } },
+    ],
+  };
+}
+
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 60;
 
-/** Cuántos productos faltan procesar (sin perfil o con la ficha cambiada). */
-export async function countPending(): Promise<{ total: number; withProfile: number }> {
-  const [total, withProfile] = await Promise.all([
+/** Cuántos productos faltan procesar (sin perfil o con un perfil viejo). */
+export async function countPending(): Promise<{
+  total: number;
+  withProfile: number;
+  pending: number;
+}> {
+  const [total, withProfile, pending] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
-    prisma.productAiProfile.count({ where: { product: { isActive: true } } }),
+    prisma.productAiProfile.count({
+      where: { product: { isActive: true }, profileVersion: { gte: PROFILE_VERSION } },
+    }),
+    prisma.product.count({ where: pendingWhere() }),
   ]);
-  return { total, withProfile };
+  return { total, withProfile, pending };
 }
 
 export async function buildProfiles(options: BuildOptions = {}): Promise<BuildStats> {
@@ -139,16 +165,19 @@ export async function buildProfiles(options: BuildOptions = {}): Promise<BuildSt
     pending: 0,
   };
 
-  // Primero los que no tienen perfil; después, los más viejos.
+  // Sin force, solo lo pendiente: los procesados dejan de calificar solos.
+  // Con force entra todo, y se empieza por el perfil más viejo; como al
+  // reprocesar se actualiza builtAt, cada tanda avanza a los siguientes.
   const rows = (await prisma.product.findMany({
-    where: {
-      isActive: true,
-      ...(options.force ? {} : { aiProfile: { is: null } }),
-    },
+    where: options.force ? { isActive: true } : pendingWhere(),
     select: SOURCE_SELECT,
-    orderBy: [{ updatedAt: "desc" }],
+    orderBy: options.force
+      ? [{ aiProfile: { builtAt: "asc" } }, { updatedAt: "desc" }]
+      : [{ updatedAt: "desc" }],
     take: limit,
-  })) as unknown as Array<ProfileSourceRow & { aiProfile: { sourceHash: string } | null }>;
+  })) as unknown as Array<
+    ProfileSourceRow & { aiProfile: { sourceHash: string; profileVersion: number } | null }
+  >;
 
   const pendingRows: Array<{
     row: ProfileSourceRow;
@@ -162,7 +191,11 @@ export async function buildProfiles(options: BuildOptions = {}): Promise<BuildSt
     stats.scanned += 1;
 
     const source = buildSource(row);
-    if (!options.force && row.aiProfile?.sourceHash === source.hash) {
+    // Se salta solo si la ficha no cambió Y el perfil ya es de la versión vigente.
+    const upToDate =
+      row.aiProfile?.sourceHash === source.hash &&
+      (row.aiProfile?.profileVersion ?? 0) >= PROFILE_VERSION;
+    if (!options.force && upToDate) {
       stats.skipped += 1;
       continue;
     }
@@ -221,6 +254,7 @@ export async function buildProfiles(options: BuildOptions = {}): Promise<BuildSt
         searchTextEs: searchText,
         embedding: [],
         sourceHash: source.hash,
+        profileVersion: PROFILE_VERSION,
         model: outcome.model,
         builtAt: new Date(),
       },
@@ -262,7 +296,6 @@ export async function buildProfiles(options: BuildOptions = {}): Promise<BuildSt
     }
   }
 
-  const counts = await countPending();
-  stats.pending = Math.max(0, counts.total - counts.withProfile);
+  stats.pending = (await countPending()).pending;
   return stats;
 }

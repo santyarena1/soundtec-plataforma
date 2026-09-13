@@ -21,7 +21,7 @@ const MAX_LIMIT = 60;
 
 export async function GET() {
   await requireAdmin();
-  const [{ total, withProfile }, lastBuilt, environments, sample] = await Promise.all([
+  const [{ total, withProfile, pending }, lastBuilt, environments, sample] = await Promise.all([
     countPending(),
     prisma.productAiProfile.findFirst({
       orderBy: { builtAt: "desc" },
@@ -56,7 +56,7 @@ export async function GET() {
     ok: true,
     total,
     withProfile,
-    pending: Math.max(0, total - withProfile),
+    pending,
     lastBuiltAt: lastBuilt?.builtAt ?? null,
     model: lastBuilt?.model ?? null,
     byEnvironment: environments.map((row) => ({
