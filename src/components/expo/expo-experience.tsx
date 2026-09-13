@@ -34,14 +34,28 @@ function nextTurnId(): string {
   return `t${turnCounter}-${Date.now()}`;
 }
 
+export type ExpoSurface = "EXPO" | "PUBLIC";
+
 export function ExpoExperience({
   initialProduct,
   logoUrl,
+  surface = "EXPO",
+  backHref = "/catalogo",
+  backLabel = "Catálogo",
 }: {
   initialProduct: ChatProduct | null;
   logoUrl: string;
+  /**
+   * EXPO: visitante anónimo en la feria, se le ofrece dejar datos.
+   * PUBLIC: usuario que llega desde el portal (ya tiene cuenta): sin
+   * formulario de contacto ni recordatorios.
+   */
+  surface?: ExpoSurface;
+  /** A dónde vuelve el botón del header. */
+  backHref?: string;
+  backLabel?: string;
 }) {
-  const [contactOpen, setContactOpen] = useState(true);
+  const [contactOpen, setContactOpen] = useState(surface === "EXPO");
   const [contactPending, setContactPending] = useState(false);
   const [leadSaved, setLeadSaved] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -87,7 +101,7 @@ export function ExpoExperience({
             message,
             sessionId,
             productId: initialProduct?.id ?? null,
-            surface: "EXPO",
+            surface,
           }),
         });
         const data = (await response.json()) as ChatApiResponse;
@@ -137,7 +151,7 @@ export function ExpoExperience({
         setThinking(false);
       }
     },
-    [initialProduct?.id, leadSaved, sessionId, thinking]
+    [initialProduct?.id, leadSaved, sessionId, surface, thinking]
   );
 
   const saveLead = useCallback(
@@ -202,11 +216,11 @@ export function ExpoExperience({
           </p>
         </div>
         <Link
-          href="/catalogo"
+          href={backHref}
           className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-accent hover:text-foreground"
         >
           <Search className="h-3.5 w-3.5" aria-hidden="true" />
-          Catálogo
+          {backLabel}
         </Link>
       </header>
 

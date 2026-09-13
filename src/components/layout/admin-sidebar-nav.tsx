@@ -95,6 +95,7 @@ const groups: NavGroup[] = [
     tourId: "nav-crm",
     items: [
       { href: "/admin/clients", label: "Clientes", icon: Users, scope: "clients.view", tourId: "nav-link-clients" },
+      { href: "/admin/assistant/leads", label: "Leads del asistente", icon: Sparkles, scope: "clients.view" },
       { href: "/admin/users", label: "Usuarios", icon: ShieldCheck, scope: "users.view", tourId: "nav-link-users" },
     ],
   },

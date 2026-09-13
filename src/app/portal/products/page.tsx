@@ -10,6 +10,7 @@ import { CatalogGrid } from "./catalog-grid";
 import { CatalogTable } from "./catalog-table";
 import { CatalogMultiSelectProvider } from "./catalog-multi-select";
 import { EmptyState } from "@/components/ui/empty-state";
+import { AssistantEntry } from "@/components/expo/assistant-entry";
 import { Package, Send } from "lucide-react";
 
 export const metadata = { title: "Catálogo" };
@@ -78,6 +79,8 @@ export default async function ProductsPage({
           </Link>
         ) : null}
       </div>
+
+      <AssistantEntry href="/expo?from=portal" className="lg:max-w-2xl" />
 
       <CatalogMultiSelectProvider productIds={items.map((i) => i.id)}>
       <CatalogLayout state={urlState} meta={meta} total={total} toolbar={<CatalogToolbar state={urlState} />}>

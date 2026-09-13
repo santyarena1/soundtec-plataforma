@@ -54,6 +54,21 @@ export default async function ExpoPage({
 }) {
   const params = await searchParams;
   const raw = Array.isArray(params.product) ? params.product[0] : params.product;
+  const from = Array.isArray(params.from) ? params.from[0] : params.from;
   const initialProduct = await resolveInitialProduct(raw);
+
+  // `/expo?from=portal`: llega un usuario con cuenta desde el catálogo del
+  // portal. No se le pide contacto y el botón vuelve a su catálogo.
+  if (from === "portal") {
+    return (
+      <ExpoExperience
+        initialProduct={initialProduct}
+        logoUrl="/landing/logo_soundtec.png"
+        surface="PUBLIC"
+        backHref="/portal/products"
+        backLabel="Volver al catálogo"
+      />
+    );
+  }
   return <ExpoExperience initialProduct={initialProduct} logoUrl="/landing/logo_soundtec.png" />;
 }
