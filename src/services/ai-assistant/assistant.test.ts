@@ -16,6 +16,7 @@ import { buildCacheKey, cacheNormalizeQuestion, knowledgeVersion } from "./cache
 import { shouldShowLeadReminder } from "./session";
 import { hasAnyLeadData } from "./leads";
 import { LIMITS, candidateLimitFor } from "./budget";
+import { expandSearchTerms } from "./synonyms";
 import type { CandidateProduct, QuestionAnalysis } from "./types";
 
 function makeCandidate(overrides: Partial<CandidateProduct> = {}): CandidateProduct {
@@ -227,6 +228,24 @@ describe("respuestas sin LLM", () => {
     });
     assert.ok(suggestions.length > 0);
     assert.ok(suggestions.some((suggestion) => /comparar/i.test(suggestion)));
+  });
+});
+
+describe("puente español → inglés del retrieval", () => {
+  it("traduce los términos de aplicación al idioma de las fichas", () => {
+    const terms = expandSearchTerms(["parlante", "exterior", "pileta"]);
+    assert.ok(terms.includes("speaker"));
+    assert.ok(terms.includes("outdoor"));
+    assert.ok(terms.includes("parlante"), "el término original se conserva");
+  });
+
+  it("no devuelve más términos de los que el retrieval puede pagar", () => {
+    const terms = expandSearchTerms(
+      ["parlante", "exterior", "pileta", "restaurante", "hotel", "amplificador", "techo"],
+      8
+    );
+    assert.ok(terms.length <= 8);
+    assert.equal(new Set(terms).size, terms.length, "sin duplicados");
   });
 });
 

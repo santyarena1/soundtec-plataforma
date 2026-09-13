@@ -7,9 +7,15 @@
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { buildProductSearchWhere, searchRank, sortBySearchRelevance } from "@/lib/product-search";
+import {
+  buildProductSearchWhere,
+  productTokenOr,
+  searchRank,
+  sortBySearchRelevance,
+} from "@/lib/product-search";
 import { normalizeForSearch } from "@/lib/search-key";
 import { LIMITS, candidateLimitFor } from "./budget";
+import { expandSearchTerms } from "./synonyms";
 import type {
   AssistantScope,
   CandidateProduct,
@@ -35,6 +41,7 @@ const PRODUCT_SELECT = {
   keyFeatures: true,
   specifications: true,
   documents: true,
+  sourceCategoryPath: true,
   isCrestronHomeCompatible: true,
   isDiscontinued: true,
   isCustomizable: true,
@@ -234,6 +241,80 @@ function searchQueryFrom(analysis: QuestionAnalysis): string {
   return Array.from(new Set(parts)).join(" ").trim();
 }
 
+/** Intenciones donde conviene abrir la búsqueda en vez de exigir todos los términos. */
+const WIDE_INTENTS = new Set<QuestionAnalysis["intent"]>([
+  "RECOMMENDATION",
+  "GENERAL",
+  "COMPATIBILITY",
+  "ACCESSORY",
+]);
+
+/** Texto del producto contra el que se cuentan los términos que matchean. */
+function haystackOf(row: ProductRow): string {
+  return [
+    row.normalizedName,
+    row.originalName,
+    row.brand?.name,
+    row.category?.name,
+    row.family?.name,
+    row.shortDescription,
+    row.sourceCategoryPath,
+    parseFeatures(row.keyFeatures).join(" "),
+    parseSpecs(row.specifications)
+      .map((spec) => `${spec.label} ${spec.value}`)
+      .join(" "),
+    (row.htmlContent ?? "").slice(0, 4000),
+    (row.longDescription ?? "").slice(0, 1500),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+/**
+ * Búsqueda por concepto: OR entre términos (incluida su traducción al
+ * inglés) y ranking por cuántos términos distintos aparecen en la ficha.
+ */
+async function findByConcept(analysis: QuestionAnalysis, limit: number): Promise<ProductRow[]> {
+  const base = [
+    ...analysis.brandNames,
+    ...analysis.applicationTerms,
+    ...analysis.tokens.filter((token) => token.length >= 4),
+  ];
+  const terms = expandSearchTerms(base, 8);
+  if (terms.length === 0) return [];
+
+  const rows = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      kind: "PRINCIPAL",
+      OR: terms.flatMap((term) => productTokenOr(term)),
+    },
+    select: PRODUCT_SELECT,
+    take: LIMITS.candidateFetchCap * 3,
+  });
+  if (rows.length === 0) return [];
+
+  // Los términos de aplicación (exterior, hotel…) pesan más que una palabra suelta.
+  const strong = new Set(expandSearchTerms(analysis.applicationTerms, 12));
+
+  return rows
+    .map((row) => {
+      const haystack = haystackOf(row);
+      let score = 0;
+      for (const term of terms) {
+        if (!haystack.includes(term)) continue;
+        score += strong.has(term) ? 3 : 1;
+      }
+      if (row.isDiscontinued) score -= 2;
+      return { row, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((entry) => entry.row);
+}
+
 export interface RetrievalResult {
   candidates: CandidateProduct[];
   mode: RetrievalMode;
@@ -279,7 +360,22 @@ export async function retrieveCandidates(input: {
     }
   }
 
-  // 3) Búsqueda tolerante por contenido.
+  // 3) Búsqueda amplia por concepto: para "necesito un parlante para
+  // exterior" no sirve exigir que todos los términos estén en el mismo
+  // producto, y además hay que buscar en inglés, que es el idioma de las
+  // fichas del fabricante.
+  if (WIDE_INTENTS.has(analysis.intent)) {
+    const wide = await findByConcept(analysis, limit);
+    if (wide.length > 0) {
+      return {
+        candidates: wide.map((row, index) => toCandidate(row, index, scope)),
+        mode: "SEARCH",
+        scanned: wide.length,
+      };
+    }
+  }
+
+  // 4) Búsqueda tolerante por contenido (todos los términos).
   const query = searchQueryFrom(analysis);
   const found = await findBySearch(query);
   if (found.length > 0) {
