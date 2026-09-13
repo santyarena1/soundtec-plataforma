@@ -19,6 +19,7 @@ export default async function Page() {
           <Link href="/admin/assistant" className="text-sm text-primary hover:underline">
             Volver al asistente
           </Link>
+
         }
       />
 

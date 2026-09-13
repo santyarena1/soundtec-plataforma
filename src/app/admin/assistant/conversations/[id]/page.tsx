@@ -72,8 +72,8 @@ export default async function Page({ params }: { params: { id: string } }) {
         title={lead?.name || lead?.company || "Conversación del asistente"}
         description={`Iniciada el ${formatDate(session.startedAt)} · ${session.questionCount} pregunta(s) · origen ${session.surface}`}
         actions={
-          <ButtonLink href="/admin/assistant/leads" variant="outline">
-            Volver a leads
+          <ButtonLink href="/admin/assistant/conversations" variant="outline">
+            Volver a conversaciones
           </ButtonLink>
         }
       />

@@ -65,7 +65,6 @@ const groups: NavGroup[] = [
     items: [
       { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view", tourId: "nav-link-products" },
       { href: "/admin/assistant", label: "Asistente de productos", icon: Sparkles, scope: "products.view" },
-      { href: "/admin/assistant/profiles", label: "Perfiles del asistente", icon: Sparkles, scope: "products.view" },
       { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage", tourId: "nav-link-brands" },
       { href: "/admin/labels", label: "Etiquetas", icon: Tags, scope: "brands.manage" },
       { href: "/admin/distributors", label: "Proveedores", icon: Truck, scope: "distributors.manage" },
@@ -96,7 +95,7 @@ const groups: NavGroup[] = [
     tourId: "nav-crm",
     items: [
       { href: "/admin/clients", label: "Clientes", icon: Users, scope: "clients.view", tourId: "nav-link-clients" },
-      { href: "/admin/assistant/leads", label: "Leads del asistente", icon: Sparkles, scope: "clients.view" },
+      { href: "/admin/assistant/leads", label: "Leads del asistente", icon: MessageSquare, scope: "clients.view" },
       { href: "/admin/users", label: "Usuarios", icon: ShieldCheck, scope: "users.view", tourId: "nav-link-users" },
     ],
   },

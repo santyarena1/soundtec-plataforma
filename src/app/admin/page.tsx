@@ -83,7 +83,23 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={`Hola, ${(user.name || "Admin").split(" ")[0]}`} description="Vista general del sistema."
-        actions={<Link href="/admin/quotes/quick" className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">Cotización rápida</Link>} />
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/admin/assistant"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-accent/40 bg-accent/10 px-4 text-sm font-medium text-accent hover:bg-accent/15"
+            >
+              <Sparkles className="h-4 w-4" />
+              Asistente de productos
+            </Link>
+            <Link
+              href="/admin/quotes/quick"
+              className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+            >
+              Cotización rápida
+            </Link>
+          </div>
+        } />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-tour="dash-stats">
         {stats.map((s) => (

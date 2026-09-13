@@ -13,6 +13,7 @@ import {
   CircleHelp,
   Compass,
   Loader2,
+  Package,
   Send,
   Sparkles,
   X,
@@ -344,7 +345,27 @@ function ReportModal({
   );
 }
 
-type ChatMsg = { role: "user" | "assistant"; content: string };
+type ChatMsg = {
+  role: "user" | "assistant";
+  content: string;
+  /** Solo en la pestaña de productos: las tarjetas que acompañan la respuesta. */
+  products?: Array<{ id: string; name: string; href: string; reason?: string }>;
+};
+
+/** Las dos cosas distintas que se pueden preguntar desde el mismo botón. */
+type DockTab = "sistema" | "productos";
+
+const PRODUCT_WELCOME: ChatMsg = {
+  role: "assistant",
+  content:
+    "Preguntame por el catálogo: un modelo puntual, una especificación, qué productos cumplen una condición o qué le conviene a un cliente. Respondo solo con fichas de Soundtec, y desde acá también veo costo y stock.",
+};
+
+const PRODUCT_EXAMPLES = [
+  "¿Qué parlantes tienen para exterior?",
+  "¿Qué productos son compatibles con Crestron Home?",
+  "Necesito parlantes para un restaurante",
+];
 
 function welcomeFor(pathname: string): ChatMsg {
   const mod = moduleForPath(pathname);
@@ -370,6 +391,10 @@ export function HelpDock() {
   const [draft, setDraft] = useState("");
   const [pending, start] = useTransition();
   const [suggestTicket, setSuggestTicket] = useState(false);
+  const [tab, setTab] = useState<DockTab>("sistema");
+  const [productMessages, setProductMessages] = useState<ChatMsg[]>(() => [PRODUCT_WELCOME]);
+  const [productSessionId, setProductSessionId] = useState<string | null>(null);
+  const [productPending, setProductPending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   const startTour = useCallback(() => {
@@ -393,7 +418,7 @@ export function HelpDock() {
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, open]);
+  }, [messages, productMessages, open, tab]);
 
   function openReport(ctx?: ReportContext) {
     const lastUser = [...messages].reverse().find((msg) => msg.role === "user");
@@ -435,6 +460,54 @@ export function HelpDock() {
     });
   }
 
+  /**
+   * Asistente de productos dentro del mismo dock. Usa la ruta del admin, así
+   * que responde con el catálogo completo y, para el equipo, con costo y stock.
+   */
+  async function sendProduct(text: string) {
+    const message = text.trim();
+    if (!message || productPending) return;
+    setProductMessages((prev) => [...prev, { role: "user", content: message }]);
+    setDraft("");
+    setProductPending(true);
+    try {
+      const response = await fetch("/api/admin/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, sessionId: productSessionId }),
+      });
+      const data = (await response.json()) as {
+        ok: boolean;
+        error?: string;
+        sessionId?: string;
+        answer?: string;
+        products?: Array<{ id: string; name: string; href: string; reason?: string }>;
+      };
+      if (!data.ok || !data.answer) {
+        const error = data.error ?? "No pude consultar el catálogo en este momento.";
+        setProductMessages((prev) => [...prev, { role: "assistant", content: error }]);
+        return;
+      }
+      if (data.sessionId) setProductSessionId(data.sessionId);
+      setProductMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data.answer as string, products: data.products ?? [] },
+      ]);
+    } catch {
+      setProductMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Se cortó la conexión. Probá de nuevo en unos segundos." },
+      ]);
+    } finally {
+      setProductPending(false);
+    }
+  }
+
+  const onProducts = tab === "productos";
+  const activeMessages = onProducts ? productMessages : messages;
+  const activePending = onProducts ? productPending : pending;
+  const submit = (text: string) => (onProducts ? void sendProduct(text) : send(text));
+
   return (
     <>
       <div
@@ -449,8 +522,8 @@ export function HelpDock() {
           <div className="mb-2 flex h-[min(560px,calc(100dvh-5.5rem))] w-[min(400px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
             <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
               <div>
-                <p className="text-sm font-semibold">Asistente de ayuda</p>
-                <p className="text-[11px] text-muted-foreground">{screen.title}</p>
+                <p className="text-sm font-semibold">{onProducts ? "Asistente de productos" : "Asistente de ayuda"}</p>
+                <p className="text-[11px] text-muted-foreground">{onProducts ? "Catálogo de Soundtec" : screen.title}</p>
               </div>
               <button
                 type="button"
@@ -462,71 +535,131 @@ export function HelpDock() {
               </button>
             </div>
 
-            <div className="space-y-1.5 border-b border-border px-2 py-1.5">
-              <button
-                type="button"
-                className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-2 py-1.5 text-[12px] font-medium text-primary-foreground hover:bg-primary/90"
-                onClick={() => {
-                  setOpen(false);
-                  requestOnboardingStart();
-                }}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                Empezar guía de nuevo
-              </button>
-              <div className="flex flex-wrap gap-1">
+            <div className="flex gap-1 border-b border-border px-2 py-1.5">
+              {([
+                { key: "sistema" as const, label: "Usar el sistema", icon: CircleHelp },
+                { key: "productos" as const, label: "Productos", icon: Package },
+              ]).map((item) => (
                 <button
+                  key={item.key}
                   type="button"
-                  className="rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
-                  onClick={() => send("¿Qué hace esta pantalla y qué se puede editar?")}
-                >
-                  Esta pantalla
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
-                  onClick={startTour}
-                >
-                  <Compass className="h-3 w-3" />
-                  Recorrer
-                </button>
-                <Link
-                  href="/admin/ayuda?v=detallado"
-                  className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
-                  onClick={() => setOpen(false)}
-                >
-                  <BookOpen className="h-3 w-3" />
-                  Tutorial
-                </Link>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
-                  onClick={() => openReport()}
-                >
-                  <Bug className="h-3 w-3" />
-                  Ticket al dev
-                </button>
-              </div>
-            </div>
-
-            <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
-              {messages.map((msg, index) => (
-                <div
-                  key={`${msg.role}-${index}`}
-                  className={`max-w-[92%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
-                    msg.role === "user" ? "ml-auto bg-primary text-primary-foreground" : "bg-secondary text-foreground"
+                  onClick={() => setTab(item.key)}
+                  aria-pressed={tab === item.key}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors ${
+                    tab === item.key
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:bg-secondary/50"
                   }`}
                 >
-                  {msg.content}
+                  <item.icon className="h-3.5 w-3.5" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {onProducts ? (
+              <div className="flex flex-wrap gap-1 border-b border-border px-2 py-1.5">
+                {PRODUCT_EXAMPLES.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    className="rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                    onClick={() => void sendProduct(example)}
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <>
+              <div className="space-y-1.5 border-b border-border px-2 py-1.5">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-2 py-1.5 text-[12px] font-medium text-primary-foreground hover:bg-primary/90"
+                  onClick={() => {
+                    setOpen(false);
+                    requestOnboardingStart();
+                  }}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Empezar guía de nuevo
+                </button>
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    className="rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                    onClick={() => send("¿Qué hace esta pantalla y qué se puede editar?")}
+                  >
+                    Esta pantalla
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                    onClick={startTour}
+                  >
+                    <Compass className="h-3 w-3" />
+                    Recorrer
+                  </button>
+                  <Link
+                    href="/admin/ayuda?v=detallado"
+                    className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                    onClick={() => setOpen(false)}
+                  >
+                    <BookOpen className="h-3 w-3" />
+                    Tutorial
+                  </Link>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] hover:bg-secondary"
+                    onClick={() => openReport()}
+                  >
+                    <Bug className="h-3 w-3" />
+                    Ticket al dev
+                  </button>
+                </div>
+              </div>
+              </>
+            )}
+
+            <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
+              {activeMessages.map((msg, index) => (
+                <div key={`${msg.role}-${index}`}>
+                  <div
+                    className={`max-w-[92%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
+                      msg.role === "user"
+                        ? "ml-auto bg-primary text-primary-foreground"
+                        : "bg-secondary text-foreground"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                  {msg.products && msg.products.length > 0 ? (
+                    <ul className="mt-1.5 max-w-[92%] space-y-1">
+                      {msg.products.map((product) => (
+                        <li key={product.id}>
+                          <Link
+                            href={product.href}
+                            onClick={() => setOpen(false)}
+                            className="block rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-secondary"
+                          >
+                            <span className="font-medium">{product.name}</span>
+                            {product.reason ? (
+                              <span className="block text-[11px] text-muted-foreground">{product.reason}</span>
+                            ) : null}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               ))}
-              {pending ? (
+              {activePending ? (
                 <p className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Leyendo la documentación…
+                  {onProducts ? "Buscando en el catálogo…" : "Leyendo la documentación…"}
                 </p>
               ) : null}
-              {suggestTicket ? (
+              {suggestTicket && !onProducts ? (
                 <Button type="button" size="sm" variant="outline" onClick={() => openReport({ title: "Error en pantalla" })}>
                   <Bug className="h-3.5 w-3.5" />
                   Crear ticket con esta conversación
@@ -538,23 +671,23 @@ export function HelpDock() {
               className="flex items-end gap-2 border-t border-border p-2"
               onSubmit={(event) => {
                 event.preventDefault();
-                send(draft);
+                submit(draft);
               }}
             >
               <Textarea
                 rows={2}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Preguntá por un campo, un flujo o un error…"
+                placeholder={onProducts ? "Preguntá por un modelo, una spec o qué necesita un cliente…" : "Preguntá por un campo, un flujo o un error…"}
                 className="min-h-[44px] resize-none text-sm"
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
-                    send(draft);
+                    submit(draft);
                   }
                 }}
               />
-              <Button type="submit" size="icon" disabled={pending || draft.trim().length < 2} aria-label="Enviar">
+              <Button type="submit" size="icon" disabled={activePending || draft.trim().length < 2} aria-label="Enviar">
                 <Send className="h-4 w-4" />
               </Button>
             </form>
@@ -569,7 +702,7 @@ export function HelpDock() {
           aria-label="Abrir ayuda"
         >
           <CircleHelp className="h-4 w-4" />
-          Ayuda
+          Ayuda y productos
         </Button>
       </div>
 

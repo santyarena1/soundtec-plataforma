@@ -1,141 +1,92 @@
 import Link from "next/link";
-import { Prisma, type AiChatSurface } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
-import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/lib/utils";
+import { Mail, MessageSquare, Phone, UserPlus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin · Leads del asistente" };
 
-type Search = {
-  q?: string;
-  surface?: string;
-  lead?: string;
-  days?: string;
-  page?: string;
-  size?: string;
-};
+type Search = { q?: string; days?: string; page?: string };
 
-const SURFACE_LABEL: Record<AiChatSurface, string> = {
-  EXPO: "EXPO",
-  PUBLIC: "PUBLIC",
-  ADMIN: "ADMIN",
-};
-
-const SURFACE_TONE: Record<AiChatSurface, "accent" | "primary" | "muted"> = {
-  EXPO: "accent",
-  PUBLIC: "primary",
-  ADMIN: "muted",
-};
-
-const UNANSWERED = ["INSUFFICIENT_INFORMATION", "ERROR"] as const;
+const PAGE_SIZE = 20;
 
 function parseDays(raw: string | undefined): number {
   const value = Number(raw);
-  return [7, 30, 90].includes(value) ? value : 30;
+  return [7, 30, 90, 365].includes(value) ? value : 90;
 }
 
-function surfacesFor(raw: string | undefined): AiChatSurface[] {
-  if (raw === "EXPO" || raw === "PUBLIC" || raw === "ADMIN") return [raw];
-  if (raw === "all") return ["EXPO", "PUBLIC", "ADMIN"];
-  return ["EXPO", "PUBLIC"];
-}
-
-export default async function Page({ searchParams }: { searchParams: Search }) {
+/**
+ * Contactos que dejaron sus datos en el asistente.
+ *
+ * Es una pantalla comercial: importa a quién llamar y por qué producto
+ * preguntó. El análisis de lo que la gente consulta vive aparte, en
+ * /admin/assistant/conversations, porque responde otra pregunta.
+ */
+export default async function Page({ searchParams }: { searchParams: Promise<Search> }) {
   await requireAdmin();
-  const params = searchParams;
+  const params = await searchParams;
   const q = params.q?.trim();
-  const size = params.size === "50" ? 50 : 25;
-  const page = Math.max(1, Number(params.page) || 1);
   const days = parseDays(params.days);
+  const page = Math.max(1, Number(params.page) || 1);
   const since = new Date(Date.now() - days * 86400000);
-  const surfaces = surfacesFor(params.surface);
 
-  const where: Prisma.AiChatSessionWhereInput = {
-    surface: { in: surfaces },
-    startedAt: { gte: since },
-    ...(params.lead === "yes" ? { leadCaptured: true } : {}),
-    ...(params.lead === "no" ? { leadCaptured: false } : {}),
+  const where: Prisma.ExpoLeadWhereInput = {
+    createdAt: { gte: since },
     ...(q
       ? {
           OR: [
-            { lead: { name: { contains: q, mode: "insensitive" } } },
-            { lead: { company: { contains: q, mode: "insensitive" } } },
-            { lead: { email: { contains: q, mode: "insensitive" } } },
-            { lead: { phone: { contains: q, mode: "insensitive" } } },
-            { messages: { some: { role: "user", content: { contains: q, mode: "insensitive" } } } },
+            { name: { contains: q, mode: "insensitive" } },
+            { company: { contains: q, mode: "insensitive" } },
+            { email: { contains: q, mode: "insensitive" } },
+            { phone: { contains: q, mode: "insensitive" } },
+            { projectInfo: { contains: q, mode: "insensitive" } },
           ],
         }
       : {}),
   };
 
-  const [sessions, total, sessionsInPeriod, leadsInPeriod, questionsInPeriod, unansweredInPeriod, unansweredRecent] =
-    await Promise.all([
-      prisma.aiChatSession.findMany({
-        where,
-        skip: (page - 1) * size,
-        take: size,
-        orderBy: [{ lastActivityAt: "desc" }],
-        include: {
-          lead: { select: { name: true, company: true, email: true, phone: true } },
-          messages: {
-            where: { role: "user" },
-            orderBy: { createdAt: "asc" },
-            take: 1,
-            select: { content: true },
-          },
-        },
-      }),
-      prisma.aiChatSession.count({ where }),
-      prisma.aiChatSession.count({ where }),
-      prisma.aiChatSession.count({ where: { AND: [where, { leadCaptured: true }] } }),
-      prisma.aiChatMessage.count({ where: { role: "user", session: where } }),
-      prisma.aiChatMessage.count({
-        where: { role: "assistant", answerStatus: { in: [...UNANSWERED] }, session: where },
-      }),
-      prisma.aiChatMessage.findMany({
-        where: { role: "assistant", answerStatus: { in: [...UNANSWERED] }, session: where },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        select: { id: true, sessionId: true, createdAt: true, answerStatus: true },
-      }),
-    ]);
+  const [leads, total, withEmail, withPhone, withProject] = await Promise.all([
+    prisma.expoLead.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      include: { session: { select: { id: true, surface: true, questionCount: true } } },
+    }),
+    prisma.expoLead.count({ where }),
+    prisma.expoLead.count({ where: { createdAt: { gte: since }, email: { not: null } } }),
+    prisma.expoLead.count({ where: { createdAt: { gte: since }, phone: { not: null } } }),
+    prisma.expoLead.count({ where: { createdAt: { gte: since }, projectInfo: { not: null } } }),
+  ]);
 
-  // La pregunta que no pudimos responder es el mensaje del visitante
-  // inmediatamente anterior a cada respuesta fallida.
-  const unansweredQuestions = await Promise.all(
-    unansweredRecent.map(async (reply) => {
-      const question = await prisma.aiChatMessage.findFirst({
-        where: { sessionId: reply.sessionId, role: "user", createdAt: { lte: reply.createdAt } },
-        orderBy: { createdAt: "desc" },
-        select: { content: true },
-      });
-      return { ...reply, question: question?.content ?? null };
-    })
+  // Los productos que consultó cada contacto, en una sola consulta.
+  const productIds = Array.from(
+    new Set(
+      leads.flatMap((lead) =>
+        [lead.initialProductId, ...lead.productsOfInterest].filter((id): id is string => !!id)
+      )
+    )
   );
-
-  const initialIds = Array.from(
-    new Set(sessions.map((s) => s.initialProductId).filter((id): id is string => !!id))
-  );
-  const initialProducts = initialIds.length
+  const products = productIds.length
     ? await prisma.product.findMany({
-        where: { id: { in: initialIds } },
-        select: { id: true, normalizedName: true },
+        where: { id: { in: productIds } },
+        select: { id: true, normalizedName: true, brand: { select: { name: true } } },
       })
     : [];
-  const productName = new Map(initialProducts.map((p) => [p.id, p.normalizedName]));
+  const byId = new Map(products.map((product) => [product.id, product]));
 
-  const pages = Math.max(1, Math.ceil(total / size));
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageHref = (target: number) => {
     const next = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) {
-      if (key !== "page" && value) next.set(key, value);
-    }
+    if (q) next.set("q", q);
+    next.set("days", String(days));
     next.set("page", String(target));
     return `/admin/assistant/leads?${next.toString()}`;
   };
@@ -144,166 +95,167 @@ export default async function Page({ searchParams }: { searchParams: Search }) {
     <div className="space-y-6">
       <PageHeader
         title="Leads del asistente"
-        description="Todo lo que dejan los visitantes del asistente de productos: datos de contacto, productos consultados y la conversación completa."
+        description="Visitantes que dejaron sus datos mientras consultaban el catálogo, del más reciente al más viejo."
         actions={
-          <Link href="/admin/assistant" className="text-sm text-primary hover:underline">
-            Abrir el asistente
+          <Link
+            href="/admin/assistant/conversations"
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-border px-4 text-sm font-medium hover:bg-secondary"
+          >
+            <MessageSquare className="h-4 w-4" />
+            Ver conversaciones
           </Link>
         }
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          [sessionsInPeriod, `Conversaciones (${days} días)`],
-          [leadsInPeriod, "Leads con datos de contacto"],
-          [questionsInPeriod, "Preguntas recibidas"],
-          [unansweredInPeriod, "Preguntas sin respuesta"],
-        ].map(([n, l]) => (
-          <Card key={String(l)}>
+          [total, `Contactos (${days} días)`],
+          [withEmail, "Dejaron email"],
+          [withPhone, "Dejaron teléfono"],
+          [withProject, "Contaron su proyecto"],
+        ].map(([value, label]) => (
+          <Card key={String(label)}>
             <CardContent className="p-4">
-              <p className="text-2xl font-semibold">{n}</p>
-              <p className="text-xs text-muted-foreground">{l}</p>
+              <p className="text-2xl font-semibold">{value}</p>
+              <p className="text-xs text-muted-foreground">{label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {unansweredQuestions.length > 0 ? (
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm font-medium">Preguntas que no pudimos responder</p>
-            <p className="text-xs text-muted-foreground">
-              Sirven para ver qué le falta al catálogo o a las fichas.
-            </p>
-            <ul className="mt-3 space-y-1.5">
-              {unansweredQuestions.map((row) => (
-                <li key={row.id} className="flex items-start gap-2 text-sm">
-                  <span className="mt-0.5 shrink-0 text-xs text-muted-foreground">{formatDate(row.createdAt)}</span>
-                  <Link href={`/admin/assistant/leads/${row.sessionId}`} className="min-w-0 flex-1 truncate hover:underline">
-                    {row.question ?? "(sin texto)"}
-                  </Link>
-                  <Badge tone={row.answerStatus === "ERROR" ? "destructive" : "warning"}>
-                    {row.answerStatus === "ERROR" ? "Error" : "Sin datos"}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      ) : null}
-
       <Card>
         <CardContent className="p-4">
-          <form className="grid gap-2 md:grid-cols-6">
+          <form className="flex flex-wrap items-center gap-2">
             <Input
               name="q"
               defaultValue={q}
-              placeholder="Nombre, empresa, email, teléfono o texto de la pregunta"
-              className="md:col-span-2"
+              placeholder="Nombre, empresa, email, teléfono o proyecto"
+              className="min-w-[16rem] flex-1"
             />
-            <Select name="surface" defaultValue={params.surface || ""}>
-              <option value="">Visitantes (Expo + catálogo)</option>
-              <option value="EXPO">Solo Expo</option>
-              <option value="PUBLIC">Solo catálogo</option>
-              <option value="all">Incluir admin</option>
-            </Select>
-            <Select name="lead" defaultValue={params.lead || ""}>
-              <option value="">Con o sin datos</option>
-              <option value="yes">Dejaron datos de contacto</option>
-              <option value="no">Sin datos de contacto</option>
-            </Select>
-            <Select name="days" defaultValue={String(days)}>
+            <Select name="days" defaultValue={String(days)} className="w-auto">
               <option value="7">Últimos 7 días</option>
               <option value="30">Últimos 30 días</option>
               <option value="90">Últimos 90 días</option>
+              <option value="365">Último año</option>
             </Select>
-            <Select name="size" defaultValue={String(size)}>
-              <option value="25">25 por página</option>
-              <option value="50">50 por página</option>
-            </Select>
-            <button className="h-10 rounded-md bg-primary px-4 text-sm text-primary-foreground md:col-start-6">
-              Aplicar filtros
-            </button>
+            <button className="h-10 rounded-md bg-primary px-4 text-sm text-primary-foreground">Buscar</button>
           </form>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-0">
-          {!sessions.length ? (
-            <TableEmpty message="No hay conversaciones con esos filtros." />
-          ) : (
-            <Table>
-              <THead>
-                <TR>
-                  <TH>Inicio</TH>
-                  <TH>Origen</TH>
-                  <TH>Contacto</TH>
-                  <TH>Primera pregunta</TH>
-                  <TH>Producto inicial</TH>
-                  <TH>Preguntas</TH>
-                  <TH>Dejó lead</TH>
-                  <TH>Última actividad</TH>
-                </TR>
-              </THead>
-              <TBody>
-                {sessions.map((s) => {
-                  const lead = s.lead;
-                  const contactTitle = lead?.name || lead?.company || lead?.email || lead?.phone;
-                  return (
-                    <TR key={s.id}>
-                      <TD>
-                        <Link className="font-medium hover:underline" href={`/admin/assistant/leads/${s.id}`}>
-                          {formatDate(s.startedAt)}
-                        </Link>
-                      </TD>
-                      <TD>
-                        <Badge tone={SURFACE_TONE[s.surface]}>{SURFACE_LABEL[s.surface]}</Badge>
-                      </TD>
-                      <TD>
-                        {contactTitle ? (
-                          <>
-                            <p className="font-medium">{contactTitle}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {[lead?.company && lead.company !== contactTitle ? lead.company : null, lead?.email, lead?.phone]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </p>
-                          </>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Sin datos</span>
-                        )}
-                      </TD>
-                      <TD className="max-w-xs">
-                        <p className="truncate text-sm">{s.messages[0]?.content ?? "—"}</p>
-                      </TD>
-                      <TD>
-                        {s.initialProductId ? (
-                          <Link className="text-sm hover:underline" href={`/admin/products/${s.initialProductId}`}>
-                            {productName.get(s.initialProductId) ?? "Ver producto"}
+      {leads.length === 0 ? (
+        <Card>
+          <CardContent className="p-6">
+            <EmptyState
+              icon={<UserPlus className="h-6 w-6" />}
+              title="Todavía no hay contactos"
+              description="Cuando un visitante deje su nombre o su mail en el asistente, va a aparecer acá con los productos que consultó."
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <ul className="space-y-3">
+          {leads.map((lead) => {
+            const interest = Array.from(
+              new Set([lead.initialProductId, ...lead.productsOfInterest].filter((id): id is string => !!id))
+            )
+              .map((id) => byId.get(id))
+              .filter((product): product is NonNullable<typeof product> => !!product)
+              .slice(0, 6);
+            const title = lead.name || lead.company || lead.email || lead.phone || "Contacto sin nombre";
+
+            return (
+              <li key={lead.id}>
+                <Card>
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-base font-semibold">{title}</p>
+                        {lead.company && lead.company !== title ? (
+                          <p className="text-sm text-muted-foreground">{lead.company}</p>
+                        ) : null}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Badge tone={lead.session.surface === "EXPO" ? "accent" : "primary"}>
+                          {lead.session.surface === "EXPO" ? "Expo" : "Catálogo"}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">{formatDate(lead.createdAt)}</span>
+                      </div>
+                    </div>
+
+                    {lead.email || lead.phone ? (
+                      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
+                        {lead.email ? (
+                          <a
+                            className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                            href={`mailto:${lead.email}`}
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                            {lead.email}
+                          </a>
+                        ) : null}
+                        {lead.phone ? (
+                          <a
+                            className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                            href={`tel:${lead.phone}`}
+                          >
+                            <Phone className="h-3.5 w-3.5" />
+                            {lead.phone}
+                          </a>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Sin datos de contacto.</p>
+                    )}
+
+                    {lead.projectInfo ? (
+                      <p className="border-l-2 border-border pl-3 text-sm text-muted-foreground">
+                        {lead.projectInfo}
+                      </p>
+                    ) : null}
+
+                    {interest.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground">Consultó:</span>
+                        {interest.map((product) => (
+                          <Link
+                            key={product.id}
+                            href={`/admin/products/${product.id}`}
+                            className="rounded-full bg-secondary px-2.5 py-0.5 text-xs hover:bg-secondary/70"
+                          >
+                            {product.brand?.name ? `${product.brand.name} ` : ""}
+                            {product.normalizedName}
                           </Link>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </TD>
-                      <TD>{s.questionCount}</TD>
-                      <TD><Badge tone={s.leadCaptured ? "success" : "muted"}>{s.leadCaptured ? "Sí" : "No"}</Badge></TD>
-                      <TD className="text-xs text-muted-foreground">{formatDate(s.lastActivityAt)}</TD>
-                    </TR>
-                  );
-                })}
-              </TBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <div className="flex items-center justify-between border-t border-border pt-2.5">
+                      <span className="text-xs text-muted-foreground">
+                        {lead.session.questionCount}{" "}
+                        {lead.session.questionCount === 1 ? "pregunta" : "preguntas"}
+                      </span>
+                      <Link
+                        href={`/admin/assistant/conversations/${lead.sessionId}`}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        Ver la conversación
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       {pages > 1 ? (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
-            Página {page} de {pages} · {total} conversaciones
+            Página {page} de {pages} · {total} contactos
           </span>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {page > 1 ? (
               <Link className="hover:underline" href={pageHref(page - 1)}>
                 Anterior
