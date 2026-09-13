@@ -80,9 +80,49 @@ export async function GET() {
   });
 }
 
+/**
+ * Evidencias que no respaldan nada porque el modelo copió el enunciado.
+ * Se limpian con una consulta: el ambiente y el resto del perfil siguen
+ * siendo válidos, así que no hace falta volver a gastar tokens.
+ */
+const BAD_EVIDENCE = ["frase textual", "razón de la deducción", "razon de la deduccion"];
+
+async function cleanupEvidence(): Promise<number> {
+  const rows = await prisma.productAiProfile.findMany({
+    where: { OR: BAD_EVIDENCE.map((text) => ({ environmentEvidence: { contains: text, mode: "insensitive" as const } })) },
+    select: { id: true, productType: true, environment: true },
+  });
+
+  for (const row of rows) {
+    await prisma.productAiProfile.update({
+      where: { id: row.id },
+      data: {
+        environmentBasis: "INFERRED",
+        environmentEvidence: `Tipo de equipo (${row.productType ?? "producto"}): ${
+          row.environment === "OUTDOOR"
+            ? "apto para intemperie"
+            : row.environment === "BOTH"
+              ? "interior y exterior"
+              : "instalación en interior"
+        }.`,
+      },
+    });
+  }
+  return rows.length;
+}
+
 export async function POST(req: NextRequest) {
   await requireAdmin();
-  const body = (await req.json().catch(() => ({}))) as { limit?: unknown; force?: unknown };
+  const body = (await req.json().catch(() => ({}))) as {
+    limit?: unknown;
+    force?: unknown;
+    cleanup?: unknown;
+  };
+
+  if (body.cleanup === true) {
+    const cleaned = await cleanupEvidence();
+    return NextResponse.json({ ok: true, cleaned });
+  }
   const limit = Math.min(MAX_LIMIT, Math.max(1, Math.trunc(Number(body.limit) || DEFAULT_LIMIT)));
   const force = body.force === true;
 

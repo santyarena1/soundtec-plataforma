@@ -28,7 +28,7 @@ import {
 } from "./listing";
 import { analyzeQuestion } from "./intent";
 import { deriveHardFacts, rawMetadataText, type ProfileSourceRow } from "./profile/source";
-import { normalizeExtraction } from "./profile/extract";
+import { isUsableEvidence, normalizeExtraction } from "./profile/extract";
 import { resolveEnvironment } from "./profile/build";
 import { cosineSimilarity } from "./profile/embedding";
 import { keepKnown, MOUNT_TYPES } from "./profile/vocab";
@@ -598,5 +598,34 @@ describe("el filtro no se pisa a sí mismo", () => {
       brandNames: ["Crestron", "Sonance"],
     });
     assert.deepEqual(filter.brandNames, ["Sonance"]);
+  });
+});
+
+describe("evidencia del ambiente", () => {
+  it("una evidencia que repite el enunciado no se acepta", () => {
+    assert.equal(isUsableEvidence("frase textual de la ficha"), false);
+    assert.equal(isUsableEvidence("la razón de la deducción"), false);
+    assert.equal(isUsableEvidence("string"), false);
+    assert.equal(isUsableEvidence(null), false);
+    assert.equal(isUsableEvidence("corto"), false);
+  });
+
+  it("una frase real de la ficha sí se acepta", () => {
+    assert.equal(isUsableEvidence("Designed for outdoor installations"), true);
+    assert.equal(isUsableEvidence("Tipo de equipo (processor): instalación en interior."), true);
+  });
+
+  it("el perfil descarta la evidencia inservible y no la presenta como declarada", () => {
+    const profile = normalizeExtraction({
+      productType: "speaker",
+      environment: "OUTDOOR",
+      environmentBasis: "DECLARED",
+      environmentEvidence: "frase textual de la ficha",
+      summaryEs: "Parlante para instalaciones exteriores del catálogo.",
+    });
+    assert.equal(profile?.environmentEvidence, null);
+    const resolved = resolveEnvironment({ profile: profile!, ipRating: null, mountTypes: [] });
+    assert.equal(resolved.environmentBasis, "INFERRED");
+    assert.match(resolved.environmentEvidence ?? "", /Tipo de equipo/);
   });
 });

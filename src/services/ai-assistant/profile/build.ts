@@ -83,10 +83,20 @@ export function resolveEnvironment(input: {
   }
 
   if (profile.environment !== "UNKNOWN") {
+    // Sin una frase que lo respalde no se puede presentar como declarado.
+    const hasEvidence = Boolean(profile.environmentEvidence);
     return {
       environment: profile.environment,
-      environmentBasis: profile.environmentBasis,
-      environmentEvidence: profile.environmentEvidence,
+      environmentBasis: hasEvidence ? profile.environmentBasis : "INFERRED",
+      environmentEvidence:
+        profile.environmentEvidence ??
+        `Tipo de equipo (${profile.productType}): ${
+          profile.environment === "OUTDOOR"
+            ? "apto para intemperie"
+            : profile.environment === "BOTH"
+              ? "interior y exterior"
+              : "instalación en interior"
+        }.`,
     };
   }
 

@@ -80,13 +80,33 @@ Devolvés SOLO un JSON válido:
   "productType": uno de [${PRODUCT_TYPES.join(", ")}],
   "environment": "INDOOR" | "OUTDOOR" | "BOTH" | "UNKNOWN",
   "environmentBasis": "DECLARED" | "INFERRED" | null,
-  "environmentEvidence": "frase textual de la ficha, o la razón de la deducción" | null,
+  "environmentEvidence": <la frase de la ficha, o la razón de la deducción> | null,
   "mountTypes": subconjunto de [${MOUNT_TYPES.join(", ")}],
   "ecosystems": subconjunto de [${ECOSYSTEMS.join(", ")}],
   "applications": subconjunto de [${APPLICATIONS.join(", ")}],
   "summaryEs": "texto",
   "keywords": ["..."]
 }`;
+
+/**
+ * Frases que delatan que el modelo copió el enunciado en vez de mirar la
+ * ficha. Una evidencia así no respalda nada, y mostrada al lado de un producto
+ * queda como texto sin sentido para el visitante.
+ */
+const EVIDENCE_BLOCKLIST = [
+  /frase\s+textual/i,
+  /raz[óo]n\s+de\s+la\s+deducci[óo]n/i,
+  /la\s+ficha\s+lo\s+dice/i,
+  /^\s*(string|null|texto|n\/?a|none)\s*$/i,
+  /environment(evidence|basis)/i,
+];
+
+export function isUsableEvidence(value: string | null): boolean {
+  if (!value) return false;
+  const clean = value.trim();
+  if (clean.length < 8) return false;
+  return !EVIDENCE_BLOCKLIST.some((pattern) => pattern.test(clean));
+}
 
 function cleanKeywords(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -107,10 +127,11 @@ export function normalizeExtraction(parsed: unknown): ExtractedProfile | null {
   const summary = typeof row.summaryEs === "string" ? row.summaryEs.replace(/\s+/g, " ").trim() : "";
   if (summary.length < 20) return null;
 
-  const evidence =
-    typeof row.environmentEvidence === "string" && row.environmentEvidence.trim().length > 3
+  const rawEvidence =
+    typeof row.environmentEvidence === "string"
       ? row.environmentEvidence.replace(/\s+/g, " ").trim().slice(0, 200)
       : null;
+  const evidence = isUsableEvidence(rawEvidence) ? rawEvidence : null;
 
   const environment: Environment = isEnvironment(row.environment) ? row.environment : "UNKNOWN";
   // Sin ambiente no hay respaldo que guardar; con ambiente y sin respaldo
