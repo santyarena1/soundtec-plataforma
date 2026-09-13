@@ -1,27 +1,12 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { loadQuoteForUser } from "@/lib/quote-access";
-import { QuoteDocument } from "@/components/quotes/quote-document";
-import { PrintQuoteButton } from "./print-button";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Imprimir cotización" };
-
+/**
+ * La vista de impresión era un segundo documento, hecho en React, que no
+ * coincidía con el PDF que recibía el cliente: otra tabla, otros totales y sin
+ * las condiciones comerciales. Ahora esta ruta lleva al documento real, que es
+ * el único que existe.
+ */
 export default async function QuotePrintPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { quote, forbidden } = await loadQuoteForUser(id);
-  if (forbidden || !quote) notFound();
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between print:hidden">
-        <Link href={`/admin/quotes/${quote.id}`} className="text-sm text-muted-foreground hover:underline">
-          Volver al editor
-        </Link>
-        <PrintQuoteButton />
-      </div>
-      <div className="overflow-x-auto bg-neutral-300/40 p-6 print:overflow-visible print:bg-transparent print:p-0">
-        <QuoteDocument quote={quote} />
-      </div>
-    </div>
-  );
+  redirect(`/api/admin/quotes/${id}/preview-pdf`);
 }

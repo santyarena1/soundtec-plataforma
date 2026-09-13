@@ -34,7 +34,6 @@ import { QuoteImagesPanel } from "./images-panel";
 import { QuoteIssueBar } from "./issue-bar";
 import { QuotePlanUpload } from "./plan-upload";
 import { QuoteWizardNav } from "./wizard-nav";
-import { QuoteDocument } from "@/components/quotes/quote-document";
 import { QuoteProductPhotos } from "./product-photos";
 import { QuoteBomTable } from "./quote-bom-table";
 import { QuoteMediaRail } from "./media-rail";
@@ -43,7 +42,6 @@ import { AddCustomModule, RemoveCustomModule } from "@/components/quotes/add-cus
 import { QuoteEditHistoryPanel } from "@/components/quotes/quote-edit-history-panel";
 import { QuoteFocusToggle } from "@/components/quotes/quote-focus-toggle";
 import { QuoteBody } from "@/components/quotes/quote-body";
-import { QuotePreviewZoom } from "@/components/quotes/quote-preview-zoom";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
 import { displayImageCaption } from "@/lib/quote-image-caption";
 import { requestShortId } from "@/lib/request-quote-link";
@@ -339,7 +337,7 @@ export default async function QuoteEditorPage({
             <Badge tone={issued ? "success" : quote.status === "IN_REVIEW" ? "warning" : "muted"}>
               {issued ? "Emitida" : quote.status === "IN_REVIEW" ? "En revisión" : "Borrador"}
             </Badge>
-            <ButtonLink href={`/admin/quotes/${quote.id}/print`} size="sm" variant="outline">
+            <ButtonLink href={`/api/admin/quotes/${quote.id}/preview-pdf`} target="_blank" size="sm" variant="outline">
               Vista PDF
             </ButtonLink>
             {canEdit ? <QuoteFocusToggle /> : null}
@@ -805,7 +803,7 @@ export default async function QuoteEditorPage({
                 </CardContent>
               </Card>
               <div className="flex flex-wrap gap-2">
-                <ButtonLink href={`/admin/quotes/${quote.id}/print`} size="sm">
+                <ButtonLink href={`/api/admin/quotes/${quote.id}/preview-pdf`} target="_blank" size="sm">
                   Vista PDF
                 </ButtonLink>
                 <ButtonLink href={`/api/admin/quotes/${quote.id}/word`} size="sm" variant="outline">
@@ -824,18 +822,12 @@ export default async function QuoteEditorPage({
           <div className="overflow-auto rounded-xl border border-border bg-neutral-200/60 shadow-sm">
             <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {issued ? "Vista previa" : "Documento editable"}
+                Documento editable
               </p>
               <span className="text-[11px] text-muted-foreground">{quote.items.length} ítems</span>
             </div>
             <div className="max-h-[min(85vh,calc(100vh-6rem))] overflow-auto bg-neutral-300/40 p-2 sm:p-3" data-tour="quote-live">
-              {issued ? (
-                <QuotePreviewZoom>
-                  <QuoteDocument quote={quote} />
-                </QuotePreviewZoom>
-              ) : (
-                liveCanvas
-              )}
+              {liveCanvas}
             </div>
           </div>
         </aside>

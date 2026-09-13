@@ -32,6 +32,8 @@ export type QuoteDocumentHtmlItem = {
   deliveryKey: string | null;
   groupId?: string | null;
   alternativeId?: string | null;
+  productId?: string | null;
+  ivaRate?: unknown;
   product?: {
     normalizedName: string;
     shortDescription: string | null;
@@ -56,6 +58,13 @@ export type QuoteDocumentHtmlInput = {
   itemGroups?: QuoteGroupRecord[];
   /** Opciones cotizadas. Con más de una, cada una lleva su tabla y su total. */
   alternatives?: Array<{ id: string; name: string; purpose: string | null; sortOrder: number }>;
+  terms?: {
+    paymentTerms: string | null;
+    paymentReference: string | null;
+    deliveryText: string | null;
+    validityDays: number;
+    productWarranty: string | null;
+  } | null;
   sections: Array<{
     id?: string;
     type: string;
@@ -70,6 +79,8 @@ export type QuoteDocumentHtmlInput = {
     url: string;
     sectionId: string | null;
     sortOrder: number;
+    productId?: string | null;
+    kind?: string | null;
   }>;
 };
 
@@ -170,6 +181,25 @@ export async function buildQuoteDocumentHtml(
     .filter((section) => section.included !== false)
     .sort((a, b) => a.sortOrder - b.sortOrder)) {
     if (section.type === "products_table") continue;
+    const sectionBody = (section.body ?? "").trim();
+    const sectionHasBody = sectionBody.length > 0 && sectionBody !== AI_SECTION_STUB;
+    if (section.type === "commercial_terms" && quote.terms) {
+      const rows: Array<[string, string]> = [];
+      if (quote.terms.paymentTerms) rows.push(["Forma de pago", quote.terms.paymentTerms]);
+      if (quote.terms.deliveryText) rows.push(["Plazo de entrega", quote.terms.deliveryText]);
+      rows.push(["Mantenimiento de la oferta", `${quote.terms.validityDays} días corridos`]);
+      if (quote.terms.productWarranty) rows.push(["Garantía", quote.terms.productWarranty]);
+      const termsTable = `<table style="width:100%;border-collapse:collapse;font-size:9.5pt;margin-top:4pt">${rows
+        .map(
+          ([label, value]) =>
+            `<tr><td style="width:52mm;border-bottom:.5pt solid #e2e6ea;padding:3pt 6pt 3pt 0;vertical-align:top;font-weight:bold;color:${color}">${escapeHtml(
+              label
+            )}</td><td style="border-bottom:.5pt solid #e2e6ea;padding:3pt 0;vertical-align:top">${escapeHtml(value)}</td></tr>`
+        )
+        .join("")}</table>`;
+      sectionChunks.push(`${heading(section.title)}${sectionHasBody ? paragraphs(sectionBody) : ""}${termsTable}`);
+      continue;
+    }
     const body = (section.body ?? "").trim();
     const hasBody = body.length > 0 && body !== AI_SECTION_STUB;
 
@@ -220,6 +250,16 @@ export async function buildQuoteDocumentHtml(
 
   const visibleItems = quote.items.filter((item) => !item.excluded);
   const totals = computeQuoteTotals(quote.items, quote.taxMode ?? "NOTE");
+  // Las fotos de producto se mostraban en la vista previa y no llegaban al
+  // documento del cliente, que es el que termina decidiendo la compra.
+  const photoByProduct = new Map<string, string>();
+  for (const asset of assets) {
+    if (asset.kind === "PRODUCT" && asset.productId && !photoByProduct.has(asset.productId)) {
+      photoByProduct.set(asset.productId, asset.url);
+    }
+  }
+  const anyPhoto = visibleItems.some((item) => item.productId && photoByProduct.has(item.productId));
+  const showTax = (quote.taxMode ?? "NOTE") === "ADDED";
 
   const itemRow = (item: QuoteDocumentHtmlItem, index: number) => {
     const line = quoteItemDisplay({ description: item.description, product: item.product });
@@ -228,23 +268,33 @@ export async function buildQuoteDocumentHtml(
         ? `<br/><span style="font-size:9pt;font-weight:normal;text-align:justify">${escapeHtml(line.blurb)}</span>`
         : ""
     }${item.optional ? " <i>(opcional)</i>" : ""}`;
+    const photo = item.productId ? photoByProduct.get(item.productId) : null;
+    const photoCell = anyPhoto
+      ? `<td style="border:.5pt solid #c9d0d8;padding:3pt;text-align:center">${
+          photo
+            ? `<img src="${escapeHtml(photo)}" style="max-width:52pt;max-height:52pt;object-fit:contain"/>`
+            : ""
+        }</td>`
+      : "";
     return `<tr style="background:${index % 2 ? "#f3f5f8" : "#ffffff"}">
-<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.quantity)}</td>
+${photoCell}<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.quantity)}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.unit)}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt">${detail}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${formatUsd(Number(item.unitPriceUsd))}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right;font-weight:bold">${formatUsd(Number(item.lineTotalUsd))}</td>
+${showTax ? `<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.ivaRate ?? 0)}%</td>` : ""}
 ${showDelivery ? `<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.deliveryKey || "")}</td>` : ""}
 </tr>`;
   };
 
   const tableHead = `<table style="width:100%;font-size:9pt;border-collapse:collapse">
 <tr style="background:${color};color:#fff">
-<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Cant.</th>
+${anyPhoto ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:center">Foto</th>` : ""}<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Cant.</th>
 <th style="border:.5pt solid ${color};padding:4pt;text-align:left">Un.</th>
 <th style="border:.5pt solid ${color};padding:4pt;text-align:left">Descripción</th>
 <th style="border:.5pt solid ${color};padding:4pt;text-align:right">Unitario</th>
 <th style="border:.5pt solid ${color};padding:4pt;text-align:right">Total</th>
+${showTax ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:right">IVA</th>` : ""}
 ${showDelivery ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Entrega</th>` : ""}
 </tr>`;
 
