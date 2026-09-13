@@ -21,6 +21,7 @@ import { buildSuggestions, noCandidatesAnswer, tryDeterministicAnswer } from "./
 import { buildCacheKey, cacheNormalizeQuestion, knowledgeVersion } from "./cache";
 import { shouldShowLeadReminder } from "./session";
 import { hasAnyLeadData } from "./leads";
+import { parseModelOutput } from "./llm";
 import { LIMITS, candidateLimitFor } from "./budget";
 import { expandSearchTerms } from "./synonyms";
 import type { CandidateProduct, QuestionAnalysis } from "./types";
@@ -289,6 +290,35 @@ describe("puente español → inglés del retrieval", () => {
     );
     assert.ok(terms.length <= 8);
     assert.equal(new Set(terms).size, terms.length, "sin duplicados");
+  });
+});
+
+describe("salida del modelo", () => {
+  it("acepta la respuesta aunque las etiquetas vengan raras", () => {
+    const parsed = parseModelOutput(
+      JSON.stringify({
+        answer: "El CP4N declara dos puertos Ethernet.",
+        status: "ANSWERED",
+        confidence: "HIGH",
+        productRefs: ["P1", "", "una etiqueta larguísima que no existe"],
+        sourceRefs: [{ ref: "P1", detail: "Ethernet: 2" }, { nope: true }],
+      })
+    );
+    assert.equal(parsed?.status, "ANSWERED");
+    assert.deepEqual(parsed?.productRefs, ["P1"]);
+    assert.equal(parsed?.sourceRefs?.length, 1);
+  });
+
+  it("rescata el texto cuando el JSON se corta a la mitad", () => {
+    const truncated = '{"answer":"Comparación entre CP4 y CP4N: ambos declaran control 4-Series y difieren en los puertos disponibles.","productRefs":["P1","P';
+    const parsed = parseModelOutput(truncated);
+    assert.ok(parsed, "no se pierde la respuesta");
+    assert.ok(parsed?.answer.includes("CP4N"));
+    assert.equal(parsed?.status, "PARTIAL");
+  });
+
+  it("descarta una salida sin texto", () => {
+    assert.equal(parseModelOutput('{"status":"ANSWERED"}'), null);
   });
 });
 

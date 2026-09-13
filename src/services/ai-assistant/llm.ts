@@ -10,18 +10,68 @@ import { getOpenAiChatModel, getOpenAiClient } from "@/services/openai";
 import { LIMITS } from "./budget";
 import { SYSTEM_PROMPT } from "./prompt";
 
-const rawAnswerSchema = z.object({
-  answer: z.string().min(1).max(4000),
-  status: z.enum(["ANSWERED", "PARTIAL", "INSUFFICIENT_INFORMATION", "OUT_OF_SCOPE"]).optional(),
-  confidence: z.enum(["HIGH", "MEDIUM", "LOW"]).optional(),
-  productRefs: z.array(z.string().max(8)).max(8).optional(),
-  sourceRefs: z
-    .array(z.object({ ref: z.string().max(8), detail: z.string().max(400).optional() }))
-    .max(12)
-    .optional(),
-});
+export interface RawLlmAnswer {
+  answer: string;
+  status?: "ANSWERED" | "PARTIAL" | "INSUFFICIENT_INFORMATION" | "OUT_OF_SCOPE";
+  confidence?: "HIGH" | "MEDIUM" | "LOW";
+  productRefs?: string[];
+  sourceRefs?: Array<{ ref: string; detail?: string }>;
+}
 
-export type RawLlmAnswer = z.infer<typeof rawAnswerSchema>;
+/**
+ * Lo único que se exige es el texto de la respuesta. El resto se limpia a
+ * mano: si el modelo devuelve una etiqueta rara o un campo de más, se
+ * descarta ese pedazo en vez de perder toda la respuesta.
+ *
+ * Las etiquetas igual se validan después contra los productos del contexto,
+ * así que nada de lo que venga acá puede inventar un producto.
+ */
+const answerTextSchema = z.string().min(1).max(6000);
+
+function cleanRefs(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out = value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item) => item.length > 0 && item.length <= 16)
+    .slice(0, 8);
+  return out.length > 0 ? out : undefined;
+}
+
+function cleanSourceRefs(value: unknown): RawLlmAnswer["sourceRefs"] {
+  if (!Array.isArray(value)) return undefined;
+  const out: Array<{ ref: string; detail?: string }> = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const ref = typeof row.ref === "string" ? row.ref.trim() : "";
+    if (!ref || ref.length > 16) continue;
+    const detail = typeof row.detail === "string" ? row.detail.trim().slice(0, 400) : undefined;
+    out.push({ ref, detail });
+    if (out.length >= 12) break;
+  }
+  return out.length > 0 ? out : undefined;
+}
+
+function normalizeAnswer(parsed: unknown): RawLlmAnswer | null {
+  if (!parsed || typeof parsed !== "object") return null;
+  const row = parsed as Record<string, unknown>;
+  const answer = answerTextSchema.safeParse(row.answer);
+  if (!answer.success) return null;
+
+  const status = row.status;
+  const confidence = row.confidence;
+  return {
+    answer: answer.data.trim(),
+    status:
+      status === "ANSWERED" || status === "PARTIAL" || status === "INSUFFICIENT_INFORMATION" || status === "OUT_OF_SCOPE"
+        ? status
+        : undefined,
+    confidence:
+      confidence === "HIGH" || confidence === "MEDIUM" || confidence === "LOW" ? confidence : undefined,
+    productRefs: cleanRefs(row.productRefs),
+    sourceRefs: cleanSourceRefs(row.sourceRefs),
+  };
+}
 
 export type LlmOutcome =
   | { ok: true; data: RawLlmAnswer; model: string; inputTokens?: number; outputTokens?: number }
@@ -51,6 +101,15 @@ function salvageAnswer(raw: string): RawLlmAnswer | null {
   const clean = text.trim();
   if (clean.length < 40) return null;
   return { answer: clean, status: "PARTIAL", confidence: "MEDIUM" };
+}
+
+/** Expuesto para tests: convierte la salida cruda del modelo en algo usable. */
+export function parseModelOutput(raw: string): RawLlmAnswer | null {
+  try {
+    return normalizeAnswer(JSON.parse(raw)) ?? salvageAnswer(raw);
+  } catch {
+    return salvageAnswer(raw);
+  }
 }
 
 export async function askModel(
@@ -92,12 +151,12 @@ export async function askModel(
           outputTokens: response.usage?.completion_tokens,
         };
       }
-      const parsed = rawAnswerSchema.safeParse(parsedJson);
-      if (!parsed.success) return { ok: false, reason: "ERROR" };
+      const normalized = normalizeAnswer(parsedJson) ?? salvageAnswer(raw);
+      if (!normalized) return { ok: false, reason: "ERROR" };
 
       return {
         ok: true,
-        data: parsed.data,
+        data: normalized,
         model,
         inputTokens: response.usage?.prompt_tokens,
         outputTokens: response.usage?.completion_tokens,
