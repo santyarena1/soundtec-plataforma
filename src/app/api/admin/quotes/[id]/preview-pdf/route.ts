@@ -69,8 +69,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     // es el mismo HTML del que sale el PDF, así que sigue siendo fiel al que
     // recibe el cliente y se puede imprimir desde el navegador.
     console.error("preview-pdf: no se pudo generar el PDF", error);
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     return new NextResponse(html, {
-      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+        // Para diagnosticar por qué no arrancó el navegador del servidor.
+        "X-Pdf-Error": detail.replace(/[^ -~]/g, " ").slice(0, 300),
+      },
     });
   }
 }
