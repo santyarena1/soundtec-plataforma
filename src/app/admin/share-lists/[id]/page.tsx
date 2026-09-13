@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShareListForm } from "@/components/admin/share-list-form";
 import { parseShareListFilters } from "@/lib/shareable-price-list";
+import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Admin · Editar lista compartible" };
 
@@ -59,7 +60,7 @@ export default async function EditShareListPage({ params }: { params: Promise<{ 
         </CardContent>
       </Card>
       <Card><CardContent className="p-6"><h2 className="mb-3 font-semibold">Últimas vistas</h2>
-        {list.views.length ? <ul className="divide-y divide-border text-sm">{list.views.map((view) => <li key={view.id} className="flex justify-between py-2"><span>{view.userAgent?.match(/Mobile|Android|iPhone/i) ? "Móvil" : "Escritorio"}</span><span className="text-muted-foreground">{view.viewedAt.toLocaleString("es-AR")}</span></li>)}</ul> : <p className="text-sm text-muted-foreground">Todavía no hay vistas registradas.</p>}
+        {list.views.length ? <ul className="divide-y divide-border text-sm">{list.views.map((view) => <li key={view.id} className="flex justify-between py-2"><span>{view.userAgent?.match(/Mobile|Android|iPhone/i) ? "Móvil" : "Escritorio"}</span><span className="text-muted-foreground">{formatDate(view.viewedAt)}</span></li>)}</ul> : <p className="text-sm text-muted-foreground">Todavía no hay vistas registradas.</p>}
       </CardContent></Card>
     </div>
   );

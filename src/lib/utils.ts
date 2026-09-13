@@ -30,12 +30,20 @@ export function formatPercent(value: number | string | null | undefined, fractio
   }).format(num / 100);
 }
 
+/**
+ * Zona horaria de la empresa. Sin esto, todo lo que se renderiza en el
+ * servidor sale en UTC (Vercel corre ahí) y muestra tres horas de más, además
+ * de no coincidir con lo que formatea el navegador del usuario.
+ */
+export const APP_TIME_ZONE = "America/Argentina/Buenos_Aires";
+
 export function formatDate(value: Date | string | null | undefined) {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;
   return new Intl.DateTimeFormat("es-AR", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: APP_TIME_ZONE,
   }).format(date);
 }
 

@@ -8,6 +8,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/lib/utils";
+import { getUsageSummary, MODEL_PRICING } from "@/services/ai-assistant/usage";
 import { MessagesSquare, UserPlus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -84,6 +85,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       where: { role: "assistant", answerStatus: { in: [...UNANSWERED] }, session: sessionWhere },
     }),
   ]);
+
+  const usage = await getUsageSummary(sessionWhere);
 
   // La respuesta de cada pregunta es el mensaje del asistente que le sigue.
   const answers = await prisma.aiChatMessage.findMany({
@@ -188,6 +191,48 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
             </Select>
             <button className="h-10 rounded-md bg-primary px-4 text-sm text-primary-foreground">Filtrar</button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-3 p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm font-medium">Uso y costo del modelo</p>
+            <p className="text-xs text-muted-foreground">
+              {MODEL_PRICING.model} · USD {MODEL_PRICING.inputPerMillion} por millón de tokens de entrada y{" "}
+              {MODEL_PRICING.outputPerMillion} de salida
+            </p>
+          </div>
+          <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                label: "Costo del período",
+                value: `USD ${usage.costUsd.toFixed(2)}`,
+                hint: `${usage.answers} respuestas`,
+              },
+              {
+                label: "Costo por consulta",
+                value: `USD ${usage.costPerAnswerUsd.toFixed(4)}`,
+                hint: `USD ${usage.costPerThousandUsd.toFixed(2)} cada 1.000`,
+              },
+              {
+                label: "Tokens por consulta con modelo",
+                value: `${usage.avgInputPerModelCall.toLocaleString("es-AR")} + ${usage.avgOutputPerModelCall.toLocaleString("es-AR")}`,
+                hint: "entrada + salida",
+              },
+              {
+                label: "Resueltas sin modelo",
+                value: `${usage.answers > 0 ? Math.round((usage.withoutModel / usage.answers) * 100) : 0}%`,
+                hint: `${usage.withoutModel} de ${usage.answers}${usage.cacheHits ? ` · ${usage.cacheHits} desde cache` : ""}`,
+              },
+            ].map((item) => (
+              <div key={item.label}>
+                <p className="text-lg font-semibold tabular-nums">{item.value}</p>
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <p className="text-[11px] text-muted-foreground/80">{item.hint}</p>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { loadQuoteForUser } from "@/lib/quote-access";
+import { APP_TIME_ZONE } from "@/lib/utils";
 import { getDeliveryOptions } from "@/lib/quote-settings";
 import { Settings } from "lucide-react";
 import { ensureQuoteSections, getCompanyIdentity, moduleByKey, parseQuoteStep, QUOTE_STEPS } from "@/lib/quote-defaults";
@@ -208,7 +209,7 @@ export default async function QuoteEditorPage({
       identity={identity}
       header={{
         dateLabel: `Buenos Aires, ${(quote.issuedAt ?? new Date()).toLocaleDateString("es-AR", {
-          day: "numeric",
+          day: "numeric", timeZone: APP_TIME_ZONE,
           month: "long",
           year: "numeric",
         })}`,
