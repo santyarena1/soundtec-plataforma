@@ -17,6 +17,18 @@ interface Props {
 const MIN_SCALE = 1;
 const MAX_SCALE = 6;
 
+/**
+ * El marco de la foto se adapta a la proporción de la foto.
+ *
+ * Con un marco fijo de 4:3 una foto cuadrada, que es el formato de casi todo
+ * el catálogo, se dibujaba chica y centrada con bandas blancas a los costados,
+ * y la columna de texto de al lado quedaba enorme en comparación. Los límites
+ * evitan que una foto muy apaisada o muy alargada deforme la ficha.
+ */
+const MIN_FRAME_RATIO = 0.8;
+const MAX_FRAME_RATIO = 1.6;
+const DEFAULT_FRAME_RATIO = 1;
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
@@ -37,6 +49,7 @@ export function ProductGallery({ images, productName }: Props) {
   const [lightbox, setLightbox] = useState(false);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [frameRatio, setFrameRatio] = useState(DEFAULT_FRAME_RATIO);
 
   const frameRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
@@ -127,7 +140,7 @@ export function ProductGallery({ images, productName }: Props) {
 
   if (images.length === 0) {
     return (
-      <div className="h-[20rem] overflow-hidden rounded-xl border border-border bg-white shadow-sm sm:h-[24rem] lg:h-[30rem]">
+      <div className="aspect-square overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
           Producto sin imagen
         </div>
@@ -189,7 +202,8 @@ export function ProductGallery({ images, productName }: Props) {
       <button
         type="button"
         onClick={() => setLightbox(true)}
-        className="group relative block h-[20rem] w-full overflow-hidden rounded-xl border border-border bg-white p-3 shadow-sm sm:h-[24rem] lg:h-[30rem]"
+        className="group relative block w-full overflow-hidden rounded-xl border border-border bg-white p-3 shadow-sm"
+        style={{ aspectRatio: String(frameRatio) }}
         aria-label="Ver imagen ampliada"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -197,6 +211,11 @@ export function ProductGallery({ images, productName }: Props) {
           src={active.url}
           alt={active.alt || productName}
           className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]"
+          onLoad={(event) => {
+            const { naturalWidth, naturalHeight } = event.currentTarget;
+            if (!naturalWidth || !naturalHeight) return;
+            setFrameRatio(clamp(naturalWidth / naturalHeight, MIN_FRAME_RATIO, MAX_FRAME_RATIO));
+          }}
         />
         <span className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-card/85 px-2 py-1 text-[11px] font-medium text-foreground shadow opacity-0 transition-opacity group-hover:opacity-100">
           <ZoomIn className="h-3 w-3" /> Ampliar
