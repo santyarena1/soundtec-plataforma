@@ -247,15 +247,15 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         }}
         draftRequestId={activeDraft.id}
       >
-      <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-start">
-        <div className="lg:sticky lg:top-6">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
+        <div className="min-w-0 lg:sticky lg:top-6">
           <ProductGallery
             images={product.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt }))}
             productName={product.normalizedName}
           />
         </div>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5 [overflow-wrap:anywhere]">
           <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {product.brand?.name || "Marca"}

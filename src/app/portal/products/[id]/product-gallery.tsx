@@ -127,7 +127,7 @@ export function ProductGallery({ images, productName }: Props) {
 
   if (images.length === 0) {
     return (
-      <div className="aspect-[4/3] overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+      <div className="h-[20rem] overflow-hidden rounded-xl border border-border bg-white shadow-sm sm:h-[24rem] lg:h-[30rem]">
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
           Producto sin imagen
         </div>
@@ -189,7 +189,7 @@ export function ProductGallery({ images, productName }: Props) {
       <button
         type="button"
         onClick={() => setLightbox(true)}
-        className="group relative block aspect-[4/3] w-full overflow-hidden rounded-xl border border-border bg-white shadow-sm"
+        className="group relative block h-[20rem] w-full overflow-hidden rounded-xl border border-border bg-white p-3 shadow-sm sm:h-[24rem] lg:h-[30rem]"
         aria-label="Ver imagen ampliada"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
