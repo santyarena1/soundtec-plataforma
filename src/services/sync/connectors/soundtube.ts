@@ -22,7 +22,45 @@ export const SOUNDTUBE_SETTING_KEYS = {
   priceField: "soundtube.price_field",
   categoryTarget: "soundtube.category_target",
   translations: "soundtube.category_translations",
+  /** "excel" = el costo sale de la lista Excel (admin/sync/soundtube-prices); el sync no lo pisa. */
+  priceSource: "soundtube.price_source",
+  /** "excel" = rubro/subrubro/familia/tipo salen del Excel; el sync no los pisa. */
+  taxonomySource: "soundtube.taxonomy_source",
 } as const;
+
+interface ExcelOverrides {
+  price: boolean;
+  taxonomy: boolean;
+}
+
+async function loadExcelOverrides(): Promise<ExcelOverrides> {
+  const [price, taxonomy] = await Promise.all([
+    getSetting(SOUNDTUBE_SETTING_KEYS.priceSource, "api"),
+    getSetting(SOUNDTUBE_SETTING_KEYS.taxonomySource, "api"),
+  ]);
+  return { price: price.trim() === "excel", taxonomy: taxonomy.trim() === "excel" };
+}
+
+/**
+ * Saca del item lo que hoy manda el Excel, para que el sync no lo pise.
+ * Solo en productos que ya existen: uno nuevo se crea con el costo y la
+ * clasificación de la API (si no quedaría con costo 0) hasta la próxima lista.
+ */
+export function withoutExcelFields(
+  item: NormalizedProduct,
+  excel: ExcelOverrides,
+  existingSkus: ReadonlySet<string>
+): NormalizedProduct {
+  if (!excel.price && !excel.taxonomy) return item;
+  if (!existingSkus.has(item.matchValue)) return item;
+  return {
+    ...item,
+    ...(excel.price ? { baseCostUsd: undefined } : {}),
+    ...(excel.taxonomy
+      ? { categoryName: undefined, familyName: undefined, familia: undefined, tipo: undefined }
+      : {}),
+  };
+}
 
 const TRANSLATION_DOMAIN =
   "SoundTube / Soundsphere / Phase Technology / Rockustics — parlantes comerciales y residenciales B2B";
@@ -110,14 +148,24 @@ export const soundtubeConnector: ProductSourceConnector = {
   async fetchNormalized(opts) {
     const offset = Math.max(0, opts?.offset ?? 0);
     const batchSize = Math.max(1, Math.min(SOUNDTUBE_PAGE_LIMIT, opts?.batchSize ?? 50));
-    const [priceField, category, page] = await Promise.all([
+    const [priceField, category, excel, page] = await Promise.all([
       loadPriceField(),
       loadCategoryConfig(),
+      loadExcelOverrides(),
       fetchSoundTubePage(offset, batchSize),
     ]);
-    const items = page.items
+    const normalized = page.items
       .filter((item) => item.itemid?.trim())
       .map((item) => toNormalizedProduct(item, priceField, category));
+    const existingSkus = new Set<string>();
+    if (excel.price || excel.taxonomy) {
+      const existing = await prisma.product.findMany({
+        where: { supplierSku: { in: normalized.map((item) => item.matchValue) } },
+        select: { supplierSku: true },
+      });
+      for (const row of existing) if (row.supplierSku) existingSkus.add(row.supplierSku);
+    }
+    const items = normalized.map((item) => withoutExcelFields(item, excel, existingSkus));
 
     const esNames = Array.from(
       new Set(items.flatMap((item) => [item.categoryName, item.familyName]).filter((n): n is string => !!n))

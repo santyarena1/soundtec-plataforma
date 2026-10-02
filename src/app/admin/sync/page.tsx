@@ -15,7 +15,7 @@ export default async function SyncPage() {
         description="Unifica Crestron y Sonance en un flujo de previsualización y aplicación, con sincronización automática programada por cron."
       />
       <UnifiedSyncPanel />
-      <div className="flex justify-end gap-4"><Link href="/admin/sync/code-names" className="text-xs text-muted-foreground hover:text-foreground hover:underline">Nombres por código</Link><Link href="/admin/sync/legacy" className="text-xs text-muted-foreground hover:text-foreground hover:underline">Herramientas clásicas</Link></div>
+      <div className="flex justify-end gap-4"><Link href="/admin/sync/soundtube-prices" className="text-xs text-muted-foreground hover:text-foreground hover:underline">Lista de precios SoundTube</Link><Link href="/admin/sync/code-names" className="text-xs text-muted-foreground hover:text-foreground hover:underline">Nombres por código</Link><Link href="/admin/sync/legacy" className="text-xs text-muted-foreground hover:text-foreground hover:underline">Herramientas clásicas</Link></div>
     </div>
   );
 }
