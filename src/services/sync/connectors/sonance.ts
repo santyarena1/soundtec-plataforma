@@ -14,6 +14,7 @@ import {
   type PortalProductListing,
 } from "@/services/sonance-portal";
 import { getSetting, setSetting } from "@/lib/settings";
+import { codeNameFor } from "@/lib/product-code-name";
 import { translateBatchCached } from "@/services/translation-cache";
 import {
   canonicalizeSonanceBrand,
@@ -314,14 +315,16 @@ function normalizeDetail(
   detail: PortalProductDetail,
   subBrandBySku: Record<string, string>
 ): NormalizedProduct {
-  const name = str(detail.productTitle) ?? listing.name;
+  const title = str(detail.productTitle) ?? listing.name;
   const supplierSku = listing.supplierSku;
   const modelNumber = str(detail.modelNumber);
+  // Nombre = modelo del portal; el título descriptivo queda en originalName.
+  const name = codeNameFor({ source: "sonance", modelNumber }) ?? title;
   const manufacturerItem = str(detail.manufacturerItem);
   const brandName =
     subBrandBySku[supplierSku] ??
     inferBrandFromKeywords([
-      name,
+      title,
       supplierSku,
       modelNumber,
       manufacturerItem,
@@ -378,7 +381,7 @@ function normalizeDetail(
     vendorProductUrl:
       str(detail.productDetailUrl) ?? str(detail.canonicalUrl),
     videoUrl,
-    originalName: str(detail.productTitle) ?? listing.name,
+    originalName: title,
     brandName,
     categoryName: str(listing.category),
     tipo: str(listing.subcategory),

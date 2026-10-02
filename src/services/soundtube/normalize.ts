@@ -10,6 +10,7 @@ import type {
   NormalizedProduct,
   NormalizedSpec,
 } from "@/services/sync/types";
+import { codeNameFor } from "@/lib/product-code-name";
 import { soundTubeDocumentUrl, soundTubeProductUrl, type SoundTubeItem } from "./client";
 
 export const SOUNDTUBE_RAW_KEY = "soundtube";
@@ -195,7 +196,8 @@ export function toNormalizedProduct(
   const normalized: NormalizedProduct = {
     matchField: "supplierSku",
     matchValue: sku,
-    name: displayName,
+    // Nombre = SKU (como lo usa Soundtec); el título descriptivo queda en originalName.
+    name: codeNameFor({ source: "soundtube", supplierSku: sku }) ?? displayName,
     originalName: displayName,
     brandName: brandNameOf(item),
     baseCostUsd: price,
