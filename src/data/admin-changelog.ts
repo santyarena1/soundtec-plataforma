@@ -665,4 +665,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Si Sonance no devuelve el My Price, la sincronización queda como fallida en lugar de seguir con el costo viejo." },
     ],
   },
+  {
+    id: "ship-2026-10-02-logo-visible",
+    version: "1.18.2",
+    releasedAt: "2026-10-02T13:30:00.000Z",
+    summary: "El logo vuelve a verse en el menú del admin, el portal y la web.",
+    items: [
+      { kind: "FIX", text: "El logo es blanco y desaparecía sobre las barras claras: ahora va sobre el color de la marca en todos lados, incluida la vista previa de Branding." },
+    ],
+  },
 ];

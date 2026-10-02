@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { Bookmark, Heart, LayoutDashboard, Package, Send } from "lucide-react";
 import { getSetting } from "@/lib/settings";
 import { DraftMiniCart } from "@/components/portal/draft-mini-cart";
@@ -40,16 +41,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className="container-page flex h-14 items-center justify-between gap-2 sm:h-16">
           <Link href="/portal" className="flex min-w-0 items-center gap-2">
-            {logoUrl ? (
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md sm:h-11 sm:w-11">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
-              </span>
-            ) : (
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground sm:h-11 sm:w-11">
-                S
-              </span>
-            )}
+            <BrandLogo logoUrl={logoUrl} className="h-9 w-9 sm:h-11 sm:w-11" />
             <div className="min-w-0 leading-tight">
               <p className="truncate text-sm font-semibold text-foreground">{appName} · Portal</p>
               <p className="hidden truncate text-[11px] uppercase tracking-wider text-muted-foreground sm:block">

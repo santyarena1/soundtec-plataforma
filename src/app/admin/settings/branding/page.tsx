@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { requirePermission } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { SettingsSectionHeader } from "@/components/admin/settings-section-header";
@@ -52,10 +53,7 @@ export default async function SettingsBrandingPage() {
 
           {logoUrl ? (
             <div className="flex items-center gap-3 rounded-md border border-border bg-secondary/40 p-3">
-              <div className="h-12 w-12 overflow-hidden rounded bg-card">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={logoUrl} alt="Logo actual" className="h-full w-full object-contain" />
-              </div>
+              <BrandLogo logoUrl={logoUrl} className="h-12 w-12" />
               <div className="min-w-0">
                 <p className="text-sm font-medium">Logo actual</p>
                 <p className="truncate text-xs text-muted-foreground">{logoUrl}</p>

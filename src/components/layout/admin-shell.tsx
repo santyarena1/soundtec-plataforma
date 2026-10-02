@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { getSetting } from "@/lib/settings";
 import { AdminSidebarNav } from "@/components/layout/admin-sidebar-nav";
 import { AdminMobileNav } from "@/components/layout/admin-mobile-nav";
@@ -47,16 +48,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
   function BrandMark() {
     return (
       <Link href="/admin" className="flex min-w-0 items-center gap-2">
-        {logoUrl ? (
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md lg:h-11 lg:w-11">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
-          </span>
-        ) : (
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground lg:h-11 lg:w-11">
-            S
-          </span>
-        )}
+        <BrandLogo logoUrl={logoUrl} className="h-10 w-10 lg:h-11 lg:w-11" />
         <div className="min-w-0 leading-tight">
           <p className="truncate text-sm font-semibold">{appName}</p>
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Admin</p>

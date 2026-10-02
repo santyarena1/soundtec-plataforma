@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { ButtonLink } from "@/components/ui/button";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { getSetting } from "@/lib/settings";
 import { PublicMobileMenu } from "@/components/layout/public-mobile-menu";
 
@@ -31,16 +32,7 @@ export async function PublicNavbar() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/65">
       <div className="container-page relative flex h-16 items-center justify-between gap-2">
         <Link href="/" className="flex min-w-0 items-center gap-2">
-          {logoUrl ? (
-            <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-md">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
-            </span>
-          ) : (
-            <span className="flex h-11 w-11 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">
-              S
-            </span>
-          )}
+          <BrandLogo logoUrl={logoUrl} className="h-11 w-11" />
           <div className="leading-tight">
             <p className="text-sm font-semibold text-foreground">{appName}</p>
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Integramos tecnología</p>
