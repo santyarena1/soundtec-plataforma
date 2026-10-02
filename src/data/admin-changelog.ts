@@ -655,4 +655,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Desde que aplicás una lista, el sync de SoundTube ya no pisa los costos cargados por Excel." },
     ],
   },
+  {
+    id: "ship-2026-10-02-sonance-my-price",
+    version: "1.18.1",
+    releasedAt: "2026-10-02T12:00:00.000Z",
+    summary: "Sonance vuelve a tomar el My Price (precio dealer) como costo, en vez del wholesale.",
+    items: [
+      { kind: "FIX", text: "El sync de Sonance trae el My Price de cada producto (ej. DSP 2-150 MKIII: 528 en vez de 660). Corré Sonance en Sincronización para actualizar los costos." },
+      { kind: "MEJORA", text: "Si Sonance no devuelve el My Price, la sincronización queda como fallida en lugar de seguir con el costo viejo." },
+    ],
+  },
 ];

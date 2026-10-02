@@ -2,7 +2,7 @@ import {
   fetchFromPortalWithIds,
   fetchProductsBySearch,
   fetchProductDetailRawOrThrow,
-  fetchRealtimePricing,
+  fetchRealtimePricingDetailed,
   openSession,
   resolveSonanceMyPrice,
   sessionFromCookies,
@@ -247,12 +247,14 @@ async function fetchBatchDetails(
   firstError: string | undefined;
   attempted: number;
   skippedNoId: number;
+  noMyPriceCount: number;
 }> {
   const items: NormalizedProduct[] = [];
   const concurrency = 5;
   const attempted = entries.filter((entry) => !!entry.portalId).length;
   const skippedNoId = entries.length - attempted;
   let failedCount = 0;
+  let noMyPriceCount = 0;
   let firstError: string | undefined;
 
   for (let index = 0; index < entries.length; index += concurrency) {
@@ -294,10 +296,17 @@ async function fetchBatchDetails(
       (row): row is { listing: ListingProduct; portalId: string; detail: PortalProductDetail } =>
         !!row
     );
-    const priceMap = await fetchRealtimePricing(
+    const pricing = await fetchRealtimePricingDetailed(
       session,
-      loaded.map((row) => row.portalId)
+      loaded.map((row) => ({ productId: row.portalId, unitOfMeasure: row.detail.unitOfMeasure }))
     );
+    const priceMap = pricing.prices;
+    if (pricing.failedIds.length > 0) {
+      // Sin My Price el costo no se toca (nunca se cae a wholesale); se informa en la corrida.
+      noMyPriceCount += pricing.failedIds.length;
+      firstError ??= `Sonance no devolvió My Price para ${pricing.failedIds.length} producto(s)` +
+        (pricing.firstError ? `: ${pricing.firstError}` : "");
+    }
     for (const row of loaded) {
       const price = priceMap.get(row.portalId);
       if (price) {
@@ -307,7 +316,7 @@ async function fetchBatchDetails(
     }
   }
 
-  return { items, failedCount, firstError, attempted, skippedNoId };
+  return { items, failedCount, firstError, attempted, skippedNoId, noMyPriceCount };
 }
 
 function normalizeDetail(
@@ -462,7 +471,15 @@ export const sonanceConnector: ProductSourceConnector = {
       detailResult = await fetchBatchDetails(batch, session, subBrandBySku);
     }
 
-    const { items, attempted, firstError } = detailResult;
+    const { items, attempted, firstError, noMyPriceCount } = detailResult;
+    if (items.length > 0 && noMyPriceCount >= items.length) {
+      throw new Error(
+        `Sonance: ningún producto del lote trajo My Price (realtimepricing). No se tocan costos. ${firstError ?? ""}`.trim()
+      );
+    }
+    if (noMyPriceCount > 0) {
+      console.error(`[sonance-sync] ${noMyPriceCount} producto(s) sin My Price en el lote; su costo no se actualiza.`);
+    }
     if (items.length === 0 && attempted > 0 && firstError) {
       throw new Error(
         `Sonance: fallaron los ${attempted} detalles del lote. Primer error: ${firstError}`

@@ -489,6 +489,8 @@ export interface PortalProductDetail {
   unitListPrice?: number;
   /** Precio calculado para el dealer logueado. unitNetPrice = “My Price” en la web. */
   pricing?: PortalProductPrice;
+  /** Unidad de venta (EA, PR…); hay que mandarla a realtimepricing. */
+  unitOfMeasure?: string;
 
   isActive?: boolean;
   isDiscontinued?: boolean;
@@ -575,44 +577,102 @@ export function resolveSonanceMyPrice(input: {
   return positivePrice(input.pricing?.unitNetPrice);
 }
 
+/** Unidad que usa la web si el producto no informa otra. Con "" Sonance responde 400. */
+const DEFAULT_PRICE_UOM = "EA";
+const REALTIME_CHUNK = 25;
+
+export interface RealtimePricingRequest {
+  productId: string;
+  /** Unidad del producto en el portal (EA, PR…). Vacío → "EA". */
+  unitOfMeasure?: string | null;
+}
+
+export interface RealtimePricingResult {
+  prices: Map<string, PortalProductPrice>;
+  /** Productos para los que Sonance no devolvió My Price. */
+  failedIds: string[];
+  firstError?: string;
+}
+
+async function postRealtimePricing(
+  session: Session,
+  requests: RealtimePricingRequest[],
+  qtyOrdered: number
+): Promise<PortalProductPrice[]> {
+  const data = await apiPost<{ realTimePricingResults?: PortalProductPrice[] }>(
+    session,
+    "/api/v1/realtimepricing",
+    {
+      productPriceParameters: requests.map((r) => ({
+        productId: r.productId,
+        qtyOrdered,
+        unitOfMeasure: r.unitOfMeasure?.trim() || DEFAULT_PRICE_UOM,
+      })),
+    }
+  );
+  return data.realTimePricingResults ?? [];
+}
+
 /**
  * POST /api/v1/realtimepricing — el mismo endpoint que usa la web para MY PRICE.
- * Devuelve un map productId → pricing (unitNetPrice = My Price).
+ * Si un lote falla se reintenta de a uno, y se informan los que no tienen precio.
  */
-export async function fetchRealtimePricing(
+export async function fetchRealtimePricingDetailed(
   session: Session,
-  productIds: string[],
+  requests: RealtimePricingRequest[],
   qtyOrdered = 1
-): Promise<Map<string, PortalProductPrice>> {
-  const out = new Map<string, PortalProductPrice>();
-  const ids = [...new Set(productIds.map((id) => id.trim()).filter(Boolean))];
-  if (ids.length === 0) return out;
+): Promise<RealtimePricingResult> {
+  const prices = new Map<string, PortalProductPrice>();
+  const unique = [
+    ...new Map(
+      requests
+        .map((r) => ({ ...r, productId: r.productId.trim() }))
+        .filter((r) => r.productId)
+        .map((r) => [r.productId, r])
+    ).values(),
+  ];
+  let firstError: string | undefined;
+  const collect = (results: PortalProductPrice[]) => {
+    for (const result of results) {
+      const id = result.productId?.trim();
+      if (id) prices.set(id, result);
+    }
+  };
 
-  const CHUNK = 25;
-  for (let i = 0; i < ids.length; i += CHUNK) {
-    const chunk = ids.slice(i, i + CHUNK);
+  for (let i = 0; i < unique.length; i += REALTIME_CHUNK) {
+    const chunk = unique.slice(i, i + REALTIME_CHUNK);
     try {
-      const data = await apiPost<{
-        realTimePricingResults?: PortalProductPrice[];
-      }>(session, "/api/v1/realtimepricing", {
-        productPriceParameters: chunk.map((productId) => ({
-          productId,
-          qtyOrdered,
-          unitOfMeasure: "",
-        })),
-      });
-      for (const result of data.realTimePricingResults ?? []) {
-        const id = result.productId?.trim();
-        if (id) out.set(id, result);
+      collect(await postRealtimePricing(session, chunk, qtyOrdered));
+    } catch (chunkError) {
+      firstError ??= errorText(chunkError);
+      for (const single of chunk) {
+        try {
+          collect(await postRealtimePricing(session, [single], qtyOrdered));
+        } catch (singleError) {
+          console.error(`sonance-portal: realtimepricing falló para ${single.productId}`, singleError);
+        }
       }
-    } catch (e) {
-      console.error(
-        `sonance-portal: realtimepricing falló para ${chunk.length} productos`,
-        e
-      );
     }
   }
-  return out;
+
+  const failedIds = unique
+    .map((r) => r.productId)
+    .filter((id) => !(prices.get(id)?.unitNetPrice && prices.get(id)!.unitNetPrice! > 0));
+  return { prices, failedIds, firstError };
+}
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** Atajo: map productId → pricing (unitNetPrice = My Price). */
+export async function fetchRealtimePricing(
+  session: Session,
+  productIds: Array<string | RealtimePricingRequest>,
+  qtyOrdered = 1
+): Promise<Map<string, PortalProductPrice>> {
+  const requests = productIds.map((p) => (typeof p === "string" ? { productId: p } : p));
+  return (await fetchRealtimePricingDetailed(session, requests, qtyOrdered)).prices;
 }
 
 /**
@@ -675,7 +735,9 @@ export async function fetchProductDetailRawOrThrow(
   const product = data.product ?? null;
   if (!product) return null;
   if (includeRealtimePrice) {
-    const priceMap = await fetchRealtimePricing(session, [productId]);
+    const priceMap = await fetchRealtimePricing(session, [
+      { productId, unitOfMeasure: product.unitOfMeasure },
+    ]);
     const price = priceMap.get(productId);
     if (price) {
       product.pricing = {
