@@ -642,4 +642,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "SoundTube entra en el cron semanal junto a Crestron y Sonance." },
     ],
   },
+  {
+    id: "ship-2026-10-01-codigos-y-lista-soundtube",
+    version: "1.18.0",
+    releasedAt: "2026-10-02T01:46:00.000Z",
+    summary: "Los productos se llaman por su código y los precios de SoundTube se cargan desde el Excel de la lista.",
+    items: [
+      { kind: "NUEVO", text: "Sincronización → Nombres por código: el nombre pasa a ser el modelo en Sonance / BLAZE / JAMES / IPORT / TRUFIG y el SKU en las marcas de SoundTube. Muestra la lista antes de aplicar." },
+      { kind: "NUEVO", text: "Sincronización → Lista de precios SoundTube: subís el Excel, SPRDIS US es el costo y MUP queda como regla de markup de cada producto." },
+      { kind: "NUEVO", text: "Al subir la lista te marca los productos que quedan afuera y elegís dejarlos, desactivarlos o ponerles precio." },
+      { kind: "MEJORA", text: "La clasificación del Excel (CATEGORIA, SEGMENTO, FAMILIA, TIPO) se puede aplicar con una casilla." },
+      { kind: "MEJORA", text: "Desde que aplicás una lista, el sync de SoundTube ya no pisa los costos cargados por Excel." },
+    ],
+  },
 ];
