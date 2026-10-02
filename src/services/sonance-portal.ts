@@ -615,6 +615,44 @@ export async function fetchRealtimePricing(
   return out;
 }
 
+/**
+ * Diagnóstico: hace una request al portal y devuelve status + cuerpo crudo,
+ * sin tragarse errores. Solo para la ruta admin de prueba de precios.
+ */
+export async function probePortalRequest(
+  session: Session,
+  method: "GET" | "POST",
+  path: string,
+  body?: unknown
+): Promise<{ status: number; body: unknown }> {
+  const payload = body === undefined ? undefined : JSON.stringify(body);
+  const res = await rawRequestOnce(
+    `${BASE}${path}`,
+    method,
+    browserHeaders({
+      Accept: "application/json",
+      Referer: `${BASE}/`,
+      "X-Requested-With": "XMLHttpRequest",
+      Cookie: cookieStr(session.cookies),
+      ...(payload
+        ? {
+            "Content-Type": "application/json",
+            "Content-Length": String(Buffer.byteLength(payload)),
+            Origin: BASE,
+          }
+        : {}),
+    }),
+    payload
+  );
+  let parsed: unknown = res.body.slice(0, 2000);
+  try {
+    parsed = JSON.parse(res.body);
+  } catch {
+    // cuerpo no-JSON: se devuelve recortado
+  }
+  return { status: res.status, body: parsed };
+}
+
 /** @deprecated Usar fetchRealtimePricing — /products/{id}/price no trae el My Price del dealer. */
 export async function fetchProductPrice(
   session: Session,
