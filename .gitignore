@@ -48,3 +48,6 @@ prisma/dev.db*
 # local postgres data
 .local-postgres/
 .codex-apply/
+
+# brainstorming visual (superpowers)
+.superpowers/
