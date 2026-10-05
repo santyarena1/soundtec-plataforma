@@ -1,4 +1,5 @@
 import type { CatalogFilters } from "@/lib/catalog";
+import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 
 export type CatalogView = "grid" | "table";
 
@@ -39,8 +40,8 @@ export function parseCatalogSearchParams(
     categoryIds: toList(params.category),
     familyIds: toList(params.family),
     stock:
-      stock === "in_stock" || stock === "low_stock" || stock === "on_request" ? stock : "any",
-    includeOutOfStock: params.oos === "1",
+      SHOW_STOCK_TO_CUSTOMERS && (stock === "in_stock" || stock === "low_stock" || stock === "on_request") ? stock : "any",
+    includeOutOfStock: SHOW_STOCK_TO_CUSTOMERS ? params.oos === "1" : true,
     hasDiscount: params.discount === "1",
     favoritesOnly: params.fav === "1",
     crestronOnly: params.crestron === "1",

@@ -11,6 +11,7 @@ import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { buildProductSearchAnd, productTokenOr, searchRank } from "@/lib/product-search";
 import { compareByRelevance, hasEnoughViews } from "@/lib/catalog-relevance";
 import { loadProductViewCounts } from "@/server/catalog/product-views";
+import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 
 /**
  * Construye el OR del filtro de búsqueda extendido. Buscar SIMULTÁNEAMENTE en:
@@ -173,7 +174,7 @@ async function buildCatalogWhere(
         ? { stockStatus: "LOW_STOCK" }
         : filters.stock === "on_request"
           ? { stockStatus: "ON_REQUEST" }
-          : filters.includeOutOfStock || ctx.publicMode
+          : filters.includeOutOfStock || ctx.publicMode || !SHOW_STOCK_TO_CUSTOMERS
             ? {}
             : { stockStatus: { not: "OUT_OF_STOCK" } }),
     ...(filters.hasDiscount ? { discountPercent: { gt: 0 } } : {}),
@@ -495,6 +496,7 @@ export async function getCatalogSidebarMeta(
   }
   // Cuántos "sin stock" quedan ocultos por el toggle (misma consulta, sin la exclusión).
   const hidesOutOfStock =
+    SHOW_STOCK_TO_CUSTOMERS &&
     !filtersNoPrice.includeOutOfStock &&
     !ctx.publicMode &&
     (!filtersNoPrice.stock || filtersNoPrice.stock === "any");

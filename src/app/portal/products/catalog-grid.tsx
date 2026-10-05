@@ -6,6 +6,7 @@ import { Settings2 } from "lucide-react";
 import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
 import { SelectableCard } from "./catalog-multi-select";
+import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 
 interface GridProps {
   items: CatalogProduct[];
@@ -155,6 +156,7 @@ function displaySku(p: CatalogProduct): string | null {
 }
 
 export function StockBadge({ status, qty }: { status: string; qty: number | null }) {
+  if (!SHOW_STOCK_TO_CUSTOMERS) return null;
   if (status === "IN_STOCK") return <Badge tone="success">En stock{qty != null ? ` · ${qty}` : ""}</Badge>;
   if (status === "LOW_STOCK") return <Badge tone="warning">Stock bajo{qty != null ? ` · ${qty}` : ""}</Badge>;
   if (status === "OUT_OF_STOCK") return <Badge tone="destructive">Sin stock</Badge>;

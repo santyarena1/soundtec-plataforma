@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Check, Search, ShoppingBag } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
+import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 
 interface HeroProps {
   title?: string | null;
@@ -170,7 +171,7 @@ function MockProduct({
       </div>
       <div className="text-right">
         <p className="text-sm font-semibold tabular-nums">{price}</p>
-        <p className="text-[11px] text-success">{stock}</p>
+        {SHOW_STOCK_TO_CUSTOMERS ? <p className="text-[11px] text-success">{stock}</p> : null}
       </div>
     </div>
   );

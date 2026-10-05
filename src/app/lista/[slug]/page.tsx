@@ -10,6 +10,7 @@ import { headers } from "next/headers";
 import { createHash } from "crypto";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params; const list = await prisma.shareablePriceList.findUnique({ where: { shareSlug: slug }, select: { name: true } });
@@ -69,7 +70,7 @@ export default async function PublicShareListPage({ params, searchParams }: { pa
           <ShareListTable
             items={items}
             showSku={list.showSku}
-            showStock={list.showStock}
+            showStock={list.showStock && SHOW_STOCK_TO_CUSTOMERS}
             hidePrices={list.hidePrices}
           />
         )}

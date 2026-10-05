@@ -875,4 +875,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Portal del cliente: «Categorías con más productos» y «Últimos productos» respetan la visibilidad del cliente; ya no aparecen productos que tiene ocultos." },
     ],
   },
+  {
+    id: "ship-2026-10-06-stock-oculto",
+    version: "1.24.0",
+    releasedAt: "2026-10-06T05:10:00.000Z",
+    summary: "Stock oculto para clientes y visitantes; el catálogo muestra también los productos sin stock.",
+    items: [
+      { kind: "MEJORA", text: "Temporalmente, clientes y visitantes no ven stock: se quitaron las leyendas («En stock», «Stock bajo», «Sin stock»), las cantidades, la columna de stock, los filtros y el acceso rápido «En stock». Vale para el portal, el catálogo público y las listas compartidas." },
+      { kind: "MEJORA", text: "El catálogo del portal muestra todos los productos habilitados, también los sin stock; el total de productos del cliente los incluye." },
+      { kind: "MEJORA", text: "El panel admin sigue viendo el stock como siempre." },
+    ],
+  },
 ];

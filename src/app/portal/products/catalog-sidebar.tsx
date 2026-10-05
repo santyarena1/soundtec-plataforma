@@ -5,6 +5,7 @@ import type { CatalogSidebarMeta } from "@/lib/catalog";
 import type { CatalogUrlState } from "@/lib/catalog-url";
 import { useCatalogNavigation } from "./use-catalog-navigation";
 import { Sparkles, X } from "lucide-react";
+import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 
 export function CatalogLayout({
   state,
@@ -69,11 +70,11 @@ function CatalogActiveFilters({
     const name = meta.families.find((f) => f.id === id)?.name || "Familia";
     chips.push({ key: `fam-${id}`, label: name, clear: () => push({ familyIds: (state.familyIds || []).filter((x) => x !== id) }) });
   }
-  if (!publicMode && state.stock && state.stock !== "any") {
+  if (!publicMode && SHOW_STOCK_TO_CUSTOMERS && state.stock && state.stock !== "any") {
     const labels = { in_stock: "Solo en stock", low_stock: "Solo stock bajo", on_request: "Solo bajo pedido" };
     chips.push({ key: "stock", label: labels[state.stock], clear: () => push({ stock: "any" }) });
   }
-  if (!publicMode && state.includeOutOfStock) {
+  if (!publicMode && SHOW_STOCK_TO_CUSTOMERS && state.includeOutOfStock) {
     chips.push({ key: "oos", label: "Mostrando sin stock", clear: () => push({ includeOutOfStock: false }) });
   }
   if (state.hasDiscount) chips.push({ key: "disc", label: "Con descuento", clear: () => push({ hasDiscount: false }) });

@@ -9,6 +9,7 @@ import { getActiveDraftSummary } from "@/lib/draft-request";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { getVisibleProductsWhere } from "@/lib/catalog";
+import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import {
   ArrowRight,
   Heart,
@@ -24,11 +25,11 @@ import {
 export const metadata = { title: "Inicio" };
 
 const QUICK_FILTERS = [
-  { label: "En stock", href: "/portal/products?stock=in_stock", icon: Warehouse },
+  ...(SHOW_STOCK_TO_CUSTOMERS ? [{ label: "En stock", href: "/portal/products?stock=in_stock", icon: Warehouse }] : []),
   { label: "Con descuento", href: "/portal/products?discount=1", icon: Tag },
   { label: "Crestron Home", href: "/portal/products?crestron=1", icon: Sparkles },
   { label: "Mis favoritos", href: "/portal/products?fav=1", icon: Heart },
-] as const;
+];
 
 const TOP_CATEGORIES = 8;
 const RECENT_PRODUCTS = 6;

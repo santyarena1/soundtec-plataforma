@@ -6,6 +6,7 @@ import { StockBadge } from "./catalog-grid";
 import { Badge } from "@/components/ui/badge";
 import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
+import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 
 interface TableProps {
   items: CatalogProduct[];
@@ -21,7 +22,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
           <TH>Producto</TH>
           <TH>Marca</TH>
           <TH>Categoría</TH>
-          {!publicMode ? <TH>Stock</TH> : null}
+          {!publicMode && SHOW_STOCK_TO_CUSTOMERS ? <TH>Stock</TH> : null}
           {!publicMode ? <TH className="text-right">Precio USD</TH> : null}
           <TH className="text-right">{publicMode ? "" : "Acciones"}</TH>
         </TR>
@@ -45,7 +46,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
             </TD>
             <TD>{p.brandName || "—"}</TD>
             <TD>{p.categoryName || "—"}</TD>
-            {!publicMode ? (
+            {!publicMode && SHOW_STOCK_TO_CUSTOMERS ? (
               <TD>
                 <StockBadge status={p.stockStatus} qty={p.stockQuantity} />
               </TD>
