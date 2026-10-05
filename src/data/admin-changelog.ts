@@ -790,6 +790,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Pantalla del stand vertical con el mismo diseño que la horizontal.",
     items: [
       { kind: "MEJORA", text: "Pantalla vertical rediseñada como la horizontal: arriba logo, título, QR con los pasos; abajo la vidriera de productos destacados sobre fondo azul." },
+      { kind: "MEJORA", text: "Vertical: QR y pasos más compactos para dejarle más lugar a la vidriera de productos." },
     ],
   },
 ];

@@ -137,24 +137,24 @@ function PortraitView({ className, svg, total, slides, brands }: ViewProps) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-auto max-h-[8vh] w-[min(62vw,46vh)] self-start object-contain" />
 
-        <div className="mt-[3.5vh] animate-[fadeUp_900ms_ease-out]">
+        <div className="mt-[2.8vh] animate-[fadeUp_900ms_ease-out]">
           <p className="text-[min(1.7vh,2.8vw)] font-semibold uppercase tracking-[0.3em] text-[#1E3552]/55">Catálogo Soundtec</p>
           <h1 className="mt-[1vh] text-[min(4.6vh,8.4vw)] font-semibold leading-[1.02] tracking-tight">
             Todo el catálogo,
             <br />
             en tu celular
           </h1>
-          <div className="mt-[3vh] flex items-center gap-[5vw]">
+          <div className="mt-[2.6vh] flex items-center gap-[4vw]">
             <div className="shrink-0 animate-[floatQr_6s_ease-in-out_infinite] rounded-[2.2vh] bg-white p-[1.8vh] shadow-[0_3vh_8vh_rgba(30,53,82,0.22)] ring-1 ring-[#1E3552]/10">
-              <div className="w-[min(27vh,46vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
+              <div className="w-[min(24vh,40vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
             </div>
-            <ol className="min-w-0 space-y-[2vh]">
+            <ol className="min-w-0 space-y-[1.6vh]">
               {STEPS.map((step, i) => (
                 <li key={step} className="flex items-start gap-[1.2vh]">
                   <span className="flex h-[min(3.6vh,6vw)] w-[min(3.6vh,6vw)] shrink-0 items-center justify-center rounded-full bg-[#1E3552] text-[min(1.7vh,2.9vw)] font-semibold text-white">
                     {i + 1}
                   </span>
-                  <span className="pt-[0.4vh] text-[min(2.1vh,3.6vw)] font-medium leading-snug">{step}</span>
+                  <span className="pt-[0.4vh] text-[min(2vh,3.2vw)] font-medium leading-snug">{step}</span>
                 </li>
               ))}
             </ol>
