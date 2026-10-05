@@ -783,4 +783,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Todos los logos de marca, también los cargados por URL, se recortan y se ajustan solos al mismo tamaño (catálogo, portal y pantalla del stand). Ya no hace falta tocar ningún botón." },
     ],
   },
+  {
+    id: "ship-2026-10-05-pantalla-vertical",
+    version: "1.22.5",
+    releasedAt: "2026-10-05T23:30:00.000Z",
+    summary: "Pantalla del stand vertical con el mismo diseño que la horizontal.",
+    items: [
+      { kind: "MEJORA", text: "Pantalla vertical rediseñada como la horizontal: arriba logo, título, QR con los pasos; abajo la vidriera de productos destacados sobre fondo azul." },
+    ],
+  },
 ];
