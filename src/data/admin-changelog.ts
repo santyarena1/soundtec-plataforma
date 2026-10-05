@@ -938,4 +938,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Lista de precios SoundTube: si un SKU del Excel difiere del sistema solo en espacios o guiones (ej. «SQUAREROOT 6.5 GG» y «SQUAREROOT 6.5-GG»), se reconoce como el mismo producto y se avisa en la vista previa. Si hay dudas, no adivina." },
     ],
   },
+  {
+    id: "ship-2026-10-06-revision-soundtube",
+    version: "1.26.0",
+    releasedAt: "2026-10-06T10:30:00.000Z",
+    summary: "Módulo temporal «Revisión SoundTube» para corregir la lista desde el sistema.",
+    items: [
+      { kind: "NUEVO", text: "Catálogo → «Revisión SoundTube» (temporal): subís la lista y resolvés cada problema desde el sistema: si un SKU es el mismo producto que uno parecido (-BK, -GB, KIT…), qué productos nuevos crear y con qué marca, qué clasificación vale en los repetidos, y qué hacer con los productos que no vienen en la lista." },
+      { kind: "NUEVO", text: "Las decisiones se guardan al instante, así se puede trabajar de a poco o entre varias personas. El menú muestra cuántas faltan." },
+      { kind: "NUEVO", text: "Cuando no falta nada, «Aplicar lista» hace todo junto. Al cerrar la revisión, el módulo desaparece del menú. Las equivalencias de SKU confirmadas quedan guardadas para las próximas listas." },
+    ],
+  },
 ];

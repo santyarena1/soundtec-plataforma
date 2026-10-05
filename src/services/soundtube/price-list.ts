@@ -28,9 +28,24 @@ export interface PriceListWarning {
   message: string;
 }
 
+export interface ClassificationOption {
+  excelRow: number;
+  categoria?: string;
+  segmento?: string;
+  familia?: string;
+  tipo?: string;
+}
+
+/** SKU repetido cuya clasificación cambia entre filas: hay que elegir cuál vale. */
+export interface ClassificationConflict {
+  sku: string;
+  options: ClassificationOption[];
+}
+
 export interface ParsedPriceList {
   rows: PriceListRow[];
   warnings: PriceListWarning[];
+  classificationConflicts: ClassificationConflict[];
   /** Filas descartadas (sin costo o MUP válido). */
   invalid: Array<{ excelRow: number; sku: string; reason: string }>;
 }
@@ -129,6 +144,15 @@ export function parsePriceListGrid(grid: unknown[][]): ParsedPriceList {
 
   const rows: PriceListRow[] = [];
   const warnings: PriceListWarning[] = [];
+  const classificationConflicts: ClassificationConflict[] = [];
+  const classification = (g: PriceListRow): ClassificationOption => ({
+    excelRow: g.excelRow,
+    categoria: g.categoria,
+    segmento: g.segmento,
+    familia: g.familia,
+    tipo: g.tipo,
+  });
+  const classKey = (g: PriceListRow) => [g.categoria, g.segmento, g.familia, g.tipo].map((v) => v ?? "").join("|");
   for (const group of bySku.values()) {
     const last = group[group.length - 1];
     rows.push(last);
@@ -143,10 +167,13 @@ export function parsePriceListGrid(grid: unknown[][]): ParsedPriceList {
             .join(" · ")}). Se usa la fila ${last.excelRow}.`,
         });
       }
+      // Una opción por clasificación distinta (la última fila que la usa).
+      const distinct = new Map(group.map((g) => [classKey(g), classification(g)]));
+      if (distinct.size > 1) classificationConflicts.push({ sku: last.sku, options: [...distinct.values()] });
     }
   }
   rows.sort((a, b) => a.excelRow - b.excelRow);
-  return { rows, warnings, invalid };
+  return { rows, warnings, invalid, classificationConflicts };
 }
 
 export function parsePriceListFile(buffer: ArrayBuffer | Buffer): ParsedPriceList {

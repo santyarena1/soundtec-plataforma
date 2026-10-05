@@ -16,6 +16,7 @@ import { listAllChangelogs } from "@/server/changelog-query";
 import { HelpDock } from "@/components/help/help-system";
 import { OnboardingHost } from "@/components/onboarding/onboarding-host";
 import { getOnboardingState } from "@/server/actions/onboarding";
+import { loadReviewStatus } from "@/server/soundtube/review";
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -31,7 +32,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
 
   const userName = session.user.name;
   const userEmail = session.user.email;
-  const [logoUrl, appName, changelogs, onboardingState, pendingRequests] = await Promise.all([
+  const [logoUrl, appName, changelogs, onboardingState, pendingRequests, soundtubeReview] = await Promise.all([
     getSetting("branding.logo_url", ""),
     getSetting("app.name", "Soundtec"),
     listAllChangelogs().catch((err) => {
@@ -40,6 +41,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
     }),
     getOnboardingState(),
     prisma.accountRequest.count({ where: { status: "PENDING" } }).catch(() => 0),
+    loadReviewStatus(),
   ]);
 
   async function handleSignOut() {
@@ -69,7 +71,8 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
           allowedScopes={permissions.scopes}
           fullAccess={permissions.fullAccess}
           expandAll={expandAll}
-          counts={{ accountRequests: pendingRequests }}
+          counts={{ accountRequests: pendingRequests, soundtubeReview: soundtubeReview.pending }}
+          active={{ soundtubeReview: soundtubeReview.active }}
         />
         <div className="border-t border-border p-3">
           <ChangelogSidebarButton entries={changelogs} />

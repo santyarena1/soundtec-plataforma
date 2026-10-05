@@ -43,6 +43,10 @@ export default async function SoundTubePricesPage() {
           <Link href="/admin/margins" className="hover:underline">Ver reglas</Link>
         </p>
       )}
+      <p className="text-xs text-muted-foreground">
+        ¿La lista tiene SKUs que no coinciden, productos nuevos o repetidos? Resolvelos en{" "}
+        <Link href="/admin/soundtube-review" className="font-medium text-foreground underline">Revisión SoundTube</Link>.
+      </p>
       <SoundTubePriceListPanel />
     </div>
   );

@@ -55,6 +55,21 @@ describe("parsePriceListGrid", () => {
     assert.deepEqual(parsed.warnings[0].excelRows, [3, 5]);
   });
 
+  it("informa los repetidos con clasificación distinta, una opción por clasificación", () => {
+    const parsed = parsePriceListGrid(
+      grid(
+        ["MSK-1", "x", "", "", "", 176.4, 2.75, "", "Bafle", "Comercial", "Transductor", "Sound Masking"],
+        ["MSK-1", "x", "", "", "", 176.4, 2.75, "", "Bafle", "Comercial", "Actuator", "Sound Masking"],
+        ["CB5", "x", "", "", "", 401.1, 3.05, "", "Bafle", "Exterior", "Landscape", "Bullet"],
+        ["CB5", "x", "", "", "", 401.1, 3.05, "", "Bafle", "Exterior", "Landscape", "Bullet"]
+      )
+    );
+    assert.equal(parsed.classificationConflicts.length, 1);
+    assert.equal(parsed.classificationConflicts[0].sku, "MSK-1");
+    assert.deepEqual(parsed.classificationConflicts[0].options.map((o) => o.familia), ["Transductor", "Actuator"]);
+    assert.equal(parsed.warnings.length, 0, "mismo costo y MUP: no es aviso de precio");
+  });
+
   it("descarta filas sin costo o con MUP inválido", () => {
     const parsed = parsePriceListGrid(
       grid(["A-1", "x", "", "", "", "", 3.05], ["A-2", "x", "", "", "", 10, 0], ["", "", "", "", "", 5, 2])

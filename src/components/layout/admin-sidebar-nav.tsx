@@ -30,6 +30,7 @@ import {
   Users,
   UserPlus,
   ChevronRight,
+  ClipboardCheck,
   PackageSearch,
   RefreshCw,
   ScrollText,
@@ -47,7 +48,9 @@ type NavItem = {
   anyScope?: PermissionScope[];
   /** data-tour para el paseo de bienvenida. */
   tourId?: string;
-  badgeKey?: "accountRequests";
+  badgeKey?: "accountRequests" | "soundtubeReview";
+  /** Solo se muestra mientras el módulo temporal está activo. */
+  onlyWhen?: "soundtubeReview";
 };
 type NavGroup = { title: string; items: NavItem[]; tourId?: string };
 
@@ -74,6 +77,7 @@ const groups: NavGroup[] = [
       { href: "/admin/categories", label: "Categorías", icon: Building2, scope: "categories.manage" },
       { href: "/admin/families", label: "Familias", icon: Building2, scope: "families.manage" },
       { href: "/admin/ncm", label: "Posiciones NCM", icon: PackageSearch, scope: "imports.manage" },
+      { href: "/admin/soundtube-review", label: "Revisión SoundTube", icon: ClipboardCheck, scope: "imports.manage", badgeKey: "soundtubeReview", onlyWhen: "soundtubeReview" },
     ],
   },
   {
@@ -133,10 +137,12 @@ interface Props {
   fullAccess?: boolean;
   /** En el drawer mobile conviene ver todos los grupos abiertos. */
   expandAll?: boolean;
-  counts?: Partial<Record<"accountRequests", number>>;
+  counts?: Partial<Record<"accountRequests" | "soundtubeReview", number>>;
+  /** Módulos temporales activos. */
+  active?: Partial<Record<"soundtubeReview", boolean>>;
 }
 
-export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll, counts }: Props) {
+export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll, counts, active }: Props) {
   const pathname = usePathname();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
@@ -159,6 +165,7 @@ export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll, counts }
 
   const filteredGroups = useMemo(() => {
     const canSee = (item: NavItem) => {
+      if (item.onlyWhen && !active?.[item.onlyWhen]) return false;
       if (fullAccess) return true;
       if (item.anyScope) return item.anyScope.some((s) => allowSet.has(s));
       if (!item.scope) return true;
@@ -167,7 +174,7 @@ export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll, counts }
     return groups
       .map((g) => ({ ...g, items: g.items.filter(canSee) }))
       .filter((g) => g.items.length > 0);
-  }, [allowSet, fullAccess]);
+  }, [allowSet, fullAccess, active]);
 
   const activeGroupTitle = useMemo(
     () => filteredGroups.find((g) => g.items.some((i) => isActive(pathname, i)))?.title,

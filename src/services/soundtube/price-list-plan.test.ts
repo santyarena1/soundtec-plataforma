@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { PriceListRow } from "./price-list";
-import { buildPriceListPlan, type CatalogProduct } from "./price-list-plan";
+import { buildPriceListPlan, suggestCandidates, type CatalogProduct } from "./price-list-plan";
 
 function row(sku: string, costUsd = 10, mup = 3.05): PriceListRow {
   return { excelRow: 3, sku, description: "", costUsd, mup };
@@ -53,5 +53,28 @@ describe("buildPriceListPlan", () => {
     const plan = buildPriceListPlan([row("AB-1"), row("AB 1")], [product("a", "AB1")]);
     assert.equal(plan.matched.length, 0);
     assert.equal(plan.notInSystem.length, 2);
+  });
+
+  it("usa las equivalencias confirmadas antes que la coincidencia aproximada", () => {
+    const plan = buildPriceListPlan(
+      [row("PS1090a"), row("PL350")],
+      [product("a", "PS1090a-BK"), product("b", "PL350-GB")],
+      new Map([["PS1090A", "a"]])
+    );
+    assert.deepEqual(plan.matched.map((m) => [m.product.id, m.aliasMatch]), [["a", true]]);
+    assert.deepEqual(plan.notInSystem.map((r) => r.sku), ["PL350"]);
+    assert.deepEqual(plan.missing.map((p) => p.id), ["b"]);
+  });
+});
+
+describe("suggestCandidates", () => {
+  const products = [product("kit", "CI20X MP KIT"), product("bk", "PS1090a-BK"), product("x", "OTRO"), product("short", "CI2")];
+  it("sugiere productos con el mismo comienzo de SKU", () => {
+    assert.deepEqual(suggestCandidates(row("CI20X MP"), products).map((p) => p.id), ["kit"]);
+    assert.deepEqual(suggestCandidates(row("PS1090a"), products).map((p) => p.id), ["bk"]);
+  });
+  it("no sugiere con SKUs demasiado cortos ni sin relación", () => {
+    assert.deepEqual(suggestCandidates(row("ZZZ-9999"), products), []);
+    assert.deepEqual(suggestCandidates(row("CI"), products), []);
   });
 });
