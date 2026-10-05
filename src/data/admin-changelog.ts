@@ -698,4 +698,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Los filtros quedan solo por marca, en el catálogo público y en el portal." },
     ],
   },
+  {
+    id: "ship-2026-10-05-logos-marcas",
+    version: "1.20.1",
+    releasedAt: "2026-10-05T14:20:00.000Z",
+    summary: "La grilla de marcas del catálogo muestra los logos que ya tenía la web.",
+    items: [
+      { kind: "MEJORA", text: "Crestron, SoundTube y BLAZE aparecen con su logo en la grilla y la barra de marcas. Las demás muestran el nombre hasta que cargues su logo en Admin → Marcas." },
+    ],
+  },
 ];
