@@ -2,10 +2,27 @@
 
 import { useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/input";
 import { AlertCircle, Loader2 } from "lucide-react";
+
+/** API de credenciales del navegador (Chrome/Edge); no está en los tipos de TS. */
+type PasswordCredentialCtor = new (form: HTMLFormElement) => Credential;
+
+/**
+ * Le pide al navegador que guarde usuario y contraseña. El login entra sin
+ * recargar la página y Chrome a veces no se da cuenta de que fue exitoso.
+ */
+async function rememberCredentials(form: HTMLFormElement): Promise<void> {
+  const Ctor = (window as Window & { PasswordCredential?: PasswordCredentialCtor }).PasswordCredential;
+  if (!Ctor || !navigator.credentials?.store) return;
+  try {
+    await navigator.credentials.store(new Ctor(form));
+  } catch {
+    // Si el navegador no lo permite, sigue el ingreso normal.
+  }
+}
 
 interface LoginFormProps {
   callbackUrl?: string;
@@ -13,7 +30,6 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(initialError ? "Credenciales inválidas." : null);
@@ -21,7 +37,8 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const email = String(formData.get("email") || "").trim();
     const password = String(formData.get("password") || "");
 
@@ -41,8 +58,9 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
         setError("Credenciales inválidas o usuario inactivo.");
         return;
       }
-      router.replace(result.url || callbackUrl || "/portal");
-      router.refresh();
+      await rememberCredentials(form);
+      // Navegación completa: además de cargar la sesión, es la señal de "ingreso exitoso" para el gestor de contraseñas.
+      window.location.assign(result.url || callbackUrl || "/portal");
     });
   }
 
@@ -59,7 +77,7 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
         <Label htmlFor="email" required>
           Email
         </Label>
-        <Input id="email" name="email" type="email" autoComplete="email" placeholder="usuario@empresa.com" defaultValue={searchParams.get("email") ?? undefined} className="h-11" required />
+        <Input id="email" name="email" type="email" autoComplete="username" placeholder="usuario@empresa.com" defaultValue={searchParams.get("email") ?? undefined} className="h-11" required />
       </div>
 
       <div className="space-y-1.5">

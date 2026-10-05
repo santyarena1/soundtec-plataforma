@@ -844,4 +844,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Pantalla del stand: las fotos de producto se recortan solas (sin el blanco sobrante de la foto del fabricante) y ocupan más la tarjeta." },
     ],
   },
+  {
+    id: "ship-2026-10-06-recordar-clave",
+    version: "1.22.11",
+    releasedAt: "2026-10-06T03:00:00.000Z",
+    summary: "El navegador ofrece guardar usuario y contraseña al ingresar.",
+    items: [
+      { kind: "FIX", text: "Login: Chrome (y otros navegadores) ahora ofrecen guardar el usuario y la contraseña al ingresar, y los autocompletan la próxima vez." },
+    ],
+  },
 ];
