@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EVENT_STATUS_LABEL, eventStatus } from "@/lib/expo/event-status";
 import { buildExpoReport } from "@/lib/expo/report";
+import { formatDate } from "@/lib/utils";
 import { toggleExpoQr } from "@/server/actions/expo-events";
 import { EventForm } from "./event-form";
 import { QrForm } from "./qr-form";
@@ -32,6 +33,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <h2 className="text-xl font-semibold">{event.name}</h2>
         <Badge tone={status === "LIVE" ? "success" : "muted"}>{EVENT_STATUS_LABEL[status]}</Badge>
       </div>
+      <p className="-mt-4 text-xs text-muted-foreground">{formatDate(event.startsAt)} → {formatDate(event.endsAt)} (hora de Argentina)</p>
       <div className="grid gap-3 sm:grid-cols-4">
         {[
           ["Escaneos", report.totals.scans.toLocaleString("es-AR")],

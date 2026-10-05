@@ -13,33 +13,43 @@ export type ExpoReport = {
   topBrands: Array<{ brandId: string; name: string; views: number }>;
 };
 
-/** Escaneos = visitantes únicos por QR; leads y cuentas = eventos únicos por visitante. */
+type CountedType = Exclude<VisitRow["type"], "BRAND_VIEW">;
+const FIELD: Record<CountedType, keyof QrCounts> = { SCAN: "scans", LEAD: "leads", ACCOUNT_REQUEST: "accountRequests" };
+
+function addTo<K>(map: Map<K, Set<string>>, key: K, visitorId: string) {
+  const set = map.get(key) ?? new Set<string>();
+  set.add(visitorId);
+  map.set(key, set);
+}
+
+/**
+ * Todo se cuenta por visitante único:
+ * - byQr: visitantes únicos por QR y tipo;
+ * - totals: visitantes únicos en todo el evento por tipo (alguien que escaneó
+ *   dos QR cuenta una vez);
+ * - topBrands: pares únicos (visitante, marca).
+ */
 export function buildExpoReport(visits: VisitRow[], brandNames: Record<string, string>): ExpoReport {
-  const uniq = new Map<string, Set<string>>(); // `${qr}|${type}` → visitantes
-  const brandViews = new Map<string, number>();
+  const perQr = new Map<string, Set<string>>(); // `${qr}|${type}` → visitantes
+  const perEvent = new Map<CountedType, Set<string>>();
+  const brandViewers = new Map<string, Set<string>>();
   for (const visit of visits) {
     if (visit.type === "BRAND_VIEW") {
-      if (visit.brandId) brandViews.set(visit.brandId, (brandViews.get(visit.brandId) ?? 0) + 1);
+      if (visit.brandId) addTo(brandViewers, visit.brandId, visit.visitorId);
       continue;
     }
-    const key = `${visit.qrId ?? "-"}|${visit.type}`;
-    if (!uniq.has(key)) uniq.set(key, new Set());
-    uniq.get(key)!.add(visit.visitorId);
+    addTo(perQr, `${visit.qrId ?? "-"}|${visit.type}`, visit.visitorId);
+    addTo(perEvent, visit.type, visit.visitorId);
   }
   const byQr: Record<string, QrCounts> = {};
-  for (const [key, visitors] of uniq) {
-    const [qr, type] = key.split("|");
-    byQr[qr] ??= { scans: 0, leads: 0, accountRequests: 0 };
-    if (type === "SCAN") byQr[qr].scans = visitors.size;
-    if (type === "LEAD") byQr[qr].leads = visitors.size;
-    if (type === "ACCOUNT_REQUEST") byQr[qr].accountRequests = visitors.size;
+  for (const [key, visitors] of perQr) {
+    const [qr, type] = key.split("|") as [string, CountedType];
+    byQr[qr] = { ...(byQr[qr] ?? { scans: 0, leads: 0, accountRequests: 0 }), [FIELD[type]]: visitors.size };
   }
-  const totals = Object.values(byQr).reduce(
-    (acc, c) => ({ scans: acc.scans + c.scans, leads: acc.leads + c.leads, accountRequests: acc.accountRequests + c.accountRequests }),
-    { scans: 0, leads: 0, accountRequests: 0 }
-  );
-  const topBrands = [...brandViews.entries()]
-    .map(([brandId, views]) => ({ brandId, name: brandNames[brandId] ?? "—", views }))
+  const count = (type: CountedType) => perEvent.get(type)?.size ?? 0;
+  const totals = { scans: count("SCAN"), leads: count("LEAD"), accountRequests: count("ACCOUNT_REQUEST") };
+  const topBrands = [...brandViewers.entries()]
+    .map(([brandId, viewers]) => ({ brandId, name: brandNames[brandId] ?? "—", views: viewers.size }))
     .sort((a, b) => b.views - a.views || a.name.localeCompare(b.name));
   return { totals: { ...totals, leadRate: totals.scans ? totals.leads / totals.scans : 0 }, byQr, topBrands };
 }

@@ -29,4 +29,21 @@ describe("buildExpoReport", () => {
     assert.deepEqual(report.byQr.q2, { scans: 1, leads: 1, accountRequests: 0 });
   });
   it("sin escaneos la tasa es 0", () => assert.equal(buildExpoReport([], {}).totals.leadRate, 0));
+
+  it("un visitante que mira la misma marca varias veces cuenta una vez", () => {
+    const r = buildExpoReport(
+      [v("q1", "a", "BRAND_VIEW", "crestron"), v("q1", "a", "BRAND_VIEW", "crestron"), v("q2", "a", "BRAND_VIEW", "crestron"), v("q1", "b", "BRAND_VIEW", "crestron")],
+      { crestron: "Crestron" }
+    );
+    assert.deepEqual(r.topBrands, [{ brandId: "crestron", name: "Crestron", views: 2 }]);
+  });
+
+  it("un visitante que escanea dos QR cuenta una vez en el total del evento", () => {
+    const r = buildExpoReport([v("q1", "a", "SCAN"), v("q2", "a", "SCAN"), v("q1", "a", "LEAD"), v("q2", "a", "LEAD")], {});
+    assert.equal(r.totals.scans, 1);
+    assert.equal(r.totals.leads, 1);
+    assert.equal(r.totals.leadRate, 1);
+    assert.deepEqual(r.byQr.q1, { scans: 1, leads: 1, accountRequests: 0 });
+    assert.deepEqual(r.byQr.q2, { scans: 1, leads: 1, accountRequests: 0 });
+  });
 });
