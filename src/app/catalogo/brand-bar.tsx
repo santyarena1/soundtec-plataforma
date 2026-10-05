@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { CatalogBrand } from "@/lib/catalog-brands";
+import { brandQuery, type CatalogBrand } from "@/lib/catalog-brands";
 
 /** Chips de marca deslizables arriba del listado. */
 export function BrandBar({
@@ -19,7 +19,7 @@ export function BrandBar({
     <nav aria-label="Marcas" className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0">
       <Link href={`${basePath}?all=1`} className={chip(!activeBrandId)}>Todas</Link>
       {brands.map((brand) => (
-        <Link key={brand.id} href={`${basePath}?brand=${brand.id}`} className={chip(brand.id === activeBrandId)}>
+        <Link key={brand.id} href={`${basePath}?${brandQuery(brand)}`} className={chip(brand.id === activeBrandId)}>
           {brand.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={brand.logoUrl} alt={brand.name} title={brand.name} className="h-7 w-auto max-w-[7rem] object-contain" />

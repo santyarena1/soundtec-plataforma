@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/app-url";
-import { getEquipmentBrands, type CatalogBrand } from "@/lib/catalog-brands";
+import { getEquipmentBrands, totalProducts, type CatalogBrand } from "@/lib/catalog-brands";
 import { qrSvgWithLogo } from "@/server/expo/qr-image";
 import { getShowcaseProducts } from "@/server/expo/showcase";
 import { Showcase, type ShowcaseSlide } from "./showcase";
@@ -52,7 +52,7 @@ export default async function Page({
     getEquipmentBrands(),
     getShowcaseProducts(24, qr.event.showcaseProductIds),
   ]);
-  const total = brands.reduce((acc, b) => acc + b.count, 0);
+  const total = totalProducts(brands);
   const logoByBrand = new Map(brands.map((b) => [b.name, b.logoUrl]));
   const slides: ShowcaseSlide[] = products.map((p) => ({
     id: p.id,

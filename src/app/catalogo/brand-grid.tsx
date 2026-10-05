@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import type { CatalogBrand } from "@/lib/catalog-brands";
+import { brandQuery, type CatalogBrand } from "@/lib/catalog-brands";
 
 /** Primera pantalla del catálogo: elegir marca o ver todo. */
 export function BrandGrid({
@@ -29,7 +29,7 @@ export function BrandGrid({
         {brands.map((brand) => (
           <Link
             key={brand.id}
-            href={`${basePath}?brand=${brand.id}`}
+            href={`${basePath}?${brandQuery(brand)}`}
             className="flex h-28 flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 shadow-sm transition hover:border-primary/40 hover:shadow-md active:scale-[0.98]"
           >
             {brand.logoUrl ? (

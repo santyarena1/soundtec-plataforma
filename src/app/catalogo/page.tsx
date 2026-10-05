@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getCatalog, getCatalogSidebarMeta, type CatalogContext } from "@/lib/catalog";
 import { parseCatalogSearchParams, countActiveCatalogFilters } from "@/lib/catalog-url";
-import { getCatalogBrands } from "@/lib/catalog-brands";
+import { CRESTRON_HOME_ID, getCatalogBrands, totalProducts } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
 import { BrandBar } from "@/app/catalogo/brand-bar";
 import { StickyAccountCta } from "@/components/catalog/account-cta";
@@ -39,7 +39,7 @@ export default async function PublicCatalogPage({
   const showAll = rawParams.all === "1";
   const brands = await getCatalogBrands();
   if (!showAll && countActiveCatalogFilters(urlState) === 0 && !urlState.search?.trim()) {
-    const total = brands.reduce((acc, b) => acc + b.count, 0);
+    const total = totalProducts(brands);
     return (
       <>
         <RememberCatalog memoryKey="public" />
@@ -111,7 +111,7 @@ export default async function PublicCatalogPage({
 
       {!isLogged ? <StickyAccountCta /> : null}
 
-      <BrandBar brands={brands} activeBrandId={activeBrandId} />
+      <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} />
 
       <CatalogLayout
         state={urlState}

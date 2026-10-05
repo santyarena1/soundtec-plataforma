@@ -9,7 +9,7 @@ import { getActiveDraftSummary } from "@/lib/draft-request";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { getVisibleProductsWhere } from "@/lib/catalog";
-import { brandsWithLogos } from "@/lib/catalog-brands";
+import { brandQuery, brandsWithLogos, withCrestronHome } from "@/lib/catalog-brands";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import {
   ArrowRight,
@@ -106,7 +106,11 @@ export default async function PortalDashboardPage() {
     select: { id: true, name: true },
   });
   const countByBrand = new Map(brandCounts.map((b) => [b.brandId, b._count._all]));
-  const brands = await brandsWithLogos(brandRows.map((b) => ({ id: b.id, name: b.name, count: countByBrand.get(b.id) ?? 0 })));
+  const crestronHomeCount = await prisma.product.count({ where: { AND: [visible, { isCrestronHomeCompatible: true }] } });
+  const brands = withCrestronHome(
+    await brandsWithLogos(brandRows.map((b) => ({ id: b.id, name: b.name, count: countByBrand.get(b.id) ?? 0 }))),
+    crestronHomeCount
+  );
 
   const firstName = (user.name || "").split(" ")[0] || user.email;
 
@@ -228,7 +232,7 @@ export default async function PortalDashboardPage() {
             {brands.map((brand) => (
               <Link
                 key={brand.id}
-                href={`/portal/products?brand=${brand.id}`}
+                href={`/portal/products?${brandQuery(brand)}`}
                 className="group flex h-28 flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-elevated"
               >
                 {brand.logoUrl ? (

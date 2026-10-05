@@ -4,7 +4,7 @@ import { resolveCommercialClientId } from "@/lib/client-context";
 import { getCatalog, getCatalogSidebarMeta, getVisibleProductsWhere } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { countActiveCatalogFilters, parseCatalogSearchParams } from "@/lib/catalog-url";
-import { brandsWithLogos } from "@/lib/catalog-brands";
+import { CRESTRON_HOME_ID, brandsWithLogos, withCrestronHome } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
 import { BrandBar } from "@/app/catalogo/brand-bar";
 import { getActiveDraftSummary } from "@/lib/draft-request";
@@ -55,7 +55,11 @@ export default async function ProductsPage({
   const brandMeta = await getCatalogSidebarMeta({ includeOutOfStock: filters.includeOutOfStock }, ctx, {
     includeDistributors: false,
   });
-  const brands = await brandsWithLogos(brandMeta.brands);
+  // Crestron Home: marca virtual con los productos compatibles que este cliente puede ver.
+  const crestronHomeCount = await prisma.product.count({
+    where: { AND: [await getVisibleProductsWhere(ctx), { isCrestronHomeCompatible: true }] },
+  });
+  const brands = withCrestronHome(await brandsWithLogos(brandMeta.brands), crestronHomeCount);
   if (rawParams.all !== "1" && countActiveCatalogFilters(urlState) === 0) {
     // Mismo total que el inicio del portal: lo que este cliente puede ver.
     const total = await prisma.product.count({ where: await getVisibleProductsWhere(ctx) });
@@ -105,7 +109,7 @@ export default async function ProductsPage({
 
       <AssistantEntry href="/expo?from=portal" className="lg:max-w-2xl" />
 
-      <BrandBar brands={brands} activeBrandId={activeBrandId} basePath="/portal/products" />
+      <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} basePath="/portal/products" />
 
       <CatalogMultiSelectProvider productIds={items.map((i) => i.id)}>
       <CatalogLayout state={urlState} meta={meta} total={total} toolbar={<CatalogToolbar state={urlState} />}>

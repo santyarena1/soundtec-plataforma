@@ -3,7 +3,7 @@ import { LoginForm } from "./login-form";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { getEquipmentBrands } from "@/lib/catalog-brands";
+import { getEquipmentBrands, totalProducts } from "@/lib/catalog-brands";
 
 export const metadata = { title: "Acceso al portal" };
 
@@ -21,7 +21,7 @@ export default async function LoginPage({
 
   const params = await searchParams;
   const brands = await getEquipmentBrands().catch(() => []);
-  const total = brands.reduce((acc, b) => acc + b.count, 0);
+  const total = totalProducts(brands);
 
   return (
     <AuthShell

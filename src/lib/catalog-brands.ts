@@ -1,7 +1,48 @@
 import { prisma } from "@/lib/prisma";
 import { brandLogoSrc } from "@/lib/brand-logo";
 
-export type CatalogBrand = { id: string; name: string; logoUrl: string | null; count: number };
+export type CatalogBrand = {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  count: number;
+  /** Marca virtual: en vez de filtrar por marca, abre el catálogo con este filtro (ej. "crestron=1"). */
+  query?: string;
+};
+
+/**
+ * Crestron Home se muestra como una marca más, pero son los productos de
+ * Crestron compatibles con Crestron Home (no se duplican productos).
+ */
+export const CRESTRON_HOME_ID = "crestron-home";
+
+export function crestronHomeBrand(count: number): CatalogBrand {
+  return {
+    id: CRESTRON_HOME_ID,
+    name: "Crestron Home",
+    logoUrl: "/landing/brands/normalized/crestron-home.png",
+    count,
+    query: "crestron=1",
+  };
+}
+
+/** Agrega Crestron Home justo después de Crestron (si hay productos). */
+export function withCrestronHome(brands: CatalogBrand[], count: number): CatalogBrand[] {
+  if (count <= 0) return brands;
+  const at = brands.findIndex((b) => b.name.trim().toLowerCase() === "crestron");
+  const entry = crestronHomeBrand(count);
+  return at < 0 ? [entry, ...brands] : [...brands.slice(0, at + 1), entry, ...brands.slice(at + 1)];
+}
+
+/** Query del link de una marca en el catálogo. */
+export function brandQuery(brand: CatalogBrand): string {
+  return brand.query ?? `brand=${brand.id}`;
+}
+
+/** Total de productos sin contar dos veces los de marcas virtuales. */
+export function totalProducts(brands: CatalogBrand[]): number {
+  return brands.filter((b) => !b.query).reduce((acc, b) => acc + b.count, 0);
+}
 
 /**
  * Logos que ya están en el repo (los de la landing). Se usan cuando la marca
@@ -47,13 +88,17 @@ export async function brandsWithLogos(facets: Array<{ id: string; name: string; 
 
 /** Marcas activas con productos activos, para la grilla y la barra del catálogo público. */
 export async function getCatalogBrands(): Promise<CatalogBrand[]> {
+  const crestronHomeCount = await prisma.product.count({
+    where: { isActive: true, isCrestronHomeCompatible: true, brand: { is: { isActive: true, hiddenFromCatalog: false } } },
+  });
   const brands = await prisma.brand.findMany({
     where: { isActive: true, hiddenFromCatalog: false, products: { some: { isActive: true } } },
     select: { id: true, name: true, logoUrl: true, _count: { select: { products: { where: { isActive: true } } } } },
   });
-  return brands
+  const list = brands
     .map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: b._count.products }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
+  return withCrestronHome(list, crestronHomeCount);
 }
 
 /** Marcas de equipos (sin merchandising) para las pantallas de marca: stand y acceso. */

@@ -995,4 +995,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Logos oficiales actualizados de Crestron y SoundTube (Entertainment), con el mismo tamaño que el resto, en catálogo, portal, login y pantalla del stand." },
     ],
   },
+  {
+    id: "ship-2026-10-06-crestron-home",
+    version: "1.27.0",
+    releasedAt: "2026-10-06T13:30:00.000Z",
+    summary: "Crestron Home como marca propia en el catálogo.",
+    items: [
+      { kind: "NUEVO", text: "Crestron Home aparece como una marca más, con su logo, en el catálogo, el portal (grilla y barra de marcas, inicio), la pantalla del stand y el login. Muestra los productos de Crestron compatibles con Crestron Home: son los mismos productos (no se duplican), así que precios, sync y visibilidad por cliente siguen igual." },
+    ],
+  },
 ];
