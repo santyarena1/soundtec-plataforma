@@ -674,4 +674,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "El logo es blanco y desaparecía sobre las barras claras: ahora va sobre el color de la marca en todos lados, incluida la vista previa de Branding." },
     ],
   },
+  {
+    id: "ship-2026-10-expo-leads",
+    version: "1.19.0",
+    releasedAt: "2026-10-05T01:30:00.000Z",
+    summary: "Experiencia Expo: QR con captura de leads, catálogo por marcas y pedido de cuenta de cliente.",
+    items: [
+      { kind: "NUEVO", text: "Configuración → Eventos y QR: creá eventos y sus QR, descargá el QR para imprimir, abrí la pantalla del stand (horizontal o vertical) y mirá escaneos, leads, cuentas pedidas y marcas más vistas. Leads descargables en Excel." },
+      { kind: "NUEVO", text: "Quien escanea el QR deja su mail (obligatorio mientras el evento está vigente) y entra al catálogo." },
+      { kind: "NUEVO", text: "El catálogo público arranca con la grilla de marcas y tiene una barra de marcas arriba para cambiar rápido." },
+      { kind: "NUEVO", text: "CRM → Solicitudes de cuenta: el cliente la pide desde el catálogo con su CUIT; la aprobás y le mandás por WhatsApp el link para crear su contraseña (se puede regenerar). Si el CUIT ya es cliente, se vincula a ese cliente." },
+      { kind: "MEJORA", text: "En las fichas de producto la descripción aparece primero, antes de las especificaciones técnicas." },
+    ],
+  },
 ];
