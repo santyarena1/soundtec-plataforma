@@ -23,6 +23,8 @@ import {
 } from "@/services/hall-research/price-list-plan";
 
 const DISTRIBUTOR_NAME = "Hall Research";
+/** Categorías de la lista que son accesorios (no van como producto principal). */
+const ACCESSORY_CATEGORIES = new Set(["cables & adaptors", "parts/spares"]);
 /** Clave de sourceMetadata con los datos de la lista; el enriquecimiento web usa otra. */
 const RAW_KEY = "hallResearch";
 /** Fuente de la foto que trae el Excel; el enriquecimiento la reemplaza por la galería oficial. */
@@ -244,6 +246,7 @@ function createProductData(
     modelNumber: row.sku,
     shortDescription: row.shortDescription,
     longDescription: row.longDescription,
+    kind: row.category && ACCESSORY_CATEGORIES.has(row.category.toLowerCase()) ? "ACCESORIO" : "PRINCIPAL",
     baseCostUsd: row.costUsd,
     listPriceUsd: row.msrpUsd,
     currency: "USD",

@@ -918,4 +918,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "«Volver al catálogo» desde la ficha de un producto vuelve a la búsqueda, filtros, orden y página donde estabas (portal, catálogo público y admin), en lugar de la grilla de marcas." },
     ],
   },
+  {
+    id: "ship-2026-10-06-marcas-y-accesorios",
+    version: "1.25.2",
+    releasedAt: "2026-10-06T08:30:00.000Z",
+    summary: "Todas las marcas en el login y acción masiva para marcar accesorios.",
+    items: [
+      { kind: "MEJORA", text: "El panel de marcas del login muestra todas las marcas (antes solo las 12 primeras)." },
+      { kind: "NUEVO", text: "Productos → acción masiva «Marcar como accesorio» / «Marcar como principal»." },
+      { kind: "MEJORA", text: "Lista Hall Research: los productos de «Cables & Adaptors» y «Parts/Spares» entran como accesorios (no aparecen como destacados en la pantalla del stand)." },
+    ],
+  },
 ];

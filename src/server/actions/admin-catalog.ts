@@ -355,7 +355,7 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
 
 const bulkSchema = z.object({
   productIds: z.array(z.string()).min(1),
-  action: z.enum(["activate", "deactivate", "set_brand", "set_category", "set_family", "set_discount", "set_crestron", "unset_crestron"]),
+  action: z.enum(["activate", "deactivate", "set_brand", "set_category", "set_family", "set_discount", "set_crestron", "unset_crestron", "set_accessory", "set_principal"]),
   brandId: z.string().optional().nullable(),
   categoryId: z.string().optional().nullable(),
   familyId: z.string().optional().nullable(),
@@ -395,6 +395,12 @@ export async function bulkUpdateProducts(input: z.infer<typeof bulkSchema>): Pro
       break;
     case "unset_crestron":
       await prisma.product.updateMany({ where, data: { isCrestronHomeCompatible: false } });
+      break;
+    case "set_accessory":
+      await prisma.product.updateMany({ where, data: { kind: "ACCESORIO" } });
+      break;
+    case "set_principal":
+      await prisma.product.updateMany({ where, data: { kind: "PRINCIPAL" } });
       break;
   }
   revalidatePath("/admin/products");

@@ -39,11 +39,11 @@ export function AuthShell({ kicker, title, subtitle, children, footer, brands, t
 
         <div className="relative w-full max-w-2xl">
           {withLogo.length ? (
-            <div className="grid grid-cols-3 gap-3 xl:grid-cols-4">
-              {withLogo.slice(0, 12).map((brand) => (
-                <div key={brand.id} className="flex h-16 items-center justify-center rounded-xl bg-white/95 px-3 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.5)]">
+            <div className="grid grid-cols-4 gap-2.5 xl:grid-cols-5">
+              {withLogo.map((brand) => (
+                <div key={brand.id} className="flex h-14 items-center justify-center rounded-xl bg-white/95 px-2.5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.5)]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={brand.logoUrl!} alt={brand.name} className="h-11 w-auto max-w-full object-contain" />
+                  <img src={brand.logoUrl!} alt={brand.name} className="h-10 w-auto max-w-full object-contain" />
                 </div>
               ))}
             </div>

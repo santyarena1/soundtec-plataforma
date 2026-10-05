@@ -328,7 +328,7 @@ export function ProductsCatalogAdmin(props: Props) {
     start(async () => {
       const r = await bulkUpdateProducts({
         productIds: [...selected],
-        action: bulkAction as "activate" | "deactivate" | "set_brand" | "set_category" | "set_discount",
+        action: bulkAction as "activate" | "deactivate" | "set_brand" | "set_category" | "set_discount" | "set_accessory" | "set_principal",
         brandId: bulkBrandId || null,
         categoryId: bulkCategoryId || null,
         discountPercent: bulkDiscount ? Number(bulkDiscount) : null,
@@ -509,6 +509,8 @@ export function ProductsCatalogAdmin(props: Props) {
           <option value="remove_label">Quitar etiqueta</option>
           <option value="set_crestron">Marcar Crestron Home</option>
           <option value="unset_crestron">Quitar Crestron Home</option>
+          <option value="set_accessory">Marcar como accesorio</option>
+          <option value="set_principal">Marcar como principal</option>
           <option value="serper_images">Buscar imágenes (Serper)</option>
         </Select>
         {bulkAction === "set_brand" ? (
