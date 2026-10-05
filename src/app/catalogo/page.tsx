@@ -16,6 +16,7 @@ import { AssistantEntry } from "@/components/expo/assistant-entry";
 import { VISITOR_COOKIE, QR_COOKIE } from "@/lib/expo/visitor-cookies";
 import { findLiveQr, recordVisit } from "@/server/expo/visits";
 import { ArrowRight, Package } from "lucide-react";
+import { RememberCatalog } from "@/components/catalog/catalog-memory";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,12 @@ export default async function PublicCatalogPage({
   const brands = await getCatalogBrands();
   if (!showAll && countActiveCatalogFilters(urlState) === 0 && !urlState.search?.trim()) {
     const total = brands.reduce((acc, b) => acc + b.count, 0);
-    return <BrandGrid brands={brands} total={total} />;
+    return (
+      <>
+        <RememberCatalog memoryKey="public" />
+        <BrandGrid brands={brands} total={total} />
+      </>
+    );
   }
   const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
   if (activeBrandId) {
@@ -82,6 +88,7 @@ export default async function PublicCatalogPage({
 
   return (
     <div className="space-y-6">
+      <RememberCatalog memoryKey="public" />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Catálogo Soundtec</p>

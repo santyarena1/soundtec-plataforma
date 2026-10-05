@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { calculateCustomerPrice, calculatePricesForProducts, isProductVisibleToClient } from "@/lib/pricing";
@@ -23,6 +22,7 @@ import { ProductRichInfo } from "./product-rich-info";
 import { recordProductView } from "@/server/catalog/product-views";
 import { formatUsd, formatPercent } from "@/lib/utils";
 import { ArrowLeft, Sparkles, FileText } from "lucide-react";
+import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -228,12 +228,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/portal/products"
+      <BackToCatalogLink
+        memoryKey="portal"
+        fallbackHref="/portal/products"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> Volver al catálogo
-      </Link>
+      </BackToCatalogLink>
 
       {accessoryContext ? (
         <AccessoryInfoBanner

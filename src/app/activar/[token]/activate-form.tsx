@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/input";
+import { Label } from "@/components/ui/input";
 import { activateAccount } from "@/server/actions/activate-account";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function ActivateForm({ token, email }: { token: string; email: string }) {
   const [pending, start] = useTransition();
@@ -35,8 +36,8 @@ export function ActivateForm({ token, email }: { token: string; email: string })
       }}
     >
       <input type="hidden" name="token" value={token} />
-      <div><Label htmlFor="pw">Contraseña</Label><Input id="pw" name="password" type="password" required minLength={8} autoComplete="new-password" /></div>
-      <div><Label htmlFor="pw2">Repetir contraseña</Label><Input id="pw2" name="confirm" type="password" required minLength={8} autoComplete="new-password" /></div>
+      <div><Label htmlFor="pw">Contraseña</Label><PasswordInput id="pw" name="password" required minLength={8} autoComplete="new-password" /></div>
+      <div><Label htmlFor="pw2">Repetir contraseña</Label><PasswordInput id="pw2" name="confirm" required minLength={8} autoComplete="new-password" /></div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Button type="submit" className="h-12 w-full" disabled={pending}>{pending ? "Guardando…" : "Crear contraseña"}</Button>
     </form>

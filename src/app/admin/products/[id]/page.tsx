@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
@@ -24,6 +23,7 @@ import { LabelSelector } from "@/components/admin/label-selector";
 import { getSetting } from "@/lib/settings";
 import { PortalDataPanel } from "./portal-data-panel";
 import { calculateCustomerPrice } from "@/lib/pricing";
+import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
 
 interface SectionRef {
   id: string;
@@ -132,13 +132,14 @@ export default async function AdminProductEditPage({ params }: { params: Promise
 
   return (
     <div className="space-y-6 pb-24">
-      <Link
-        href="/admin/products"
+      <BackToCatalogLink
+        memoryKey="admin"
+        fallbackHref="/admin/products"
         data-tour="products-back-link"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> Volver al catálogo
-      </Link>
+      </BackToCatalogLink>
 
       <PageHeader
         title={product.normalizedName}

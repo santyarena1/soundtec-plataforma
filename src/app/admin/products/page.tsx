@@ -15,6 +15,7 @@ import { Suspense } from "react";
 import { calculatePricesForProducts } from "@/lib/pricing";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { buildProductSearchAnd, SEARCH_RANK_SELECT, sortBySearchRelevance } from "@/lib/product-search";
+import { RememberCatalog } from "@/components/catalog/catalog-memory";
 
 const SEARCH_RANK_CAP = 3000;
 
@@ -141,6 +142,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
 
     return (
       <div className="space-y-4">
+        <RememberCatalog memoryKey="admin" />
         <PageHeader
           title="Productos"
           description={`${compatibleCount} de ${crestronProducts.length} productos compatibles con Crestron Home`}
@@ -264,6 +266,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
 
   return (
     <div className="space-y-4">
+      <RememberCatalog memoryKey="admin" />
       <PageHeader
         title="Productos"
         description={`${total} productos · página ${page} de ${totalPages}`}

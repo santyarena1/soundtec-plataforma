@@ -908,4 +908,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Logos oficiales de Javelin, Hall Tech, Gain Audio y Captivate. Las 5 marcas aparecen en el catálogo, el portal, la pantalla del stand, el login, la visibilidad por cliente y el asistente." },
     ],
   },
+  {
+    id: "ship-2026-10-06-volver-al-catalogo",
+    version: "1.25.1",
+    releasedAt: "2026-10-06T08:00:00.000Z",
+    summary: "Ver la contraseña al escribirla y «Volver al catálogo» vuelve a tu búsqueda.",
+    items: [
+      { kind: "MEJORA", text: "Login y activar cuenta: botón con un ojo para ver u ocultar la contraseña que se escribió." },
+      { kind: "MEJORA", text: "«Volver al catálogo» desde la ficha de un producto vuelve a la búsqueda, filtros, orden y página donde estabas (portal, catálogo público y admin), en lugar de la grilla de marcas." },
+    ],
+  },
 ];

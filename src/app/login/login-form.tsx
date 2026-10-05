@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/input";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { PasswordInput } from "@/components/ui/password-input";
 
 /** API de credenciales del navegador (Chrome/Edge); no está en los tipos de TS. */
 type PasswordCredentialCtor = new (form: HTMLFormElement) => Credential;
@@ -84,7 +85,7 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
         <Label htmlFor="password" required>
           Contraseña
         </Label>
-        <Input id="password" name="password" type="password" autoComplete="current-password" className="h-11" required />
+        <PasswordInput id="password" name="password" autoComplete="current-password" className="h-11" required />
         <FieldError />
       </div>
 

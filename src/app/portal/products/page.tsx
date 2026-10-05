@@ -16,6 +16,7 @@ import { CatalogMultiSelectProvider } from "./catalog-multi-select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AssistantEntry } from "@/components/expo/assistant-entry";
 import { Package, Send } from "lucide-react";
+import { RememberCatalog } from "@/components/catalog/catalog-memory";
 
 export const metadata = { title: "Catálogo" };
 
@@ -58,7 +59,12 @@ export default async function ProductsPage({
   if (rawParams.all !== "1" && countActiveCatalogFilters(urlState) === 0) {
     // Mismo total que el inicio del portal: lo que este cliente puede ver.
     const total = await prisma.product.count({ where: await getVisibleProductsWhere(ctx) });
-    return <BrandGrid brands={brands} total={total} basePath="/portal/products" />;
+    return (
+      <>
+        <RememberCatalog memoryKey="portal" />
+        <BrandGrid brands={brands} total={total} basePath="/portal/products" />
+      </>
+    );
   }
   const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
 
@@ -80,6 +86,7 @@ export default async function ProductsPage({
 
   return (
     <div className="space-y-6">
+      <RememberCatalog memoryKey="portal" />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="heading-2">Catálogo</h1>

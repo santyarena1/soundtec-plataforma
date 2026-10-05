@@ -11,6 +11,7 @@ import { ProductRichInfo } from "@/app/portal/products/[id]/product-rich-info";
 import { ProductAccountCta } from "@/components/catalog/account-cta";
 import { recordProductView } from "@/server/catalog/product-views";
 import { ArrowLeft, ArrowRight, FileText, Lock, Package } from "lucide-react";
+import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
 
 export const dynamic = "force-dynamic";
 
@@ -81,9 +82,9 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-8">
-      <Link href="/catalogo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <BackToCatalogLink memoryKey="public" fallbackHref="/catalogo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Volver al catálogo
-      </Link>
+      </BackToCatalogLink>
 
       <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-start">
         <div className="lg:sticky lg:top-24">
