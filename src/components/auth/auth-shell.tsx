@@ -56,7 +56,7 @@ export function AuthShell({ kicker, title, subtitle, children, footer, brands, t
       <div className="flex min-h-dvh flex-col px-6 py-8 sm:px-12 lg:px-16 lg:py-12">
         <Link href="/" className="self-center" aria-label="Soundtec — inicio">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-12 w-auto sm:h-14" />
+          <img src="/landing/logo_soundtec.png" alt="Soundtec" className="h-16 w-auto sm:h-20" />
         </Link>
 
         <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-10 text-center">

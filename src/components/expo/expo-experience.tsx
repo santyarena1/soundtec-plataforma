@@ -206,9 +206,9 @@ export function ExpoExperience({
           <img
             src={logoUrl}
             alt="Soundtec"
-            width={389}
-            height={60}
-            className="h-6 w-auto shrink-0 object-contain sm:h-7"
+            width={635}
+            height={375}
+            className="h-9 w-auto shrink-0 object-contain sm:h-10"
           />
           <span className="hidden h-5 w-px bg-border sm:block" />
           <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
@@ -236,9 +236,9 @@ export function ExpoExperience({
               <img
                 src={logoUrl}
                 alt="Soundtec"
-                width={389}
-                height={60}
-                className="ai-pop mx-auto h-9 w-auto max-w-[70vw] object-contain sm:h-12"
+                width={635}
+                height={375}
+                className="ai-pop mx-auto h-16 w-auto max-w-[70vw] object-contain sm:h-20"
               />
               <h1 className="heading-2 mt-5">Preguntanos sobre nuestros productos</h1>
               <p className="muted-text mx-auto mt-2 max-w-md">

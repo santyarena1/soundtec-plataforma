@@ -40,7 +40,7 @@ export function WelcomeScreen({ required }: { required: boolean }) {
     <div role="dialog" aria-modal="true" aria-labelledby="welcome-title" className="fixed inset-0 z-50 overflow-y-auto bg-background">
     <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-8">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="mx-auto mb-6 h-10 w-auto" />
+      <img src="/landing/logo_soundtec.png" alt="Soundtec" className="mx-auto mb-6 h-16 w-auto" />
       <h2 id="welcome-title" className="text-center text-2xl font-semibold">¡Bienvenido a Soundtec!</h2>
       <p className="mt-2 text-center text-sm text-muted-foreground">
         Dejanos tu mail para explorar el catálogo y recibir la info que te interese.

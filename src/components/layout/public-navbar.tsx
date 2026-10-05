@@ -25,7 +25,7 @@ export async function PublicNavbar() {
       <div className="container-page relative flex h-16 items-center justify-between gap-2">
         <Link href="/" className="flex min-w-0 items-center" aria-label={appName}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-8 w-auto sm:h-9" />
+          <img src="/landing/logo_soundtec.png" alt="Soundtec" className="h-10 w-auto sm:h-11" />
         </Link>
 
         <nav className="hidden gap-6 text-sm text-muted-foreground md:flex">

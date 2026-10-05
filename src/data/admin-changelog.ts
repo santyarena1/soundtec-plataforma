@@ -950,4 +950,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Revisión SoundTube: las fechas se muestran en hora de Argentina y la pantalla responde desde el primer clic." },
     ],
   },
+  {
+    id: "ship-2026-10-06-logo-nuevo",
+    version: "1.26.1",
+    releasedAt: "2026-10-06T11:30:00.000Z",
+    summary: "Logo nuevo de Soundtec en todo el sistema.",
+    items: [
+      { kind: "MEJORA", text: "El logo de Soundtec (sin «integramos tecnología») reemplaza al anterior en la web pública, el catálogo, el login, activar cuenta, la bienvenida de la expo, el asistente y la pantalla del stand. Las cotizaciones quedan como estaban." },
+    ],
+  },
 ];

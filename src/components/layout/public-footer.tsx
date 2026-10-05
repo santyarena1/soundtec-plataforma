@@ -16,8 +16,8 @@ export function PublicFooter() {
         <div>
           <img
             src="/landing/logo_soundtec.png"
-            alt="Soundtec — integramos tecnología"
-            className="h-12 w-auto"
+            alt="Soundtec"
+            className="h-16 w-auto"
             loading="lazy"
           />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">

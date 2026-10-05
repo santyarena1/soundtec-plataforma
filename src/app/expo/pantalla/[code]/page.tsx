@@ -83,7 +83,7 @@ function LandscapeView({ className, svg, total, slides, brands }: ViewProps) {
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,45fr)_minmax(0,55fr)]">
         <section className="flex min-h-0 flex-col items-center justify-center gap-[2.4vh] px-[3vw] py-[3.5vh] text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-[7.5vh] w-auto shrink-0 object-contain" />
+          <img src="/landing/logo_soundtec.png" alt="Soundtec" className="h-[12vh] w-auto shrink-0 object-contain" />
 
           <div className="flex flex-col items-center animate-[fadeUp_900ms_ease-out]">
             <p className="text-[1.7vh] font-semibold uppercase tracking-[0.3em] text-[#1E3552]/55">Catálogo Soundtec</p>
@@ -120,7 +120,7 @@ function PortraitView({ className, svg, total, slides, brands }: ViewProps) {
     <div className={`${className} h-full flex-col`}>
       <section className="flex shrink-0 flex-col items-center px-[6vw] pt-[3vh] text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-auto max-h-[6vh] w-[min(52vw,36vh)] object-contain" />
+        <img src="/landing/logo_soundtec.png" alt="Soundtec" className="h-[9vh] w-auto object-contain" />
 
         <div className="mt-[2vh] flex flex-col items-center animate-[fadeUp_900ms_ease-out]">
           <p className="text-[min(1.7vh,2.8vw)] font-semibold uppercase tracking-[0.3em] text-[#1E3552]/55">Catálogo Soundtec</p>
