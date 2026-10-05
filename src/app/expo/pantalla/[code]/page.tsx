@@ -19,19 +19,19 @@ const LAYOUT = {
     grid: "grid-cols-[1fr_auto_1fr]",
     side: "block",
     bottom: "hidden",
-    qr: "w-[min(46vmin,640px)]",
+    qr: "w-[min(30vw,50vh,640px)]",
   },
   PORTRAIT: {
     grid: "grid-cols-1",
     side: "hidden",
     bottom: "block",
-    qr: "w-[min(64vmin,640px)]",
+    qr: "w-[min(70vw,36vh,640px)]",
   },
   AUTO: {
     grid: "grid-cols-1 landscape:grid-cols-[1fr_auto_1fr]",
     side: "hidden landscape:block",
     bottom: "block landscape:hidden",
-    qr: "w-[min(64vmin,640px)] landscape:w-[min(46vmin,640px)]",
+    qr: "w-[min(70vw,36vh,640px)] landscape:w-[min(30vw,50vh,640px)]",
   },
 } as const;
 
@@ -77,20 +77,20 @@ export default async function Page({ params }: { params: Promise<{ code: string 
 
       <header className="flex justify-center pt-[3.5vmin]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-[5.5vmin] w-auto" />
+        <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-[min(5.5vmin,5vh)] w-auto" />
       </header>
 
-      <main className={`mx-auto grid w-full max-w-[1900px] flex-1 items-center gap-[4vmin] px-[4vmin] ${layout.grid}`}>
+      <main className={`mx-auto grid min-h-0 w-full max-w-[1900px] flex-1 content-center items-center gap-[3vmin] px-[4vmin] ${layout.grid}`}>
         <div className={layout.side}>
-          <Showcase slides={left.length ? left : slides} className="aspect-[4/5] max-h-[64vh] w-full" />
+          <Showcase slides={left.length ? left : slides} className="h-[58vh] w-full" />
         </div>
 
         <section className="flex flex-col items-center text-center">
-          <h1 className="text-[4.8vmin] font-semibold leading-[1.05] tracking-tight">Todo el catálogo, en tu celular</h1>
-          <div className="mt-[3vmin] animate-[floatQr_6s_ease-in-out_infinite] rounded-[3.5vmin] bg-white p-[3vmin] shadow-[0_3vmin_9vmin_rgba(30,53,82,0.22)] ring-1 ring-[#1E3552]/10">
+          <h1 className="text-[min(4.8vmin,4vh)] font-semibold leading-[1.05] tracking-tight">Todo el catálogo, en tu celular</h1>
+          <div className="mt-[2vh] animate-[floatQr_6s_ease-in-out_infinite] rounded-[3vmin] bg-white p-[min(3vmin,2.4vh)] shadow-[0_3vmin_9vmin_rgba(30,53,82,0.22)] ring-1 ring-[#1E3552]/10">
             <div className={`${layout.qr} [&>svg]:h-auto [&>svg]:w-full`} dangerouslySetInnerHTML={{ __html: svg }} />
           </div>
-          <p className="mt-[3vmin] text-[3.2vmin] font-semibold">Escaneá y explorá</p>
+          <p className="mt-[2vh] text-[min(3.2vmin,3vh)] font-semibold">Escaneá y explorá</p>
           <p className="mt-[0.6vmin] text-[2vmin] text-[#1E3552]/70">
             Más de {total.toLocaleString("es-AR")} productos de audio, video y control
           </p>
@@ -100,20 +100,20 @@ export default async function Page({ params }: { params: Promise<{ code: string 
         </section>
 
         <div className={layout.side}>
-          <Showcase slides={right.length ? right : slides} delayMs={2500} className="aspect-[4/5] max-h-[64vh] w-full" />
+          <Showcase slides={right.length ? right : slides} delayMs={2500} className="h-[58vh] w-full" />
         </div>
 
         <div className={`${layout.bottom} w-full`}>
-          <Showcase slides={slides} className="aspect-[16/9] w-full" />
+          <Showcase slides={slides} className="h-[24vh] w-full" />
         </div>
       </main>
 
-      <footer className="relative mt-[3vmin] overflow-hidden border-t border-[#1E3552]/10 bg-white/80 py-[2.4vmin]">
+      <footer className="relative mt-[2vh] overflow-hidden border-t border-[#1E3552]/10 bg-white/80 py-[min(2.4vmin,2vh)]">
         <div className="flex w-max animate-[marquee_50s_linear_infinite] items-center gap-[8vmin] px-[4vmin]">
           {ribbon.map((brand, i) =>
             brand.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={`${brand.id}-${i}`} src={brand.logoUrl} alt={brand.name} className="h-[4.6vmin] w-auto max-w-[22vmin] object-contain" />
+              <img key={`${brand.id}-${i}`} src={brand.logoUrl} alt={brand.name} className="h-[min(4.6vmin,4vh)] w-auto max-w-[22vmin] object-contain" />
             ) : (
               <span key={`${brand.id}-${i}`} className="whitespace-nowrap text-[2.4vmin] font-bold tracking-[0.18em] text-[#1E3552]/70">
                 {brand.name.toUpperCase()}

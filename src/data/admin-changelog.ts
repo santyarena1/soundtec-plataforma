@@ -750,4 +750,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "En cada evento, «Vidriera de la pantalla del stand»: buscá, agregá y ordená los productos que pasan. Sin elegir ninguno, sigue la selección automática." },
     ],
   },
+  {
+    id: "ship-2026-10-05-pantalla-encaja",
+    version: "1.22.2",
+    releasedAt: "2026-10-05T19:30:00.000Z",
+    summary: "La pantalla del stand entra completa en cualquier monitor, horizontal o vertical.",
+    items: [
+      { kind: "FIX", text: "En monitores verticales o casi cuadrados la vidriera y la cinta de marcas ya no quedan cortadas abajo." },
+    ],
+  },
 ];
