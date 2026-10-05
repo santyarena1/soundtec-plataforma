@@ -853,4 +853,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Login: Chrome (y otros navegadores) ahora ofrecen guardar el usuario y la contraseña al ingresar, y los autocompletan la próxima vez." },
     ],
   },
+  {
+    id: "ship-2026-10-06-leads-crm",
+    version: "1.23.0",
+    releasedAt: "2026-10-06T04:00:00.000Z",
+    summary: "Cada escaneo del QR pide los datos y los leads se ven en el CRM.",
+    items: [
+      { kind: "MEJORA", text: "Cada vez que se escanea un QR se vuelve a mostrar el formulario de datos. Solo se omite si ese dispositivo ya lo completó; haber tocado «Saltear» no cuenta." },
+      { kind: "NUEVO", text: "CRM → Leads del catálogo: todos los que dejaron sus datos, con búsqueda, filtro por evento y por origen (QR o web), y si después pidieron cuenta." },
+      { kind: "NUEVO", text: "En cada evento de Configuración → Expo: «Ver leads en CRM» junto a la descarga del Excel." },
+      { kind: "MEJORA", text: "Dashboard: «Productos activos» muestra también cuántos son visibles en el catálogo (el número que ven los visitantes). La diferencia son productos sin marca o de marcas ocultas o inactivas." },
+    ],
+  },
 ];

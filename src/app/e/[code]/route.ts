@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { isValidQrCode } from "@/lib/expo/qr-code";
-import { QR_COOKIE, VISITOR_COOKIE, VISITOR_COOKIE_OPTIONS } from "@/lib/expo/visitor-cookies";
+import { QR_COOKIE, SKIP_COOKIE, VISITOR_COOKIE, VISITOR_COOKIE_OPTIONS } from "@/lib/expo/visitor-cookies";
 import { findQrWithEvent, recordVisit } from "@/server/expo/visits";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +22,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
   const visitorId = req.cookies.get(VISITOR_COOKIE)?.value || randomUUID();
   res.cookies.set(VISITOR_COOKIE, visitorId, VISITOR_COOKIE_OPTIONS);
   res.cookies.set(QR_COOKIE, qr.code, VISITOR_COOKIE_OPTIONS);
+  // "Saltear" vale solo para esa visita: cada escaneo vuelve a pedir los datos
+  // (salvo que el dispositivo ya los haya dejado).
+  res.cookies.delete(SKIP_COOKIE);
   await recordVisit({ visitorId, qrId: qr.id, type: "SCAN" });
   return res;
 }

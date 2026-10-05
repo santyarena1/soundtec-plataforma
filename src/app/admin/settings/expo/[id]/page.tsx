@@ -53,7 +53,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <CardContent className="space-y-3 p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold">QR del evento</h3>
-            <a href={`/api/admin/expo/events/${event.id}/leads`} className="text-sm font-medium text-primary underline">Descargar leads (Excel)</a>
+            <div className="flex gap-4">
+              <Link href={`/admin/leads?event=${event.id}`} className="text-sm font-medium text-primary underline">Ver leads en CRM</Link>
+              <a href={`/api/admin/expo/events/${event.id}/leads`} className="text-sm font-medium text-primary underline">Descargar leads (Excel)</a>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

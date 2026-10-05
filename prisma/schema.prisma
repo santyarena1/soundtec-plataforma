@@ -1880,6 +1880,7 @@ model VisitorLead {
   @@index([eventId])
   @@index([email])
   @@index([createdAt])
+  @@index([visitorId])
 }
 
 /// Pedido de cuenta de cliente desde el catálogo público.

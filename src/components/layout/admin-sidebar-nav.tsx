@@ -18,6 +18,7 @@ import {
   ListChecks,
   MessageSquare,
   Package,
+  QrCode,
   Sparkles,
   Percent,
   Receipt,
@@ -98,6 +99,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/admin/clients", label: "Clientes", icon: Users, scope: "clients.view", tourId: "nav-link-clients" },
       { href: "/admin/account-requests", label: "Solicitudes de cuenta", icon: UserPlus, scope: "clients.view", badgeKey: "accountRequests" },
+      { href: "/admin/leads", label: "Leads del catálogo", icon: QrCode, scope: "clients.view" },
       { href: "/admin/assistant/leads", label: "Leads del asistente", icon: MessageSquare, scope: "clients.view" },
       { href: "/admin/users", label: "Usuarios", icon: ShieldCheck, scope: "users.view", tourId: "nav-link-users" },
     ],

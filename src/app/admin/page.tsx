@@ -18,6 +18,7 @@ export default async function AdminDashboardPage() {
 
   const [
     totalProducts,
+    catalogProducts,
     totalUsers,
     activeRequests,
     pendingFeedback,
@@ -28,6 +29,8 @@ export default async function AdminDashboardPage() {
     offerProductsRaw,
   ] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
+    // Lo que ven los visitantes (catálogo, pantalla del stand, login): solo marcas activas y visibles.
+    prisma.product.count({ where: { isActive: true, brand: { is: { isActive: true, hiddenFromCatalog: false } } } }),
     prisma.user.count({ where: { role: "CLIENT", isActive: true } }),
     prisma.customerRequest.count({ where: { status: { in: ["SENT", "IN_REVIEW"] } } }),
     prisma.aiContentFeedback.count({ where: { verdict: "HAS_ERRORS" } }),
@@ -72,7 +75,14 @@ export default async function AdminDashboardPage() {
   } as const;
 
   const stats = [
-    { label: "Productos activos", value: totalProducts, icon: Package, tone: "primary" as const, href: "/admin/products" },
+    {
+      label: "Productos activos",
+      value: totalProducts,
+      hint: `${catalogProducts.toLocaleString("es-AR")} visibles en el catálogo`,
+      icon: Package,
+      tone: "primary" as const,
+      href: "/admin/products",
+    },
     { label: "Usuarios del portal", value: totalUsers, icon: Users, tone: "accent" as const, href: "/admin/users" },
     { label: "Pedidos a responder", value: activeRequests, icon: Send, tone: "warning" as const, href: "/admin/requests" },
     { label: "Importaciones pendientes", value: pendingImports, icon: FileSpreadsheet, tone: "primary" as const, href: "/admin/imports" },
@@ -111,7 +121,8 @@ export default async function AdminDashboardPage() {
                 </span>
                 <div>
                   <p className="muted-text">{s.label}</p>
-                  <p className="text-2xl font-semibold">{s.value}</p>
+                  <p className="text-2xl font-semibold">{s.value.toLocaleString("es-AR")}</p>
+                  {"hint" in s && s.hint ? <p className="text-xs text-muted-foreground">{s.hint}</p> : null}
                 </div>
               </CardContent>
             </Card>

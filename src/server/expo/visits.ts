@@ -34,3 +34,11 @@ export async function findLiveQr(code: string | undefined) {
   const qr = await findQrWithEvent(code);
   return qr && eventStatus(qr.event) === "LIVE" ? qr : null;
 }
+
+/** ¿Este dispositivo ya dejó sus datos? Por la cookie del lead o por su id de visitante. */
+export async function visitorHasLead(leadId: string | undefined, visitorId: string | undefined): Promise<boolean> {
+  const or = [...(leadId ? [{ id: leadId }] : []), ...(visitorId ? [{ visitorId }] : [])];
+  if (or.length === 0) return false;
+  const lead = await prisma.visitorLead.findFirst({ where: { OR: or }, select: { id: true } });
+  return !!lead;
+}
