@@ -3,7 +3,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { formatCuit, isValidCuit, normalizeCuit } from "./cuit";
+import { formatCuit, isValidCuit, normalizeCuit, cuitVariants } from "./cuit";
 
 describe("normalizeCuit", () => {
   it("deja solo dígitos", () => {
@@ -31,4 +31,11 @@ describe("formatCuit", () => {
   it("formatea como XX-XXXXXXXX-X", () => {
     assert.equal(formatCuit("20123456786"), "20-12345678-6");
   });
+});
+
+describe("cuitVariants", () => {
+  it("devuelve la forma normalizada y la formateada", () => {
+    assert.deepEqual(cuitVariants("20-12345678-6"), ["20123456786", "20-12345678-6"]);
+  });
+  it("si no tiene 11 dígitos solo devuelve los dígitos", () => assert.deepEqual(cuitVariants("123"), ["123"]));
 });

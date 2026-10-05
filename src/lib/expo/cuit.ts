@@ -20,3 +20,9 @@ export function formatCuit(raw: string): string {
   const c = normalizeCuit(raw);
   return c.length === 11 ? `${c.slice(0, 2)}-${c.slice(2, 10)}-${c.slice(10)}` : raw;
 }
+
+/** Formas en que un CUIT puede estar guardado (sin y con guiones), para buscar clientes existentes. */
+export function cuitVariants(raw: string): string[] {
+  const c = normalizeCuit(raw);
+  return c.length === 11 ? [c, formatCuit(c)] : [c];
+}

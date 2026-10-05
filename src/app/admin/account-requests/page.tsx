@@ -6,9 +6,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatCuit } from "@/lib/expo/cuit";
+import { cuitVariants, formatCuit, normalizeCuit } from "@/lib/expo/cuit";
 import { formatDate } from "@/lib/utils";
-import { RequestActions } from "./request-actions";
+import { RegenerateLinkAction, RequestActions } from "./request-actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin · Solicitudes de cuenta" };
@@ -28,6 +28,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
     prisma.accountRequest.groupBy({ by: ["status"], _count: true }),
   ]);
   const countOf = (s: AccountRequestStatus) => counts.find((c) => c.status === s)?._count ?? 0;
+  // Pendientes cuyo CUIT ya es de un cliente: al aprobar se vinculan a ese cliente.
+  const pendingCuits = status === "PENDING" ? [...new Set(rows.flatMap((r) => cuitVariants(r.cuit)))] : [];
+  const existingClients = pendingCuits.length
+    ? await prisma.client.findMany({ where: { taxId: { in: pendingCuits } }, select: { taxId: true, companyName: true } })
+    : [];
+  const clientByCuit = new Map(existingClients.map((c) => [normalizeCuit(c.taxId ?? ""), c.companyName]));
 
   return (
     <div className="space-y-6">
@@ -48,7 +54,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
             <Card key={r.id}>
               <CardContent className="grid gap-4 p-5 md:grid-cols-[1fr_auto]">
                 <div className="space-y-1 text-sm">
-                  <p className="text-base font-semibold">{r.company} <span className="text-xs font-normal text-muted-foreground">CUIT {formatCuit(r.cuit)}</span></p>
+                  <p className="text-base font-semibold">
+                    {r.company} <span className="text-xs font-normal text-muted-foreground">CUIT {formatCuit(r.cuit)}</span>
+                    {r.status === "PENDING" && clientByCuit.has(normalizeCuit(r.cuit)) ? (
+                      <Badge tone="warning" className="ml-2" title={`Cliente existente: ${clientByCuit.get(normalizeCuit(r.cuit))}`}>Ya es cliente</Badge>
+                    ) : null}
+                  </p>
                   <p>{r.fullName} · <a className="underline" href={`mailto:${r.email}`}>{r.email}</a> · {r.phone}</p>
                   <p className="text-muted-foreground">
                     <Badge tone="muted">{r.activity === "Otra" ? r.activityOther : r.activity}</Badge>
@@ -59,6 +70,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
                   {r.status === "REJECTED" && r.rejectionReason ? <p className="text-xs text-destructive">Motivo: {r.rejectionReason}</p> : null}
                 </div>
                 {r.status === "PENDING" ? <RequestActions id={r.id} phone={r.phone} name={r.fullName} /> : null}
+                {r.status === "APPROVED" && r.createdUserId ? <RegenerateLinkAction id={r.id} phone={r.phone} name={r.fullName} /> : null}
               </CardContent>
             </Card>
           ))}
