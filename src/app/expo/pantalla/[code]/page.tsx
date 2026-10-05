@@ -86,8 +86,7 @@ function LandscapeView({ className, svg, total, slides, brands }: ViewProps) {
           <img src="/landing/logo_soundtec.png" alt="Soundtec" className="h-[12vh] w-auto shrink-0 object-contain" />
 
           <div className="flex flex-col items-center animate-[fadeUp_900ms_ease-out]">
-            <p className="text-[1.7vh] font-semibold uppercase tracking-[0.3em] text-[#1E3552]/55">Catálogo Soundtec</p>
-            <h1 className="mt-[0.8vh] text-[4.2vh] font-semibold leading-[1.02] tracking-tight">
+            <h1 className="text-[4.2vh] font-semibold leading-[1.02] tracking-tight">
               Todo el catálogo,
               <br />
               en tu celular
@@ -123,8 +122,7 @@ function PortraitView({ className, svg, total, slides, brands }: ViewProps) {
         <img src="/landing/logo_soundtec.png" alt="Soundtec" className="h-[9vh] w-auto object-contain" />
 
         <div className="mt-[2vh] flex flex-col items-center animate-[fadeUp_900ms_ease-out]">
-          <p className="text-[min(1.7vh,2.8vw)] font-semibold uppercase tracking-[0.3em] text-[#1E3552]/55">Catálogo Soundtec</p>
-          <h1 className="mt-[0.8vh] text-[min(3.2vh,6vw)] font-semibold leading-[1.02] tracking-tight">
+          <h1 className="text-[min(3.2vh,6vw)] font-semibold leading-[1.02] tracking-tight">
             Todo el catálogo,
             <br />
             en tu celular

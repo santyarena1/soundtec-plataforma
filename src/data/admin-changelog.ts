@@ -959,4 +959,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "El logo de Soundtec (sin «integramos tecnología») reemplaza al anterior en la web pública, el catálogo, el login, activar cuenta, la bienvenida de la expo, el asistente y la pantalla del stand. Las cotizaciones quedan como estaban." },
     ],
   },
+  {
+    id: "ship-2026-10-06-sin-leyenda-stand",
+    version: "1.26.2",
+    releasedAt: "2026-10-06T12:00:00.000Z",
+    summary: "Pantalla del stand sin la leyenda «Catálogo Soundtec».",
+    items: [
+      { kind: "MEJORA", text: "Se quitó la leyenda «Catálogo Soundtec» de la pantalla del stand (horizontal y vertical)." },
+    ],
+  },
 ];
