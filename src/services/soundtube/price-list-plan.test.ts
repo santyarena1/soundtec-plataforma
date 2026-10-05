@@ -28,4 +28,30 @@ describe("buildPriceListPlan", () => {
     assert.equal(plan.matched.length, 2);
     assert.equal(plan.notInSystem.length, 0);
   });
+
+  it("reconoce el mismo SKU escrito con espacios o guiones distintos", () => {
+    const plan = buildPriceListPlan(
+      [row("SQUAREROOT 6.5 GG"), row("IPD4-CM62-KIT")],
+      [product("a", "SQUAREROOT 6.5-GG"), product("b", "IPD4-CM62 KIT")]
+    );
+    assert.deepEqual(plan.matched.map((m) => [m.product.id, m.looseMatch]), [["a", true], ["b", true]]);
+    assert.equal(plan.notInSystem.length, 0);
+    assert.equal(plan.missing.length, 0);
+  });
+
+  it("la coincidencia exacta gana y no se mezclan SKUs con barra distinta", () => {
+    const plan = buildPriceListPlan(
+      [row("SQUAREROOT 6.5-GG"), row("SQUAREROOT 6.5 GG/T")],
+      [product("a", "SQUAREROOT 6.5-GG"), product("b", "SQUAREROOT 6.5 GG")]
+    );
+    assert.deepEqual(plan.matched.map((m) => [m.product.id, m.looseMatch]), [["a", false]]);
+    assert.deepEqual(plan.notInSystem.map((r) => r.sku), ["SQUAREROOT 6.5 GG/T"]);
+    assert.deepEqual(plan.missing.map((p) => p.id), ["b"]);
+  });
+
+  it("si la coincidencia aproximada es ambigua, no adivina", () => {
+    const plan = buildPriceListPlan([row("AB-1"), row("AB 1")], [product("a", "AB1")]);
+    assert.equal(plan.matched.length, 0);
+    assert.equal(plan.notInSystem.length, 2);
+  });
 });

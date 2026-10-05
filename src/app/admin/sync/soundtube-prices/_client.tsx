@@ -192,7 +192,14 @@ export function SoundTubePriceListPanel() {
               <TBody>
                 {preview.matched.map((m) => (
                   <TR key={m.productId}>
-                    <TD className="font-mono text-xs font-semibold">{m.sku}</TD>
+                    <TD className="font-mono text-xs font-semibold">
+                      {m.sku}
+                      {m.excelSku ? (
+                        <span className="block font-sans font-normal text-[11px] text-amber-700" title="Mismo producto: el SKU difiere solo en espacios o guiones">
+                          En el Excel: {m.excelSku}
+                        </span>
+                      ) : null}
+                    </TD>
                     <TD className="text-xs text-muted-foreground">{m.brand}</TD>
                     <TD className="whitespace-nowrap text-xs">{usd(m.oldCost)}</TD>
                     <TD

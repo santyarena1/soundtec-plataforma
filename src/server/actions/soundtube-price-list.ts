@@ -37,6 +37,8 @@ export interface PreviewMatched {
   newCost: number;
   mup: number;
   isActive: boolean;
+  /** SKU como viene en el Excel cuando difiere solo en espacios o guiones. */
+  excelSku?: string;
   categoria?: string;
   segmento?: string;
   familia?: string;
@@ -117,7 +119,7 @@ export async function previewSoundTubePriceList(formData: FormData): Promise<Pri
   return {
     ok: true,
     fileName: upload.fileName,
-    matched: plan.matched.map(({ product, row }) => ({
+    matched: plan.matched.map(({ product, row, looseMatch }) => ({
       productId: product.id,
       sku: product.sku ?? row.sku,
       name: product.name,
@@ -127,6 +129,7 @@ export async function previewSoundTubePriceList(formData: FormData): Promise<Pri
       newCost: row.costUsd,
       mup: row.mup,
       isActive: product.isActive,
+      excelSku: looseMatch ? row.sku : undefined,
       categoria: row.categoria,
       segmento: row.segmento,
       familia: row.familia,

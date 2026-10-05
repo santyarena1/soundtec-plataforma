@@ -929,4 +929,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Lista Hall Research: los productos de «Cables & Adaptors» y «Parts/Spares» entran como accesorios (no aparecen como destacados en la pantalla del stand)." },
     ],
   },
+  {
+    id: "ship-2026-10-06-soundtube-sku-tolerante",
+    version: "1.25.3",
+    releasedAt: "2026-10-06T09:00:00.000Z",
+    summary: "La lista de SoundTube reconoce SKUs escritos con espacios o guiones distintos.",
+    items: [
+      { kind: "MEJORA", text: "Lista de precios SoundTube: si un SKU del Excel difiere del sistema solo en espacios o guiones (ej. «SQUAREROOT 6.5 GG» y «SQUAREROOT 6.5-GG»), se reconoce como el mismo producto y se avisa en la vista previa. Si hay dudas, no adivina." },
+    ],
+  },
 ];
