@@ -27,6 +27,7 @@ import {
   Tags,
   Truck,
   Users,
+  UserPlus,
   ChevronRight,
   PackageSearch,
   RefreshCw,
@@ -45,6 +46,7 @@ type NavItem = {
   anyScope?: PermissionScope[];
   /** data-tour para el paseo de bienvenida. */
   tourId?: string;
+  badgeKey?: "accountRequests";
 };
 type NavGroup = { title: string; items: NavItem[]; tourId?: string };
 
@@ -95,6 +97,7 @@ const groups: NavGroup[] = [
     tourId: "nav-crm",
     items: [
       { href: "/admin/clients", label: "Clientes", icon: Users, scope: "clients.view", tourId: "nav-link-clients" },
+      { href: "/admin/account-requests", label: "Solicitudes de cuenta", icon: UserPlus, scope: "clients.view", badgeKey: "accountRequests" },
       { href: "/admin/assistant/leads", label: "Leads del asistente", icon: MessageSquare, scope: "clients.view" },
       { href: "/admin/users", label: "Usuarios", icon: ShieldCheck, scope: "users.view", tourId: "nav-link-users" },
     ],
@@ -128,9 +131,10 @@ interface Props {
   fullAccess?: boolean;
   /** En el drawer mobile conviene ver todos los grupos abiertos. */
   expandAll?: boolean;
+  counts?: Partial<Record<"accountRequests", number>>;
 }
 
-export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll }: Props) {
+export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll, counts }: Props) {
   const pathname = usePathname();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
@@ -209,6 +213,11 @@ export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll }: Props)
                     >
                       <item.icon className={`h-3.5 w-3.5 shrink-0 ${active ? "text-primary" : ""}`} />
                       <span className="truncate">{item.label}</span>
+                      {item.badgeKey && counts?.[item.badgeKey] ? (
+                        <span className="ml-auto rounded-full bg-primary px-1.5 text-[10px] font-semibold leading-4 text-primary-foreground">
+                          {counts[item.badgeKey]}
+                        </span>
+                      ) : null}
                     </Link>
                   );
                 })}

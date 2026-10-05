@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { ButtonLink } from "@/components/ui/button";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { getSetting } from "@/lib/settings";
@@ -30,7 +31,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
 
   const userName = session.user.name;
   const userEmail = session.user.email;
-  const [logoUrl, appName, changelogs, onboardingState] = await Promise.all([
+  const [logoUrl, appName, changelogs, onboardingState, pendingRequests] = await Promise.all([
     getSetting("branding.logo_url", ""),
     getSetting("app.name", "Soundtec"),
     listAllChangelogs().catch((err) => {
@@ -38,6 +39,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       return [];
     }),
     getOnboardingState(),
+    prisma.accountRequest.count({ where: { status: "PENDING" } }).catch(() => 0),
   ]);
 
   async function handleSignOut() {
@@ -67,6 +69,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
           allowedScopes={permissions.scopes}
           fullAccess={permissions.fullAccess}
           expandAll={expandAll}
+          counts={{ accountRequests: pendingRequests }}
         />
         <div className="border-t border-border p-3">
           <ChangelogSidebarButton entries={changelogs} />
