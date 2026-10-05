@@ -84,20 +84,20 @@ function LandscapeView({ className, svg, total, slides, brands }: ViewProps) {
   return (
     <div className={`${className} h-full flex-col`}>
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,45fr)_minmax(0,55fr)]">
-        <section className="flex min-h-0 flex-col justify-between py-[5vh] pl-[5vw] pr-[3vw]">
+        <section className="flex min-h-0 flex-col justify-between gap-[2.5vh] py-[4.5vh] pl-[5vw] pr-[3vw]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-[11vh] w-auto self-start object-contain" />
+          <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-[9vh] w-auto shrink-0 self-start object-contain" />
 
           <div className="animate-[fadeUp_900ms_ease-out]">
             <p className="text-[1.9vh] font-semibold uppercase tracking-[0.3em] text-[#1E3552]/55">Catálogo Soundtec</p>
-            <h1 className="mt-[1.2vh] text-[6.4vh] font-semibold leading-[1.02] tracking-tight">
+            <h1 className="mt-[1.2vh] text-[5.8vh] font-semibold leading-[1.02] tracking-tight">
               Todo el catálogo,
               <br />
               en tu celular
             </h1>
-            <div className="mt-[4.5vh] flex items-center gap-[2.6vw]">
+            <div className="mt-[3.5vh] flex items-center gap-[2.6vw]">
               <div className="shrink-0 animate-[floatQr_6s_ease-in-out_infinite] rounded-[2.4vh] bg-white p-[2vh] shadow-[0_3vh_8vh_rgba(30,53,82,0.22)] ring-1 ring-[#1E3552]/10">
-                <div className="w-[min(36vh,19vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
+                <div className="w-[min(33vh,19vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
               </div>
               <ol className="min-w-0 space-y-[2.4vh]">
                 {STEPS.map((step, i) => (

@@ -779,6 +779,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     items: [
       { kind: "MEJORA", text: "Pantalla del stand en horizontal, nueva: a la izquierda logo, título, QR grande y los pasos (escaneá, explorá, pedí tu cuenta); a la derecha la vidriera de productos en grande sobre fondo azul." },
       { kind: "MEJORA", text: "En vertical el logo de Soundtec queda un poco más chico." },
+      { kind: "FIX", text: "Pantalla horizontal: en monitores muy anchos el logo ya no se superpone con el título." },
       { kind: "MEJORA", text: "Todos los logos de marca, también los cargados por URL, se recortan y se ajustan solos al mismo tamaño (catálogo, portal y pantalla del stand). Ya no hace falta tocar ningún botón." },
     ],
   },
