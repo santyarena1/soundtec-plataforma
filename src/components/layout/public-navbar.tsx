@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { ButtonLink } from "@/components/ui/button";
-import { BrandLogo } from "@/components/layout/brand-logo";
 import { getSetting } from "@/lib/settings";
 import { PublicMobileMenu } from "@/components/layout/public-mobile-menu";
 
@@ -14,29 +13,19 @@ export async function PublicNavbar() {
     session = null;
   }
   const target = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN" ? "/admin" : "/portal";
-  let logoUrl = "";
   let appName = "Soundtec";
   try {
-    const [logo, name] = await Promise.all([
-      getSetting("branding.logo_url", ""),
-      getSetting("app.name", "Soundtec"),
-    ]);
-    logoUrl = logo || "";
-    appName = name || "Soundtec";
+    appName = (await getSetting("app.name", "Soundtec")) || "Soundtec";
   } catch {
-    logoUrl = "";
     appName = "Soundtec";
   }
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/65">
       <div className="container-page relative flex h-16 items-center justify-between gap-2">
-        <Link href="/" className="flex min-w-0 items-center gap-2">
-          <BrandLogo logoUrl={logoUrl} className="h-11 w-11" />
-          <div className="leading-tight">
-            <p className="text-sm font-semibold text-foreground">{appName}</p>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Integramos tecnología</p>
-          </div>
+        <Link href="/" className="flex min-w-0 items-center" aria-label={appName}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-8 w-auto sm:h-9" />
         </Link>
 
         <nav className="hidden gap-6 text-sm text-muted-foreground md:flex">

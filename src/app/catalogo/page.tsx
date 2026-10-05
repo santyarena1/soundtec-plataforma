@@ -1,14 +1,21 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getCatalog, getCatalogSidebarMeta, type CatalogContext } from "@/lib/catalog";
-import { parseCatalogSearchParams } from "@/lib/catalog-url";
+import { parseCatalogSearchParams, countActiveCatalogFilters } from "@/lib/catalog-url";
+import { getCatalogBrands } from "@/lib/catalog-brands";
+import { BrandGrid } from "@/app/catalogo/brand-grid";
+import { BrandBar } from "@/app/catalogo/brand-bar";
+import { StickyAccountCta } from "@/components/catalog/account-cta";
 import { CatalogToolbar } from "@/app/portal/products/catalog-toolbar";
 import { CatalogLayout } from "@/app/portal/products/catalog-sidebar";
 import { CatalogGrid } from "@/app/portal/products/catalog-grid";
 import { CatalogTable } from "@/app/portal/products/catalog-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AssistantEntry } from "@/components/expo/assistant-entry";
-import { ArrowRight, Lock, Package } from "lucide-react";
+import { VISITOR_COOKIE, QR_COOKIE } from "@/lib/expo/visitor-cookies";
+import { findQrWithEvent, recordVisit } from "@/server/expo/visits";
+import { ArrowRight, Package } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +34,19 @@ export default async function PublicCatalogPage({
   const urlState = parseCatalogSearchParams(rawParams);
   const session = await auth().catch(() => null);
   const isLogged = !!session?.user;
+
+  const showAll = rawParams.all === "1";
+  const brands = await getCatalogBrands();
+  if (!showAll && countActiveCatalogFilters(urlState) === 0 && !urlState.search?.trim()) {
+    const total = brands.reduce((acc, b) => acc + b.count, 0);
+    return <BrandGrid brands={brands} total={total} />;
+  }
+  const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
+  if (activeBrandId) {
+    const store = await cookies();
+    const qr = await findQrWithEvent(store.get(QR_COOKIE)?.value).catch(() => null);
+    await recordVisit({ visitorId: store.get(VISITOR_COOKIE)?.value, qrId: qr?.id, type: "BRAND_VIEW", brandId: activeBrandId });
+  }
 
   const ctx: CatalogContext = { commercialClientId: null, userId: null, isAdmin: false, publicMode: true };
   const filters = {
@@ -78,29 +98,14 @@ export default async function PublicCatalogPage({
           >
             Ir a mi catálogo con precios <ArrowRight className="h-4 w-4" />
           </Link>
-        ) : (
-          <div className="flex shrink-0 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-card">
-            <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Lock className="h-4 w-4" />
-            </span>
-            <div className="text-sm">
-              <p className="font-medium">Precios y stock para clientes</p>
-              <p className="text-muted-foreground">
-                <Link href="/login?callbackUrl=%2Fportal%2Fproducts" className="font-medium text-accent hover:underline">
-                  Ingresá
-                </Link>{" "}
-                o{" "}
-                <Link href="/#acceso" className="font-medium text-accent hover:underline">
-                  pedí una cuenta
-                </Link>
-                .
-              </p>
-            </div>
-          </div>
-        )}
+        ) : null}
       </div>
 
       <AssistantEntry className="lg:max-w-2xl" />
+
+      {!isLogged ? <StickyAccountCta /> : null}
+
+      <BrandBar brands={brands} activeBrandId={activeBrandId} />
 
       <CatalogLayout
         state={urlState}
