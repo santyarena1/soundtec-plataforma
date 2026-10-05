@@ -814,4 +814,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Pantalla vertical del stand: logo, título, QR y textos centrados, con el texto debajo del QR." },
     ],
   },
+  {
+    id: "ship-2026-10-06-horizontal-centrada",
+    version: "1.22.8",
+    releasedAt: "2026-10-06T01:20:00.000Z",
+    summary: "Pantalla horizontal del stand centrada.",
+    items: [
+      { kind: "MEJORA", text: "Horizontal: logo, título, QR y el texto debajo del QR, todo centrado (igual que en vertical)." },
+    ],
+  },
 ];

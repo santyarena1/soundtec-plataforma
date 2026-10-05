@@ -26,8 +26,6 @@ const KEYFRAMES = `
 @keyframes floatQr { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.8vmin); } }
 `;
 
-const STEPS = ["Escaneá el código", "Explorá las marcas", "Pedí tu cuenta y accedé a precios y stock"];
-
 interface ViewProps {
   className: string;
   svg: string;
@@ -82,43 +80,31 @@ function LandscapeView({ className, svg, total, slides, brands }: ViewProps) {
   return (
     <div className={`${className} h-full flex-col`}>
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,45fr)_minmax(0,55fr)]">
-        <section className="flex min-h-0 flex-col justify-between gap-[2.5vh] py-[4.5vh] pl-[5vw] pr-[3vw]">
+        <section className="flex min-h-0 flex-col items-center justify-center gap-[3vh] px-[3vw] py-[4vh] text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-[9vh] w-auto shrink-0 self-start object-contain" />
+          <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-[9vh] w-auto shrink-0 object-contain" />
 
-          <div className="animate-[fadeUp_900ms_ease-out]">
+          <div className="flex flex-col items-center animate-[fadeUp_900ms_ease-out]">
             <p className="text-[1.9vh] font-semibold uppercase tracking-[0.3em] text-[#1E3552]/55">Catálogo Soundtec</p>
-            <h1 className="mt-[1.2vh] text-[5.8vh] font-semibold leading-[1.02] tracking-tight">
+            <h1 className="mt-[1vh] text-[5.4vh] font-semibold leading-[1.02] tracking-tight">
               Todo el catálogo,
               <br />
               en tu celular
             </h1>
-            <div className="mt-[3.5vh] flex items-center gap-[2.6vw]">
-              <div className="shrink-0 animate-[floatQr_6s_ease-in-out_infinite] rounded-[2.4vh] bg-white p-[2vh] shadow-[0_3vh_8vh_rgba(30,53,82,0.22)] ring-1 ring-[#1E3552]/10">
-                <div className="w-[min(33vh,19vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
-              </div>
-              <ol className="min-w-0 space-y-[2.4vh]">
-                {STEPS.map((step, i) => (
-                  <li key={step} className="flex items-start gap-[1.4vh]">
-                    <span className="flex h-[4.2vh] w-[4.2vh] shrink-0 items-center justify-center rounded-full bg-[#1E3552] text-[2vh] font-semibold text-white">
-                      {i + 1}
-                    </span>
-                    <span className="pt-[0.5vh] text-[2.5vh] font-medium leading-snug">{step}</span>
-                  </li>
-                ))}
-              </ol>
+            <div className="mt-[3vh] animate-[floatQr_6s_ease-in-out_infinite] rounded-[2.4vh] bg-white p-[2vh] shadow-[0_3vh_8vh_rgba(30,53,82,0.22)] ring-1 ring-[#1E3552]/10">
+              <div className="w-[min(32vh,22vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
             </div>
+            <p className="mt-[2.6vh] text-[3vh] font-semibold leading-tight">Escaneá y explorá</p>
+            <p className="mt-[0.8vh] text-[2vh] text-[#1E3552]/65">
+              <span className="font-semibold text-[#1E3552]">+{total.toLocaleString("es-AR")}</span> productos de audio, video, iluminación y control
+            </p>
           </div>
-
-          <p className="text-[2.1vh] text-[#1E3552]/65">
-            <span className="font-semibold text-[#1E3552]">+{total.toLocaleString("es-AR")} productos</span> de audio, video, iluminación y control
-          </p>
         </section>
 
         <section className="relative flex min-h-0 flex-col overflow-hidden rounded-bl-[5vh] bg-[radial-gradient(ellipse_at_30%_20%,#2c4a70_0%,#1E3552_55%,#152740_100%)] px-[3.5vw] pb-[4.5vh] pt-[4vh]">
           <div className="pointer-events-none absolute -right-[12vh] -top-[12vh] h-[40vh] w-[40vh] rounded-full border border-white/10" />
           <div className="pointer-events-none absolute -bottom-[18vh] left-[10%] h-[36vh] w-[36vh] rounded-full border border-white/5" />
-          <p className="relative mb-[2.4vh] text-[1.9vh] font-semibold uppercase tracking-[0.3em] text-white/60">Productos destacados</p>
+          <p className="relative mb-[2.4vh] text-center text-[1.9vh] font-semibold uppercase tracking-[0.3em] text-white/60">Productos destacados</p>
           <Showcase slides={slides} className="relative min-h-0 flex-1" />
         </section>
       </div>
