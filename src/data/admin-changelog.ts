@@ -977,4 +977,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Ícono de la pestaña del navegador con el isotipo del logo nuevo (se ve bien en pestañas claras y oscuras), y logo completo en el ícono para celular y accesos directos." },
     ],
   },
+  {
+    id: "ship-2026-10-06-logo-stand-chico",
+    version: "1.26.5",
+    releasedAt: "2026-10-06T12:45:00.000Z",
+    summary: "Logo un poco más chico en la pantalla del stand.",
+    items: [
+      { kind: "MEJORA", text: "Pantalla del stand: el logo de Soundtec es un poco más chico, en horizontal y en vertical." },
+    ],
+  },
 ];
