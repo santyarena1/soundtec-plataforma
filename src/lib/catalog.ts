@@ -202,6 +202,15 @@ async function buildCatalogWhere(
   return where;
 }
 
+/**
+ * Productos que ve este usuario en la vista por defecto del catálogo:
+ * aplica la visibilidad de su cliente y las marcas ocultas. Sirve para
+ * cualquier total o listado que se le muestre fuera del catálogo.
+ */
+export async function getVisibleProductsWhere(ctx: CatalogContext): Promise<Prisma.ProductWhereInput> {
+  return (await buildCatalogWhere({}, ctx)) ?? { isActive: true };
+}
+
 function toPricingInput(p: ProductRow): ProductPricingInput {
   return {
     productId: p.id,

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-helpers";
 import { resolveCommercialClientId } from "@/lib/client-context";
-import { getCatalog, getCatalogSidebarMeta } from "@/lib/catalog";
+import { getCatalog, getCatalogSidebarMeta, getVisibleProductsWhere } from "@/lib/catalog";
+import { prisma } from "@/lib/prisma";
 import { countActiveCatalogFilters, parseCatalogSearchParams } from "@/lib/catalog-url";
 import { brandsWithLogos } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
@@ -55,9 +56,9 @@ export default async function ProductsPage({
   });
   const brands = await brandsWithLogos(brandMeta.brands);
   if (rawParams.all !== "1" && countActiveCatalogFilters(urlState) === 0) {
-    return (
-      <BrandGrid brands={brands} total={brands.reduce((acc, b) => acc + b.count, 0)} basePath="/portal/products" />
-    );
+    // Mismo total que el inicio del portal: lo que este cliente puede ver.
+    const total = await prisma.product.count({ where: await getVisibleProductsWhere(ctx) });
+    return <BrandGrid brands={brands} total={total} basePath="/portal/products" />;
   }
   const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
 

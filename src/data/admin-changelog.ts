@@ -865,4 +865,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Dashboard: «Productos activos» muestra también cuántos son visibles en el catálogo (el número que ven los visitantes). La diferencia son productos sin marca o de marcas ocultas o inactivas." },
     ],
   },
+  {
+    id: "ship-2026-10-06-portal-visibilidad",
+    version: "1.23.1",
+    releasedAt: "2026-10-06T04:40:00.000Z",
+    summary: "El portal de cada cliente cuenta y muestra solo los productos que tiene habilitados.",
+    items: [
+      { kind: "FIX", text: "Portal del cliente: el total de productos del inicio y de «Ver todos los productos» es solo lo que ese cliente tiene habilitado (antes mostraba el total del sistema)." },
+      { kind: "FIX", text: "Portal del cliente: «Categorías con más productos» y «Últimos productos» respetan la visibilidad del cliente; ya no aparecen productos que tiene ocultos." },
+    ],
+  },
 ];

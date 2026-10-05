@@ -7,6 +7,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { getActiveDraftSummary } from "@/lib/draft-request";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
+import { resolveCommercialClientId } from "@/lib/client-context";
+import { getVisibleProductsWhere } from "@/lib/catalog";
 import {
   ArrowRight,
   Heart,
@@ -47,6 +49,13 @@ function greeting(): string {
 
 export default async function PortalDashboardPage() {
   const user = await requireUser();
+  const isAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
+  // Todo lo que se cuenta o lista acá es solo lo que este cliente puede ver.
+  const visible = await getVisibleProductsWhere({
+    commercialClientId: isAdmin ? null : await resolveCommercialClientId(user.id),
+    userId: user.id,
+    isAdmin,
+  });
 
   const [
     totalProducts,
@@ -58,7 +67,7 @@ export default async function PortalDashboardPage() {
     topCategories,
     recentProducts,
   ] = await Promise.all([
-    prisma.product.count({ where: { isActive: true } }),
+    prisma.product.count({ where: visible }),
     prisma.wishlistItem.count({ where: { wishlist: { userId: user.id } } }),
     prisma.customerRequest.count({
       where: { userId: user.id, status: { in: ["SENT", "IN_REVIEW", "ANSWERED"] } },
@@ -75,14 +84,14 @@ export default async function PortalDashboardPage() {
       take: 3,
     }),
     getActiveDraftSummary(user.id),
-    prisma.category.findMany({
-      where: { isActive: true, products: { some: { isActive: true } } },
-      select: { id: true, name: true, _count: { select: { products: { where: { isActive: true } } } } },
-      orderBy: { products: { _count: "desc" } },
-      take: TOP_CATEGORIES,
-    }),
+    prisma.category
+      .findMany({
+        where: { isActive: true, products: { some: visible } },
+        select: { id: true, name: true, _count: { select: { products: { where: visible } } } },
+      })
+      .then((rows) => rows.sort((a, b) => b._count.products - a._count.products).slice(0, TOP_CATEGORIES)),
     prisma.product.findMany({
-      where: { isActive: true, kind: "PRINCIPAL" },
+      where: { AND: [visible, { kind: "PRINCIPAL" }] },
       orderBy: { createdAt: "desc" },
       take: RECENT_PRODUCTS,
       select: {
