@@ -1002,6 +1002,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Crestron Home como marca propia en el catálogo.",
     items: [
       { kind: "NUEVO", text: "Crestron Home aparece como una marca más, con su logo, en el catálogo, el portal (grilla y barra de marcas, inicio), la pantalla del stand y el login. Muestra los productos de Crestron compatibles con Crestron Home: son los mismos productos (no se duplican), así que precios, sync y visibilidad por cliente siguen igual." },
+      { kind: "MEJORA", text: "Logo de Crestron Home en versión horizontal (casa + texto) para que se lea bien en las tarjetas y en la cinta de marcas." },
     ],
   },
 ];
