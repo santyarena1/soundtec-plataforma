@@ -25,13 +25,17 @@ export async function loadLogoSource(logoUrl: string | null): Promise<LogoSource
   if (!logoUrl) return null;
   if (isDataUrl(logoUrl)) return parseLogoDataUrl(logoUrl);
   const url = publicLogoUrl(logoUrl);
-  if (!url) return null;
+  return url ? fetchPublicImage(url, MAX_LOGO_BYTES * 4) : null;
+}
+
+/** Descarga una imagen de una URL pública; null si falla, no es imagen o supera `maxBytes`. */
+export async function fetchPublicImage(url: URL, maxBytes: number): Promise<LogoSource | null> {
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     const mime = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
     if (!res.ok || !mime.startsWith("image/")) return null;
     const bytes = Buffer.from(await res.arrayBuffer());
-    return bytes.length <= MAX_LOGO_BYTES * 4 ? { mime, bytes } : null;
+    return bytes.length <= maxBytes ? { mime, bytes } : null;
   } catch {
     return null;
   }

@@ -58,7 +58,8 @@ export default async function Page({
     id: p.id,
     name: p.name,
     brand: p.brand,
-    imageUrl: p.imageUrl,
+    // Recortada en el servidor: sin el margen blanco de la foto original.
+    imageUrl: `/api/expo/product-image/${p.id}`,
     brandLogo: logoByBrand.get(p.brand) ?? null,
   }));
   // ?o=h / ?o=v fuerza la orientación al abrir la pantalla; si no, la del evento.

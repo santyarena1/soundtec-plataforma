@@ -47,8 +47,8 @@ export function Showcase({
   const current = slides[index];
   const isSide = layout === "side";
   const imageClass = isSide
-    ? "absolute right-[2.5%] top-[7%] h-[86%] w-[58%] object-contain p-[4%]"
-    : "absolute inset-0 h-full w-full object-contain px-[3%] pt-[3%] pb-[17%]";
+    ? "absolute right-[2.5%] top-[7%] h-[86%] w-[58%] object-contain p-[2.5%]"
+    : "absolute inset-0 h-full w-full object-contain px-[4%] pt-[4%] pb-[16%]";
 
   return (
     <div

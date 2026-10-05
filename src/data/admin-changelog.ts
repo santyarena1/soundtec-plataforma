@@ -834,4 +834,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Tarjeta de producto en vertical: foto sobre un fondo suave, marca arriba del nombre, detalle de color y barra de avance más fina." },
     ],
   },
+  {
+    id: "ship-2026-10-06-login-centrado",
+    version: "1.22.10",
+    releasedAt: "2026-10-06T02:30:00.000Z",
+    summary: "Login con el panel de marcas a la izquierda y el formulario centrado a la derecha.",
+    items: [
+      { kind: "MEJORA", text: "Login y activar cuenta: panel azul de marcas a la izquierda (sin bordes redondeados) y formulario a la derecha, todo centrado." },
+      { kind: "MEJORA", text: "Pantalla del stand: las fotos de producto se recortan solas (sin el blanco sobrante de la foto del fabricante) y ocupan más la tarjeta." },
+    ],
+  },
 ];
