@@ -337,6 +337,60 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         </div>
       ) : null}
 
+      <Card>
+        <CardContent className="space-y-3 p-6">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-accent" />
+            <CardTitle>Descripción técnica</CardTitle>
+            {product.aiGeneratedDescription ? (
+              <Badge tone="accent">
+                <Sparkles className="h-3 w-3" /> Generado con IA
+              </Badge>
+            ) : null}
+          </div>
+          {product.longDescription ? (
+            <div className="prose prose-sm max-w-none text-foreground">
+              {product.longDescription.split("\n").map((line, i) => (
+                <p key={i} className="my-2">
+                  {line}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="muted-text">Sin descripción detallada cargada.</p>
+          )}
+
+          {product.aiGeneratedDescription ? (
+            <AiContentNotice
+              entity="Product"
+              refId={product.id}
+              type="PRODUCT_DESCRIPTION"
+              existingVerdict={aiFeedback?.verdict ?? null}
+              existingComment={aiFeedback?.comment ?? null}
+              existingIssues={aiFeedback?.issues ?? []}
+              generatedText={product.longDescription || product.shortDescription || ""}
+            />
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <ProductRichInfo
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        specifications={(product as any).specifications ?? null}
+        documents={(product as any).documents ?? null}
+        badges={(product as any).badges ?? null}
+        videoUrl={(product as any).videoUrl ?? null}
+        htmlContent={(product as any).htmlContent ?? null}
+        widthCm={(product as any).widthCm != null ? Number((product as any).widthCm) : null}
+        heightCm={(product as any).heightCm != null ? Number((product as any).heightCm) : null}
+        depthCm={(product as any).depthCm != null ? Number((product as any).depthCm) : null}
+        weight={(product as any).weight != null ? Number((product as any).weight) : null}
+        modelNumber={(product as any).modelNumber ?? null}
+        manufacturerItem={(product as any).manufacturerItem ?? null}
+        productLine={(product as any).productLine ?? null}
+        /* eslint-enable @typescript-eslint/no-explicit-any */
+        isCrestronHomeCompatible={product.isCrestronHomeCompatible}
+      />
 
       {compatibleAccessoryItems.length > 0 ? (
         <CompatibleAccessoriesSection
@@ -394,61 +448,6 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         />
       ) : null}
       </ProductBundleProvider>
-
-      <ProductRichInfo
-        /* eslint-disable @typescript-eslint/no-explicit-any */
-        specifications={(product as any).specifications ?? null}
-        documents={(product as any).documents ?? null}
-        badges={(product as any).badges ?? null}
-        videoUrl={(product as any).videoUrl ?? null}
-        htmlContent={(product as any).htmlContent ?? null}
-        widthCm={(product as any).widthCm != null ? Number((product as any).widthCm) : null}
-        heightCm={(product as any).heightCm != null ? Number((product as any).heightCm) : null}
-        depthCm={(product as any).depthCm != null ? Number((product as any).depthCm) : null}
-        weight={(product as any).weight != null ? Number((product as any).weight) : null}
-        modelNumber={(product as any).modelNumber ?? null}
-        manufacturerItem={(product as any).manufacturerItem ?? null}
-        productLine={(product as any).productLine ?? null}
-        /* eslint-enable @typescript-eslint/no-explicit-any */
-        isCrestronHomeCompatible={product.isCrestronHomeCompatible}
-      />
-
-      <Card>
-        <CardContent className="space-y-3 p-6">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-accent" />
-            <CardTitle>Descripción técnica</CardTitle>
-            {product.aiGeneratedDescription ? (
-              <Badge tone="accent">
-                <Sparkles className="h-3 w-3" /> Generado con IA
-              </Badge>
-            ) : null}
-          </div>
-          {product.longDescription ? (
-            <div className="prose prose-sm max-w-none text-foreground">
-              {product.longDescription.split("\n").map((line, i) => (
-                <p key={i} className="my-2">
-                  {line}
-                </p>
-              ))}
-            </div>
-          ) : (
-            <p className="muted-text">Sin descripción detallada cargada.</p>
-          )}
-
-          {product.aiGeneratedDescription ? (
-            <AiContentNotice
-              entity="Product"
-              refId={product.id}
-              type="PRODUCT_DESCRIPTION"
-              existingVerdict={aiFeedback?.verdict ?? null}
-              existingComment={aiFeedback?.comment ?? null}
-              existingIssues={aiFeedback?.issues ?? []}
-              generatedText={product.longDescription || product.shortDescription || ""}
-            />
-          ) : null}
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { ProductGallery } from "@/app/portal/products/[id]/product-gallery";
 import { ProductRichInfo } from "@/app/portal/products/[id]/product-rich-info";
+import { ProductAccountCta } from "@/components/catalog/account-cta";
 import { ArrowLeft, ArrowRight, FileText, Lock, Package } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -104,64 +105,33 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
             </div>
           </div>
 
-          <Card className="border-primary/15 bg-gradient-to-br from-card to-primary/5">
-            <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <Lock className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="font-semibold">Precio y disponibilidad para clientes</p>
-                  <p className="text-sm text-muted-foreground">
-                    {isLogged
-                      ? "Estás logueado: abrí este producto en tu portal para ver tu precio y el stock."
-                      : "Con una cuenta ves tu precio en USD, el stock por depósito y podés armar tu pedido."}
-                  </p>
+          {isLogged ? (
+            <Card className="border-primary/15 bg-gradient-to-br from-card to-primary/5">
+              <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <Lock className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">Precio y disponibilidad para clientes</p>
+                    <p className="text-sm text-muted-foreground">
+                      Estás logueado: abrí este producto en tu portal para ver tu precio y el stock.
+                    </p>
+                  </div>
                 </div>
-              </div>
-              {isLogged ? (
                 <Link
                   href={portalHref}
                   className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                 >
                   Ver en mi portal <ArrowRight className="h-4 w-4" />
                 </Link>
-              ) : (
-                <div className="flex shrink-0 gap-2">
-                  <Link
-                    href={`/login?callbackUrl=${encodeURIComponent(portalHref)}`}
-                    className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                  >
-                    Ingresar
-                  </Link>
-                  <Link
-                    href="/#acceso"
-                    className="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm font-medium hover:bg-secondary"
-                  >
-                    Pedir cuenta
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <ProductAccountCta />
+          )}
         </div>
       </div>
-
-      <ProductRichInfo
-        specifications={product.specifications ?? null}
-        documents={product.documents ?? null}
-        badges={product.badges ?? null}
-        videoUrl={product.videoUrl ?? null}
-        htmlContent={product.htmlContent ?? null}
-        widthCm={product.widthCm != null ? Number(product.widthCm) : null}
-        heightCm={product.heightCm != null ? Number(product.heightCm) : null}
-        depthCm={product.depthCm != null ? Number(product.depthCm) : null}
-        weight={product.weight != null ? Number(product.weight) : null}
-        modelNumber={product.modelNumber ?? null}
-        manufacturerItem={product.manufacturerItem ?? null}
-        productLine={product.productLine ?? null}
-        isCrestronHomeCompatible={product.isCrestronHomeCompatible}
-      />
 
       {product.longDescription ? (
         <Card>
@@ -180,6 +150,22 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
           </CardContent>
         </Card>
       ) : null}
+
+      <ProductRichInfo
+        specifications={product.specifications ?? null}
+        documents={product.documents ?? null}
+        badges={product.badges ?? null}
+        videoUrl={product.videoUrl ?? null}
+        htmlContent={product.htmlContent ?? null}
+        widthCm={product.widthCm != null ? Number(product.widthCm) : null}
+        heightCm={product.heightCm != null ? Number(product.heightCm) : null}
+        depthCm={product.depthCm != null ? Number(product.depthCm) : null}
+        weight={product.weight != null ? Number(product.weight) : null}
+        modelNumber={product.modelNumber ?? null}
+        manufacturerItem={product.manufacturerItem ?? null}
+        productLine={product.productLine ?? null}
+        isCrestronHomeCompatible={product.isCrestronHomeCompatible}
+      />
 
       {sections.map((section) => (
         <Card key={section.kind}>
