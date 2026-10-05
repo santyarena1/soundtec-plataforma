@@ -759,4 +759,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "En monitores verticales o casi cuadrados la vidriera y la cinta de marcas ya no quedan cortadas abajo." },
     ],
   },
+  {
+    id: "ship-2026-10-05-logos-parejos",
+    version: "1.22.3",
+    releasedAt: "2026-10-05T20:30:00.000Z",
+    summary: "Logos de marca parejos, pantalla del stand con logo grande y apertura en horizontal o vertical.",
+    items: [
+      { kind: "MEJORA", text: "Al subir un logo se recortan los márgenes vacíos y se ajusta a un tamaño común: todos se ven parejos. En Marcas, «Ajustar tamaño de todos los logos» hace lo mismo con los ya cargados." },
+      { kind: "NUEVO", text: "En cada QR del evento: «Abrir horizontal» y «Abrir vertical» para elegir cómo se ve la pantalla del stand." },
+      { kind: "MEJORA", text: "Pantalla del stand: logo de Soundtec casi a todo el ancho en vertical y fotos de productos más grandes en la vidriera." },
+      { kind: "MEJORA", text: "En la barra de marcas del catálogo, las marcas con logo se muestran solo con el logo." },
+    ],
+  },
 ];

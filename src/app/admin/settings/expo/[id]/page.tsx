@@ -66,7 +66,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                       <td className="py-2">{qr.label} {!qr.isActive ? <Badge tone="muted">inactivo</Badge> : null}<div className="text-xs text-muted-foreground">/e/{qr.code}</div></td>
                       <td>{c.scans}</td><td>{c.leads}</td><td>{c.accountRequests}</td>
                       <td className="space-x-3 whitespace-nowrap text-right text-xs">
-                        <a className="underline" href={`/expo/pantalla/${qr.code}`} target="_blank" rel="noreferrer">Abrir pantalla</a>
+                        <a className="underline" href={`/expo/pantalla/${qr.code}?o=h`} target="_blank" rel="noreferrer">Abrir horizontal</a>
+                        <a className="underline" href={`/expo/pantalla/${qr.code}?o=v`} target="_blank" rel="noreferrer">Abrir vertical</a>
                         <a className="underline" href={`/api/admin/expo/qr/${qr.code}`}>Descargar PNG</a>
                         <form action={toggleExpoQr.bind(null, qr.id)} className="inline"><button className="underline">{qr.isActive ? "Desactivar" : "Activar"}</button></form>
                       </td>

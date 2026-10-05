@@ -20,18 +20,21 @@ const LAYOUT = {
     side: "block",
     bottom: "hidden",
     qr: "w-[min(30vw,50vh,640px)]",
+    logo: "h-[min(8vmin,8vh)] w-auto",
   },
   PORTRAIT: {
     grid: "grid-cols-1",
     side: "hidden",
     bottom: "block",
-    qr: "w-[min(70vw,36vh,640px)]",
+    qr: "w-[min(70vw,33vh,640px)]",
+    logo: "w-[88vw] h-auto max-h-[13vh] object-contain",
   },
   AUTO: {
     grid: "grid-cols-1 landscape:grid-cols-[1fr_auto_1fr]",
     side: "hidden landscape:block",
     bottom: "block landscape:hidden",
-    qr: "w-[min(70vw,36vh,640px)] landscape:w-[min(30vw,50vh,640px)]",
+    qr: "w-[min(70vw,33vh,640px)] landscape:w-[min(30vw,50vh,640px)]",
+    logo: "w-[88vw] h-auto max-h-[13vh] object-contain landscape:h-[min(8vmin,8vh)] landscape:w-auto",
   },
 } as const;
 
@@ -43,8 +46,15 @@ const KEYFRAMES = `
 `;
 
 /** Pantalla para el televisor del stand. Solo para QR activos. */
-export default async function Page({ params }: { params: Promise<{ code: string }> }) {
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ code: string }>;
+  searchParams: Promise<{ o?: string }>;
+}) {
   const { code } = await params;
+  const { o } = await searchParams;
   const qr = await prisma.expoQr.findFirst({ where: { code, isActive: true }, include: { event: true } });
   if (!qr) notFound();
 
@@ -67,7 +77,9 @@ export default async function Page({ params }: { params: Promise<{ code: string 
   // Dos vidrieras a los costados del QR: se reparten los productos.
   const left = slides.filter((_, i) => i % 2 === 0);
   const right = slides.filter((_, i) => i % 2 === 1);
-  const layout = LAYOUT[qr.event.displayOrientation] ?? LAYOUT.AUTO;
+  // ?o=h / ?o=v fuerza la orientación al abrir la pantalla; si no, la del evento.
+  const orientation = o === "h" ? "LANDSCAPE" : o === "v" ? "PORTRAIT" : qr.event.displayOrientation;
+  const layout = LAYOUT[orientation] ?? LAYOUT.AUTO;
   // La cinta de marcas se duplica para que el desplazamiento sea infinito sin saltos.
   const ribbon = [...brands, ...brands];
 
@@ -77,7 +89,7 @@ export default async function Page({ params }: { params: Promise<{ code: string 
 
       <header className="flex justify-center pt-[3.5vmin]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-[min(5.5vmin,5vh)] w-auto" />
+        <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className={layout.logo} />
       </header>
 
       <main className={`mx-auto grid min-h-0 w-full max-w-[1900px] flex-1 content-center items-center gap-[3vmin] px-[4vmin] ${layout.grid}`}>
@@ -104,7 +116,7 @@ export default async function Page({ params }: { params: Promise<{ code: string 
         </div>
 
         <div className={`${layout.bottom} w-full`}>
-          <Showcase slides={slides} className="h-[24vh] w-full" />
+          <Showcase slides={slides} className="h-[21vh] w-full" />
         </div>
       </main>
 
@@ -113,7 +125,7 @@ export default async function Page({ params }: { params: Promise<{ code: string 
           {ribbon.map((brand, i) =>
             brand.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={`${brand.id}-${i}`} src={brand.logoUrl} alt={brand.name} className="h-[min(4.6vmin,4vh)] w-auto max-w-[22vmin] object-contain" />
+              <img key={`${brand.id}-${i}`} src={brand.logoUrl} alt={brand.name} className="h-[min(8vmin,7vh)] w-auto max-w-[32vmin] object-contain" />
             ) : (
               <span key={`${brand.id}-${i}`} className="whitespace-nowrap text-[2.4vmin] font-bold tracking-[0.18em] text-[#1E3552]/70">
                 {brand.name.toUpperCase()}

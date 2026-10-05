@@ -8,17 +8,17 @@ export type CatalogBrand = { id: string; name: string; logoUrl: string | null; c
  * no tiene logo cargado en Admin → Marcas; el logo cargado siempre gana.
  */
 const LOCAL_LOGOS: Record<string, string> = {
-  crestron: "/landing/brands/crestron.png",
-  sonance: "/landing/brands/sonance.svg",
-  james: "/landing/brands/james.png",
-  iport: "/landing/brands/iport.svg",
-  trufig: "/landing/brands/trufig.png",
-  soundtube: "/landing/brands/soundtube.png",
-  "blaze by sonance": "/landing/brands/blaze.png",
-  blaze: "/landing/brands/blaze.png",
-  atlona: "/landing/brands/atlona.png",
-  audinate: "/landing/brands/dante.png",
-  dante: "/landing/brands/dante.png",
+  crestron: "/landing/brands/normalized/crestron.png",
+  sonance: "/landing/brands/normalized/sonance.png",
+  james: "/landing/brands/normalized/james.png",
+  iport: "/landing/brands/normalized/iport.png",
+  trufig: "/landing/brands/normalized/trufig.png",
+  soundtube: "/landing/brands/normalized/soundtube.png",
+  "blaze by sonance": "/landing/brands/normalized/blaze.png",
+  blaze: "/landing/brands/normalized/blaze.png",
+  atlona: "/landing/brands/normalized/atlona.png",
+  audinate: "/landing/brands/normalized/dante.png",
+  dante: "/landing/brands/normalized/dante.png",
 };
 
 function logoFor(id: string, name: string, logoUrl: string | null): string | null {

@@ -22,9 +22,10 @@ export function BrandBar({
         <Link key={brand.id} href={`${basePath}?brand=${brand.id}`} className={chip(brand.id === activeBrandId)}>
           {brand.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={brand.logoUrl} alt="" className="h-4 w-auto max-w-16 object-contain" />
-          ) : null}
-          {brand.name}
+            <img src={brand.logoUrl} alt={brand.name} title={brand.name} className="h-7 w-auto max-w-[7rem] object-contain" />
+          ) : (
+            brand.name
+          )}
         </Link>
       ))}
     </nav>

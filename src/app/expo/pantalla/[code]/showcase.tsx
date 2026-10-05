@@ -53,7 +53,7 @@ export function Showcase({
           key={slide.id}
           src={slide.imageUrl}
           alt={slide.name}
-          className="absolute inset-0 h-full w-full object-contain p-[9%] pb-[24%] ease-out"
+          className="absolute inset-0 h-full w-full object-contain px-[3%] pt-[3%] pb-[17%] ease-out"
           style={{
             opacity: i === index ? 1 : 0,
             transform: i === index ? "scale(1.07)" : "scale(1)",
@@ -71,7 +71,7 @@ export function Showcase({
           </div>
           {current.brandLogo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={current.brandLogo} alt="" className="h-[3.6vmin] w-auto max-w-[30%] shrink-0 object-contain" />
+            <img src={current.brandLogo} alt="" className="h-[6vmin] w-auto max-w-[34%] shrink-0 object-contain" />
           ) : null}
         </div>
         <div className="mt-[1.8vmin] h-[0.4vmin] w-full overflow-hidden rounded-full bg-[#1E3552]/10">

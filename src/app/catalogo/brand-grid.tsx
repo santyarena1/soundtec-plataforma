@@ -34,7 +34,7 @@ export function BrandGrid({
           >
             {brand.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={brand.logoUrl} alt={brand.name} className="max-h-10 max-w-[80%] object-contain" />
+              <img src={brand.logoUrl} alt={brand.name} className="h-14 w-auto max-w-[92%] object-contain" />
             ) : (
               <span className="text-center text-base font-bold tracking-wide">{brand.name}</span>
             )}

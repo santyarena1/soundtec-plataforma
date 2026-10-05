@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { upsertBrand, deleteBrand } from "@/server/actions/admin-catalog";
 import { ConfirmSubmit } from "@/components/ui/confirm-button";
 import { BrandDetailPanel } from "./brand-detail-panel";
+import { NormalizeLogosButton } from "./normalize-logos-button";
 import { brandLogoSrc } from "@/lib/brand-logo";
 import { toggleBrandCatalogVisibility } from "@/server/actions/brand-logos";
 
@@ -30,7 +31,7 @@ export default async function AdminBrandsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Marcas" description="Marcas con las que opera Soundtec." />
+      <PageHeader title="Marcas" description="Marcas con las que opera Soundtec." actions={<NormalizeLogosButton />} />
 
       <Card>
         <CardContent className="p-6">
