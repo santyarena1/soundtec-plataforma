@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { checkActivationToken } from "@/server/expo/activation";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { getEquipmentBrands } from "@/lib/catalog-brands";
 import { ActivateForm } from "./activate-form";
 
 export const dynamic = "force-dynamic";
@@ -13,23 +15,27 @@ const MESSAGES = {
 
 export default async function Page({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const state = await checkActivationToken(token);
+  const [state, brands] = await Promise.all([checkActivationToken(token), getEquipmentBrands().catch(() => [])]);
+  const total = brands.reduce((acc, b) => acc + b.count, 0);
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-10">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/landing/logo_soundtec.png" alt="Soundtec" className="mx-auto mb-6 h-10 w-auto" />
+    <AuthShell
+      kicker="Activá tu cuenta"
+      title={state.ok ? `Hola ${state.name}` : "No pudimos abrir el link"}
+      subtitle={state.ok ? `Creá tu contraseña para ${state.email}.` : undefined}
+      brands={brands}
+      total={total}
+      footer={<p className="text-xs text-[#1E3552]/55">¿Dudas? Escribinos a contacto@soundtec.com.ar</p>}
+    >
       {state.ok ? (
-        <>
-          <h1 className="text-center text-2xl font-semibold">Hola {state.name}</h1>
-          <p className="mt-1 text-center text-sm text-muted-foreground">Creá tu contraseña para {state.email}.</p>
-          <ActivateForm token={token} email={state.email} />
-        </>
+        <ActivateForm token={token} email={state.email} />
       ) : (
         <div className="text-center">
           <p>{MESSAGES[state.reason]}</p>
-          <p className="mt-4 text-sm"><Link href="/login" className="underline">Ir a ingresar</Link> · contacto@soundtec.com.ar</p>
+          <Link href="/login" className="mt-5 inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-semibold text-primary-foreground">
+            Ir a ingresar
+          </Link>
         </div>
       )}
-    </main>
+    </AuthShell>
   );
 }

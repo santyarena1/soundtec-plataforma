@@ -59,18 +59,18 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
         <Label htmlFor="email" required>
           Email
         </Label>
-        <Input id="email" name="email" type="email" autoComplete="email" placeholder="usuario@empresa.com" required />
+        <Input id="email" name="email" type="email" autoComplete="email" placeholder="usuario@empresa.com" defaultValue={searchParams.get("email") ?? undefined} className="h-11" required />
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="password" required>
           Contraseña
         </Label>
-        <Input id="password" name="password" type="password" autoComplete="current-password" required />
+        <Input id="password" name="password" type="password" autoComplete="current-password" className="h-11" required />
         <FieldError />
       </div>
 
-      <Button type="submit" className="w-full" disabled={isPending}>
+      <Button type="submit" className="h-11 w-full" disabled={isPending}>
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {isPending ? "Ingresando..." : "Iniciar sesión"}
       </Button>

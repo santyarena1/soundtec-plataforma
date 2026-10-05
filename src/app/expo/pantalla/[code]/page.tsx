@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/app-url";
-import { getCatalogBrands, type CatalogBrand } from "@/lib/catalog-brands";
+import { getEquipmentBrands, type CatalogBrand } from "@/lib/catalog-brands";
 import { qrSvgWithLogo } from "@/server/expo/qr-image";
 import { getShowcaseProducts } from "@/server/expo/showcase";
 import { Showcase, type ShowcaseSlide } from "./showcase";
@@ -49,13 +49,11 @@ export default async function Page({
   const qr = await prisma.expoQr.findFirst({ where: { code, isActive: true }, include: { event: true } });
   if (!qr) notFound();
 
-  const [svg, allBrands, products] = await Promise.all([
+  const [svg, brands, products] = await Promise.all([
     qrSvgWithLogo(`${appUrl()}/e/${code}`),
-    getCatalogBrands(),
+    getEquipmentBrands(),
     getShowcaseProducts(24, qr.event.showcaseProductIds),
   ]);
-  // Merchandising (ropa) no es una marca de equipos: no va en la pantalla.
-  const brands = allBrands.filter((b) => !/apparel/i.test(b.name));
   const total = brands.reduce((acc, b) => acc + b.count, 0);
   const logoByBrand = new Map(brands.map((b) => [b.name, b.logoUrl]));
   const slides: ShowcaseSlide[] = products.map((p) => ({
@@ -133,24 +131,24 @@ function LandscapeView({ className, svg, total, slides, brands }: ViewProps) {
 function PortraitView({ className, svg, total, slides, brands }: ViewProps) {
   return (
     <div className={`${className} h-full flex-col`}>
-      <section className="flex shrink-0 flex-col px-[6vw] pt-[3.5vh]">
+      <section className="flex shrink-0 flex-col items-center px-[6vw] pt-[3.5vh] text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-auto max-h-[8vh] w-[min(62vw,46vh)] self-start object-contain" />
+        <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-auto max-h-[8vh] w-[min(62vw,46vh)] object-contain" />
 
-        <div className="mt-[2.8vh] animate-[fadeUp_900ms_ease-out]">
+        <div className="mt-[2.8vh] flex flex-col items-center animate-[fadeUp_900ms_ease-out]">
           <p className="text-[min(1.7vh,2.8vw)] font-semibold uppercase tracking-[0.3em] text-[#1E3552]/55">Catálogo Soundtec</p>
           <h1 className="mt-[1vh] text-[min(4.6vh,8.4vw)] font-semibold leading-[1.02] tracking-tight">
             Todo el catálogo,
             <br />
             en tu celular
           </h1>
-          <div className="mt-[3vh] flex items-center gap-[6vw]">
+          <div className="mt-[2.6vh] flex flex-col items-center">
             <div className="shrink-0 animate-[floatQr_6s_ease-in-out_infinite] rounded-[2.2vh] bg-white p-[1.8vh] shadow-[0_3vh_8vh_rgba(30,53,82,0.22)] ring-1 ring-[#1E3552]/10">
-              <div className="w-[min(25vh,44vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
+              <div className="w-[min(25vh,56vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
             </div>
-            <div className="min-w-0">
-              <p className="text-[min(3.4vh,6vw)] font-semibold leading-tight">Escaneá y explorá</p>
-              <p className="mt-[1.4vh] text-[min(2vh,3.6vw)] leading-snug text-[#1E3552]/65">
+            <div className="mt-[2.4vh]">
+              <p className="text-[min(3vh,5.4vw)] font-semibold leading-tight">Escaneá y explorá</p>
+              <p className="mt-[0.8vh] text-[min(2vh,3.6vw)] leading-snug text-[#1E3552]/65">
                 <span className="font-semibold text-[#1E3552]">+{total.toLocaleString("es-AR")}</span> productos de audio, video y control
               </p>
             </div>
@@ -161,7 +159,7 @@ function PortraitView({ className, svg, total, slides, brands }: ViewProps) {
       <section className="relative mx-[4vw] mt-[3vh] flex min-h-0 flex-1 flex-col overflow-hidden rounded-[4vh] bg-[radial-gradient(ellipse_at_30%_20%,#2c4a70_0%,#1E3552_55%,#152740_100%)] px-[5vw] pb-[3vh] pt-[2.6vh]">
         <div className="pointer-events-none absolute -right-[10vh] -top-[10vh] h-[30vh] w-[30vh] rounded-full border border-white/10" />
         <div className="pointer-events-none absolute -bottom-[14vh] left-[10%] h-[28vh] w-[28vh] rounded-full border border-white/5" />
-        <p className="relative mb-[2vh] text-[min(1.7vh,2.8vw)] font-semibold uppercase tracking-[0.3em] text-white/60">Productos destacados</p>
+        <p className="relative mb-[2vh] text-center text-[min(1.7vh,2.8vw)] font-semibold uppercase tracking-[0.3em] text-white/60">Productos destacados</p>
         <Showcase slides={slides} layout="side" className="relative min-h-0 flex-1" />
       </section>
 

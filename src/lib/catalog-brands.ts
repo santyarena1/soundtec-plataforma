@@ -51,3 +51,9 @@ export async function getCatalogBrands(): Promise<CatalogBrand[]> {
     .map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: b._count.products }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
 }
+
+/** Marcas de equipos (sin merchandising) para las pantallas de marca: stand y acceso. */
+export async function getEquipmentBrands(): Promise<CatalogBrand[]> {
+  const brands = await getCatalogBrands();
+  return brands.filter((b) => !/apparel/i.test(b.name));
+}

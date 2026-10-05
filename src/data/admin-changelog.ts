@@ -803,4 +803,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Vertical: en lugar de los tres pasos, «Escaneá y explorá» con la cantidad de productos, más grande y aireado." },
     ],
   },
+  {
+    id: "ship-2026-10-06-login-soundtec",
+    version: "1.22.7",
+    releasedAt: "2026-10-06T01:00:00.000Z",
+    summary: "Login nuevo con el estilo Soundtec y pantalla vertical centrada.",
+    items: [
+      { kind: "MEJORA", text: "Login rediseñado: logo oficial, formulario en tarjeta y panel azul con las marcas (en celular, cinta de logos abajo). Suma el acceso a «Solicitar cuenta»." },
+      { kind: "MEJORA", text: "La página para activar la cuenta usa el mismo diseño que el login." },
+      { kind: "MEJORA", text: "Pantalla vertical del stand: logo, título, QR y textos centrados, con el texto debajo del QR." },
+    ],
+  },
 ];

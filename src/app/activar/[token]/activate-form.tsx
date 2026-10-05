@@ -13,7 +13,7 @@ export function ActivateForm({ token, email }: { token: string; email: string })
 
   if (done) {
     return (
-      <div className="mt-6 text-center">
+      <div className="text-center">
         <p className="font-semibold">¡Listo! Tu cuenta está activa.</p>
         <Link href={`/login?email=${encodeURIComponent(email)}`} className="mt-4 inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-semibold text-primary-foreground">
           Ingresar
@@ -23,7 +23,7 @@ export function ActivateForm({ token, email }: { token: string; email: string })
   }
   return (
     <form
-      className="mt-6 space-y-3"
+      className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
