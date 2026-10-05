@@ -793,4 +793,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Vertical: QR y pasos más compactos para dejarle más lugar a la vidriera de productos." },
     ],
   },
+  {
+    id: "ship-2026-10-05-vidriera-vertical",
+    version: "1.22.6",
+    releasedAt: "2026-10-06T00:15:00.000Z",
+    summary: "Pantalla vertical más limpia y vidriera con la foto a la derecha.",
+    items: [
+      { kind: "MEJORA", text: "Vertical: la vidriera muestra la foto del producto a la derecha, el nombre arriba a la izquierda y la marca abajo; los productos altos ya no se ven chicos." },
+      { kind: "MEJORA", text: "Vertical: en lugar de los tres pasos, «Escaneá y explorá» con la cantidad de productos, más grande y aireado." },
+    ],
+  },
 ];

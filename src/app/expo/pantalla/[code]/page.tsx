@@ -144,24 +144,17 @@ function PortraitView({ className, svg, total, slides, brands }: ViewProps) {
             <br />
             en tu celular
           </h1>
-          <div className="mt-[2.6vh] flex items-center gap-[4vw]">
+          <div className="mt-[3vh] flex items-center gap-[6vw]">
             <div className="shrink-0 animate-[floatQr_6s_ease-in-out_infinite] rounded-[2.2vh] bg-white p-[1.8vh] shadow-[0_3vh_8vh_rgba(30,53,82,0.22)] ring-1 ring-[#1E3552]/10">
-              <div className="w-[min(24vh,40vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
+              <div className="w-[min(25vh,44vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
             </div>
-            <ol className="min-w-0 space-y-[1.6vh]">
-              {STEPS.map((step, i) => (
-                <li key={step} className="flex items-start gap-[1.2vh]">
-                  <span className="flex h-[min(3.6vh,6vw)] w-[min(3.6vh,6vw)] shrink-0 items-center justify-center rounded-full bg-[#1E3552] text-[min(1.7vh,2.9vw)] font-semibold text-white">
-                    {i + 1}
-                  </span>
-                  <span className="pt-[0.4vh] text-[min(2vh,3.2vw)] font-medium leading-snug">{step}</span>
-                </li>
-              ))}
-            </ol>
+            <div className="min-w-0">
+              <p className="text-[min(3.4vh,6vw)] font-semibold leading-tight">Escaneá y explorá</p>
+              <p className="mt-[1.4vh] text-[min(2vh,3.6vw)] leading-snug text-[#1E3552]/65">
+                <span className="font-semibold text-[#1E3552]">+{total.toLocaleString("es-AR")}</span> productos de audio, video y control
+              </p>
+            </div>
           </div>
-          <p className="mt-[2.4vh] text-[min(1.9vh,3.2vw)] text-[#1E3552]/65">
-            <span className="font-semibold text-[#1E3552]">+{total.toLocaleString("es-AR")} productos</span> de audio, video, iluminación y control
-          </p>
         </div>
       </section>
 
@@ -169,7 +162,7 @@ function PortraitView({ className, svg, total, slides, brands }: ViewProps) {
         <div className="pointer-events-none absolute -right-[10vh] -top-[10vh] h-[30vh] w-[30vh] rounded-full border border-white/10" />
         <div className="pointer-events-none absolute -bottom-[14vh] left-[10%] h-[28vh] w-[28vh] rounded-full border border-white/5" />
         <p className="relative mb-[2vh] text-[min(1.7vh,2.8vw)] font-semibold uppercase tracking-[0.3em] text-white/60">Productos destacados</p>
-        <Showcase slides={slides} className="relative min-h-0 flex-1" />
+        <Showcase slides={slides} layout="side" className="relative min-h-0 flex-1" />
       </section>
 
       <BrandRibbon brands={brands} logoClass="h-[min(8vmin,7vh)] max-w-[32vmin]" />
