@@ -19,10 +19,24 @@ export function isDataUrl(value: string | null | undefined): value is string {
   return !!value && value.startsWith("data:");
 }
 
-/** `src` para un <img>: los logos subidos se sirven por la API (HTML liviano). */
+/** Hash corto (FNV-1a) del logo: versiona la URL para que la caché se renueve al cambiarlo. */
+function logoVersion(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+/**
+ * `src` para un <img>. Todo logo (subido o por URL) pasa por la API, que lo
+ * recorta y lo lleva al tamaño común, así se ven parejos sin pasos manuales.
+ */
 export function brandLogoSrc(brand: { id: string; logoUrl: string | null }): string | null {
-  if (!brand.logoUrl?.trim()) return null;
-  return isDataUrl(brand.logoUrl) ? `/api/brand-logo/${brand.id}` : brand.logoUrl;
+  const logoUrl = brand.logoUrl?.trim();
+  if (!logoUrl) return null;
+  return `/api/brand-logo/${brand.id}?v=${logoVersion(logoUrl)}`;
 }
 
 /** Separa una data URL en tipo y bytes; null si no es una imagen permitida. */

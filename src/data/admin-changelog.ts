@@ -771,4 +771,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "En la barra de marcas del catálogo, las marcas con logo se muestran solo con el logo." },
     ],
   },
+  {
+    id: "ship-2026-10-05-pantalla-horizontal",
+    version: "1.22.4",
+    releasedAt: "2026-10-05T22:30:00.000Z",
+    summary: "Pantalla del stand horizontal rediseñada y logos de marca parejos en todos lados.",
+    items: [
+      { kind: "MEJORA", text: "Pantalla del stand en horizontal, nueva: a la izquierda logo, título, QR grande y los pasos (escaneá, explorá, pedí tu cuenta); a la derecha la vidriera de productos en grande sobre fondo azul." },
+      { kind: "MEJORA", text: "En vertical el logo de Soundtec queda un poco más chico." },
+      { kind: "MEJORA", text: "Todos los logos de marca, también los cargados por URL, se recortan y se ajustan solos al mismo tamaño (catálogo, portal y pantalla del stand). Ya no hace falta tocar ningún botón." },
+    ],
+  },
 ];

@@ -3,10 +3,12 @@ import { describe, it } from "node:test";
 import { brandLogoSrc, isDataUrl, parseLogoDataUrl } from "./brand-logo";
 
 describe("brandLogoSrc", () => {
-  it("los subidos se sirven por la API", () =>
-    assert.equal(brandLogoSrc({ id: "b1", logoUrl: "data:image/png;base64,AAA=" }), "/api/brand-logo/b1"));
-  it("las URL quedan como están", () =>
-    assert.equal(brandLogoSrc({ id: "b1", logoUrl: "https://x.com/logo.svg" }), "https://x.com/logo.svg"));
+  it("todos los logos pasan por la API, que los normaliza", () => {
+    assert.match(brandLogoSrc({ id: "b1", logoUrl: "data:image/png;base64,AAA=" }) ?? "", /^\/api\/brand-logo\/b1\?v=[a-z0-9]+$/);
+    assert.match(brandLogoSrc({ id: "b1", logoUrl: "https://x.com/logo.svg" }) ?? "", /^\/api\/brand-logo\/b1\?v=[a-z0-9]+$/);
+  });
+  it("cambiar el logo cambia la URL (rompe la caché)", () =>
+    assert.notEqual(brandLogoSrc({ id: "b1", logoUrl: "https://x.com/a.png" }), brandLogoSrc({ id: "b1", logoUrl: "https://x.com/b.png" })));
   it("vacío → null", () => assert.equal(brandLogoSrc({ id: "b1", logoUrl: " " }), null));
 });
 
