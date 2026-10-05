@@ -1,5 +1,6 @@
 import type { ExpoVisitType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { eventStatus } from "@/lib/expo/event-status";
 
 /** Registra una visita. Best-effort: nunca rompe la navegación. */
 export async function recordVisit(input: {
@@ -22,4 +23,14 @@ export async function recordVisit(input: {
 export async function findQrWithEvent(code: string | undefined) {
   if (!code) return null;
   return prisma.expoQr.findFirst({ where: { code, isActive: true }, include: { event: true } });
+}
+
+/**
+ * QR de la cookie solo si su evento está VIGENTE. Es la ventana de
+ * atribución: leads, pedidos de cuenta y vistas de marca se cargan al
+ * QR/evento únicamente mientras dura la expo.
+ */
+export async function findLiveQr(code: string | undefined) {
+  const qr = await findQrWithEvent(code);
+  return qr && eventStatus(qr.event) === "LIVE" ? qr : null;
 }

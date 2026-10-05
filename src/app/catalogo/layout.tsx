@@ -1,12 +1,11 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { WelcomeScreen } from "@/components/expo/welcome-screen";
 import { auth } from "@/lib/auth";
-import { eventStatus } from "@/lib/expo/event-status";
-import { decideWelcome } from "@/lib/expo/welcome-gate";
+import { decideWelcome, isCrawlerUserAgent } from "@/lib/expo/welcome-gate";
 import { LEAD_COOKIE, QR_COOKIE, SKIP_COOKIE } from "@/lib/expo/visitor-cookies";
-import { findQrWithEvent } from "@/server/expo/visits";
+import { findLiveQr } from "@/server/expo/visits";
 
 export const metadata = {
   title: "Catálogo",
@@ -16,23 +15,25 @@ export const metadata = {
 
 export default async function PublicCatalogLayout({ children }: { children: React.ReactNode }) {
   const store = await cookies();
-  const session = await auth().catch(() => null);
-  const qr = await findQrWithEvent(store.get(QR_COOKIE)?.value).catch(() => null);
-  const mode = session?.user
-    ? "NONE"
-    : decideWelcome({
-        hasLead: !!store.get(LEAD_COOKIE)?.value,
-        skipped: store.get(SKIP_COOKIE)?.value === "1",
-        qrEventLive: !!qr && eventStatus(qr.event) === "LIVE",
-      });
+  const isCrawler = isCrawlerUserAgent((await headers()).get("user-agent"));
+  const session = isCrawler ? null : await auth().catch(() => null);
+  const qr = isCrawler ? null : await findLiveQr(store.get(QR_COOKIE)?.value).catch(() => null);
+  const mode =
+    isCrawler || session?.user
+      ? "NONE"
+      : decideWelcome({
+          hasLead: !!store.get(LEAD_COOKIE)?.value,
+          skipped: store.get(SKIP_COOKIE)?.value === "1",
+          qrEventLive: !!qr,
+        });
 
+  // El catálogo se renderiza siempre; la bienvenida va encima como overlay.
   return (
     <>
       <PublicNavbar />
-      <main className="container-page py-8 sm:py-10">
-        {mode === "NONE" ? children : <WelcomeScreen required={mode === "REQUIRED"} />}
-      </main>
+      <main className="container-page py-8 sm:py-10">{children}</main>
       <PublicFooter />
+      {mode !== "NONE" ? <WelcomeScreen required={mode === "REQUIRED"} /> : null}
     </>
   );
 }

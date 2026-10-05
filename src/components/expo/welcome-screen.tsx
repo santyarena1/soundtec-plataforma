@@ -8,8 +8,9 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { skipWelcome, submitWelcomeLead } from "@/server/actions/visitor-lead";
 
 /**
- * Bienvenida del catálogo (mobile-first). `required` = vino por QR de un
- * evento vigente: no hay "Saltear".
+ * Bienvenida del catálogo (mobile-first) como overlay a pantalla completa:
+ * el catálogo se renderiza siempre debajo (los crawlers lo ven igual).
+ * `required` = vino por QR de un evento vigente: no hay "Saltear".
  */
 export function WelcomeScreen({ required }: { required: boolean }) {
   const router = useRouter();
@@ -36,10 +37,11 @@ export function WelcomeScreen({ required }: { required: boolean }) {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md flex-col justify-center px-4 py-8">
+    <div role="dialog" aria-modal="true" aria-labelledby="welcome-title" className="fixed inset-0 z-50 overflow-y-auto bg-background">
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-8">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="mx-auto mb-6 h-10 w-auto" />
-      <h1 className="text-center text-2xl font-semibold">¡Bienvenido a Soundtec!</h1>
+      <h2 id="welcome-title" className="text-center text-2xl font-semibold">¡Bienvenido a Soundtec!</h2>
       <p className="mt-2 text-center text-sm text-muted-foreground">
         Dejanos tu mail para explorar el catálogo y recibir la info que te interese.
       </p>
@@ -65,7 +67,7 @@ export function WelcomeScreen({ required }: { required: boolean }) {
           <Textarea id="w-interest" name="interest" rows={2} placeholder="Ej.: audio para un restaurante, domótica para una casa…" />
         </div>
         {/* honeypot: invisible para personas */}
-        <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
+        <input type="text" name="hp_url" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <Button type="submit" className="h-12 w-full text-base" disabled={pending}>
           {pending ? "Entrando…" : "Entrar al catálogo →"}
@@ -79,6 +81,7 @@ export function WelcomeScreen({ required }: { required: boolean }) {
           Saltear
         </button>
       ) : null}
+    </div>
     </div>
   );
 }

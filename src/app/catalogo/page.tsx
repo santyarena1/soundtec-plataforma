@@ -14,7 +14,7 @@ import { CatalogTable } from "@/app/portal/products/catalog-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AssistantEntry } from "@/components/expo/assistant-entry";
 import { VISITOR_COOKIE, QR_COOKIE } from "@/lib/expo/visitor-cookies";
-import { findQrWithEvent, recordVisit } from "@/server/expo/visits";
+import { findLiveQr, recordVisit } from "@/server/expo/visits";
 import { ArrowRight, Package } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +44,8 @@ export default async function PublicCatalogPage({
   const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
   if (activeBrandId) {
     const store = await cookies();
-    const qr = await findQrWithEvent(store.get(QR_COOKIE)?.value).catch(() => null);
+    // La vista de marca se atribuye al QR solo mientras su evento está vigente.
+    const qr = await findLiveQr(store.get(QR_COOKIE)?.value).catch(() => null);
     await recordVisit({ visitorId: store.get(VISITOR_COOKIE)?.value, qrId: qr?.id, type: "BRAND_VIEW", brandId: activeBrandId });
   }
 

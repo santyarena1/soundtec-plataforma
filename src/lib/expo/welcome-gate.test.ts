@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { eventStatus } from "./event-status";
-import { decideWelcome } from "./welcome-gate";
+import { decideWelcome, isCrawlerUserAgent } from "./welcome-gate";
 
 const d = (s: string) => new Date(s);
 
@@ -27,4 +27,22 @@ describe("decideWelcome", () => {
     assert.equal(decideWelcome({ hasLead: false, skipped: false, qrEventLive: false }), "OPTIONAL"));
   it("no muestra si salteó y no hay QR vigente", () =>
     assert.equal(decideWelcome({ hasLead: false, skipped: true, qrEventLive: false }), "NONE"));
+});
+
+describe("isCrawlerUserAgent", () => {
+  it("detecta buscadores y previews de links", () => {
+    for (const ua of [
+      "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+      "Mozilla/5.0 (compatible; bingbot/2.0)",
+      "facebookexternalhit/1.1",
+      "WhatsApp/2.23.20.0",
+      "Mozilla/5.0 (compatible; Yahoo! Slurp)",
+      "Mozilla/5.0 (Windows NT 6.1; WOW64) BingPreview/1.0b",
+      "AhrefsSpider",
+    ]) assert.equal(isCrawlerUserAgent(ua), true, ua);
+  });
+  it("no confunde navegadores reales", () => {
+    assert.equal(isCrawlerUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1"), false);
+    assert.equal(isCrawlerUserAgent(null), false);
+  });
 });
