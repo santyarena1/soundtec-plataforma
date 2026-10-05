@@ -824,4 +824,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Vertical: parte de arriba más compacta para que la vidriera de productos tenga más alto." },
     ],
   },
+  {
+    id: "ship-2026-10-06-qr-protagonista",
+    version: "1.22.9",
+    releasedAt: "2026-10-06T02:00:00.000Z",
+    summary: "El QR vuelve a ser el protagonista y tarjetas de producto más prolijas.",
+    items: [
+      { kind: "FIX", text: "Pantalla del stand: QR más grande y textos más chicos; el título ya no es más ancho que el QR (horizontal y vertical)." },
+      { kind: "MEJORA", text: "Tarjeta de producto en vertical: foto sobre un fondo suave, marca arriba del nombre, detalle de color y barra de avance más fina." },
+    ],
+  },
 ];
