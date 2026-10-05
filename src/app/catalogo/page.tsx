@@ -91,8 +91,7 @@ export default async function PublicCatalogPage({
       <RememberCatalog memoryKey="public" />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Catálogo Soundtec</p>
-          <h1 className="heading-1 mt-2">Explorá los productos que representamos.</h1>
+          <h1 className="heading-1">Explorá los productos que representamos.</h1>
           <p className="muted-text mt-2 max-w-2xl">
             Fichas técnicas completas, especificaciones, documentos y accesorios de audio, video, control y
             videoconferencia. Precio y disponibilidad se ven con una cuenta de cliente.
