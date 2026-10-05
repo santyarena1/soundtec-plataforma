@@ -2,7 +2,7 @@ import type { SyncSourceKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSetting, setSetting } from "@/lib/settings";
 
-type ScheduledSource = "crestron" | "crestron-web" | "sonance" | "soundtube";
+export type ScheduledSource = "crestron" | "crestron-web" | "sonance" | "soundtube" | "hall-research-web";
 
 export interface SyncSourceSchedule {
   enabled: boolean;
@@ -15,6 +15,7 @@ export interface SyncScheduleConfig {
   "crestron-web": SyncSourceSchedule;
   sonance: SyncSourceSchedule;
   soundtube: SyncSourceSchedule;
+  "hall-research-web": SyncSourceSchedule;
 }
 
 const SCHEDULE_KEY = "sync.schedule";
@@ -24,6 +25,7 @@ export const DEFAULT_SCHEDULE: SyncScheduleConfig = {
   "crestron-web": { enabled: false, everyHours: 168, atHourArg: 4 },
   sonance: { enabled: true, everyHours: 168, atHourArg: 6 },
   soundtube: { enabled: true, everyHours: 168, atHourArg: 7 },
+  "hall-research-web": { enabled: false, everyHours: 168, atHourArg: 5 },
 };
 
 function normalizedSource(
@@ -68,6 +70,7 @@ export async function getSchedule(): Promise<SyncScheduleConfig> {
         "crestron-web": { ...DEFAULT_SCHEDULE["crestron-web"] },
         sonance: { ...DEFAULT_SCHEDULE.sonance },
         soundtube: { ...DEFAULT_SCHEDULE.soundtube },
+        "hall-research-web": { ...DEFAULT_SCHEDULE["hall-research-web"] },
       };
     }
     const parsed = JSON.parse(raw) as Record<string, unknown>;
@@ -85,6 +88,7 @@ export async function getSchedule(): Promise<SyncScheduleConfig> {
         DEFAULT_SCHEDULE.sonance
       ),
       soundtube: normalizedSource(parsed?.soundtube, DEFAULT_SCHEDULE.soundtube),
+      "hall-research-web": normalizedSource(parsed?.["hall-research-web"], DEFAULT_SCHEDULE["hall-research-web"]),
     };
   } catch {
     return {
@@ -92,6 +96,7 @@ export async function getSchedule(): Promise<SyncScheduleConfig> {
       "crestron-web": { ...DEFAULT_SCHEDULE["crestron-web"] },
       sonance: { ...DEFAULT_SCHEDULE.sonance },
       soundtube: { ...DEFAULT_SCHEDULE.soundtube },
+      "hall-research-web": { ...DEFAULT_SCHEDULE["hall-research-web"] },
     };
   }
 }
@@ -130,6 +135,7 @@ export async function lastCompletedRunMs(
   const sourceKind: Record<ScheduledSource, SyncSourceKind> = {
     crestron: "CRESTRON",
     "crestron-web": "CRESTRON_WEB",
+    "hall-research-web": "HALL_RESEARCH_WEB",
     sonance: "SONANCE",
     soundtube: "SOUNDTUBE",
   };

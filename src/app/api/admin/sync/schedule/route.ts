@@ -53,6 +53,7 @@ function validateSchedule(value: unknown): SyncScheduleConfig {
     "crestron-web": validateSource(schedule["crestron-web"], "crestron-web"),
     sonance: validateSource(schedule.sonance, "sonance"),
     soundtube: validateSource(schedule.soundtube, "soundtube"),
+    "hall-research-web": validateSource(schedule["hall-research-web"], "hall-research-web"),
   };
 }
 

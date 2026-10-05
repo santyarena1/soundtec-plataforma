@@ -3,6 +3,7 @@ export const SYNC_SOURCES = [
   { slug: "crestron-web", name: "Crestron.com — enriquecimiento", hint: "Fichas, especificaciones, imágenes y documentos. No toca precios ni stock." },
   { slug: "sonance", name: "Sonance / IPORT / JAMES / BLAZE", hint: "Catálogo, contenido, imágenes y relaciones." },
   { slug: "soundtube", name: "SoundTube / Soundsphere / Phase Tech / Rockustics", hint: "Catálogo público de soundtube.com: precio (nivel configurable), stock, descripciones, imágenes, documentos y atributos. Sin login." },
+  { slug: "hall-research-web", name: "Hall Research — enriquecimiento (Atlona, Javelin, Hall Tech, Gain Audio, Captivate)", hint: "Descripciones, características y fotos oficiales de hallresearch.com. No toca precios, stock ni marca: los precios vienen de la lista Excel." },
 ] as const;
 export type SourceSlug = (typeof SYNC_SOURCES)[number]["slug"];
 

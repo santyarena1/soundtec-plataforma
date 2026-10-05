@@ -97,7 +97,7 @@ export interface NormalizedProduct {
 export interface ProductSourceConnector {
   slug: string;
   displayName: string;
-  source: "CRESTRON" | "CRESTRON_WEB" | "SONANCE" | "SOUNDTUBE" | "EXCEL" | "MANUAL";
+  source: "CRESTRON" | "CRESTRON_WEB" | "SONANCE" | "SOUNDTUBE" | "EXCEL" | "MANUAL" | "HALL_RESEARCH_WEB";
   matchField: "internalSku" | "supplierSku";
   translateItems?(items: NormalizedProduct[]): Promise<void>;
   fetchNormalized(opts?: {

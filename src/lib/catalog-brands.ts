@@ -17,6 +17,10 @@ const LOCAL_LOGOS: Record<string, string> = {
   "blaze by sonance": "/landing/brands/normalized/blaze.png",
   blaze: "/landing/brands/normalized/blaze.png",
   atlona: "/landing/brands/normalized/atlona.png",
+  javelin: "/landing/brands/normalized/javelin.png",
+  "hall tech": "/landing/brands/normalized/hall-tech.png",
+  "gain audio": "/landing/brands/normalized/gain-audio.png",
+  captivate: "/landing/brands/normalized/captivate.png",
   audinate: "/landing/brands/normalized/dante.png",
   dante: "/landing/brands/normalized/dante.png",
 };

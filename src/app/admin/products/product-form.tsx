@@ -32,6 +32,8 @@ interface Props {
     shortDescription: string | null;
     longDescription: string | null;
     baseCostUsd: number;
+    /** Precio de lista del fabricante (MSRP): solo lectura, no se usa en precios. */
+    listPriceUsd?: number | null;
     discountPercent: number | null;
     tariffPosition: string | null;
     tariffDutyPercent: number | null;
@@ -429,6 +431,12 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 onChange={(e) => setBaseCostUsd(Number(e.target.value) || 0)}
               />
               <FieldStamp at={fieldUpdatedAt?.baseCostUsd} />
+              {product?.listPriceUsd != null ? (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  MSRP del fabricante: USD {product.listPriceUsd.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                  (solo referencia, no se usa para calcular precios).
+                </p>
+              ) : null}
             </div>
             <div>
               <Label htmlFor="discountPercentDisplay">DESCUENTO ESPECIAL (%)</Label>

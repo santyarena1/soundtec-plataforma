@@ -895,4 +895,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Inicio del portal: «Explorar por categoría» pasa a ser «Explorar por marca», con todas las marcas que el cliente tiene habilitadas, su logo y cuántos productos tiene cada una." },
     ],
   },
+  {
+    id: "ship-2026-10-06-hall-research",
+    version: "1.25.0",
+    releasedAt: "2026-10-06T07:00:00.000Z",
+    summary: "Nuevas marcas Atlona, Javelin, Hall Tech, Gain Audio y Captivate (Hall Research), con carga de listas de precios y enriquecimiento desde la web oficial.",
+    items: [
+      { kind: "NUEVO", text: "Sincronización → «Lista de precios Hall Research»: subís el Excel, revisás qué cambia y aplicás. «Distributor» es el costo; el MSRP se guarda solo como referencia en la ficha del admin (no se usa para precios ni se muestra a clientes)." },
+      { kind: "NUEVO", text: "La primera lista crea los productos con todos sus datos (marca, categoría, descripciones, medidas, peso, origen y foto). Las siguientes solo actualizan costo y MSRP; el resto de los datos no se toca." },
+      { kind: "NUEVO", text: "Los productos que una lista nueva ya no trae se muestran para que elijas: dejarlos, desactivarlos o ponerles costo a mano. Los productos nuevos de la lista se crean." },
+      { kind: "NUEVO", text: "Sincronización → «Hall Research — enriquecimiento»: trae de hallresearch.com las descripciones, características y la galería de fotos oficial. No toca precios ni marca. Se puede programar como las otras fuentes." },
+      { kind: "NUEVO", text: "Logos oficiales de Javelin, Hall Tech, Gain Audio y Captivate. Las 5 marcas aparecen en el catálogo, el portal, la pantalla del stand, el login, la visibilidad por cliente y el asistente." },
+    ],
+  },
 ];

@@ -95,6 +95,7 @@ interface ScheduleConfig {
   "crestron-web": SourceSchedule;
   sonance: SourceSchedule;
   soundtube: SourceSchedule;
+  "hall-research-web": SourceSchedule;
 }
 
 interface ScheduleResponse {

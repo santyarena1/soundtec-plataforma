@@ -1,10 +1,17 @@
 import { crestronConnector } from "./connectors/crestron";
 import { crestronWebConnector } from "./connectors/crestron-web";
+import { hallResearchWebConnector } from "./connectors/hall-research-web";
 import { sonanceConnector } from "./connectors/sonance";
 import { soundtubeConnector } from "./connectors/soundtube";
 import type { ProductSourceConnector } from "./types";
 
-const connectors = [crestronConnector, crestronWebConnector, sonanceConnector, soundtubeConnector] as const;
+const connectors = [
+  crestronConnector,
+  crestronWebConnector,
+  sonanceConnector,
+  soundtubeConnector,
+  hallResearchWebConnector,
+] as const;
 
 export function getConnector(slug: string): ProductSourceConnector | undefined {
   return connectors.find((connector) => connector.slug === slug);

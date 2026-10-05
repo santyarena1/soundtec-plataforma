@@ -198,6 +198,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               shortDescription: product.shortDescription,
               longDescription: product.longDescription,
               baseCostUsd: Number(product.baseCostUsd),
+              listPriceUsd: product.listPriceUsd == null ? null : Number(product.listPriceUsd),
               discountPercent: product.discountPercent ? Number(product.discountPercent) : null,
               tariffPosition: product.tariffPosition ?? null,
               tariffDutyPercent: product.tariffDutyPercent ? Number(product.tariffDutyPercent) : null,
