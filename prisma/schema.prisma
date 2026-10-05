@@ -1819,6 +1819,8 @@ model ExpoEvent {
   startsAt           DateTime
   endsAt             DateTime
   displayOrientation ExpoDisplayOrientation @default(AUTO)
+  /// Productos elegidos para la vidriera de la pantalla del stand, en orden. Vacío = selección automática.
+  showcaseProductIds String[]              @default([])
   qrs                ExpoQr[]
   leads              VisitorLead[]
   createdAt          DateTime               @default(now())

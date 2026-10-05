@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/auth-helpers";
 import { generateQrCode } from "@/lib/expo/qr-code";
+import { searchShowcaseCandidates } from "@/server/expo/showcase";
 
 const eventSchema = z
   .object({
@@ -49,4 +50,21 @@ export async function toggleExpoQr(qrId: string, _formData?: FormData): Promise<
   const qr = await prisma.expoQr.findUniqueOrThrow({ where: { id: qrId } });
   await prisma.expoQr.update({ where: { id: qrId }, data: { isActive: !qr.isActive } });
   revalidatePath(`/admin/settings/expo/${qr.eventId}`);
+}
+
+const MAX_SHOWCASE = 40;
+
+/** Busca productos (con foto) para la vidriera del stand. */
+export async function searchShowcaseProducts(query: string) {
+  await requirePermission("settings.manage");
+  return searchShowcaseCandidates(query.slice(0, 80));
+}
+
+/** Guarda los productos elegidos para la vidriera, en orden. Vacío = automático. */
+export async function saveShowcaseProducts(eventId: string, productIds: string[]): Promise<{ ok: boolean; error?: string }> {
+  await requirePermission("settings.manage");
+  const ids = [...new Set(productIds.filter((id) => typeof id === "string" && id.length < 60))].slice(0, MAX_SHOWCASE);
+  await prisma.expoEvent.update({ where: { id: eventId }, data: { showcaseProductIds: ids } });
+  revalidatePath(`/admin/settings/expo/${eventId}`);
+  return { ok: true };
 }

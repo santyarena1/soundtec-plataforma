@@ -9,21 +9,37 @@ import { Showcase, type ShowcaseSlide } from "./showcase";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Soundtec · Escaneá el QR", robots: { index: false } };
 
-/** AUTO sigue al monitor (CSS orientation); LANDSCAPE/PORTRAIT la fuerzan. */
+/**
+ * Clases literales por orientación (Tailwind necesita verlas escritas).
+ * Horizontal: vidriera | QR | vidriera. Vertical: QR al centro y la vidriera abajo.
+ * AUTO sigue al monitor con la variante `landscape:`.
+ */
 const LAYOUT = {
-  LANDSCAPE: { grid: "grid-cols-[1.25fr_1fr]", text: "text-left", logo: "mx-0", order: "" },
-  PORTRAIT: { grid: "grid-cols-1", text: "text-center", logo: "mx-auto", order: "order-first" },
+  LANDSCAPE: {
+    grid: "grid-cols-[1fr_auto_1fr]",
+    side: "block",
+    bottom: "hidden",
+    qr: "w-[min(46vmin,640px)]",
+  },
+  PORTRAIT: {
+    grid: "grid-cols-1",
+    side: "hidden",
+    bottom: "block",
+    qr: "w-[min(64vmin,640px)]",
+  },
   AUTO: {
-    grid: "grid-cols-1 landscape:grid-cols-[1.25fr_1fr]",
-    text: "text-center landscape:text-left",
-    logo: "mx-auto landscape:mx-0",
-    order: "order-first landscape:order-none",
+    grid: "grid-cols-1 landscape:grid-cols-[1fr_auto_1fr]",
+    side: "hidden landscape:block",
+    bottom: "block landscape:hidden",
+    qr: "w-[min(64vmin,640px)] landscape:w-[min(46vmin,640px)]",
   },
 } as const;
 
 const KEYFRAMES = `
 @keyframes fadeUp { from { opacity: 0; transform: translateY(1.2vmin); } to { opacity: 1; transform: none; } }
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes progress { from { width: 0%; } to { width: 100%; } }
+@keyframes floatQr { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.8vmin); } }
 `;
 
 /** Pantalla para el televisor del stand. Solo para QR activos. */
@@ -35,59 +51,71 @@ export default async function Page({ params }: { params: Promise<{ code: string 
   const [svg, allBrands, products] = await Promise.all([
     qrSvgWithLogo(`${appUrl()}/e/${code}`),
     getCatalogBrands(),
-    getShowcaseProducts(24),
+    getShowcaseProducts(24, qr.event.showcaseProductIds),
   ]);
   // Merchandising (ropa) no es una marca de equipos: no va en la pantalla.
   const brands = allBrands.filter((b) => !/apparel/i.test(b.name));
   const total = brands.reduce((acc, b) => acc + b.count, 0);
   const logoByBrand = new Map(brands.map((b) => [b.name, b.logoUrl]));
-  const slides: ShowcaseSlide[] = products.map((p) => ({ ...p, brandLogo: logoByBrand.get(p.brand) ?? null }));
+  const slides: ShowcaseSlide[] = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    brand: p.brand,
+    imageUrl: p.imageUrl,
+    brandLogo: logoByBrand.get(p.brand) ?? null,
+  }));
+  // Dos vidrieras a los costados del QR: se reparten los productos.
+  const left = slides.filter((_, i) => i % 2 === 0);
+  const right = slides.filter((_, i) => i % 2 === 1);
   const layout = LAYOUT[qr.event.displayOrientation] ?? LAYOUT.AUTO;
   // La cinta de marcas se duplica para que el desplazamiento sea infinito sin saltos.
   const ribbon = [...brands, ...brands];
 
   return (
-    <div className="flex min-h-dvh flex-col overflow-hidden bg-[radial-gradient(ellipse_at_top_left,#ffffff_0%,#eef1f5_60%,#e6eaf0_100%)] text-[#0E1A2B]">
+    <div className="flex h-dvh flex-col overflow-hidden bg-[radial-gradient(ellipse_at_center,#ffffff_0%,#f1f4f8_55%,#e4e9f0_100%)] text-[#1E3552]">
       <style>{KEYFRAMES}</style>
 
-      <main className={`mx-auto grid w-full max-w-[1800px] flex-1 items-center gap-[5vmin] px-[5vmin] pt-[4vmin] ${layout.grid}`}>
-        <section className={`space-y-[3vmin] ${layout.text}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className={`h-[6vmin] w-auto ${layout.logo}`} />
-          <h1 className="text-[6.4vmin] font-semibold leading-[1.02] tracking-tight">
-            Todo el catálogo,
-            <br />
-            en tu celular.
-          </h1>
-          <p className="text-[2.4vmin] text-[#4b5a6b]">
-            Más de {total.toLocaleString("es-AR")} productos de audio, video y control de las mejores marcas.
-          </p>
-          <Showcase slides={slides} />
-        </section>
+      <header className="flex justify-center pt-[3.5vmin]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/landing/logo_soundtec.png" alt="Soundtec — integramos tecnología" className="h-[5.5vmin] w-auto" />
+      </header>
 
-        <section className={`flex flex-col items-center ${layout.order}`}>
-          <div className="rounded-[3.5vmin] bg-white p-[3.5vmin] shadow-[0_3vmin_8vmin_rgba(14,26,43,0.16)]">
-            <div
-              className="w-[min(52vmin,620px)] [&>svg]:h-auto [&>svg]:w-full"
-              dangerouslySetInnerHTML={{ __html: svg }}
-            />
+      <main className={`mx-auto grid w-full max-w-[1900px] flex-1 items-center gap-[4vmin] px-[4vmin] ${layout.grid}`}>
+        <div className={layout.side}>
+          <Showcase slides={left.length ? left : slides} className="aspect-[4/5] max-h-[64vh] w-full" />
+        </div>
+
+        <section className="flex flex-col items-center text-center">
+          <h1 className="text-[4.8vmin] font-semibold leading-[1.05] tracking-tight">Todo el catálogo, en tu celular</h1>
+          <div className="mt-[3vmin] animate-[floatQr_6s_ease-in-out_infinite] rounded-[3.5vmin] bg-white p-[3vmin] shadow-[0_3vmin_9vmin_rgba(30,53,82,0.22)] ring-1 ring-[#1E3552]/10">
+            <div className={`${layout.qr} [&>svg]:h-auto [&>svg]:w-full`} dangerouslySetInnerHTML={{ __html: svg }} />
           </div>
-          <p className="mt-[3vmin] text-[3vmin] font-semibold">Escaneá y explorá</p>
-          <p className="mt-[0.8vmin] text-[2vmin] text-[#4b5a6b]">Apuntá la cámara de tu celular al código</p>
-          <p className="mt-[2.5vmin] rounded-full bg-[#0E1A2B] px-[2.5vmin] py-[1vmin] text-[1.8vmin] font-medium text-white">
+          <p className="mt-[3vmin] text-[3.2vmin] font-semibold">Escaneá y explorá</p>
+          <p className="mt-[0.6vmin] text-[2vmin] text-[#1E3552]/70">
+            Más de {total.toLocaleString("es-AR")} productos de audio, video y control
+          </p>
+          <p className="mt-[2.2vmin] rounded-full bg-[#1E3552] px-[2.8vmin] py-[1.1vmin] text-[1.8vmin] font-medium text-white">
             Pedí tu cuenta y accedé a precios y stock
           </p>
         </section>
+
+        <div className={layout.side}>
+          <Showcase slides={right.length ? right : slides} delayMs={2500} className="aspect-[4/5] max-h-[64vh] w-full" />
+        </div>
+
+        <div className={`${layout.bottom} w-full`}>
+          <Showcase slides={slides} className="aspect-[16/9] w-full" />
+        </div>
       </main>
 
-      <footer className="relative mt-[4vmin] overflow-hidden border-t border-[#0E1A2B]/10 bg-white/70 py-[2.6vmin]">
-        <div className="flex w-max animate-[marquee_45s_linear_infinite] items-center gap-[7vmin] px-[3.5vmin]">
+      <footer className="relative mt-[3vmin] overflow-hidden border-t border-[#1E3552]/10 bg-white/80 py-[2.4vmin]">
+        <div className="flex w-max animate-[marquee_50s_linear_infinite] items-center gap-[8vmin] px-[4vmin]">
           {ribbon.map((brand, i) =>
             brand.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={`${brand.id}-${i}`} src={brand.logoUrl} alt={brand.name} className="h-[5vmin] w-auto max-w-[22vmin] object-contain" />
+              <img key={`${brand.id}-${i}`} src={brand.logoUrl} alt={brand.name} className="h-[4.6vmin] w-auto max-w-[22vmin] object-contain" />
             ) : (
-              <span key={`${brand.id}-${i}`} className="whitespace-nowrap text-[2.6vmin] font-bold tracking-[0.18em] text-[#0E1A2B]/70">
+              <span key={`${brand.id}-${i}`} className="whitespace-nowrap text-[2.4vmin] font-bold tracking-[0.18em] text-[#1E3552]/70">
                 {brand.name.toUpperCase()}
               </span>
             )

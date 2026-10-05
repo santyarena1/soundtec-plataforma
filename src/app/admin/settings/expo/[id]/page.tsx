@@ -10,6 +10,8 @@ import { formatDate } from "@/lib/utils";
 import { toggleExpoQr } from "@/server/actions/expo-events";
 import { EventForm } from "./event-form";
 import { QrForm } from "./qr-form";
+import { ShowcasePicker } from "./showcase-picker";
+import { getShowcaseProducts } from "@/server/expo/showcase";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +20,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const { id } = await params;
   const event = await prisma.expoEvent.findUnique({ where: { id }, include: { qrs: { orderBy: { createdAt: "asc" } } } });
   if (!event) notFound();
+  const showcase = event.showcaseProductIds.length
+    ? (await getShowcaseProducts(40, event.showcaseProductIds)).map(({ score: _score, ...p }) => p)
+    : [];
   const qrIds = event.qrs.map((q) => q.id);
   const visits = await prisma.expoVisit.findMany({ where: { qrId: { in: qrIds } }, select: { qrId: true, visitorId: true, type: true, brandId: true } });
   const brandIds = [...new Set(visits.map((v) => v.brandId).filter((b): b is string => !!b))];
@@ -74,6 +79,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           <QrForm eventId={event.id} />
         </CardContent>
       </Card>
+      <Card>
+        <CardContent className="space-y-3 p-5">
+          <div>
+            <h3 className="text-sm font-semibold">Vidriera de la pantalla del stand</h3>
+            <p className="text-xs text-muted-foreground">Elegí qué productos pasan en la pantalla y en qué orden.</p>
+          </div>
+          <ShowcasePicker eventId={event.id} initial={showcase} />
+        </CardContent>
+      </Card>
+
       {report.topBrands.length ? (
         <Card><CardContent className="p-5">
           <h3 className="mb-2 text-sm font-semibold">Marcas más vistas</h3>

@@ -1,5 +1,6 @@
 /**
- * QR de expo con el isotipo de Soundtec al centro, todo en negro.
+ * QR de expo con el isotipo de Soundtec al centro, en el azul del sistema
+ * (--primary: hsl(213 47% 22%) = #1E3552).
  * Corrección de errores nivel H (hasta ~30% del código tapado sigue leyendo):
  * el logo ocupa ~22% del ancho, bien dentro del margen.
  */
@@ -7,7 +8,7 @@ import QRCode from "qrcode";
 import { PNG } from "pngjs";
 import { QR_MARK_PNG_BASE64, QR_MARK_SIZE } from "@/lib/expo/qr-mark";
 
-const DARK = "#000000";
+const DARK = "#1E3552";
 const LIGHT = "#FFFFFF";
 /** Ancho del logo respecto del QR. */
 const LOGO_RATIO = 0.22;

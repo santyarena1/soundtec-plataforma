@@ -739,4 +739,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Un cliente con una marca oculta por visibilidad ya no la ve aunque la filtre a mano." },
     ],
   },
+  {
+    id: "ship-2026-10-05-pantalla-qr-centro",
+    version: "1.22.1",
+    releasedAt: "2026-10-05T19:00:00.000Z",
+    summary: "Pantalla del stand con el QR al centro, QR en el azul de Soundtec y vidriera con productos elegidos por vos.",
+    items: [
+      { kind: "MEJORA", text: "El QR va al centro de la pantalla; en horizontal tiene una vidriera a cada lado y en vertical la vidriera queda abajo." },
+      { kind: "MEJORA", text: "QR y logo de Soundtec en el azul del sistema (pantalla y PNG para imprimir)." },
+      { kind: "NUEVO", text: "En cada evento, «Vidriera de la pantalla del stand»: buscá, agregá y ordená los productos que pasan. Sin elegir ninguno, sigue la selección automática." },
+    ],
+  },
 ];
