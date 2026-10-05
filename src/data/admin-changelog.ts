@@ -886,4 +886,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "El panel admin sigue viendo el stock como siempre." },
     ],
   },
+  {
+    id: "ship-2026-10-06-portal-marcas",
+    version: "1.24.1",
+    releasedAt: "2026-10-06T05:30:00.000Z",
+    summary: "El inicio del portal muestra todas las marcas del cliente.",
+    items: [
+      { kind: "MEJORA", text: "Inicio del portal: «Explorar por categoría» pasa a ser «Explorar por marca», con todas las marcas que el cliente tiene habilitadas, su logo y cuántos productos tiene cada una." },
+    ],
+  },
 ];

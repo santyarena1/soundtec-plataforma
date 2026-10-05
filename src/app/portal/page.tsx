@@ -9,6 +9,7 @@ import { getActiveDraftSummary } from "@/lib/draft-request";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { getVisibleProductsWhere } from "@/lib/catalog";
+import { brandsWithLogos } from "@/lib/catalog-brands";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import {
   ArrowRight,
@@ -31,7 +32,6 @@ const QUICK_FILTERS = [
   { label: "Mis favoritos", href: "/portal/products?fav=1", icon: Heart },
 ];
 
-const TOP_CATEGORIES = 8;
 const RECENT_PRODUCTS = 6;
 const RECENT_REQUESTS = 5;
 
@@ -65,7 +65,7 @@ export default async function PortalDashboardPage() {
     recentRequests,
     recentPosts,
     activeDraft,
-    topCategories,
+    brandCounts,
     recentProducts,
   ] = await Promise.all([
     prisma.product.count({ where: visible }),
@@ -85,12 +85,7 @@ export default async function PortalDashboardPage() {
       take: 3,
     }),
     getActiveDraftSummary(user.id),
-    prisma.category
-      .findMany({
-        where: { isActive: true, products: { some: visible } },
-        select: { id: true, name: true, _count: { select: { products: { where: visible } } } },
-      })
-      .then((rows) => rows.sort((a, b) => b._count.products - a._count.products).slice(0, TOP_CATEGORIES)),
+    prisma.product.groupBy({ by: ["brandId"], where: { AND: [visible, { brandId: { not: null } }] }, _count: { _all: true } }),
     prisma.product.findMany({
       where: { AND: [visible, { kind: "PRINCIPAL" }] },
       orderBy: { createdAt: "desc" },
@@ -104,6 +99,14 @@ export default async function PortalDashboardPage() {
       },
     }),
   ]);
+
+  // Todas las marcas que este cliente puede ver, con logo y cantidad.
+  const brandRows = await prisma.brand.findMany({
+    where: { id: { in: brandCounts.map((b) => b.brandId).filter((id): id is string => !!id) } },
+    select: { id: true, name: true },
+  });
+  const countByBrand = new Map(brandCounts.map((b) => [b.brandId, b._count._all]));
+  const brands = await brandsWithLogos(brandRows.map((b) => ({ id: b.id, name: b.name, count: countByBrand.get(b.id) ?? 0 })));
 
   const firstName = (user.name || "").split(" ")[0] || user.email;
 
@@ -209,30 +212,32 @@ export default async function PortalDashboardPage() {
         </Card>
       ) : null}
 
-      {/* Categorías */}
-      {topCategories.length > 0 ? (
+      {/* Marcas */}
+      {brands.length > 0 ? (
         <section>
           <div className="flex items-end justify-between gap-4">
             <div>
-              <h2 className="heading-3">Explorar por categoría</h2>
-              <p className="muted-text mt-1">Las categorías con más productos disponibles para tu cuenta.</p>
+              <h2 className="heading-3">Explorar por marca</h2>
+              <p className="muted-text mt-1">Todas las marcas disponibles para tu cuenta.</p>
             </div>
-            <Link href="/portal/products" className="text-sm font-medium text-accent hover:underline">
-              Todas las categorías
+            <Link href="/portal/products?all=1" className="text-sm font-medium text-accent hover:underline">
+              Ver todos los productos
             </Link>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {topCategories.map((category) => (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {brands.map((brand) => (
               <Link
-                key={category.id}
-                href={`/portal/products?category=${category.id}`}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3.5 transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-elevated"
+                key={brand.id}
+                href={`/portal/products?brand=${brand.id}`}
+                className="group flex h-28 flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-elevated"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{category.name}</p>
-                  <p className="text-xs text-muted-foreground">{category._count.products} productos</p>
-                </div>
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
+                {brand.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={brand.logoUrl} alt={brand.name} className="h-14 w-auto max-w-[92%] object-contain" />
+                ) : (
+                  <span className="text-center text-base font-bold tracking-wide">{brand.name}</span>
+                )}
+                <span className="text-[11px] text-muted-foreground">{brand.count.toLocaleString("es-AR")} productos</span>
               </Link>
             ))}
           </div>
