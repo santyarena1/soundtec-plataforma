@@ -986,4 +986,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Pantalla del stand: el logo de Soundtec es un poco más chico, en horizontal y en vertical." },
     ],
   },
+  {
+    id: "ship-2026-10-06-logos-crestron-soundtube",
+    version: "1.26.6",
+    releasedAt: "2026-10-06T13:00:00.000Z",
+    summary: "Logos nuevos de Crestron y SoundTube.",
+    items: [
+      { kind: "MEJORA", text: "Logos oficiales actualizados de Crestron y SoundTube (Entertainment), con el mismo tamaño que el resto, en catálogo, portal, login y pantalla del stand." },
+    ],
+  },
 ];
