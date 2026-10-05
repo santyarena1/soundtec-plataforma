@@ -20,6 +20,22 @@ function logoFor(name: string, logoUrl: string | null): string | null {
   return logoUrl?.trim() || LOCAL_LOGOS[name.trim().toLowerCase()] || null;
 }
 
+/**
+ * Marcas del portal de un cliente: parte de las facetas ya filtradas por su
+ * visibilidad (id, nombre, cantidad) y les suma el logo.
+ */
+export async function brandsWithLogos(facets: Array<{ id: string; name: string; count: number }>): Promise<CatalogBrand[]> {
+  if (facets.length === 0) return [];
+  const rows = await prisma.brand.findMany({
+    where: { id: { in: facets.map((f) => f.id) } },
+    select: { id: true, logoUrl: true },
+  });
+  const logoById = new Map(rows.map((r) => [r.id, r.logoUrl]));
+  return facets
+    .map((f) => ({ id: f.id, name: f.name, logoUrl: logoFor(f.name, logoById.get(f.id) ?? null), count: f.count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
+}
+
 /** Marcas activas con productos activos, para la grilla y la barra del catálogo público. */
 export async function getCatalogBrands(): Promise<CatalogBrand[]> {
   const brands = await prisma.brand.findMany({

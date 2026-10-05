@@ -2,7 +2,10 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth-helpers";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { getCatalog, getCatalogSidebarMeta } from "@/lib/catalog";
-import { parseCatalogSearchParams } from "@/lib/catalog-url";
+import { countActiveCatalogFilters, parseCatalogSearchParams } from "@/lib/catalog-url";
+import { brandsWithLogos } from "@/lib/catalog-brands";
+import { BrandGrid } from "@/app/catalogo/brand-grid";
+import { BrandBar } from "@/app/catalogo/brand-bar";
 import { getActiveDraftSummary } from "@/lib/draft-request";
 import { CatalogToolbar } from "./catalog-toolbar";
 import { CatalogLayout } from "./catalog-sidebar";
@@ -46,6 +49,18 @@ export default async function ProductsPage({
     pageSize: urlState.pageSize,
   };
 
+  // Primera pantalla: grilla de marcas (las que este cliente puede ver) o "Ver todos".
+  const brandMeta = await getCatalogSidebarMeta({ includeOutOfStock: filters.includeOutOfStock }, ctx, {
+    includeDistributors: false,
+  });
+  const brands = await brandsWithLogos(brandMeta.brands);
+  if (rawParams.all !== "1" && countActiveCatalogFilters(urlState) === 0) {
+    return (
+      <BrandGrid brands={brands} total={brands.reduce((acc, b) => acc + b.count, 0)} basePath="/portal/products" />
+    );
+  }
+  const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
+
   const [{ items, total, page, pageSize }, meta, draft] = await Promise.all([
     getCatalog(filters, ctx),
     getCatalogSidebarMeta(filters, ctx, { includeDistributors: false }),
@@ -81,6 +96,8 @@ export default async function ProductsPage({
       </div>
 
       <AssistantEntry href="/expo?from=portal" className="lg:max-w-2xl" />
+
+      <BrandBar brands={brands} activeBrandId={activeBrandId} basePath="/portal/products" />
 
       <CatalogMultiSelectProvider productIds={items.map((i) => i.id)}>
       <CatalogLayout state={urlState} meta={meta} total={total} toolbar={<CatalogToolbar state={urlState} />}>
