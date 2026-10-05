@@ -821,6 +821,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Pantalla horizontal del stand centrada.",
     items: [
       { kind: "MEJORA", text: "Horizontal: logo, título, QR y el texto debajo del QR, todo centrado (igual que en vertical)." },
+      { kind: "MEJORA", text: "Vertical: parte de arriba más compacta para que la vidriera de productos tenga más alto." },
     ],
   },
 ];
