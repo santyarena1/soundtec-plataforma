@@ -10,6 +10,7 @@ import { upsertBrand, deleteBrand } from "@/server/actions/admin-catalog";
 import { ConfirmSubmit } from "@/components/ui/confirm-button";
 import { BrandDetailPanel } from "./brand-detail-panel";
 import { brandLogoSrc } from "@/lib/brand-logo";
+import { toggleBrandCatalogVisibility } from "@/server/actions/brand-logos";
 
 export const metadata = { title: "Admin · Marcas" };
 
@@ -67,6 +68,7 @@ export default async function AdminBrandsPage() {
               <TH>Marca</TH>
               <TH>Productos</TH>
               <TH>Estado</TH>
+              <TH>Catálogo</TH>
               <TH></TH>
             </TR>
           </THead>
@@ -77,6 +79,14 @@ export default async function AdminBrandsPage() {
                 <TD>{b._count.products}</TD>
                 <TD>
                   {b.isActive ? <Badge tone="success">Activa</Badge> : <Badge tone="muted">Inactiva</Badge>}
+                </TD>
+                <TD>
+                  <form action={toggleBrandCatalogVisibility.bind(null, b.id)} className="flex items-center gap-2">
+                    {b.hiddenFromCatalog ? <Badge tone="warning">Oculta</Badge> : <Badge tone="success">Visible</Badge>}
+                    <button type="submit" className="text-xs font-medium text-primary hover:underline">
+                      {b.hiddenFromCatalog ? "Mostrar" : "Ocultar"}
+                    </button>
+                  </form>
                 </TD>
                 <TD className="text-right space-x-1">
                   <BrandDetailPanel brand={{ ...b, logoUrl: brandLogoSrc(b) }} />

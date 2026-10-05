@@ -10,7 +10,7 @@ import { loadProductViewCounts } from "@/server/catalog/product-views";
 export async function getShowcaseProducts(limit = 30): Promise<ShowcaseCandidate[]> {
   const [products, { views }] = await Promise.all([
     prisma.product.findMany({
-      where: { isActive: true, kind: "PRINCIPAL", images: { some: {} }, brand: { isActive: true } },
+      where: { isActive: true, kind: "PRINCIPAL", images: { some: {} }, brand: { isActive: true, hiddenFromCatalog: false } },
       select: {
         id: true,
         normalizedName: true,

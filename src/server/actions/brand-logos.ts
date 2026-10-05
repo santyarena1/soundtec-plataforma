@@ -77,6 +77,15 @@ export async function uploadBrandLogoFile(brandId: string, formData: FormData): 
   return { ok: true };
 }
 
+/** Muestra u oculta la marca (y sus productos) en el catálogo público, el portal y el stand. */
+export async function toggleBrandCatalogVisibility(brandId: string, _formData?: FormData): Promise<void> {
+  await requireAdmin();
+  const brand = await prisma.brand.findUnique({ where: { id: brandId }, select: { hiddenFromCatalog: true } });
+  if (!brand) return;
+  await prisma.brand.update({ where: { id: brandId }, data: { hiddenFromCatalog: !brand.hiddenFromCatalog } });
+  revalidateBrandViews();
+}
+
 export async function removeBrandLogo(brandId: string): Promise<LogoResult> {
   await requireAdmin();
   await prisma.brand.update({ where: { id: brandId }, data: { logoUrl: null } });

@@ -80,6 +80,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const commercialClientId = !isAdminViewer ? await resolveCommercialClientId(user.id) : null;
   if (!isAdminViewer) {
     if (!commercialClientId) notFound();
+    if (product.brand?.hiddenFromCatalog) notFound();
     const allowed = await isProductVisibleToClient(
       {
         id: product.id,

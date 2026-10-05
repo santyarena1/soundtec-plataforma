@@ -5,6 +5,7 @@
  * product-search) → productos del contexto de la conversación.
  */
 
+import { VISIBLE_BRAND_WHERE } from "@/lib/brand-visibility";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
@@ -47,7 +48,7 @@ async function findByCodes(codes: string[]): Promise<ProductRow[]> {
     if (normalized.length >= 3) or.push({ searchKey: { contains: normalized } });
   }
   return prisma.product.findMany({
-    where: { isActive: true, OR: or },
+    where: { ...VISIBLE_BRAND_WHERE, isActive: true, OR: or },
     select: PRODUCT_SELECT,
     take: LIMITS.candidateFetchCap,
   });
@@ -60,7 +61,7 @@ async function findBySearch(query: string): Promise<ProductRow[]> {
   const where = buildProductSearchWhere(clean);
   if (!where.AND) return [];
   return prisma.product.findMany({
-    where: { isActive: true, ...where },
+    where: { ...VISIBLE_BRAND_WHERE, isActive: true, ...where },
     select: PRODUCT_SELECT,
     orderBy: [{ isDiscontinued: "asc" }, { kind: "asc" }, { normalizedName: "asc" }],
     take: LIMITS.candidateFetchCap,
@@ -211,6 +212,7 @@ async function findByConcept(analysis: QuestionAnalysis, limit: number): Promise
   if (groups.length === 0 && !structured) return [];
 
   const baseWhere: Prisma.ProductWhereInput = {
+    ...VISIBLE_BRAND_WHERE,
     isActive: true,
     kind: "PRINCIPAL",
     ...(structured ?? {}),

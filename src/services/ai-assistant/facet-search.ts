@@ -7,6 +7,7 @@
  * la respuesta.
  */
 
+import { VISIBLE_BRAND_WHERE } from "@/lib/brand-visibility";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { PRODUCT_SELECT, toCandidate, type ProductRow } from "./candidate";
@@ -79,6 +80,7 @@ export function buildWhere(filter: CanonicalFilter): Prisma.ProductWhereInput {
   }
 
   const where: Prisma.ProductWhereInput = {
+    ...VISIBLE_BRAND_WHERE,
     isActive: true,
     kind: "PRINCIPAL",
     // Un producto sin perfil no puede afirmar nada sobre sus facetas.

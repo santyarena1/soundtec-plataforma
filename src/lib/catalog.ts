@@ -138,16 +138,28 @@ async function buildCatalogWhere(
   ctx: CatalogContext,
   options?: { skipPrice?: boolean }
 ): Promise<Prisma.ProductWhereInput | null> {
-  const hidden = await resolveVisibility(ctx.commercialClientId, ctx.isAdmin);
+  const [hidden, catalogHiddenBrands] = await Promise.all([
+    resolveVisibility(ctx.commercialClientId, ctx.isAdmin),
+    prisma.brand.findMany({ where: { hiddenFromCatalog: true }, select: { id: true } }),
+  ]);
+  // Marcas ocultas (por visibilidad del cliente o desde Admin → Marcas) combinadas
+  // con el filtro de marca: un `in` no puede pisar el `notIn`.
+  const excludedBrandIds = [...hidden.hiddenBrandIds, ...catalogHiddenBrands.map((b) => b.id)];
+  // `notIn` en SQL descarta los productos sin marca (NULL): con filtro de marca
+  // no importa; sin filtro, se los vuelve a incluir con un OR.
+  const brandFilter: Prisma.ProductWhereInput = filters.brandIds?.length
+    ? { brandId: { in: filters.brandIds, ...(excludedBrandIds.length ? { notIn: excludedBrandIds } : {}) } }
+    : excludedBrandIds.length
+      ? { OR: [{ brandId: null }, { brandId: { notIn: excludedBrandIds } }] }
+      : {};
 
   const where: Prisma.ProductWhereInput = {
     isActive: true,
     ...(hidden.hiddenProductIds.length ? { id: { notIn: hidden.hiddenProductIds } } : {}),
-    ...(hidden.hiddenBrandIds.length ? { brandId: { notIn: hidden.hiddenBrandIds } } : {}),
+    ...brandFilter,
     ...(hidden.hiddenCategoryIds.length ? { categoryId: { notIn: hidden.hiddenCategoryIds } } : {}),
     ...(hidden.hiddenDistributorIds.length ? { distributorId: { notIn: hidden.hiddenDistributorIds } } : {}),
     ...(hidden.hiddenFamilyIds.length ? { familyId: { notIn: hidden.hiddenFamilyIds } } : {}),
-    ...(filters.brandIds?.length ? { brandId: { in: filters.brandIds } } : {}),
     ...(ctx.isAdmin && filters.distributorIds?.length
       ? { distributorId: { in: filters.distributorIds } }
       : {}),

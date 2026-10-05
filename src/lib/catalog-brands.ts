@@ -44,7 +44,7 @@ export async function brandsWithLogos(facets: Array<{ id: string; name: string; 
 /** Marcas activas con productos activos, para la grilla y la barra del catálogo público. */
 export async function getCatalogBrands(): Promise<CatalogBrand[]> {
   const brands = await prisma.brand.findMany({
-    where: { isActive: true, products: { some: { isActive: true } } },
+    where: { isActive: true, hiddenFromCatalog: false, products: { some: { isActive: true } } },
     select: { id: true, name: true, logoUrl: true, _count: { select: { products: { where: { isActive: true } } } } },
   });
   return brands

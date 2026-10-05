@@ -39,7 +39,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const [product, session] = await Promise.all([
     prisma.product.findFirst({
-      where: { id, isActive: true },
+      where: { id, isActive: true, OR: [{ brandId: null }, { brand: { hiddenFromCatalog: false } }] },
       include: {
         brand: { select: { name: true } },
         category: { select: { name: true } },

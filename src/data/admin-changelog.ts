@@ -729,4 +729,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Sonance, JAMES, IPORT y TRUFIG ya aparecen con su logo oficial en el catálogo." },
     ],
   },
+  {
+    id: "ship-2026-10-05-ocultar-marcas",
+    version: "1.22.0",
+    releasedAt: "2026-10-05T18:00:00.000Z",
+    summary: "Desde Admin → Marcas podés ocultar una marca del catálogo.",
+    items: [
+      { kind: "NUEVO", text: "Columna «Catálogo» en Marcas: Ocultar / Mostrar. Una marca oculta y sus productos no aparecen en el catálogo público, el portal, la pantalla del stand ni en las respuestas del asistente. En el admin siguen visibles." },
+      { kind: "FIX", text: "Un cliente con una marca oculta por visibilidad ya no la ve aunque la filtre a mano." },
+    ],
+  },
 ];

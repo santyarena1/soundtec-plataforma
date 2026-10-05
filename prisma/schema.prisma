@@ -186,6 +186,8 @@ model Brand {
   logoUrl     String?
   description String?
   isActive    Boolean  @default(true)
+  /// Oculta la marca y sus productos del catálogo público, del portal y de la pantalla del stand.
+  hiddenFromCatalog Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
