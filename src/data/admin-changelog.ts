@@ -968,4 +968,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Se quitó la leyenda «Catálogo Soundtec» de la pantalla del stand (horizontal y vertical) y del encabezado del catálogo público." },
     ],
   },
+  {
+    id: "ship-2026-10-06-favicon",
+    version: "1.26.4",
+    releasedAt: "2026-10-06T12:30:00.000Z",
+    summary: "Íconos nuevos con el logo de Soundtec.",
+    items: [
+      { kind: "MEJORA", text: "Ícono de la pestaña del navegador con el isotipo del logo nuevo (se ve bien en pestañas claras y oscuras), y logo completo en el ícono para celular y accesos directos." },
+    ],
+  },
 ];
