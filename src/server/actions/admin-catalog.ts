@@ -13,6 +13,7 @@ import {
   mergeFieldTimestamps,
 } from "@/lib/field-timestamps";
 import { buildProductSearchKey, normalizeForSearch } from "@/lib/search-key";
+import { checkImageUrl } from "@/server/actions/brand-logos";
 
 type TimestampedProductCreateInput = Prisma.ProductUncheckedCreateInput & {
   fieldUpdatedAt?: Prisma.InputJsonValue;
@@ -43,10 +44,23 @@ export async function upsertBrand(formData: FormData): Promise<void> {
   });
   if (!parsed.success) return;
 
+  // El logo se maneja aparte (subir archivo / URL validada). Acá solo se toma
+  // si viene el campo y es una imagen de verdad, nunca una página web.
+  let logoUrl: string | null | undefined;
+  if (formData.has("logoUrl")) {
+    const raw = parsed.data.logoUrl?.trim();
+    logoUrl = raw && (await checkImageUrl(raw)).ok ? raw : null;
+  }
+
   if (id) {
     await prisma.brand.update({
       where: { id },
-      data: { name: parsed.data.name, description: parsed.data.description, logoUrl: parsed.data.logoUrl || null, isActive: parsed.data.isActive ?? true },
+      data: {
+        name: parsed.data.name,
+        description: parsed.data.description,
+        ...(logoUrl !== undefined && logoUrl !== null ? { logoUrl } : {}),
+        isActive: parsed.data.isActive ?? true,
+      },
     });
   } else {
     await prisma.brand.create({
@@ -54,7 +68,7 @@ export async function upsertBrand(formData: FormData): Promise<void> {
         name: parsed.data.name,
         slug: slugify(parsed.data.name),
         description: parsed.data.description,
-        logoUrl: parsed.data.logoUrl || null,
+        logoUrl: logoUrl ?? null,
         isActive: parsed.data.isActive ?? true,
       },
     });

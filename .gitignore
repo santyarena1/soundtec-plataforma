@@ -51,3 +51,5 @@ prisma/dev.db*
 
 # brainstorming visual (superpowers)
 .superpowers/
+# landing 3D: assets de trabajo (no versionar)
+.scroll-world/

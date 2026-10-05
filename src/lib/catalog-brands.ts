@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { brandLogoSrc } from "@/lib/brand-logo";
 
 export type CatalogBrand = { id: string; name: string; logoUrl: string | null; count: number };
 
@@ -8,6 +9,10 @@ export type CatalogBrand = { id: string; name: string; logoUrl: string | null; c
  */
 const LOCAL_LOGOS: Record<string, string> = {
   crestron: "/landing/brands/crestron.png",
+  sonance: "/landing/brands/sonance.svg",
+  james: "/landing/brands/james.png",
+  iport: "/landing/brands/iport.svg",
+  trufig: "/landing/brands/trufig.png",
   soundtube: "/landing/brands/soundtube.png",
   "blaze by sonance": "/landing/brands/blaze.png",
   blaze: "/landing/brands/blaze.png",
@@ -16,8 +21,8 @@ const LOCAL_LOGOS: Record<string, string> = {
   dante: "/landing/brands/dante.png",
 };
 
-function logoFor(name: string, logoUrl: string | null): string | null {
-  return logoUrl?.trim() || LOCAL_LOGOS[name.trim().toLowerCase()] || null;
+function logoFor(id: string, name: string, logoUrl: string | null): string | null {
+  return brandLogoSrc({ id, logoUrl }) || LOCAL_LOGOS[name.trim().toLowerCase()] || null;
 }
 
 /**
@@ -32,7 +37,7 @@ export async function brandsWithLogos(facets: Array<{ id: string; name: string; 
   });
   const logoById = new Map(rows.map((r) => [r.id, r.logoUrl]));
   return facets
-    .map((f) => ({ id: f.id, name: f.name, logoUrl: logoFor(f.name, logoById.get(f.id) ?? null), count: f.count }))
+    .map((f) => ({ id: f.id, name: f.name, logoUrl: logoFor(f.id, f.name, logoById.get(f.id) ?? null), count: f.count }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
 }
 
@@ -43,6 +48,6 @@ export async function getCatalogBrands(): Promise<CatalogBrand[]> {
     select: { id: true, name: true, logoUrl: true, _count: { select: { products: { where: { isActive: true } } } } },
   });
   return brands
-    .map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.name, b.logoUrl), count: b._count.products }))
+    .map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: b._count.products }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
 }

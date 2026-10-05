@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { upsertBrand, deleteBrand } from "@/server/actions/admin-catalog";
 import { ConfirmSubmit } from "@/components/ui/confirm-button";
 import { BrandDetailPanel } from "./brand-detail-panel";
+import { brandLogoSrc } from "@/lib/brand-logo";
 
 export const metadata = { title: "Admin · Marcas" };
 
@@ -78,7 +79,7 @@ export default async function AdminBrandsPage() {
                   {b.isActive ? <Badge tone="success">Activa</Badge> : <Badge tone="muted">Inactiva</Badge>}
                 </TD>
                 <TD className="text-right space-x-1">
-                  <BrandDetailPanel brand={b} />
+                  <BrandDetailPanel brand={{ ...b, logoUrl: brandLogoSrc(b) }} />
                   <form action={deleteBrand} className="inline">
                     <input type="hidden" name="id" value={b.id} />
                     <ConfirmSubmit confirmMessage={`Eliminar la marca "${b.name}"? Los productos vinculados se quedan sin marca.`}>

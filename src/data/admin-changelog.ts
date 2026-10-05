@@ -717,4 +717,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "En PC la marca se elige en la barra de arriba; se sacó la barra lateral de filtros." },
     ],
   },
+  {
+    id: "ship-2026-10-05-qr-logo-pantalla",
+    version: "1.21.0",
+    releasedAt: "2026-10-05T17:00:00.000Z",
+    summary: "QR con el logo de Soundtec al centro, nueva pantalla del stand y logos de marca subiendo el archivo.",
+    items: [
+      { kind: "NUEVO", text: "Los QR de expo salen en negro con el isotipo de Soundtec al centro (pantalla y PNG para imprimir)." },
+      { kind: "NUEVO", text: "Pantalla del stand renovada: vidriera animada con productos destacados de cada marca (sin accesorios), cinta de logos y QR grande." },
+      { kind: "NUEVO", text: "Admin → Marcas: subí el logo como archivo (PNG, JPG, SVG, WEBP, GIF o AVIF) o pegá la URL de una imagen; si la URL es una página web en vez de una imagen, te avisa." },
+      { kind: "MEJORA", text: "Sonance, JAMES, IPORT y TRUFIG ya aparecen con su logo oficial en el catálogo." },
+    ],
+  },
 ];

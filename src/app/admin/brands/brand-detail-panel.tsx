@@ -7,6 +7,7 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, X } from "lucide-react";
 import { upsertBrand } from "@/server/actions/admin-catalog";
+import { LogoEditor } from "./logo-editor";
 
 interface Product {
   id: string;
@@ -64,10 +65,6 @@ export function BrandDetailPanel({ brand }: { brand: Brand }) {
                   <Label htmlFor={`bn-${brand.id}`} required>Nombre</Label>
                   <Input id={`bn-${brand.id}`} name="name" required defaultValue={brand.name} />
                 </div>
-                <div>
-                  <Label htmlFor={`bl-${brand.id}`}>URL del logo</Label>
-                  <Input id={`bl-${brand.id}`} name="logoUrl" type="url" defaultValue={brand.logoUrl || ""} placeholder="https://..." />
-                </div>
                 <div className="sm:col-span-2">
                   <Label htmlFor={`bd-${brand.id}`}>Descripción</Label>
                   <Textarea id={`bd-${brand.id}`} name="description" rows={3} defaultValue={brand.description || ""} />
@@ -85,14 +82,7 @@ export function BrandDetailPanel({ brand }: { brand: Brand }) {
                 </div>
               </form>
 
-              {/* Logo preview */}
-              {brand.logoUrl && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Logo actual</p>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={brand.logoUrl} alt={brand.name} className="h-16 w-auto object-contain rounded border border-border p-1 bg-white" />
-                </div>
-              )}
+              <LogoEditor brandId={brand.id} brandName={brand.name} logoSrc={brand.logoUrl} />
 
               {/* Productos de la marca */}
               <div>
