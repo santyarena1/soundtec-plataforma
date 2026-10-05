@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { checkActivationToken } from "@/server/actions/activate-account";
+import { checkActivationToken } from "@/server/expo/activation";
 import { ActivateForm } from "./activate-form";
 
 export const dynamic = "force-dynamic";

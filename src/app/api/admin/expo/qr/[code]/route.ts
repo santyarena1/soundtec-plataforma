@@ -2,12 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import QRCode from "qrcode";
 import { requirePermission } from "@/lib/auth-helpers";
 import { isValidQrCode } from "@/lib/expo/qr-code";
+import { appUrl } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
-
-function appUrl(): string {
-  return (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.soundtecportal.com.ar").replace(/\/$/, "");
-}
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   await requirePermission("settings.manage");

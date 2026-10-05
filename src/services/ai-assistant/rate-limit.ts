@@ -68,6 +68,12 @@ export function hashIp(ip: string): string {
   return createHash("sha256").update(`${ip}|${secret}`).digest("hex").slice(0, 32);
 }
 
+/**
+ * IP del cliente para rate limit. Supone que la app corre detrás del edge de
+ * Vercel, que pisa `x-forwarded-for` con la IP real (el primer valor no lo
+ * controla el cliente). Fuera de Vercel (self-host sin proxy confiable) ese
+ * header sería falsificable y el límite por IP se podría esquivar.
+ */
 export function clientIp(headers: Headers): string {
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0]?.trim() || "unknown";

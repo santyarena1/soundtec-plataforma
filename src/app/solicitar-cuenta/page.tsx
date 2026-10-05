@@ -1,4 +1,4 @@
-import { getAccountRequestPrefill } from "@/server/actions/account-requests";
+import { getAccountRequestPrefill } from "@/server/expo/account-prefill";
 import { AccountRequestForm } from "./account-request-form";
 
 export const dynamic = "force-dynamic";
