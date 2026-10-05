@@ -1,4 +1,4 @@
-import { BadgePercent, BookOpen, Boxes, History, Layers, Warehouse } from "lucide-react";
+import { BadgePercent, BookOpen, Boxes, History, Layers, Sparkles } from "lucide-react";
 
 const FEATURES = [
   {
@@ -9,9 +9,9 @@ const FEATURES = [
     dark: true,
   },
   {
-    icon: Warehouse,
-    title: "Stock y disponibilidad",
-    text: "Disponibilidad real por depósito y fecha estimada de fábrica cuando no hay stock.",
+    icon: Sparkles,
+    title: "Asistente de productos",
+    text: "Preguntale a Soundtec AI por compatibilidad, aplicaciones o especificaciones y te sugiere qué productos usar.",
   },
   {
     icon: BookOpen,
@@ -41,7 +41,7 @@ export function Features() {
     <section id="plataforma" className="border-y border-border bg-secondary/40 py-20 sm:py-24">
       <div className="container-page">
         <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Qué tenés dentro</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Qué incluye el portal</p>
           <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
             Un portal pensado para quien presupuesta todos los días.
           </h2>

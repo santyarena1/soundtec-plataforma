@@ -41,7 +41,7 @@ export function Brands({ catalogBrands }: BrandsProps) {
       <div className="container-page">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Marcas</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Marcas</p>
             <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
               Representantes exclusivos y partners de las marcas líderes.
             </h2>

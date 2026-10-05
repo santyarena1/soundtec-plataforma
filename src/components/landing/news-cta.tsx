@@ -27,10 +27,10 @@ export function News({ posts }: { posts: Post[] }) {
     <section id="novedades" className="container-page py-20 sm:py-24">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Novedades</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Novedades</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Últimas notas del equipo.</h2>
         </div>
-        <Link href="/login" className="hidden text-sm font-medium text-accent hover:underline md:inline-flex">
+        <Link href="/login" className="hidden text-sm font-medium text-primary hover:underline md:inline-flex">
           Ver todo en el portal
         </Link>
       </div>
@@ -92,7 +92,7 @@ export function AccessCta() {
 
           <ul className="grid gap-3 text-sm">
             <li className="flex items-start gap-3 rounded-xl border border-primary-foreground/15 bg-primary-foreground/5 p-4">
-              <Phone className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+              <Phone className="mt-0.5 h-4 w-4 shrink-0 text-primary-foreground/80" />
               <div>
                 <p className="text-xs uppercase tracking-wider text-primary-foreground/55">Teléfono</p>
                 <a href={CONTACT.phoneHref} className="font-medium hover:underline">
@@ -101,7 +101,7 @@ export function AccessCta() {
               </div>
             </li>
             <li className="flex items-start gap-3 rounded-xl border border-primary-foreground/15 bg-primary-foreground/5 p-4">
-              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary-foreground/80" />
               <div>
                 <p className="text-xs uppercase tracking-wider text-primary-foreground/55">Email</p>
                 <a href={`mailto:${CONTACT.email}`} className="font-medium hover:underline">
@@ -110,7 +110,7 @@ export function AccessCta() {
               </div>
             </li>
             <li className="flex items-start gap-3 rounded-xl border border-primary-foreground/15 bg-primary-foreground/5 p-4">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary-foreground/80" />
               <div>
                 <p className="text-xs uppercase tracking-wider text-primary-foreground/55">Showroom y oficinas</p>
                 <p className="font-medium">{CONTACT.address}</p>

@@ -43,14 +43,14 @@ export function AudiencesAndSectors() {
     <section id="soluciones" className="container-page py-20 sm:py-24">
       <div className="grid gap-12 lg:grid-cols-[1fr_1fr] lg:gap-16">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Para quién</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Para quién</p>
           <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
             Hecho para profesionales que compran para terceros.
           </h2>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2">
             {AUDIENCES.map((audience) => (
               <li key={audience.title} className="rounded-xl border border-border bg-card p-5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-md bg-accent/10 text-accent">
+                <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
                   <audience.icon className="h-[18px] w-[18px]" />
                 </span>
                 <h3 className="mt-4 font-semibold tracking-tight">{audience.title}</h3>
@@ -61,7 +61,7 @@ export function AudiencesAndSectors() {
         </div>
 
         <div className="rounded-2xl border border-border bg-gradient-to-b from-card to-secondary/40 p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Sectores que integramos</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Sectores que integramos</p>
           <h3 className="mt-3 text-2xl font-semibold tracking-tight">
             Audio, video, iluminación, videoconferencia y control inteligente.
           </h3>

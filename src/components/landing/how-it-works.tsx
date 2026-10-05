@@ -28,7 +28,7 @@ export function HowItWorks() {
     <section id="como-funciona" className="container-page py-20 sm:py-24">
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Cómo funciona</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Cómo funciona</p>
           <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
             De la búsqueda a la cotización, sin mails ni planillas.
           </h2>
@@ -48,7 +48,7 @@ export function HowItWorks() {
                 <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <step.icon className="h-5 w-5" />
                 </span>
-                <span className="text-3xl font-semibold tabular-nums text-border transition-colors group-hover:text-accent/40">
+                <span className="text-3xl font-semibold tabular-nums text-border transition-colors group-hover:text-primary/40">
                   0{index + 1}
                 </span>
               </div>

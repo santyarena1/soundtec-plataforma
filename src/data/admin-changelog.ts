@@ -1006,4 +1006,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Barra de marcas del catálogo: la marca seleccionada se marca con un borde azul y fondo claro, así su logo se sigue viendo." },
     ],
   },
+  {
+    id: "ship-2026-10-06-landing-azul",
+    version: "1.27.1",
+    releasedAt: "2026-10-06T14:00:00.000Z",
+    summary: "Landing con el azul de Soundtec en títulos e íconos.",
+    items: [
+      { kind: "MEJORA", text: "Landing: los títulos de sección (Cómo funciona, Qué incluye el portal, Para quién, Sectores, Marcas, Novedades) y los íconos usan el mismo azul de Soundtec." },
+      { kind: "MEJORA", text: "«Qué tenés dentro» pasa a llamarse «Qué incluye el portal», y la tarjeta «Stock y disponibilidad» se reemplazó por «Asistente de productos» (el stock está oculto para clientes)." },
+    ],
+  },
 ];
