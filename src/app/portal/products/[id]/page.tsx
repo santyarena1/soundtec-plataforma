@@ -20,6 +20,7 @@ import { CompatibleAccessoriesSection } from "./compatible-accessories";
 import { AccessoryInfoBanner } from "@/components/portal/accessory-warning";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { ProductRichInfo } from "./product-rich-info";
+import { recordProductView } from "@/server/catalog/product-views";
 import { formatUsd, formatPercent } from "@/lib/utils";
 import { ArrowLeft, Sparkles, FileText } from "lucide-react";
 
@@ -90,6 +91,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       commercialClientId
     );
     if (!allowed) notFound();
+    // Las visitas del equipo interno no cuentan para "Más relevantes".
+    await recordProductView(product.id, user.id);
   }
 
   const [favItem, activeDraft, globalMargin] = await Promise.all([

@@ -687,4 +687,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "En las fichas de producto la descripción aparece primero, antes de las especificaciones técnicas." },
     ],
   },
+  {
+    id: "ship-2026-10-05-catalogo-relevancia",
+    version: "1.20.0",
+    releasedAt: "2026-10-05T14:00:00.000Z",
+    summary: "El catálogo se ordena por los más relevantes, se puede ordenar por precio y el único filtro es la marca.",
+    items: [
+      { kind: "NUEVO", text: "Orden «Más relevantes» por defecto: según las fichas más vistas. Hasta juntar suficientes visitas muestra primero Crestron Home, de mayor a menor precio." },
+      { kind: "NUEVO", text: "Orden por Mayor precio / Menor precio también en el catálogo público (sin mostrar los precios)." },
+      { kind: "MEJORA", text: "Los filtros quedan solo por marca, en el catálogo público y en el portal." },
+    ],
+  },
 ];

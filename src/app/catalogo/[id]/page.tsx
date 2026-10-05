@@ -9,6 +9,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { ProductGallery } from "@/app/portal/products/[id]/product-gallery";
 import { ProductRichInfo } from "@/app/portal/products/[id]/product-rich-info";
 import { ProductAccountCta } from "@/components/catalog/account-cta";
+import { recordProductView } from "@/server/catalog/product-views";
 import { ArrowLeft, ArrowRight, FileText, Lock, Package } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +67,11 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
   ]);
   if (!product) notFound();
   const isLogged = !!session?.user;
+  const viewerRole = (session?.user as { role?: string } | undefined)?.role;
+  // Las visitas del equipo interno no cuentan para "Más relevantes".
+  if (viewerRole !== "ADMIN" && viewerRole !== "SUPER_ADMIN") {
+    await recordProductView(product.id, session?.user?.id ?? null);
+  }
   const portalHref = `/portal/products/${product.id}`;
 
   const sections = RELATION_SECTIONS.map((section) => ({

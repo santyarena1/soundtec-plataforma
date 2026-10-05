@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatUsd } from "@/lib/utils";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import type { CatalogSidebarMeta } from "@/lib/catalog";
 import type { CatalogUrlState } from "@/lib/catalog-url";
 import { countActiveCatalogFilters } from "@/lib/catalog-url";
@@ -13,24 +12,12 @@ import { useCatalogNavigation } from "./use-catalog-navigation";
 import {
   Check,
   ChevronDown,
-  Eye,
-  EyeOff,
-  Heart,
-  Home,
   Search,
   SlidersHorizontal,
   Sparkles,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const PRICE_PRESETS: Array<{ label: string; min: number | null; max: number | null }> = [
-  { label: "Cualquier precio", min: null, max: null },
-  { label: "Hasta US$ 100", min: null, max: 100 },
-  { label: "US$ 100 – 500", min: 100, max: 500 },
-  { label: "US$ 500 – 2.000", min: 500, max: 2000 },
-  { label: "Más de US$ 2.000", min: 2000, max: null },
-];
 
 const FACET_SEARCH_THRESHOLD = 10;
 const FACET_MAX_VISIBLE = 7;
@@ -47,7 +34,6 @@ interface Props {
 export function CatalogSidebar({ state, meta, publicMode = false, className, onCloseMobile }: Props) {
   const { push, toggleInList, isPending } = useCatalogNavigation();
   const activeCount = countActiveCatalogFilters(state);
-  const hideOutOfStock = !state.includeOutOfStock;
 
   return (
     <aside
@@ -80,35 +66,8 @@ export function CatalogSidebar({ state, meta, publicMode = false, className, onC
         </div>
       </div>
 
-      {!publicMode ? (
-        <div className="border-b border-border bg-secondary/40 px-4 py-3">
-          <ToggleRow
-            checked={hideOutOfStock}
-            onChange={(next) => push({ includeOutOfStock: !next })}
-            icon={hideOutOfStock ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            label="Ocultar sin stock"
-            hint={
-              hideOutOfStock
-                ? meta.stockCounts.out_of_stock > 0
-                  ? `${meta.stockCounts.out_of_stock} producto${meta.stockCounts.out_of_stock === 1 ? "" : "s"} sin stock oculto${meta.stockCounts.out_of_stock === 1 ? "" : "s"}`
-                  : "No hay productos sin stock en esta vista"
-                : "Mostrando también los productos sin stock"
-            }
-          />
-        </div>
-      ) : null}
-
+      {/* Solo filtro por marca: categorías y familias todavía no están bien clasificadas. */}
       <div className={cn("flex-1 space-y-0.5 overflow-y-auto px-3 py-1", isPending && "pointer-events-none opacity-70")}>
-        {meta.categories.length > 0 ? (
-          <FilterSection title="Categoría" defaultOpen activeCount={state.categoryIds?.length}>
-            <FacetList
-              items={meta.categories}
-              selected={state.categoryIds || []}
-              onToggle={(id) => toggleInList(state.categoryIds, id, "categoryIds")}
-            />
-          </FilterSection>
-        ) : null}
-
         {meta.brands.length > 0 ? (
           <FilterSection title="Marca" defaultOpen activeCount={state.brandIds?.length}>
             <FacetList
@@ -118,218 +77,12 @@ export function CatalogSidebar({ state, meta, publicMode = false, className, onC
             />
           </FilterSection>
         ) : null}
-
-        {meta.families.length > 0 ? (
-          <FilterSection
-            title="Familia"
-            defaultOpen={Boolean(state.familyIds?.length)}
-            activeCount={state.familyIds?.length}
-          >
-            <FacetList
-              items={meta.families}
-              selected={state.familyIds || []}
-              onToggle={(id) => toggleInList(state.familyIds, id, "familyIds")}
-            />
-          </FilterSection>
-        ) : null}
-
-        <FilterSection title="Tipo de producto" activeCount={state.kind && state.kind !== "any" ? 1 : 0}>
-          <OptionRow
-            label="Equipos principales"
-            active={state.kind === "PRINCIPAL"}
-            onClick={() => push({ kind: state.kind === "PRINCIPAL" ? "any" : "PRINCIPAL" })}
-          />
-          <OptionRow
-            label="Accesorios"
-            active={state.kind === "ACCESORIO"}
-            onClick={() => push({ kind: state.kind === "ACCESORIO" ? "any" : "ACCESORIO" })}
-          />
-          <OptionRow
-            label="Crestron Home"
-            active={!!state.crestronOnly}
-            onClick={() => push({ crestronOnly: !state.crestronOnly })}
-            icon={<Home className="h-3.5 w-3.5 text-primary" />}
-          />
-        </FilterSection>
-
-        {!publicMode ? (
-          <FilterSection
-            title="Ofertas y guardados"
-            activeCount={(state.hasDiscount ? 1 : 0) + (state.favoritesOnly ? 1 : 0)}
-          >
-            <OptionRow
-              label="Con descuento"
-              count={meta.discountCount}
-              active={!!state.hasDiscount}
-              onClick={() => push({ hasDiscount: !state.hasDiscount })}
-            />
-            <OptionRow
-              label="Mis favoritos"
-              active={!!state.favoritesOnly}
-              onClick={() => push({ favoritesOnly: !state.favoritesOnly })}
-              icon={<Heart className="h-3.5 w-3.5 text-accent" />}
-            />
-          </FilterSection>
-        ) : null}
-
-        {!publicMode ? <PriceSection state={state} meta={meta} /> : null}
-
-        {!publicMode ? (
-          <FilterSection
-            title="Disponibilidad"
-            defaultOpen={Boolean(state.stock && state.stock !== "any")}
-            activeCount={state.stock && state.stock !== "any" ? 1 : 0}
-          >
-            <OptionRow
-              label="Solo en stock"
-              count={meta.stockCounts.in_stock}
-              active={state.stock === "in_stock"}
-              onClick={() => push({ stock: state.stock === "in_stock" ? "any" : "in_stock" })}
-            />
-            <OptionRow
-              label="Solo stock bajo"
-              count={meta.stockCounts.low_stock}
-              active={state.stock === "low_stock"}
-              onClick={() => push({ stock: state.stock === "low_stock" ? "any" : "low_stock" })}
-            />
-            <OptionRow
-              label="Solo bajo pedido"
-              count={meta.stockCounts.on_request}
-              active={state.stock === "on_request"}
-              onClick={() => push({ stock: state.stock === "on_request" ? "any" : "on_request" })}
-            />
-          </FilterSection>
-        ) : null}
       </div>
     </aside>
   );
 }
 
-function PriceSection({ state, meta }: { state: CatalogUrlState; meta: CatalogSidebarMeta }) {
-  const { push } = useCatalogNavigation();
-  const [minInput, setMinInput] = useState(state.minPrice != null ? String(state.minPrice) : "");
-  const [maxInput, setMaxInput] = useState(state.maxPrice != null ? String(state.maxPrice) : "");
-  const debouncedMin = useDebouncedValue(minInput, 400);
-  const debouncedMax = useDebouncedValue(maxInput, 400);
 
-  useEffect(() => {
-    setMinInput(state.minPrice != null ? String(state.minPrice) : "");
-    setMaxInput(state.maxPrice != null ? String(state.maxPrice) : "");
-  }, [state.minPrice, state.maxPrice]);
-
-  useEffect(() => {
-    const min = debouncedMin.trim() ? Number(debouncedMin) : undefined;
-    const max = debouncedMax.trim() ? Number(debouncedMax) : undefined;
-    const minOk = min === undefined || (Number.isFinite(min) && min >= 0);
-    const maxOk = max === undefined || (Number.isFinite(max) && max >= 0);
-    if (!minOk || !maxOk) return;
-    if (min === state.minPrice && max === state.maxPrice) return;
-    push({ minPrice: min, maxPrice: max });
-  }, [debouncedMin, debouncedMax, push, state.minPrice, state.maxPrice]);
-
-  const activePreset = useMemo(
-    () =>
-      PRICE_PRESETS.findIndex(
-        (p) => p.min === (state.minPrice ?? null) && p.max === (state.maxPrice ?? null)
-      ),
-    [state.minPrice, state.maxPrice]
-  );
-
-  return (
-    <FilterSection
-      title="Precio"
-      defaultOpen={state.minPrice != null || state.maxPrice != null}
-      activeCount={state.minPrice != null || state.maxPrice != null ? 1 : 0}
-    >
-      <p className="mb-2 text-[11px] text-muted-foreground">
-        En tu lista: {formatUsd(meta.priceBounds.min)} – {formatUsd(meta.priceBounds.max)}
-      </p>
-      <div className="flex flex-wrap gap-1.5">
-        {PRICE_PRESETS.map((preset, i) => (
-          <button
-            key={preset.label}
-            type="button"
-            onClick={() => {
-              setMinInput(preset.min != null ? String(preset.min) : "");
-              setMaxInput(preset.max != null ? String(preset.max) : "");
-              push({ minPrice: preset.min ?? undefined, maxPrice: preset.max ?? undefined });
-            }}
-            className={cn(
-              "rounded-full border px-2.5 py-1 text-xs transition-colors",
-              activePreset === i
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-background hover:bg-secondary"
-            )}
-          >
-            {preset.label}
-          </button>
-        ))}
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <label className="space-y-1">
-          <span className="text-[11px] text-muted-foreground">Mínimo</span>
-          <Input type="number" min={0} placeholder="0" value={minInput} onChange={(e) => setMinInput(e.target.value)} className="h-8 text-xs" />
-        </label>
-        <label className="space-y-1">
-          <span className="text-[11px] text-muted-foreground">Máximo</span>
-          <Input
-            type="number"
-            min={0}
-            placeholder={meta.priceBounds.max > 0 ? String(meta.priceBounds.max) : "—"}
-            value={maxInput}
-            onChange={(e) => setMaxInput(e.target.value)}
-            className="h-8 text-xs"
-          />
-        </label>
-      </div>
-    </FilterSection>
-  );
-}
-
-function ToggleRow({
-  checked,
-  onChange,
-  label,
-  hint,
-  icon,
-}: {
-  checked: boolean;
-  onChange: (next: boolean) => void;
-  label: string;
-  hint?: string;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className="flex w-full items-center gap-3 text-left"
-    >
-      <span
-        className={cn(
-          "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
-          checked ? "bg-primary" : "bg-border"
-        )}
-      >
-        <span
-          className={cn(
-            "inline-block h-5 w-5 rounded-full bg-white shadow transition-transform",
-            checked ? "translate-x-5" : "translate-x-0.5"
-          )}
-        />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-1.5 text-sm font-semibold">
-          {icon}
-          {label}
-        </span>
-        {hint ? <span className="block text-[11px] text-muted-foreground">{hint}</span> : null}
-      </span>
-    </button>
-  );
-}
 
 function FilterSection({
   title,

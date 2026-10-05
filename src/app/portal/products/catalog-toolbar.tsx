@@ -38,14 +38,16 @@ export function CatalogToolbar({ state, publicMode = false }: { state: CatalogUr
 
       <div className="flex flex-wrap items-center gap-2">
         <Select
-          value={state.sort || "name_asc"}
+          value={state.sort || "relevance"}
           onChange={(e) => push({ sort: e.target.value as CatalogUrlState["sort"] })}
           className="h-10 w-full min-w-[160px] text-sm sm:w-44"
+          aria-label="Ordenar por"
         >
+          <option value="relevance">Más relevantes</option>
+          <option value="price_desc">Mayor precio</option>
+          <option value="price_asc">Menor precio</option>
           <option value="name_asc">Nombre A-Z</option>
           <option value="name_desc">Nombre Z-A</option>
-          {!publicMode ? <option value="price_asc">Menor precio</option> : null}
-          {!publicMode ? <option value="price_desc">Mayor precio</option> : null}
           <option value="newest">Más nuevos</option>
         </Select>
 

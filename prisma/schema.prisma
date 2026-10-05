@@ -367,6 +367,7 @@ model Product {
   images          ProductImage[]
   options         ProductOption[]
   wishlistItems   WishlistItem[]
+  views           ProductView[]
   requestItems    CustomerRequestItem[]
   marginRules     MarginRule[]
   discountRules   DiscountRule[]
@@ -1917,4 +1918,19 @@ model AccountActivationToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+/// Vista de una ficha de producto (catálogo público o portal). Señal del orden
+/// "Más relevantes": visitantes únicos por producto en los últimos 90 días.
+model ProductView {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Usuario logueado, cookie de visitante o hash de IP (nunca la IP en claro).
+  visitorKey String
+  createdAt  DateTime @default(now())
+
+  @@index([productId, createdAt])
+  @@index([createdAt])
+  @@index([visitorKey, productId])
 }

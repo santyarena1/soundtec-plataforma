@@ -14,7 +14,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "test": "tsx --test src/lib/product-code-name.test.ts src/services/soundtube/price-list.test.ts src/services/soundtube/price-list-plan.test.ts src/services/sonance-portal-price.test.ts src/services/ai-assistant/assistant.test.ts src/services/ai-assistant/facets.test.ts src/lib/expo/cuit.test.ts src/lib/expo/welcome-gate.test.ts src/lib/expo/tokens.test.ts src/lib/expo/report.test.ts src/lib/expo/account-request-schema.test.ts src/lib/expo/spreadsheet.test.ts src/lib/expo/html.test.ts src/lib/expo/whatsapp.test.ts src/lib/expo/datetime.test.ts"
+    "test": "tsx --test src/lib/product-code-name.test.ts src/services/soundtube/price-list.test.ts src/services/soundtube/price-list-plan.test.ts src/services/sonance-portal-price.test.ts src/services/ai-assistant/assistant.test.ts src/services/ai-assistant/facets.test.ts src/lib/expo/cuit.test.ts src/lib/expo/welcome-gate.test.ts src/lib/expo/tokens.test.ts src/lib/expo/report.test.ts src/lib/expo/account-request-schema.test.ts src/lib/expo/spreadsheet.test.ts src/lib/expo/html.test.ts src/lib/expo/whatsapp.test.ts src/lib/expo/datetime.test.ts src/lib/catalog-relevance.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

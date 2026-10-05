@@ -6,6 +6,15 @@ export interface CatalogUrlState extends CatalogFilters {
   view: CatalogView;
 }
 
+const SORTS: Array<NonNullable<CatalogFilters["sort"]>> = [
+  "relevance",
+  "price_desc",
+  "price_asc",
+  "name_asc",
+  "name_desc",
+  "newest",
+];
+
 function toList(v: string | string[] | undefined): string[] {
   if (!v) return [];
   return Array.isArray(v) ? v.filter(Boolean) : [v];
@@ -38,7 +47,9 @@ export function parseCatalogSearchParams(
     kind: kind === "PRINCIPAL" || kind === "ACCESORIO" ? kind : "any",
     minPrice: parseNum(typeof params.minPrice === "string" ? params.minPrice : undefined),
     maxPrice: parseNum(typeof params.maxPrice === "string" ? params.maxPrice : undefined),
-    sort: (params.sort as CatalogFilters["sort"]) || "name_asc",
+    sort: SORTS.includes(params.sort as NonNullable<CatalogFilters["sort"]>)
+      ? (params.sort as CatalogFilters["sort"])
+      : "relevance",
     page: params.page ? Number(params.page) : 1,
     pageSize: params.perPage ? Number(params.perPage) : undefined,
     view: params.view === "table" ? "table" : "grid",

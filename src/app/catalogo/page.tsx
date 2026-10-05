@@ -57,8 +57,7 @@ export default async function PublicCatalogPage({
     familyIds: urlState.familyIds,
     crestronOnly: urlState.crestronOnly,
     kind: urlState.kind,
-    sort:
-      urlState.sort === "price_asc" || urlState.sort === "price_desc" ? ("name_asc" as const) : urlState.sort,
+    sort: urlState.sort,
     page: urlState.page,
     pageSize: urlState.pageSize,
     includeOutOfStock: true,

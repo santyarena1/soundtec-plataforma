@@ -9,6 +9,8 @@ import {
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { buildProductSearchAnd, productTokenOr, searchRank } from "@/lib/product-search";
+import { compareByRelevance, hasEnoughViews } from "@/lib/catalog-relevance";
+import { loadProductViewCounts } from "@/server/catalog/product-views";
 
 /**
  * Construye el OR del filtro de búsqueda extendido. Buscar SIMULTÁNEAMENTE en:
@@ -51,7 +53,7 @@ export interface CatalogFilters {
   kind?: "PRINCIPAL" | "ACCESORIO" | "any";
   minPrice?: number;
   maxPrice?: number;
-  sort?: "price_asc" | "price_desc" | "name_asc" | "name_desc" | "newest";
+  sort?: "relevance" | "price_asc" | "price_desc" | "name_asc" | "name_desc" | "newest";
   page?: number;
   pageSize?: number;
 }
@@ -92,7 +94,7 @@ export interface CatalogSidebarMeta {
   totalMatching: number;
 }
 
-const CATALOG_FETCH_CAP = 2500;
+const CATALOG_FETCH_CAP = 4000;
 
 export type CatalogContext = {
   commercialClientId: string | null;
@@ -207,9 +209,14 @@ function toPricingInput(p: ProductRow): ProductPricingInput {
   };
 }
 
+/**
+ * `withPricing` fuerza el cálculo de precios aunque sea el catálogo público:
+ * se usa solo para ORDENAR por precio; getCatalog los borra antes de devolver.
+ */
 async function mapProductsToCatalogItems(
   products: ProductRow[],
-  ctx: CatalogContext
+  ctx: CatalogContext,
+  options?: { withPricing?: boolean }
 ): Promise<CatalogProduct[]> {
   if (products.length === 0) return [];
 
@@ -223,7 +230,7 @@ async function mapProductsToCatalogItems(
     getGlobalMarginPercent(),
   ]);
   const favSet = new Set(wishlistItems.map((w) => w.productId));
-  const prices = ctx.publicMode
+  const prices = ctx.publicMode && !options?.withPricing
     ? new Map<string, PriceBreakdown>()
     : await calculatePricesForProducts(
         products.map(toPricingInput),
@@ -262,7 +269,12 @@ function passesPriceFilter(item: CatalogProduct, filters: CatalogFilters) {
   return true;
 }
 
-function sortCatalogItems(items: CatalogProduct[], sort: CatalogFilters["sort"], search?: string) {
+function sortCatalogItems(
+  items: CatalogProduct[],
+  sort: CatalogFilters["sort"],
+  search?: string,
+  viewData?: { views: Map<string, number>; total: number }
+) {
   const copy = [...items];
   // Con búsqueda, la relevancia manda: título/SKU antes que contenido.
   const query = search?.trim() ?? "";
@@ -293,6 +305,16 @@ function sortCatalogItems(items: CatalogProduct[], sort: CatalogFilters["sort"],
   const kindWeight = (k: string | null | undefined) => (k === "ACCESORIO" ? 1 : 0);
   const price = (item: CatalogProduct) => item.pricing?.finalPriceUsd ?? 0;
   switch (sort) {
+    case "relevance": {
+      const byRelevance = compareByRelevance(viewData?.views ?? new Map(), hasEnoughViews(viewData?.total ?? 0));
+      const asRelevance = (item: CatalogProduct) => ({
+        id: item.id,
+        isCrestronHomeCompatible: item.isCrestronHomeCompatible,
+        price: price(item),
+      });
+      copy.sort((a, b) => relevance(a, b) || byRelevance(asRelevance(a), asRelevance(b)));
+      break;
+    }
     case "price_asc":
       copy.sort((a, b) => relevance(a, b) || kindWeight(a.kind) - kindWeight(b.kind) || price(a) - price(b));
       break;
@@ -338,13 +360,35 @@ export async function getCatalog(
   if (!where) return { items: [], total: 0, page, pageSize };
 
   const hasSearch = !!filters.search?.trim();
+  const sortsByPrice = filters.sort === "price_asc" || filters.sort === "price_desc";
   const needsPricePipeline =
     hasSearch ||
-    (!ctx.publicMode &&
-      (filters.minPrice != null ||
-        filters.maxPrice != null ||
-        filters.sort === "price_asc" ||
-        filters.sort === "price_desc"));
+    sortsByPrice ||
+    (!ctx.publicMode && (filters.minPrice != null || filters.maxPrice != null));
+
+  // "Más relevantes" sin búsqueda: se ordena una lista liviana (id, Crestron
+  // Home, costo) y recién después se cargan los productos de la página.
+  if (!hasSearch && filters.sort === "relevance") {
+    const start = (page - 1) * pageSize;
+    const [rows, viewData] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        select: { id: true, isCrestronHomeCompatible: true, baseCostUsd: true },
+      }),
+      loadProductViewCounts(),
+    ]);
+    // El costo base ordena igual que el precio dentro de una misma marca (mismo
+    // markup), que es lo que importa para "Crestron Home de mayor a menor".
+    const ordered = rows
+      .map((r) => ({ id: r.id, isCrestronHomeCompatible: r.isCrestronHomeCompatible, price: Number(r.baseCostUsd) }))
+      .sort(compareByRelevance(viewData.views, hasEnoughViews(viewData.total)));
+    const pageIds = ordered.slice(start, start + pageSize).map((r) => r.id);
+    const products = await prisma.product.findMany({ where: { id: { in: pageIds } }, include: productInclude });
+    const byId = new Map(products.map((p) => [p.id, p]));
+    const pageProducts = pageIds.map((id) => byId.get(id)).filter((p): p is ProductRow => !!p);
+    const items = await mapProductsToCatalogItems(pageProducts, ctx);
+    return { items, total: ordered.length, page, pageSize };
+  }
 
   // ORDEN PRIMARIO: kind ASC → PRINCIPAL sale primero, ACCESORIO después.
   // Esto asegura que en cualquier vista (búsqueda, navegación por filtros,
@@ -362,12 +406,21 @@ export async function getCatalog(
       include: productInclude,
     });
 
-    let items = await mapProductsToCatalogItems(products, ctx);
-    items = items.filter((i) => passesPriceFilter(i, filters));
-    items = sortCatalogItems(items, filters.sort, filters.search);
+    // En el público los precios se calculan solo para ordenar y se borran abajo.
+    const withPricing = ctx.publicMode && (sortsByPrice || filters.sort === "relevance");
+    let items = await mapProductsToCatalogItems(products, ctx, { withPricing });
+    if (!ctx.publicMode) items = items.filter((i) => passesPriceFilter(i, filters));
+    const viewData = filters.sort === "relevance" ? await loadProductViewCounts() : undefined;
+    items = sortCatalogItems(items, filters.sort, filters.search, viewData);
     const total = items.length;
     const start = (page - 1) * pageSize;
-    return { items: items.slice(start, start + pageSize), total, page, pageSize };
+    const pageItems = items.slice(start, start + pageSize);
+    return {
+      items: ctx.publicMode ? pageItems.map((i) => ({ ...i, pricing: null })) : pageItems,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   const orderBy: Prisma.ProductOrderByWithRelationInput[] =
