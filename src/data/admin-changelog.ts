@@ -947,6 +947,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Catálogo → «Revisión SoundTube» (temporal): subís la lista y resolvés cada problema desde el sistema: si un SKU es el mismo producto que uno parecido (-BK, -GB, KIT…), qué productos nuevos crear y con qué marca, qué clasificación vale en los repetidos, y qué hacer con los productos que no vienen en la lista." },
       { kind: "NUEVO", text: "Las decisiones se guardan al instante, así se puede trabajar de a poco o entre varias personas. El menú muestra cuántas faltan." },
       { kind: "NUEVO", text: "Cuando no falta nada, «Aplicar lista» hace todo junto. Al cerrar la revisión, el módulo desaparece del menú. Las equivalencias de SKU confirmadas quedan guardadas para las próximas listas." },
+      { kind: "FIX", text: "Revisión SoundTube: las fechas se muestran en hora de Argentina y la pantalla responde desde el primer clic." },
     ],
   },
 ];

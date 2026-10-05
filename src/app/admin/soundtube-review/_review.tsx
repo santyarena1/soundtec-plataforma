@@ -14,6 +14,7 @@ import { StartReviewForm } from "./_start-form";
 
 interface Props {
   fileName: string;
+  /** Fechas ya formateadas en el servidor (hora de Argentina): evita diferencias al hidratar. */
   uploadedAt: string;
   rowsCount: number;
   warnings: ParsedPriceList["warnings"];
@@ -62,7 +63,7 @@ export function ReviewPanel(props: Props) {
       <Card>
         <CardContent className="space-y-4 p-6">
           <p className="flex items-center gap-2 text-base font-semibold text-emerald-700">
-            <CheckCircle2 className="h-5 w-5" /> Lista aplicada el {new Date(props.appliedAt).toLocaleString("es-AR")}
+            <CheckCircle2 className="h-5 w-5" /> Lista aplicada el {props.appliedAt}
           </p>
           {props.applyResult ? (
             <p className="text-sm">
@@ -100,7 +101,7 @@ export function ReviewPanel(props: Props) {
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{props.fileName}</p>
             <p className="text-xs text-muted-foreground">
-              {props.rowsCount} SKUs · {props.matchedCount} coinciden con el sistema · subida el {new Date(props.uploadedAt).toLocaleString("es-AR")}
+              {props.rowsCount} SKUs · {props.matchedCount} coinciden con el sistema · subida el {props.uploadedAt}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

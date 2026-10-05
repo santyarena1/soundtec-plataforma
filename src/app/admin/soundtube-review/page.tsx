@@ -11,6 +11,9 @@ export const dynamic = "force-dynamic";
 // Aplicar la revisión actualiza cientos de productos.
 export const maxDuration = 300;
 
+const formatArt = (iso: string) =>
+  new Date(iso).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "short", timeStyle: "short" });
+
 /**
  * Módulo temporal: resolver desde el sistema todo lo que falta para cargar
  * la lista de SoundTube. Cuando se aplica y se cierra, desaparece del menú.
@@ -29,7 +32,7 @@ export default async function SoundTubeReviewPage() {
         {state?.appliedAt ? (
           <p className="text-sm text-muted-foreground">
             Última revisión: <span className="font-medium text-foreground">{state.fileName}</span>, aplicada el{" "}
-            {new Date(state.appliedAt).toLocaleString("es-AR")}
+            {formatArt(state.appliedAt)}
             {state.applyResult
               ? ` (${state.applyResult.updated} actualizados, ${state.applyResult.created} creados, ${state.applyResult.deactivated} desactivados).`
               : "."}
@@ -58,7 +61,7 @@ export default async function SoundTubeReviewPage() {
       />
       <ReviewPanel
         fileName={state.fileName}
-        uploadedAt={state.uploadedAt}
+        uploadedAt={formatArt(state.uploadedAt)}
         rowsCount={state.rows.length}
         warnings={state.warnings}
         invalid={state.invalid}
@@ -70,7 +73,7 @@ export default async function SoundTubeReviewPage() {
         missing={view.missing}
         brands={[...view.brands]}
         applyTaxonomy={state.applyTaxonomy}
-        appliedAt={state.appliedAt ?? null}
+        appliedAt={state.appliedAt ? formatArt(state.appliedAt) : null}
         applyResult={state.applyResult ?? null}
       />
     </div>
