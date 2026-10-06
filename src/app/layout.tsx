@@ -40,8 +40,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
   // Nunca usar el logo de marca (puede ser data: de hasta ~500KB) como page icon:
   // inflaba el HTML de todas las páginas. Íconos fijos en /public.
+  // Vista previa al compartir links: el logo cargado (si es una URL) o el logo de Soundtec.
   const ogImage =
-    logoUrl && /^https?:\/\//i.test(logoUrl) ? [logoUrl] : undefined;
+    logoUrl && /^https?:\/\//i.test(logoUrl)
+      ? [logoUrl]
+      : [{ url: "/icon-512.png", width: 512, height: 512, alt: appName }];
   const metadataBase = resolveMetadataBase();
 
   return {

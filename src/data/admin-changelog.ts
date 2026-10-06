@@ -1067,6 +1067,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Logo azul de Soundtec en el admin y el portal.",
     items: [
       { kind: "MEJORA", text: "El panel admin y el portal de clientes usan el logo azul de Soundtec (el mismo de la landing y las pantallas) en lugar del ícono anterior." },
+      { kind: "MEJORA", text: "Al compartir un link del sitio (WhatsApp, redes), la vista previa muestra el logo de Soundtec." },
     ],
   },
 ];
