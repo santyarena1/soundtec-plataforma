@@ -28,7 +28,7 @@ describe("brandHref", () => {
     assert.equal(brandHref(brand("c", "Crestron", 10), "/portal/products"), "/portal/products?brand=c");
   });
   it("marca sin productos todavía: la consulta", () => {
-    assert.equal(brandHref(brand("b", "BrightSign", 0), "/catalogo"), "/catalogo/consultar?marca=b");
+    assert.equal(brandHref(brand("b", "BrightSign", 0), "/catalogo"), "/consultar?marca=b");
   });
   it("marca virtual: su filtro", () => {
     assert.equal(brandHref(withCrestronHome([brand("c", "Crestron", 10)], 5)[1], "/catalogo"), "/catalogo?crestron=1");

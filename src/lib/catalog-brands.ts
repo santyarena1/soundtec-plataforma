@@ -41,7 +41,7 @@ export function brandQuery(brand: CatalogBrand): string {
 
 /** Página de consulta para marcas que todavía no tienen productos cargados. */
 export function brandInquiryHref(brandId: string): string {
-  return `/catalogo/consultar?marca=${brandId}`;
+  return `/consultar?marca=${brandId}`;
 }
 
 /** Link de una marca: su listado, o la consulta si todavía no tiene productos. */
