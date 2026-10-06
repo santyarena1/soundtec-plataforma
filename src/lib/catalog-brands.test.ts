@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { brandQuery, totalProducts, withCrestronHome, type CatalogBrand } from "./catalog-brands";
+import { brandHref, brandQuery, totalProducts, withCrestronHome, type CatalogBrand } from "./catalog-brands";
 
 const brand = (id: string, name: string, count: number): CatalogBrand => ({ id, name, logoUrl: null, count });
 
@@ -20,5 +20,17 @@ describe("Crestron Home (marca virtual)", () => {
 
   it("el total no cuenta dos veces los productos de Crestron Home", () => {
     assert.equal(totalProducts(withCrestronHome(brands, 120)), 600 + 1385 + 364);
+  });
+});
+
+describe("brandHref", () => {
+  it("marca con productos: su listado", () => {
+    assert.equal(brandHref(brand("c", "Crestron", 10), "/portal/products"), "/portal/products?brand=c");
+  });
+  it("marca sin productos todavía: la consulta", () => {
+    assert.equal(brandHref(brand("b", "BrightSign", 0), "/catalogo"), "/catalogo/consultar?marca=b");
+  });
+  it("marca virtual: su filtro", () => {
+    assert.equal(brandHref(withCrestronHome([brand("c", "Crestron", 10)], 5)[1], "/catalogo"), "/catalogo?crestron=1");
   });
 });

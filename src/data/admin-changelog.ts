@@ -1039,4 +1039,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Tampoco muestra accesorios de montaje para placa de yeso (gypsum/drywall)." },
     ],
   },
+  {
+    id: "ship-2026-10-06-marcas-nuevas",
+    version: "1.28.0",
+    releasedAt: "2026-10-06T16:00:00.000Z",
+    summary: "Nuevas marcas FlatPanel Audio, Dante, BrightSign y Bluesound Professional.",
+    items: [
+      { kind: "NUEVO", text: "Marcas oficiales FlatPanel Audio, Dante, BrightSign y Bluesound Professional, con sus logos, en el catálogo, el portal, el login y la pantalla del stand." },
+      { kind: "NUEVO", text: "Las marcas que todavía no tienen productos cargados muestran «Consultá disponibilidad»: al tocarlas se abre una página con el logo de la marca y un formulario de consulta. La consulta queda en CRM → Leads del catálogo." },
+      { kind: "MEJORA", text: "Cuando se carguen productos de esas marcas, pasan a funcionar como cualquier otra marca, sin hacer nada." },
+    ],
+  },
 ];

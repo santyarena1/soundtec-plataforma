@@ -4,7 +4,7 @@ import { resolveCommercialClientId } from "@/lib/client-context";
 import { getCatalog, getCatalogSidebarMeta, getVisibleProductsWhere } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { countActiveCatalogFilters, parseCatalogSearchParams } from "@/lib/catalog-url";
-import { CRESTRON_HOME_ID, brandsWithLogos, withCrestronHome } from "@/lib/catalog-brands";
+import { CRESTRON_HOME_ID, brandsWithLogos, getBrandsWithoutProducts, withCrestronHome } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
 import { BrandBar } from "@/app/catalogo/brand-bar";
 import { getActiveDraftSummary } from "@/lib/draft-request";
@@ -59,7 +59,10 @@ export default async function ProductsPage({
   const crestronHomeCount = await prisma.product.count({
     where: { AND: [await getVisibleProductsWhere(ctx), { isCrestronHomeCompatible: true }] },
   });
-  const brands = withCrestronHome(await brandsWithLogos(brandMeta.brands), crestronHomeCount);
+  const brands = [
+    ...withCrestronHome(await brandsWithLogos(brandMeta.brands), crestronHomeCount),
+    ...(await getBrandsWithoutProducts()),
+  ];
   if (rawParams.all !== "1" && countActiveCatalogFilters(urlState) === 0) {
     // Mismo total que el inicio del portal: lo que este cliente puede ver.
     const total = await prisma.product.count({ where: await getVisibleProductsWhere(ctx) });

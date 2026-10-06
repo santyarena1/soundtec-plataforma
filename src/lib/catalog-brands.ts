@@ -39,6 +39,30 @@ export function brandQuery(brand: CatalogBrand): string {
   return brand.query ?? `brand=${brand.id}`;
 }
 
+/** Página de consulta para marcas que todavía no tienen productos cargados. */
+export function brandInquiryHref(brandId: string): string {
+  return `/catalogo/consultar?marca=${brandId}`;
+}
+
+/** Link de una marca: su listado, o la consulta si todavía no tiene productos. */
+export function brandHref(brand: CatalogBrand, basePath: string): string {
+  if (!brand.query && brand.count === 0) return brandInquiryHref(brand.id);
+  return `${basePath}?${brandQuery(brand)}`;
+}
+
+/**
+ * Marcas oficiales que todavía no tienen productos activos (ej. recién
+ * incorporadas). Se muestran igual y llevan a la consulta.
+ */
+export async function getBrandsWithoutProducts(): Promise<CatalogBrand[]> {
+  const rows = await prisma.brand.findMany({
+    where: { isActive: true, hiddenFromCatalog: false, products: { none: { isActive: true } } },
+    select: { id: true, name: true, logoUrl: true },
+    orderBy: { name: "asc" },
+  });
+  return rows.map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: 0 }));
+}
+
 /** Total de productos sin contar dos veces los de marcas virtuales. */
 export function totalProducts(brands: CatalogBrand[]): number {
   return brands.filter((b) => !b.query).reduce((acc, b) => acc + b.count, 0);
@@ -63,6 +87,11 @@ const LOCAL_LOGOS: Record<string, string> = {
   "gain audio": "/landing/brands/normalized/gain-audio.png",
   captivate: "/landing/brands/normalized/captivate.png",
   audinate: "/landing/brands/normalized/dante.png",
+  "flatpanel audio": "/landing/brands/normalized/flatpanel-audio.png",
+  "flat panel audio": "/landing/brands/normalized/flatpanel-audio.png",
+  brightsign: "/landing/brands/normalized/brightsign.png",
+  "bluesound professional": "/landing/brands/normalized/bluesound-professional.png",
+  bluesound: "/landing/brands/normalized/bluesound-professional.png",
   dante: "/landing/brands/normalized/dante.png",
 };
 
@@ -91,8 +120,9 @@ export async function getCatalogBrands(): Promise<CatalogBrand[]> {
   const crestronHomeCount = await prisma.product.count({
     where: { isActive: true, isCrestronHomeCompatible: true, brand: { is: { isActive: true, hiddenFromCatalog: false } } },
   });
+  // También las marcas sin productos todavía: van al final y llevan a la consulta.
   const brands = await prisma.brand.findMany({
-    where: { isActive: true, hiddenFromCatalog: false, products: { some: { isActive: true } } },
+    where: { isActive: true, hiddenFromCatalog: false },
     select: { id: true, name: true, logoUrl: true, _count: { select: { products: { where: { isActive: true } } } } },
   });
   const list = brands

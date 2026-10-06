@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { brandQuery, type CatalogBrand } from "@/lib/catalog-brands";
+import { brandHref, type CatalogBrand } from "@/lib/catalog-brands";
 
 /** Primera pantalla del catálogo: elegir marca o ver todo. */
 export function BrandGrid({
@@ -29,7 +29,7 @@ export function BrandGrid({
         {brands.map((brand) => (
           <Link
             key={brand.id}
-            href={`${basePath}?${brandQuery(brand)}`}
+            href={brandHref(brand, basePath)}
             className="flex h-28 flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 shadow-sm transition hover:border-primary/40 hover:shadow-md active:scale-[0.98]"
           >
             {brand.logoUrl ? (
@@ -38,7 +38,11 @@ export function BrandGrid({
             ) : (
               <span className="text-center text-base font-bold tracking-wide">{brand.name}</span>
             )}
-            <span className="text-[11px] text-muted-foreground">{brand.count.toLocaleString("es-AR")} productos</span>
+            {brand.count > 0 || brand.query ? (
+              <span className="text-[11px] text-muted-foreground">{brand.count.toLocaleString("es-AR")} productos</span>
+            ) : (
+              <span className="text-[11px] font-medium text-primary">Consultá disponibilidad</span>
+            )}
           </Link>
         ))}
       </div>

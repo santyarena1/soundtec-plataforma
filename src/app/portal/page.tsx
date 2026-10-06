@@ -9,7 +9,7 @@ import { getActiveDraftSummary } from "@/lib/draft-request";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { getVisibleProductsWhere } from "@/lib/catalog";
-import { brandQuery, brandsWithLogos, withCrestronHome } from "@/lib/catalog-brands";
+import { brandHref, brandsWithLogos, getBrandsWithoutProducts, withCrestronHome } from "@/lib/catalog-brands";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import {
   ArrowRight,
@@ -107,10 +107,14 @@ export default async function PortalDashboardPage() {
   });
   const countByBrand = new Map(brandCounts.map((b) => [b.brandId, b._count._all]));
   const crestronHomeCount = await prisma.product.count({ where: { AND: [visible, { isCrestronHomeCompatible: true }] } });
-  const brands = withCrestronHome(
-    await brandsWithLogos(brandRows.map((b) => ({ id: b.id, name: b.name, count: countByBrand.get(b.id) ?? 0 }))),
-    crestronHomeCount
-  );
+  const brands = [
+    ...withCrestronHome(
+      await brandsWithLogos(brandRows.map((b) => ({ id: b.id, name: b.name, count: countByBrand.get(b.id) ?? 0 }))),
+      crestronHomeCount
+    ),
+    // Marcas oficiales sin productos todavía: llevan a la consulta.
+    ...(await getBrandsWithoutProducts()),
+  ];
 
   const firstName = (user.name || "").split(" ")[0] || user.email;
 
@@ -232,7 +236,7 @@ export default async function PortalDashboardPage() {
             {brands.map((brand) => (
               <Link
                 key={brand.id}
-                href={`/portal/products?${brandQuery(brand)}`}
+                href={brandHref(brand, "/portal/products")}
                 className="group flex h-28 flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-elevated"
               >
                 {brand.logoUrl ? (
@@ -241,7 +245,11 @@ export default async function PortalDashboardPage() {
                 ) : (
                   <span className="text-center text-base font-bold tracking-wide">{brand.name}</span>
                 )}
+                {brand.count > 0 || brand.query ? (
                 <span className="text-[11px] text-muted-foreground">{brand.count.toLocaleString("es-AR")} productos</span>
+            ) : (
+                <span className="text-[11px] font-medium text-primary">Consultá disponibilidad</span>
+            )}
               </Link>
             ))}
           </div>
