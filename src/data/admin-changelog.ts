@@ -1048,6 +1048,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Marcas oficiales FlatPanel Audio, Dante, BrightSign y Bluesound Professional, con sus logos, en el catálogo, el portal, el login y la pantalla del stand." },
       { kind: "NUEVO", text: "Las marcas que todavía no tienen productos cargados muestran «Consultá disponibilidad»: al tocarlas se abre una página con el logo de la marca y un formulario de consulta. La consulta queda en CRM → Leads del catálogo." },
       { kind: "MEJORA", text: "Cuando se carguen productos de esas marcas, pasan a funcionar como cualquier otra marca, sin hacer nada." },
+      { kind: "MEJORA", text: "Página de consulta: el título va en dos líneas («Productos de [marca]» / «disponibles a pedido»)." },
     ],
   },
 ];

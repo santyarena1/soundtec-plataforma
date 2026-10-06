@@ -35,7 +35,10 @@ export default async function BrandInquiryPage({ searchParams }: { searchParams:
           ) : (
             <p className="text-2xl font-bold tracking-wide">{brand.name}</p>
           )}
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight">Productos de {brand.name} disponibles a pedido</h1>
+          <h1 className="mt-5 text-2xl font-semibold leading-tight tracking-tight">
+            <span className="block">Productos de {brand.name}</span>
+            <span className="block">disponibles a pedido</span>
+          </h1>
           <p className="mt-2 max-w-lg text-sm text-muted-foreground">
             Todavía no cargamos los productos de {brand.name} en el catálogo, pero trabajamos la marca y los tenemos
             disponibles. Dejanos tu consulta y te respondemos con precios, disponibilidad y asesoramiento para tu
