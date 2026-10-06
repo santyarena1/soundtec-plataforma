@@ -75,14 +75,14 @@ export function Showcase({
       ))}
       {isSide ? (
         <div key={current.id} className="absolute inset-y-0 left-0 flex w-[39.5%] flex-col justify-between gap-[1.5vmin] pb-[4.2vmin] pl-[4vmin] pr-[2vmin] pt-[3.6vmin] animate-[fadeUp_800ms_ease-out]">
-          <div className="min-w-0">
+          <div className="min-h-0 min-w-0 overflow-hidden">
             <p className="text-[1.9vmin] font-semibold uppercase tracking-[0.24em] text-[#1E3552]/50">{current.brand}</p>
             <p className="mt-[1vmin] line-clamp-3 break-words text-[4.4vmin] font-semibold leading-[1.06] tracking-tight text-[#1E3552]">{current.name}</p>
             <span className="mt-[2vmin] block h-[0.6vmin] w-[7vmin] rounded-full bg-[#1E3552]" />
           </div>
           {current.brandLogo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={current.brandLogo} alt={current.brand} className="h-[8vmin] w-auto max-w-full shrink-0 self-start object-contain object-left" />
+            <img src={current.brandLogo} alt={current.brand} className="h-[min(8vmin,22%)] w-auto max-w-full shrink-0 self-start object-contain object-left" />
           ) : (
             <p className="text-[2.4vmin] font-semibold uppercase tracking-[0.22em] text-[#1E3552]/60">{current.brand}</p>
           )}

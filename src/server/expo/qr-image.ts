@@ -21,7 +21,15 @@ const QR_OPTIONS = {
   color: { dark: DARK, light: LIGHT },
 };
 
-/** SVG para pantallas (escala sin perder calidad). */
+/**
+ * QR limpio (sin logo) para la pantalla del stand: el logo ya está arriba.
+ * Nivel M: módulos más grandes, se lee mejor de lejos.
+ */
+export async function qrSvg(url: string): Promise<string> {
+  return QRCode.toString(url, { ...QR_OPTIONS, errorCorrectionLevel: "M", type: "svg" });
+}
+
+/** SVG con el isotipo al centro (escala sin perder calidad). */
 export async function qrSvgWithLogo(url: string): Promise<string> {
   const svg = await QRCode.toString(url, { ...QR_OPTIONS, type: "svg" });
   const size = Number(/viewBox="0 0 (\d+(?:\.\d+)?) /.exec(svg)?.[1] ?? 0);

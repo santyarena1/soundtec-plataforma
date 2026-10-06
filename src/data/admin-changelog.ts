@@ -1016,4 +1016,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "«Qué tenés dentro» pasa a llamarse «Qué incluye el portal», y la tarjeta «Stock y disponibilidad» se reemplazó por «Asistente de productos» (el stock está oculto para clientes)." },
     ],
   },
+  {
+    id: "ship-2026-10-06-stand-ajustes",
+    version: "1.27.2",
+    releasedAt: "2026-10-06T14:30:00.000Z",
+    summary: "Pantalla del stand: título en una línea, QR sin logo y vidriera vertical más alta.",
+    items: [
+      { kind: "MEJORA", text: "«Todo el catálogo, en tu celular» en una sola línea (horizontal y vertical)." },
+      { kind: "MEJORA", text: "El QR de la pantalla ya no lleva el logo adentro: el logo está arriba. Se lee mejor de lejos." },
+      { kind: "MEJORA", text: "Vertical: QR más chico para darle más alto a la vidriera de productos, y el logo de la marca en la tarjeta ya no se corta." },
+    ],
+  },
 ];

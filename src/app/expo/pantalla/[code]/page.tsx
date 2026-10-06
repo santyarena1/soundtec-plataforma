@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/app-url";
 import { getEquipmentBrands, totalProducts, type CatalogBrand } from "@/lib/catalog-brands";
-import { qrSvgWithLogo } from "@/server/expo/qr-image";
+import { qrSvg } from "@/server/expo/qr-image";
 import { getShowcaseProducts } from "@/server/expo/showcase";
 import { Showcase, type ShowcaseSlide } from "./showcase";
 
@@ -48,7 +48,7 @@ export default async function Page({
   if (!qr) notFound();
 
   const [svg, brands, products] = await Promise.all([
-    qrSvgWithLogo(`${appUrl()}/e/${code}`),
+    qrSvg(`${appUrl()}/e/${code}`),
     getEquipmentBrands(),
     getShowcaseProducts(24, qr.event.showcaseProductIds),
   ]);
@@ -86,11 +86,7 @@ function LandscapeView({ className, svg, total, slides, brands }: ViewProps) {
           <img src="/landing/logo_soundtec.png" alt="Soundtec" className="h-[9vh] w-auto shrink-0 object-contain" />
 
           <div className="flex flex-col items-center animate-[fadeUp_900ms_ease-out]">
-            <h1 className="text-[4.2vh] font-semibold leading-[1.02] tracking-tight">
-              Todo el catálogo,
-              <br />
-              en tu celular
-            </h1>
+            <h1 className="whitespace-nowrap text-[3.6vh] font-semibold leading-tight tracking-tight">Todo el catálogo, en tu celular</h1>
             <div className="mt-[2.6vh] animate-[floatQr_6s_ease-in-out_infinite] rounded-[2.4vh] bg-white p-[2vh] shadow-[0_3vh_8vh_rgba(30,53,82,0.22)] ring-1 ring-[#1E3552]/10">
               <div className="w-[min(38vh,24vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
             </div>
@@ -122,14 +118,10 @@ function PortraitView({ className, svg, total, slides, brands }: ViewProps) {
         <img src="/landing/logo_soundtec.png" alt="Soundtec" className="h-[7vh] w-auto object-contain" />
 
         <div className="mt-[2vh] flex flex-col items-center animate-[fadeUp_900ms_ease-out]">
-          <h1 className="text-[min(3.2vh,6vw)] font-semibold leading-[1.02] tracking-tight">
-            Todo el catálogo,
-            <br />
-            en tu celular
-          </h1>
+          <h1 className="whitespace-nowrap text-[min(2.7vh,5vw)] font-semibold leading-tight tracking-tight">Todo el catálogo, en tu celular</h1>
           <div className="mt-[2vh] flex flex-col items-center">
             <div className="shrink-0 animate-[floatQr_6s_ease-in-out_infinite] rounded-[2.2vh] bg-white p-[1.8vh] shadow-[0_3vh_8vh_rgba(30,53,82,0.22)] ring-1 ring-[#1E3552]/10">
-              <div className="w-[min(28vh,62vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
+              <div className="w-[min(21vh,46vw)] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
             </div>
             <div className="mt-[1.8vh]">
               <p className="text-[min(2.4vh,4.4vw)] font-semibold leading-tight">Escaneá y explorá</p>
