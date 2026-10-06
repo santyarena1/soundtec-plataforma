@@ -4,7 +4,7 @@ import { resolveCommercialClientId } from "@/lib/client-context";
 import { getCatalog, getCatalogSidebarMeta, getVisibleProductsWhere } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { countActiveCatalogFilters, parseCatalogSearchParams } from "@/lib/catalog-url";
-import { CRESTRON_HOME_ID, brandsWithLogos, getBrandsWithoutProducts, withCrestronHome } from "@/lib/catalog-brands";
+import { CRESTRON_HOME_ID, brandsWithLogos, getBrandsWithoutProducts, loadCrestronHomeSettings, withCrestronHome } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
 import { BrandBar } from "@/app/catalogo/brand-bar";
 import { getActiveDraftSummary } from "@/lib/draft-request";
@@ -60,7 +60,7 @@ export default async function ProductsPage({
     where: { AND: [await getVisibleProductsWhere(ctx), { isCrestronHomeCompatible: true }] },
   });
   const brands = [
-    ...withCrestronHome(await brandsWithLogos(brandMeta.brands), crestronHomeCount),
+    ...withCrestronHome(await brandsWithLogos(brandMeta.brands), crestronHomeCount, await loadCrestronHomeSettings()),
     ...(await getBrandsWithoutProducts()),
   ];
   if (rawParams.all !== "1" && countActiveCatalogFilters(urlState) === 0) {

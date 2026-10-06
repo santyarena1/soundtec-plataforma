@@ -14,6 +14,16 @@ describe("Crestron Home (marca virtual)", () => {
     assert.equal(brandQuery(list[1]), "brand=c");
   });
 
+  it("usa el logo cargado en Admin → Marcas y no duplica la ficha real", () => {
+    const list = withCrestronHome([...brands, brand("ch", "Crestron Home", 0)], 120, { logoUrl: "/api/brand-logo/ch?v=1" });
+    assert.equal(list.filter((b) => b.name === "Crestron Home").length, 1);
+    assert.equal(list.find((b) => b.name === "Crestron Home")?.logoUrl, "/api/brand-logo/ch?v=1");
+  });
+
+  it("oculta desde Admin → Marcas: no aparece", () => {
+    assert.equal(withCrestronHome(brands, 120, { hidden: true }).some((b) => b.name === "Crestron Home"), false);
+  });
+
   it("sin productos compatibles no aparece", () => {
     assert.equal(withCrestronHome(brands, 0).length, 3);
   });

@@ -9,7 +9,7 @@ import { getActiveDraftSummary } from "@/lib/draft-request";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { getVisibleProductsWhere } from "@/lib/catalog";
-import { brandHref, brandsWithLogos, getBrandsWithoutProducts, withCrestronHome } from "@/lib/catalog-brands";
+import { brandHref, brandsWithLogos, getBrandsWithoutProducts, loadCrestronHomeSettings, withCrestronHome } from "@/lib/catalog-brands";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import {
   ArrowRight,
@@ -110,7 +110,8 @@ export default async function PortalDashboardPage() {
   const brands = [
     ...withCrestronHome(
       await brandsWithLogos(brandRows.map((b) => ({ id: b.id, name: b.name, count: countByBrand.get(b.id) ?? 0 }))),
-      crestronHomeCount
+      crestronHomeCount,
+      await loadCrestronHomeSettings()
     ),
     // Marcas oficiales sin productos todavía: llevan a la consulta.
     ...(await getBrandsWithoutProducts()),

@@ -6,7 +6,8 @@
 import { prisma } from "../src/lib/prisma";
 import { slugify } from "../src/lib/utils";
 
-const OFFICIAL_BRANDS = ["FlatPanel Audio", "Dante", "BrightSign", "Bluesound Professional"];
+// Crestron Home: ficha para cambiar su logo u ocultarla; sus productos son los de Crestron compatibles.
+const OFFICIAL_BRANDS = ["FlatPanel Audio", "Dante", "BrightSign", "Bluesound Professional", "Crestron Home"];
 
 async function main() {
   if (!process.env.DATABASE_URL) {

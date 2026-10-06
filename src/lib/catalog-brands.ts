@@ -15,22 +15,49 @@ export type CatalogBrand = {
  * Crestron compatibles con Crestron Home (no se duplican productos).
  */
 export const CRESTRON_HOME_ID = "crestron-home";
+/** Nombre de la marca en Admin → Marcas: ahí se cambia su logo o se oculta del catálogo. */
+export const CRESTRON_HOME_NAME = "Crestron Home";
+const CRESTRON_HOME_LOCAL_LOGO = "/landing/brands/normalized/crestron-home.png";
 
-export function crestronHomeBrand(count: number): CatalogBrand {
+export interface CrestronHomeSettings {
+  /** Logo cargado en Admin → Marcas (si no hay, el del sistema). */
+  logoUrl?: string | null;
+  /** Ocultada desde Admin → Marcas. */
+  hidden?: boolean;
+}
+
+const isCrestronHomeName = (name: string) => name.trim().toLowerCase() === CRESTRON_HOME_NAME.toLowerCase();
+
+export function crestronHomeBrand(count: number, settings: CrestronHomeSettings = {}): CatalogBrand {
   return {
     id: CRESTRON_HOME_ID,
-    name: "Crestron Home",
-    logoUrl: "/landing/brands/normalized/crestron-home.png",
+    name: CRESTRON_HOME_NAME,
+    logoUrl: settings.logoUrl || CRESTRON_HOME_LOCAL_LOGO,
     count,
     query: "crestron=1",
   };
 }
 
+/** Logo y visibilidad de Crestron Home según su ficha en Admin → Marcas. */
+export async function loadCrestronHomeSettings(): Promise<CrestronHomeSettings> {
+  const row = await prisma.brand
+    .findFirst({
+      where: { name: { equals: CRESTRON_HOME_NAME, mode: "insensitive" } },
+      select: { id: true, logoUrl: true, hiddenFromCatalog: true, isActive: true },
+    })
+    .catch(() => null);
+  if (!row) return {};
+  return { logoUrl: brandLogoSrc({ id: row.id, logoUrl: row.logoUrl }), hidden: row.hiddenFromCatalog || !row.isActive };
+}
+
 /** Agrega Crestron Home justo después de Crestron (si hay productos). */
-export function withCrestronHome(brands: CatalogBrand[], count: number): CatalogBrand[] {
-  if (count <= 0) return brands;
+export function withCrestronHome(brands: CatalogBrand[], count: number, settings: CrestronHomeSettings = {}): CatalogBrand[] {
+  // La ficha real de Crestron Home (sin productos propios) no se muestra: se muestra la marca virtual.
+  const list = brands.filter((b) => !isCrestronHomeName(b.name));
+  if (count <= 0 || settings.hidden) return list;
+  brands = list;
   const at = brands.findIndex((b) => b.name.trim().toLowerCase() === "crestron");
-  const entry = crestronHomeBrand(count);
+  const entry = crestronHomeBrand(count, settings);
   return at < 0 ? [entry, ...brands] : [...brands.slice(0, at + 1), entry, ...brands.slice(at + 1)];
 }
 
@@ -60,7 +87,9 @@ export async function getBrandsWithoutProducts(): Promise<CatalogBrand[]> {
     select: { id: true, name: true, logoUrl: true },
     orderBy: { name: "asc" },
   });
-  return rows.map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: 0 }));
+  return rows
+    .filter((b) => !isCrestronHomeName(b.name))
+    .map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: 0 }));
 }
 
 /** Total de productos sin contar dos veces los de marcas virtuales. */
@@ -128,7 +157,7 @@ export async function getCatalogBrands(): Promise<CatalogBrand[]> {
   const list = brands
     .map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: b._count.products }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
-  return withCrestronHome(list, crestronHomeCount);
+  return withCrestronHome(list, crestronHomeCount, await loadCrestronHomeSettings());
 }
 
 /** Marcas de equipos (sin merchandising) para las pantallas de marca: stand y acceso. */

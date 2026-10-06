@@ -1051,4 +1051,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Página de consulta: el título va en dos líneas («Productos de [marca]» / «disponibles a pedido»)." },
     ],
   },
+  {
+    id: "ship-2026-10-06-crestron-home-admin",
+    version: "1.28.1",
+    releasedAt: "2026-10-06T16:30:00.000Z",
+    summary: "Crestron Home editable desde Admin → Marcas.",
+    items: [
+      { kind: "MEJORA", text: "Crestron Home aparece en Admin → Marcas: desde ahí se cambia su logo y se puede ocultar del catálogo. Figura con 0 productos porque sus productos son los de Crestron compatibles con Crestron Home." },
+    ],
+  },
 ];
