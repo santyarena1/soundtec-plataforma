@@ -1036,6 +1036,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Configuración → Expo → evento → Vidriera: muestra los productos que hoy pasan en la pantalla. Podés sacar alguno con la ✕ o tocar «Elegir a mano empezando por estos» y editar la lista." },
       { kind: "MEJORA", text: "Para agregar productos podés elegir una marca y ver todos sus productos con foto, o buscar por nombre, SKU o modelo. Las miniaturas son las mismas fotos que muestra la pantalla." },
       { kind: "MEJORA", text: "La selección automática ya no muestra ropa ni merchandising (remeras, buzos, gorras) ni productos cuya foto es el logo de la marca." },
+      { kind: "MEJORA", text: "Tampoco muestra accesorios de montaje para placa de yeso (gypsum/drywall)." },
     ],
   },
 ];
