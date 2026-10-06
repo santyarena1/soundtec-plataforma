@@ -12,6 +12,7 @@ import { EventForm } from "./event-form";
 import { QrForm } from "./qr-form";
 import { ShowcasePicker } from "./showcase-picker";
 import { getShowcaseProducts } from "@/server/expo/showcase";
+import { getEquipmentBrands } from "@/lib/catalog-brands";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +21,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const { id } = await params;
   const event = await prisma.expoEvent.findUnique({ where: { id }, include: { qrs: { orderBy: { createdAt: "asc" } } } });
   if (!event) notFound();
-  const showcase = event.showcaseProductIds.length
-    ? (await getShowcaseProducts(40, event.showcaseProductIds)).map(({ score: _score, ...p }) => p)
-    : [];
+  const [showcase, autoPreview, brandList] = await Promise.all([
+    event.showcaseProductIds.length
+      ? getShowcaseProducts(40, event.showcaseProductIds).then((rows) => rows.map(({ score: _score, ...p }) => p))
+      : Promise.resolve([]),
+    // Lo que pasa hoy en la pantalla si no se eligen productos a mano.
+    getShowcaseProducts(24, []).then((rows) => rows.map(({ score: _score, ...p }) => p)),
+    getEquipmentBrands(),
+  ]);
+  const brandNames = brandList.filter((b) => !b.query).map((b) => b.name).sort((a, b) => a.localeCompare(b, "es"));
   const qrIds = event.qrs.map((q) => q.id);
   const visits = await prisma.expoVisit.findMany({ where: { qrId: { in: qrIds } }, select: { qrId: true, visitorId: true, type: true, brandId: true } });
   const brandIds = [...new Set(visits.map((v) => v.brandId).filter((b): b is string => !!b))];
@@ -87,9 +94,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <CardContent className="space-y-3 p-5">
           <div>
             <h3 className="text-sm font-semibold">Vidriera de la pantalla del stand</h3>
-            <p className="text-xs text-muted-foreground">Elegí qué productos pasan en la pantalla y en qué orden.</p>
+            <p className="text-xs text-muted-foreground">Elegí qué productos pasan en la pantalla y en qué orden. Si no elegís ninguno, la pantalla muestra automáticamente los más relevantes de cada marca.</p>
           </div>
-          <ShowcasePicker eventId={event.id} initial={showcase} />
+          <ShowcasePicker eventId={event.id} initial={showcase} autoPreview={autoPreview} brands={brandNames} />
         </CardContent>
       </Card>
 

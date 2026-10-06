@@ -11,6 +11,12 @@ const c = (id: string, brand: string, score: number, name = id): ShowcaseCandida
 });
 
 describe("isAccessoryLike", () => {
+  it("detecta ropa y merchandising", () => {
+    for (const n of ["SONANCE-JLS WVNECK BLK", "James T-Shirt Black", "Sonance Hoodie Grey", "TRUFIG Beanie"]) {
+      assert.equal(isAccessoryLike(n), true, n);
+    }
+  });
+
   it("detecta accesorios por nombre", () => {
     for (const n of ["SA4 GRILLE RND", "RACK MOUNT BRACKET FOR X", "1/2IN GYP MP AS", "TRIM KIT", "ROUTER TEMPLATE", "Hanging Cable PAIR", "Backplate for CMi"]) {
       assert.equal(isAccessoryLike(n), true, n);

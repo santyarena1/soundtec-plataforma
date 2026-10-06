@@ -55,9 +55,9 @@ export async function toggleExpoQr(qrId: string, _formData?: FormData): Promise<
 const MAX_SHOWCASE = 40;
 
 /** Busca productos (con foto) para la vidriera del stand. */
-export async function searchShowcaseProducts(query: string) {
+export async function searchShowcaseProducts(query: string, brand?: string) {
   await requirePermission("settings.manage");
-  return searchShowcaseCandidates(query.slice(0, 80));
+  return searchShowcaseCandidates(query.slice(0, 80), brand?.slice(0, 80));
 }
 
 /** Guarda los productos elegidos para la vidriera, en orden. Vacío = automático. */

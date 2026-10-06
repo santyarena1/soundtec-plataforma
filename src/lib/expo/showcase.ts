@@ -14,7 +14,7 @@ export interface ShowcaseCandidate {
 }
 
 const ACCESSORY_PATTERN =
-  /\b(grille|grill|bracket|trim|kit|mount(ing)?|template|cable|plate|backplate|shim|bushing|spacer|ring|fascia|frame|stake|harness|pouch|feet|ears|enclosure|replacement|adapter|module|card|cover|gyp|mp|terminal|apparel|t-shirt|polo|jacket|backpack|snapback|cap)\b/i;
+  /\b(grille|grill|bracket|trim|kit|mount(ing)?|template|cable|plate|backplate|shim|bushing|spacer|ring|fascia|frame|stake|harness|pouch|feet|ears|enclosure|replacement|adapter|module|card|cover|gyp|mp|terminal|apparel|t-shirt|tshirt|shirt|tee|hoodie|sweatshirt|beanie|hat|mug|sticker|polo|jacket|backpack|snapback|cap|w?vneck|crewneck)\b/i;
 
 export function isAccessoryLike(name: string): boolean {
   return ACCESSORY_PATTERN.test(name);
