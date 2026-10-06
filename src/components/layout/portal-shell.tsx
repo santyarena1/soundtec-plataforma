@@ -2,7 +2,6 @@ import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
-import { BrandLogo } from "@/components/layout/brand-logo";
 import { Bookmark, Heart, LayoutDashboard, Package, Send } from "lucide-react";
 import { getSetting } from "@/lib/settings";
 import { DraftMiniCart } from "@/components/portal/draft-mini-cart";
@@ -24,8 +23,7 @@ const navItems = [
 export async function PortalShell({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/portal");
-  const [logoUrl, appName, draftSummary, onboardingState] = await Promise.all([
-    getSetting("branding.logo_url", ""),
+  const [appName, draftSummary, onboardingState] = await Promise.all([
     getSetting("app.name", "Soundtec"),
     getActiveDraftSummary(session.user.id),
     getOnboardingState(),
@@ -41,9 +39,10 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className="container-page flex h-14 items-center justify-between gap-2 sm:h-16">
           <Link href="/portal" className="flex min-w-0 items-center gap-2">
-            <BrandLogo logoUrl={logoUrl} className="h-9 w-9 sm:h-11 sm:w-11" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/landing/logo_soundtec.png" alt={appName} className="h-9 w-auto shrink-0 sm:h-11" />
             <div className="min-w-0 leading-tight">
-              <p className="truncate text-sm font-semibold text-foreground">{appName} · Portal</p>
+              <p className="truncate text-sm font-semibold text-foreground">Portal</p>
               <p className="hidden truncate text-[11px] uppercase tracking-wider text-muted-foreground sm:block">
                 {session.user.companyName || session.user.name}
               </p>

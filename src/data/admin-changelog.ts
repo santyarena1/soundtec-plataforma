@@ -1060,4 +1060,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Crestron Home aparece en Admin → Marcas: desde ahí se cambia su logo y se puede ocultar del catálogo. Figura con 0 productos porque sus productos son los de Crestron compatibles con Crestron Home." },
     ],
   },
+  {
+    id: "ship-2026-10-06-logo-paneles",
+    version: "1.28.2",
+    releasedAt: "2026-10-06T17:00:00.000Z",
+    summary: "Logo azul de Soundtec en el admin y el portal.",
+    items: [
+      { kind: "MEJORA", text: "El panel admin y el portal de clientes usan el logo azul de Soundtec (el mismo de la landing y las pantallas) en lugar del ícono anterior." },
+    ],
+  },
 ];

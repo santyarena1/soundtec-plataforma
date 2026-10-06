@@ -4,7 +4,6 @@ import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ButtonLink } from "@/components/ui/button";
-import { BrandLogo } from "@/components/layout/brand-logo";
 import { getSetting } from "@/lib/settings";
 import { AdminSidebarNav } from "@/components/layout/admin-sidebar-nav";
 import { AdminMobileNav } from "@/components/layout/admin-mobile-nav";
@@ -32,8 +31,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
 
   const userName = session.user.name;
   const userEmail = session.user.email;
-  const [logoUrl, appName, changelogs, onboardingState, pendingRequests, soundtubeReview] = await Promise.all([
-    getSetting("branding.logo_url", ""),
+  const [appName, changelogs, onboardingState, pendingRequests, soundtubeReview] = await Promise.all([
     getSetting("app.name", "Soundtec"),
     listAllChangelogs().catch((err) => {
       console.error("changelog unread", err);
@@ -52,11 +50,9 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
   function BrandMark() {
     return (
       <Link href="/admin" className="flex min-w-0 items-center gap-2">
-        <BrandLogo logoUrl={logoUrl} className="h-10 w-10 lg:h-11 lg:w-11" />
-        <div className="min-w-0 leading-tight">
-          <p className="truncate text-sm font-semibold">{appName}</p>
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Admin</p>
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/landing/logo_soundtec.png" alt={appName} className="h-10 w-auto shrink-0 lg:h-11" />
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Admin</p>
       </Link>
     );
   }
