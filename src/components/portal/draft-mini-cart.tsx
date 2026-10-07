@@ -26,12 +26,12 @@ interface Props {
 }
 
 /**
- * Botón flotante bottom-right SIEMPRE visible en todas las páginas del portal.
+ * Botón flotante abajo a la derecha.
  *
- * - Muestra contador de items + unidades + subtotal estimado.
- * - Click abre un panel con preview de los últimos productos agregados y CTAs
- *   "Ir a mi pedido" y "Seguir agregando productos".
- * - Si no hay borrador activo, no se renderiza.
+ * - Con un pedido en armado: contador, unidades y subtotal. En el celular queda
+ *   arriba de la barra inferior.
+ * - Sin pedido: en la compu ofrece ir al catálogo. En el celular no, porque esa
+ *   barra ya tiene Catálogo y el botón tapaba el contenido.
  *
  * Se actualiza con cada router.refresh() porque su padre es server component.
  */
@@ -40,8 +40,9 @@ export function DraftMiniCart({ draft }: Props) {
 
   if (!draft || draft.itemCount === 0) {
     return (
+      // En el celular la barra de abajo ya tiene Catálogo. Este botón lo tapa.
       <div
-        className="fixed bottom-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))] right-[max(0.75rem,env(safe-area-inset-right))] z-50 md:bottom-6 md:right-6"
+        className="fixed bottom-6 right-6 z-50 hidden md:flex"
         data-tour="portal-cart"
       >
         <Link

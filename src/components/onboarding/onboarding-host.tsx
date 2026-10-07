@@ -98,7 +98,16 @@ function useTargetRect(target: string | null, active: boolean, pathname: string)
         behavior: "smooth",
       });
       const update = () => {
-        if (!cancelled) setRect(el.getBoundingClientRect());
+        if (cancelled) return;
+        const box = el.getBoundingClientRect();
+        // Un target con display:none (por ejemplo el carrito vacío en el celular) no se puede señalar.
+        if (box.width < 2 && box.height < 2) {
+          setRect(null);
+          setMissing(true);
+          return;
+        }
+        setMissing(false);
+        setRect(box);
       };
       // Releer después del scroll suave para no dejar el hueco desfasado.
       update();
@@ -631,7 +640,10 @@ export function OnboardingHost({
 
   const paragraphs = step.body.split("\n\n").filter(Boolean);
   const navTarget = Boolean(step.target?.startsWith("nav-"));
-  const preferRight = navTarget || Boolean(rect && rect.left < 300);
+  // La barra inferior ocupa todo el ancho y arranca en x=0. No es un ítem del menú lateral:
+  // empujar la tarjeta "a la derecha" la saca de la pantalla o la apoya encima del contenido.
+  const narrowLeftTarget = Boolean(rect && rect.left < 300 && rect.width < 280 && rect.top < window.innerHeight * 0.62);
+  const preferRight = (navTarget || narrowLeftTarget) && Boolean(rect && rect.width < window.innerWidth * 0.55);
   // Con spotlight visible, la tarjeta va al costado del hueco (nunca centrada tapando el click).
   const centered = !highlight || !step.target;
 

@@ -35,10 +35,10 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh min-w-0 max-w-full flex-col">
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
-        <div className="container-page flex h-14 items-center justify-between gap-2 sm:h-16">
-          <Link href="/portal" className="flex min-w-0 items-center gap-2">
+        <div className="container-page flex h-14 min-w-0 items-center justify-between gap-1.5 sm:h-16 sm:gap-2">
+          <Link href="/portal" className="flex min-w-0 flex-1 items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/landing/logo_soundtec.png" alt={appName} className="h-9 w-auto shrink-0 sm:h-11" />
             <div className="min-w-0 leading-tight">
@@ -62,7 +62,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <PortalOnboardingButton />
             {(session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") && (
               <ButtonLink
@@ -76,12 +76,12 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
               </ButtonLink>
             )}
             {(session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") && (
-              <ButtonLink href="/admin" size="sm" variant="outline" className="sm:hidden">
+              <ButtonLink href="/admin" size="sm" variant="outline" className="h-8 px-2 sm:hidden">
                 Admin
               </ButtonLink>
             )}
             <form action={handleSignOut}>
-              <button className="text-sm text-muted-foreground hover:text-foreground" type="submit">
+              <button className="shrink-0 px-0.5 text-sm text-muted-foreground hover:text-foreground" type="submit">
                 Salir
               </button>
             </form>

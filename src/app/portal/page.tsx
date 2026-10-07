@@ -151,12 +151,12 @@ export default async function PortalDashboardPage() {
                   name="q"
                   type="search"
                   autoComplete="off"
-                  placeholder="Ej. CP4, parlante de techo, DM NVX, micrófono inalámbrico…"
+                  placeholder="Modelo, marca o palabra clave"
                   className="h-12 min-w-0 flex-1 bg-transparent px-3 text-base text-foreground outline-none placeholder:text-muted-foreground/70 sm:h-14"
                 />
                 <button
                   type="submit"
-                  className="m-1.5 inline-flex items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent/90"
+                  className="m-1.5 inline-flex shrink-0 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent/90"
                 >
                   Buscar
                   <ArrowRight className="hidden h-4 w-4 sm:block" />
@@ -185,7 +185,7 @@ export default async function PortalDashboardPage() {
             </div>
           </div>
 
-          <dl className="grid grid-cols-3 gap-3 self-end lg:grid-cols-1">
+          <dl className="grid min-w-0 grid-cols-3 gap-2 self-end sm:gap-3 lg:grid-cols-1">
             <HeroStat label="Productos" value={totalProducts.toLocaleString("es-AR")} href="/portal/products" />
             <HeroStat label="Favoritos" value={favorites.toLocaleString("es-AR")} href="/portal/wishlist" />
             <HeroStat label="Pedidos abiertos" value={openRequests.toLocaleString("es-AR")} href="/portal/requests" />
@@ -224,12 +224,12 @@ export default async function PortalDashboardPage() {
       {/* Marcas */}
       {brands.length > 0 ? (
         <section>
-          <div className="flex items-end justify-between gap-4">
-            <div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+            <div className="min-w-0">
               <h2 className="heading-3">Explorar por marca</h2>
               <p className="muted-text mt-1">Todas las marcas disponibles para tu cuenta.</p>
             </div>
-            <Link href="/portal/products?all=1" className="text-sm font-medium text-accent hover:underline">
+            <Link href="/portal/products?all=1" className="shrink-0 text-sm font-medium text-accent hover:underline">
               Ver todos los productos
             </Link>
           </div>
@@ -376,9 +376,9 @@ function HeroStat({ label, value, href }: { label: string; value: string; href: 
   return (
     <Link
       href={href}
-      className="rounded-xl border border-primary-foreground/15 bg-primary-foreground/5 px-4 py-3 transition-colors hover:bg-primary-foreground/10"
+      className="min-w-0 rounded-xl border border-primary-foreground/15 bg-primary-foreground/5 px-2.5 py-3 transition-colors hover:bg-primary-foreground/10 sm:px-4"
     >
-      <dt className="text-[11px] uppercase tracking-wider text-primary-foreground/60">{label}</dt>
+      <dt className="text-[11px] uppercase leading-tight tracking-wider text-primary-foreground/60">{label}</dt>
       <dd className="mt-0.5 text-xl font-semibold leading-none sm:text-2xl">{value}</dd>
     </Link>
   );
