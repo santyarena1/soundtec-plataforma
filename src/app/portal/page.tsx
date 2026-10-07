@@ -125,9 +125,10 @@ export default async function PortalDashboardPage() {
       <section className="relative overflow-hidden rounded-2xl bg-primary text-primary-foreground" data-tour="portal-home-hero">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-primary-foreground/10 blur-3xl" />
-        <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:p-10">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-primary-foreground/60">
+        <div className="relative grid min-w-0 gap-8 p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:p-10">
+          {/* min-w-0: si no, el buscador ensancha la columna y el recorte del hero se come el borde. */}
+          <div className="min-w-0">
+            <p className="break-words text-xs uppercase tracking-[0.2em] text-primary-foreground/60">
               {greeting()}, {firstName}
             </p>
             <h1 className="mt-2 text-2xl font-semibold leading-tight sm:text-3xl">
@@ -138,28 +139,30 @@ export default async function PortalDashboardPage() {
               <span className="font-medium text-primary-foreground">{user.companyName || "tu cuenta"}</span>.
             </p>
 
-            <form action="/portal/products" method="get" className="mt-6">
+            <form action="/portal/products" method="get" className="mt-6 min-w-0">
               <label htmlFor="home-search" className="sr-only">
                 Buscar en el catálogo
               </label>
-              <div className="flex items-stretch overflow-hidden rounded-xl bg-background shadow-elevated ring-1 ring-primary-foreground/10 focus-within:ring-2 focus-within:ring-accent">
-                <span className="flex items-center pl-4 text-muted-foreground">
-                  <Search className="h-5 w-5" />
-                </span>
-                <input
-                  id="home-search"
-                  name="q"
-                  type="search"
-                  autoComplete="off"
-                  placeholder="Modelo, marca o palabra clave"
-                  className="h-12 min-w-0 flex-1 bg-transparent px-3 text-base text-foreground outline-none placeholder:text-muted-foreground/70 sm:h-14"
-                />
+              <div className="flex min-w-0 flex-col overflow-hidden rounded-xl bg-background shadow-elevated ring-1 ring-primary-foreground/10 focus-within:ring-2 focus-within:ring-accent sm:flex-row sm:items-stretch">
+                <div className="flex min-w-0 flex-1 items-center">
+                  <span className="flex items-center pl-4 text-muted-foreground">
+                    <Search className="h-5 w-5" />
+                  </span>
+                  <input
+                    id="home-search"
+                    name="q"
+                    type="search"
+                    autoComplete="off"
+                    placeholder="Modelo o marca"
+                    className="h-12 w-full min-w-0 flex-1 bg-transparent px-3 text-base text-foreground outline-none placeholder:text-muted-foreground/70 sm:h-14"
+                  />
+                </div>
                 <button
                   type="submit"
-                  className="m-1.5 inline-flex shrink-0 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent/90"
+                  className="m-1.5 inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent/90 sm:h-auto"
                 >
                   Buscar
-                  <ArrowRight className="hidden h-4 w-4 sm:block" />
+                  <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </form>
@@ -188,7 +191,7 @@ export default async function PortalDashboardPage() {
           <dl className="grid min-w-0 grid-cols-3 gap-2 self-end sm:gap-3 lg:grid-cols-1">
             <HeroStat label="Productos" value={totalProducts.toLocaleString("es-AR")} href="/portal/products" />
             <HeroStat label="Favoritos" value={favorites.toLocaleString("es-AR")} href="/portal/wishlist" />
-            <HeroStat label="Pedidos abiertos" value={openRequests.toLocaleString("es-AR")} href="/portal/requests" />
+            <HeroStat label="Pedidos" value={openRequests.toLocaleString("es-AR")} href="/portal/requests" />
           </dl>
         </div>
       </section>
@@ -376,10 +379,10 @@ function HeroStat({ label, value, href }: { label: string; value: string; href: 
   return (
     <Link
       href={href}
-      className="min-w-0 rounded-xl border border-primary-foreground/15 bg-primary-foreground/5 px-2.5 py-3 transition-colors hover:bg-primary-foreground/10 sm:px-4"
+      className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-primary-foreground/15 bg-primary-foreground/5 px-1.5 py-2.5 text-center transition-colors hover:bg-primary-foreground/10 sm:px-4 sm:text-left"
     >
-      <dt className="text-[11px] uppercase leading-tight tracking-wider text-primary-foreground/60">{label}</dt>
-      <dd className="mt-0.5 text-xl font-semibold leading-none sm:text-2xl">{value}</dd>
+      <dt className="order-2 mt-1 text-[10px] font-medium uppercase leading-tight tracking-normal text-primary-foreground/60 sm:text-[11px] sm:tracking-wider">{label}</dt>
+      <dd className="order-1 text-lg font-semibold leading-none tabular-nums sm:text-2xl">{value}</dd>
     </Link>
   );
 }
