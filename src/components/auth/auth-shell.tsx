@@ -53,7 +53,9 @@ export function AuthShell({ kicker, title, subtitle, children, footer, brands, t
           </p>
         </div>
       </aside>
-      <div className="flex min-h-dvh flex-col px-6 py-8 sm:px-12 lg:px-16 lg:py-12">
+      {/* min-w-0: la cinta de logos es más ancha que la pantalla. Sin esto la
+          columna crece con ella y, en el celular, el formulario queda fuera de la vista. */}
+      <div className="flex min-h-dvh min-w-0 flex-col px-6 py-8 sm:px-12 lg:px-16 lg:py-12">
         <Link href="/" className="self-center" aria-label="Soundtec — inicio">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/landing/logo_soundtec.png" alt="Soundtec" className="h-16 w-auto sm:h-20" />
