@@ -146,18 +146,21 @@ export async function brandsWithLogos(facets: Array<{ id: string; name: string; 
 
 /** Marcas activas con productos activos, para la grilla y la barra del catálogo público. */
 export async function getCatalogBrands(): Promise<CatalogBrand[]> {
-  const crestronHomeCount = await prisma.product.count({
-    where: { isActive: true, isCrestronHomeCompatible: true, brand: { is: { isActive: true, hiddenFromCatalog: false } } },
-  });
-  // También las marcas sin productos todavía: van al final y llevan a la consulta.
-  const brands = await prisma.brand.findMany({
-    where: { isActive: true, hiddenFromCatalog: false },
-    select: { id: true, name: true, logoUrl: true, _count: { select: { products: { where: { isActive: true } } } } },
-  });
+  const [crestronHomeCount, brands, settings] = await Promise.all([
+    prisma.product.count({
+      where: { isActive: true, isCrestronHomeCompatible: true, brand: { is: { isActive: true, hiddenFromCatalog: false } } },
+    }),
+    // También las marcas sin productos todavía: van al final y llevan a la consulta.
+    prisma.brand.findMany({
+      where: { isActive: true, hiddenFromCatalog: false },
+      select: { id: true, name: true, logoUrl: true, _count: { select: { products: { where: { isActive: true } } } } },
+    }),
+    loadCrestronHomeSettings(),
+  ]);
   const list = brands
     .map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: b._count.products }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
-  return withCrestronHome(list, crestronHomeCount, await loadCrestronHomeSettings());
+  return withCrestronHome(list, crestronHomeCount, settings);
 }
 
 /** Marcas de equipos (sin merchandising) para las pantallas de marca: stand y acceso. */

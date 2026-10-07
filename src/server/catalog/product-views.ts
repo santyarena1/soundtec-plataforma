@@ -36,7 +36,11 @@ export async function recordProductView(productId: string, userId?: string | nul
  * Visitantes únicos por producto en la ventana de relevancia, y el total
  * (suma de esos únicos) para decidir si ya hay datos suficientes.
  */
+const VIEW_CACHE_MS = 60_000;
+let viewCache: { at: number; data: { views: Map<string, number>; total: number } } | null = null;
+
 export async function loadProductViewCounts(): Promise<{ views: Map<string, number>; total: number }> {
+  if (viewCache && Date.now() - viewCache.at < VIEW_CACHE_MS) return viewCache.data;
   try {
     const since = new Date(Date.now() - RELEVANCE_WINDOW_DAYS * 86400000);
     const rows = await prisma.$queryRaw<Array<{ productId: string; visitors: bigint }>>`
@@ -48,7 +52,9 @@ export async function loadProductViewCounts(): Promise<{ views: Map<string, numb
     const views = new Map(rows.map((r) => [r.productId, Number(r.visitors)]));
     let total = 0;
     for (const count of views.values()) total += count;
-    return { views, total };
+    const data = { views, total };
+    viewCache = { at: Date.now(), data };
+    return data;
   } catch (error) {
     console.error("[catalog] no se pudieron leer las vistas de ficha", error);
     return { views: new Map(), total: 0 };

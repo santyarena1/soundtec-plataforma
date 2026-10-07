@@ -10,6 +10,13 @@ import { getGlobalMarginPercent } from "@/lib/settings";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { buildProductSearchAnd, productTokenOr, searchRank } from "@/lib/product-search";
 import { compareByRelevance, hasEnoughViews } from "@/lib/catalog-relevance";
+import {
+  brandsWithLogos,
+  getBrandsWithoutProducts,
+  loadCrestronHomeSettings,
+  withCrestronHome,
+  type CatalogBrand,
+} from "@/lib/catalog-brands";
 import { loadProductViewCounts } from "@/server/catalog/product-views";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 
@@ -210,6 +217,68 @@ async function buildCatalogWhere(
  */
 export async function getVisibleProductsWhere(ctx: CatalogContext): Promise<Prisma.ProductWhereInput> {
   return (await buildCatalogWhere({}, ctx)) ?? { isActive: true };
+}
+
+/**
+ * Marcas del catálogo de este usuario, sin leer ni cotizar cada producto.
+ * La grilla y la barra solo necesitan cantidad y logo.
+ */
+export async function listVisibleCatalogBrands(ctx: CatalogContext): Promise<{ brands: CatalogBrand[]; total: number }> {
+  const where = await getVisibleProductsWhere(ctx);
+  const [groups, total, crestronHomeCount, settings, emptyBrands] = await Promise.all([
+    prisma.product.groupBy({
+      by: ["brandId"],
+      where: { AND: [where, { brandId: { not: null } }] },
+      _count: { _all: true },
+    }),
+    prisma.product.count({ where }),
+    prisma.product.count({ where: { AND: [where, { isCrestronHomeCompatible: true }] } }),
+    loadCrestronHomeSettings(),
+    getBrandsWithoutProducts(),
+  ]);
+  const ids = groups.map((g) => g.brandId).filter((id): id is string => !!id);
+  const rows = ids.length
+    ? await prisma.brand.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })
+    : [];
+  const countById = new Map(groups.map((g) => [g.brandId, g._count._all]));
+  const withLogos = await brandsWithLogos(
+    rows.map((b) => ({ id: b.id, name: b.name, count: countById.get(b.id) ?? 0 }))
+  );
+  return {
+    brands: [...withCrestronHome(withLogos, crestronHomeCount, settings), ...emptyBrands],
+    total,
+  };
+}
+
+/** Nombres de los filtros activos, para las pastillas. No recorre el catálogo. */
+export async function catalogFilterMeta(filters: CatalogFilters): Promise<CatalogSidebarMeta> {
+  const empty: CatalogSidebarMeta = {
+    priceBounds: { min: 0, max: 0 },
+    brands: [],
+    categories: [],
+    families: [],
+    distributors: [],
+    stockCounts: { in_stock: 0, low_stock: 0, on_request: 0, out_of_stock: 0 },
+    discountCount: 0,
+    totalMatching: 0,
+  };
+  const [brands, categories, families] = await Promise.all([
+    filters.brandIds?.length
+      ? prisma.brand.findMany({ where: { id: { in: filters.brandIds } }, select: { id: true, name: true } })
+      : [],
+    filters.categoryIds?.length
+      ? prisma.category.findMany({ where: { id: { in: filters.categoryIds } }, select: { id: true, name: true } })
+      : [],
+    filters.familyIds?.length
+      ? prisma.productFamily.findMany({ where: { id: { in: filters.familyIds } }, select: { id: true, name: true } })
+      : [],
+  ]);
+  return {
+    ...empty,
+    brands: brands.map((b) => ({ id: b.id, name: b.name, count: 0 })),
+    categories: categories.map((c) => ({ id: c.id, name: c.name, count: 0 })),
+    families: families.map((f) => ({ id: f.id, name: f.name, count: 0 })),
+  };
 }
 
 function toPricingInput(p: ProductRow): ProductPricingInput {
@@ -474,6 +543,7 @@ function countFacet(map: Map<string, { name: string; count: number }>, id: strin
   else map.set(id, { name, count: 1 });
 }
 
+/** Recorre y cotiza el catálogo. La grilla usa listVisibleCatalogBrands; las pastillas, catalogFilterMeta. */
 export async function getCatalogSidebarMeta(
   filters: CatalogFilters,
   ctx: CatalogContext,

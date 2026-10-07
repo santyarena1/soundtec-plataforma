@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-helpers";
 import { resolveCommercialClientId } from "@/lib/client-context";
-import { getCatalog, getCatalogSidebarMeta, getVisibleProductsWhere } from "@/lib/catalog";
-import { prisma } from "@/lib/prisma";
+import { catalogFilterMeta, getCatalog, listVisibleCatalogBrands } from "@/lib/catalog";
 import { countActiveCatalogFilters, parseCatalogSearchParams } from "@/lib/catalog-url";
-import { CRESTRON_HOME_ID, brandsWithLogos, getBrandsWithoutProducts, loadCrestronHomeSettings, withCrestronHome } from "@/lib/catalog-brands";
+import { CRESTRON_HOME_ID } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
 import { BrandBar } from "@/app/catalogo/brand-bar";
 import { getActiveDraftSummary } from "@/lib/draft-request";
@@ -51,35 +50,27 @@ export default async function ProductsPage({
     pageSize: urlState.pageSize,
   };
 
-  // Primera pantalla: grilla de marcas (las que este cliente puede ver) o "Ver todos".
-  const brandMeta = await getCatalogSidebarMeta({ includeOutOfStock: filters.includeOutOfStock }, ctx, {
-    includeDistributors: false,
-  });
-  // Crestron Home: marca virtual con los productos compatibles que este cliente puede ver.
-  const crestronHomeCount = await prisma.product.count({
-    where: { AND: [await getVisibleProductsWhere(ctx), { isCrestronHomeCompatible: true }] },
-  });
-  const brands = [
-    ...withCrestronHome(await brandsWithLogos(brandMeta.brands), crestronHomeCount, await loadCrestronHomeSettings()),
-    ...(await getBrandsWithoutProducts()),
-  ];
-  if (rawParams.all !== "1" && countActiveCatalogFilters(urlState) === 0) {
-    // Mismo total que el inicio del portal: lo que este cliente puede ver.
-    const total = await prisma.product.count({ where: await getVisibleProductsWhere(ctx) });
+  // Grilla y barra: un groupBy por marca. No se leen ni cotizan todos los productos.
+  const showGrid = rawParams.all !== "1" && countActiveCatalogFilters(urlState) === 0;
+  const brandsPromise = listVisibleCatalogBrands(ctx);
+  if (showGrid) {
+    const listed = await brandsPromise;
     return (
       <>
         <RememberCatalog memoryKey="portal" />
-        <BrandGrid brands={brands} total={total} basePath="/portal/products" />
+        <BrandGrid brands={listed.brands} total={listed.total} basePath="/portal/products" />
       </>
     );
   }
   const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
 
-  const [{ items, total, page, pageSize }, meta, draft] = await Promise.all([
+  const [listed, { items, total, page, pageSize }, meta, draft] = await Promise.all([
+    brandsPromise,
     getCatalog(filters, ctx),
-    getCatalogSidebarMeta(filters, ctx, { includeDistributors: false }),
+    catalogFilterMeta(filters),
     getActiveDraftSummary(user.id),
   ]);
+  const brands = listed.brands;
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 

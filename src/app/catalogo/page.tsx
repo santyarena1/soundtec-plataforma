@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
-import { getCatalog, getCatalogSidebarMeta, type CatalogContext } from "@/lib/catalog";
+import { catalogFilterMeta, getCatalog, type CatalogContext } from "@/lib/catalog";
 import { parseCatalogSearchParams, countActiveCatalogFilters } from "@/lib/catalog-url";
 import { CRESTRON_HOME_ID, getCatalogBrands, totalProducts } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
@@ -71,7 +71,7 @@ export default async function PublicCatalogPage({
 
   const [{ items, total, page, pageSize }, meta] = await Promise.all([
     getCatalog(filters, ctx),
-    getCatalogSidebarMeta(filters, ctx, { includeDistributors: false }),
+    catalogFilterMeta(filters),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
