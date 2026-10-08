@@ -375,18 +375,22 @@ function DeviceMesh({
   role,
   color,
   selected,
+  placementTarget,
   onClick,
 }: {
   role: string;
   color: string;
   selected: boolean;
+  placementTarget?: boolean;
   onClick: (e: { stopPropagation: () => void }) => void;
 }) {
   const mat = (
     <meshStandardMaterial
-      color={selected ? "#2563eb" : color}
-      emissive={selected ? "#1d4ed8" : "#000000"}
-      emissiveIntensity={selected ? 0.25 : 0}
+      color={placementTarget ? "#059669" : selected ? "#2563eb" : color}
+      emissive={
+        placementTarget ? "#047857" : selected ? "#1d4ed8" : "#000000"
+      }
+      emissiveIntensity={placementTarget ? 0.45 : selected ? 0.25 : 0}
       roughness={0.45}
       metalness={0.15}
     />
@@ -457,11 +461,13 @@ function DeviceMesh({
 function DeviceProxy({
   device,
   selected,
+  placementTarget,
   onSelect,
   coverageView,
 }: {
   device: SceneDevice;
   selected: boolean;
+  placementTarget?: boolean;
   onSelect: (slotKey: string) => void;
   coverageView: CoverageViewMode;
 }) {
@@ -476,19 +482,32 @@ function DeviceProxy({
       position={[device.pose.x, device.pose.y, device.pose.z]}
       rotation={[0, (device.pose.rotY * Math.PI) / 180, 0]}
     >
+      {placementTarget ? (
+        <mesh position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.28, 0.38, 32]} />
+          <meshBasicMaterial color="#10b981" transparent opacity={0.85} />
+        </mesh>
+      ) : null}
       <DeviceMesh
         role={device.designRole}
         color={color}
         selected={selected}
+        placementTarget={placementTarget}
         onClick={(e) => {
           e.stopPropagation();
           onSelect(device.slotKey);
         }}
       />
-      {selected || device.productId ? (
+      {selected || device.productId || placementTarget ? (
         <Html distanceFactor={8} position={[0, 0.35, 0]} center>
-          <div className="rounded bg-slate-900/90 px-2 py-1 text-[10px] font-medium text-white shadow whitespace-nowrap">
-            {device.productName || device.label}
+          <div
+            className={`rounded px-2 py-1 text-[10px] font-medium text-white shadow whitespace-nowrap ${
+              placementTarget ? "bg-emerald-700" : "bg-slate-900/90"
+            }`}
+          >
+            {placementTarget
+              ? `Ubicar aquí · ${device.label}`
+              : device.productName || device.label}
           </div>
         </Html>
       ) : null}
@@ -505,14 +524,17 @@ function DeviceProxy({
 function SceneContent({
   scene,
   category,
+  placementSlotKeys,
   onSelectSlot,
 }: {
   scene: RoomScene;
   category: string;
+  placementSlotKeys: string[];
   onSelectSlot: (slotKey: string) => void;
 }) {
   const selected =
     scene.devices.find((d) => d.slotKey === scene.selectedSlotKey) ?? null;
+  const placeSet = new Set(placementSlotKeys);
 
   return (
     <>
@@ -539,6 +561,7 @@ function SceneContent({
           key={device.id}
           device={device}
           selected={device.slotKey === scene.selectedSlotKey}
+          placementTarget={placeSet.has(device.slotKey)}
           onSelect={onSelectSlot}
           coverageView={scene.coverageView}
         />
@@ -563,12 +586,17 @@ function SceneContent({
 export function RoomViewport({
   scene,
   category = "videoconference",
+  placementSlotKeys = [],
+  placementHint,
   onSelectSlot,
   onCameraPreset,
   onCoverageView,
 }: {
   scene: RoomScene;
   category?: string;
+  /** Slots verdes donde se puede ubicar el producto en mano */
+  placementSlotKeys?: string[];
+  placementHint?: string | null;
   onSelectSlot: (slotKey: string) => void;
   onCameraPreset: (preset: CameraPreset) => void;
   onCoverageView: (mode: CoverageViewMode) => void;
@@ -585,9 +613,18 @@ export function RoomViewport({
         <SceneContent
           scene={scene}
           category={category}
+          placementSlotKeys={placementSlotKeys}
           onSelectSlot={onSelectSlot}
         />
       </Canvas>
+
+      {placementHint ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-10 z-10 flex justify-center px-3">
+          <div className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-semibold text-white shadow-lg">
+            {placementHint}
+          </div>
+        </div>
+      ) : null}
 
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
         <div className="pointer-events-auto flex flex-wrap gap-1 rounded-lg bg-white/90 p-1 shadow-sm backdrop-blur">

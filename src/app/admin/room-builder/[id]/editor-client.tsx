@@ -114,14 +114,25 @@ export function RoomBuilderEditor({
   initialProject: Project;
 }) {
   const [project, setProject] = useState(initialProject);
-  const [scene, setScene] = useState<RoomScene>(
-    () => parseScene(initialProject.sceneJson) ?? emptyScene(),
-  );
+  const [scene, setScene] = useState<RoomScene>(() => {
+    const parsed = parseScene(initialProject.sceneJson) ?? emptyScene();
+    if (!parsed.selectedSlotKey && parsed.slots[0]) {
+      parsed.selectedSlotKey = parsed.slots[0].key;
+    }
+    return parsed;
+  });
   const [ranked, setRanked] = useState<RankRow[]>([]);
   const [rankMode, setRankMode] = useState<RankSortMode>("recommended");
   const [query, setQuery] = useState("");
   const [pending, startTransition] = useTransition();
   const [ranking, setRanking] = useState(false);
+  /** Producto elegido para ubicar en un slot (flujo producto → click slot). */
+  const [staged, setStaged] = useState<{
+    productId: string;
+    name: string;
+    brand: string | null;
+    role: string;
+  } | null>(null);
 
   const selectedSlot = useMemo(
     () => scene.slots.find((s) => s.key === scene.selectedSlotKey) ?? null,
@@ -133,6 +144,13 @@ export function RoomBuilderEditor({
       scene.devices.find((d) => d.slotKey === scene.selectedSlotKey) ?? null,
     [scene],
   );
+
+  const placementSlotKeys = useMemo(() => {
+    if (!staged) return [];
+    return scene.slots
+      .filter((s) => s.role === staged.role)
+      .map((s) => s.key);
+  }, [staged, scene.slots]);
 
   const persistScene = useCallback(
     async (next: RoomScene, patch?: Record<string, unknown>) => {
@@ -179,7 +197,49 @@ export function RoomBuilderEditor({
     void loadRank();
   }, [loadRank]);
 
+  function assignToSlot(slotKey: string, productId: string | null) {
+    const device = scene.devices.find((d) => d.slotKey === slotKey);
+    startTransition(async () => {
+      const res = await fetch(
+        `/api/admin/room-builder/projects/${project.id}/assign`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            slotKey,
+            productId,
+            quantity: device?.quantity,
+          }),
+        },
+      );
+      const json = await res.json();
+      if (!json.ok) {
+        toast.error(json.error || "No se pudo ubicar");
+        return;
+      }
+      setProject(json.project);
+      const nextScene = parseScene(json.project.sceneJson) ?? scene;
+      nextScene.selectedSlotKey = slotKey;
+      setScene(nextScene);
+      setStaged(null);
+      toast.success(productId ? "Producto ubicado en el slot" : "Slot liberado");
+    });
+  }
+
   function onSelectSlot(slotKey: string) {
+    // Si hay producto en mano, el click EN LA ESCENA lo ubica ahí.
+    if (staged) {
+      const slot = scene.slots.find((s) => s.key === slotKey);
+      if (!slot) return;
+      if (slot.role !== staged.role) {
+        toast.error(
+          `Ese slot es ${slot.role}; el producto es ${staged.role}. Elegí un slot marcado en verde.`,
+        );
+        return;
+      }
+      assignToSlot(slotKey, staged.productId);
+      return;
+    }
     const next = { ...scene, selectedSlotKey: slotKey };
     setScene(next);
     void persistScene(next);
@@ -197,30 +257,40 @@ export function RoomBuilderEditor({
     void persistScene(next);
   }
 
-  function assignProduct(productId: string | null) {
-    if (!selectedSlot) return;
-    startTransition(async () => {
-      const res = await fetch(
-        `/api/admin/room-builder/projects/${project.id}/assign`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            slotKey: selectedSlot.key,
-            productId,
-            quantity: selectedDevice?.quantity,
-          }),
-        },
-      );
-      const json = await res.json();
-      if (!json.ok) {
-        toast.error(json.error || "No se pudo asignar");
-        return;
-      }
-      setProject(json.project);
-      setScene(parseScene(json.project.sceneJson) ?? scene);
-      toast.success(productId ? "Producto asignado" : "Slot liberado");
+  /** Tomar producto en mano → click en slot verde (lista o 3D) para ubicar. */
+  function pickProductForPlacement(row: RankRow) {
+    if (!row.compatible) {
+      toast.error(row.hardRejectReason || "No compatible");
+      return;
+    }
+    const role = selectedSlot?.role;
+    if (!role) {
+      toast.error("Seleccioná un slot de la lista (Display, Cámara, etc.) y después el producto");
+      return;
+    }
+    const targets = scene.slots.filter((s) => s.role === role);
+    setStaged({
+      productId: row.productId,
+      name: row.name,
+      brand: row.brand,
+      role,
     });
+    // Un solo slot de ese rol → ubicar directo
+    if (targets.length === 1) {
+      assignToSlot(targets[0]!.key, row.productId);
+      return;
+    }
+    toast.message(
+      "Producto en mano: click en un slot verde (lista o escena 3D) para ubicarlo",
+    );
+  }
+
+  function assignProduct(productId: string | null) {
+    if (!selectedSlot) {
+      toast.error("Seleccioná un slot o tomá un producto y ubicarlo en la escena");
+      return;
+    }
+    assignToSlot(selectedSlot.key, productId);
   }
 
   function createQuote() {
@@ -390,6 +460,12 @@ export function RoomBuilderEditor({
           <RoomViewport
             scene={scene}
             category={project.category}
+            placementSlotKeys={placementSlotKeys}
+            placementHint={
+              staged
+                ? `Producto en mano: ${staged.brand ? `${staged.brand} · ` : ""}${staged.name} — click en un slot verde`
+                : null
+            }
             onSelectSlot={onSelectSlot}
             onCameraPreset={onCameraPreset}
             onCoverageView={onCoverageView}
@@ -413,36 +489,67 @@ export function RoomBuilderEditor({
         </div>
         <div className="border-b border-slate-100 p-4">
           <h2 className="text-sm font-semibold text-slate-900">Slots</h2>
+          {staged ? (
+            <div className="mt-2 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-2 text-[11px] text-emerald-900">
+              <p className="font-semibold">
+                En mano: {staged.brand ? `${staged.brand} · ` : ""}
+                {staged.name}
+              </p>
+              <p className="mt-0.5">
+                Click en un slot verde (lista o 3D) para ubicarlo.
+              </p>
+              <button
+                type="button"
+                className="mt-1 underline"
+                onClick={() => setStaged(null)}
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <p className="mt-1 text-[11px] text-slate-500">
+              Elegí un producto abajo: queda en mano y lo ubicás con click en el
+              slot.
+            </p>
+          )}
           <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
             {scene.slots.map((slot) => {
               const device = scene.devices.find((d) => d.slotKey === slot.key);
               const active = scene.selectedSlotKey === slot.key;
+              const canPlace = staged != null && slot.role === staged.role;
               return (
                 <button
                   key={slot.key}
                   type="button"
                   onClick={() => onSelectSlot(slot.key)}
                   className={`flex w-full items-start justify-between rounded-lg px-2.5 py-2 text-left text-sm ${
-                    active
-                      ? "bg-slate-900 text-white"
-                      : "hover:bg-slate-50 text-slate-800"
+                    canPlace
+                      ? "border border-emerald-400 bg-emerald-50 text-emerald-950"
+                      : active
+                        ? "bg-slate-900 text-white"
+                        : "hover:bg-slate-50 text-slate-800"
                   }`}
                 >
                   <span>
                     <span className="font-medium">{slot.label}</span>
                     <span
                       className={`block text-[11px] ${
-                        active ? "text-slate-300" : "text-slate-500"
+                        canPlace
+                          ? "text-emerald-700"
+                          : active
+                            ? "text-slate-300"
+                            : "text-slate-500"
                       }`}
                     >
                       {slot.role} · {slot.mount}
                       {slot.required ? " · requerido" : ""}
+                      {canPlace ? " · click para ubicar" : ""}
                     </span>
                   </span>
                   {device?.productId ? (
                     <Check
                       className={`mt-0.5 h-4 w-4 shrink-0 ${
-                        active ? "text-emerald-300" : "text-emerald-600"
+                        active && !canPlace ? "text-emerald-300" : "text-emerald-600"
                       }`}
                     />
                   ) : null}
@@ -520,8 +627,12 @@ export function RoomBuilderEditor({
                 key={row.productId}
                 type="button"
                 disabled={!row.compatible || pending}
-                onClick={() => assignProduct(row.productId)}
-                className="flex w-full gap-2 rounded-lg border border-slate-200 p-2 text-left hover:border-slate-400 disabled:opacity-50"
+                onClick={() => pickProductForPlacement(row)}
+                className={`flex w-full gap-2 rounded-lg border p-2 text-left hover:border-slate-400 disabled:opacity-50 ${
+                  staged?.productId === row.productId
+                    ? "border-emerald-500 bg-emerald-50"
+                    : "border-slate-200"
+                }`}
               >
                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-slate-100">
                   {row.imageUrl ? (

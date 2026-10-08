@@ -1104,4 +1104,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Cadena Crestron/deps: procesador, teclas, accesorios incluidos/compatibles del catálogo y packs por plataforma." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-4",
+    version: "1.31.1",
+    releasedAt: "2026-10-08T21:20:00.000Z",
+    summary: "Room Builder: ubicar productos en slots desde lista o escena 3D.",
+    items: [
+      { kind: "FIX", text: "Al elegir un producto queda en mano y se ubica con click en el slot compatible (lista o 3D, marcados en verde)." },
+    ],
+  },
 ];
