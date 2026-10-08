@@ -1193,4 +1193,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "La escena ya no se gira ni se arrastra con el mouse. Se cambia solo con las vistas (General, A nivel, Cine, Frente AV, Planta, Detalle, POV)." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-12",
+    version: "1.36.0",
+    releasedAt: "2026-10-09T02:00:00.000Z",
+    summary: "Room Builder 3D nuevo: fotorrealista, cámara libre con vistas animadas y equipos modelados.",
+    items: [
+      { kind: "NUEVO", text: "Cámara libre: girás, acercás y movés con mouse o dedos; las vistas (General, Cine, Planta…) viajan suave y la sala gira sola cuando no la tocás." },
+      { kind: "NUEVO", text: "Materiales reales (madera, alfombra, mármol, revoque, tela), muebles 3D reales e iluminación de render con sombras suaves." },
+      { kind: "NUEVO", text: "Equipos modelados por tipo: pantallas encendidas a tamaño real según pulgadas, cámaras PTZ, parlantes, micrófonos, touch y racks con LEDs." },
+      { kind: "MEJORA", text: "Al tocar un equipo se ve su ficha con foto, marca y modelo; la calidad baja sola en compus más modestas." },
+    ],
+  },
 ];

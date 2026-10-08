@@ -1,9 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { RoundedBox } from "@react-three/drei";
 export { MAT } from "./room-theme";
 import { MAT } from "./room-theme";
+import { useSurface } from "./three/surfaces";
+import { MODELS, ModelOr } from "./three/models";
 
+/**
+ * Caja con bordes apenas redondeados (la luz marca el canto, como en un mueble
+ * real) y material PBR según el color de la paleta. Las UV quedan en metros,
+ * así la veta de la madera o el tejido tienen escala real.
+ */
 export function Box({
   args,
   position,
@@ -29,24 +37,37 @@ export function Box({
   receiveShadow?: boolean;
   onClick?: (e: { stopPropagation: () => void }) => void;
 }) {
+  const material = useSurface(color, roughness, metalness);
+  const minDim = Math.min(...args);
+  const radius = Math.min(0.018, minDim * 0.3);
+  if (emissive && emissiveIntensity > 0) {
+    return (
+      <mesh position={position} rotation={rotation} castShadow={castShadow} receiveShadow={receiveShadow} onClick={onClick}>
+        <boxGeometry args={args} />
+        <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} emissive={emissive} emissiveIntensity={emissiveIntensity} />
+      </mesh>
+    );
+  }
+  if (radius < 0.004) {
+    return (
+      <mesh position={position} rotation={rotation} castShadow={castShadow} receiveShadow={receiveShadow} onClick={onClick} material={material}>
+        <boxGeometry args={args} />
+      </mesh>
+    );
+  }
   return (
-    <mesh
+    <RoundedBox
+      args={args}
+      radius={radius}
+      smoothness={2}
+      bevelSegments={2}
       position={position}
       rotation={rotation}
       castShadow={castShadow}
-      receiveShadow={receiveShadow}
+      receiveShadow={receiveShadow || castShadow}
       onClick={onClick}
-    >
-      <boxGeometry args={args} />
-      <meshStandardMaterial
-        color={color}
-        roughness={roughness}
-        metalness={metalness}
-        emissive={emissive ?? "#000000"}
-        emissiveIntensity={emissiveIntensity}
-        envMapIntensity={1.1}
-      />
-    </mesh>
+      material={material}
+    />
   );
 }
 
@@ -67,19 +88,11 @@ export function Cyl({
   metalness?: number;
   castShadow?: boolean;
 }) {
-  const [rTop, rBot, h, seg = 24] = args;
+  const [rTop, rBot, h, seg = 32] = args;
+  const material = useSurface(color, roughness, metalness);
   return (
-    <mesh
-      position={position}
-      rotation={rotation}
-      castShadow={castShadow}
-    >
-      <cylinderGeometry args={[rTop, rBot, h, seg]} />
-      <meshStandardMaterial
-        color={color}
-        roughness={roughness}
-        metalness={metalness}
-      />
+    <mesh position={position} rotation={rotation} castShadow={castShadow} receiveShadow material={material}>
+      <cylinderGeometry args={[rTop, rBot, h, Math.max(seg, 32)]} />
     </mesh>
   );
 }
@@ -119,7 +132,7 @@ export function Chair({
 }
 
 /** Silla de aula / banquetes (más simple) */
-export function SideChair({
+function SideChairProcedural({
   x,
   z,
   rotY = 0,
@@ -221,7 +234,7 @@ export function RoundTable({
   );
 }
 
-export function Sofa({
+function SofaProcedural({
   width,
   x,
   z,
@@ -256,7 +269,7 @@ export function Sofa({
   );
 }
 
-export function CoffeeTable({
+function CoffeeTableProcedural({
   x,
   z,
   w = 1.1,
@@ -334,7 +347,7 @@ export function Nightstand({ x, z }: { x: number; z: number }) {
   );
 }
 
-export function MediaConsole({
+function MediaConsoleProcedural({
   width,
   x,
   z,
@@ -439,7 +452,7 @@ export function BarCounter({
   );
 }
 
-export function BarStool({ x, z }: { x: number; z: number }) {
+function BarStoolProcedural({ x, z }: { x: number; z: number }) {
   return (
     <group position={[x, 0, z]}>
       <Cyl args={[0.18, 0.18, 0.05, 16]} position={[0, 0.72, 0]} color={MAT.fabric} />
@@ -523,7 +536,7 @@ export function RackCabinet({
   );
 }
 
-export function Planter({ x, z, scale = 1 }: { x: number; z: number; scale?: number }) {
+function PlanterProcedural({ x, z, scale = 1 }: { x: number; z: number; scale?: number }) {
   return (
     <group position={[x, 0, z]} scale={scale}>
       <Cyl args={[0.22, 0.18, 0.35, 16]} position={[0, 0.18, 0]} color={MAT.metalDark} />
@@ -532,7 +545,7 @@ export function Planter({ x, z, scale = 1 }: { x: number; z: number; scale?: num
   );
 }
 
-export function Credenza({
+function CredenzaProcedural({
   width,
   x,
   z,
@@ -550,7 +563,7 @@ export function Credenza({
   );
 }
 
-export function LoungeChair({
+function LoungeChairProcedural({
   x,
   z,
   rotY = 0,
@@ -617,5 +630,71 @@ export function Group({
     <group position={position} rotation={rotation}>
       {children}
     </group>
+  );
+}
+
+/* ── Muebles con modelo 3D real (con el armado por código como respaldo) ── */
+
+type P<T extends (props: never) => unknown> = Parameters<T>[0];
+
+export function SideChair(props: P<typeof SideChairProcedural>) {
+  return (
+    <ModelOr url={MODELS.diningChair} fit={{ width: 0.46 }} at={{ x: props.x, z: props.z, rotY: props.rotY }} fallback={<SideChairProcedural {...props} />} />
+  );
+}
+
+export function Sofa(props: P<typeof SofaProcedural>) {
+  return (
+    <ModelOr url={MODELS.sofa} fit={{ width: props.width, depth: 0.92 }} at={{ x: props.x, z: props.z, rotY: props.rotY }} fallback={<SofaProcedural {...props} />} />
+  );
+}
+
+export function CoffeeTable(props: P<typeof CoffeeTableProcedural>) {
+  const w = props.w ?? 1.1;
+  const d = props.d ?? 0.55;
+  // El modelo tiene el lado largo en z: si la mesa es más ancha que profunda, se gira.
+  const rotate = w > d;
+  return (
+    <ModelOr
+      url={MODELS.coffeeTableStone}
+      fit={rotate ? { width: d, depth: w } : { width: w, depth: d }}
+      rotationY={rotate ? Math.PI / 2 : 0}
+      at={{ x: props.x, z: props.z }}
+      fallback={<CoffeeTableProcedural {...props} />}
+    />
+  );
+}
+
+export function MediaConsole(props: P<typeof MediaConsoleProcedural>) {
+  return (
+    <ModelOr url={MODELS.sideboard} fit={{ width: props.width, depth: 0.42 }} at={{ x: props.x, z: props.z, rotY: props.rotY }} fallback={<MediaConsoleProcedural {...props} />} />
+  );
+}
+
+export function Credenza(props: P<typeof CredenzaProcedural>) {
+  return (
+    <ModelOr url={MODELS.sideboard} fit={{ width: props.width, depth: 0.46 }} at={{ x: props.x, z: props.z, rotY: props.rotY }} fallback={<CredenzaProcedural {...props} />} />
+  );
+}
+
+export function LoungeChair(props: P<typeof LoungeChairProcedural>) {
+  return (
+    <ModelOr url={MODELS.loungeChair} fit={{ width: 0.82 }} at={{ x: props.x, z: props.z, rotY: props.rotY }} fallback={<LoungeChairProcedural {...props} />} />
+  );
+}
+
+export function BarStool(props: P<typeof BarStoolProcedural>) {
+  return <ModelOr url={MODELS.barStool} fit={{ width: 0.46 }} at={{ x: props.x, z: props.z }} fallback={<BarStoolProcedural {...props} />} />;
+}
+
+export function Planter(props: P<typeof PlanterProcedural>) {
+  const scale = props.scale ?? 1;
+  return (
+    <ModelOr
+      url={scale >= 1 ? MODELS.plantTall : MODELS.plantMedium}
+      fit={{ width: (scale >= 1 ? 0.62 : 0.6) * scale }}
+      at={{ x: props.x, z: props.z }}
+      fallback={<PlanterProcedural {...props} />}
+    />
   );
 }
