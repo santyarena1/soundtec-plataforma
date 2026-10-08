@@ -1165,4 +1165,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Botón «Reparar 3D»: rehace el layout del template y mantiene los productos asignados. Útil en proyectos viejos." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-9",
+    version: "1.34.3",
+    releasedAt: "2026-10-08T23:45:00.000Z",
+    summary: "Room Builder: orbitar la cámara ya no rompe el 3D.",
+    items: [
+      { kind: "FIX", text: "Al girar/zoom la vista se cortaba por límites de cámara y sombras suaves; ahora orbita estable (modo Rápido por defecto)." },
+    ],
+  },
 ];
