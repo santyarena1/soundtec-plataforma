@@ -5,6 +5,9 @@
 **Relacionado:** [`2026-10-08-crestron-room-builder-integracion.md`](./2026-10-08-crestron-room-builder-integracion.md)  
 **Visión del producto:** no embeber Crestron; **tomar su lógica de valor** (y la de peers como Cisco Workspace Designer) y construir un diseñador de salas **Soundtec**, multi-marca, interactivo en 3D, que genere **cotizaciones y PDF propios**.
 
+> **Limitaciones, datos existentes y alcance profesional (sin enfoque MVP):**  
+> [`2026-10-08-room-builder-limitaciones-alcance.md`](./2026-10-08-room-builder-limitaciones-alcance.md)
+
 ---
 
 ## 1. Resumen ejecutivo
