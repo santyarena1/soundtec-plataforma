@@ -1155,4 +1155,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Las etiquetas 3D solo aparecen al seleccionar un equipo, para no tapar la sala." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-8",
+    version: "1.34.2",
+    releasedAt: "2026-10-08T23:30:00.000Z",
+    summary: "Room Builder: 3D más resistente + botón Reparar 3D.",
+    items: [
+      { kind: "FIX", text: "Si el HDR/realista falla o la escena quedó con metros inválidos, el canvas ya no queda en blanco: cae a modo rápido y repara dims." },
+      { kind: "NUEVO", text: "Botón «Reparar 3D»: rehace el layout del template y mantiene los productos asignados. Útil en proyectos viejos." },
+    ],
+  },
 ];

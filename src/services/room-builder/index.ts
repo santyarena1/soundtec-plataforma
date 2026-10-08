@@ -16,3 +16,4 @@ export * from "./plan-mode";
 export * from "./dimensions";
 export * from "./interconnect";
 export * from "./slot-layout";
+export * from "./hydrate-scene";

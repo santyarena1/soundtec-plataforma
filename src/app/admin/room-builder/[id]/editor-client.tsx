@@ -9,6 +9,7 @@ import {
   Check,
   FileSpreadsheet,
   Loader2,
+  RefreshCw,
   Search,
   Sparkles,
 } from "lucide-react";
@@ -21,7 +22,10 @@ import {
   parseScene,
   type RoomScene,
 } from "@/services/room-builder/scene";
-import { relayoutSceneAnchors } from "@/services/room-builder/slot-layout";
+import {
+  hydrateRoomScene,
+  rebuildSceneKeepingProducts,
+} from "@/services/room-builder/hydrate-scene";
 import { PlanPanel } from "@/components/room-builder/plan-panel";
 import { DimensionsPanel } from "@/components/room-builder/dimensions-panel";
 import { InterconnectPanel } from "@/components/room-builder/interconnect-panel";
@@ -116,13 +120,15 @@ export function RoomBuilderEditor({
 }) {
   const [project, setProject] = useState(initialProject);
   const [scene, setScene] = useState<RoomScene>(() => {
-    const parsed = parseScene(initialProject.sceneJson) ?? emptyScene();
-    if (!parsed.templateKey) parsed.templateKey = initialProject.templateKey;
-    const { scene: laid } = relayoutSceneAnchors(parsed);
-    if (!laid.selectedSlotKey && laid.slots[0]) {
-      laid.selectedSlotKey = laid.slots[0].key;
+    const parsed = parseScene(initialProject.sceneJson);
+    try {
+      return hydrateRoomScene(parsed, {
+        templateKey: initialProject.templateKey,
+        heightM: Number(initialProject.heightM) || undefined,
+      }).scene;
+    } catch {
+      return parsed ?? emptyScene();
     }
-    return laid;
   });
   const [ranked, setRanked] = useState<RankRow[]>([]);
   const [rankMode, setRankMode] = useState<RankSortMode>("recommended");
@@ -169,22 +175,48 @@ export function RoomBuilderEditor({
       }
       setProject(json.project);
       const parsed = parseScene(json.project.sceneJson) ?? next;
-      setScene(relayoutSceneAnchors(parsed).scene);
+      setScene(
+        hydrateRoomScene(parsed, {
+          templateKey: json.project.templateKey || project.templateKey,
+          heightM: Number(json.project.heightM) || undefined,
+        }).scene,
+      );
     },
-    [project.id],
+    [project.id, project.templateKey],
   );
 
-  // Persistir re-anclaje de poses viejas (proyectos creados con coords fijas).
+  // Reparar y persistir escenas viejas / corruptas al abrir.
   useEffect(() => {
     const raw = parseScene(initialProject.sceneJson);
-    if (!raw) return;
-    if (!raw.templateKey) raw.templateKey = initialProject.templateKey;
-    const { scene: laid, changed } = relayoutSceneAnchors(raw);
-    if (!changed) return;
-    void persistScene(laid);
-    // solo al montar / cambiar de proyecto
+    try {
+      const { scene: laid, changed } = hydrateRoomScene(raw, {
+        templateKey: initialProject.templateKey,
+        heightM: Number(initialProject.heightM) || undefined,
+      });
+      if (!changed) return;
+      setScene(laid);
+      void persistScene(laid);
+    } catch {
+      // template desconocido
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProject.id]);
+
+  function repairLayout() {
+    try {
+      const repaired = rebuildSceneKeepingProducts(
+        scene,
+        project.templateKey,
+      );
+      setScene(repaired);
+      void persistScene(repaired);
+      toast.success(
+        "Layout 3D reparado: muebles y equipos reubicados (productos conservados)",
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo reparar");
+    }
+  }
 
   const loadRank = useCallback(async () => {
     if (!selectedSlot || project.kind === "hub") {
@@ -362,7 +394,13 @@ export function RoomBuilderEditor({
     const json = await res.json();
     if (json.ok) {
       setProject(json.project);
-      setScene(parseScene(json.project.sceneJson) ?? scene);
+      const parsed = parseScene(json.project.sceneJson) ?? scene;
+      setScene(
+        hydrateRoomScene(parsed, {
+          templateKey: json.project.templateKey,
+          heightM: Number(json.project.heightM) || undefined,
+        }).scene,
+      );
     }
   }
 
@@ -452,6 +490,16 @@ export function RoomBuilderEditor({
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={repairLayout}
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-950"
+              title="Rehace el layout 3D del template y mantiene los productos asignados"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Reparar 3D
+            </button>
             <button
               type="button"
               onClick={autoFill}
