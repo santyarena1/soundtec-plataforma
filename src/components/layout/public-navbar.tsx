@@ -22,10 +22,10 @@ export async function PublicNavbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/65">
-      <div className="container-page relative flex h-16 items-center justify-between gap-2">
+      <div className="container-page relative flex h-16 min-w-0 items-center justify-between gap-2">
         <Link href="/" className="flex min-w-0 items-center" aria-label={appName}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/landing/logo_soundtec.png" alt="Soundtec" className="h-10 w-auto sm:h-11" />
+          <img src="/landing/logo_soundtec.png" alt="Soundtec" className="h-10 w-auto max-w-[9.5rem] object-contain sm:h-11 sm:max-w-none" />
         </Link>
 
         <nav className="hidden gap-6 text-sm text-muted-foreground md:flex">
@@ -49,7 +49,7 @@ export async function PublicNavbar() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {session?.user?.role ? (
             <ButtonLink href={target} size="sm">
               Ir al portal

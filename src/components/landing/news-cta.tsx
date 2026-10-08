@@ -25,8 +25,8 @@ export function News({ posts }: { posts: Post[] }) {
   if (posts.length === 0) return null;
   return (
     <section id="novedades" className="container-page py-20 sm:py-24">
-      <div className="flex items-end justify-between gap-4">
-        <div>
+      <div className="flex min-w-0 items-end justify-between gap-4">
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Novedades</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Últimas notas del equipo.</h2>
         </div>
@@ -77,13 +77,13 @@ export function AccessCta() {
               Las cuentas se habilitan a mano por nuestro equipo comercial, con las condiciones de tu empresa ya
               cargadas. Si todavía no tenés acceso, pedilo y te respondemos dentro de las 24–48 hs hábiles.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/login" size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <ButtonLink href="/login" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90 sm:w-auto">
                 Iniciar sesión <ArrowRight className="h-4 w-4" />
               </ButtonLink>
               <a
                 href={`mailto:${CONTACT.email}?subject=${subject}&body=${body}`}
-                className="inline-flex h-11 items-center justify-center rounded-md border border-primary-foreground/30 px-6 text-sm font-medium text-primary-foreground hover:bg-primary-foreground/10"
+                className="inline-flex h-11 w-full items-center justify-center rounded-md border border-primary-foreground/30 px-6 text-sm font-medium text-primary-foreground hover:bg-primary-foreground/10 sm:w-auto"
               >
                 Pedir una cuenta
               </a>

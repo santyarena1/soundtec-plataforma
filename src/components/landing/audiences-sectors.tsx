@@ -79,12 +79,12 @@ export function AudiencesAndSectors() {
               </li>
             ))}
           </ul>
-          <dl className="mt-8 grid grid-cols-2 gap-4 border-t border-border pt-6 text-sm">
-            <div>
+          <dl className="mt-8 grid min-w-0 grid-cols-1 gap-4 border-t border-border pt-6 text-sm sm:grid-cols-2">
+            <div className="min-w-0">
               <dt className="text-xs uppercase tracking-wider text-muted-foreground">Certificación</dt>
               <dd className="mt-1 font-semibold">ISO 9001 · primera empresa AV de Argentina</dd>
             </div>
-            <div>
+            <div className="min-w-0">
               <dt className="text-xs uppercase tracking-wider text-muted-foreground">Membresía</dt>
               <dd className="mt-1 font-semibold">AVIXA</dd>
             </div>
