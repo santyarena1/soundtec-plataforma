@@ -28,7 +28,7 @@
 3. **Motor de reglas** multi-marca (Teams/Zoom/Crestron Flex/Home + Sonance + SoundTube + …).
 4. **Puente escena → Quote → PDF Soundtec** (esto es lo más fácil: ya hay stack).
 
-**No conviene** arrancar con “CAD fotorrealista de cada SKU”. Conviene un producto en capas: wizard + escena paramétrica → coverage → BOM vivo → cotización → PDF con renders.
+Para un lanzamiento **profesional**, la barra no es un prototipo descartable: tipologías cerradas impecables, coverage estimado con datos curados, proxies/hero models de calidad, BOM + PDF nativos, y pipeline de extracción desde fichas/datasheets. El fotorrealismo de *todo* el catálogo y la acústica certificada siguen fuera de un v1 serio — ver doc de limitaciones/alcance.
 
 ---
 
@@ -479,12 +479,10 @@ No el 3D en sí: **contenido + reglas + datos de cobertura**.
 
 ## 16. Decisión pedida para el próximo paso
 
-1. ¿Confirmamos scope MVP = **boardroom UC multi-marca** (no Home todavía)?  
-2. ¿Audiencia inicial = **solo admin/vendedores**?  
-3. ¿Prioridad visual = **paramétrico A/B** (aceptable) o exigís GLB fotorrealistas desde el día 1?  
-4. ¿Arrancamos después un **spike técnico** (prototipo R3F de una sala + 4 proxies + botón “crear COT”) sin productizar aún?
+Las decisiones de alcance profesional (tipologías, marcas con coverage obligatorio, audiencia, disclaimer de simulación, curación de datos) están en  
+[`2026-10-08-room-builder-limitaciones-alcance.md`](./2026-10-08-room-builder-limitaciones-alcance.md) §11.
 
-Hasta esa decisión, este documento + el de integración Crestron forman la base de investigación. **Sin implementación de producto en este trabajo.**
+Hasta esa decisión, este documento + el de integración Crestron + el de limitaciones/alcance forman la base de investigación. **Sin implementación de producto en este trabajo.**
 
 ---
 
