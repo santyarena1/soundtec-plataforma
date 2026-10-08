@@ -145,19 +145,24 @@ async function amplifierActions(s: Extract<Suggestion, { kind: "amplifier" }>, b
   return actions;
 }
 
-async function searchActions(terms: string[], preferred: string[], quantity = 1): Promise<FindingAction[]> {
+async function searchActions(terms: string[], preferred: string[], kind: SpecKind, quantity = 1): Promise<FindingAction[]> {
   const rows = (await prisma.product.findMany({
     where: { isActive: true, isDiscontinued: false, OR: terms.map((t) => ({ normalizedName: { contains: t, mode: "insensitive" as const } })) },
     select: SPEC_PRODUCT_SELECT,
     take: 60,
   })) as unknown as SpecProduct[];
   return rows
+    .filter((p) => {
+      const spec = effectiveSpec(p);
+      // Un amplificador con streaming integrado también resuelve la fuente.
+      return kind === "streamer" ? spec.streaming : spec.kind === kind;
+    })
     .sort(byPreference(preferred))
     .slice(0, SUGGESTIONS_PER_FINDING)
     .map((p) => ({ type: "add", productId: p.id, quantity, label: `Agregar ${label(p)}`, imageUrl: p.images[0]?.url ?? null, priceUsd: price(p) }));
 }
 
-const STREAMER_TERMS = ["NODE", "BluOS", "streamer", "DM-NAX"];
+const STREAMER_TERMS = ["NODE", "BluOS", "streamer", "DM-NAX-AMP", "ZSA"];
 const SWITCH_TERMS = ["switch"];
 
 /** Chequeo completo de un ambiente con sus acciones sugeridas. */
@@ -193,8 +198,8 @@ export async function analyzeProjectSystem(projectId: string): Promise<{ finding
       if (s.kind === "amplifier") {
         return { ...f, actions: await amplifierActions(s, brief, s.currentProductId ? (byId.get(s.currentProductId) ?? null) : null) };
       }
-      if (s.kind === "streamer") return { ...f, actions: await searchActions(STREAMER_TERMS, brief?.brands.streaming ?? []) };
-      return { ...f, actions: await searchActions(SWITCH_TERMS, brief?.brands.control ?? ["crestron"]) };
+      if (s.kind === "streamer") return { ...f, actions: await searchActions(STREAMER_TERMS, brief?.brands.streaming ?? [], "streamer") };
+      return { ...f, actions: await searchActions(SWITCH_TERMS, brief?.brands.control ?? ["crestron"], "switch") };
     }),
   );
   return { findings: resolved, brief };

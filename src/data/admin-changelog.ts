@@ -1282,4 +1282,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "En el panel de equipos, tocar el equipo abierto ahora lo colapsa." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-sistema-fix",
+    version: "1.40.1",
+    releasedAt: "2026-10-09T09:20:00.000Z",
+    summary: "Room Builder: sugerencias de streaming y potencias más precisas.",
+    items: [
+      { kind: "FIX", text: "Para streaming solo sugiere equipos que reproducen música por red (no accesorios de E/S o micrófonos)." },
+      { kind: "FIX", text: "Potencias de parlante imposibles (menos de 10 W) se ignoran en el cálculo." },
+    ],
+  },
 ];

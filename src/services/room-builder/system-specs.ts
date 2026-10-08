@@ -37,7 +37,10 @@ const EMPTY: Omit<SystemSpec, "kind"> = {
 };
 
 const AMP_NAME = /amplif|\bamp\b|amp-|powerzone|sonamp|\bdsp \d+-\d+/i;
-const STREAMER_NAME = /\bnode\b|bluos|streamer|sonos|dm-nax/i;
+/** Reproductores de red reales (no los accesorios DM-NAX de E/S o micrófono). */
+const STREAMER_NAME = /\bnode\b|bluos|streamer|sonos|dm-nax-(\d+zsa|amp)/i;
+/** Por debajo de esto el dato de potencia de un parlante no es creíble (error de carga). */
+const MIN_SPEAKER_WATTS = 10;
 const SWITCH_NAME = /\bswitch\b|poe\+? switch|cen-sw/i;
 
 /** Blaze PowerZone: "254" = 4 canales de 250 W; "122" = 2 de 125 W. PRO "600.4" = 600 W totales en 4 canales. */
@@ -104,13 +107,13 @@ export function deriveSystemSpec(input: SpecInput): SystemSpec {
       // Los amplificadores multizona actuales admiten 4 Ω salvo que se indique otra cosa.
       minOhms: parsed ? 4 : null,
       networked: /connect|dm-nax|dsp|\bip\b|pro\b/i.test(input.name),
-      streaming: /dm-nax/i.test(input.name),
+      streaming: /dm-nax-(\d+zsa|amp)/i.test(input.name),
     };
   }
   if (kind === "speaker") {
     return {
       ...base,
-      wattsPerChannel: input.ai?.powerWatts ? Math.round(input.ai.powerWatts) : null,
+      wattsPerChannel: input.ai?.powerWatts && input.ai.powerWatts >= MIN_SPEAKER_WATTS ? Math.round(input.ai.powerWatts) : null,
       nominalOhms: input.ai?.impedanceOhms ?? null,
     };
   }
