@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatUsd } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import {
   sendRequest,
   removeRequestItemForm,
@@ -241,12 +242,7 @@ function ItemList({
           <div className="flex items-start gap-3">
             <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-secondary border border-border">
               {i.product.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={i.product.imageUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
+                <OptimizedImage src={i.product.imageUrl} alt="" width={128} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
                   <Box className="h-5 w-5 text-muted-foreground" />

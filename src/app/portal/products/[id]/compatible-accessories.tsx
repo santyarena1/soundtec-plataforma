@@ -8,6 +8,7 @@ import { StockBadge } from "../catalog-grid";
 import { AddToDraftButton } from "../add-to-draft-button";
 import { BundleAddAccessoryButton, useProductBundle } from "./product-bundle";
 import { Package } from "lucide-react";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 export interface CompatibleAccessoryItem {
   relationId: string;
@@ -110,8 +111,7 @@ export function CompatibleAccessoriesSection({ parentProductName, items, variant
               <Link href={`/portal/products/${item.productId}`} className="block">
                 <div className="aspect-[4/3] bg-white p-2">
                   {item.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain" loading="lazy" />
+                    <OptimizedImage src={item.imageUrl} alt={item.name} width={384} className="h-full w-full object-contain" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                       Sin imagen

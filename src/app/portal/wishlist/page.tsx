@@ -13,6 +13,7 @@ import { Heart, Trash2 } from "lucide-react";
 import { removeWishlistItem } from "@/server/actions/wishlist";
 import { createRequestDraft } from "@/server/actions/requests";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 export const metadata = { title: "Favoritos" };
 
@@ -87,10 +88,10 @@ export default async function WishlistPage() {
             <Link href={`/portal/products/${item.product.id}`} className="block">
               <div className="aspect-[4/3] overflow-hidden rounded-t-lg bg-white">
                 {item.product.images[0] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <OptimizedImage
                     src={item.product.images[0].url}
                     alt={item.product.normalizedName}
+                    width={750}
                     className="h-full w-full object-contain"
                   />
                 ) : null}

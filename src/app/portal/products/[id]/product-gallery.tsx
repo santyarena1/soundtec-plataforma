@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ZoomIn, ZoomOut, X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 interface Image {
   id: string;
@@ -206,10 +207,12 @@ export function ProductGallery({ images, productName }: Props) {
         style={{ aspectRatio: String(frameRatio) }}
         aria-label="Ver imagen ampliada"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <OptimizedImage
           src={active.url}
           alt={active.alt || productName}
+          width={1920}
+          quality={82}
+          loading="eager"
           className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]"
           onLoad={(event) => {
             const { naturalWidth, naturalHeight } = event.currentTarget;
@@ -248,10 +251,11 @@ export function ProductGallery({ images, productName }: Props) {
                 aria-label={`Imagen ${i + 1}`}
                 aria-current={isActive}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <OptimizedImage
                   src={img.url}
                   alt={img.alt || `${productName} ${i + 1}`}
+                  width={256}
+                  quality={70}
                   className="h-full w-full object-contain"
                 />
               </button>

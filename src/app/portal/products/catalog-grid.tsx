@@ -7,6 +7,7 @@ import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
 import { SelectableCard } from "./catalog-multi-select";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 interface GridProps {
   items: CatalogProduct[];
@@ -41,12 +42,11 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
               <Link href={href} className="block" aria-label={p.normalizedName}>
                 <div className="aspect-[4/3] w-full overflow-hidden bg-white p-3">
                   {p.primaryImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <OptimizedImage
                       src={p.primaryImage}
                       alt={p.normalizedName}
+                      width={750}
                       className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-muted-foreground">Sin imagen</div>
