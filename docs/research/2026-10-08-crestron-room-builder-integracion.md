@@ -5,6 +5,10 @@
 **Estado:** documento de referencia para decisión de producto  
 **Alcance:** evaluar qué es el “Room Builder” de Crestron y si encaja en la plataforma Soundtec.
 
+> **Visión ampliada:** si el objetivo es un Room Builder **propio de Soundtec** (3D interactivo, multi-marca, cotización/PDF nativos), ver  
+> [`2026-10-08-soundtec-room-builder-3d-propio.md`](./2026-10-08-soundtec-room-builder-3d-propio.md).  
+> Este documento se centra en las herramientas Crestron y el puente BOM → plataforma.
+
 ---
 
 ## 1. Resumen ejecutivo
