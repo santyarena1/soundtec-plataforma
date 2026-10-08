@@ -1081,4 +1081,47 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "El Excel del evento en Configuración → Expo también incluye pedido de cuenta, escaneos y marcas vistas." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder",
+    version: "1.30.0",
+    releasedAt: "2026-10-08T20:00:00.000Z",
+    summary: "Room Builder 3D interno: salas, hubs hotel/campus, ranking y cotización.",
+    items: [
+      { kind: "NUEVO", text: "Admin → Room Builder: templates de tipologías (VC, hotel, aula, eventos, living, lobby, etc.) con vista 3D multi-cámara y cobertura." },
+      { kind: "NUEVO", text: "Proyectos multi-espacio (hotel, campus corporativo/educativo) con unidades repetidas y BOM agregado a cotización." },
+      { kind: "NUEVO", text: "Perfiles de diseño offline desde specs/AI/dims del catálogo + ranking por compatibilidad, precio, cobertura y stock." },
+    ],
+  },
+  {
+    id: "ship-2026-10-08-room-builder-2",
+    version: "1.31.0",
+    releasedAt: "2026-10-08T20:30:00.000Z",
+    summary: "Room Builder: fichas oficiales, autocompletar y modo desde plano.",
+    items: [
+      { kind: "NUEVO", text: "Enrich desde vendorProductUrl oficial (FOV/alcance/diagonal) sin Serper." },
+      { kind: "NUEVO", text: "Autocompletar slots con el ranking recomendado al crear o con un botón." },
+      { kind: "NUEVO", text: "Modo Desde plano: subir imagen, calibrar escala y extruir muros 3D básicos." },
+      { kind: "MEJORA", text: "Proxies 3D por rol (cámara, mic, display, speaker, touch, rack)." },
+    ],
+  },
+  {
+    id: "ship-2026-10-08-room-builder-3",
+    version: "1.32.0",
+    releasedAt: "2026-10-08T21:00:00.000Z",
+    summary: "Room Builder: tipologías distintas, metros y cadena Crestron.",
+    items: [
+      { kind: "FIX", text: "Cada tipología (hotel, aula, lobby, eventos, etc.) tiene mobiliario 3D propio; ya no parecen todas salas de reunión." },
+      { kind: "NUEVO", text: "Dimensiones editables en metros (ancho/fondo/alto) al crear y dentro del editor." },
+      { kind: "NUEVO", text: "Cadena Crestron/deps: procesador, teclas, accesorios incluidos/compatibles del catálogo y packs por plataforma." },
+    ],
+  },
+  {
+    id: "ship-2026-10-08-room-builder-4",
+    version: "1.32.1",
+    releasedAt: "2026-10-08T21:20:00.000Z",
+    summary: "Room Builder: ubicar productos en slots desde lista o escena 3D.",
+    items: [
+      { kind: "FIX", text: "Al elegir un producto del ranking se ubica en el slot seleccionado; si hay varios del mismo rol, queda en mano para clickear otro slot verde (lista o 3D)." },
+    ],
+  },
 ];

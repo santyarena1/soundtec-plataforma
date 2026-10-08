@@ -14,7 +14,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "test": "tsx --test src/lib/product-code-name.test.ts src/services/soundtube/price-list.test.ts src/services/soundtube/price-list-plan.test.ts src/services/sonance-portal-price.test.ts src/services/ai-assistant/assistant.test.ts src/services/ai-assistant/facets.test.ts src/lib/expo/cuit.test.ts src/lib/expo/welcome-gate.test.ts src/lib/expo/tokens.test.ts src/lib/expo/report.test.ts src/lib/expo/account-request-schema.test.ts src/lib/expo/spreadsheet.test.ts src/lib/expo/html.test.ts src/lib/expo/whatsapp.test.ts src/lib/expo/datetime.test.ts src/lib/catalog-relevance.test.ts src/lib/expo/showcase.test.ts src/lib/brand-logo.test.ts src/services/hall-research-web/normalize.test.ts src/services/hall-research/price-list.test.ts src/lib/catalog-brands.test.ts"
+    "test": "tsx --test src/lib/product-code-name.test.ts src/services/soundtube/price-list.test.ts src/services/soundtube/price-list-plan.test.ts src/services/sonance-portal-price.test.ts src/services/ai-assistant/assistant.test.ts src/services/ai-assistant/facets.test.ts src/lib/expo/cuit.test.ts src/lib/expo/welcome-gate.test.ts src/lib/expo/tokens.test.ts src/lib/expo/report.test.ts src/lib/expo/account-request-schema.test.ts src/lib/expo/spreadsheet.test.ts src/lib/expo/html.test.ts src/lib/expo/whatsapp.test.ts src/lib/expo/datetime.test.ts src/lib/catalog-relevance.test.ts src/lib/expo/showcase.test.ts src/lib/brand-logo.test.ts src/services/hall-research-web/normalize.test.ts src/services/hall-research/price-list.test.ts src/lib/catalog-brands.test.ts src/services/room-builder/coverage.test.ts src/services/room-builder/ranking.test.ts src/services/room-builder/templates.test.ts src/services/room-builder/from-product.test.ts src/services/room-builder/enrich-official.test.ts src/services/room-builder/dimensions.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -23,6 +23,8 @@
     "@auth/prisma-adapter": "^2.7.4",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "^5.22.0",
+    "@react-three/drei": "^9.117.3",
+    "@react-three/fiber": "^8.17.14",
     "@sparticuz/chromium": "^133.0.0",
     "@tanstack/react-table": "^8.20.5",
     "@tiptap/extension-text-align": "^3.30.1",
@@ -47,9 +49,11 @@
     "sharp": "^0.33.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.5.4",
+    "three": "^0.186.1",
     "undici": "^6.28.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -58,6 +62,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.170.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.18",
