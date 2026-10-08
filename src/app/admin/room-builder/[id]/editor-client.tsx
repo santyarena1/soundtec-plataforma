@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   Loader2,
   Search,
+  Sparkles,
 } from "lucide-react";
 import type {
   CameraPreset,
@@ -20,6 +21,7 @@ import {
   parseScene,
   type RoomScene,
 } from "@/services/room-builder/scene";
+import { PlanPanel } from "@/components/room-builder/plan-panel";
 
 const RoomViewport = dynamic(
   () =>
@@ -239,6 +241,34 @@ export function RoomBuilderEditor({
     });
   }
 
+  function autoFill() {
+    startTransition(async () => {
+      const res = await fetch(
+        `/api/admin/room-builder/projects/${project.id}/autofill`,
+        { method: "POST" },
+      );
+      const json = await res.json();
+      if (!json.ok) {
+        toast.error(json.error || "No se pudo autocompletar");
+        return;
+      }
+      setProject(json.project);
+      setScene(parseScene(json.project.sceneJson) ?? scene);
+      toast.success(
+        `Autocompletado: ${json.filled}/${json.attempted} slots`,
+      );
+    });
+  }
+
+  async function reloadProject() {
+    const res = await fetch(`/api/admin/room-builder/projects/${project.id}`);
+    const json = await res.json();
+    if (json.ok) {
+      setProject(json.project);
+      setScene(parseScene(json.project.sceneJson) ?? scene);
+    }
+  }
+
   if (project.kind === "hub") {
     return (
       <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -324,19 +354,34 @@ export function RoomBuilderEditor({
               {project.quote ? ` · COT ${project.quote.number}` : ""}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={createQuote}
-            disabled={pending}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#1e3553] px-3 py-2 text-sm font-semibold text-white"
-          >
-            {pending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileSpreadsheet className="h-4 w-4" />
-            )}
-            Cotizar
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={autoFill}
+              disabled={pending}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800"
+            >
+              {pending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              Autocompletar
+            </button>
+            <button
+              type="button"
+              onClick={createQuote}
+              disabled={pending}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#1e3553] px-3 py-2 text-sm font-semibold text-white"
+            >
+              {pending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
+              Cotizar
+            </button>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1">
@@ -392,6 +437,12 @@ export function RoomBuilderEditor({
         </div>
 
         <div className="space-y-3 p-4">
+          <PlanPanel
+            projectId={project.id}
+            planImageUrl={scene.plan?.imageUrl}
+            onUpdated={() => void reloadProject()}
+          />
+
           <div>
             <h3 className="text-sm font-semibold text-slate-900">
               {selectedSlot ? selectedSlot.label : "Seleccioná un slot"}

@@ -1081,4 +1081,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Perfiles de diseño offline desde specs/AI/dims del catálogo + ranking por compatibilidad, precio, cobertura y stock." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-2",
+    version: "1.30.0",
+    releasedAt: "2026-10-08T20:30:00.000Z",
+    summary: "Room Builder: fichas oficiales, autocompletar y modo desde plano.",
+    items: [
+      { kind: "NUEVO", text: "Enrich desde vendorProductUrl oficial (FOV/alcance/diagonal) sin Serper." },
+      { kind: "NUEVO", text: "Autocompletar slots con el ranking recomendado al crear o con un botón." },
+      { kind: "NUEVO", text: "Modo Desde plano: subir imagen, calibrar escala y extruir muros 3D básicos." },
+      { kind: "MEJORA", text: "Proxies 3D por rol (cámara, mic, display, speaker, touch, rack)." },
+    ],
+  },
 ];

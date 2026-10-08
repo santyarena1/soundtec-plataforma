@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { autoFillProjectSlots } from "./auto-fill";
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { getHubPreset } from "./hub-presets";
 import { getRoomTemplate, resizeTemplate } from "./templates";
@@ -83,6 +84,7 @@ export async function createSpaceProject(input: {
   unitCount?: number;
   parentId?: string | null;
   notes?: string | null;
+  autoFill?: boolean;
 }) {
   await ensureRoomBuilderSchema();
   const base = getRoomTemplate(input.templateKey);
@@ -93,7 +95,7 @@ export async function createSpaceProject(input: {
       : base;
   const scene = buildSceneFromTemplate(template);
 
-  return prisma.roomProject.create({
+  const created = await prisma.roomProject.create({
     data: {
       name: input.name,
       kind: "space",
@@ -127,6 +129,17 @@ export async function createSpaceProject(input: {
       children: true,
     },
   });
+
+  if (input.autoFill !== false) {
+    try {
+      await autoFillProjectSlots(created.id, { includeOptional: false });
+    } catch {
+      // ranking vacío no debe romper el alta
+    }
+    return (await getRoomProject(created.id)) ?? created;
+  }
+
+  return created;
 }
 
 export async function createHubProject(input: {

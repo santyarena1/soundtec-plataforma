@@ -161,6 +161,26 @@ export function RoomBuilderHome() {
     });
   }
 
+  function runOfficialEnrich() {
+    startTransition(async () => {
+      toast.message("Leyendo fichas oficiales (FOV/alcance)…");
+      const res = await fetch("/api/admin/room-builder/enrich-official", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ take: 15, loops: 4 }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        toast.error(json.error || "Falló enrich oficial");
+        return;
+      }
+      toast.success(
+        `Oficial: +${json.batch.updated} (scan ${json.batch.scanned}, fail ${json.batch.failed})`,
+      );
+      await reload();
+    });
+  }
+
   async function removeProject(id: string) {
     if (!confirm("¿Eliminar este proyecto?")) return;
     const res = await fetch(`/api/admin/room-builder/projects/${id}`, {
@@ -222,15 +242,25 @@ export function RoomBuilderHome() {
           <p className="mt-1 text-2xl font-semibold text-slate-900">
             {projects.length}
           </p>
-          <button
-            type="button"
-            onClick={runEnrich}
-            disabled={pending}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Generar / actualizar perfiles
-          </button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={runEnrich}
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Perfiles offline
+            </button>
+            <button
+              type="button"
+              onClick={runOfficialEnrich}
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+            >
+              Fichas oficiales
+            </button>
+          </div>
         </div>
       </section>
 

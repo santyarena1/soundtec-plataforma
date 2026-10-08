@@ -139,22 +139,60 @@ function RoomShell({
   widthM,
   depthM,
   heightM,
+  plan,
 }: {
   widthM: number;
   depthM: number;
   heightM: number;
+  plan: RoomScene["plan"];
 }) {
-  const floor = useMemo(
-    () => new THREE.Color("#d6dde6"),
-    [],
-  );
+  const floor = useMemo(() => new THREE.Color("#d6dde6"), []);
+
+  if (plan?.enabled && plan.walls.length > 0) {
+    return (
+      <group>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+          <planeGeometry args={[widthM * 1.2, depthM * 1.2]} />
+          <meshStandardMaterial color={floor} roughness={0.92} metalness={0.02} />
+        </mesh>
+        {plan.walls.map((wall) => {
+          const dx = wall.b.x - wall.a.x;
+          const dz = wall.b.y - wall.a.y;
+          const len = Math.hypot(dx, dz);
+          const midX = (wall.a.x + wall.b.x) / 2;
+          const midZ = (wall.a.y + wall.b.y) / 2;
+          const rotY = Math.atan2(dx, dz);
+          return (
+            <mesh
+              key={wall.id}
+              position={[midX, heightM / 2, midZ]}
+              rotation={[0, rotY, 0]}
+            >
+              <boxGeometry args={[0.1, heightM, len]} />
+              <meshStandardMaterial color="#e8edf3" roughness={0.95} />
+            </mesh>
+          );
+        })}
+        <mesh position={[0, 0.72, 0]} castShadow>
+          <boxGeometry
+            args={[
+              Math.min(widthM * 0.4, 3),
+              0.06,
+              Math.min(depthM * 0.25, 1.3),
+            ]}
+          />
+          <meshStandardMaterial color="#8b7355" roughness={0.7} />
+        </mesh>
+      </group>
+    );
+  }
+
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[widthM, depthM]} />
         <meshStandardMaterial color={floor} roughness={0.92} metalness={0.02} />
       </mesh>
-      {/* walls */}
       <mesh position={[0, heightM / 2, -depthM / 2]}>
         <boxGeometry args={[widthM, heightM, 0.08]} />
         <meshStandardMaterial color="#eef2f6" roughness={0.95} />
@@ -167,9 +205,14 @@ function RoomShell({
         <boxGeometry args={[0.08, heightM, depthM]} />
         <meshStandardMaterial color="#e8edf3" roughness={0.95} />
       </mesh>
-      {/* table proxy */}
       <mesh position={[0, 0.72, 0]} castShadow>
-        <boxGeometry args={[Math.min(widthM * 0.45, 3.2), 0.06, Math.min(depthM * 0.28, 1.4)]} />
+        <boxGeometry
+          args={[
+            Math.min(widthM * 0.45, 3.2),
+            0.06,
+            Math.min(depthM * 0.28, 1.4),
+          ]}
+        />
         <meshStandardMaterial color="#8b7355" roughness={0.7} />
       </mesh>
       <mesh position={[0, 0.36, 0]}>
@@ -232,6 +275,89 @@ function CoverageCone({
   return null;
 }
 
+function DeviceMesh({
+  role,
+  color,
+  selected,
+  onClick,
+}: {
+  role: string;
+  color: string;
+  selected: boolean;
+  onClick: (e: { stopPropagation: () => void }) => void;
+}) {
+  const mat = (
+    <meshStandardMaterial
+      color={selected ? "#2563eb" : color}
+      emissive={selected ? "#1d4ed8" : "#000000"}
+      emissiveIntensity={selected ? 0.25 : 0}
+      roughness={0.45}
+      metalness={0.15}
+    />
+  );
+
+  if (role === "display") {
+    return (
+      <mesh castShadow onClick={onClick}>
+        <boxGeometry args={[1.35, 0.78, 0.07]} />
+        {mat}
+      </mesh>
+    );
+  }
+  if (role === "camera") {
+    return (
+      <group onClick={onClick}>
+        <mesh castShadow position={[0, 0, 0]}>
+          <boxGeometry args={[0.18, 0.12, 0.16]} />
+          {mat}
+        </mesh>
+        <mesh position={[0, 0, 0.12]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.05, 0.06, 0.1, 16]} />
+          {mat}
+        </mesh>
+      </group>
+    );
+  }
+  if (role === "mic") {
+    return (
+      <mesh castShadow onClick={onClick}>
+        <cylinderGeometry args={[0.16, 0.16, 0.05, 24]} />
+        {mat}
+      </mesh>
+    );
+  }
+  if (role === "speaker") {
+    return (
+      <mesh castShadow onClick={onClick}>
+        <cylinderGeometry args={[0.14, 0.14, 0.08, 24]} />
+        {mat}
+      </mesh>
+    );
+  }
+  if (role === "touch") {
+    return (
+      <mesh castShadow onClick={onClick}>
+        <boxGeometry args={[0.28, 0.18, 0.03]} />
+        {mat}
+      </mesh>
+    );
+  }
+  if (role === "codec" || role === "processor") {
+    return (
+      <mesh castShadow onClick={onClick}>
+        <boxGeometry args={[0.45, 0.09, 0.3]} />
+        {mat}
+      </mesh>
+    );
+  }
+  return (
+    <mesh castShadow onClick={onClick}>
+      <boxGeometry args={[0.22, 0.16, 0.18]} />
+      {mat}
+    </mesh>
+  );
+}
+
 function DeviceProxy({
   device,
   selected,
@@ -244,13 +370,6 @@ function DeviceProxy({
   coverageView: CoverageViewMode;
 }) {
   const color = roleColor(device.designRole);
-  const size =
-    device.designRole === "display"
-      ? ([1.2, 0.7, 0.08] as const)
-      : device.designRole === "speaker"
-        ? ([0.25, 0.35, 0.2] as const)
-        : ([0.22, 0.16, 0.18] as const);
-
   const showCoverage =
     coverageView === "zones" ||
     coverageView === "seats" ||
@@ -261,24 +380,17 @@ function DeviceProxy({
       position={[device.pose.x, device.pose.y, device.pose.z]}
       rotation={[0, (device.pose.rotY * Math.PI) / 180, 0]}
     >
-      <mesh
-        castShadow
+      <DeviceMesh
+        role={device.designRole}
+        color={color}
+        selected={selected}
         onClick={(e) => {
           e.stopPropagation();
           onSelect(device.slotKey);
         }}
-      >
-        <boxGeometry args={[...size]} />
-        <meshStandardMaterial
-          color={selected ? "#2563eb" : color}
-          emissive={selected ? "#1d4ed8" : "#000000"}
-          emissiveIntensity={selected ? 0.25 : 0}
-          roughness={0.45}
-          metalness={0.15}
-        />
-      </mesh>
+      />
       {selected || device.productId ? (
-        <Html distanceFactor={8} position={[0, size[1] / 2 + 0.25, 0]} center>
+        <Html distanceFactor={8} position={[0, 0.35, 0]} center>
           <div className="rounded bg-slate-900/90 px-2 py-1 text-[10px] font-medium text-white shadow whitespace-nowrap">
             {device.productName || device.label}
           </div>
@@ -321,6 +433,7 @@ function SceneContent({
         widthM={scene.widthM}
         depthM={scene.depthM}
         heightM={scene.heightM}
+        plan={scene.plan}
       />
       {scene.devices.map((device) => (
         <DeviceProxy

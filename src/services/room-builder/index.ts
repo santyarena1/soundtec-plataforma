@@ -10,3 +10,6 @@ export * from "./rank-from-db";
 export * from "./project-service";
 export * from "./quote-from-project";
 export * from "./ensure-schema";
+export * from "./enrich-official";
+export * from "./auto-fill";
+export * from "./plan-mode";

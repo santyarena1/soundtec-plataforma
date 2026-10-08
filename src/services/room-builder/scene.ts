@@ -6,6 +6,7 @@ import type {
   RoomSlot,
   RoomTemplate,
 } from "./types";
+import type { PlanModeState } from "./plan-mode";
 
 export type SceneDevice = {
   id: string;
@@ -18,6 +19,7 @@ export type SceneDevice = {
   coverage: DeviceCoverage | null;
   productName?: string | null;
   brandName?: string | null;
+  proxyKey?: string | null;
 };
 
 export type RoomScene = {
@@ -32,6 +34,8 @@ export type RoomScene = {
   selectedSlotKey: string | null;
   slots: RoomSlot[];
   devices: SceneDevice[];
+  /** Presente cuando el espacio se armó / editó desde plano. */
+  plan?: PlanModeState | null;
 };
 
 export function buildSceneFromTemplate(template: RoomTemplate): RoomScene {
