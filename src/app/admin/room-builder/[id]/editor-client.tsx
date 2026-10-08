@@ -469,6 +469,7 @@ export function RoomBuilderEditor({
           <RoomViewport
             scene={scene}
             category={project.category}
+            templateKey={project.templateKey}
             placementSlotKeys={placementSlotKeys}
             placementHint={
               staged

@@ -1124,4 +1124,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Al elegir un producto del ranking se ubica en el slot seleccionado; si hay varios del mismo rol, queda en mano para clickear otro slot verde (lista o 3D)." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-5",
+    version: "1.33.0",
+    releasedAt: "2026-10-08T22:00:00.000Z",
+    summary: "Room Builder 3D rehecho: tipologías realmente distintas y proxies de equipos.",
+    items: [
+      { kind: "MEJORA", text: "Cada template (huddle, boardroom, aula, hotel, suite, bar pileta, lobby, eventos, living, control, pasillo) tiene mobiliario 3D propio — ya no son cajas genéricas iguales." },
+      { kind: "MEJORA", text: "Sala con 4 muros, techo, zócalos, ventanas, puerta y paleta de materiales por tipología." },
+      { kind: "MEJORA", text: "Proxies de display, cámara PTZ, mic de techo, parlante, touch y rack con pantalla/leds; estilo product-render corporativo." },
+    ],
+  },
 ];
