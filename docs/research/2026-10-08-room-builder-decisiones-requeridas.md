@@ -4,6 +4,9 @@
 **Premisa de lanzamiento:** cuando esté online, tiene que estar usable al **~90–95%**, no “a medias”.  
 **Premisa de datos:** marcas, catálogo (~3000) y documentaciones **ya están en la plataforma**. El inventario de qué SKU tiene spec/PDF/CAD lo hace el equipo/agente sobre la base; **no te lo pedimos a vos**.
 
+> **Decisiones ya respondidas:**  
+> [`2026-10-08-room-builder-decisiones-cerradas.md`](./2026-10-08-room-builder-decisiones-cerradas.md)
+
 ---
 
 ## Lo que NO te pedimos (ya existe o lo relevamos nosotros)

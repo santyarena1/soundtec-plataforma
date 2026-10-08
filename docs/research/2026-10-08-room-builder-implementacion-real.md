@@ -62,28 +62,29 @@ Input mínimo: `brand + modelNumber|manufacturerItem|normalizedName + internalSk
 Pasos por SKU:
 
 ```
-1. Discovery
-   Serper: "{brand} {model} datasheet filetype:pdf"
-   Serper: "{brand} {model} site:fabricante.com"
-   Preferir URL ya conocida (vendorProductUrl, documents[])
+1. Fuentes propias Soundtec (verdad prioritaria)
+   documents[] + specifications[] + dims + vendorProductUrl
 
-2. Fetch
-   Descargar página oficial y/o PDF datasheet
-   Guardar raw en sourceMetadata.designEnrich + blob del PDF
+2. Sitio oficial del fabricante (verdad canónica de enrich)
+   Seguir vendorProductUrl / links en documents
+   Ficha, recursos, banco de fotos, datasheet PDF del fabricante
+   Guardar raw en sourceMetadata.designEnrich (+ blob PDF si aplica)
 
-3. Extract
-   - Si ya hay specifications tipadas → mapear labels conocidos
-   - PDF → texto/tablas (parser) → LLM schema-fill a ProductDesignProfile
-   - Cada campo sale con: value, unit, confidence, sourceUrl, evidence
+3. Extract (IA + parsers)
+   - Mapear specifications tipadas ya existentes
+   - PDF/HTML oficial → schema-fill ProductDesignProfile
+   - Cada campo: value, unit, confidence, sourceUrl, evidence
 
-4. Validate
-   Rangos por rol (cámara FOV 30–180°, display diagonal 32–110", etc.)
-   Marcar low-confidence / conflict / missing
+4. Discovery opcional (NO fuente de verdad)
+   Serper u otros SOLO si falta URL oficial
+   Todo hallazgo debe validarse contra página oficial antes de persistir
 
-5. Upsert
-   ProductDesignProfile + no pisar precio/stock
-   Opcional: rellenar widthCm/heightCm/depthCm solo si vacíos y confidence alta
+5. Validate + Upsert
+   Rangos por rol; low-confidence / missing sin inventar coverage
+   No pisar precio/stock
 ```
+
+Decisión de negocio: ver [`room-builder-decisiones-cerradas.md`](./2026-10-08-room-builder-decisiones-cerradas.md).
 
 ### 2.3 Schema concreto a persistir
 
