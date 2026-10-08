@@ -6,13 +6,11 @@ import {
   Environment,
   Html,
   OrbitControls,
-  SoftShadows,
 } from "@react-three/drei";
 import {
   Component,
   Suspense,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type ErrorInfo,
@@ -59,6 +57,85 @@ function roleColor(role: string): string {
   }
 }
 
+function framingFor(
+  preset: CameraPreset,
+  widthM: number,
+  depthM: number,
+  heightM: number,
+  selected: SceneDevice | null,
+): { position: [number, number, number]; target: [number, number, number]; fov: number } {
+  const w = widthM;
+  const d = depthM;
+  const h = heightM;
+  switch (preset) {
+    case "plan":
+      return {
+        position: [0, Math.max(h * 2.6, 7), 0.01],
+        target: [0, 0, 0],
+        fov: 48,
+      };
+    case "eye":
+      return {
+        position: [0, 1.55, -d / 2 + 0.55],
+        target: [0, 1.25, d / 2 - 0.3],
+        fov: 58,
+      };
+    case "cinema":
+      return {
+        position: [-w * 0.42, h * 0.55, -d * 0.48],
+        target: [w * 0.08, h * 0.45, d * 0.2],
+        fov: 36,
+      };
+    case "front_av":
+      return {
+        position: [0, h * 0.85, -d * 0.15],
+        target: [0, h * 0.55, d / 2 - 0.15],
+        fov: 42,
+      };
+    case "detail":
+      if (selected) {
+        return {
+          position: [
+            selected.pose.x + 1.35,
+            selected.pose.y + 0.55,
+            selected.pose.z + 1.35,
+          ],
+          target: [selected.pose.x, selected.pose.y, selected.pose.z],
+          fov: 42,
+        };
+      }
+      return {
+        position: [w * 0.35, h * 0.85, d * 0.35],
+        target: [0, h * 0.4, 0],
+        fov: 42,
+      };
+    case "device_pov":
+      if (selected) {
+        return {
+          position: [
+            selected.pose.x,
+            selected.pose.y + 0.12,
+            selected.pose.z - 0.4,
+          ],
+          target: [selected.pose.x, selected.pose.y, selected.pose.z + 1.8],
+          fov: 50,
+        };
+      }
+      return {
+        position: [0, h * 0.7, -d * 0.1],
+        target: [0, h * 0.5, d / 2],
+        fov: 50,
+      };
+    case "general":
+    default:
+      return {
+        position: [w * 0.58, h * 0.95, d * 0.72],
+        target: [0, h * 0.28, d * 0.05],
+        fov: 42,
+      };
+  }
+}
+
 function CameraRig({
   preset,
   widthM,
@@ -76,98 +153,48 @@ function CameraRig({
   const controlsRef = useRef<{
     target: THREE.Vector3;
     update: () => void;
+    enabled: boolean;
   } | null>(null);
+  const appliedKey = useRef("");
 
-  const framing = useMemo(() => {
-    const w = widthM;
-    const d = depthM;
-    const h = heightM;
-    let position: [number, number, number];
-    let target: [number, number, number];
-    switch (preset) {
-      case "plan":
-        position = [0, Math.max(h * 2.6, 7), 0.01];
-        target = [0, 0, 0];
-        break;
-      case "eye":
-        // Vista a altura de persona, desde la entrada hacia el frente AV
-        position = [0, 1.55, -d / 2 + 0.55];
-        target = [0, 1.25, d / 2 - 0.3];
-        break;
-      case "cinema":
-        // Encaje cinematográfico bajo, esquina
-        position = [-w * 0.42, h * 0.55, -d * 0.48];
-        target = [w * 0.08, h * 0.45, d * 0.2];
-        break;
-      case "front_av":
-        position = [0, h * 0.85, -d * 0.15];
-        target = [0, h * 0.55, d / 2 - 0.15];
-        break;
-      case "detail":
-        if (selected) {
-          position = [
-            selected.pose.x + 1.35,
-            selected.pose.y + 0.55,
-            selected.pose.z + 1.35,
-          ];
-          target = [selected.pose.x, selected.pose.y, selected.pose.z];
-        } else {
-          position = [w * 0.35, h * 0.85, d * 0.35];
-          target = [0, h * 0.4, 0];
-        }
-        break;
-      case "device_pov":
-        if (selected) {
-          position = [
-            selected.pose.x,
-            selected.pose.y + 0.12,
-            selected.pose.z - 0.4,
-          ];
-          target = [selected.pose.x, selected.pose.y, selected.pose.z + 1.8];
-        } else {
-          position = [0, h * 0.7, -d * 0.1];
-          target = [0, h * 0.5, d / 2];
-        }
-        break;
-      case "general":
-      default:
-        position = [w * 0.58, h * 0.95, d * 0.72];
-        target = [0, h * 0.28, d * 0.05];
-        break;
-    }
-    return { position, target };
-  }, [preset, widthM, depthM, heightM, selected]);
-
+  // Solo reencuadra al cambiar preset / tamaño / slot (no en cada render).
+  const selectedKey = selected?.slotKey ?? "";
   useEffect(() => {
+    const key = `${preset}|${widthM.toFixed(2)}|${depthM.toFixed(2)}|${heightM.toFixed(2)}|${selectedKey}`;
+    if (appliedKey.current === key) return;
+    appliedKey.current = key;
+
+    const framing = framingFor(preset, widthM, depthM, heightM, selected);
     const cam = camera as THREE.PerspectiveCamera;
     cam.position.set(...framing.position);
-    cam.lookAt(...framing.target);
-    if (preset === "eye") cam.fov = 58;
-    else if (preset === "cinema") cam.fov = 36;
-    else if (preset === "plan") cam.fov = 48;
-    else cam.fov = 42;
+    cam.fov = framing.fov;
     cam.updateProjectionMatrix();
+    cam.lookAt(...framing.target);
     const controls = controlsRef.current;
     if (controls) {
       controls.target.set(...framing.target);
       controls.update();
     }
-  }, [camera, framing, preset]);
+  }, [camera, preset, widthM, depthM, heightM, selectedKey, selected]);
+
+  const isPlan = preset === "plan";
 
   return (
     <OrbitControls
       ref={controlsRef as never}
       makeDefault
-      enableRotate={preset !== "plan" && preset !== "eye"}
-      enablePan={preset !== "plan"}
-      minPolarAngle={preset === "plan" ? 0 : preset === "eye" ? 1.1 : 0.2}
-      maxPolarAngle={
-        preset === "plan" ? 0.05 : preset === "eye" ? 1.45 : Math.PI / 2.05
-      }
-      minAzimuthAngle={preset === "plan" ? 0 : -Math.PI}
-      maxAzimuthAngle={preset === "plan" ? 0 : Math.PI}
-      minDistance={1.2}
-      maxDistance={Math.max(widthM, depthM, 2) * 2.6}
+      enableDamping
+      dampingFactor={0.12}
+      enableRotate={!isPlan}
+      enablePan={!isPlan}
+      // Sin límites de azimuth: ±PI hace que se rompa al girar un poco.
+      minPolarAngle={isPlan ? 0 : 0.12}
+      maxPolarAngle={isPlan ? 0.02 : Math.PI / 2.08}
+      minDistance={1.1}
+      maxDistance={Math.max(widthM, depthM, 2) * 2.8}
+      zoomSpeed={0.7}
+      rotateSpeed={0.55}
+      panSpeed={0.55}
     />
   );
 }
@@ -753,14 +780,11 @@ function SceneContent({
   const selected =
     scene.devices.find((d) => d.slotKey === scene.selectedSlotKey) ?? null;
   const placeSet = new Set(placementSlotKeys);
-  const theme = useMemo(
-    () => roomTheme(category, templateKey),
-    [category, templateKey],
-  );
+  const theme = roomTheme(category, templateKey);
 
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = rich ? 1.05 : 0.95;
+    gl.toneMappingExposure = rich ? 1.02 : 0.96;
     gl.outputColorSpace = THREE.SRGBColorSpace;
   }, [gl, rich]);
 
@@ -771,26 +795,22 @@ function SceneContent({
   return (
     <>
       <color attach="background" args={[theme.fog]} />
-      <fog
-        attach="fog"
-        args={[theme.fog, rich ? 16 : 12, rich ? 36 : 28]}
-      />
+      <fog attach="fog" args={[theme.fog, 14, 34]} />
       {rich ? (
         <Suspense fallback={null}>
-          <SoftShadows size={18} samples={8} focus={0.65} />
           <Environment
             preset={theme.envPreset}
-            environmentIntensity={theme.outdoor ? 0.85 : 0.55}
+            environmentIntensity={theme.outdoor ? 0.8 : 0.5}
           />
         </Suspense>
       ) : null}
-      <ambientLight intensity={rich ? theme.ambient : theme.ambient + 0.2} />
+      <ambientLight intensity={theme.ambient + (rich ? 0 : 0.18)} />
       <directionalLight
         castShadow
         position={[5.5, 9.5, 3.5]}
-        intensity={rich ? 1.35 : 1.2}
-        shadow-mapSize-width={rich ? 2048 : 1024}
-        shadow-mapSize-height={rich ? 2048 : 1024}
+        intensity={1.2}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
         shadow-camera-far={40}
         shadow-camera-left={-12}
         shadow-camera-right={12}
@@ -802,25 +822,15 @@ function SceneContent({
         args={[
           theme.outdoor ? "#fff7ed" : "#f8fafc",
           theme.outdoor ? "#6b7f5e" : "#64748b",
-          rich ? 0.45 : 0.4,
+          0.4,
         ]}
       />
       <pointLight
         position={[-widthM * 0.4, heightM * 0.7, 0]}
-        intensity={rich ? 0.45 : 0.35}
+        intensity={0.35}
         color="#bfdbfe"
         distance={12}
       />
-      {rich && !theme.outdoor ? (
-        <spotLight
-          position={[0, heightM - 0.15, 0]}
-          angle={0.75}
-          penumbra={0.55}
-          intensity={0.55}
-          castShadow={false}
-          color="#fff8ef"
-        />
-      ) : null}
       <RoomShell
         widthM={widthM}
         depthM={depthM}
@@ -841,9 +851,9 @@ function SceneContent({
       ))}
       <ContactShadows
         position={[0, 0.015, 0]}
-        opacity={rich ? 0.48 : 0.35}
+        opacity={0.38}
         scale={Math.max(widthM, depthM) * 1.55}
-        blur={rich ? 2.8 : 2.2}
+        blur={2.4}
         far={6}
       />
       <CameraRig
@@ -876,7 +886,8 @@ export function RoomViewport({
   onCameraPreset: (preset: CameraPreset) => void;
   onCoverageView: (mode: CoverageViewMode) => void;
 }) {
-  const [rich, setRich] = useState(true);
+  // Por defecto estable; Realista es opt-in (HDR puede fallar en algunas redes).
+  const [rich, setRich] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
   const presets = (
     ["general", "eye", "cinema", "front_av", "plan", "detail", "device_pov"] as const
