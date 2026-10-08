@@ -6,7 +6,8 @@
 - [`2026-10-08-room-builder-limitaciones-alcance.md`](./2026-10-08-room-builder-limitaciones-alcance.md)  
 - [`2026-10-08-soundtec-room-builder-3d-propio.md`](./2026-10-08-soundtec-room-builder-3d-propio.md)  
 - [`2026-10-08-crestron-room-builder-integracion.md`](./2026-10-08-crestron-room-builder-integracion.md)  
-- [`2026-10-08-room-builder-uso-cotidiano-y-3d.md`](./2026-10-08-room-builder-uso-cotidiano-y-3d.md) — uso diario, 3D, slots/compatibilidad, proyectos, pendientes
+- [`2026-10-08-room-builder-uso-cotidiano-y-3d.md`](./2026-10-08-room-builder-uso-cotidiano-y-3d.md) — uso diario, 3D, slots/compatibilidad, proyectos, pendientes  
+- [`2026-10-08-room-builder-catalogo-integral-e-ia.md`](./2026-10-08-room-builder-catalogo-integral-e-ia.md) — todas las marcas, ranking precio/alcance, capa IA
 
 **Pregunta a responder:**  
 ¿Se puede enriquecer ~3000 productos buscando en internet la data de diseño, armar una base, y sobre eso un Room Builder real (videoconferencia, eventos, hotel, escuela, etc.) con tamaños, m², objetos y modelado 3D de **una sola vista fija**?

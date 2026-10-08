@@ -25,7 +25,7 @@ Todavía **no se escribe código**. Para poder arrancar el motor después, hace 
 
 | # | Pendiente | Por qué importa | Opciones típicas |
 | --- | --- | --- | --- |
-| P1 | Lista de **marcas core** del primer enrich | No conviene tratar 3000 iguales el día 1 | Ej. Crestron + Sonance + SoundTube + Atlona + displays top |
+| P1 | ~~Lista de marcas core~~ | **Cerrado:** catálogo integral, **todas las marcas**. Ver [`room-builder-catalogo-integral-e-ia.md`](./2026-10-08-room-builder-catalogo-integral-e-ia.md). El enrich corre por oleadas operativas, sin excluir marcas del producto. | — |
 | P2 | ¿Review humano de FOV/mic antes de usarlo en coverage? | Calidad vs velocidad | `auto` con disclaimer / cola `needs_review` obligatoria para coverage |
 | P3 | Fuentes permitidas | Legal + calidad | Solo URLs ya en ficha + site oficial / también Google amplio |
 | P4 | Qué hacer con SKU sin datasheet | Completitud | Default de familia + flag `inferred` / dejar vacío / ocultar del builder |
