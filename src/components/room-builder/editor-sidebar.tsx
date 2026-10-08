@@ -30,6 +30,8 @@ export type RankRow = {
   coverageFit: number | null;
   stockScore: number;
   listPriceUsd: number | null;
+  /** De una marca elegida en el relevamiento. */
+  preferredBrand?: boolean;
 };
 
 export type StagedProduct = {
@@ -113,6 +115,7 @@ function ProductOption({
         <p className="line-clamp-2 text-[13px] font-medium leading-snug text-slate-900">{row.name}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10.5px]">
           {highlight ? <span className="rounded bg-[#1e3553] px-1.5 py-0.5 font-semibold text-white">Recomendado</span> : null}
+          {row.preferredBrand ? <span className="rounded bg-sky-100 px-1.5 py-0.5 font-semibold text-sky-800">Marca elegida</span> : null}
           {row.priceUsd != null ? <span className="font-semibold text-slate-700">USD {row.priceUsd.toFixed(0)}</span> : null}
           {row.coverageFit != null ? <span className="text-slate-500">Cobertura {(row.coverageFit * 100).toFixed(0)}%</span> : null}
           <span className="flex items-center gap-1 text-slate-400" title="Qué tan bien encaja con este ambiente">

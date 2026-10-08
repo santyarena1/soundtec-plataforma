@@ -1247,4 +1247,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Al calibrar, los equipos se reubican al tamaño real de la sala." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-asistente",
+    version: "1.38.0",
+    releasedAt: "2026-10-09T06:00:00.000Z",
+    summary: "Room Builder: asistente por pasos para crear ambientes (sistemas, control, audio, video, marcas y nivel).",
+    items: [
+      { kind: "NUEVO", text: "Nuevo ambiente con relevamiento por pasos: tipo de proyecto, sistemas (audio, video, videoconferencia, control, iluminación, cortinas, cartelería), Crestron Home, Crestron programado o sin control, y Teams/Zoom/BYOD." },
+      { kind: "NUEVO", text: "Paso de audio: tipo de parlantes, uso, zonas, cantidad (sugerida según los m²) y streaming. Se agrega el amplificador solo." },
+      { kind: "NUEVO", text: "Paso de marcas con logos por tipo de equipo; los productos de esas marcas se eligen primero. El nivel (esencial, recomendado, premium) define el orden." },
+      { kind: "MEJORA", text: "Se genera solo lo que lleva el ambiente: un proyecto de audio no trae pantallas ni panel; amplificadores y procesadores de control ya no se mezclan al elegir." },
+    ],
+  },
 ];

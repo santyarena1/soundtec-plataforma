@@ -1,7 +1,6 @@
 import { getRoomTemplate } from "./templates";
 import { buildSceneFromTemplate, type RoomScene, type SceneDevice } from "./scene";
-import { relayoutSceneAnchors } from "./slot-layout";
-import { resizeSceneMeters } from "./dimensions";
+import { layoutSlotsForScene, relayoutSceneAnchors } from "./slot-layout";
 
 function finitePositive(n: unknown, min: number): n is number {
   return typeof n === "number" && Number.isFinite(n) && n >= min;
@@ -152,18 +151,21 @@ export function rebuildSceneKeepingProducts(
   const template = getRoomTemplate(templateKey);
   if (!template) throw new Error(`Template desconocido: ${templateKey}`);
 
-  let next = buildSceneFromTemplate(template);
   const widthOk = finitePositive(current.widthM, 1.5);
   const depthOk = finitePositive(current.depthM, 1.5);
-  if (widthOk && depthOk) {
-    next = resizeSceneMeters(next, {
-      widthM: current.widthM,
-      depthM: current.depthM,
-      heightM: finitePositive(current.heightM, 2.2)
-        ? current.heightM
-        : template.heightM,
-    });
-  }
+  const dims = {
+    widthM: widthOk && depthOk ? current.widthM : template.widthM,
+    depthM: widthOk && depthOk ? current.depthM : template.depthM,
+    heightM: finitePositive(current.heightM, 2.2) ? current.heightM : template.heightM,
+  };
+  // Con relevamiento, la plantilla se arma con sus respuestas (no vuelve lo que se sacó).
+  const brief = current.brief ?? null;
+  const next: RoomScene = {
+    ...buildSceneFromTemplate({ ...template, slots: layoutSlotsForScene(template.key, dims, brief) }),
+    ...dims,
+    areaM2: Math.round(dims.widthM * dims.depthM * 100) / 100,
+    brief,
+  };
 
   const bySlot = new Map(current.devices.map((d) => [d.slotKey, d]));
   next.devices = next.devices.map((d) => {

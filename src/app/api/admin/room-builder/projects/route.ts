@@ -5,6 +5,7 @@ import {
   createHubProject,
   createSpaceProject,
   listRoomProjects,
+  normalizeBrief,
 } from "@/services/room-builder";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,8 @@ const createSchema = z.discriminatedUnion("kind", [
     clientId: z.string().nullable().optional(),
     unitCount: z.number().int().positive().optional(),
     notes: z.string().max(4000).nullable().optional(),
+    /** Respuestas del asistente; se validan con normalizeBrief. */
+    brief: z.unknown().optional(),
   }),
   z.object({
     kind: z.literal("hub"),
@@ -78,6 +81,7 @@ export async function POST(req: NextRequest) {
       widthM: parsed.data.widthM,
       depthM: parsed.data.depthM,
       heightM: parsed.data.heightM,
+      brief: parsed.data.brief === undefined ? null : normalizeBrief(parsed.data.brief),
       platform: parsed.data.platform,
       clientId: parsed.data.clientId,
       unitCount: parsed.data.unitCount,

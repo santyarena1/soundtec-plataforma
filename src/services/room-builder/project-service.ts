@@ -2,6 +2,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { autoFillProjectSlots } from "./auto-fill";
 import { resizeSceneMeters } from "./dimensions";
+import { platformFromBrief, type RoomBrief } from "./brief";
+import { layoutSlotsForScene } from "./slot-layout";
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { getHubPreset } from "./hub-presets";
 import { getRoomTemplate, resizeTemplate } from "./templates";
@@ -108,6 +110,8 @@ export async function createSpaceProject(input: {
   widthM?: number;
   depthM?: number;
   heightM?: number;
+  /** Relevamiento del asistente (opcional: sin él se usa la plantilla tal cual). */
+  brief?: RoomBrief | null;
 }) {
   await ensureRoomBuilderSchema();
   const base = getRoomTemplate(input.templateKey);
@@ -124,6 +128,17 @@ export async function createSpaceProject(input: {
       heightM: input.heightM,
     });
   }
+  if (input.brief) {
+    const slots = layoutSlotsForScene(template.key, scene, input.brief);
+    scene = {
+      ...buildSceneFromTemplate({ ...template, slots }),
+      widthM: scene.widthM,
+      depthM: scene.depthM,
+      heightM: scene.heightM,
+      areaM2: scene.areaM2,
+      brief: input.brief,
+    };
+  }
 
   const created = await prisma.roomProject.create({
     data: {
@@ -134,7 +149,7 @@ export async function createSpaceProject(input: {
       sizePreset: template.sizePreset,
       areaM2: decimal(scene.areaM2),
       heightM: decimal(scene.heightM),
-      platform: input.platform ?? template.platforms[0] ?? null,
+      platform: input.brief ? platformFromBrief(input.brief) : (input.platform ?? template.platforms[0] ?? null),
       unitCount: Math.max(1, input.unitCount ?? 1),
       status: "draft",
       visibility: "private",

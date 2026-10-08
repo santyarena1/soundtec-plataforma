@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   Building2,
@@ -11,17 +11,6 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { PlatformGuideCard } from "@/components/room-builder/platform-guide-card";
-import { suggestPlatform } from "@/services/room-builder/platform-guide";
-
-type Template = {
-  key: string;
-  name: string;
-  category: string;
-  sizePreset: string;
-  areaM2: number;
-  description: string;
-};
 
 type HubPreset = {
   key: string;
@@ -58,33 +47,13 @@ type EnrichStats = {
 };
 
 export function RoomBuilderHome() {
-  const [templates, setTemplates] = useState<Template[]>([]);
   const [hubs, setHubs] = useState<HubPreset[]>([]);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [stats, setStats] = useState<EnrichStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, startTransition] = useTransition();
-  const [mode, setMode] = useState<"space" | "hub">("hub");
   const [name, setName] = useState("");
-  const [templateKey, setTemplateKey] = useState("");
   const [hubKey, setHubKey] = useState("");
-  const [unitCount, setUnitCount] = useState(1);
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
-  const [widthM, setWidthM] = useState<number | "">("");
-  const [depthM, setDepthM] = useState<number | "">("");
-  const [platform, setPlatform] = useState("crestron-home");
-
-  const CATEGORY_LABELS: Record<string, string> = {
-    videoconference: "Videoconferencia",
-    classroom: "Aula",
-    training: "Capacitación",
-    hotel: "Hotel",
-    event: "Eventos",
-    residential: "Residencial / Home",
-    lobby: "Lobby",
-    "control-room": "Sala técnica",
-    signage: "Signage",
-  };
 
   async function reload() {
     const [tRes, pRes, eRes] = await Promise.all([
@@ -96,12 +65,7 @@ export function RoomBuilderHome() {
     const pJson = await pRes.json();
     const eJson = await eRes.json();
     if (tJson.ok) {
-      setTemplates(tJson.templates);
       setHubs(tJson.hubs);
-      if (!categoryFilter && tJson.templates[0]) {
-        setCategoryFilter(tJson.templates[0].category);
-        setTemplateKey(tJson.templates[0].key);
-      }
       if (!hubKey && tJson.hubs[0]) setHubKey(tJson.hubs[0].key);
     }
     if (pJson.ok) setProjects(pJson.projects);
@@ -114,42 +78,13 @@ export function RoomBuilderHome() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const templatesByCategory = useMemo(() => {
-    const map = new Map<string, Template[]>();
-    for (const t of templates) {
-      const list = map.get(t.category) ?? [];
-      list.push(t);
-      map.set(t.category, list);
-    }
-    return [...map.entries()];
-  }, [templates]);
-
   function createProject() {
     startTransition(async () => {
-      const payload =
-        mode === "hub"
-          ? {
-              kind: "hub" as const,
-              name: name || hubs.find((h) => h.key === hubKey)?.name || "Proyecto",
-              hubPresetKey: hubKey,
-            }
-          : {
-              kind: "space" as const,
-              name:
-                name ||
-                templates.find((t) => t.key === templateKey)?.name ||
-                "Sala",
-              templateKey,
-              unitCount,
-              platform,
-              widthM: typeof widthM === "number" ? widthM : undefined,
-              depthM: typeof depthM === "number" ? depthM : undefined,
-              areaM2:
-                typeof widthM === "number" && typeof depthM === "number"
-                  ? widthM * depthM
-                  : undefined,
-            };
-
+      const payload = {
+        kind: "hub" as const,
+        name: name || hubs.find((h) => h.key === hubKey)?.name || "Proyecto",
+        hubPresetKey: hubKey,
+      };
       const res = await fetch("/api/admin/room-builder/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -292,212 +227,54 @@ export function RoomBuilderHome() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <div className="mb-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setMode("hub")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium ${
-              mode === "hub"
-                ? "bg-slate-900 text-white"
-                : "bg-slate-100 text-slate-700"
-            }`}
-          >
-            <Hotel className="h-4 w-4" /> Proyecto multi-espacio
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("space")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium ${
-              mode === "space"
-                ? "bg-slate-900 text-white"
-                : "bg-slate-100 text-slate-700"
-            }`}
-          >
-            <Building2 className="h-4 w-4" /> Sala individual
-          </button>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">Nombre</span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={
-                mode === "hub" ? "Hotel Costa · fase 1" : "Boardroom piso 12"
-              }
-              className="w-full rounded-lg border border-slate-300 px-3 py-2"
-            />
-          </label>
-
-          {mode === "hub" ? (
-            <label className="block text-sm">
-              <span className="mb-1 block text-slate-600">Preset</span>
-              <select
-                value={hubKey}
-                onChange={(e) => setHubKey(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2"
-              >
-                {hubs.map((h) => (
-                  <option key={h.key} value={h.key}>
-                    {h.name} — {h.spaces.length} espacios
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : (
-            <>
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Plataforma</span>
-                <select
-                  value={platform}
-                  onChange={(e) => setPlatform(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
-                >
-                  <option value="crestron-home">Crestron Home</option>
-                  <option value="teams">Microsoft Teams</option>
-                  <option value="zoom">Zoom Rooms</option>
-                  <option value="byod">BYOD</option>
-                  <option value="none">Sin UC / solo AV</option>
-                </select>
-              </label>
-            </>
-          )}
-          {mode === "space" ? (
-            <div className="mt-3">
-              <PlatformGuideCard
-                category={categoryFilter || "videoconference"}
-                platform={platform}
-              />
-            </div>
-          ) : null}
-        </div>
-
-        {mode === "space" ? (
-          <div className="mt-4 space-y-3">
-            <p className="text-sm font-medium text-slate-800">
-              1. Elegí el tipo de espacio (no son todas salas de reunión)
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {templatesByCategory.map(([cat, list]) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => {
-                    setCategoryFilter(cat);
-                    setTemplateKey(list[0]?.key ?? "");
-                    setPlatform(suggestPlatform(cat));
-                  }}
-                  className={`rounded-xl border px-3 py-3 text-left ${
-                    categoryFilter === cat
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-400"
-                  }`}
-                >
-                  <span className="block text-sm font-semibold">
-                    {CATEGORY_LABELS[cat] ?? cat}
-                  </span>
-                  <span
-                    className={`mt-0.5 block text-[11px] ${
-                      categoryFilter === cat ? "text-slate-300" : "text-slate-500"
-                    }`}
-                  >
-                    {list.length} layouts · ej. {list[0]?.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <p className="text-sm font-medium text-slate-800">2. Layout</p>
-            <select
-              value={templateKey}
-              onChange={(e) => setTemplateKey(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            >
-              {(templatesByCategory.find(([c]) => c === categoryFilter)?.[1] ??
-                []).map((t) => (
-                <option key={t.key} value={t.key}>
-                  {t.name} ({t.sizePreset}, default {t.areaM2} m²)
-                </option>
-              ))}
-            </select>
-
-            <p className="text-sm font-medium text-slate-800">
-              3. Metros (opcional — también se editan adentro)
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <label className="text-xs text-slate-600">
-                Ancho (m)
-                <input
-                  type="number"
-                  min={1.5}
-                  step={0.1}
-                  value={widthM}
-                  onChange={(e) =>
-                    setWidthM(e.target.value === "" ? "" : Number(e.target.value))
-                  }
-                  placeholder="auto"
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5"
-                />
-              </label>
-              <label className="text-xs text-slate-600">
-                Fondo (m)
-                <input
-                  type="number"
-                  min={1.5}
-                  step={0.1}
-                  value={depthM}
-                  onChange={(e) =>
-                    setDepthM(e.target.value === "" ? "" : Number(e.target.value))
-                  }
-                  placeholder="auto"
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5"
-                />
-              </label>
-              <label className="text-xs text-slate-600">
-                Unidades ×
-                <input
-                  type="number"
-                  min={1}
-                  value={unitCount}
-                  onChange={(e) => setUnitCount(Number(e.target.value) || 1)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5"
-                />
-              </label>
-            </div>
-          </div>
-        ) : null}
-
-        {mode === "hub" && hubKey ? (
-          <ul className="mt-4 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
-            {hubs
-              .find((h) => h.key === hubKey)
-              ?.spaces.map((s) => (
-                <li
-                  key={s.templateKey}
-                  className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2"
-                >
-                  {s.name}{" "}
-                  <span className="text-slate-400">× {s.unitCount}</span>
-                </li>
-              ))}
-          </ul>
-        ) : null}
-
-        <button
-          type="button"
-          onClick={createProject}
-          disabled={pending}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#1e3553] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#16293f] disabled:opacity-60"
+      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <Link
+          href="/admin/room-builder/nuevo"
+          className="group relative overflow-hidden rounded-2xl bg-[#1e3553] p-6 text-white shadow-lg transition hover:shadow-xl"
         >
-          {pending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4" />
-          )}
-          Crear y abrir
-        </button>
+          <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl transition group-hover:bg-white/15" />
+          <Sparkles className="h-6 w-6 text-sky-200" />
+          <h2 className="mt-3 text-xl font-semibold">Nuevo ambiente</h2>
+          <p className="mt-1 max-w-md text-sm text-sky-100/90">
+            Te preguntamos por pasos qué lleva (audio, video, control, marcas, nivel) y generamos la sala 3D con los equipos y productos.
+          </p>
+          <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#1e3553]">
+            <Plus className="h-4 w-4" /> Empezar
+          </span>
+        </Link>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+            <Hotel className="h-4 w-4" /> Proyecto multi-ambiente
+          </div>
+          <p className="mt-1 text-xs text-slate-500">Hotel completo, campus o colegio: varios ambientes de una vez, con sus cantidades.</p>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ej. Hotel Costa · fase 1"
+            className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+          <select
+            value={hubKey}
+            onChange={(e) => setHubKey(e.target.value)}
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          >
+            {hubs.map((h) => (
+              <option key={h.key} value={h.key}>
+                {h.name} — {h.spaces.length} ambientes
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={createProject}
+            disabled={pending || !hubKey}
+            className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+          >
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
+            Crear proyecto
+          </button>
+        </div>
       </section>
 
       <section className="space-y-3">

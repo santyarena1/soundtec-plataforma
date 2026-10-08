@@ -20,6 +20,7 @@ import {
   parseScene,
   type RoomScene,
 } from "@/services/room-builder/scene";
+import { rankModeForTier } from "@/services/room-builder/brief";
 import {
   hydrateRoomScene,
   rebuildSceneKeepingProducts,
@@ -118,7 +119,10 @@ export function RoomBuilderEditor({
     }
   });
   const [ranked, setRanked] = useState<RankRow[]>([]);
-  const [rankMode, setRankMode] = useState<RankSortMode>("recommended");
+  const [rankMode, setRankMode] = useState<RankSortMode>(() => {
+    const brief = parseScene(initialProject.sceneJson)?.brief;
+    return brief ? rankModeForTier(brief.tier) : "recommended";
+  });
   const [query, setQuery] = useState("");
   const [pending, startTransition] = useTransition();
   const [ranking, setRanking] = useState(false);
@@ -127,12 +131,6 @@ export function RoomBuilderEditor({
 
   const selectedSlot = useMemo(
     () => scene.slots.find((s) => s.key === scene.selectedSlotKey) ?? null,
-    [scene],
-  );
-
-  const selectedDevice = useMemo(
-    () =>
-      scene.devices.find((d) => d.slotKey === scene.selectedSlotKey) ?? null,
     [scene],
   );
 

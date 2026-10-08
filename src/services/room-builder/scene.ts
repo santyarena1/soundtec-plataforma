@@ -7,6 +7,7 @@ import type {
   RoomTemplate,
 } from "./types";
 import type { PlanModeState } from "./plan-mode";
+import type { RoomBrief } from "./brief";
 
 export type SceneDevice = {
   id: string;
@@ -52,6 +53,8 @@ export type RoomScene = {
   devices: SceneDevice[];
   /** Presente cuando el espacio se armó / editó desde plano. */
   plan?: PlanModeState | null;
+  /** Relevamiento del asistente: define qué equipos lleva la sala y con qué marcas. */
+  brief?: RoomBrief | null;
 };
 
 export function buildSceneFromTemplate(template: RoomTemplate): RoomScene {

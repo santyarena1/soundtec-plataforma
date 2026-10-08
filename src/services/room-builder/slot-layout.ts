@@ -1,5 +1,6 @@
 import type { Pose, RoomSlot } from "./types";
 import type { RoomScene } from "./scene";
+import { applyBriefToSlots, type RoomBrief, type RoomDims } from "./brief";
 
 type Dims = { widthM: number; depthM: number; heightM: number };
 
@@ -550,6 +551,12 @@ function poseInsideRoom(pose: { x: number; y: number; z: number }, scene: RoomSc
   );
 }
 
+/** Equipos de la plantilla para estas medidas, ajustados al relevamiento si lo hay. */
+export function layoutSlotsForScene(templateKey: string, dims: RoomDims, brief: RoomBrief | null): RoomSlot[] {
+  const base = layoutSlotsForTemplate(templateKey, dims.widthM, dims.depthM, dims.heightM);
+  return brief ? applyBriefToSlots(base, brief, dims) : base;
+}
+
 export function relayoutSceneAnchors(
   scene: RoomScene,
   opts?: { onlyInvalid?: boolean },
@@ -558,12 +565,7 @@ export function relayoutSceneAnchors(
   changed: boolean;
 } {
   if (!scene.templateKey) return { scene, changed: false };
-  const nextSlots = layoutSlotsForTemplate(
-    scene.templateKey,
-    scene.widthM,
-    scene.depthM,
-    scene.heightM,
-  );
+  const nextSlots = layoutSlotsForScene(scene.templateKey, scene, scene.brief ?? null);
   const byKey = new Map(nextSlots.map((s) => [s.key, s]));
   let changed = false;
 

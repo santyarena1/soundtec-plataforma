@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   cameraCoverageFit,
@@ -43,7 +44,32 @@ export type RankFromDbOptions = {
   roomWidthM?: number;
   limit?: number;
   q?: string;
+  /** Para el rol "processor": amplificador o procesador de control. */
+  processorKind?: ProcessorKind;
+  /** Marcas elegidas en el relevamiento: van primero (si no hay, se muestran las demás). */
+  preferredBrands?: string[];
 };
+
+export type ProcessorKind = "amplifier" | "control";
+
+/** Slot de amplificación o de control (los dos usan el rol "processor"). */
+export function processorKindForSlot(slotKey: string, role: string): ProcessorKind | undefined {
+  if (role !== "processor") return undefined;
+  return /amp/i.test(slotKey) ? "amplifier" : "control";
+}
+
+const AMPLIFIER_MATCH: Prisma.ProductWhereInput[] = [
+  { aiProfile: { productType: "amplifier" } },
+  { normalizedName: { contains: "amplif", mode: "insensitive" } },
+  { normalizedName: { contains: "amp", mode: "insensitive" } },
+  { normalizedName: { contains: "powerzone", mode: "insensitive" } },
+];
+
+function processorFilter(kind: ProcessorKind | undefined): Prisma.ProductWhereInput {
+  if (kind === "amplifier") return { OR: AMPLIFIER_MATCH };
+  if (kind === "control") return { NOT: AMPLIFIER_MATCH };
+  return {};
+}
 
 export async function rankProductsForSlot(options: RankFromDbOptions) {
   await ensureRoomBuilderSchema();
@@ -54,12 +80,15 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
     prefersCoverage: true,
   };
 
-  const profiles = await prisma.productDesignProfile.findMany({
+  const preferred = (options.preferredBrands ?? []).filter(Boolean);
+  const findProfiles = (brandSlugs: string[] | null) =>
+    prisma.productDesignProfile.findMany({
     where: {
       designRole: options.role,
       product: {
         isActive: true,
         isDiscontinued: false,
+        AND: [processorFilter(options.processorKind), brandSlugs ? { brand: { slug: { in: brandSlugs } } } : {}],
         ...(options.q
           ? {
               OR: [
@@ -101,6 +130,11 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
       },
     },
   });
+
+  const [general, fromPreferred] = await Promise.all([findProfiles(null), preferred.length ? findProfiles(preferred) : []]);
+  const seen = new Set<string>();
+  const profiles = [...fromPreferred, ...general].filter((p) => (seen.has(p.productId) ? false : (seen.add(p.productId), true)));
+  const preferredSet = new Set(preferred);
 
   const roomDepth = options.roomDepthM ?? 5;
   const roomWidth = options.roomWidthM ?? 4;
@@ -164,17 +198,21 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
     };
   });
 
-  const ranked = rankForSlot(candidates, slot, options.mode ?? "recommended").slice(
-    0,
-    limit,
-  );
-
   const byId = new Map(profiles.map((p) => [p.productId, p]));
+  const isPreferred = (productId: string) => preferredSet.has(byId.get(productId)?.product.brand?.slug ?? "");
+  // Las marcas elegidas primero, sin romper el orden del modo dentro de cada grupo.
+  const ranked = rankForSlot(candidates, slot, options.mode ?? "recommended")
+    .map((row, i) => ({ row, i, first: row.compatible && isPreferred(row.productId) }))
+    .sort((a, b) => Number(b.first) - Number(a.first) || a.i - b.i)
+    .map((x) => x.row)
+    .slice(0, limit);
+
 
   return ranked.map((row) => {
     const profile = byId.get(row.productId)!;
     return {
       ...row,
+      preferredBrand: isPreferred(row.productId),
       name: profile.product.normalizedName,
       sku: profile.product.supplierSku ?? profile.product.modelNumber,
       brand: profile.product.brand?.name ?? null,

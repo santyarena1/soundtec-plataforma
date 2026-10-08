@@ -5,6 +5,9 @@ import {
   MOUNT_OPTIONS,
   getRoomProject,
   parseScene,
+  preferredBrandsForSlot,
+  processorKindForSlot,
+  rankModeForTier,
   rankProductsForSlot,
   type DesignRole,
   type MountOption,
@@ -25,8 +28,7 @@ export async function GET(
 
   const role = req.nextUrl.searchParams.get("role") as DesignRole | null;
   const mount = (req.nextUrl.searchParams.get("mount") ?? "wall") as MountOption;
-  const mode = (req.nextUrl.searchParams.get("mode") ??
-    "recommended") as RankSortMode;
+  const modeParam = req.nextUrl.searchParams.get("mode") as RankSortMode | null;
   const q = req.nextUrl.searchParams.get("q")?.trim() || undefined;
   const slotKey = req.nextUrl.searchParams.get("slotKey");
 
@@ -51,6 +53,8 @@ export async function GET(
     );
   }
 
+  const brief = scene?.brief ?? null;
+  const mode: RankSortMode = modeParam ?? (brief ? rankModeForTier(brief.tier) : "recommended");
   const ranked = await rankProductsForSlot({
     role: effectiveRole,
     mount: effectiveMount,
@@ -60,6 +64,8 @@ export async function GET(
     roomWidthM: scene?.widthM ?? 4,
     q,
     limit: 40,
+    processorKind: processorKindForSlot(slot?.key ?? "", effectiveRole),
+    preferredBrands: preferredBrandsForSlot(brief, effectiveRole, slot?.key ?? ""),
   });
 
   return NextResponse.json({

@@ -1,6 +1,7 @@
 import { assignProductToSlot, getRoomProject } from "./project-service";
 import { parseScene } from "./scene";
-import { rankProductsForSlot } from "./rank-from-db";
+import { processorKindForSlot, rankProductsForSlot } from "./rank-from-db";
+import { preferredBrandsForSlot, rankModeForTier } from "./brief";
 import type { DesignRole, MountOption } from "./types";
 
 /**
@@ -33,8 +34,10 @@ export async function autoFillProjectSlots(
       projectCategory: project.category,
       roomDepthM: scene.depthM,
       roomWidthM: scene.widthM,
-      mode: "recommended",
-      limit: 5,
+      mode: scene.brief ? rankModeForTier(scene.brief.tier) : "recommended",
+      limit: 8,
+      processorKind: processorKindForSlot(slot.key, slot.role),
+      preferredBrands: preferredBrandsForSlot(scene.brief, slot.role, slot.key),
     });
     const best = ranked.find((r) => r.compatible && r.score >= minScore);
     if (!best) continue;
