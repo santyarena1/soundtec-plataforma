@@ -386,6 +386,7 @@ model Product {
   labels          ProductLabel[]
   quoteItems      QuoteItem[]
   aiProfile       ProductAiProfile?
+  systemSpec      ProductSystemSpec?
   designProfile   ProductDesignProfile?
   roomPlacements  RoomProjectDevice[]
 
@@ -1887,6 +1888,54 @@ model RoomProject {
 }
 
 /// Dispositivo colocado en un RoomProject (desnormalizado para queries BOM).
+/// Especificaciones de sistema de un producto (canales, watts, ohms, streaming).
+/// Se completan solas desde el nombre/IA (source "auto") y se corrigen a mano (source "manual").
+model ProductSystemSpec {
+  productId       String   @id
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// amplifier | speaker | streamer | processor | display | switch | other
+  kind            String
+  channels        Int?
+  /// Amplificador: watts por canal. Parlante: potencia RMS admitida.
+  wattsPerChannel Int?
+  /// Amplificador: carga mínima admitida (ohms).
+  minOhms         Decimal? @db.Decimal(5, 2)
+  /// Parlante: impedancia nominal (ohms).
+  nominalOhms     Decimal? @db.Decimal(5, 2)
+  /// Línea de 70/100 V.
+  highImpedance   Boolean  @default(false)
+  streaming       Boolean  @default(false)
+  networked       Boolean  @default(false)
+  /// auto | manual
+  source          String   @default("manual")
+  notes           String?
+  updatedAt       DateTime @updatedAt
+
+  @@index([kind])
+}
+
+/// Cómo se integra una marca (o una línea de productos) con un sistema de control.
+model ControlIntegration {
+  id           String   @id @default(cuid())
+  brandSlug    String
+  /// Texto que tiene que estar en el nombre/modelo (vacío = toda la marca).
+  productMatch String?
+  /// crestron-home | crestron-pro
+  platform     String
+  /// native | driver-ip | rs232 | ir | relay | none
+  method       String
+  /// Qué hace falta (driver, licencia, cable, módulo).
+  requirement  String?
+  needsNetwork Boolean  @default(true)
+  /// false = precargada por el sistema, falta confirmar.
+  verified     Boolean  @default(false)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([brandSlug, platform])
+}
+
 /// Plano subido de un ambiente (WebP comprimido), servido por /plan-image.
 model RoomPlanImage {
   roomProjectId String      @id

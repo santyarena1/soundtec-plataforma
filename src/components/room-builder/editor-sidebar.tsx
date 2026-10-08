@@ -17,6 +17,7 @@ import { PlatformGuideCard } from "./platform-guide-card";
 import { PlanPanel } from "./plan-panel";
 import { DimensionsPanel } from "./dimensions-panel";
 import { InterconnectPanel } from "./interconnect-panel";
+import { SystemPanel, useSystemCheck } from "./system-panel";
 
 export type RankRow = {
   productId: string;
@@ -70,7 +71,7 @@ const SORT_LABELS: Record<RankSortMode, string> = {
   premium: "Premium",
 };
 
-type Tab = "equipos" | "sala" | "integracion" | "guia";
+type Tab = "equipos" | "sala" | "sistema" | "guia";
 
 export function roleLabel(role: string) {
   return ROLE_LABELS[role] ?? role;
@@ -304,7 +305,12 @@ export function EditorSidebar({
   onReload: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("equipos");
+  /** Equipo cerrado a mano aunque esté seleccionado (tocar el abierto lo colapsa). */
+  const [collapsedKey, setCollapsedKey] = useState<string | null>(null);
   const openRef = useRef<HTMLLIElement>(null);
+  const devicesKey = scene.devices.map((d) => `${d.slotKey}:${d.productId ?? ""}:${d.quantity}`).join("|");
+  const system = useSystemCheck(projectId, devicesKey);
+  const problems = system.findings?.filter((f) => f.level === "error" || f.level === "warn").length ?? 0;
   const total = scene.slots.length;
   const done = scene.slots.filter((s) => scene.devices.some((d) => d.slotKey === s.key && d.productId)).length;
 
@@ -312,6 +318,7 @@ export function EditorSidebar({
   useEffect(() => {
     if (!scene.selectedSlotKey) return;
     setTab("equipos");
+    setCollapsedKey(null);
     const t = setTimeout(() => openRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
     return () => clearTimeout(t);
   }, [scene.selectedSlotKey]);
@@ -319,7 +326,7 @@ export function EditorSidebar({
   const tabs: Array<[Tab, string]> = [
     ["equipos", `Equipos ${done}/${total}`],
     ["sala", "Sala"],
-    ["integracion", "Integración"],
+    ["sistema", problems ? `Sistema · ${problems}` : "Sistema"],
     ["guia", "Guía"],
   ];
 
@@ -376,7 +383,7 @@ export function EditorSidebar({
             <ul className="space-y-1.5">
               {scene.slots.map((slot) => {
                 const device = scene.devices.find((d) => d.slotKey === slot.key);
-                const open = scene.selectedSlotKey === slot.key && !staged;
+                const open = scene.selectedSlotKey === slot.key && !staged && collapsedKey !== slot.key;
                 const canPlace = staged != null && slot.role === staged.role;
                 const chosen = Boolean(device?.productId);
                 return (
@@ -389,7 +396,14 @@ export function EditorSidebar({
                   >
                     <button
                       type="button"
-                      onClick={() => onSelectSlot(slot.key)}
+                      onClick={() => {
+                        if (open) {
+                          setCollapsedKey(slot.key);
+                          return;
+                        }
+                        setCollapsedKey(null);
+                        if (scene.selectedSlotKey !== slot.key || staged) onSelectSlot(slot.key);
+                      }}
                       aria-expanded={open}
                       className={`flex w-full items-center gap-2.5 p-2 text-left ${canPlace ? "bg-emerald-50" : open ? "bg-white" : "bg-white hover:bg-slate-50"}`}
                     >
@@ -452,13 +466,22 @@ export function EditorSidebar({
           </div>
         ) : null}
 
-        {tab === "integracion" ? (
-          <div className="space-y-3 p-3">
-            <p className="text-[11px] leading-relaxed text-slate-500">
-              Lo que hace falta para que lo elegido funcione junto: procesador, teclas, fuentes y accesorios del catálogo. Tildá lo que querés
-              sumar a la cotización.
-            </p>
-            <InterconnectPanel projectId={projectId} onUpdated={onReload} />
+        {tab === "sistema" ? (
+          <div className="space-y-5 p-3">
+            <SystemPanel
+              projectId={projectId}
+              findings={system.findings}
+              loading={system.loading}
+              onReload={() => void system.reload()}
+              onProjectChanged={onReload}
+            />
+            <div className="space-y-2 border-t border-slate-100 pt-4">
+              <h3 className="text-sm font-semibold text-slate-900">Accesorios del catálogo</h3>
+              <p className="text-[11px] leading-relaxed text-slate-500">
+                Accesorios incluidos o recomendados de lo elegido (cajas de embutir, fuentes, teclas). Tildá lo que querés sumar.
+              </p>
+              <InterconnectPanel projectId={projectId} onUpdated={onReload} />
+            </div>
           </div>
         ) : null}
 

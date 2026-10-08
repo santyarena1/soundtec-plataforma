@@ -179,6 +179,9 @@ export function RoomBuilderHome() {
           Diseñá salas y proyectos multi-espacio (hotel, campus, etc.), asigná
           productos del catálogo con ranking real y generá la cotización.
         </p>
+        <Link href="/admin/room-builder/reglas" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1e3553] underline">
+          Reglas de integración y especificaciones
+        </Link>
       </header>
 
       <section className="grid gap-4 md:grid-cols-3">

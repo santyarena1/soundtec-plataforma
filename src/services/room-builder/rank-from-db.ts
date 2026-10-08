@@ -58,7 +58,7 @@ export function processorKindForSlot(slotKey: string, role: string): ProcessorKi
   return /amp/i.test(slotKey) ? "amplifier" : "control";
 }
 
-const AMPLIFIER_MATCH: Prisma.ProductWhereInput[] = [
+export const AMPLIFIER_MATCH: Prisma.ProductWhereInput[] = [
   { aiProfile: { productType: "amplifier" } },
   { normalizedName: { contains: "amplif", mode: "insensitive" } },
   { normalizedName: { contains: "amp", mode: "insensitive" } },

@@ -252,4 +252,50 @@ async function runEnsure(): Promise<void> {
     EXCEPTION WHEN duplicate_object THEN NULL;
     END $$
   `);
+
+  // Motor de sistema: especificaciones por producto y reglas de integración (editables).
+  await exec(`
+    CREATE TABLE IF NOT EXISTS "ProductSystemSpec" (
+      "productId" TEXT NOT NULL,
+      "kind" TEXT NOT NULL,
+      "channels" INTEGER,
+      "wattsPerChannel" INTEGER,
+      "minOhms" DECIMAL(5,2),
+      "nominalOhms" DECIMAL(5,2),
+      "highImpedance" BOOLEAN NOT NULL DEFAULT false,
+      "streaming" BOOLEAN NOT NULL DEFAULT false,
+      "networked" BOOLEAN NOT NULL DEFAULT false,
+      "source" TEXT NOT NULL DEFAULT 'manual',
+      "notes" TEXT,
+      "updatedAt" TIMESTAMP(3) NOT NULL,
+      CONSTRAINT "ProductSystemSpec_pkey" PRIMARY KEY ("productId")
+    )
+  `);
+  await exec(`CREATE INDEX IF NOT EXISTS "ProductSystemSpec_kind_idx" ON "ProductSystemSpec"("kind")`);
+  await exec(`
+    DO $$ BEGIN
+      ALTER TABLE "ProductSystemSpec"
+        ADD CONSTRAINT "ProductSystemSpec_productId_fkey"
+        FOREIGN KEY ("productId") REFERENCES "Product"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+  await exec(`
+    CREATE TABLE IF NOT EXISTS "ControlIntegration" (
+      "id" TEXT NOT NULL,
+      "brandSlug" TEXT NOT NULL,
+      "productMatch" TEXT,
+      "platform" TEXT NOT NULL,
+      "method" TEXT NOT NULL,
+      "requirement" TEXT,
+      "needsNetwork" BOOLEAN NOT NULL DEFAULT true,
+      "verified" BOOLEAN NOT NULL DEFAULT false,
+      "notes" TEXT,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL,
+      CONSTRAINT "ControlIntegration_pkey" PRIMARY KEY ("id")
+    )
+  `);
+  await exec(`CREATE INDEX IF NOT EXISTS "ControlIntegration_brandSlug_platform_idx" ON "ControlIntegration"("brandSlug", "platform")`);
 }

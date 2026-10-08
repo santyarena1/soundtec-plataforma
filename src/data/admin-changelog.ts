@@ -1270,4 +1270,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "La cotización toma la cantidad real de unidades; elegir un equipo ya no mueve la cámara (salvo en Detalle y POV)." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-sistema",
+    version: "1.40.0",
+    releasedAt: "2026-10-09T09:00:00.000Z",
+    summary: "Room Builder: motor de sistema (amplificación, control Crestron, red y streaming) y reglas editables.",
+    items: [
+      { kind: "NUEVO", text: "Pestaña Sistema: calcula los canales de amplificación para tus parlantes y zonas, avisa si faltan o si la potencia queda corta, y te sugiere el amplificador justo (o cuántos del mismo)." },
+      { kind: "NUEVO", text: "Dice cómo se integra cada equipo con Crestron Home o Crestron programado (driver por red, RS-232, no se integra) y sugiere switch o reproductor de streaming si hace falta." },
+      { kind: "NUEVO", text: "Admin → Room Builder → Reglas: integraciones por marca/modelo y especificaciones (canales, watts, ohms) editables. Vienen precargadas y marcadas 'a confirmar'." },
+      { kind: "FIX", text: "En el panel de equipos, tocar el equipo abierto ahora lo colapsa." },
+    ],
+  },
 ];
