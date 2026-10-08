@@ -6,6 +6,9 @@
 - [`2026-10-08-crestron-room-builder-integracion.md`](./2026-10-08-crestron-room-builder-integracion.md)  
 - [`2026-10-08-soundtec-room-builder-3d-propio.md`](./2026-10-08-soundtec-room-builder-3d-propio.md)
 
+> **Plan de implementación concreto** (motor de enriquecimiento ~3000 SKUs + builder vista fija + tipologías):  
+> [`2026-10-08-room-builder-implementacion-real.md`](./2026-10-08-room-builder-implementacion-real.md)
+
 **Premisa del negocio:** el producto tiene que nacer **profesional**, no como prototipo descartable. Este documento responde: qué información ya hay, qué limitaciones son reales, qué beneficios concretos da, y hasta dónde puede llegar el alcance sin mentir al usuario ni al cliente final.
 
 ---
