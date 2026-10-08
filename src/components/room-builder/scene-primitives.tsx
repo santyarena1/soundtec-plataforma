@@ -44,6 +44,7 @@ export function Box({
         metalness={metalness}
         emissive={emissive ?? "#000000"}
         emissiveIntensity={emissiveIntensity}
+        envMapIntensity={1.1}
       />
     </mesh>
   );

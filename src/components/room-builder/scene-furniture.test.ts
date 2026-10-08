@@ -13,7 +13,9 @@ describe("roomTheme", () => {
     assert.notEqual(vc.floor, hotel.floor);
     assert.notEqual(hotel.floor, pool.floor);
     assert.equal(pool.outdoor, true);
+    assert.equal(pool.envPreset, "sunset");
     assert.notEqual(event.wall, vc.wall);
     assert.ok(control.ambient < vc.ambient);
+    assert.ok(vc.envPreset);
   });
 });

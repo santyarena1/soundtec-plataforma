@@ -25,6 +25,15 @@ export const MAT = {
   stage: "#1e293b",
 } as const;
 
+export type RoomEnvPreset =
+  | "apartment"
+  | "city"
+  | "lobby"
+  | "warehouse"
+  | "sunset"
+  | "night"
+  | "studio";
+
 export function roomTheme(
   category: string,
   templateKey: string,
@@ -37,6 +46,7 @@ export function roomTheme(
   fog: string;
   ambient: number;
   outdoor?: boolean;
+  envPreset: RoomEnvPreset;
 } {
   if (templateKey === "hotel-pool-bar-m") {
     return {
@@ -46,8 +56,9 @@ export function roomTheme(
       ceiling: "#eef2e8",
       trim: MAT.woodDark,
       fog: "#c5d0c0",
-      ambient: 0.75,
+      ambient: 0.55,
       outdoor: true,
+      envPreset: "sunset",
     };
   }
   if (category === "hotel") {
@@ -58,7 +69,8 @@ export function roomTheme(
       ceiling: "#faf7f2",
       trim: MAT.woodDark,
       fog: "#ddd5c8",
-      ambient: 0.62,
+      ambient: 0.45,
+      envPreset: "apartment",
     };
   }
   if (category === "classroom" || category === "training") {
@@ -69,7 +81,8 @@ export function roomTheme(
       ceiling: "#ffffff",
       trim: MAT.metal,
       fog: "#d0d7e0",
-      ambient: 0.7,
+      ambient: 0.5,
+      envPreset: "city",
     };
   }
   if (category === "event") {
@@ -80,7 +93,8 @@ export function roomTheme(
       ceiling: "#0f172a",
       trim: "#64748b",
       fog: "#1e293b",
-      ambient: 0.45,
+      ambient: 0.28,
+      envPreset: "night",
     };
   }
   if (category === "lobby" || category === "signage") {
@@ -91,7 +105,8 @@ export function roomTheme(
       ceiling: "#ffffff",
       trim: MAT.metalDark,
       fog: "#c8d0da",
-      ambient: 0.72,
+      ambient: 0.5,
+      envPreset: "lobby",
     };
   }
   if (category === "residential") {
@@ -102,7 +117,8 @@ export function roomTheme(
       ceiling: "#faf8f4",
       trim: MAT.woodDark,
       fog: "#d9d0c2",
-      ambient: 0.6,
+      ambient: 0.42,
+      envPreset: "apartment",
     };
   }
   if (category === "control-room") {
@@ -113,7 +129,8 @@ export function roomTheme(
       ceiling: "#111827",
       trim: "#475569",
       fog: "#1e293b",
-      ambient: 0.4,
+      ambient: 0.25,
+      envPreset: "warehouse",
     };
   }
   return {
@@ -123,6 +140,7 @@ export function roomTheme(
     ceiling: "#f8fafc",
     trim: MAT.woodDark,
     fog: "#c5d0dc",
-    ambient: 0.65,
+    ambient: 0.48,
+    envPreset: "studio",
   };
 }
