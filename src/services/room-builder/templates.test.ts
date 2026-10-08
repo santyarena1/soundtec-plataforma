@@ -17,6 +17,8 @@ describe("ROOM_TEMPLATES", () => {
       "training-l",
       "hotel-guest-s",
       "hotel-suite-m",
+      "hotel-pool-bar-m",
+      "hotel-common-m",
       "event-banquet-l",
       "residential-living-m",
       "lobby-m",

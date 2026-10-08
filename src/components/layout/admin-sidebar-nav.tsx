@@ -9,6 +9,7 @@ import {
 } from "@/lib/onboarding/events";
 import {
   BookOpen,
+  Box,
   Building2,
   Eye,
   FileSpreadsheet,
@@ -62,6 +63,7 @@ const groups: NavGroup[] = [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, scope: "dashboard", tourId: "nav-link-dashboard" },
       { href: "/admin/requests", label: "Pedidos", icon: ListChecks, scope: "requests.view", tourId: "nav-link-requests" },
       { href: "/admin/quotes", label: "Cotizaciones", icon: FileSpreadsheet, scope: "quotes.view_own", tourId: "nav-link-quotes" },
+      { href: "/admin/room-builder", label: "Room Builder", icon: Box, scope: "products.view" },
       { href: "/admin/feedback", label: "Feedback de IA", icon: MessageSquare, scope: "ai.manage" },
     ],
   },
