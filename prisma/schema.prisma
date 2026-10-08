@@ -67,6 +67,8 @@ model User {
   ownedClients    Client[]           @relation("ClientOwner")
   clientActivities ClientActivity[]  @relation("ClientActivityAuthor")
   activationTokens AccountActivationToken[]
+  ownedRoomProjects RoomProject[]    @relation("RoomProjectOwner")
+  approvedDesignProfiles ProductDesignProfile[] @relation("DesignProfileApprover")
   @@index([email])
   @@index([role])
   @@index([customRoleId])
@@ -123,6 +125,7 @@ model Client {
   quotes              Quote[]
   contacts            ClientContact[]
   activities          ClientActivity[]
+  roomProjects        RoomProject[]
 
   @@index([companyName])
   @@index([isActive])
@@ -383,6 +386,8 @@ model Product {
   labels          ProductLabel[]
   quoteItems      QuoteItem[]
   aiProfile       ProductAiProfile?
+  designProfile   ProductDesignProfile?
+  roomPlacements  RoomProjectDevice[]
 
   @@index([normalizedName])
   @@index([searchKey])
@@ -1267,6 +1272,7 @@ model Quote {
   revisions    QuoteRevision[]
   aiRuns       QuoteAiRun[]
   relations    QuoteRelation[]
+  roomProjects RoomProject[]
 
   @@index([status])
   @@index([clientId])
@@ -1771,6 +1777,121 @@ model ProductAiProfile {
   @@index([audioLine])
   @@index([ipRating])
   @@index([builtAt])
+}
+
+/// Perfil de diseño espacial para Room Builder (cobertura, montaje, proxy 3D).
+/// Separado de precio/stock. Se llena desde ficha oficial / specs existentes.
+model ProductDesignProfile {
+  id        String  @id @default(cuid())
+  productId String  @unique
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  /// camera | mic | display | speaker | touch | codec | processor | furniture | other
+  designRole     String?
+  roomCategories String[] @default([])
+  mountOptions   String[] @default([])
+  defaultMountHeightM Decimal? @db.Decimal(6, 3)
+
+  widthM   Decimal? @db.Decimal(8, 4)
+  heightM  Decimal? @db.Decimal(8, 4)
+  depthM   Decimal? @db.Decimal(8, 4)
+  weightKg Decimal? @db.Decimal(10, 3)
+
+  hfovDeg   Decimal? @db.Decimal(6, 2)
+  vfovDeg   Decimal? @db.Decimal(6, 2)
+  maxRangeM Decimal? @db.Decimal(6, 2)
+
+  micPattern      String?
+  coverageRadiusM Decimal? @db.Decimal(6, 2)
+  coverageWidthM  Decimal? @db.Decimal(6, 2)
+
+  diagonalIn          Decimal? @db.Decimal(6, 2)
+  viewingDistanceMinM Decimal? @db.Decimal(6, 2)
+  viewingDistanceMaxM Decimal? @db.Decimal(6, 2)
+
+  coverageAngleDeg Decimal? @db.Decimal(6, 2)
+  sensitivityDb    Decimal? @db.Decimal(6, 2)
+
+  proxyKey      String?
+  model3dUrl    String?
+  model3dSource String?
+
+  completenessScore Float  @default(0)
+  confidenceScore   Float  @default(0)
+  /// pending | auto | needs_review | approved | rejected
+  status            String @default("pending")
+  fieldEvidence     Json?
+
+  lastEnrichedAt DateTime?
+  approvedAt     DateTime?
+  approvedById   String?
+  approvedBy     User?     @relation("DesignProfileApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([designRole])
+  @@index([status])
+  @@index([completenessScore])
+}
+
+/// Proyecto de sala del Room Builder (uso interno Soundtec en v1).
+model RoomProject {
+  id          String  @id @default(cuid())
+  name        String
+  templateKey String
+  /// videoconference | classroom | hotel | event | residential | lobby | ...
+  category    String
+  sizePreset  String?
+  areaM2      Decimal @db.Decimal(10, 2)
+  heightM     Decimal @db.Decimal(6, 2) @default(2.70)
+  platform    String?
+  /// draft | ready | quoted
+  status      String  @default("draft")
+  /// private | team (public/link fuera del lanzamiento interno)
+  visibility  String  @default("private")
+  sceneJson   Json
+  notes       String? @db.Text
+
+  ownerId  String
+  owner    User    @relation("RoomProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  quoteId  String?
+  quote    Quote?  @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+
+  devices RoomProjectDevice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([clientId])
+  @@index([category])
+  @@index([status])
+  @@index([visibility])
+  @@index([templateKey])
+}
+
+/// Dispositivo colocado en un RoomProject (desnormalizado para queries BOM).
+model RoomProjectDevice {
+  id            String      @id @default(cuid())
+  roomProjectId String
+  roomProject   RoomProject @relation(fields: [roomProjectId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  slotKey       String?
+  designRole    String?
+  quantity      Int         @default(1)
+  poseJson      Json?
+  coverageJson  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([roomProjectId])
+  @@index([productId])
+  @@index([slotKey])
 }
 
 model AiAnswerCache {

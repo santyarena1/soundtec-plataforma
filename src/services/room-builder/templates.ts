@@ -1,0 +1,520 @@
+import type { CameraPreset, RoomPlatform, RoomTemplate, SizePreset } from "./types";
+
+const DEFAULT_CAMERAS: CameraPreset[] = ["general", "front_av", "plan", "detail"];
+
+function dimsFor(areaM2: number, ratio = 1.4): { widthM: number; depthM: number } {
+  const depthM = Math.sqrt(areaM2 / ratio);
+  const widthM = areaM2 / depthM;
+  return {
+    widthM: Math.round(widthM * 100) / 100,
+    depthM: Math.round(depthM * 100) / 100,
+  };
+}
+
+function vcSlots(size: SizePreset, widthM: number, depthM: number) {
+  const tableW = size === "S" ? 1.6 : size === "M" ? 2.4 : 3.6;
+  const tableD = size === "S" ? 0.9 : size === "M" ? 1.2 : 1.4;
+  return [
+    {
+      key: "display_main",
+      role: "display" as const,
+      label: "Display principal",
+      required: true,
+      mount: "wall" as const,
+      pose: { x: 0, y: 1.4, z: depthM / 2 - 0.05, rotY: 180 },
+      defaultQty: size === "L" ? 2 : 1,
+    },
+    {
+      key: "camera_main",
+      role: "camera" as const,
+      label: "Cámara",
+      required: true,
+      mount: "wall" as const,
+      pose: { x: 0, y: 1.85, z: depthM / 2 - 0.08, rotY: 180 },
+      defaultQty: 1,
+    },
+    {
+      key: "mic_ceiling",
+      role: "mic" as const,
+      label: "Micrófono",
+      required: true,
+      mount: "ceiling" as const,
+      pose: { x: 0, y: 2.55, z: 0, rotY: 0 },
+      defaultQty: size === "L" ? 2 : 1,
+    },
+    {
+      key: "touch_table",
+      role: "touch" as const,
+      label: "Touch de control",
+      required: size !== "S",
+      mount: "table" as const,
+      pose: { x: tableW / 2 - 0.15, y: 0.75, z: 0, rotY: 0 },
+      defaultQty: 1,
+    },
+    {
+      key: "codec",
+      role: "codec" as const,
+      label: "Codec / compute",
+      required: true,
+      mount: "rack" as const,
+      pose: { x: -widthM / 2 + 0.4, y: 0.5, z: -depthM / 2 + 0.4, rotY: 0 },
+      defaultQty: 1,
+    },
+    {
+      key: "speaker",
+      role: "speaker" as const,
+      label: "Audio",
+      required: false,
+      mount: "wall" as const,
+      pose: { x: 0, y: 2.2, z: depthM / 2 - 0.1, rotY: 180 },
+      defaultQty: 1,
+    },
+  ];
+}
+
+const UC: RoomPlatform[] = ["teams", "zoom", "byod"];
+
+function vcTemplate(
+  size: SizePreset,
+  areaM2: number,
+  name: string,
+  key: string,
+): RoomTemplate {
+  const { widthM, depthM } = dimsFor(areaM2);
+  return {
+    key,
+    name,
+    category: "videoconference",
+    sizePreset: size,
+    areaM2,
+    heightM: 2.7,
+    widthM,
+    depthM,
+    platforms: UC,
+    slots: vcSlots(size, widthM, depthM),
+    cameraPresets: [...DEFAULT_CAMERAS, "device_pov"],
+    description: `Sala de videoconferencia ${size} (~${areaM2} m²).`,
+  };
+}
+
+export const ROOM_TEMPLATES: RoomTemplate[] = [
+  vcTemplate("S", 10, "Huddle / Phone room", "vc-huddle-s"),
+  vcTemplate("M", 18, "Sala de reuniones", "vc-meeting-m"),
+  vcTemplate("L", 28, "Boardroom", "vc-boardroom-l"),
+  vcTemplate("M", 22, "Sala de directorio mediana", "vc-boardroom-m"),
+
+  {
+    key: "classroom-m",
+    name: "Aula / Classroom",
+    category: "classroom",
+    sizePreset: "M",
+    areaM2: 45,
+    heightM: 2.8,
+    ...dimsFor(45, 1.2),
+    platforms: ["teams", "zoom", "byod"],
+    cameraPresets: DEFAULT_CAMERAS,
+    description: "Aula con display frontal, cámara y audio de zona.",
+    slots: [
+      {
+        key: "display_front",
+        role: "display",
+        label: "Display / proyector",
+        required: true,
+        mount: "wall",
+        pose: { x: 0, y: 1.6, z: 3.5, rotY: 180 },
+        defaultQty: 1,
+      },
+      {
+        key: "camera_front",
+        role: "camera",
+        label: "Cámara frontal",
+        required: true,
+        mount: "wall",
+        pose: { x: 0, y: 2.0, z: 3.4, rotY: 180 },
+        defaultQty: 1,
+      },
+      {
+        key: "mic_zone",
+        role: "mic",
+        label: "Micrófono de zona",
+        required: true,
+        mount: "ceiling",
+        pose: { x: 0, y: 2.7, z: 0, rotY: 0 },
+        defaultQty: 2,
+      },
+      {
+        key: "speakers",
+        role: "speaker",
+        label: "Parlantes",
+        required: true,
+        mount: "ceiling",
+        pose: { x: 0, y: 2.7, z: 1, rotY: 0 },
+        defaultQty: 4,
+      },
+    ],
+  },
+  {
+    key: "training-l",
+    name: "Sala de capacitación",
+    category: "training",
+    sizePreset: "L",
+    areaM2: 60,
+    heightM: 2.9,
+    ...dimsFor(60, 1.3),
+    platforms: ["teams", "zoom", "byod"],
+    cameraPresets: DEFAULT_CAMERAS,
+    description: "Capacitación con doble display y cobertura de mic amplia.",
+    slots: [
+      {
+        key: "display_main",
+        role: "display",
+        label: "Display principal",
+        required: true,
+        mount: "wall",
+        pose: { x: -1.2, y: 1.5, z: 4, rotY: 180 },
+        defaultQty: 2,
+      },
+      {
+        key: "camera_main",
+        role: "camera",
+        label: "Cámara",
+        required: true,
+        mount: "wall",
+        pose: { x: 0, y: 1.9, z: 3.9, rotY: 180 },
+        defaultQty: 1,
+      },
+      {
+        key: "mic_ceiling",
+        role: "mic",
+        label: "Mic techo",
+        required: true,
+        mount: "ceiling",
+        pose: { x: 0, y: 2.8, z: 0, rotY: 0 },
+        defaultQty: 3,
+      },
+      {
+        key: "touch",
+        role: "touch",
+        label: "Touch",
+        required: false,
+        mount: "wall",
+        pose: { x: 2.5, y: 1.2, z: 3.8, rotY: 180 },
+        defaultQty: 1,
+      },
+    ],
+  },
+  {
+    key: "hotel-guest-s",
+    name: "Habitación de hotel",
+    category: "hotel",
+    sizePreset: "S",
+    areaM2: 22,
+    heightM: 2.6,
+    ...dimsFor(22, 1.5),
+    platforms: ["crestron-home", "none"],
+    cameraPresets: ["general", "plan", "detail"],
+    description: "Guest room con TV y control.",
+    slots: [
+      {
+        key: "tv",
+        role: "display",
+        label: "TV",
+        required: true,
+        mount: "wall",
+        pose: { x: 0, y: 1.3, z: 2, rotY: 180 },
+        defaultQty: 1,
+      },
+      {
+        key: "touch",
+        role: "touch",
+        label: "Control",
+        required: false,
+        mount: "table",
+        pose: { x: 1.2, y: 0.7, z: -0.5, rotY: 0 },
+        defaultQty: 1,
+      },
+      {
+        key: "speakers",
+        role: "speaker",
+        label: "Audio",
+        required: false,
+        mount: "ceiling",
+        pose: { x: 0, y: 2.5, z: 0, rotY: 0 },
+        defaultQty: 2,
+      },
+    ],
+  },
+  {
+    key: "hotel-suite-m",
+    name: "Suite de hotel",
+    category: "hotel",
+    sizePreset: "M",
+    areaM2: 40,
+    heightM: 2.7,
+    ...dimsFor(40, 1.4),
+    platforms: ["crestron-home", "none"],
+    cameraPresets: ["general", "plan", "detail"],
+    description: "Suite con living AV y control.",
+    slots: [
+      {
+        key: "tv_living",
+        role: "display",
+        label: "TV living",
+        required: true,
+        mount: "wall",
+        pose: { x: 0, y: 1.4, z: 2.5, rotY: 180 },
+        defaultQty: 1,
+      },
+      {
+        key: "processor",
+        role: "processor",
+        label: "Procesador / control",
+        required: true,
+        mount: "rack",
+        pose: { x: -2, y: 0.4, z: -2, rotY: 0 },
+        defaultQty: 1,
+      },
+      {
+        key: "speakers",
+        role: "speaker",
+        label: "Audio",
+        required: true,
+        mount: "ceiling",
+        pose: { x: 0, y: 2.6, z: 0, rotY: 0 },
+        defaultQty: 4,
+      },
+      {
+        key: "touch",
+        role: "touch",
+        label: "Touch",
+        required: true,
+        mount: "table",
+        pose: { x: 1, y: 0.75, z: 0, rotY: 0 },
+        defaultQty: 1,
+      },
+    ],
+  },
+  {
+    key: "event-banquet-l",
+    name: "Salón de eventos",
+    category: "event",
+    sizePreset: "L",
+    areaM2: 120,
+    heightM: 4,
+    ...dimsFor(120, 1.6),
+    platforms: ["none", "byod"],
+    cameraPresets: ["general", "front_av", "plan", "detail"],
+    description: "Salón con PA, displays y mics (BOM-first).",
+    slots: [
+      {
+        key: "display_stage",
+        role: "display",
+        label: "Display escenario",
+        required: true,
+        mount: "wall",
+        pose: { x: 0, y: 2.2, z: 6, rotY: 180 },
+        defaultQty: 2,
+      },
+      {
+        key: "speakers_pa",
+        role: "speaker",
+        label: "PA",
+        required: true,
+        mount: "floor",
+        pose: { x: -4, y: 1.5, z: 5, rotY: 160 },
+        defaultQty: 4,
+      },
+      {
+        key: "mic_wireless",
+        role: "mic",
+        label: "Mic inalámbrico",
+        required: true,
+        mount: "table",
+        pose: { x: 0, y: 1.1, z: 4, rotY: 0 },
+        defaultQty: 2,
+      },
+      {
+        key: "processor",
+        role: "processor",
+        label: "Procesador / DSP",
+        required: true,
+        mount: "rack",
+        pose: { x: -5, y: 0.5, z: -5, rotY: 0 },
+        defaultQty: 1,
+      },
+    ],
+  },
+  {
+    key: "residential-living-m",
+    name: "Living / media room",
+    category: "residential",
+    sizePreset: "M",
+    areaM2: 35,
+    heightM: 2.7,
+    ...dimsFor(35, 1.35),
+    platforms: ["crestron-home"],
+    cameraPresets: ["general", "plan", "detail"],
+    description: "Living residencial Crestron Home.",
+    slots: [
+      {
+        key: "tv",
+        role: "display",
+        label: "TV / proyector",
+        required: true,
+        mount: "wall",
+        pose: { x: 0, y: 1.35, z: 2.8, rotY: 180 },
+        defaultQty: 1,
+      },
+      {
+        key: "processor",
+        role: "processor",
+        label: "Procesador Home",
+        required: true,
+        mount: "rack",
+        pose: { x: -2.2, y: 0.4, z: -2, rotY: 0 },
+        defaultQty: 1,
+      },
+      {
+        key: "speakers",
+        role: "speaker",
+        label: "Audio",
+        required: true,
+        mount: "ceiling",
+        pose: { x: 0, y: 2.6, z: 0, rotY: 0 },
+        defaultQty: 4,
+      },
+      {
+        key: "touch",
+        role: "touch",
+        label: "Touchpanel",
+        required: true,
+        mount: "wall",
+        pose: { x: 2, y: 1.3, z: 2.5, rotY: 90 },
+        defaultQty: 1,
+      },
+    ],
+  },
+  {
+    key: "lobby-m",
+    name: "Lobby / recepción",
+    category: "lobby",
+    sizePreset: "M",
+    areaM2: 30,
+    heightM: 3,
+    ...dimsFor(30, 1.1),
+    platforms: ["none", "byod"],
+    cameraPresets: ["general", "plan", "detail"],
+    description: "Lobby con digital signage.",
+    slots: [
+      {
+        key: "signage",
+        role: "display",
+        label: "Signage",
+        required: true,
+        mount: "wall",
+        pose: { x: 0, y: 1.6, z: 2, rotY: 180 },
+        defaultQty: 1,
+      },
+      {
+        key: "speakers",
+        role: "speaker",
+        label: "Audio ambiente",
+        required: false,
+        mount: "ceiling",
+        pose: { x: 0, y: 2.9, z: 0, rotY: 0 },
+        defaultQty: 2,
+      },
+    ],
+  },
+  {
+    key: "control-room-m",
+    name: "Sala técnica / control",
+    category: "control-room",
+    sizePreset: "M",
+    areaM2: 20,
+    heightM: 2.7,
+    ...dimsFor(20, 1.5),
+    platforms: ["none"],
+    cameraPresets: ["general", "plan", "detail"],
+    description: "Sala técnica orientada a BOM de rack.",
+    slots: [
+      {
+        key: "processor",
+        role: "processor",
+        label: "Procesador",
+        required: true,
+        mount: "rack",
+        pose: { x: 0, y: 1, z: -1.5, rotY: 0 },
+        defaultQty: 1,
+      },
+      {
+        key: "displays",
+        role: "display",
+        label: "Monitores",
+        required: true,
+        mount: "wall",
+        pose: { x: 0, y: 1.4, z: 1.5, rotY: 180 },
+        defaultQty: 2,
+      },
+    ],
+  },
+  {
+    key: "signage-corridor-s",
+    name: "Pasillo / digital signage",
+    category: "signage",
+    sizePreset: "S",
+    areaM2: 8,
+    heightM: 2.7,
+    ...dimsFor(8, 2),
+    platforms: ["none"],
+    cameraPresets: ["general", "detail"],
+    description: "Punto de cartelería digital.",
+    slots: [
+      {
+        key: "display",
+        role: "display",
+        label: "Display",
+        required: true,
+        mount: "wall",
+        pose: { x: 0, y: 1.5, z: 0.1, rotY: 180 },
+        defaultQty: 1,
+      },
+    ],
+  },
+];
+
+export function listRoomTemplates(): RoomTemplate[] {
+  return ROOM_TEMPLATES;
+}
+
+export function getRoomTemplate(key: string): RoomTemplate | undefined {
+  return ROOM_TEMPLATES.find((t) => t.key === key);
+}
+
+export function listTemplatesByCategory(category: string): RoomTemplate[] {
+  return ROOM_TEMPLATES.filter((t) => t.category === category);
+}
+
+/** Escala el template a un área objetivo manteniendo proporción width/depth. */
+export function resizeTemplate(template: RoomTemplate, areaM2: number): RoomTemplate {
+  const safeArea = Math.max(4, areaM2);
+  const ratio = template.widthM / template.depthM;
+  const depthM = Math.sqrt(safeArea / ratio);
+  const widthM = safeArea / depthM;
+  const scaleX = widthM / template.widthM;
+  const scaleZ = depthM / template.depthM;
+  return {
+    ...template,
+    areaM2: Math.round(safeArea * 100) / 100,
+    widthM: Math.round(widthM * 100) / 100,
+    depthM: Math.round(depthM * 100) / 100,
+    slots: template.slots.map((slot) => ({
+      ...slot,
+      pose: {
+        ...slot.pose,
+        x: Math.round(slot.pose.x * scaleX * 100) / 100,
+        z: Math.round(slot.pose.z * scaleZ * 100) / 100,
+      },
+    })),
+  };
+}
