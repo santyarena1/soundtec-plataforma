@@ -9,7 +9,7 @@
  * La calidad baja sola si la compu no llega a mover la escena fluida.
  */
 
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { PerformanceMonitor, useProgress } from "@react-three/drei";
 import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import * as THREE from "three";
@@ -61,6 +61,21 @@ function LoadingOverlay() {
       </div>
     </div>
   );
+}
+
+/**
+ * Aplica la calidad sin rearmar el Canvas: así bajar a "rápida" en pleno
+ * arrastre no deja la escena en blanco ni resetea la cámara.
+ */
+function QualitySync({ quality }: { quality: Quality }) {
+  const gl = useThree((s) => s.gl);
+  const setDpr = useThree((s) => s.setDpr);
+  useEffect(() => {
+    // Con efectos, el tono lo aplica el compositor; sin efectos, el renderer.
+    gl.toneMapping = quality === "high" ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
+    setDpr(Math.min(window.devicePixelRatio || 1, quality === "high" ? 1.75 : 1.25));
+  }, [gl, setDpr, quality]);
+  return null;
 }
 
 function SceneContent({
@@ -171,18 +186,12 @@ export function RoomViewport({
           }}
         >
           <Canvas
-            key={`rb-canvas-${canvasKey}-${quality}`}
+            key={`rb-canvas-${canvasKey}`}
             shadows="soft"
             className="h-full w-full touch-none"
             camera={{ position: [6, 5, -7], fov: 40, near: 0.05, far: 200 }}
-            gl={{
-              antialias: quality === "fast",
-              powerPreference: "high-performance",
-              // Con efectos, el tono lo aplica el compositor; sin efectos, el renderer.
-              toneMapping: quality === "high" ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping,
-              toneMappingExposure: 1,
-            }}
-            dpr={quality === "high" ? [1, 1.75] : [1, 1.25]}
+            gl={{ antialias: true, powerPreference: "high-performance", toneMappingExposure: 1 }}
+            dpr={[1, 1.75]}
             onCreated={({ gl }) => {
               gl.outputColorSpace = THREE.SRGBColorSpace;
               gl.domElement.addEventListener(
@@ -197,6 +206,7 @@ export function RoomViewport({
             }}
             onPointerMissed={() => undefined}
           >
+            <QualitySync quality={quality} />
             {quality === "high" ? <PerformanceMonitor onDecline={() => setQuality("fast")} flipflops={2} /> : null}
             <SceneContent
               scene={scene}

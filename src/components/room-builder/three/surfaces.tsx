@@ -193,7 +193,8 @@ export function useLargeSurface(set: TextureSetName, color: string, roughness: n
       if (repeatMeters) c.repeat.set(repeatMeters[0] / TILE_METERS[set], repeatMeters[1] / TILE_METERS[set]);
       return c;
     };
-    mat.map = clone(textures.diffuse);
+    // El revoque solo aporta relieve: su foto es cálida y teñía las paredes de naranja.
+    if (set !== "plaster") mat.map = clone(textures.diffuse);
     mat.normalMap = clone(textures.normal);
     mat.roughnessMap = clone(textures.roughness);
     if (mat.normalMap) mat.normalScale = new THREE.Vector2(0.7, 0.7);

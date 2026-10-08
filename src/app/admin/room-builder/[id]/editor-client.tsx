@@ -557,8 +557,8 @@ export function RoomBuilderEditor({
               platform={project.platform}
             />
             <p className="mt-2 text-[11px] text-slate-500">
-              La cámara no se orbita: usá General, A nivel, Cine, Frente AV,
-              Planta o Detalle. La foto del catálogo aparece sobre el equipo.
+              Arrastrá para girar la sala, rueda para acercar. Las vistas (General, Cine,
+              Planta…) llevan la cámara sola. Tocá un equipo para ver su ficha.
             </p>
           </div>
           <div className="space-y-3 border-b border-slate-100 p-3">

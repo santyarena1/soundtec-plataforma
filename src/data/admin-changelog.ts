@@ -1205,4 +1205,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Al tocar un equipo se ve su ficha con foto, marca y modelo; la calidad baja sola en compus más modestas." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-13",
+    version: "1.36.1",
+    releasedAt: "2026-10-09T02:40:00.000Z",
+    summary: "Room Builder 3D: paredes en su color real y la escena ya no se reinicia al girar.",
+    items: [
+      { kind: "FIX", text: "Si la compu baja la calidad sola mientras girás, la sala sigue en pantalla y la cámara no vuelve al inicio." },
+      { kind: "FIX", text: "Las paredes ya no se ven naranjas: mantienen el color de la tipología, con relieve de revoque." },
+    ],
+  },
 ];
