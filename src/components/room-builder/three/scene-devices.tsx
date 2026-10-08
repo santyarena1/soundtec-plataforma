@@ -22,8 +22,12 @@ import {
   TouchModel,
   inchesFromProxy,
 } from "./device-models";
+import { ProductPhotoModel } from "./product-photo";
 
-function DeviceBody({ device, heightM }: { device: SceneDevice; heightM: number }) {
+/** Altura hasta la que un equipo se considera apoyado (mesa, mueble, rack). */
+const SURFACE_MAX_Y = 1.3;
+
+function GenericBody({ device, heightM }: { device: SceneDevice; heightM: number }) {
   const y = device.pose.y;
   const nearCeiling = y > heightM - 0.45;
   switch (device.designRole) {
@@ -43,6 +47,24 @@ function DeviceBody({ device, heightM }: { device: SceneDevice; heightM: number 
     default:
       return <GenericModel />;
   }
+}
+
+/** Con producto asignado se ve su foto real a escala; si no, el modelo del tipo. */
+function DeviceBody({ device, heightM }: { device: SceneDevice; heightM: number }) {
+  const generic = <GenericBody device={device} heightM={heightM} />;
+  if (!device.productId || device.designRole === "display") return generic;
+  const y = device.pose.y;
+  const ceiling = device.proxyKey === "ceiling_speaker" || device.proxyKey === "ceiling_mic" || y > heightM - 0.45;
+  const placement = ceiling ? "ceiling" : y < SURFACE_MAX_Y ? "surface" : "wall";
+  return (
+    <ProductPhotoModel
+      productId={device.productId}
+      sizeCm={device.sizeCm}
+      role={device.designRole}
+      placement={placement}
+      fallback={generic}
+    />
+  );
 }
 
 /** Anillo verde que late: "este producto se puede ubicar acá". */

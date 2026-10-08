@@ -1215,4 +1215,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Las paredes ya no se ven naranjas: mantienen el color de la tipología, con relieve de revoque." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-14",
+    version: "1.37.0",
+    releasedAt: "2026-10-09T03:30:00.000Z",
+    summary: "Room Builder: los productos elegidos se ven reales en el 3D y el panel derecho se ordenó por pasos.",
+    items: [
+      { kind: "NUEVO", text: "Cada equipo con producto elegido muestra su foto real sin fondo, a su tamaño real y con espesor; las pantallas siguen en 3D encendidas." },
+      { kind: "NUEVO", text: "Panel derecho en pestañas: Equipos (qué falta elegir), Sala (medidas y plano), Integración (accesorios y procesadores) y Guía." },
+      { kind: "MEJORA", text: "Cada equipo se abre ahí mismo con los productos sugeridos, precio, cobertura y cuál es el recomendado; tocar un equipo en el 3D lo abre en el panel." },
+    ],
+  },
 ];

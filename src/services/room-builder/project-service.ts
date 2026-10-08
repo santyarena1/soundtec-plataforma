@@ -5,7 +5,7 @@ import { resizeSceneMeters } from "./dimensions";
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { getHubPreset } from "./hub-presets";
 import { getRoomTemplate, resizeTemplate } from "./templates";
-import { buildSceneFromTemplate, parseScene, type RoomScene } from "./scene";
+import { buildSceneFromTemplate, parseScene, productSizeCm, type ProductSizeCm, type RoomScene } from "./scene";
 
 function decimal(n: number) {
   return new Prisma.Decimal(n);
@@ -60,6 +60,9 @@ export async function getRoomProject(id: string) {
               normalizedName: true,
               supplierSku: true,
               baseCostUsd: true,
+              widthCm: true,
+              heightCm: true,
+              depthCm: true,
               brand: { select: { name: true } },
               images: {
                 where: { isPrimary: true },
@@ -85,6 +88,7 @@ export async function getRoomProject(id: string) {
       imageUrl: row?.product?.images?.[0]?.url ?? device.imageUrl ?? null,
       productName: row?.product?.normalizedName ?? device.productName ?? null,
       brandName: row?.product?.brand?.name ?? device.brandName ?? null,
+      sizeCm: row?.product ? productSizeCm(row.product) : device.sizeCm ?? null,
     };
   });
   return { ...project, sceneJson: scene };
@@ -286,12 +290,14 @@ export async function assignProductToSlot(input: {
     name: string | null;
     brand: string | null;
     imageUrl: string | null;
+    sizeCm: ProductSizeCm | null;
     designRole: string | null;
     coverage: Prisma.InputJsonValue | typeof Prisma.JsonNull;
   } = {
     name: null,
     brand: null,
     imageUrl: null,
+    sizeCm: null,
     designRole: null,
     coverage: Prisma.JsonNull,
   };
@@ -301,6 +307,9 @@ export async function assignProductToSlot(input: {
       where: { id: input.productId },
       select: {
         normalizedName: true,
+        widthCm: true,
+        heightCm: true,
+        depthCm: true,
         brand: { select: { name: true } },
         designProfile: true,
         images: {
@@ -315,6 +324,7 @@ export async function assignProductToSlot(input: {
       name: product.normalizedName,
       brand: product.brand?.name ?? null,
       imageUrl: product.images[0]?.url ?? null,
+      sizeCm: productSizeCm(product),
       designRole: product.designProfile?.designRole ?? null,
       coverage: product.designProfile
         ? ({
@@ -361,6 +371,7 @@ export async function assignProductToSlot(input: {
           productName: productMeta.name,
           brandName: productMeta.brand,
           imageUrl: productMeta.imageUrl,
+          sizeCm: productMeta.sizeCm,
           quantity: input.quantity ?? d.quantity,
           coverage:
             productMeta.coverage === Prisma.JsonNull

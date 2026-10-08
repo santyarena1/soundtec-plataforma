@@ -6,11 +6,9 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { toast } from "sonner";
 import {
   ArrowLeft,
-  Check,
   FileSpreadsheet,
   Loader2,
   RefreshCw,
-  Search,
   Sparkles,
 } from "lucide-react";
 import type {
@@ -26,10 +24,12 @@ import {
   hydrateRoomScene,
   rebuildSceneKeepingProducts,
 } from "@/services/room-builder/hydrate-scene";
-import { PlatformGuideCard } from "@/components/room-builder/platform-guide-card";
-import { PlanPanel } from "@/components/room-builder/plan-panel";
-import { DimensionsPanel } from "@/components/room-builder/dimensions-panel";
-import { InterconnectPanel } from "@/components/room-builder/interconnect-panel";
+import {
+  EditorSidebar,
+  roleLabel,
+  type RankRow,
+  type StagedProduct,
+} from "@/components/room-builder/editor-sidebar";
 
 const RoomViewport = dynamic(
   () =>
@@ -83,20 +83,6 @@ type Project = {
   }>;
 };
 
-type RankRow = {
-  productId: string;
-  name: string;
-  sku: string | null;
-  brand: string | null;
-  imageUrl: string | null;
-  score: number;
-  compatible: boolean;
-  hardRejectReason?: string;
-  priceUsd: number | null;
-  coverageFit: number | null;
-  stockScore: number;
-  listPriceUsd: number | null;
-};
 
 function emptyScene(): RoomScene {
   return {
@@ -137,12 +123,7 @@ export function RoomBuilderEditor({
   const [pending, startTransition] = useTransition();
   const [ranking, setRanking] = useState(false);
   /** Producto elegido para ubicar en un slot (flujo producto → click slot). */
-  const [staged, setStaged] = useState<{
-    productId: string;
-    name: string;
-    brand: string | null;
-    role: string;
-  } | null>(null);
+  const [staged, setStaged] = useState<StagedProduct | null>(null);
 
   const selectedSlot = useMemo(
     () => scene.slots.find((s) => s.key === scene.selectedSlotKey) ?? null,
@@ -275,7 +256,7 @@ export function RoomBuilderEditor({
       nextScene.selectedSlotKey = slotKey;
       setScene(nextScene);
       if (!opts?.keepStaged) setStaged(null);
-      toast.success(productId ? "Producto ubicado en el slot" : "Slot liberado");
+      toast.success(productId ? "Producto elegido" : "Producto quitado");
     });
   }
 
@@ -286,7 +267,7 @@ export function RoomBuilderEditor({
       if (!slot) return;
       if (slot.role !== staged.role) {
         toast.error(
-          `Ese slot es ${slot.role}; el producto es ${staged.role}. Elegí un slot marcado en verde.`,
+          `Ese lugar es para ${roleLabel(slot.role).toLowerCase()} y el producto es ${roleLabel(staged.role).toLowerCase()}. Elegí uno marcado en verde.`,
         );
         return;
       }
@@ -323,7 +304,7 @@ export function RoomBuilderEditor({
     }
     if (!selectedSlot) {
       toast.error(
-        "Seleccioná un slot de la lista (Display, Cámara, etc.) y después el producto",
+        "Primero abrí un equipo de la lista (Pantalla, Cámara…) y después elegí el producto",
       );
       return;
     }
@@ -385,7 +366,7 @@ export function RoomBuilderEditor({
       setProject(json.project);
       setScene(parseScene(json.project.sceneJson) ?? scene);
       toast.success(
-        `Autocompletado: ${json.filled}/${json.attempted} slots`,
+        `Autocompletado: ${json.filled} de ${json.attempted} equipos`,
       );
     });
   }
@@ -548,221 +529,25 @@ export function RoomBuilderEditor({
         </div>
       </div>
 
-      {/* Sidebar: único scroll de la pantalla */}
-      <aside className="flex max-h-[42vh] w-full shrink-0 flex-col overflow-hidden border-t border-slate-200 bg-white xl:max-h-none xl:h-full xl:w-[360px] xl:border-l xl:border-t-0">
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <div className="border-b border-slate-100 p-3">
-            <PlatformGuideCard
-              category={project.category}
-              platform={project.platform}
-            />
-            <p className="mt-2 text-[11px] text-slate-500">
-              Arrastrá para girar la sala, rueda para acercar. Las vistas (General, Cine,
-              Planta…) llevan la cámara sola. Tocá un equipo para ver su ficha.
-            </p>
-          </div>
-          <div className="space-y-3 border-b border-slate-100 p-3">
-            <DimensionsPanel
-              projectId={project.id}
-              widthM={scene.widthM}
-              depthM={scene.depthM}
-              heightM={scene.heightM}
-              onUpdated={() => void reloadProject()}
-            />
-            <InterconnectPanel
-              projectId={project.id}
-              onUpdated={() => void reloadProject()}
-            />
-          </div>
-
-          <div className="border-b border-slate-100 p-3">
-            <h2 className="text-sm font-semibold text-slate-900">Slots</h2>
-            {staged ? (
-              <div className="mt-2 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-2 text-[11px] text-emerald-900">
-                <p className="font-semibold">
-                  En mano: {staged.brand ? `${staged.brand} · ` : ""}
-                  {staged.name}
-                </p>
-                <p className="mt-0.5">
-                  Click en un slot verde (lista o 3D) para ubicarlo.
-                </p>
-                <button
-                  type="button"
-                  className="mt-1 underline"
-                  onClick={() => setStaged(null)}
-                >
-                  Cancelar
-                </button>
-              </div>
-            ) : (
-              <p className="mt-1 text-[11px] text-slate-500">
-                Seleccioná un slot y un producto del ranking para ubicarlo.
-              </p>
-            )}
-            <div className="mt-2 space-y-1">
-              {scene.slots.map((slot) => {
-                const device = scene.devices.find((d) => d.slotKey === slot.key);
-                const active = scene.selectedSlotKey === slot.key;
-                const canPlace = staged != null && slot.role === staged.role;
-                return (
-                  <button
-                    key={slot.key}
-                    type="button"
-                    onClick={() => onSelectSlot(slot.key)}
-                    className={`flex w-full items-start justify-between rounded-lg px-2.5 py-1.5 text-left text-sm ${
-                      canPlace
-                        ? "border border-emerald-400 bg-emerald-50 text-emerald-950"
-                        : active
-                          ? "bg-slate-900 text-white"
-                          : "hover:bg-slate-50 text-slate-800"
-                    }`}
-                  >
-                    <span>
-                      <span className="font-medium">{slot.label}</span>
-                      <span
-                        className={`block text-[11px] ${
-                          canPlace
-                            ? "text-emerald-700"
-                            : active
-                              ? "text-slate-300"
-                              : "text-slate-500"
-                        }`}
-                      >
-                        {slot.role} · {slot.mount}
-                        {canPlace ? " · click para ubicar" : ""}
-                      </span>
-                    </span>
-                    {device?.productId ? (
-                      <Check
-                        className={`mt-0.5 h-4 w-4 shrink-0 ${
-                          active && !canPlace
-                            ? "text-emerald-300"
-                            : "text-emerald-600"
-                        }`}
-                      />
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-3 p-3">
-            <PlanPanel
-              projectId={project.id}
-              planImageUrl={scene.plan?.imageUrl}
-              onUpdated={() => void reloadProject()}
-            />
-
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">
-                {selectedSlot ? selectedSlot.label : "Seleccioná un slot"}
-              </h3>
-              {selectedDevice?.productName ? (
-                <p className="mt-1 text-xs text-slate-600">
-                  Actual:{" "}
-                  {selectedDevice.brandName
-                    ? `${selectedDevice.brandName} · `
-                    : ""}
-                  {selectedDevice.productName}
-                  <button
-                    type="button"
-                    onClick={() => assignProduct(null)}
-                    className="ml-2 text-red-600 underline"
-                  >
-                    quitar
-                  </button>
-                </p>
-              ) : (
-                <p className="mt-1 text-xs text-slate-500">
-                  Sin producto asignado
-                </p>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-400" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar en catálogo…"
-                  className="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-2 text-sm"
-                />
-              </div>
-              <select
-                value={rankMode}
-                onChange={(e) => setRankMode(e.target.value as RankSortMode)}
-                className="rounded-lg border border-slate-300 px-2 text-xs"
-              >
-                <option value="recommended">Recomendado</option>
-                <option value="price_asc">Precio</option>
-                <option value="coverage">Cobertura</option>
-                <option value="stock">Stock</option>
-                <option value="premium">Premium</option>
-              </select>
-            </div>
-
-            <div className="space-y-2 pb-4">
-              {ranking ? (
-                <p className="flex items-center gap-2 text-xs text-slate-500">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Rankeando…
-                </p>
-              ) : null}
-              {!ranking && ranked.length === 0 ? (
-                <p className="text-xs text-slate-500">
-                  No hay candidatos. Generá perfiles de diseño desde la home del
-                  Room Builder.
-                </p>
-              ) : null}
-              {ranked.map((row) => (
-                <button
-                  key={row.productId}
-                  type="button"
-                  disabled={!row.compatible || pending}
-                  onClick={() => pickProductForPlacement(row)}
-                  className={`flex w-full gap-2 rounded-lg border p-2 text-left hover:border-slate-400 disabled:opacity-50 ${
-                    staged?.productId === row.productId
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-slate-200"
-                  }`}
-                >
-                  <div className="h-11 w-11 shrink-0 overflow-hidden rounded bg-slate-100">
-                    {row.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={row.imageUrl}
-                        alt=""
-                        className="h-full w-full object-contain"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-900">
-                      {row.brand ? `${row.brand} · ` : ""}
-                      {row.name}
-                    </p>
-                    <p className="text-[11px] text-slate-500">
-                      score {row.score}
-                      {row.priceUsd != null
-                        ? ` · $${row.priceUsd.toFixed(0)}`
-                        : ""}
-                      {row.coverageFit != null
-                        ? ` · ${(row.coverageFit * 100).toFixed(0)}%`
-                        : ""}
-                    </p>
-                    {!row.compatible ? (
-                      <p className="text-[11px] text-red-600">
-                        {row.hardRejectReason}
-                      </p>
-                    ) : null}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </aside>
+      <EditorSidebar
+        projectId={project.id}
+        category={project.category}
+        platform={project.platform}
+        scene={scene}
+        staged={staged}
+        ranked={ranked}
+        ranking={ranking}
+        query={query}
+        rankMode={rankMode}
+        pending={pending}
+        onSelectSlot={onSelectSlot}
+        onCancelStaged={() => setStaged(null)}
+        onQuery={setQuery}
+        onRankMode={setRankMode}
+        onPickProduct={pickProductForPlacement}
+        onClearProduct={() => assignProduct(null)}
+        onReload={() => void reloadProject()}
+      />
     </div>
   );
 }

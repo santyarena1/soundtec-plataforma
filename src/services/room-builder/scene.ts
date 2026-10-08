@@ -21,7 +21,22 @@ export type SceneDevice = {
   brandName?: string | null;
   imageUrl?: string | null;
   proxyKey?: string | null;
+  /** Medidas reales del producto (cm), para dibujarlo a escala. */
+  sizeCm?: ProductSizeCm | null;
 };
+
+export type ProductSizeCm = { w: number | null; h: number | null; d: number | null };
+
+/** Decimal/num de Prisma → cm positivos o null. */
+export function productSizeCm(p: { widthCm?: unknown; heightCm?: unknown; depthCm?: unknown } | null | undefined): ProductSizeCm | null {
+  if (!p) return null;
+  const num = (v: unknown) => {
+    const n = v == null ? NaN : Number(v);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  const size = { w: num(p.widthCm), h: num(p.heightCm), d: num(p.depthCm) };
+  return size.w || size.h || size.d ? size : null;
+}
 
 export type RoomScene = {
   version: 1;
