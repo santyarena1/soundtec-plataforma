@@ -1,22 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/auth-helpers";
-import { slugify } from "@/lib/utils";
 import { sanitizeSpreadsheetCell } from "@/lib/expo/spreadsheet";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  await requirePermission("settings.manage");
-  const { id } = await params;
-  const event = await prisma.expoEvent.findUnique({ where: { id }, select: { name: true } });
-  if (!event) return NextResponse.json({ error: "No existe" }, { status: 404 });
+/**
+ * Excel de leads del catálogo con los mismos filtros que CRM → Leads.
+ * Visible siempre (no hace falta elegir un evento).
+ */
+export async function GET(req: NextRequest) {
+  await requirePermission("clients.view");
+  const { searchParams } = new URL(req.url);
+  const q = searchParams.get("q")?.trim() || undefined;
+  const eventId = searchParams.get("event") || undefined;
+  const source =
+    searchParams.get("source") === "QR" || searchParams.get("source") === "WEB"
+      ? searchParams.get("source")
+      : undefined;
+
+  const where: Prisma.VisitorLeadWhereInput = {
+    ...(eventId ? { eventId } : {}),
+    ...(source === "QR" || source === "WEB" ? { source } : {}),
+    ...(q
+      ? {
+          OR: [
+            { email: { contains: q, mode: "insensitive" } },
+            { name: { contains: q, mode: "insensitive" } },
+            { company: { contains: q, mode: "insensitive" } },
+            { phone: { contains: q, mode: "insensitive" } },
+            { interest: { contains: q, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+
   const leads = await prisma.visitorLead.findMany({
-    where: { eventId: id },
-    orderBy: { createdAt: "asc" },
-    include: { qr: { select: { label: true } } },
+    where,
+    orderBy: { createdAt: "desc" },
+    include: {
+      event: { select: { name: true } },
+      qr: { select: { label: true } },
+    },
   });
+
   const requests = leads.length
     ? await prisma.accountRequest.findMany({
         where: {
@@ -26,14 +55,22 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
           ],
         },
         orderBy: { createdAt: "desc" },
-        select: { leadId: true, email: true, status: true, activity: true, activityOther: true },
+        select: {
+          leadId: true,
+          email: true,
+          status: true,
+          company: true,
+          activity: true,
+          activityOther: true,
+        },
       })
     : [];
+
   const requestFor = (lead: { id: string; email: string }) =>
     requests.find((r) => r.leadId === lead.id) ??
     requests.find((r) => r.email.toLowerCase() === lead.email.toLowerCase());
 
-  const visitorIds = [...new Set(leads.map((l) => l.visitorId))];
+  const visitorIds = [...new Set(leads.map((l) => l.visitorId).filter(Boolean))];
   const visitGroups = visitorIds.length
     ? await prisma.expoVisit.groupBy({
         by: ["visitorId", "type"],
@@ -64,17 +101,19 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       .join(", ");
 
   const REQUEST_LABEL = { PENDING: "Pidió cuenta", APPROVED: "Cuenta aprobada", REJECTED: "Cuenta rechazada" } as const;
-  // Todo lo que tipeó el visitante (y la etiqueta del QR) pasa por el sanitizador anti-fórmulas.
   const cell = (value: string | null | undefined) => sanitizeSpreadsheetCell(value ?? "");
+
   const rows = [
     [
       "Fecha",
+      "Origen",
+      "Evento",
+      "QR",
       "Mail",
       "Nombre",
       "Empresa",
       "Teléfono",
       "Interés",
-      "QR",
       "Pedido de cuenta",
       "Actividad (pedido)",
       "Escaneos",
@@ -87,12 +126,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         req?.activity === "Otra" ? req.activityOther ?? "Otra" : req?.activity ?? "";
       return [
         l.createdAt.toISOString().slice(0, 16).replace("T", " "),
+        l.source,
+        cell(l.event?.name),
+        cell(l.qr?.label),
         cell(l.email),
         cell(l.name),
         cell(l.company),
         cell(l.phone),
         cell(l.interest),
-        cell(l.qr?.label),
         req ? REQUEST_LABEL[req.status] : "",
         cell(activity),
         visitCount(l.visitorId, "SCAN"),
@@ -101,13 +142,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       ];
     }),
   ];
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Leads");
   const bytes = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as Uint8Array;
+  const stamp = new Date().toISOString().slice(0, 10);
   return new NextResponse(Buffer.from(bytes), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="leads-${slugify(event.name)}.xlsx"`,
+      "Content-Disposition": `attachment; filename="leads-catalogo-${stamp}.xlsx"`,
     },
   });
 }
