@@ -1135,4 +1135,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Proxies de display, cámara PTZ, mic de techo, parlante, touch y rack con pantalla/leds; estilo product-render corporativo." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-6",
+    version: "1.34.0",
+    releasedAt: "2026-10-08T22:40:00.000Z",
+    summary: "Room Builder: editor a pantalla completa y vista 3D más realista.",
+    items: [
+      { kind: "MEJORA", text: "El editor entra en una sola pantalla en PC: el 3D ocupa el alto útil y solo el sidebar (slots, ranking, metros, Crestron) hace scroll." },
+      { kind: "NUEVO", text: "Modo Realista (HDR + sombras suaves) y vistas A nivel / Cine además de General, Frente AV, Planta y Detalle." },
+    ],
+  },
 ];

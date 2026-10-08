@@ -33,7 +33,7 @@ const RoomViewport = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[420px] items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-sm text-slate-500">
+      <div className="flex h-full min-h-0 items-center justify-center bg-slate-200 text-sm text-slate-500">
         Cargando vista 3D…
       </div>
     ),
@@ -411,41 +411,41 @@ export function RoomBuilderEditor({
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col xl:flex-row">
-      <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 xl:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+    <div className="-m-3 flex h-[calc(100dvh-3.25rem)] flex-col overflow-hidden bg-slate-100 sm:-m-6 lg:-m-10 xl:h-dvh xl:flex-row">
+      {/* Columna 3D: ocupa todo el alto, sin scroll de página */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2">
+          <div className="min-w-0">
             <Link
               href={
                 project.parent
                   ? `/admin/room-builder/${project.parent.id}`
                   : "/admin/room-builder"
               }
-              className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
+              className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-800"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               {project.parent ? project.parent.name : "Room Builder"}
             </Link>
-            <h1 className="text-xl font-semibold text-slate-900">
+            <h1 className="truncate text-base font-semibold leading-tight text-slate-900">
               {project.name}
             </h1>
-            <p className="text-xs text-slate-500">
-              {project.category} · {project.templateKey} · ×{project.unitCount}{" "}
-              unidades
+            <p className="truncate text-[11px] text-slate-500">
+              {project.category} · {project.templateKey} · ×{project.unitCount}
               {project.quote ? ` · COT ${project.quote.number}` : ""}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex shrink-0 flex-wrap gap-1.5">
             <button
               type="button"
               onClick={autoFill}
               disabled={pending}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800"
+              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800"
             >
               {pending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Sparkles className="h-4 w-4" />
+                <Sparkles className="h-3.5 w-3.5" />
               )}
               Autocompletar
             </button>
@@ -453,17 +453,17 @@ export function RoomBuilderEditor({
               type="button"
               onClick={createQuote}
               disabled={pending}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#1e3553] px-3 py-2 text-sm font-semibold text-white"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#1e3553] px-2.5 py-1.5 text-xs font-semibold text-white"
             >
               {pending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <FileSpreadsheet className="h-4 w-4" />
+                <FileSpreadsheet className="h-3.5 w-3.5" />
               )}
               Cotizar
             </button>
           </div>
-        </div>
+        </header>
 
         <div className="min-h-0 flex-1">
           <RoomViewport
@@ -483,200 +483,208 @@ export function RoomBuilderEditor({
         </div>
       </div>
 
-      <aside className="w-full border-t border-slate-200 bg-white xl:w-[380px] xl:border-l xl:border-t-0">
-        <div className="space-y-3 border-b border-slate-100 p-4">
-          <DimensionsPanel
-            projectId={project.id}
-            widthM={scene.widthM}
-            depthM={scene.depthM}
-            heightM={scene.heightM}
-            onUpdated={() => void reloadProject()}
-          />
-          <InterconnectPanel
-            projectId={project.id}
-            onUpdated={() => void reloadProject()}
-          />
-        </div>
-        <div className="border-b border-slate-100 p-4">
-          <h2 className="text-sm font-semibold text-slate-900">Slots</h2>
-          {staged ? (
-            <div className="mt-2 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-2 text-[11px] text-emerald-900">
-              <p className="font-semibold">
-                En mano: {staged.brand ? `${staged.brand} · ` : ""}
-                {staged.name}
-              </p>
-              <p className="mt-0.5">
-                Click en un slot verde (lista o 3D) para ubicarlo.
-              </p>
-              <button
-                type="button"
-                className="mt-1 underline"
-                onClick={() => setStaged(null)}
-              >
-                Cancelar
-              </button>
-            </div>
-          ) : (
-            <p className="mt-1 text-[11px] text-slate-500">
-              Seleccioná un slot y después un producto del ranking: se ubica
-              ahí. Si hay varios del mismo rol, podés clickear otro slot verde
-              para reubicarlo.
-            </p>
-          )}
-          <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
-            {scene.slots.map((slot) => {
-              const device = scene.devices.find((d) => d.slotKey === slot.key);
-              const active = scene.selectedSlotKey === slot.key;
-              const canPlace = staged != null && slot.role === staged.role;
-              return (
+      {/* Sidebar: único scroll de la pantalla */}
+      <aside className="flex max-h-[42vh] w-full shrink-0 flex-col overflow-hidden border-t border-slate-200 bg-white xl:max-h-none xl:h-full xl:w-[360px] xl:border-l xl:border-t-0">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="space-y-3 border-b border-slate-100 p-3">
+            <DimensionsPanel
+              projectId={project.id}
+              widthM={scene.widthM}
+              depthM={scene.depthM}
+              heightM={scene.heightM}
+              onUpdated={() => void reloadProject()}
+            />
+            <InterconnectPanel
+              projectId={project.id}
+              onUpdated={() => void reloadProject()}
+            />
+          </div>
+
+          <div className="border-b border-slate-100 p-3">
+            <h2 className="text-sm font-semibold text-slate-900">Slots</h2>
+            {staged ? (
+              <div className="mt-2 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-2 text-[11px] text-emerald-900">
+                <p className="font-semibold">
+                  En mano: {staged.brand ? `${staged.brand} · ` : ""}
+                  {staged.name}
+                </p>
+                <p className="mt-0.5">
+                  Click en un slot verde (lista o 3D) para ubicarlo.
+                </p>
                 <button
-                  key={slot.key}
                   type="button"
-                  onClick={() => onSelectSlot(slot.key)}
-                  className={`flex w-full items-start justify-between rounded-lg px-2.5 py-2 text-left text-sm ${
-                    canPlace
-                      ? "border border-emerald-400 bg-emerald-50 text-emerald-950"
-                      : active
-                        ? "bg-slate-900 text-white"
-                        : "hover:bg-slate-50 text-slate-800"
+                  className="mt-1 underline"
+                  onClick={() => setStaged(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <p className="mt-1 text-[11px] text-slate-500">
+                Seleccioná un slot y un producto del ranking para ubicarlo.
+              </p>
+            )}
+            <div className="mt-2 space-y-1">
+              {scene.slots.map((slot) => {
+                const device = scene.devices.find((d) => d.slotKey === slot.key);
+                const active = scene.selectedSlotKey === slot.key;
+                const canPlace = staged != null && slot.role === staged.role;
+                return (
+                  <button
+                    key={slot.key}
+                    type="button"
+                    onClick={() => onSelectSlot(slot.key)}
+                    className={`flex w-full items-start justify-between rounded-lg px-2.5 py-1.5 text-left text-sm ${
+                      canPlace
+                        ? "border border-emerald-400 bg-emerald-50 text-emerald-950"
+                        : active
+                          ? "bg-slate-900 text-white"
+                          : "hover:bg-slate-50 text-slate-800"
+                    }`}
+                  >
+                    <span>
+                      <span className="font-medium">{slot.label}</span>
+                      <span
+                        className={`block text-[11px] ${
+                          canPlace
+                            ? "text-emerald-700"
+                            : active
+                              ? "text-slate-300"
+                              : "text-slate-500"
+                        }`}
+                      >
+                        {slot.role} · {slot.mount}
+                        {canPlace ? " · click para ubicar" : ""}
+                      </span>
+                    </span>
+                    {device?.productId ? (
+                      <Check
+                        className={`mt-0.5 h-4 w-4 shrink-0 ${
+                          active && !canPlace
+                            ? "text-emerald-300"
+                            : "text-emerald-600"
+                        }`}
+                      />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-3 p-3">
+            <PlanPanel
+              projectId={project.id}
+              planImageUrl={scene.plan?.imageUrl}
+              onUpdated={() => void reloadProject()}
+            />
+
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">
+                {selectedSlot ? selectedSlot.label : "Seleccioná un slot"}
+              </h3>
+              {selectedDevice?.productName ? (
+                <p className="mt-1 text-xs text-slate-600">
+                  Actual:{" "}
+                  {selectedDevice.brandName
+                    ? `${selectedDevice.brandName} · `
+                    : ""}
+                  {selectedDevice.productName}
+                  <button
+                    type="button"
+                    onClick={() => assignProduct(null)}
+                    className="ml-2 text-red-600 underline"
+                  >
+                    quitar
+                  </button>
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-slate-500">
+                  Sin producto asignado
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar en catálogo…"
+                  className="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-2 text-sm"
+                />
+              </div>
+              <select
+                value={rankMode}
+                onChange={(e) => setRankMode(e.target.value as RankSortMode)}
+                className="rounded-lg border border-slate-300 px-2 text-xs"
+              >
+                <option value="recommended">Recomendado</option>
+                <option value="price_asc">Precio</option>
+                <option value="coverage">Cobertura</option>
+                <option value="stock">Stock</option>
+                <option value="premium">Premium</option>
+              </select>
+            </div>
+
+            <div className="space-y-2 pb-4">
+              {ranking ? (
+                <p className="flex items-center gap-2 text-xs text-slate-500">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Rankeando…
+                </p>
+              ) : null}
+              {!ranking && ranked.length === 0 ? (
+                <p className="text-xs text-slate-500">
+                  No hay candidatos. Generá perfiles de diseño desde la home del
+                  Room Builder.
+                </p>
+              ) : null}
+              {ranked.map((row) => (
+                <button
+                  key={row.productId}
+                  type="button"
+                  disabled={!row.compatible || pending}
+                  onClick={() => pickProductForPlacement(row)}
+                  className={`flex w-full gap-2 rounded-lg border p-2 text-left hover:border-slate-400 disabled:opacity-50 ${
+                    staged?.productId === row.productId
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-slate-200"
                   }`}
                 >
-                  <span>
-                    <span className="font-medium">{slot.label}</span>
-                    <span
-                      className={`block text-[11px] ${
-                        canPlace
-                          ? "text-emerald-700"
-                          : active
-                            ? "text-slate-300"
-                            : "text-slate-500"
-                      }`}
-                    >
-                      {slot.role} · {slot.mount}
-                      {slot.required ? " · requerido" : ""}
-                      {canPlace ? " · click para ubicar" : ""}
-                    </span>
-                  </span>
-                  {device?.productId ? (
-                    <Check
-                      className={`mt-0.5 h-4 w-4 shrink-0 ${
-                        active && !canPlace ? "text-emerald-300" : "text-emerald-600"
-                      }`}
-                    />
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="space-y-3 p-4">
-          <PlanPanel
-            projectId={project.id}
-            planImageUrl={scene.plan?.imageUrl}
-            onUpdated={() => void reloadProject()}
-          />
-
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">
-              {selectedSlot ? selectedSlot.label : "Seleccioná un slot"}
-            </h3>
-            {selectedDevice?.productName ? (
-              <p className="mt-1 text-xs text-slate-600">
-                Actual: {selectedDevice.brandName ? `${selectedDevice.brandName} · ` : ""}
-                {selectedDevice.productName}
-                <button
-                  type="button"
-                  onClick={() => assignProduct(null)}
-                  className="ml-2 text-red-600 underline"
-                >
-                  quitar
-                </button>
-              </p>
-            ) : (
-              <p className="mt-1 text-xs text-slate-500">Sin producto asignado</p>
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-400" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar en catálogo…"
-                className="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-2 text-sm"
-              />
-            </div>
-            <select
-              value={rankMode}
-              onChange={(e) => setRankMode(e.target.value as RankSortMode)}
-              className="rounded-lg border border-slate-300 px-2 text-xs"
-            >
-              <option value="recommended">Recomendado</option>
-              <option value="price_asc">Precio</option>
-              <option value="coverage">Cobertura</option>
-              <option value="stock">Stock</option>
-              <option value="premium">Premium</option>
-            </select>
-          </div>
-
-          <div className="max-h-[46vh] space-y-2 overflow-y-auto">
-            {ranking ? (
-              <p className="flex items-center gap-2 text-xs text-slate-500">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Rankeando…
-              </p>
-            ) : null}
-            {!ranking && ranked.length === 0 ? (
-              <p className="text-xs text-slate-500">
-                No hay candidatos. Generá perfiles de diseño desde la home del
-                Room Builder.
-              </p>
-            ) : null}
-            {ranked.map((row) => (
-              <button
-                key={row.productId}
-                type="button"
-                disabled={!row.compatible || pending}
-                onClick={() => pickProductForPlacement(row)}
-                className={`flex w-full gap-2 rounded-lg border p-2 text-left hover:border-slate-400 disabled:opacity-50 ${
-                  staged?.productId === row.productId
-                    ? "border-emerald-500 bg-emerald-50"
-                    : "border-slate-200"
-                }`}
-              >
-                <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-slate-100">
-                  {row.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={row.imageUrl}
-                      alt=""
-                      className="h-full w-full object-contain"
-                    />
-                  ) : null}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-900">
-                    {row.brand ? `${row.brand} · ` : ""}
-                    {row.name}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    score {row.score}
-                    {row.priceUsd != null
-                      ? ` · costo $${row.priceUsd.toFixed(0)}`
-                      : ""}
-                    {row.coverageFit != null
-                      ? ` · cobertura ${(row.coverageFit * 100).toFixed(0)}%`
-                      : " · sin cobertura"}
-                  </p>
-                  {!row.compatible ? (
-                    <p className="text-[11px] text-red-600">
-                      {row.hardRejectReason}
+                  <div className="h-11 w-11 shrink-0 overflow-hidden rounded bg-slate-100">
+                    {row.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={row.imageUrl}
+                        alt=""
+                        className="h-full w-full object-contain"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-slate-900">
+                      {row.brand ? `${row.brand} · ` : ""}
+                      {row.name}
                     </p>
-                  ) : null}
-                </div>
-              </button>
-            ))}
+                    <p className="text-[11px] text-slate-500">
+                      score {row.score}
+                      {row.priceUsd != null
+                        ? ` · $${row.priceUsd.toFixed(0)}`
+                        : ""}
+                      {row.coverageFit != null
+                        ? ` · ${(row.coverageFit * 100).toFixed(0)}%`
+                        : ""}
+                    </p>
+                    {!row.compatible ? (
+                      <p className="text-[11px] text-red-600">
+                        {row.hardRejectReason}
+                      </p>
+                    ) : null}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </aside>

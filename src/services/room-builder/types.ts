@@ -32,7 +32,15 @@ export type SizePreset = (typeof SIZE_PRESETS)[number];
 export const PLATFORMS = ["teams", "zoom", "byod", "crestron-home", "none"] as const;
 export type RoomPlatform = (typeof PLATFORMS)[number];
 
-export const CAMERA_PRESETS = ["general", "front_av", "plan", "detail", "device_pov"] as const;
+export const CAMERA_PRESETS = [
+  "general",
+  "eye",
+  "cinema",
+  "front_av",
+  "plan",
+  "detail",
+  "device_pov",
+] as const;
 export type CameraPreset = (typeof CAMERA_PRESETS)[number];
 
 export const COVERAGE_VIEW_MODES = [

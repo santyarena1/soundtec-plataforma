@@ -1,8 +1,14 @@
 "use client";
 
 import { Canvas, useThree } from "@react-three/fiber";
-import { ContactShadows, Html, OrbitControls } from "@react-three/drei";
-import { useEffect, useMemo, useRef } from "react";
+import {
+  ContactShadows,
+  Environment,
+  Html,
+  OrbitControls,
+  SoftShadows,
+} from "@react-three/drei";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type {
   CameraPreset,
@@ -16,6 +22,8 @@ import { roomTheme } from "./room-theme";
 
 const PRESET_LABELS: Record<CameraPreset, string> = {
   general: "General",
+  eye: "A nivel",
+  cinema: "Cine",
   front_av: "Frente AV",
   plan: "Planta",
   detail: "Detalle",
@@ -72,6 +80,16 @@ function CameraRig({
         position = [0, Math.max(h * 2.6, 7), 0.01];
         target = [0, 0, 0];
         break;
+      case "eye":
+        // Vista a altura de persona, desde la entrada hacia el frente AV
+        position = [0, 1.55, -d / 2 + 0.55];
+        target = [0, 1.25, d / 2 - 0.3];
+        break;
+      case "cinema":
+        // Encaje cinematográfico bajo, esquina
+        position = [-w * 0.42, h * 0.55, -d * 0.48];
+        target = [w * 0.08, h * 0.45, d * 0.2];
+        break;
       case "front_av":
         position = [0, h * 0.85, -d * 0.15];
         target = [0, h * 0.55, d / 2 - 0.15];
@@ -104,32 +122,39 @@ function CameraRig({
         break;
       case "general":
       default:
-        position = [w * 0.62, h * 1.05, d * 0.78];
-        target = [0, h * 0.32, 0];
+        position = [w * 0.58, h * 0.95, d * 0.72];
+        target = [0, h * 0.28, d * 0.05];
         break;
     }
     return { position, target };
   }, [preset, widthM, depthM, heightM, selected]);
 
   useEffect(() => {
-    camera.position.set(...framing.position);
-    camera.lookAt(...framing.target);
-    camera.updateProjectionMatrix();
+    const cam = camera as THREE.PerspectiveCamera;
+    cam.position.set(...framing.position);
+    cam.lookAt(...framing.target);
+    if (preset === "eye") cam.fov = 58;
+    else if (preset === "cinema") cam.fov = 36;
+    else if (preset === "plan") cam.fov = 48;
+    else cam.fov = 42;
+    cam.updateProjectionMatrix();
     const controls = controlsRef.current;
     if (controls) {
       controls.target.set(...framing.target);
       controls.update();
     }
-  }, [camera, framing]);
+  }, [camera, framing, preset]);
 
   return (
     <OrbitControls
       ref={controlsRef as never}
       makeDefault
-      enableRotate={preset !== "plan"}
+      enableRotate={preset !== "plan" && preset !== "eye"}
       enablePan={preset !== "plan"}
-      minPolarAngle={preset === "plan" ? 0 : 0.25}
-      maxPolarAngle={preset === "plan" ? 0.05 : Math.PI / 2.15}
+      minPolarAngle={preset === "plan" ? 0 : preset === "eye" ? 1.1 : 0.2}
+      maxPolarAngle={
+        preset === "plan" ? 0.05 : preset === "eye" ? 1.45 : Math.PI / 2.05
+      }
       minAzimuthAngle={preset === "plan" ? 0 : -Infinity}
       maxAzimuthAngle={preset === "plan" ? 0 : Infinity}
       minDistance={1.2}
@@ -254,8 +279,9 @@ function RoomShell({
         <planeGeometry args={[widthM, depthM]} />
         <meshStandardMaterial
           color={theme.floor}
-          roughness={theme.outdoor ? 0.85 : 0.92}
-          metalness={0.02}
+          roughness={theme.outdoor ? 0.78 : category === "residential" ? 0.55 : 0.88}
+          metalness={category === "residential" || category === "lobby" ? 0.12 : 0.04}
+          envMapIntensity={1.15}
         />
       </mesh>
 
@@ -683,13 +709,16 @@ function SceneContent({
   templateKey,
   placementSlotKeys,
   onSelectSlot,
+  rich,
 }: {
   scene: RoomScene;
   category: string;
   templateKey: string;
   placementSlotKeys: string[];
   onSelectSlot: (slotKey: string) => void;
+  rich: boolean;
 }) {
+  const { gl } = useThree();
   const selected =
     scene.devices.find((d) => d.slotKey === scene.selectedSlotKey) ?? null;
   const placeSet = new Set(placementSlotKeys);
@@ -698,31 +727,63 @@ function SceneContent({
     [category, templateKey],
   );
 
+  useEffect(() => {
+    gl.toneMapping = THREE.ACESFilmicToneMapping;
+    gl.toneMappingExposure = rich ? 1.05 : 0.95;
+    gl.outputColorSpace = THREE.SRGBColorSpace;
+  }, [gl, rich]);
+
   return (
     <>
       <color attach="background" args={[theme.fog]} />
-      <fog attach="fog" args={[theme.fog, 14, 32]} />
-      <ambientLight intensity={theme.ambient} />
+      <fog
+        attach="fog"
+        args={[theme.fog, rich ? 16 : 12, rich ? 36 : 28]}
+      />
+      {rich ? <SoftShadows size={18} samples={12} focus={0.65} /> : null}
+      {rich ? (
+        <Environment
+          preset={theme.envPreset}
+          environmentIntensity={theme.outdoor ? 0.85 : 0.55}
+        />
+      ) : null}
+      <ambientLight intensity={rich ? theme.ambient : theme.ambient + 0.15} />
       <directionalLight
         castShadow
-        position={[5, 9, 4]}
-        intensity={1.25}
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        position={[5.5, 9.5, 3.5]}
+        intensity={rich ? 1.35 : 1.15}
+        shadow-mapSize-width={rich ? 2048 : 1024}
+        shadow-mapSize-height={rich ? 2048 : 1024}
         shadow-camera-far={40}
         shadow-camera-left={-12}
         shadow-camera-right={12}
         shadow-camera-top={12}
         shadow-camera-bottom={-12}
+        shadow-bias={-0.0002}
       />
-      <hemisphereLight args={["#f8fafc", "#64748b", 0.4]} />
-      {/* luz de ventana */}
+      <hemisphereLight
+        args={[
+          theme.outdoor ? "#fff7ed" : "#f8fafc",
+          theme.outdoor ? "#6b7f5e" : "#64748b",
+          rich ? 0.45 : 0.35,
+        ]}
+      />
       <pointLight
         position={[-scene.widthM * 0.4, scene.heightM * 0.7, 0]}
-        intensity={0.35}
+        intensity={rich ? 0.45 : 0.3}
         color="#bfdbfe"
-        distance={10}
+        distance={12}
       />
+      {rich && !theme.outdoor ? (
+        <spotLight
+          position={[0, scene.heightM - 0.15, 0]}
+          angle={0.75}
+          penumbra={0.55}
+          intensity={0.55}
+          castShadow={false}
+          color="#fff8ef"
+        />
+      ) : null}
       <RoomShell
         widthM={scene.widthM}
         depthM={scene.depthM}
@@ -742,10 +803,11 @@ function SceneContent({
         />
       ))}
       <ContactShadows
-        position={[0, 0.01, 0]}
-        opacity={0.4}
-        scale={Math.max(scene.widthM, scene.depthM) * 1.5}
-        blur={2.4}
+        position={[0, 0.015, 0]}
+        opacity={rich ? 0.48 : 0.35}
+        scale={Math.max(scene.widthM, scene.depthM) * 1.55}
+        blur={rich ? 2.8 : 2.2}
+        far={6}
       />
       <CameraRig
         preset={scene.cameraPreset}
@@ -777,15 +839,30 @@ export function RoomViewport({
   onCameraPreset: (preset: CameraPreset) => void;
   onCoverageView: (mode: CoverageViewMode) => void;
 }) {
-  const presets = Object.keys(PRESET_LABELS) as CameraPreset[];
+  const [rich, setRich] = useState(true);
+  const presets = (
+    ["general", "eye", "cinema", "front_av", "plan", "detail", "device_pov"] as const
+  ).filter((p) => p in PRESET_LABELS) as CameraPreset[];
   const resolvedKey = templateKey || scene.templateKey || category;
+  const fov =
+    scene.cameraPreset === "eye"
+      ? 58
+      : scene.cameraPreset === "cinema"
+        ? 36
+        : 42;
 
   return (
-    <div className="relative h-full min-h-[420px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-200">
+    <div className="relative h-full min-h-0 w-full overflow-hidden bg-slate-300">
       <Canvas
         shadows
-        camera={{ position: [4, 3, 5], fov: 40, near: 0.1, far: 90 }}
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
+        className="h-full w-full"
+        camera={{ position: [4, 3, 5], fov, near: 0.08, far: 90 }}
+        gl={{
+          antialias: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          powerPreference: "high-performance",
+        }}
+        dpr={rich ? [1, 1.75] : [1, 1.25]}
       >
         <SceneContent
           scene={scene}
@@ -793,25 +870,26 @@ export function RoomViewport({
           templateKey={resolvedKey}
           placementSlotKeys={placementSlotKeys}
           onSelectSlot={onSelectSlot}
+          rich={rich}
         />
       </Canvas>
 
       {placementHint ? (
-        <div className="pointer-events-none absolute inset-x-0 bottom-10 z-10 flex justify-center px-3">
+        <div className="pointer-events-none absolute inset-x-0 bottom-12 z-10 flex justify-center px-3">
           <div className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-semibold text-white shadow-lg">
             {placementHint}
           </div>
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
-        <div className="pointer-events-auto flex flex-wrap gap-1 rounded-lg bg-white/90 p-1 shadow-sm backdrop-blur">
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2 sm:p-3">
+        <div className="pointer-events-auto flex max-w-[70%] flex-wrap gap-1 rounded-lg bg-white/90 p-1 shadow-sm backdrop-blur">
           {presets.map((preset) => (
             <button
               key={preset}
               type="button"
               onClick={() => onCameraPreset(preset)}
-              className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
+              className={`rounded-md px-2 py-1 text-[11px] font-medium transition sm:px-2.5 sm:py-1.5 sm:text-xs ${
                 scene.cameraPreset === preset
                   ? "bg-slate-900 text-white"
                   : "text-slate-700 hover:bg-slate-100"
@@ -821,20 +899,32 @@ export function RoomViewport({
             </button>
           ))}
         </div>
-        <div className="pointer-events-auto flex flex-wrap gap-1 rounded-lg bg-white/90 p-1 shadow-sm backdrop-blur">
+        <div className="pointer-events-auto flex flex-wrap justify-end gap-1 rounded-lg bg-white/90 p-1 shadow-sm backdrop-blur">
+          <button
+            type="button"
+            onClick={() => setRich((v) => !v)}
+            className={`rounded-md px-2 py-1 text-[11px] font-semibold sm:px-2.5 sm:py-1.5 sm:text-xs ${
+              rich
+                ? "bg-amber-800 text-white"
+                : "text-slate-700 hover:bg-slate-100"
+            }`}
+            title="Iluminación HDR + sombras suaves"
+          >
+            {rich ? "Realista" : "Rápido"}
+          </button>
           {(
             [
-              ["off", "Sin cobertura"],
+              ["off", "Off"],
               ["zones", "Zonas"],
               ["seats", "Asientos"],
-              ["selection", "Selección"],
+              ["selection", "Sel."],
             ] as const
           ).map(([mode, label]) => (
             <button
               key={mode}
               type="button"
               onClick={() => onCoverageView(mode)}
-              className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
+              className={`rounded-md px-2 py-1 text-[11px] font-medium sm:px-2.5 sm:py-1.5 sm:text-xs ${
                 scene.coverageView === mode
                   ? "bg-teal-800 text-white"
                   : "text-slate-700 hover:bg-slate-100"
@@ -846,13 +936,10 @@ export function RoomViewport({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-1">
-        <div className="rounded-md bg-slate-900/80 px-2.5 py-1.5 text-[11px] text-white">
+      <div className="pointer-events-none absolute bottom-2 left-2 flex flex-col gap-1 sm:bottom-3 sm:left-3">
+        <div className="rounded-md bg-slate-900/80 px-2 py-1 text-[10px] text-white sm:px-2.5 sm:py-1.5 sm:text-[11px]">
           {scene.widthM.toFixed(1)} × {scene.depthM.toFixed(1)} m ·{" "}
           {scene.areaM2} m²
-        </div>
-        <div className="rounded-md bg-white/85 px-2 py-1 text-[10px] font-medium text-slate-700 shadow-sm backdrop-blur">
-          {resolvedKey}
         </div>
       </div>
     </div>

@@ -1,6 +1,13 @@
 import type { CameraPreset, RoomPlatform, RoomTemplate, SizePreset } from "./types";
 
-const DEFAULT_CAMERAS: CameraPreset[] = ["general", "front_av", "plan", "detail"];
+const DEFAULT_CAMERAS: CameraPreset[] = [
+  "general",
+  "eye",
+  "cinema",
+  "front_av",
+  "plan",
+  "detail",
+];
 
 function dimsFor(areaM2: number, ratio = 1.4): { widthM: number; depthM: number } {
   const depthM = Math.sqrt(areaM2 / ratio);
