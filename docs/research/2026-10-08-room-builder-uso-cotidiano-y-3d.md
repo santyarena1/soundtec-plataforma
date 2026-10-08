@@ -59,7 +59,7 @@ Todavía **no se escribe código**. Para poder arrancar el motor después, hace 
 
 En la escena **sí se ven productos en 3D**. No hace falta (ni conviene) un modelo único artesanal por cada uno de los 3000.
 
-Hay **tres niveles de representación**, todos válidos visualmente en una vista fija profesional:
+Hay **tres niveles de representación**, todos válidos visualmente en un viewport 3D controlado (varias vistas + zoom, sin movilidad total):
 
 | Nivel | Qué es | Cuándo se usa | Cómo se ve |
 | --- | --- | --- | --- |
@@ -76,24 +76,52 @@ El Room Builder elige automáticamente: `model3dUrl` (hero) → `proxyKey` → c
 3. **CAD/Revit del fabricante** (si está en `documents`) → conversión puntual a GLB (pipeline aparte, caro; no para 3000).  
 4. **Nunca** scrapear modelos 3D de terceros sin licencia.
 
-### 2.3 Qué ve el usuario al trabajar
+### 2.3 Cámara: varias vistas + zoom a zonas (sin movilidad 100%)
 
-- Vista fija (isométrica o ¾).  
-- La sala con muros/piso/muebles.  
-- Cada dispositivo como objeto 3D seleccionable.  
-- Al click: ficha lateral (nombre, marca, SKU, precio cliente, warnings).  
-- Opcional: badge “cobertura OK / estimada / sin datos”.  
+**Decisión de producto (actualizada):** no una sola cámara trabada, pero **tampoco** orbit/walk libre tipo videojuego.
 
-No es un catálogo 3D tipo e-commerce orbitando cada SKU (salvo que más adelante se agregue en la ficha de producto). En el builder, el 3D es **la sala armada**.
+| Sí | No |
+| --- | --- |
+| Varios **presets de vista** (iso, frente, lateral, planta ¾, POV de la cámara AV, detalle del slot seleccionado) | Arrastrar la cámara a cualquier ángulo libre |
+| **Zoom** in/out con límites (min/max) | Meterse adentro de los muros / first-person libre |
+| **Encuadrar zona**: click en un área/slot/producto → la cámara hace framing suave a esa zona | Rotación continua 360° con el mouse |
+| Pan suave **dentro del preset** actual (opcional, acotado) | Recorrido walk-through completo |
 
-### 2.4 Pendientes 3D (para ustedes / diseño)
+Presets típicos por tipología:
+
+1. **General** — iso/¾ de toda la sala (default al abrir).  
+2. **Frente AV** — pared de display + cámara + soundbar.  
+3. **Planta elevada** — mesa/asientos y mics de techo.  
+4. **Detalle** — zoom al slot o producto seleccionado.  
+5. **Vista cámara** (si hay cámara AV en escena) — POV aproximado para chequear cobertura.
+
+Interacción cotidiana:
+
+- Botones o chips: `General | Frente | Planta | Detalle`.  
+- Scroll / pinch = zoom acotado.  
+- Doble-click (o “Enfocar”) en un producto/slot = zoom a esa zona manteniendo el preset o pasando a Detalle.  
+- Al generar PDF: se pueden exportar 2–3 renders (General + Frente + Detalle), no solo uno.
+
+Esto da control profesional y deja revisar “si se ve bien el display / el mic / la cobertura” sin la complejidad (y el caos) de movilidad total.
+
+### 2.4 Qué ve el usuario al trabajar
+
+- Sala 3D con muros/piso/muebles.  
+- Cambio de vista entre presets + zoom a zonas.  
+- Cada dispositivo seleccionable.  
+- Al click: ficha lateral (nombre, marca, SKU, precio cliente, warnings) + opción “Enfocar”.  
+- Badge de cobertura cuando hay datos.
+
+En el builder, el 3D es **la sala armada**, no un viewer suelto de cada SKU.
+
+### 2.5 Pendientes 3D (para ustedes / diseño)
 
 | # | Pendiente |
 | --- | --- |
 | D1 | Estilo visual: realista suave vs “product render” limpio corporativo |
 | D2 | Cantidad inicial de proxies a encargar (recomendado: ~30) |
 | D3 | Lista de 20–40 SKUs hero para modelar aparte |
-| D4 | Confirmar vista fija única (iso) vs 2–3 presets de cámara sin orbit libre |
+| D4 | ~~Vista única vs presets~~ **Cerrado parcialmente:** varias vistas + zoom a zonas; sin orbit libre. Falta cerrar la lista exacta de presets por tipología |
 
 ---
 
@@ -206,7 +234,7 @@ Versionado simple v1: `duplicar` + `actualizar cotización`; no hace falta Git d
 4. Click en Cámara → lista filtrada → elige PTZ → coverage estimado se actualiza
 5. Agrega un parlante opcional desde catálogo (modo A) → slots posibles se marcan
 6. Revisa BOM + total del cliente
-7. “Crear cotización” → abre Quote con ítems y render de la vista fija
+7. “Crear cotización” → abre Quote con ítems y renders (General + Frente/Detalle)
 8. Emite PDF Soundtec / lo manda al cliente
 9. Guarda el proyecto privado vinculado a ese cliente
 ```
@@ -224,7 +252,7 @@ Versionado simple v1: `duplicar` + `actualizar cotización`; no hace falta Git d
 ### 5.4 Lo que el uso cotidiano NO es
 
 - No es dibujar planos arquitectónicos desde cero cada vez (partís de template).  
-- No es rotar la cámara libremente (vista fija estable).  
+- No es movilidad 100% (orbit libre / walk-through); sí presets + zoom a zonas.  
 - No es certificar acústica.  
 - No es reemplazar la visita técnica / commissioning.
 
@@ -251,7 +279,7 @@ Versionado simple v1: `duplicar` + `actualizar cotización`; no hace falta Git d
 ## 7. Resumen de pendientes (checklist para la próxima charla)
 
 ### Enrich
-- [ ] P1 Marcas core del primer lote  
+- [x] P1 Catálogo integral (todas las marcas) — decidido  
 - [ ] P2 Política auto vs review humano  
 - [ ] P3 Fuentes permitidas  
 - [ ] P4 Política SKU sin datasheet  
@@ -264,7 +292,7 @@ Versionado simple v1: `duplicar` + `actualizar cotización`; no hace falta Git d
 - [ ] D1 Estilo visual  
 - [ ] D2 Cantidad de proxies  
 - [ ] D3 Lista hero SKUs  
-- [ ] D4 Presets de cámara fija  
+- [x] D4 Multi-vista + zoom a zonas (sin orbit libre) — decidido; falta lista exacta de presets por tipología  
 
 ### Colocación / compatibilidad
 - [ ] Confirmar default: modo B (slot → productos) + modo A disponible  
@@ -286,7 +314,7 @@ Versionado simple v1: `duplicar` + `actualizar cotización`; no hace falta Git d
 Mientras cierran P1–P6 e I1–I5:
 
 1. **Enrich:** primer diseño operativo = marcas core + review de coverage + defaults de familia.  
-2. **3D:** vista fija + ~30 proxies + pocos hero; el resto caja/proxy escalado.  
+2. **3D:** presets de vista + zoom a zonas + ~30 proxies + pocos hero; el resto caja/proxy escalado.  
 3. **UX:** default **slot → productos compatibles**; secundario producto → slots.  
 4. **Proyectos:** v1 **privado + equipo**; público/link en cuanto el flujo interno esté sólido.  
 5. **Uso:** vendedor parte siempre de template, no de sala en blanco.

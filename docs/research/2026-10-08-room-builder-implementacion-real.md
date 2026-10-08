@@ -10,12 +10,12 @@
 - [`2026-10-08-room-builder-catalogo-integral-e-ia.md`](./2026-10-08-room-builder-catalogo-integral-e-ia.md) — todas las marcas, ranking precio/alcance, capa IA
 
 **Pregunta a responder:**  
-¿Se puede enriquecer ~3000 productos buscando en internet la data de diseño, armar una base, y sobre eso un Room Builder real (videoconferencia, eventos, hotel, escuela, etc.) con tamaños, m², objetos y modelado 3D de **una sola vista fija**?
+¿Se puede enriquecer ~3000 productos buscando en internet la data de diseño, armar una base, y sobre eso un Room Builder real (videoconferencia, eventos, hotel, escuela, etc.) con tamaños, m², objetos y modelado 3D con **varias vistas preset + zoom a zonas** (sin movilidad total)?
 
 **Respuesta:** **Sí, y es implementable sobre lo que ya existe.** No es magia: son dos productos acoplados.
 
 1. **Motor de enriquecimiento de diseño** (batch sobre el catálogo → `ProductDesignProfile`).  
-2. **Room Builder** (templates de escena + viewport 3D vista fija + BOM → cotización/PDF).
+2. **Room Builder** (templates de escena + viewport 3D multi-vista/zoom acotado + BOM → cotización/PDF).
 
 ---
 
@@ -27,13 +27,14 @@ Un usuario elige:
 - Tamaño: chico / mediano / grande **o** metros cuadrados + alto libre.  
 - Plataforma UC opcional (Teams / Zoom / BYOD / Crestron Home / ninguna).  
 
-Ve **una escena 3D de cámara fija** (isométrica o perspectiva fija; sin orbit libre obligatorio).  
+Ve una escena 3D con **varias vistas preset** (general, frente AV, planta, detalle) y **zoom / encuadre a zonas** (slot o producto); sin orbit libre ni walk-through.  
 Puede agregar/quitar objetos del catálogo Soundtec (y muebles genéricos).  
 Ve cobertura estimada (cámara/mic/display) cuando el SKU tiene perfil.  
 Ve BOM con precios reales.  
-Genera cotización + PDF Soundtec con el render de esa vista.
+Genera cotización + PDF Soundtec con 2–3 renders de esas vistas.
 
-Eso es el producto. Lo demás (rotación libre, VR, BIM) queda fuera a propósito.
+Eso es el producto. Lo demás (movilidad 100%, VR, BIM) queda fuera a propósito.  
+Detalle de cámara: [`room-builder-uso-cotidiano-y-3d.md`](./2026-10-08-room-builder-uso-cotidiano-y-3d.md) §2.3.
 
 ---
 
@@ -220,16 +221,17 @@ Esto es trabajo de ingeniería real, no investigación.
 
 ## 3. Pieza B — Room Builder (vista 3D fija)
 
-### 3.1 Decisión de producto que simplifica y profesionaliza
+### 3.1 Cámara controlada: multi-vista + zoom (sin movilidad 100%)
 
-Pediste **una sola vista, sin rotación**. Eso baja complejidad y sube control de calidad:
+Decisión actualizada de producto:
 
-- Cámara fija isométrica (o ¾) predefinida por tipología.  
-- Zoom/pan opcionales; **no** orbit libre.  
-- El PDF siempre sale con el mismo encuadre → look corporativo consistente.  
-- Menos bugs de interacción 3D; más barato de mantener.
+- **Varios presets** de cámara por tipología (General, Frente AV, Planta, Detalle; opcional POV de cámara AV).  
+- **Zoom** con min/max y **“Enfocar”** a slot/producto/zona.  
+- Pan suave opcional **dentro del preset**.  
+- **No** orbit libre continuo ni first-person walk.  
+- PDF: 2–3 renders de presets elegidos → look corporativo consistente sin caos de ángulos.
 
-Stack: Next.js + React Three Fiber + drei, canvas client-only. Una escena, una cámara, luces fijas.
+Stack: Next.js + React Three Fiber + drei, canvas client-only. Una escena, varias cámaras/presets (o una cámara animada entre targets), luces estables.
 
 ### 3.2 Modelo de escena (persistido)
 
@@ -248,7 +250,11 @@ type RoomProject = {
     room: { widthM: number; depthM: number; heightM: number; shape: "rect" };
     furniture: PlacedObject[];  // mesas, sillas, cama, estrado...
     devices: PlacedDevice[];    // productId + pose + mount
-    cameraView: "iso_fixed";    // único modo v1
+    camera: {
+      preset: "general" | "front_av" | "plan" | "detail" | "device_pov";
+      // zoom/target se calculan al enfocar slot/producto; no se guarda orbit libre
+      focusTargetId?: string;
+    };
   };
   quoteId?: string;
   status: "draft"|"ready"|"quoted";
@@ -274,7 +280,7 @@ Cada template define:
 - layout de muebles paramétricos  
 - slots de dispositivos (roles obligatorios/opcionales)  
 - reglas de auto-pick por marca preferida  
-- vista fija (ángulo + FOV de cámara de escena)
+- presets de cámara + targets de zoom por zona/slot
 
 El usuario puede cambiar m² dentro de rango; el layout escala o redistribuye asientos según reglas.
 
@@ -299,7 +305,7 @@ Sin rotación libre de cámara; los objetos sí pueden rotar en Y en pasos de 90
 - Viewing distance de display (zona OK / corta / lejos).  
 - Warnings: asientos fuera de cobertura, SKU discontinuado, sin dims, plataforma incompatible.  
 - BOM vivo + precio cliente.  
-- Render PNG de la vista fija → PDF.
+- Renders PNG de presets (General + Frente/Detalle) → PDF.
 
 **No incluidas v1 (explícito)**
 
@@ -329,7 +335,7 @@ Nuevo: action `createQuoteFromRoomProject`, módulo PDF `room_design`.
 | --- | --- | --- |
 | B1 | Prisma `RoomProject` | scene JSON + links |
 | B2 | Template registry | tipologías + tamaños S/M/L + m² |
-| B3 | Viewport R3F vista fija | una cámara, pan/zoom opcional |
+| B3 | Viewport R3F multi-vista | presets + zoom/focus a zona; sin orbit libre |
 | B4 | Librería proxy GLB (20–40 assets) | roles + muebles |
 | B5 | Palette catálogo filtrada | por designRole + marca |
 | B6 | Coverage overlays 2D sobre la vista | o planos semitransparentes en 3D |
@@ -351,11 +357,12 @@ Esto no es un wishlist: es el orden en que se construye para no mentir al usuari
 - UI de review.  
 - Meta: N SKUs `approved`/`auto` suficientes para tipologías VC.
 
-### Etapa 2 — Templates VC + builder vista fija
+### Etapa 2 — Templates VC + builder multi-vista
 
 - Huddle + boardroom S/M/L.  
 - Proxies profesionales.  
-- BOM → Quote → PDF con render.  
+- Presets de cámara + zoom a slots.  
+- BOM → Quote → PDF con 2–3 renders.  
 - Coverage estimado en VC.
 
 ### Etapa 3 — Expandir tipologías
@@ -384,7 +391,7 @@ Esto no es un wishlist: es el orden en que se construye para no mentir al usuari
 | Salón eventos | Media-alta | BOM PA/displays/mics + escena | Coverage PA simplificado |
 | Lobby | Baja | Display + estética | Pocas reglas |
 
-Con vista fija, **todas** estas tipologías son implementables; la profundidad de simulación no es uniforme, y eso hay que decirlo en el producto.
+Con multi-vista + zoom acotado, **todas** estas tipologías son implementables; la profundidad de simulación no es uniforme, y eso hay que decirlo en el producto.
 
 ---
 
@@ -402,9 +409,9 @@ Con vista fija, **todas** estas tipologías son implementables; la profundidad d
 
 **Sí, como templates versionados** con S/M/L y override de m². Eso es el corazón del builder, no un extra.
 
-### ¿Agregar objetos + modelado 3D una sola vista?
+### ¿Agregar objetos + modelado 3D con varias vistas?
 
-**Sí, y es el approach correcto para un v1 profesional.** Vista fija = más control, mejor PDF, menos fricción. Objetos = muebles proxy + dispositivos con `productId`.
+**Sí.** Presets + zoom a zonas = control profesional sin movilidad total. Objetos = muebles proxy + dispositivos con `productId`. PDF con varios encuadres.
 
 ### ¿Es “algo que podría llegar a ser” o implementación real?
 
@@ -423,8 +430,8 @@ El producto se considera real cuando:
 
 1. ≥ tipologías VC (huddle + boardroom) con layouts sólidos.  
 2. Catálogo core de esas tipologías con perfiles `auto`/`approved` (dims + rol + FOV/display donde aplica).  
-3. Vista 3D fija estable en desktop.  
-4. BOM → cotización → PDF Soundtec con render en &lt; flujo de un vendedor.  
+3. Vista 3D con presets + zoom a zonas estable en desktop.  
+4. BOM → cotización → PDF Soundtec con 2–3 renders en el flujo de un vendedor.  
 5. Warnings visibles cuando falta data (no inventar coverage).  
 6. Proceso admin para re-enrich y aprobar perfiles nuevos.
 
