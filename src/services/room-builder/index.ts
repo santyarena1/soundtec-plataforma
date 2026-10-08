@@ -15,3 +15,4 @@ export * from "./auto-fill";
 export * from "./plan-mode";
 export * from "./dimensions";
 export * from "./interconnect";
+export * from "./slot-layout";

@@ -21,6 +21,7 @@ import {
   parseScene,
   type RoomScene,
 } from "@/services/room-builder/scene";
+import { relayoutSceneAnchors } from "@/services/room-builder/slot-layout";
 import { PlanPanel } from "@/components/room-builder/plan-panel";
 import { DimensionsPanel } from "@/components/room-builder/dimensions-panel";
 import { InterconnectPanel } from "@/components/room-builder/interconnect-panel";
@@ -116,10 +117,12 @@ export function RoomBuilderEditor({
   const [project, setProject] = useState(initialProject);
   const [scene, setScene] = useState<RoomScene>(() => {
     const parsed = parseScene(initialProject.sceneJson) ?? emptyScene();
-    if (!parsed.selectedSlotKey && parsed.slots[0]) {
-      parsed.selectedSlotKey = parsed.slots[0].key;
+    if (!parsed.templateKey) parsed.templateKey = initialProject.templateKey;
+    const { scene: laid } = relayoutSceneAnchors(parsed);
+    if (!laid.selectedSlotKey && laid.slots[0]) {
+      laid.selectedSlotKey = laid.slots[0].key;
     }
-    return parsed;
+    return laid;
   });
   const [ranked, setRanked] = useState<RankRow[]>([]);
   const [rankMode, setRankMode] = useState<RankSortMode>("recommended");
@@ -165,10 +168,23 @@ export function RoomBuilderEditor({
         return;
       }
       setProject(json.project);
-      setScene(parseScene(json.project.sceneJson) ?? next);
+      const parsed = parseScene(json.project.sceneJson) ?? next;
+      setScene(relayoutSceneAnchors(parsed).scene);
     },
     [project.id],
   );
+
+  // Persistir re-anclaje de poses viejas (proyectos creados con coords fijas).
+  useEffect(() => {
+    const raw = parseScene(initialProject.sceneJson);
+    if (!raw) return;
+    if (!raw.templateKey) raw.templateKey = initialProject.templateKey;
+    const { scene: laid, changed } = relayoutSceneAnchors(raw);
+    if (!changed) return;
+    void persistScene(laid);
+    // solo al montar / cambiar de proyecto
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProject.id]);
 
   const loadRank = useCallback(async () => {
     if (!selectedSlot || project.kind === "hub") {
