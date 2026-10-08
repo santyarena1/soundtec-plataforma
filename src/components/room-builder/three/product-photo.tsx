@@ -16,6 +16,8 @@ import type { ProductSizeCm } from "@/services/room-builder/scene";
 /** Lado mayor (m) cuando el producto no tiene medidas cargadas. */
 const DEFAULT_SPAN_M: Record<string, number> = {
   speaker: 0.36,
+  speaker_ceiling: 0.25,
+  mic_ceiling: 0.6,
   camera: 0.26,
   mic: 0.2,
   touch: 0.26,
@@ -23,6 +25,30 @@ const DEFAULT_SPAN_M: Record<string, number> = {
   processor: 0.44,
 };
 const DEFAULT_DEPTH_M = 0.05;
+/**
+ * Lado mayor mínimo creíble (cm) por tipo. Muchas fichas traen medidas de
+ * relleno (1 × 1 × 1): por debajo de esto se ignoran y se usa el tamaño típico.
+ */
+const MIN_SPAN_CM: Record<string, number> = {
+  speaker: 8,
+  speaker_ceiling: 10,
+  mic_ceiling: 10,
+  camera: 6,
+  mic: 5,
+  touch: 9,
+  codec: 12,
+  processor: 12,
+};
+
+/** Medidas usables o null si son de relleno / imposibles para ese equipo. */
+export function plausibleSize(sizeCm: ProductSizeCm | null | undefined, role: string): ProductSizeCm | null {
+  if (!sizeCm) return null;
+  const dims = [sizeCm.w, sizeCm.h, sizeCm.d].filter((v): v is number => v != null);
+  if (!dims.length) return null;
+  const allSame = dims.length > 1 && dims.every((v) => v === dims[0]);
+  if (allSame || Math.max(...dims) < (MIN_SPAN_CM[role] ?? 5)) return null;
+  return sizeCm;
+}
 const LAYERS = 10;
 /** Tinte de los laterales: el borde del producto, más oscuro que el frente. */
 const SIDE_TINT = "#6b7078";
@@ -71,7 +97,8 @@ function useCutout(productId: string | null): Loaded | null | undefined {
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /** Ancho, alto y profundidad (m) respetando la proporción de la foto. */
-export function photoDimensions(aspect: number, sizeCm: ProductSizeCm | null | undefined, role: string) {
+export function photoDimensions(aspect: number, rawSize: ProductSizeCm | null | undefined, role: string) {
+  const sizeCm = plausibleSize(rawSize, role);
   const w = sizeCm?.w ? sizeCm.w / 100 : null;
   const h = sizeCm?.h ? sizeCm.h / 100 : null;
   let width: number;
@@ -152,7 +179,7 @@ export function ProductPhotoModel({
   // En el techo solo sirven las fotos de frente (rejilla redonda o cuadrada).
   if (placement === "ceiling" && (cutout.aspect < 0.75 || cutout.aspect > 1.33)) return <>{fallback}</>;
 
-  const { width, height, depth } = photoDimensions(cutout.aspect, sizeCm, role);
+  const { width, height, depth } = photoDimensions(cutout.aspect, sizeCm, placement === "ceiling" ? `${role}_ceiling` : role);
   if (placement === "ceiling") {
     return (
       <group rotation={[Math.PI / 2, 0, 0]} position={[0, -0.006, 0]}>

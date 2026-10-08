@@ -1226,4 +1226,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Cada equipo se abre ahí mismo con los productos sugeridos, precio, cobertura y cuál es el recomendado; tocar un equipo en el 3D lo abre en el panel." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-15",
+    version: "1.37.1",
+    releasedAt: "2026-10-09T04:00:00.000Z",
+    summary: "Room Builder: productos reales a buen tamaño aunque la ficha tenga medidas de relleno.",
+    items: [
+      { kind: "FIX", text: "Si un producto tiene medidas de relleno (1 × 1 × 1 cm) se dibuja con el tamaño típico de su tipo, no como un punto." },
+      { kind: "FIX", text: "Los accesorios agregados por la cadena no se apilan en el medio de la sala." },
+    ],
+  },
 ];

@@ -52,7 +52,8 @@ function GenericBody({ device, heightM }: { device: SceneDevice; heightM: number
 /** Con producto asignado se ve su foto real a escala; si no, el modelo del tipo. */
 function DeviceBody({ device, heightM }: { device: SceneDevice; heightM: number }) {
   const generic = <GenericBody device={device} heightM={heightM} />;
-  if (!device.productId || device.designRole === "display") return generic;
+  // Pantallas: modelo 3D encendido. Accesorios de la cadena (bom_*): no tienen lugar propio en la sala.
+  if (!device.productId || device.designRole === "display" || device.slotKey.startsWith("bom_")) return generic;
   const y = device.pose.y;
   const ceiling = device.proxyKey === "ceiling_speaker" || device.proxyKey === "ceiling_mic" || y > heightM - 0.45;
   const placement = ceiling ? "ceiling" : y < SURFACE_MAX_Y ? "surface" : "wall";

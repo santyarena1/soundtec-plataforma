@@ -27,3 +27,14 @@ test("acota medidas absurdas de la base", () => {
   assert.equal(d.width, 2.5);
   assert.equal(d.depth, 0.2);
 });
+
+test("ignora medidas de relleno (1 × 1 × 1) y usa el tamaño típico", () => {
+  const d = photoDimensions(2, { w: 1, h: 1, d: 1 }, "processor");
+  assert.equal(d.width, 0.44);
+  assert.equal(d.height, 0.22);
+});
+
+test("ignora medidas demasiado chicas para el tipo de equipo", () => {
+  const d = photoDimensions(1, { w: 4, h: 3, d: 2 }, "speaker");
+  assert.equal(d.width, 0.36);
+});
