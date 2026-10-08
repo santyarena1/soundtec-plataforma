@@ -1070,4 +1070,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Al compartir un link del sitio (WhatsApp, redes), la vista previa muestra el logo de Soundtec." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder",
+    version: "1.29.0",
+    releasedAt: "2026-10-08T20:00:00.000Z",
+    summary: "Room Builder 3D interno: salas, hubs hotel/campus, ranking y cotización.",
+    items: [
+      { kind: "NUEVO", text: "Admin → Room Builder: templates de tipologías (VC, hotel, aula, eventos, living, lobby, etc.) con vista 3D multi-cámara y cobertura." },
+      { kind: "NUEVO", text: "Proyectos multi-espacio (hotel, campus corporativo/educativo) con unidades repetidas y BOM agregado a cotización." },
+      { kind: "NUEVO", text: "Perfiles de diseño offline desde specs/AI/dims del catálogo + ranking por compatibilidad, precio, cobertura y stock." },
+    ],
+  },
 ];

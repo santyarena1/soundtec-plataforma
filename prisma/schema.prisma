@@ -1836,9 +1836,12 @@ model ProductDesignProfile {
 }
 
 /// Proyecto de sala del Room Builder (uso interno Soundtec en v1).
+/// kind=hub agrupa espacios hijos (ej. hotel); kind=space es una sala editable.
 model RoomProject {
   id          String  @id @default(cuid())
   name        String
+  /// hub | space
+  kind        String  @default("space")
   templateKey String
   /// videoconference | classroom | hotel | event | residential | lobby | ...
   category    String
@@ -1846,12 +1849,18 @@ model RoomProject {
   areaM2      Decimal @db.Decimal(10, 2)
   heightM     Decimal @db.Decimal(6, 2) @default(2.70)
   platform    String?
+  /// Cantidad de unidades idénticas (ej. 40 habitaciones estándar).
+  unitCount   Int     @default(1)
   /// draft | ready | quoted
   status      String  @default("draft")
   /// private | team (public/link fuera del lanzamiento interno)
   visibility  String  @default("private")
   sceneJson   Json
   notes       String? @db.Text
+
+  parentId String?
+  parent   RoomProject?  @relation("RoomProjectTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children RoomProject[] @relation("RoomProjectTree")
 
   ownerId  String
   owner    User    @relation("RoomProjectOwner", fields: [ownerId], references: [id], onDelete: Restrict)
@@ -1871,6 +1880,8 @@ model RoomProject {
   @@index([status])
   @@index([visibility])
   @@index([templateKey])
+  @@index([parentId])
+  @@index([kind])
 }
 
 /// Dispositivo colocado en un RoomProject (desnormalizado para queries BOM).
