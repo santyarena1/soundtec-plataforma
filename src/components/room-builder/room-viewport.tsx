@@ -274,10 +274,7 @@ function RoomShell({
   category: string;
   templateKey: string;
 }) {
-  const theme = useMemo(
-    () => roomTheme(category, templateKey),
-    [category, templateKey],
-  );
+  const theme = roomTheme(category, templateKey);
   const t = 0.1; // espesor muro
 
   if (plan?.enabled && plan.walls.length > 0) {
