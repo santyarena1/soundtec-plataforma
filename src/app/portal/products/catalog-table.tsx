@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 interface TableProps {
   items: CatalogProduct[];
@@ -34,8 +35,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
               <Link href={`${basePath}/${p.id}`} className="flex items-center gap-3 hover:text-accent">
                 <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white">
                   {p.primaryImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.primaryImage} alt={p.normalizedName} className="h-full w-full object-contain" loading="lazy" />
+                    <OptimizedImage src={p.primaryImage} alt={p.normalizedName} width={96} className="h-full w-full object-contain" />
                   ) : null}
                 </span>
                 <span className="min-w-0">

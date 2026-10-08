@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ShoppingBag, ChevronRight, Send, Box, X, Wrench } from "lucide-react";
 import { formatUsd } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 interface RecentItem {
   id: string;
@@ -124,8 +125,7 @@ export function DraftMiniCart({ draft }: Props) {
                 >
                   <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-card border border-border">
                     {item.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+                      <OptimizedImage src={item.imageUrl} alt="" width={96} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <Box className="h-4 w-4 text-muted-foreground" />

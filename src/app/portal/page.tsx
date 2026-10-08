@@ -11,6 +11,7 @@ import { resolveCommercialClientId } from "@/lib/client-context";
 import { getVisibleProductsWhere } from "@/lib/catalog";
 import { brandHref, brandsWithLogos, getBrandsWithoutProducts, loadCrestronHomeSettings, withCrestronHome } from "@/lib/catalog-brands";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import {
   ArrowRight,
   Heart,
@@ -278,12 +279,11 @@ export default async function PortalDashboardPage() {
               >
                 <div className="aspect-square bg-white p-3">
                   {product.images[0]?.url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <OptimizedImage
                       src={product.images[0].url}
                       alt={product.normalizedName}
+                      width={640}
                       className="h-full w-full object-contain transition-transform group-hover:scale-[1.03]"
-                      loading="lazy"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-muted-foreground/60">

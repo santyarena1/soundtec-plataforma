@@ -15,6 +15,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import {
   ShoppingBag,
   Plus,
@@ -280,8 +281,7 @@ export function BundleStagingPanel({ draftItemCount, draftRequestId }: BundlePan
             <li className="flex items-start gap-3 rounded-md border border-primary/20 bg-primary/5 p-3">
               <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-border bg-card">
                 {mainItem.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={mainItem.imageUrl} alt="" className="h-full w-full object-cover" />
+                  <OptimizedImage src={mainItem.imageUrl} alt="" width={128} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
                     <Box className="h-5 w-5 text-muted-foreground" />
@@ -316,8 +316,7 @@ export function BundleStagingPanel({ draftItemCount, draftRequestId }: BundlePan
             >
               <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-border bg-card">
                 {it.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={it.imageUrl} alt="" className="h-full w-full object-cover" />
+                  <OptimizedImage src={it.imageUrl} alt="" width={128} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
                     <Wrench className="h-4 w-4 text-warning" />

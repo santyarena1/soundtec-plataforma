@@ -12,6 +12,7 @@ import { ProductAccountCta } from "@/components/catalog/account-cta";
 import { recordProductView } from "@/server/catalog/product-views";
 import { ArrowLeft, ArrowRight, FileText, Lock, Package } from "lucide-react";
 import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 export const dynamic = "force-dynamic";
 
@@ -193,8 +194,12 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
                 >
                   <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white">
                     {r.accessoryProduct.images[0]?.url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={r.accessoryProduct.images[0].url} alt={r.accessoryProduct.normalizedName} className="h-full w-full object-contain" loading="lazy" />
+                      <OptimizedImage
+                        src={r.accessoryProduct.images[0].url}
+                        alt={r.accessoryProduct.normalizedName}
+                        width={128}
+                        className="h-full w-full object-contain"
+                      />
                     ) : (
                       <Package className="h-5 w-5 text-muted-foreground" />
                     )}
