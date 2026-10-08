@@ -4,7 +4,7 @@ import { buildSceneFromTemplate, getRoomTemplate } from "./index";
 import { resizeSceneMeters } from "./dimensions";
 
 describe("resizeSceneMeters", () => {
-  it("cambia metros y escala poses", () => {
+  it("cambia metros y reancla poses a la tipología", () => {
     const t = getRoomTemplate("hotel-guest-s");
     assert.ok(t);
     const scene = buildSceneFromTemplate(t);
@@ -12,8 +12,9 @@ describe("resizeSceneMeters", () => {
     assert.equal(next.widthM, 6);
     assert.equal(next.depthM, 5);
     assert.equal(next.areaM2, 30);
-    assert.ok(next.devices[0]);
-    // TV está en z positivo respecto al centro; al agrandar debe moverse
-    assert.notEqual(next.devices[0]!.pose.z, scene.devices[0]!.pose.z);
+    const tv = next.devices.find((d) => d.slotKey === "tv");
+    assert.ok(tv);
+    // TV pegada a la pared frontal (+Z)
+    assert.ok(Math.abs(tv!.pose.z - (5 / 2 - 0.08)) < 0.05);
   });
 });

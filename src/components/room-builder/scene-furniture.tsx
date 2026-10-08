@@ -1,5 +1,6 @@
 "use client";
 
+import { hotelGuestAnchors } from "@/services/room-builder/slot-layout";
 import {
   BarCounter,
   BarStool,
@@ -187,38 +188,38 @@ function TrainingFurniture({
 function HotelGuestFurniture({
   widthM,
   depthM,
+  heightM = 2.6,
 }: {
   widthM: number;
   depthM: number;
+  heightM?: number;
 }) {
-  const bedW = Math.min(widthM * 0.55, 1.8);
-  const bedD = Math.min(depthM * 0.42, 2.1);
+  const g = hotelGuestAnchors({ widthM, depthM, heightM });
   return (
     <group>
-      <Bed width={bedW} depth={bedD} x={0} z={-depthM * 0.12} />
-      <Nightstand x={-(bedW / 2 + 0.35)} z={-depthM * 0.05} />
-      <Nightstand x={bedW / 2 + 0.35} z={-depthM * 0.05} />
+      <Bed width={g.bedW} depth={g.bedD} x={0} z={g.bedZ} />
+      <Nightstand x={-g.nightstandX} z={g.nightstandZ} />
+      <Nightstand x={g.nightstandX} z={g.nightstandZ} />
       <MediaConsole
         width={Math.min(widthM * 0.55, 1.6)}
         x={0}
-        z={depthM / 2 - 0.35}
+        z={g.frontZ - 0.27}
         rotY={Math.PI}
       />
       <DeskTable
         width={1.1}
         depth={0.5}
-        x={widthM / 2 - 0.7}
-        z={-depthM / 2 + 0.7}
+        x={g.deskX}
+        z={g.deskZ}
         color={MAT.woodDark}
       />
       <SideChair
-        x={widthM / 2 - 0.7}
-        z={-depthM / 2 + 1.15}
+        x={g.deskX}
+        z={g.deskZ + 0.45}
         rotY={Math.PI}
         color={MAT.fabricWarm}
       />
-      {/* placard */}
-      <mesh position={[-widthM / 2 + 0.35, 1.1, -depthM / 2 + 0.5]}>
+      <mesh position={[g.wardrobeX, 1.1, g.wardrobeZ]}>
         <boxGeometry args={[0.55, 2.2, 0.7]} />
         <meshStandardMaterial color={MAT.wood} roughness={0.85} />
       </mesh>
@@ -573,11 +574,13 @@ export function TypologyFurniture({
   category,
   widthM,
   depthM,
+  heightM = 2.7,
 }: {
   templateKey: string;
   category: string;
   widthM: number;
   depthM: number;
+  heightM?: number;
 }) {
   if (templateKey.includes("huddle")) {
     return <VideoconferenceFurniture widthM={widthM} depthM={depthM} size="S" />;
@@ -598,7 +601,13 @@ export function TypologyFurniture({
     return <TrainingFurniture widthM={widthM} depthM={depthM} />;
   }
   if (templateKey === "hotel-guest-s") {
-    return <HotelGuestFurniture widthM={widthM} depthM={depthM} />;
+    return (
+      <HotelGuestFurniture
+        widthM={widthM}
+        depthM={depthM}
+        heightM={heightM}
+      />
+    );
   }
   if (templateKey === "hotel-suite-m") {
     return <HotelSuiteFurniture widthM={widthM} depthM={depthM} />;
@@ -610,7 +619,13 @@ export function TypologyFurniture({
     return <HotelCommonFurniture widthM={widthM} depthM={depthM} />;
   }
   if (category === "hotel") {
-    return <HotelGuestFurniture widthM={widthM} depthM={depthM} />;
+    return (
+      <HotelGuestFurniture
+        widthM={widthM}
+        depthM={depthM}
+        heightM={heightM}
+      />
+    );
   }
   if (templateKey === "lobby-m" || category === "lobby") {
     return <LobbyFurniture widthM={widthM} depthM={depthM} />;

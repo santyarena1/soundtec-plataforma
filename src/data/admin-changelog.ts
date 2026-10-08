@@ -1145,4 +1145,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Modo Realista (HDR + sombras suaves) y vistas A nivel / Cine además de General, Frente AV, Planta y Detalle." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-7",
+    version: "1.34.1",
+    releasedAt: "2026-10-08T23:00:00.000Z",
+    summary: "Room Builder: equipos anclados a paredes y muebles (ya no flotan).",
+    items: [
+      { kind: "FIX", text: "TV, touch, teclas, parlantes y racks se ubican según la tipología (ej. TV en pared frente a la cama, touch en mesita). Al abrir un proyecto viejo se re-anclan solos." },
+      { kind: "MEJORA", text: "Las etiquetas 3D solo aparecen al seleccionar un equipo, para no tapar la sala." },
+    ],
+  },
 ];

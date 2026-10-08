@@ -254,6 +254,7 @@ function RoomShell({
           category={category}
           widthM={widthM}
           depthM={depthM}
+          heightM={heightM}
         />
       </group>
     );
@@ -387,6 +388,7 @@ function RoomShell({
         category={category}
         widthM={widthM}
         depthM={depthM}
+        heightM={heightM}
       />
     </group>
   );
@@ -678,15 +680,15 @@ function DeviceProxy({
           onSelect(device.slotKey);
         }}
       />
-      {selected || device.productId || placementTarget ? (
-        <Html distanceFactor={8} position={[0, 0.42, 0]} center>
+      {selected || placementTarget ? (
+        <Html distanceFactor={10} position={[0, 0.38, 0]} center>
           <div
-            className={`rounded px-2 py-1 text-[10px] font-medium text-white shadow whitespace-nowrap ${
+            className={`max-w-[140px] truncate rounded px-1.5 py-0.5 text-[9px] font-medium text-white shadow ${
               placementTarget ? "bg-emerald-700" : "bg-slate-900/90"
             }`}
           >
             {placementTarget
-              ? `Ubicar aquí · ${device.label}`
+              ? `Ubicar · ${device.label}`
               : device.productName || device.label}
           </div>
         </Html>

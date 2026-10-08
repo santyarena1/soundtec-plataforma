@@ -1,6 +1,7 @@
 import type { RoomScene } from "./scene";
+import { relayoutSceneAnchors } from "./slot-layout";
 
-/** Redimensiona la sala en metros y escala poses de slots/dispositivos. */
+/** Redimensiona la sala en metros y reancla equipos a paredes/muebles. */
 export function resizeSceneMeters(
   scene: RoomScene,
   next: { widthM: number; depthM: number; heightM?: number },
@@ -11,32 +12,14 @@ export function resizeSceneMeters(
     2.2,
     Math.min(12, next.heightM ?? scene.heightM),
   );
-  const sx = widthM / Math.max(scene.widthM, 0.01);
-  const sz = depthM / Math.max(scene.depthM, 0.01);
-  const sy = heightM / Math.max(scene.heightM, 0.01);
 
-  const scalePose = <T extends { x: number; y: number; z: number; rotY: number }>(
-    pose: T,
-  ): T => ({
-    ...pose,
-    x: Math.round(pose.x * sx * 100) / 100,
-    y: Math.round(pose.y * sy * 100) / 100,
-    z: Math.round(pose.z * sz * 100) / 100,
-  });
-
-  return {
+  const resized: RoomScene = {
     ...scene,
     widthM: Math.round(widthM * 100) / 100,
     depthM: Math.round(depthM * 100) / 100,
     heightM: Math.round(heightM * 100) / 100,
     areaM2: Math.round(widthM * depthM * 100) / 100,
-    slots: scene.slots.map((slot) => ({
-      ...slot,
-      pose: scalePose(slot.pose),
-    })),
-    devices: scene.devices.map((d) => ({
-      ...d,
-      pose: scalePose(d.pose),
-    })),
   };
+
+  return relayoutSceneAnchors(resized).scene;
 }
