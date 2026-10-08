@@ -19,6 +19,7 @@ export type SceneDevice = {
   coverage: DeviceCoverage | null;
   productName?: string | null;
   brandName?: string | null;
+  imageUrl?: string | null;
   proxyKey?: string | null;
 };
 

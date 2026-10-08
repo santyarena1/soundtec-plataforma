@@ -22,10 +22,12 @@ import {
   parseScene,
   type RoomScene,
 } from "@/services/room-builder/scene";
+import type { Pose } from "@/services/room-builder/types";
 import {
   hydrateRoomScene,
   rebuildSceneKeepingProducts,
 } from "@/services/room-builder/hydrate-scene";
+import { PlatformGuideCard } from "@/components/room-builder/platform-guide-card";
 import { PlanPanel } from "@/components/room-builder/plan-panel";
 import { DimensionsPanel } from "@/components/room-builder/dimensions-panel";
 import { InterconnectPanel } from "@/components/room-builder/interconnect-panel";
@@ -201,6 +203,18 @@ export function RoomBuilderEditor({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProject.id]);
+
+  function onMoveDevice(slotKey: string, pose: Pose) {
+    const next: RoomScene = {
+      ...scene,
+      slots: scene.slots.map((s) => (s.key === slotKey ? { ...s, pose } : s)),
+      devices: scene.devices.map((d) =>
+        d.slotKey === slotKey ? { ...d, pose } : d,
+      ),
+    };
+    setScene(next);
+    void persistScene(next);
+  }
 
   function repairLayout() {
     try {
@@ -541,6 +555,7 @@ export function RoomBuilderEditor({
                 : null
             }
             onSelectSlot={onSelectSlot}
+            onMoveDevice={onMoveDevice}
             onCameraPreset={onCameraPreset}
             onCoverageView={onCoverageView}
           />
@@ -550,6 +565,16 @@ export function RoomBuilderEditor({
       {/* Sidebar: único scroll de la pantalla */}
       <aside className="flex max-h-[42vh] w-full shrink-0 flex-col overflow-hidden border-t border-slate-200 bg-white xl:max-h-none xl:h-full xl:w-[360px] xl:border-l xl:border-t-0">
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="border-b border-slate-100 p-3">
+            <PlatformGuideCard
+              category={project.category}
+              platform={project.platform}
+            />
+            <p className="mt-2 text-[11px] text-slate-500">
+              Arrastrá un equipo en el 3D para moverlo. Si tiene foto de
+              catálogo, se ve sobre el proxy.
+            </p>
+          </div>
           <div className="space-y-3 border-b border-slate-100 p-3">
             <DimensionsPanel
               projectId={project.id}
