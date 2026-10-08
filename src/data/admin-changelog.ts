@@ -1070,4 +1070,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Al compartir un link del sitio (WhatsApp, redes), la vista previa muestra el logo de Soundtec." },
     ],
   },
+  {
+    id: "ship-2026-10-08",
+    version: "1.29.0",
+    releasedAt: "2026-10-08T19:00:00.000Z",
+    summary: "Leads del catálogo más completos y Excel siempre disponible.",
+    items: [
+      { kind: "MEJORA", text: "CRM → Leads del catálogo: cada lead muestra escaneos, marcas que miró, si pidió cuenta (con actividad) y si falta el teléfono." },
+      { kind: "MEJORA", text: "Descargar Excel siempre visible (con los filtros actuales): origen, evento, QR, contacto, interés, pedido de cuenta, escaneos y marcas vistas." },
+      { kind: "MEJORA", text: "El Excel del evento en Configuración → Expo también incluye pedido de cuenta, escaneos y marcas vistas." },
+    ],
+  },
 ];

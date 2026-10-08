@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
-import { Mail, Phone, QrCode, UserPlus } from "lucide-react";
+import { Download, Eye, Mail, Phone, QrCode, ScanLine, UserPlus } from "lucide-react";
 import { requirePermission } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
@@ -23,7 +23,7 @@ const REQUEST_TONE = { PENDING: "warning", APPROVED: "success", REJECTED: "muted
 /**
  * Personas que dejaron sus datos en la bienvenida del catálogo (por QR de
  * un evento o entrando por la web). Pantalla comercial: a quién contactar,
- * de dónde vino y si ya pidió cuenta.
+ * de dónde vino, qué miró y si ya pidió cuenta.
  */
 export default async function Page({ searchParams }: { searchParams: Promise<Search> }) {
   await requirePermission("clients.view");
@@ -49,7 +49,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       : {}),
   };
 
-  const [leads, total, events, totalAll, fromQr] = await Promise.all([
+  const [leads, total, events, fromQr, withPhone, withInterest] = await Promise.all([
     prisma.visitorLead.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -59,30 +59,83 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     }),
     prisma.visitorLead.count({ where }),
     prisma.expoEvent.findMany({ orderBy: { startsAt: "desc" }, select: { id: true, name: true } }),
-    prisma.visitorLead.count(),
-    prisma.visitorLead.count({ where: { source: "QR" } }),
+    prisma.visitorLead.count({ where: { ...where, source: "QR" } }),
+    prisma.visitorLead.count({ where: { ...where, phone: { not: null } } }),
+    prisma.visitorLead.count({ where: { ...where, interest: { not: null } } }),
   ]);
 
   // Si después pidieron cuenta (por el lead o por el mismo mail), se muestra el estado.
   const requests = leads.length
     ? await prisma.accountRequest.findMany({
-        where: { OR: [{ leadId: { in: leads.map((l) => l.id) } }, { email: { in: leads.map((l) => l.email), mode: "insensitive" } }] },
+        where: {
+          OR: [
+            { leadId: { in: leads.map((l) => l.id) } },
+            { email: { in: leads.map((l) => l.email), mode: "insensitive" } },
+          ],
+        },
         orderBy: { createdAt: "desc" },
-        select: { leadId: true, email: true, status: true },
+        select: {
+          id: true,
+          leadId: true,
+          email: true,
+          status: true,
+          company: true,
+          activity: true,
+          activityOther: true,
+          location: true,
+          fullName: true,
+        },
       })
     : [];
   const requestFor = (lead: { id: string; email: string }) =>
-    requests.find((r) => r.leadId === lead.id) ?? requests.find((r) => r.email.toLowerCase() === lead.email.toLowerCase());
+    requests.find((r) => r.leadId === lead.id) ??
+    requests.find((r) => r.email.toLowerCase() === lead.email.toLowerCase());
+
+  const visitorIds = [...new Set(leads.map((l) => l.visitorId))];
+  const visitGroups = visitorIds.length
+    ? await prisma.expoVisit.groupBy({
+        by: ["visitorId", "type"],
+        where: { visitorId: { in: visitorIds } },
+        _count: { _all: true },
+      })
+    : [];
+  const visitCount = (visitorId: string, type: string) =>
+    visitGroups.find((g) => g.visitorId === visitorId && g.type === type)?._count._all ?? 0;
+
+  const brandViewRows = visitorIds.length
+    ? await prisma.expoVisit.findMany({
+        where: { visitorId: { in: visitorIds }, type: "BRAND_VIEW", brandId: { not: null } },
+        select: { visitorId: true, brandId: true },
+        distinct: ["visitorId", "brandId"],
+      })
+    : [];
+  const brandIds = [...new Set(brandViewRows.map((r) => r.brandId!).filter(Boolean))];
+  const brands = brandIds.length
+    ? await prisma.brand.findMany({ where: { id: { in: brandIds } }, select: { id: true, name: true } })
+    : [];
+  const brandName = new Map(brands.map((b) => [b.id, b.name]));
+  const brandsFor = (visitorId: string) =>
+    brandViewRows
+      .filter((r) => r.visitorId === visitorId && r.brandId)
+      .map((r) => brandName.get(r.brandId!) ?? r.brandId!)
+      .filter(Boolean)
+      .slice(0, 8);
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const pageHref = (target: number) => {
+  const filterParams = () => {
     const next = new URLSearchParams();
     if (q) next.set("q", q);
     if (eventId) next.set("event", eventId);
     if (source) next.set("source", source);
+    return next;
+  };
+  const pageHref = (target: number) => {
+    const next = filterParams();
     next.set("page", String(target));
     return `/admin/leads?${next.toString()}`;
   };
+  const exportQs = filterParams().toString();
+  const exportHref = exportQs ? `/api/admin/leads/export?${exportQs}` : "/api/admin/leads/export";
 
   return (
     <div className="space-y-6">
@@ -90,22 +143,22 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
         title="Leads del catálogo"
         description="Quienes dejaron sus datos al entrar al catálogo, por el QR de un evento o por la web. Del más reciente al más viejo."
         actions={
-          eventId ? (
-            <a
-              href={`/api/admin/expo/events/${eventId}/leads`}
-              className="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm font-medium hover:bg-secondary"
-            >
-              Descargar Excel del evento
-            </a>
-          ) : null
+          <a
+            href={exportHref}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-border px-4 text-sm font-medium hover:bg-secondary"
+          >
+            <Download className="h-4 w-4" />
+            Descargar Excel{total > 0 ? ` (${total.toLocaleString("es-AR")})` : ""}
+          </a>
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          [totalAll, "Leads en total"],
+          [total, "Resultados"],
           [fromQr, "Llegaron por QR"],
-          [totalAll - fromQr, "Llegaron por la web"],
+          [withPhone, "Dejaron teléfono"],
+          [withInterest, "Contaron su interés"],
         ].map(([value, label]) => (
           <Card key={String(label)}>
             <CardContent className="p-4">
@@ -151,17 +204,30 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
           {leads.map((lead) => {
             const request = requestFor(lead);
             const title = lead.name || lead.company || lead.email;
+            const scans = visitCount(lead.visitorId, "SCAN");
+            const brandViews = visitCount(lead.visitorId, "BRAND_VIEW");
+            const viewedBrands = brandsFor(lead.visitorId);
+            const activityLabel =
+              request?.activity === "Otra" ? request.activityOther : request?.activity;
+
             return (
               <li key={lead.id}>
                 <Card>
-                  <CardContent className="space-y-2 p-4">
+                  <CardContent className="space-y-3 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <div className="min-w-0 space-y-0.5">
                         <p className="text-base font-semibold">{title}</p>
-                        {lead.company && lead.company !== title ? <p className="text-sm text-muted-foreground">{lead.company}</p> : null}
+                        {lead.name && lead.company && lead.company !== title ? (
+                          <p className="text-sm text-muted-foreground">{lead.company}</p>
+                        ) : null}
+                        {!lead.name && lead.company === title ? (
+                          <p className="text-xs text-muted-foreground">Sin nombre de contacto</p>
+                        ) : null}
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center gap-2">
-                        {request ? <Badge tone={REQUEST_TONE[request.status]}>{REQUEST_LABEL[request.status]}</Badge> : null}
+                        {request ? (
+                          <Badge tone={REQUEST_TONE[request.status]}>{REQUEST_LABEL[request.status]}</Badge>
+                        ) : null}
                         {lead.source === "QR" ? (
                           <Badge tone="accent">
                             <QrCode className="mr-1 inline h-3 w-3" />
@@ -174,6 +240,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
                         <span className="text-xs text-muted-foreground">{formatDate(lead.createdAt)}</span>
                       </div>
                     </div>
+
                     <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
                       <a className="inline-flex items-center gap-1.5 text-primary hover:underline" href={`mailto:${lead.email}`}>
                         <Mail className="h-3.5 w-3.5" />
@@ -184,9 +251,58 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
                           <Phone className="h-3.5 w-3.5" />
                           {lead.phone}
                         </a>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5" />
+                          Sin teléfono
+                        </span>
+                      )}
+                    </div>
+
+                    {lead.interest ? (
+                      <p className="border-l-2 border-border pl-3 text-sm text-muted-foreground">“{lead.interest}”</p>
+                    ) : null}
+
+                    {request ? (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                        {request.fullName && request.fullName !== lead.name ? (
+                          <span>Pedido a nombre de {request.fullName}</span>
+                        ) : null}
+                        {activityLabel ? <Badge tone="muted">{activityLabel}</Badge> : null}
+                        {request.location ? <span>{request.location}</span> : null}
+                        <Link href="/admin/account-requests" className="text-primary hover:underline">
+                          Ver solicitud
+                        </Link>
+                      </div>
+                    ) : null}
+
+                    {viewedBrands.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground">Miró:</span>
+                        {viewedBrands.map((name) => (
+                          <span key={name} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs">
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-2.5 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <ScanLine className="h-3.5 w-3.5" />
+                        {scans} {scans === 1 ? "escaneo" : "escaneos"}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Eye className="h-3.5 w-3.5" />
+                        {brandViews} {brandViews === 1 ? "marca vista" : "marcas vistas"}
+                      </span>
+                      {lead.source === "QR" && lead.qr?.label ? (
+                        <span className="inline-flex items-center gap-1">
+                          <QrCode className="h-3.5 w-3.5" />
+                          QR {lead.qr.label}
+                        </span>
                       ) : null}
                     </div>
-                    {lead.interest ? <p className="text-sm text-muted-foreground">“{lead.interest}”</p> : null}
                   </CardContent>
                 </Card>
               </li>
