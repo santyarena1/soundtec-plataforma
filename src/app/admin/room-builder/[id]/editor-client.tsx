@@ -21,6 +21,7 @@ import {
   type RoomScene,
 } from "@/services/room-builder/scene";
 import { rankModeForTier } from "@/services/room-builder/brief";
+import { normalizeDeviceUnits, type DeviceUnit } from "@/services/room-builder/units";
 import {
   hydrateRoomScene,
   rebuildSceneKeepingProducts,
@@ -277,6 +278,33 @@ export function RoomBuilderEditor({
     void persistScene(next);
   }
 
+  /** Unidades movidas / giradas / duplicadas / quitadas en el 3D. */
+  function onUnitsChange(slotKey: string, units: DeviceUnit[]) {
+    if (!units.length) return;
+    const next: RoomScene = {
+      ...scene,
+      devices: scene.devices.map((d) =>
+        d.slotKey === slotKey ? { ...d, units, quantity: units.length, pose: units[0].pose } : d,
+      ),
+    };
+    setScene(next);
+    void persistScene(next);
+  }
+
+  /** Cantidad desde el panel: agrega o quita unidades (las nuevas se reparten solas). */
+  function onQuantity(slotKey: string, quantity: number) {
+    const slot = scene.slots.find((s) => s.key === slotKey);
+    const dims = { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM };
+    const next: RoomScene = {
+      ...scene,
+      devices: scene.devices.map((d) =>
+        d.slotKey === slotKey ? normalizeDeviceUnits({ ...d, quantity }, slot, dims) : d,
+      ),
+    };
+    setScene(next);
+    void persistScene(next);
+  }
+
   function onCameraPreset(preset: CameraPreset) {
     const next = { ...scene, cameraPreset: preset };
     setScene(next);
@@ -523,6 +551,7 @@ export function RoomBuilderEditor({
             onSelectSlot={onSelectSlot}
             onCameraPreset={onCameraPreset}
             onCoverageView={onCoverageView}
+            onUnitsChange={onUnitsChange}
           />
         </div>
       </div>
@@ -544,6 +573,7 @@ export function RoomBuilderEditor({
         onRankMode={setRankMode}
         onPickProduct={pickProductForPlacement}
         onClearProduct={() => assignProduct(null)}
+        onQuantity={onQuantity}
         onReload={() => void reloadProject()}
       />
     </div>

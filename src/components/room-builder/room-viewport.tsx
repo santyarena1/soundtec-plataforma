@@ -11,7 +11,7 @@
 
 import { Canvas, useThree } from "@react-three/fiber";
 import { PerformanceMonitor, useProgress } from "@react-three/drei";
-import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, useEffect, useMemo, useState, type ErrorInfo, type ReactNode } from "react";
 import * as THREE from "three";
 import type { CameraPreset, CoverageViewMode } from "@/services/room-builder/types";
 import type { RoomScene } from "@/services/room-builder/scene";
@@ -20,7 +20,8 @@ import { CameraRig } from "./three/camera-rig";
 import { SceneEffects } from "./three/effects";
 import { SceneLighting, moodFor } from "./three/lighting";
 import { RoomShell } from "./three/room-shell";
-import { SceneDeviceItem } from "./three/scene-devices";
+import { SceneDeviceUnits } from "./three/scene-devices";
+import type { DeviceUnit } from "@/services/room-builder/units";
 import { SurfaceProvider } from "./three/surfaces";
 
 const PRESET_LABELS: Record<CameraPreset, string> = {
@@ -84,6 +85,7 @@ function SceneContent({
   templateKey,
   placementSlotKeys,
   onSelectSlot,
+  onUnitsChange,
   quality,
   autoTour,
 }: {
@@ -92,9 +94,11 @@ function SceneContent({
   templateKey: string;
   placementSlotKeys: string[];
   onSelectSlot: (slotKey: string) => void;
+  onUnitsChange?: (slotKey: string, units: DeviceUnit[]) => void;
   quality: Quality;
   autoTour: boolean;
 }) {
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const selected = scene.devices.find((d) => d.slotKey === scene.selectedSlotKey) ?? null;
   const placeSet = new Set(placementSlotKeys);
   const theme = roomTheme(category, templateKey);
@@ -102,6 +106,8 @@ function SceneContent({
   const depthM = Math.max(scene.depthM || 0, 1.5);
   const heightM = Math.max(scene.heightM || 0, 2.2);
   const background = theme.outdoor ? "#b9c8b0" : "#c9d1db";
+  const dims = useMemo(() => ({ widthM, depthM, heightM }), [widthM, depthM, heightM]);
+  const slotByKey = useMemo(() => new Map(scene.slots.map((sl) => [sl.key, sl])), [scene.slots]);
 
   return (
     <SurfaceProvider enabled>
@@ -116,14 +122,18 @@ function SceneContent({
       />
       <RoomShell widthM={widthM} depthM={depthM} heightM={heightM} plan={scene.plan} category={category} templateKey={templateKey} />
       {scene.devices.map((device) => (
-        <SceneDeviceItem
+        <SceneDeviceUnits
           key={device.id}
           device={device}
-          heightM={heightM}
+          slot={slotByKey.get(device.slotKey)}
+          dims={dims}
           selected={device.slotKey === scene.selectedSlotKey}
+          selectedUnitId={selectedUnitId}
           placementTarget={placeSet.has(device.slotKey)}
           coverageView={scene.coverageView}
           onSelect={onSelectSlot}
+          onSelectUnit={setSelectedUnitId}
+          onUnitsChange={onUnitsChange}
         />
       ))}
       <CameraRig preset={scene.cameraPreset} widthM={widthM} depthM={depthM} heightM={heightM} selected={selected} autoTour={autoTour} />
@@ -141,6 +151,7 @@ export function RoomViewport({
   onSelectSlot,
   onCameraPreset,
   onCoverageView,
+  onUnitsChange,
 }: {
   scene: RoomScene;
   category?: string;
@@ -150,6 +161,8 @@ export function RoomViewport({
   onSelectSlot: (slotKey: string) => void;
   onCameraPreset: (preset: CameraPreset) => void;
   onCoverageView: (mode: CoverageViewMode) => void;
+  /** Unidades movidas, giradas, duplicadas o quitadas en el 3D. */
+  onUnitsChange?: (slotKey: string, units: DeviceUnit[]) => void;
 }) {
   const [quality, setQuality] = useState<Quality>("high");
   const [autoTour, setAutoTour] = useState(true);
@@ -214,6 +227,7 @@ export function RoomViewport({
               templateKey={resolvedKey}
               placementSlotKeys={placementSlotKeys}
               onSelectSlot={onSelectSlot}
+              onUnitsChange={onUnitsChange}
               quality={quality}
               autoTour={autoTour}
             />

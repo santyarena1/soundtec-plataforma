@@ -1259,4 +1259,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Se genera solo lo que lleva el ambiente: un proyecto de audio no trae pantallas ni panel; amplificadores y procesadores de control ya no se mezclan al elegir." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-unidades",
+    version: "1.39.0",
+    releasedAt: "2026-10-09T07:30:00.000Z",
+    summary: "Room Builder: cada equipo es un objeto propio que se arrastra, gira, duplica o quita en el 3D.",
+    items: [
+      { kind: "NUEVO", text: "4 parlantes son 4 objetos: se reparten solos (techo en grilla, pared enfrentadas) y cada uno se arrastra por paredes o techo con imán a la superficie." },
+      { kind: "NUEVO", text: "Al elegir una unidad: Girar, Duplicar (agrega otra al lado) y Quitar. La cantidad también se cambia desde el panel con − / +." },
+      { kind: "MEJORA", text: "La cotización toma la cantidad real de unidades; elegir un equipo ya no mueve la cámara (salvo en Detalle y POV)." },
+    ],
+  },
 ];

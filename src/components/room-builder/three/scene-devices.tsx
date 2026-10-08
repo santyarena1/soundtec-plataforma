@@ -7,10 +7,13 @@
  */
 
 import { Html } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
-import { useRef, useState } from "react";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { useMemo, useRef, useState } from "react";
+import { CopyPlus, RotateCw, Trash2 } from "lucide-react";
 import * as THREE from "three";
-import type { CoverageViewMode, DeviceCoverage } from "@/services/room-builder/types";
+import type { CoverageViewMode, DeviceCoverage, MountOption, Pose, RoomSlot } from "@/services/room-builder/types";
+import { MAX_UNITS, clampPoseToRoom, normalizeDeviceUnits, surfaceHit, type DeviceUnit, type RoomDims } from "@/services/room-builder/units";
+import { dragState } from "./drag-state";
 import type { SceneDevice } from "@/services/room-builder/scene";
 import {
   CameraModel,
@@ -143,37 +146,133 @@ function ProductCard({ device }: { device: SceneDevice }) {
   );
 }
 
-export function SceneDeviceItem({
+type UnitAction = "rotate" | "duplicate" | "remove";
+
+/** Barra de acciones de la unidad seleccionada. */
+function UnitToolbar({ canRotate, canRemove, onAction }: { canRotate: boolean; canRemove: boolean; onAction: (a: UnitAction) => void }) {
+  const btn = "flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-35";
+  return (
+    <Html position={[0, -0.28, 0]} center zIndexRange={[30, 0]}>
+      <div className="flex items-center gap-0.5 rounded-xl border border-slate-200 bg-white/95 p-1 shadow-xl backdrop-blur" onPointerDown={(e) => e.stopPropagation()}>
+        {canRotate ? (
+          <button type="button" className={btn} onClick={() => onAction("rotate")} title="Girar 45°">
+            <RotateCw className="h-3.5 w-3.5" /> Girar
+          </button>
+        ) : null}
+        <button type="button" className={btn} onClick={() => onAction("duplicate")} title="Agregar otro igual al lado">
+          <CopyPlus className="h-3.5 w-3.5" /> Duplicar
+        </button>
+        <button type="button" className={`${btn} hover:text-red-600`} disabled={!canRemove} onClick={() => onAction("remove")} title="Quitar esta unidad">
+          <Trash2 className="h-3.5 w-3.5" /> Quitar
+        </button>
+      </div>
+    </Html>
+  );
+}
+
+/** Píxeles de movimiento a partir de los cuales un click pasa a ser arrastre. */
+const DRAG_THRESHOLD_PX = 4;
+
+type ControlsLike = { enabled: boolean; cancel?: () => void };
+
+/** Una unidad física: se elige con click y se arrastra por las superficies que admite su montaje. */
+function UnitItem({
   device,
-  heightM,
+  unit,
+  mount,
+  dims,
   selected,
+  primary,
   placementTarget,
   coverageView,
+  canRemove,
   onSelect,
+  onCommit,
+  onAction,
 }: {
   device: SceneDevice;
-  heightM: number;
+  unit: DeviceUnit;
+  mount: MountOption;
+  dims: RoomDims;
   selected: boolean;
+  primary: boolean;
   placementTarget: boolean;
   coverageView: CoverageViewMode;
-  onSelect: (slotKey: string) => void;
+  canRemove: boolean;
+  onSelect: () => void;
+  onCommit: (pose: Pose) => void;
+  onAction: (a: UnitAction) => void;
 }) {
   const [hover, setHover] = useState(false);
+  const [dragPose, setDragPose] = useState<Pose | null>(null);
+  const camera = useThree((st) => st.camera);
+  const gl = useThree((st) => st.gl);
+  const controls = useThree((st) => st.controls) as unknown as ControlsLike | null;
+  const raycaster = useMemo(() => new THREE.Raycaster(), []);
+  const pose = dragPose ?? unit.pose;
   const showCoverage = coverageView === "zones" || coverageView === "seats" || (coverageView === "selection" && selected);
-  const groundOffset = -device.pose.y + 0.02;
+  const groundOffset = -pose.y + 0.02;
+
+  function startDrag(e: ThreeEvent<PointerEvent>) {
+    e.stopPropagation();
+    onSelect();
+    const el = gl.domElement;
+    const sx = e.nativeEvent.clientX;
+    const sy = e.nativeEvent.clientY;
+    let dragging = false;
+    let last: Pose | null = null;
+
+    const move = (ev: PointerEvent) => {
+      if (!dragging) {
+        if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < DRAG_THRESHOLD_PX) return;
+        dragging = true;
+        dragState.active = true;
+        if (controls) {
+          controls.cancel?.();
+          controls.enabled = false;
+        }
+        el.style.cursor = "grabbing";
+      }
+      const rect = el.getBoundingClientRect();
+      raycaster.setFromCamera(
+        new THREE.Vector2(((ev.clientX - rect.left) / rect.width) * 2 - 1, -((ev.clientY - rect.top) / rect.height) * 2 + 1),
+        camera,
+      );
+      const hit = surfaceHit(
+        {
+          origin: raycaster.ray.origin.toArray() as [number, number, number],
+          dir: raycaster.ray.direction.toArray() as [number, number, number],
+        },
+        mount,
+        dims,
+        unit.pose.y,
+      );
+      if (!hit) return;
+      last = mount === "wall" ? hit.pose : { ...hit.pose, rotY: unit.pose.rotY };
+      setDragPose(last);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      dragState.active = false;
+      if (controls) controls.enabled = true;
+      el.style.cursor = "";
+      if (dragging && last) onCommit(last);
+      setDragPose(null);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
 
   return (
     <group
-      position={[device.pose.x, device.pose.y, device.pose.z]}
-      rotation={[0, (device.pose.rotY * Math.PI) / 180, 0]}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect(device.slotKey);
-      }}
+      position={[pose.x, pose.y, pose.z]}
+      rotation={[0, (pose.rotY * Math.PI) / 180, 0]}
+      onPointerDown={startDrag}
       onPointerOver={(e) => {
         e.stopPropagation();
         setHover(true);
-        document.body.style.cursor = "pointer";
+        document.body.style.cursor = selected ? "grab" : "pointer";
       }}
       onPointerOut={() => {
         setHover(false);
@@ -181,15 +280,91 @@ export function SceneDeviceItem({
       }}
       scale={hover && !selected ? 1.04 : 1}
     >
-      <DeviceBody device={device} heightM={heightM} />
+      <DeviceBody device={{ ...device, pose }} heightM={dims.heightM} />
       {placementTarget ? <PlacementRing y={groundOffset} /> : null}
       {selected ? (
         <group position={[0, groundOffset, 0]}>
           <SelectionHalo />
         </group>
       ) : null}
-      {selected ? <ProductCard device={device} /> : null}
-      {showCoverage ? <CoverageCone device={device} mode={coverageView} /> : null}
+      {selected && primary && !dragPose ? <ProductCard device={device} /> : null}
+      {selected && !dragPose ? <UnitToolbar canRotate={mount !== "wall" && mount !== "ceiling"} canRemove={canRemove} onAction={onAction} /> : null}
+      {showCoverage ? <CoverageCone device={{ ...device, pose }} mode={coverageView} /> : null}
     </group>
+  );
+}
+
+const DUPLICATE_OFFSET_M = 0.45;
+
+/** Todas las unidades de un equipo, con sus acciones (mover, girar, duplicar, quitar). */
+export function SceneDeviceUnits({
+  device,
+  slot,
+  dims,
+  selected,
+  selectedUnitId,
+  placementTarget,
+  coverageView,
+  onSelect,
+  onSelectUnit,
+  onUnitsChange,
+}: {
+  device: SceneDevice;
+  slot: RoomSlot | undefined;
+  dims: RoomDims;
+  selected: boolean;
+  selectedUnitId: string | null;
+  placementTarget: boolean;
+  coverageView: CoverageViewMode;
+  onSelect: (slotKey: string) => void;
+  onSelectUnit: (unitId: string) => void;
+  onUnitsChange?: (slotKey: string, units: DeviceUnit[]) => void;
+}) {
+  const normalized = useMemo(() => normalizeDeviceUnits(device, slot, dims), [device, slot, dims]);
+  const units = normalized.units ?? [];
+  const mount = (slot?.mount ?? "wall") as MountOption;
+  const activeId = selected ? (selectedUnitId && units.some((u) => u.id === selectedUnitId) ? selectedUnitId : units[0]?.id) : null;
+
+  const commit = (next: DeviceUnit[]) => onUnitsChange?.(device.slotKey, next);
+
+  function act(unit: DeviceUnit, action: UnitAction) {
+    if (action === "rotate") {
+      commit(units.map((u) => (u.id === unit.id ? { ...u, placed: true, pose: { ...u.pose, rotY: (u.pose.rotY + 45) % 360 } } : u)));
+      return;
+    }
+    if (action === "duplicate") {
+      if (units.length >= MAX_UNITS) return;
+      const sideways = Math.abs(unit.pose.rotY) === 90 ? { z: unit.pose.z + DUPLICATE_OFFSET_M } : { x: unit.pose.x + DUPLICATE_OFFSET_M };
+      const id = `${device.slotKey}#c${units.length}-${Math.round(performance.now()) % 100000}`;
+      commit([...units, { id, placed: true, pose: clampPoseToRoom({ ...unit.pose, ...sideways }, dims) }]);
+      onSelectUnit(id);
+      return;
+    }
+    if (units.length > 1) commit(units.filter((u) => u.id !== unit.id));
+  }
+
+  return (
+    <>
+      {units.map((unit, i) => (
+        <UnitItem
+          key={unit.id}
+          device={normalized}
+          unit={unit}
+          mount={mount}
+          dims={dims}
+          selected={activeId === unit.id}
+          primary={i === 0 || activeId === unit.id}
+          placementTarget={placementTarget && i === 0}
+          coverageView={coverageView}
+          canRemove={units.length > 1}
+          onSelect={() => {
+            onSelect(device.slotKey);
+            onSelectUnit(unit.id);
+          }}
+          onCommit={(pose) => commit(units.map((u) => (u.id === unit.id ? { ...u, pose, placed: true } : u)))}
+          onAction={(a) => act(unit, a)}
+        />
+      ))}
+    </>
   );
 }

@@ -13,6 +13,7 @@ import * as THREE from "three";
 import type CameraControlsImpl from "camera-controls";
 import type { CameraPreset } from "@/services/room-builder/types";
 import type { SceneDevice } from "@/services/room-builder/scene";
+import { dragState } from "./drag-state";
 
 export interface Framing {
   position: [number, number, number];
@@ -87,7 +88,8 @@ export function CameraRig({
   const idleFor = useRef(0);
   const interacting = useRef(false);
   const fovTarget = useRef<number>((camera as THREE.PerspectiveCamera).fov);
-  const selectedKey = selected?.slotKey ?? "";
+  // Solo las vistas centradas en un equipo se mueven al elegir otro equipo.
+  const framingKey = preset === "detail" || preset === "device_pov" ? (selected?.slotKey ?? "") : "";
 
   // Límites: nunca bajo el piso, distancia acotada al tamaño de la sala.
   useEffect(() => {
@@ -122,7 +124,7 @@ export function CameraRig({
     idleFor.current = 0;
     void c.setLookAt(...f.position, ...f.target, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset, widthM, depthM, heightM, selectedKey]);
+  }, [preset, widthM, depthM, heightM, framingKey]);
 
   // Interacción del usuario: corta el recorrido automático.
   useEffect(() => {
@@ -152,7 +154,8 @@ export function CameraRig({
       cam.updateProjectionMatrix();
     }
     const c = ref.current;
-    if (!c || !autoTour || interacting.current) return;
+    if (dragState.active) idleFor.current = 0;
+    if (!c || !autoTour || interacting.current || dragState.active) return;
     idleFor.current += delta;
     // Giro lento solo en vistas "de afuera" (no en las de ojo o equipo).
     if (idleFor.current > IDLE_SECONDS && (preset === "general" || preset === "cinema")) {

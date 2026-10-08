@@ -9,7 +9,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Loader2, Search, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, Minus, Plus, Search, X } from "lucide-react";
+import { MAX_UNITS } from "@/services/room-builder/units";
 import type { RankSortMode } from "@/services/room-builder/types";
 import type { RoomScene } from "@/services/room-builder/scene";
 import { PlatformGuideCard } from "./platform-guide-card";
@@ -143,6 +144,7 @@ function ProductPicker({
   onRankMode,
   onPick,
   onClear,
+  onQuantity,
 }: {
   device: RoomScene["devices"][number] | undefined;
   ranked: RankRow[];
@@ -155,10 +157,40 @@ function ProductPicker({
   onRankMode: (m: RankSortMode) => void;
   onPick: (row: RankRow) => void;
   onClear: () => void;
+  onQuantity: (n: number) => void;
 }) {
   const firstCompatible = ranked.find((r) => r.compatible)?.productId;
   return (
     <div className="space-y-2.5 border-t border-slate-200 bg-slate-50/70 p-2.5">
+      {device ? (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
+          <div>
+            <p className="text-xs font-semibold text-slate-800">Cantidad en la sala</p>
+            <p className="text-[10.5px] text-slate-500">Arrastrá cada una en el 3D para ubicarla</p>
+          </div>
+          <div className="flex items-center rounded-lg border border-slate-300">
+            <button
+              type="button"
+              disabled={pending || device.quantity <= 1}
+              onClick={() => onQuantity(device.quantity - 1)}
+              className="p-1.5 text-slate-600 hover:text-slate-900 disabled:opacity-30"
+              aria-label="Una menos"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            <span className="min-w-[1.75rem] text-center text-sm font-semibold tabular-nums">{device.quantity}</span>
+            <button
+              type="button"
+              disabled={pending || device.quantity >= MAX_UNITS}
+              onClick={() => onQuantity(device.quantity + 1)}
+              className="p-1.5 text-slate-600 hover:text-slate-900 disabled:opacity-30"
+              aria-label="Una más"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      ) : null}
       {device?.productName ? (
         <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-white p-2">
           <Thumb src={device.imageUrl} />
@@ -249,6 +281,7 @@ export function EditorSidebar({
   onRankMode,
   onPickProduct,
   onClearProduct,
+  onQuantity,
   onReload,
 }: {
   projectId: string;
@@ -267,6 +300,7 @@ export function EditorSidebar({
   onRankMode: (m: RankSortMode) => void;
   onPickProduct: (row: RankRow) => void;
   onClearProduct: () => void;
+  onQuantity: (slotKey: string, quantity: number) => void;
   onReload: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("equipos");
@@ -372,7 +406,7 @@ export function EditorSidebar({
                           {canPlace
                             ? "Tocá para ponerlo acá"
                             : chosen
-                              ? `${device?.brandName ? `${device.brandName} · ` : ""}${device?.productName ?? ""}`
+                              ? `${(device?.quantity ?? 1) > 1 ? `${device?.quantity} × ` : ""}${device?.brandName ? `${device.brandName} · ` : ""}${device?.productName ?? ""}`
                               : `Falta elegir · ${roleLabel(slot.role).toLowerCase()} ${MOUNT_LABELS[slot.mount] ?? ""}`}
                         </p>
                       </div>
@@ -392,6 +426,7 @@ export function EditorSidebar({
                         onRankMode={onRankMode}
                         onPick={onPickProduct}
                         onClear={onClearProduct}
+                        onQuantity={(n) => onQuantity(slot.key, n)}
                       />
                     ) : null}
                   </li>

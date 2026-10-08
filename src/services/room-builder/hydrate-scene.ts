@@ -1,6 +1,7 @@
 import { getRoomTemplate } from "./templates";
 import { buildSceneFromTemplate, type RoomScene, type SceneDevice } from "./scene";
 import { layoutSlotsForScene, relayoutSceneAnchors } from "./slot-layout";
+import { normalizeSceneUnits } from "./units";
 
 function finitePositive(n: unknown, min: number): n is number {
   return typeof n === "number" && Number.isFinite(n) && n >= min;
@@ -140,6 +141,8 @@ export function hydrateRoomScene(
     changed = true;
   }
 
+  // Unidades físicas coherentes con la cantidad (se reparten las no ubicadas a mano).
+  scene = normalizeSceneUnits(meta.force ? { ...scene, devices: scene.devices.map((d) => ({ ...d, units: [] })) } : scene);
   return { scene, changed, rebuilt };
 }
 

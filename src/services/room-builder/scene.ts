@@ -8,6 +8,7 @@ import type {
 } from "./types";
 import type { PlanModeState } from "./plan-mode";
 import type { RoomBrief } from "./brief";
+import type { DeviceUnit } from "./units";
 
 export type SceneDevice = {
   id: string;
@@ -22,6 +23,8 @@ export type SceneDevice = {
   brandName?: string | null;
   imageUrl?: string | null;
   proxyKey?: string | null;
+  /** Unidades físicas (tantas como quantity), cada una con su lugar. */
+  units?: DeviceUnit[];
   /** Medidas reales del producto (cm), para dibujarlo a escala. */
   sizeCm?: ProductSizeCm | null;
 };

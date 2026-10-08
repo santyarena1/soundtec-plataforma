@@ -256,6 +256,20 @@ export async function createHubProject(input: {
   return getRoomProject(hub.id);
 }
 
+/** La cotización sale de RoomProjectDevice.quantity: se alinea con la escena (unidades agregadas o quitadas en el 3D). */
+async function syncDeviceQuantities(projectId: string, scene: RoomScene) {
+  const rows = await prisma.roomProjectDevice.findMany({
+    where: { roomProjectId: projectId },
+    select: { id: true, slotKey: true, quantity: true },
+  });
+  const wanted = new Map(scene.devices.map((d) => [d.slotKey, Math.max(1, Math.round(d.quantity || 1))]));
+  const changes = rows.filter((r) => r.slotKey && wanted.has(r.slotKey) && wanted.get(r.slotKey) !== r.quantity);
+  if (!changes.length) return;
+  await prisma.$transaction(
+    changes.map((r) => prisma.roomProjectDevice.update({ where: { id: r.id }, data: { quantity: wanted.get(r.slotKey as string) as number } })),
+  );
+}
+
 export async function updateRoomProjectScene(
   id: string,
   scene: RoomScene,
@@ -269,6 +283,7 @@ export async function updateRoomProjectScene(
     heightM?: number;
   },
 ) {
+  await syncDeviceQuantities(id, scene);
   return prisma.roomProject.update({
     where: { id },
     data: {
