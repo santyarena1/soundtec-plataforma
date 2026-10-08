@@ -11,6 +11,8 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { PlatformGuideCard } from "@/components/room-builder/platform-guide-card";
+import { suggestPlatform } from "@/services/room-builder/platform-guide";
 
 type Template = {
   key: string;
@@ -362,6 +364,14 @@ export function RoomBuilderHome() {
               </label>
             </>
           )}
+          {mode === "space" ? (
+            <div className="mt-3">
+              <PlatformGuideCard
+                category={categoryFilter || "videoconference"}
+                platform={platform}
+              />
+            </div>
+          ) : null}
         </div>
 
         {mode === "space" ? (
@@ -377,10 +387,7 @@ export function RoomBuilderHome() {
                   onClick={() => {
                     setCategoryFilter(cat);
                     setTemplateKey(list[0]?.key ?? "");
-                    if (cat === "videoconference") setPlatform("teams");
-                    else if (cat === "hotel" || cat === "residential")
-                      setPlatform("crestron-home");
-                    else setPlatform("none");
+                    setPlatform(suggestPlatform(cat));
                   }}
                   className={`rounded-xl border px-3 py-3 text-left ${
                     categoryFilter === cat

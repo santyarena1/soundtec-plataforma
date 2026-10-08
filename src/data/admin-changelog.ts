@@ -1174,4 +1174,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Al girar/zoom la vista se cortaba por límites de cámara y sombras suaves; ahora orbita estable (modo Rápido por defecto)." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-10",
+    version: "1.35.0",
+    releasedAt: "2026-10-09T00:10:00.000Z",
+    summary: "Room Builder: guía de plataforma/audio, foto real y mover equipos.",
+    items: [
+      { kind: "NUEVO", text: "Al crear una sala: cuándo usar Crestron Home, Teams, Zoom o BYOD, y si conviene Sonance, Blaze o Bluesound." },
+      { kind: "NUEVO", text: "El 3D muestra la foto del catálogo del producto asignado y se puede arrastrar para moverlo (ya no se vuelve a clavar solo)." },
+    ],
+  },
 ];

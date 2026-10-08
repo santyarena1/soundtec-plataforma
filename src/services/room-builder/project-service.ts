@@ -40,7 +40,7 @@ export async function listRoomProjects(ownerId?: string) {
 
 export async function getRoomProject(id: string) {
   await ensureRoomBuilderSchema();
-  return prisma.roomProject.findUnique({
+  const project = await prisma.roomProject.findUnique({
     where: { id },
     include: {
       client: { select: { id: true, companyName: true } },
@@ -73,6 +73,21 @@ export async function getRoomProject(id: string) {
       },
     },
   });
+  if (!project) return null;
+  const scene = parseScene(project.sceneJson);
+  if (!scene) return project;
+  const bySlot = new Map(project.devices.map((d) => [d.slotKey, d]));
+  scene.devices = scene.devices.map((device) => {
+    const row = device.slotKey ? bySlot.get(device.slotKey) : undefined;
+    return {
+      ...device,
+      productId: device.productId ?? row?.productId ?? null,
+      imageUrl: row?.product?.images?.[0]?.url ?? device.imageUrl ?? null,
+      productName: row?.product?.normalizedName ?? device.productName ?? null,
+      brandName: row?.product?.brand?.name ?? device.brandName ?? null,
+    };
+  });
+  return { ...project, sceneJson: scene };
 }
 
 export async function createSpaceProject(input: {
@@ -270,11 +285,13 @@ export async function assignProductToSlot(input: {
   let productMeta: {
     name: string | null;
     brand: string | null;
+    imageUrl: string | null;
     designRole: string | null;
     coverage: Prisma.InputJsonValue | typeof Prisma.JsonNull;
   } = {
     name: null,
     brand: null,
+    imageUrl: null,
     designRole: null,
     coverage: Prisma.JsonNull,
   };
@@ -286,12 +303,18 @@ export async function assignProductToSlot(input: {
         normalizedName: true,
         brand: { select: { name: true } },
         designProfile: true,
+        images: {
+          where: { isPrimary: true },
+          select: { url: true },
+          take: 1,
+        },
       },
     });
     if (!product) throw new Error("Producto no encontrado");
     productMeta = {
       name: product.normalizedName,
       brand: product.brand?.name ?? null,
+      imageUrl: product.images[0]?.url ?? null,
       designRole: product.designProfile?.designRole ?? null,
       coverage: product.designProfile
         ? ({
@@ -337,6 +360,7 @@ export async function assignProductToSlot(input: {
           productId: input.productId,
           productName: productMeta.name,
           brandName: productMeta.brand,
+          imageUrl: productMeta.imageUrl,
           quantity: input.quantity ?? d.quantity,
           coverage:
             productMeta.coverage === Prisma.JsonNull

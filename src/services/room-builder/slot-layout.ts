@@ -539,7 +539,21 @@ function poseChanged(a: Pose, b: Pose) {
  * Reubica slots/dispositivos según anclas del template y metros actuales.
  * Corrige proyectos viejos con poses hardcodeadas que flotaban en el aire.
  */
-export function relayoutSceneAnchors(scene: RoomScene): {
+function poseInsideRoom(pose: { x: number; y: number; z: number }, scene: RoomScene) {
+  if (![pose.x, pose.y, pose.z].every((n) => Number.isFinite(n))) return false;
+  const margin = 1.2;
+  return (
+    Math.abs(pose.x) <= scene.widthM / 2 + margin &&
+    Math.abs(pose.z) <= scene.depthM / 2 + margin &&
+    pose.y >= -0.4 &&
+    pose.y <= scene.heightM + 0.5
+  );
+}
+
+export function relayoutSceneAnchors(
+  scene: RoomScene,
+  opts?: { onlyInvalid?: boolean },
+): {
   scene: RoomScene;
   changed: boolean;
 } {
@@ -556,6 +570,9 @@ export function relayoutSceneAnchors(scene: RoomScene): {
   const slots = scene.slots.map((s) => {
     const layout = byKey.get(s.key);
     if (!layout) return s;
+    const keep =
+      opts?.onlyInvalid && poseInsideRoom(s.pose, scene) && s.mount === layout.mount;
+    if (keep) return s;
     if (poseChanged(s.pose, layout.pose) || s.mount !== layout.mount) {
       changed = true;
       return { ...s, pose: { ...layout.pose }, mount: layout.mount };
@@ -574,6 +591,7 @@ export function relayoutSceneAnchors(scene: RoomScene): {
   const devices = scene.devices.map((d) => {
     const layout = byKey.get(d.slotKey);
     if (!layout) return d;
+    if (opts?.onlyInvalid && poseInsideRoom(d.pose, scene)) return d;
     if (poseChanged(d.pose, layout.pose)) {
       changed = true;
       return { ...d, pose: { ...layout.pose } };

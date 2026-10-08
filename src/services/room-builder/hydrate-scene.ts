@@ -20,6 +20,8 @@ export function hydrateRoomScene(
     widthM?: number;
     depthM?: number;
     heightM?: number;
+    /** true = volver al layout del template (botón Reparar). */
+    force?: boolean;
   },
 ): { scene: RoomScene; changed: boolean; rebuilt: boolean } {
   const template = getRoomTemplate(meta.templateKey);
@@ -74,24 +76,27 @@ export function hydrateRoomScene(
   const bySlot = new Map<string, SceneDevice>();
   for (const d of scene.devices) bySlot.set(d.slotKey, d);
 
-  const laid = relayoutSceneAnchors(scene);
+  const laid = relayoutSceneAnchors(scene, { onlyInvalid: !meta.force });
   scene = laid.scene;
   if (laid.changed) changed = true;
 
-  // Asegurar device por cada slot, conservando producto
+  const inside = (pose: SceneDevice["pose"]) =>
+    [pose.x, pose.y, pose.z].every((n) => Number.isFinite(n)) &&
+    Math.abs(pose.x) <= scene.widthM / 2 + 1.2 &&
+    Math.abs(pose.z) <= scene.depthM / 2 + 1.2 &&
+    pose.y >= -0.4 &&
+    pose.y <= scene.heightM + 0.5;
+
+  // Asegurar device por cada slot, conservando producto y la pose si el usuario la movió
   const devices: SceneDevice[] = scene.slots.map((slot) => {
     const prev = bySlot.get(slot.key);
     if (prev) {
-      const poseChanged =
-        Math.abs(prev.pose.x - slot.pose.x) > 0.02 ||
-        Math.abs(prev.pose.y - slot.pose.y) > 0.02 ||
-        Math.abs(prev.pose.z - slot.pose.z) > 0.02;
-      if (poseChanged) changed = true;
+      const pose = !meta.force && inside(prev.pose) ? prev.pose : { ...slot.pose };
       return {
         ...prev,
         label: slot.label,
         designRole: slot.role,
-        pose: { ...slot.pose },
+        pose,
         quantity: prev.quantity || slot.defaultQty,
       };
     }
