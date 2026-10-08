@@ -9,3 +9,4 @@ export * from "./enrich-offline";
 export * from "./rank-from-db";
 export * from "./project-service";
 export * from "./quote-from-project";
+export * from "./ensure-schema";

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { getHubPreset } from "./hub-presets";
 import { getRoomTemplate, resizeTemplate } from "./templates";
 import { buildSceneFromTemplate, parseScene, type RoomScene } from "./scene";
@@ -9,6 +10,7 @@ function decimal(n: number) {
 }
 
 export async function listRoomProjects(ownerId?: string) {
+  await ensureRoomBuilderSchema();
   return prisma.roomProject.findMany({
     where: {
       parentId: null,
@@ -35,6 +37,7 @@ export async function listRoomProjects(ownerId?: string) {
 }
 
 export async function getRoomProject(id: string) {
+  await ensureRoomBuilderSchema();
   return prisma.roomProject.findUnique({
     where: { id },
     include: {
@@ -81,6 +84,7 @@ export async function createSpaceProject(input: {
   parentId?: string | null;
   notes?: string | null;
 }) {
+  await ensureRoomBuilderSchema();
   const base = getRoomTemplate(input.templateKey);
   if (!base) throw new Error(`Template desconocido: ${input.templateKey}`);
   const template =

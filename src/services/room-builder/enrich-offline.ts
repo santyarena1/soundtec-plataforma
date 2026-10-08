@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { draftDesignProfileFromProduct } from "./from-product";
+import { ensureRoomBuilderSchema } from "./ensure-schema";
 
 export type EnrichBatchResult = {
   scanned: number;
@@ -18,6 +19,7 @@ export async function enrichDesignProfilesBatch(options?: {
   cursor?: string | null;
   onlyMissing?: boolean;
 }): Promise<EnrichBatchResult> {
+  await ensureRoomBuilderSchema();
   const take = Math.min(Math.max(options?.take ?? 80, 1), 200);
   const onlyMissing = options?.onlyMissing !== false;
 
@@ -146,6 +148,7 @@ export async function enrichDesignProfilesBatch(options?: {
 }
 
 export async function designProfileStats() {
+  await ensureRoomBuilderSchema();
   const [totalProducts, withProfile, byRole, byStatus] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     prisma.productDesignProfile.count(),

@@ -5,6 +5,7 @@ import {
   micCoverageFit,
   viewingDistanceFromDiagonalIn,
 } from "./coverage";
+import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { rankForSlot, type SlotRequirements } from "./ranking";
 import type { DesignRole, MountOption, RankCandidate, RankSortMode } from "./types";
 
@@ -45,6 +46,7 @@ export type RankFromDbOptions = {
 };
 
 export async function rankProductsForSlot(options: RankFromDbOptions) {
+  await ensureRoomBuilderSchema();
   const limit = Math.min(Math.max(options.limit ?? 40, 1), 100);
   const slot: SlotRequirements = {
     role: options.role,
