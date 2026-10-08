@@ -8,7 +8,16 @@ import {
   OrbitControls,
   SoftShadows,
 } from "@react-three/drei";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Component,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ErrorInfo,
+  type ReactNode,
+} from "react";
 import * as THREE from "three";
 import type {
   CameraPreset,
@@ -155,12 +164,32 @@ function CameraRig({
       maxPolarAngle={
         preset === "plan" ? 0.05 : preset === "eye" ? 1.45 : Math.PI / 2.05
       }
-      minAzimuthAngle={preset === "plan" ? 0 : -Infinity}
-      maxAzimuthAngle={preset === "plan" ? 0 : Infinity}
+      minAzimuthAngle={preset === "plan" ? 0 : -Math.PI}
+      maxAzimuthAngle={preset === "plan" ? 0 : Math.PI}
       minDistance={1.2}
-      maxDistance={Math.max(widthM, depthM) * 2.6}
+      maxDistance={Math.max(widthM, depthM, 2) * 2.6}
     />
   );
+}
+
+class CanvasErrorBoundary extends Component<
+  { children: ReactNode; onError: () => void },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(_error: Error, _info: ErrorInfo) {
+    this.props.onError();
+  }
+
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
 }
 
 function WindowPanel({
@@ -735,6 +764,10 @@ function SceneContent({
     gl.outputColorSpace = THREE.SRGBColorSpace;
   }, [gl, rich]);
 
+  const widthM = Math.max(scene.widthM || 0, 1.5);
+  const depthM = Math.max(scene.depthM || 0, 1.5);
+  const heightM = Math.max(scene.heightM || 0, 2.2);
+
   return (
     <>
       <color attach="background" args={[theme.fog]} />
@@ -742,18 +775,20 @@ function SceneContent({
         attach="fog"
         args={[theme.fog, rich ? 16 : 12, rich ? 36 : 28]}
       />
-      {rich ? <SoftShadows size={18} samples={12} focus={0.65} /> : null}
       {rich ? (
-        <Environment
-          preset={theme.envPreset}
-          environmentIntensity={theme.outdoor ? 0.85 : 0.55}
-        />
+        <Suspense fallback={null}>
+          <SoftShadows size={18} samples={8} focus={0.65} />
+          <Environment
+            preset={theme.envPreset}
+            environmentIntensity={theme.outdoor ? 0.85 : 0.55}
+          />
+        </Suspense>
       ) : null}
-      <ambientLight intensity={rich ? theme.ambient : theme.ambient + 0.15} />
+      <ambientLight intensity={rich ? theme.ambient : theme.ambient + 0.2} />
       <directionalLight
         castShadow
         position={[5.5, 9.5, 3.5]}
-        intensity={rich ? 1.35 : 1.15}
+        intensity={rich ? 1.35 : 1.2}
         shadow-mapSize-width={rich ? 2048 : 1024}
         shadow-mapSize-height={rich ? 2048 : 1024}
         shadow-camera-far={40}
@@ -767,18 +802,18 @@ function SceneContent({
         args={[
           theme.outdoor ? "#fff7ed" : "#f8fafc",
           theme.outdoor ? "#6b7f5e" : "#64748b",
-          rich ? 0.45 : 0.35,
+          rich ? 0.45 : 0.4,
         ]}
       />
       <pointLight
-        position={[-scene.widthM * 0.4, scene.heightM * 0.7, 0]}
-        intensity={rich ? 0.45 : 0.3}
+        position={[-widthM * 0.4, heightM * 0.7, 0]}
+        intensity={rich ? 0.45 : 0.35}
         color="#bfdbfe"
         distance={12}
       />
       {rich && !theme.outdoor ? (
         <spotLight
-          position={[0, scene.heightM - 0.15, 0]}
+          position={[0, heightM - 0.15, 0]}
           angle={0.75}
           penumbra={0.55}
           intensity={0.55}
@@ -787,9 +822,9 @@ function SceneContent({
         />
       ) : null}
       <RoomShell
-        widthM={scene.widthM}
-        depthM={scene.depthM}
-        heightM={scene.heightM}
+        widthM={widthM}
+        depthM={depthM}
+        heightM={heightM}
         plan={scene.plan}
         category={category}
         templateKey={templateKey}
@@ -807,15 +842,15 @@ function SceneContent({
       <ContactShadows
         position={[0, 0.015, 0]}
         opacity={rich ? 0.48 : 0.35}
-        scale={Math.max(scene.widthM, scene.depthM) * 1.55}
+        scale={Math.max(widthM, depthM) * 1.55}
         blur={rich ? 2.8 : 2.2}
         far={6}
       />
       <CameraRig
         preset={scene.cameraPreset}
-        widthM={scene.widthM}
-        depthM={scene.depthM}
-        heightM={scene.heightM}
+        widthM={widthM}
+        depthM={depthM}
+        heightM={heightM}
         selected={selected}
       />
     </>
@@ -842,6 +877,7 @@ export function RoomViewport({
   onCoverageView: (mode: CoverageViewMode) => void;
 }) {
   const [rich, setRich] = useState(true);
+  const [canvasKey, setCanvasKey] = useState(0);
   const presets = (
     ["general", "eye", "cinema", "front_av", "plan", "detail", "device_pov"] as const
   ).filter((p) => p in PRESET_LABELS) as CameraPreset[];
@@ -852,29 +888,53 @@ export function RoomViewport({
       : scene.cameraPreset === "cinema"
         ? 36
         : 42;
+  const sceneOk =
+    Number.isFinite(scene.widthM) &&
+    scene.widthM >= 1.5 &&
+    Number.isFinite(scene.depthM) &&
+    scene.depthM >= 1.5 &&
+    Number.isFinite(scene.heightM) &&
+    scene.heightM >= 2.2 &&
+    scene.slots.length > 0;
 
   return (
     <div className="relative h-full min-h-0 w-full overflow-hidden bg-slate-300">
-      <Canvas
-        shadows
-        className="h-full w-full"
-        camera={{ position: [4, 3, 5], fov, near: 0.08, far: 90 }}
-        gl={{
-          antialias: true,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          powerPreference: "high-performance",
-        }}
-        dpr={rich ? [1, 1.75] : [1, 1.25]}
-      >
-        <SceneContent
-          scene={scene}
-          category={category}
-          templateKey={resolvedKey}
-          placementSlotKeys={placementSlotKeys}
-          onSelectSlot={onSelectSlot}
-          rich={rich}
-        />
-      </Canvas>
+      {!sceneOk ? (
+        <div className="flex h-full items-center justify-center px-6 text-center text-sm text-slate-600">
+          La escena 3D de este proyecto está dañada o incompleta. Usá{" "}
+          <span className="mx-1 font-semibold">Reparar 3D</span> en la barra
+          superior, o creá un proyecto nuevo con la misma tipología.
+        </div>
+      ) : (
+        <CanvasErrorBoundary
+          onError={() => {
+            setRich(false);
+            setCanvasKey((k) => k + 1);
+          }}
+        >
+          <Canvas
+            key={`rb-canvas-${canvasKey}-${rich ? "rich" : "fast"}`}
+            shadows
+            className="h-full w-full"
+            camera={{ position: [4, 3, 5], fov, near: 0.08, far: 90 }}
+            gl={{
+              antialias: true,
+              toneMapping: THREE.ACESFilmicToneMapping,
+              powerPreference: "high-performance",
+            }}
+            dpr={rich ? [1, 1.75] : [1, 1.25]}
+          >
+            <SceneContent
+              scene={scene}
+              category={category}
+              templateKey={resolvedKey}
+              placementSlotKeys={placementSlotKeys}
+              onSelectSlot={onSelectSlot}
+              rich={rich}
+            />
+          </Canvas>
+        </CanvasErrorBoundary>
+      )}
 
       {placementHint ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-12 z-10 flex justify-center px-3">
