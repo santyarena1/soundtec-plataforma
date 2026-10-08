@@ -13,3 +13,5 @@ export * from "./ensure-schema";
 export * from "./enrich-official";
 export * from "./auto-fill";
 export * from "./plan-mode";
+export * from "./dimensions";
+export * from "./interconnect";

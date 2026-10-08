@@ -1093,4 +1093,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Proxies 3D por rol (cámara, mic, display, speaker, touch, rack)." },
     ],
   },
+  {
+    id: "ship-2026-10-08-room-builder-3",
+    version: "1.31.0",
+    releasedAt: "2026-10-08T21:00:00.000Z",
+    summary: "Room Builder: tipologías distintas, metros y cadena Crestron.",
+    items: [
+      { kind: "FIX", text: "Cada tipología (hotel, aula, lobby, eventos, etc.) tiene mobiliario 3D propio; ya no parecen todas salas de reunión." },
+      { kind: "NUEVO", text: "Dimensiones editables en metros (ancho/fondo/alto) al crear y dentro del editor." },
+      { kind: "NUEVO", text: "Cadena Crestron/deps: procesador, teclas, accesorios incluidos/compatibles del catálogo y packs por plataforma." },
+    ],
+  },
 ];

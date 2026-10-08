@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { autoFillProjectSlots } from "./auto-fill";
+import { resizeSceneMeters } from "./dimensions";
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { getHubPreset } from "./hub-presets";
 import { getRoomTemplate, resizeTemplate } from "./templates";
@@ -85,15 +86,25 @@ export async function createSpaceProject(input: {
   parentId?: string | null;
   notes?: string | null;
   autoFill?: boolean;
+  widthM?: number;
+  depthM?: number;
+  heightM?: number;
 }) {
   await ensureRoomBuilderSchema();
   const base = getRoomTemplate(input.templateKey);
   if (!base) throw new Error(`Template desconocido: ${input.templateKey}`);
-  const template =
-    input.areaM2 && input.areaM2 > 0
+  let template =
+    input.areaM2 && input.areaM2 > 0 && !input.widthM
       ? resizeTemplate(base, input.areaM2)
       : base;
-  const scene = buildSceneFromTemplate(template);
+  let scene = buildSceneFromTemplate(template);
+  if (input.widthM && input.depthM) {
+    scene = resizeSceneMeters(scene, {
+      widthM: input.widthM,
+      depthM: input.depthM,
+      heightM: input.heightM,
+    });
+  }
 
   const created = await prisma.roomProject.create({
     data: {
@@ -102,8 +113,8 @@ export async function createSpaceProject(input: {
       templateKey: template.key,
       category: template.category,
       sizePreset: template.sizePreset,
-      areaM2: decimal(template.areaM2),
-      heightM: decimal(template.heightM),
+      areaM2: decimal(scene.areaM2),
+      heightM: decimal(scene.heightM),
       platform: input.platform ?? template.platforms[0] ?? null,
       unitCount: Math.max(1, input.unitCount ?? 1),
       status: "draft",

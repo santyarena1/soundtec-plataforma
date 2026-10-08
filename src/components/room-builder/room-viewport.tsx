@@ -135,18 +135,136 @@ function CameraRig({
   );
 }
 
+function CategoryFurniture({
+  category,
+  widthM,
+  depthM,
+}: {
+  category: string;
+  widthM: number;
+  depthM: number;
+}) {
+  if (category === "hotel") {
+    return (
+      <group>
+        {/* bed */}
+        <mesh position={[0, 0.35, -depthM * 0.15]} castShadow>
+          <boxGeometry args={[Math.min(widthM * 0.55, 2.2), 0.4, Math.min(depthM * 0.45, 2)]} />
+          <meshStandardMaterial color="#c4b5a0" roughness={0.85} />
+        </mesh>
+        <mesh position={[0, 0.62, -depthM * 0.28]}>
+          <boxGeometry args={[Math.min(widthM * 0.55, 2.2), 0.35, 0.12]} />
+          <meshStandardMaterial color="#8a735a" />
+        </mesh>
+        {/* nightstands */}
+        <mesh position={[-Math.min(widthM * 0.35, 1.3), 0.25, -depthM * 0.05]}>
+          <boxGeometry args={[0.45, 0.5, 0.4]} />
+          <meshStandardMaterial color="#6b5540" />
+        </mesh>
+        <mesh position={[Math.min(widthM * 0.35, 1.3), 0.25, -depthM * 0.05]}>
+          <boxGeometry args={[0.45, 0.5, 0.4]} />
+          <meshStandardMaterial color="#6b5540" />
+        </mesh>
+      </group>
+    );
+  }
+  if (category === "classroom" || category === "training") {
+    const rows = category === "training" ? 4 : 3;
+    return (
+      <group>
+        {Array.from({ length: rows }).map((_, row) => (
+          <mesh
+            key={row}
+            position={[0, 0.4, -depthM * 0.25 + row * (depthM * 0.18)]}
+            castShadow
+          >
+            <boxGeometry args={[Math.min(widthM * 0.7, 4), 0.05, 0.45]} />
+            <meshStandardMaterial color="#d1d5db" />
+          </mesh>
+        ))}
+        {/* teacher desk */}
+        <mesh position={[0, 0.4, depthM * 0.28]} castShadow>
+          <boxGeometry args={[1.4, 0.05, 0.7]} />
+          <meshStandardMaterial color="#8b7355" />
+        </mesh>
+      </group>
+    );
+  }
+  if (category === "lobby" || category === "signage") {
+    return (
+      <group>
+        <mesh position={[0, 0.5, 0]} castShadow>
+          <boxGeometry args={[Math.min(widthM * 0.5, 2.4), 1, 0.7]} />
+          <meshStandardMaterial color="#334155" roughness={0.6} />
+        </mesh>
+      </group>
+    );
+  }
+  if (category === "event") {
+    return (
+      <group>
+        <mesh position={[0, 0.4, depthM * 0.35]} castShadow>
+          <boxGeometry args={[Math.min(widthM * 0.7, 6), 0.8, 1.2]} />
+          <meshStandardMaterial color="#1e293b" />
+        </mesh>
+      </group>
+    );
+  }
+  if (category === "residential") {
+    return (
+      <group>
+        <mesh position={[0, 0.35, -depthM * 0.1]} castShadow>
+          <boxGeometry args={[Math.min(widthM * 0.55, 2.6), 0.45, 0.9]} />
+          <meshStandardMaterial color="#78716c" />
+        </mesh>
+        <mesh position={[-widthM * 0.25, 0.25, depthM * 0.15]}>
+          <boxGeometry args={[0.7, 0.5, 0.7]} />
+          <meshStandardMaterial color="#57534e" />
+        </mesh>
+      </group>
+    );
+  }
+  // videoconference / default: conference table
+  return (
+    <group>
+      <mesh position={[0, 0.72, 0]} castShadow>
+        <boxGeometry
+          args={[
+            Math.min(widthM * 0.45, 3.2),
+            0.06,
+            Math.min(depthM * 0.28, 1.4),
+          ]}
+        />
+        <meshStandardMaterial color="#8b7355" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 0.36, 0]}>
+        <boxGeometry args={[0.12, 0.72, 0.12]} />
+        <meshStandardMaterial color="#6b5540" />
+      </mesh>
+    </group>
+  );
+}
+
 function RoomShell({
   widthM,
   depthM,
   heightM,
   plan,
+  category,
 }: {
   widthM: number;
   depthM: number;
   heightM: number;
   plan: RoomScene["plan"];
+  category: string;
 }) {
-  const floor = useMemo(() => new THREE.Color("#d6dde6"), []);
+  const floor = useMemo(() => {
+    if (category === "hotel") return new THREE.Color("#e7e0d5");
+    if (category === "classroom" || category === "training")
+      return new THREE.Color("#e5e7eb");
+    if (category === "event") return new THREE.Color("#cbd5e1");
+    return new THREE.Color("#d6dde6");
+  }, [category]);
 
   if (plan?.enabled && plan.walls.length > 0) {
     return (
@@ -173,16 +291,7 @@ function RoomShell({
             </mesh>
           );
         })}
-        <mesh position={[0, 0.72, 0]} castShadow>
-          <boxGeometry
-            args={[
-              Math.min(widthM * 0.4, 3),
-              0.06,
-              Math.min(depthM * 0.25, 1.3),
-            ]}
-          />
-          <meshStandardMaterial color="#8b7355" roughness={0.7} />
-        </mesh>
+        <CategoryFurniture category={category} widthM={widthM} depthM={depthM} />
       </group>
     );
   }
@@ -205,20 +314,7 @@ function RoomShell({
         <boxGeometry args={[0.08, heightM, depthM]} />
         <meshStandardMaterial color="#e8edf3" roughness={0.95} />
       </mesh>
-      <mesh position={[0, 0.72, 0]} castShadow>
-        <boxGeometry
-          args={[
-            Math.min(widthM * 0.45, 3.2),
-            0.06,
-            Math.min(depthM * 0.28, 1.4),
-          ]}
-        />
-        <meshStandardMaterial color="#8b7355" roughness={0.7} />
-      </mesh>
-      <mesh position={[0, 0.36, 0]}>
-        <boxGeometry args={[0.12, 0.72, 0.12]} />
-        <meshStandardMaterial color="#6b5540" />
-      </mesh>
+      <CategoryFurniture category={category} widthM={widthM} depthM={depthM} />
     </group>
   );
 }
@@ -408,9 +504,11 @@ function DeviceProxy({
 
 function SceneContent({
   scene,
+  category,
   onSelectSlot,
 }: {
   scene: RoomScene;
+  category: string;
   onSelectSlot: (slotKey: string) => void;
 }) {
   const selected =
@@ -434,6 +532,7 @@ function SceneContent({
         depthM={scene.depthM}
         heightM={scene.heightM}
         plan={scene.plan}
+        category={category}
       />
       {scene.devices.map((device) => (
         <DeviceProxy
@@ -463,11 +562,13 @@ function SceneContent({
 
 export function RoomViewport({
   scene,
+  category = "videoconference",
   onSelectSlot,
   onCameraPreset,
   onCoverageView,
 }: {
   scene: RoomScene;
+  category?: string;
   onSelectSlot: (slotKey: string) => void;
   onCameraPreset: (preset: CameraPreset) => void;
   onCoverageView: (mode: CoverageViewMode) => void;
@@ -481,7 +582,11 @@ export function RoomViewport({
         camera={{ position: [4, 3, 5], fov: 42, near: 0.1, far: 80 }}
         gl={{ antialias: true }}
       >
-        <SceneContent scene={scene} onSelectSlot={onSelectSlot} />
+        <SceneContent
+          scene={scene}
+          category={category}
+          onSelectSlot={onSelectSlot}
+        />
       </Canvas>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">

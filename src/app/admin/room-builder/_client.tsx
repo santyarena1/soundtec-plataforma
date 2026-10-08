@@ -67,6 +67,22 @@ export function RoomBuilderHome() {
   const [templateKey, setTemplateKey] = useState("");
   const [hubKey, setHubKey] = useState("");
   const [unitCount, setUnitCount] = useState(1);
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [widthM, setWidthM] = useState<number | "">("");
+  const [depthM, setDepthM] = useState<number | "">("");
+  const [platform, setPlatform] = useState("crestron-home");
+
+  const CATEGORY_LABELS: Record<string, string> = {
+    videoconference: "Videoconferencia",
+    classroom: "Aula",
+    training: "Capacitación",
+    hotel: "Hotel",
+    event: "Eventos",
+    residential: "Residencial / Home",
+    lobby: "Lobby",
+    "control-room": "Sala técnica",
+    signage: "Signage",
+  };
 
   async function reload() {
     const [tRes, pRes, eRes] = await Promise.all([
@@ -80,7 +96,10 @@ export function RoomBuilderHome() {
     if (tJson.ok) {
       setTemplates(tJson.templates);
       setHubs(tJson.hubs);
-      if (!templateKey && tJson.templates[0]) setTemplateKey(tJson.templates[0].key);
+      if (!categoryFilter && tJson.templates[0]) {
+        setCategoryFilter(tJson.templates[0].category);
+        setTemplateKey(tJson.templates[0].key);
+      }
       if (!hubKey && tJson.hubs[0]) setHubKey(tJson.hubs[0].key);
     }
     if (pJson.ok) setProjects(pJson.projects);
@@ -120,6 +139,13 @@ export function RoomBuilderHome() {
                 "Sala",
               templateKey,
               unitCount,
+              platform,
+              widthM: typeof widthM === "number" ? widthM : undefined,
+              depthM: typeof depthM === "number" ? depthM : undefined,
+              areaM2:
+                typeof widthM === "number" && typeof depthM === "number"
+                  ? widthM * depthM
+                  : undefined,
             };
 
       const res = await fetch("/api/admin/room-builder/projects", {
@@ -321,38 +347,120 @@ export function RoomBuilderHome() {
           ) : (
             <>
               <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Template</span>
+                <span className="mb-1 block text-slate-600">Plataforma</span>
                 <select
-                  value={templateKey}
-                  onChange={(e) => setTemplateKey(e.target.value)}
+                  value={platform}
+                  onChange={(e) => setPlatform(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2"
                 >
-                  {templatesByCategory.map(([cat, list]) => (
-                    <optgroup key={cat} label={cat}>
-                      {list.map((t) => (
-                        <option key={t.key} value={t.key}>
-                          {t.name} ({t.sizePreset}, {t.areaM2} m²)
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
+                  <option value="crestron-home">Crestron Home</option>
+                  <option value="teams">Microsoft Teams</option>
+                  <option value="zoom">Zoom Rooms</option>
+                  <option value="byod">BYOD</option>
+                  <option value="none">Sin UC / solo AV</option>
                 </select>
               </label>
-              <label className="block text-sm md:col-span-2 md:max-w-xs">
-                <span className="mb-1 block text-slate-600">
-                  Cantidad de unidades idénticas
-                </span>
+            </>
+          )}
+        </div>
+
+        {mode === "space" ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-sm font-medium text-slate-800">
+              1. Elegí el tipo de espacio (no son todas salas de reunión)
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {templatesByCategory.map(([cat, list]) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => {
+                    setCategoryFilter(cat);
+                    setTemplateKey(list[0]?.key ?? "");
+                    if (cat === "videoconference") setPlatform("teams");
+                    else if (cat === "hotel" || cat === "residential")
+                      setPlatform("crestron-home");
+                    else setPlatform("none");
+                  }}
+                  className={`rounded-xl border px-3 py-3 text-left ${
+                    categoryFilter === cat
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-400"
+                  }`}
+                >
+                  <span className="block text-sm font-semibold">
+                    {CATEGORY_LABELS[cat] ?? cat}
+                  </span>
+                  <span
+                    className={`mt-0.5 block text-[11px] ${
+                      categoryFilter === cat ? "text-slate-300" : "text-slate-500"
+                    }`}
+                  >
+                    {list.length} layouts · ej. {list[0]?.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <p className="text-sm font-medium text-slate-800">2. Layout</p>
+            <select
+              value={templateKey}
+              onChange={(e) => setTemplateKey(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            >
+              {(templatesByCategory.find(([c]) => c === categoryFilter)?.[1] ??
+                []).map((t) => (
+                <option key={t.key} value={t.key}>
+                  {t.name} ({t.sizePreset}, default {t.areaM2} m²)
+                </option>
+              ))}
+            </select>
+
+            <p className="text-sm font-medium text-slate-800">
+              3. Metros (opcional — también se editan adentro)
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <label className="text-xs text-slate-600">
+                Ancho (m)
+                <input
+                  type="number"
+                  min={1.5}
+                  step={0.1}
+                  value={widthM}
+                  onChange={(e) =>
+                    setWidthM(e.target.value === "" ? "" : Number(e.target.value))
+                  }
+                  placeholder="auto"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5"
+                />
+              </label>
+              <label className="text-xs text-slate-600">
+                Fondo (m)
+                <input
+                  type="number"
+                  min={1.5}
+                  step={0.1}
+                  value={depthM}
+                  onChange={(e) =>
+                    setDepthM(e.target.value === "" ? "" : Number(e.target.value))
+                  }
+                  placeholder="auto"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5"
+                />
+              </label>
+              <label className="text-xs text-slate-600">
+                Unidades ×
                 <input
                   type="number"
                   min={1}
                   value={unitCount}
                   onChange={(e) => setUnitCount(Number(e.target.value) || 1)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5"
                 />
               </label>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        ) : null}
 
         {mode === "hub" && hubKey ? (
           <ul className="mt-4 grid gap-2 text-sm text-slate-600 md:grid-cols-2">

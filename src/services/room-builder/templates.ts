@@ -69,6 +69,15 @@ function vcSlots(size: SizePreset, widthM: number, depthM: number) {
       pose: { x: 0, y: 2.2, z: depthM / 2 - 0.1, rotY: 180 },
       defaultQty: 1,
     },
+    {
+      key: "lighting_keypad",
+      role: "touch" as const,
+      label: "Tecla iluminación / control",
+      required: false,
+      mount: "wall" as const,
+      pose: { x: widthM / 2 - 0.1, y: 1.2, z: -depthM / 2 + 0.8, rotY: -90 },
+      defaultQty: 1,
+    },
   ];
 }
 
@@ -227,10 +236,28 @@ export const ROOM_TEMPLATES: RoomTemplate[] = [
       {
         key: "touch",
         role: "touch",
-        label: "Control",
-        required: false,
+        label: "Control / touch",
+        required: true,
         mount: "table",
         pose: { x: 1.2, y: 0.7, z: -0.5, rotY: 0 },
+        defaultQty: 1,
+      },
+      {
+        key: "lighting_keypad",
+        role: "touch",
+        label: "Tecla iluminación Crestron",
+        required: false,
+        mount: "wall",
+        pose: { x: -1.5, y: 1.2, z: -1.8, rotY: 90 },
+        defaultQty: 1,
+      },
+      {
+        key: "processor",
+        role: "processor",
+        label: "Procesador Crestron Home",
+        required: true,
+        mount: "rack",
+        pose: { x: -1.8, y: 0.4, z: -2, rotY: 0 },
         defaultQty: 1,
       },
       {

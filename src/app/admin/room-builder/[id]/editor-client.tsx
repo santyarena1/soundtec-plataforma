@@ -22,6 +22,8 @@ import {
   type RoomScene,
 } from "@/services/room-builder/scene";
 import { PlanPanel } from "@/components/room-builder/plan-panel";
+import { DimensionsPanel } from "@/components/room-builder/dimensions-panel";
+import { InterconnectPanel } from "@/components/room-builder/interconnect-panel";
 
 const RoomViewport = dynamic(
   () =>
@@ -387,6 +389,7 @@ export function RoomBuilderEditor({
         <div className="min-h-0 flex-1">
           <RoomViewport
             scene={scene}
+            category={project.category}
             onSelectSlot={onSelectSlot}
             onCameraPreset={onCameraPreset}
             onCoverageView={onCoverageView}
@@ -395,6 +398,19 @@ export function RoomBuilderEditor({
       </div>
 
       <aside className="w-full border-t border-slate-200 bg-white xl:w-[380px] xl:border-l xl:border-t-0">
+        <div className="space-y-3 border-b border-slate-100 p-4">
+          <DimensionsPanel
+            projectId={project.id}
+            widthM={scene.widthM}
+            depthM={scene.depthM}
+            heightM={scene.heightM}
+            onUpdated={() => void reloadProject()}
+          />
+          <InterconnectPanel
+            projectId={project.id}
+            onUpdated={() => void reloadProject()}
+          />
+        </div>
         <div className="border-b border-slate-100 p-4">
           <h2 className="text-sm font-semibold text-slate-900">Slots</h2>
           <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
