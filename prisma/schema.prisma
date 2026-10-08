@@ -1857,6 +1857,8 @@ model RoomProject {
   visibility  String  @default("private")
   sceneJson   Json
   notes       String? @db.Text
+  /// Imagen del plano (tabla aparte: no viaja con cada lectura del proyecto).
+  planImage   RoomPlanImage?
 
   parentId String?
   parent   RoomProject?  @relation("RoomProjectTree", fields: [parentId], references: [id], onDelete: Cascade)
@@ -1885,6 +1887,17 @@ model RoomProject {
 }
 
 /// Dispositivo colocado en un RoomProject (desnormalizado para queries BOM).
+/// Plano subido de un ambiente (WebP comprimido), servido por /plan-image.
+model RoomPlanImage {
+  roomProjectId String      @id
+  roomProject   RoomProject @relation(fields: [roomProjectId], references: [id], onDelete: Cascade)
+  data          Bytes
+  mimeType      String
+  widthPx       Int
+  heightPx      Int
+  updatedAt     DateTime    @updatedAt
+}
+
 model RoomProjectDevice {
   id            String      @id @default(cuid())
   roomProjectId String

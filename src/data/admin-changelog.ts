@@ -1236,4 +1236,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Los accesorios agregados por la cadena no se apilan en el medio de la sala." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-plano",
+    version: "1.37.2",
+    releasedAt: "2026-10-09T04:40:00.000Z",
+    summary: "Room Builder: subir un plano funciona y se calibra tocando dos puntos.",
+    items: [
+      { kind: "FIX", text: "Subir plano fallaba sin avisar; ahora la imagen se achica sola, se guarda en el sistema y si algo falla te dice por qué." },
+      { kind: "MEJORA", text: "Calibración tocando los dos extremos de una medida conocida sobre el plano (ya no hay que escribir coordenadas)." },
+      { kind: "FIX", text: "Al calibrar, los equipos se reubican al tamaño real de la sala." },
+    ],
+  },
 ];

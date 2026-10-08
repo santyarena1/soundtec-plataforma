@@ -230,4 +230,26 @@ async function runEnsure(): Promise<void> {
       END $$
     `);
   }
+
+  // Plano subido (tabla aparte para no cargar la imagen con cada proyecto).
+  await exec(`
+    CREATE TABLE IF NOT EXISTS "RoomPlanImage" (
+      "roomProjectId" TEXT NOT NULL,
+      "data" BYTEA NOT NULL,
+      "mimeType" TEXT NOT NULL,
+      "widthPx" INTEGER NOT NULL,
+      "heightPx" INTEGER NOT NULL,
+      "updatedAt" TIMESTAMP(3) NOT NULL,
+      CONSTRAINT "RoomPlanImage_pkey" PRIMARY KEY ("roomProjectId")
+    )
+  `);
+  await exec(`
+    DO $$ BEGIN
+      ALTER TABLE "RoomPlanImage"
+        ADD CONSTRAINT "RoomPlanImage_roomProjectId_fkey"
+        FOREIGN KEY ("roomProjectId") REFERENCES "RoomProject"("id")
+        ON DELETE CASCADE ON UPDATE CASCADE;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
 }
