@@ -22,7 +22,6 @@ import {
   parseScene,
   type RoomScene,
 } from "@/services/room-builder/scene";
-import type { Pose } from "@/services/room-builder/types";
 import {
   hydrateRoomScene,
   rebuildSceneKeepingProducts,
@@ -203,18 +202,6 @@ export function RoomBuilderEditor({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProject.id]);
-
-  function onMoveDevice(slotKey: string, pose: Pose) {
-    const next: RoomScene = {
-      ...scene,
-      slots: scene.slots.map((s) => (s.key === slotKey ? { ...s, pose } : s)),
-      devices: scene.devices.map((d) =>
-        d.slotKey === slotKey ? { ...d, pose } : d,
-      ),
-    };
-    setScene(next);
-    void persistScene(next);
-  }
 
   function repairLayout() {
     try {
@@ -555,7 +542,6 @@ export function RoomBuilderEditor({
                 : null
             }
             onSelectSlot={onSelectSlot}
-            onMoveDevice={onMoveDevice}
             onCameraPreset={onCameraPreset}
             onCoverageView={onCoverageView}
           />
@@ -571,8 +557,8 @@ export function RoomBuilderEditor({
               platform={project.platform}
             />
             <p className="mt-2 text-[11px] text-slate-500">
-              Arrastrá un equipo en el 3D para moverlo. Si tiene foto de
-              catálogo, se ve sobre el proxy.
+              La cámara no se orbita: usá General, A nivel, Cine, Frente AV,
+              Planta o Detalle. La foto del catálogo aparece sobre el equipo.
             </p>
           </div>
           <div className="space-y-3 border-b border-slate-100 p-3">

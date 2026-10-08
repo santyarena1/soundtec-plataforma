@@ -1181,7 +1181,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Room Builder: guía de plataforma/audio, foto real y mover equipos.",
     items: [
       { kind: "NUEVO", text: "Al crear una sala: cuándo usar Crestron Home, Teams, Zoom o BYOD, y si conviene Sonance, Blaze o Bluesound." },
-      { kind: "NUEVO", text: "El 3D muestra la foto del catálogo del producto asignado y se puede arrastrar para moverlo (ya no se vuelve a clavar solo)." },
+      { kind: "NUEVO", text: "El 3D muestra la foto del catálogo del producto asignado." },
+    ],
+  },
+  {
+    id: "ship-2026-10-08-room-builder-11",
+    version: "1.35.1",
+    releasedAt: "2026-10-09T00:30:00.000Z",
+    summary: "Room Builder: cámara fija por vistas, sin orbitar.",
+    items: [
+      { kind: "FIX", text: "La escena ya no se gira ni se arrastra con el mouse. Se cambia solo con las vistas (General, A nivel, Cine, Frente AV, Planta, Detalle, POV)." },
     ],
   },
 ];

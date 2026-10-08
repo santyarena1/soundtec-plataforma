@@ -177,24 +177,13 @@ function CameraRig({
     }
   }, [camera, preset, widthM, depthM, heightM, selectedKey, selected]);
 
-  const isPlan = preset === "plan";
-
   return (
     <OrbitControls
       ref={controlsRef as never}
       makeDefault
-      enableDamping
-      dampingFactor={0.12}
-      enableRotate={!isPlan}
-      enablePan={!isPlan}
-      // Sin límites de azimuth: ±PI hace que se rompa al girar un poco.
-      minPolarAngle={isPlan ? 0 : 0.12}
-      maxPolarAngle={isPlan ? 0.02 : Math.PI / 2.08}
-      minDistance={1.1}
-      maxDistance={Math.max(widthM, depthM, 2) * 2.8}
-      zoomSpeed={0.7}
-      rotateSpeed={0.55}
-      panSpeed={0.55}
+      enableRotate={false}
+      enablePan={false}
+      enableZoom={false}
     />
   );
 }
@@ -697,73 +686,25 @@ function DeviceProxy({
   device,
   selected,
   placementTarget,
-  widthM,
-  depthM,
   onSelect,
-  onMove,
   coverageView,
 }: {
   device: SceneDevice;
   selected: boolean;
   placementTarget?: boolean;
-  widthM: number;
-  depthM: number;
   onSelect: (slotKey: string) => void;
-  onMove?: (slotKey: string, pose: SceneDevice["pose"]) => void;
   coverageView: CoverageViewMode;
 }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const drag = useRef({ active: false, moved: false });
   const color = roleColor(device.designRole);
   const showCoverage =
     coverageView === "zones" ||
     coverageView === "seats" ||
     (coverageView === "selection" && selected);
 
-  function hitFloor(ray: THREE.Ray) {
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -device.pose.y);
-    const hit = new THREE.Vector3();
-    if (!ray.intersectPlane(plane, hit)) return null;
-    const limitX = Math.max(widthM / 2 - 0.2, 0.3);
-    const limitZ = Math.max(depthM / 2 - 0.2, 0.3);
-    return {
-      x: THREE.MathUtils.clamp(hit.x, -limitX, limitX),
-      z: THREE.MathUtils.clamp(hit.z, -limitZ, limitZ),
-    };
-  }
-
   return (
     <group
-      ref={groupRef}
       position={[device.pose.x, device.pose.y, device.pose.z]}
       rotation={[0, (device.pose.rotY * Math.PI) / 180, 0]}
-      onPointerDown={(e) => {
-        e.stopPropagation();
-        drag.current = { active: true, moved: false };
-      }}
-      onPointerMove={(e) => {
-        if (!drag.current.active || !groupRef.current) return;
-        const hit = hitFloor(e.ray);
-        if (!hit) return;
-        const dx = hit.x - device.pose.x;
-        const dz = hit.z - device.pose.z;
-        if (dx * dx + dz * dz > 0.01) drag.current.moved = true;
-        if (!drag.current.moved) return;
-        e.stopPropagation();
-        groupRef.current.position.set(hit.x, device.pose.y, hit.z);
-      }}
-      onPointerUp={(e) => {
-        if (!drag.current.active) return;
-        const moved = drag.current.moved;
-        drag.current.active = false;
-        if (!moved || !groupRef.current || !onMove) return;
-        e.stopPropagation();
-        onMove(device.slotKey, {
-          ...device.pose,
-          x: Math.round(groupRef.current.position.x * 100) / 100,
-          z: Math.round(groupRef.current.position.z * 100) / 100,
-        });
-      }}
     >
       {placementTarget ? (
         <mesh position={[0, -0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -778,10 +719,6 @@ function DeviceProxy({
         placementTarget={placementTarget}
         onClick={(e) => {
           e.stopPropagation();
-          if (drag.current.moved) {
-            drag.current.moved = false;
-            return;
-          }
           onSelect(device.slotKey);
         }}
       />
@@ -834,7 +771,6 @@ function SceneContent({
   templateKey,
   placementSlotKeys,
   onSelectSlot,
-  onMoveDevice,
   rich,
 }: {
   scene: RoomScene;
@@ -842,7 +778,6 @@ function SceneContent({
   templateKey: string;
   placementSlotKeys: string[];
   onSelectSlot: (slotKey: string) => void;
-  onMoveDevice?: (slotKey: string, pose: SceneDevice["pose"]) => void;
   rich: boolean;
 }) {
   const { gl } = useThree();
@@ -912,12 +847,9 @@ function SceneContent({
         <DeviceProxy
           key={device.id}
           device={device}
-          widthM={widthM}
-          depthM={depthM}
           selected={device.slotKey === scene.selectedSlotKey}
           placementTarget={placeSet.has(device.slotKey)}
           onSelect={onSelectSlot}
-          onMove={onMoveDevice}
           coverageView={scene.coverageView}
         />
       ))}
@@ -946,7 +878,6 @@ export function RoomViewport({
   placementSlotKeys = [],
   placementHint,
   onSelectSlot,
-  onMoveDevice,
   onCameraPreset,
   onCoverageView,
 }: {
@@ -956,7 +887,6 @@ export function RoomViewport({
   placementSlotKeys?: string[];
   placementHint?: string | null;
   onSelectSlot: (slotKey: string) => void;
-  onMoveDevice?: (slotKey: string, pose: SceneDevice["pose"]) => void;
   onCameraPreset: (preset: CameraPreset) => void;
   onCoverageView: (mode: CoverageViewMode) => void;
 }) {
@@ -1015,7 +945,6 @@ export function RoomViewport({
               templateKey={resolvedKey}
               placementSlotKeys={placementSlotKeys}
               onSelectSlot={onSelectSlot}
-              onMoveDevice={onMoveDevice}
               rich={rich}
             />
           </Canvas>
