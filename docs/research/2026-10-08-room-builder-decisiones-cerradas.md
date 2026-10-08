@@ -107,7 +107,7 @@ Si el negocio quiere **sacar** alguna de esta lista antes del go-live, se marca 
 - [x] Usuarios: solo interno Soundtec  
 - [x] Públicos: no en día 1  
 - [x] Sin defaults flojos en ranking  
-- [x] FOV/alcance explicado; sin coverage inventado  
+- [x] FOV/alcance definido por producto (modificable acotado + multi-vista); sin coverage inventado  
 - [x] IA: sí  
 - [x] Serper: no fuente de verdad; oficial primero  
 
