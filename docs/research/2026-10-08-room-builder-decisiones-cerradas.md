@@ -16,7 +16,7 @@
 | 3 | Usuarios go-live | **Solo Soundtec, todo interno** al principio. Sin portal cliente en el lanzamiento. |
 | 4 | Proyectos públicos / link | **No** en el lanzamiento (solo uso interno). |
 | 5 | Ranking “Recomendado” | **No dejar defaults flojos al principio**: el ranking tiene que funcionar de verdad (precio, compatibilidad, uso, alcance). No publicar con un default placeholder. La UI permite ordenar; el score compuesto debe estar calibrado, no “inventar un default y listo”. |
-| 6 | Datos incompletos | El usuario **no conocía** FOV/alcance (ver §2). Criterio de producto derivado de la barra 90–95% + fuente oficial: **no fingir coverage**; completar desde sitio oficial/ficha; si falta dato crítico de alcance, el producto puede rankearse por precio/uso pero **sin dibujar coverage inventado**. |
+| 6 | Datos incompletos / FOV | El negocio pidió que **lo definamos nosotros**. Spec completa: [`room-builder-cobertura-fov.md`](./2026-10-08-room-builder-cobertura-fov.md). Resumen: UI dice “cobertura”; valores de ficha; **modificable con límites** (no libre); **varias formas de verla** (conos, asientos, solo selección); sin inventar si no hay dato. |
 | 7 | IA | **Sí** a todo lo necesario de IA para extract, ranking explicado y packs. |
 | 7b | Serper | **No es fuente de verdad.** Casi todos los productos tienen link a sitio oficial (bancos de fotos / ficha). La recuperación parte de ahí. Serper solo apoyo opcional de descubrimiento si falta URL, nunca verdad canónica. |
 
