@@ -154,7 +154,7 @@ Devolvé SOLO un JSON:
 { "crops": [ { "n": 1, "items": [ { "kind": "...", "facing": "up|down|left|right", "box": { "x0": 0.1, "y0": 0.2, "x1": 0.6, "y1": 0.5 } } ] } ] }
 - box: dónde está ese objeto dentro del recorte, en fracciones (0..1, x hacia la derecha, y hacia abajo). Si el recorte es un solo objeto, box ≈ todo el objeto.
 - kind es uno de: ${OBJECT_KINDS.join(", ")}.
-  sofa: sillón de 2+ cuerpos; armchair: sillón individual; dining-set: mesa con sillas; table: mesa sola (incluye mesa ratona); desk: escritorio;
+  sofa: sillón de 2+ cuerpos; armchair: sillón individual; dining-set: mesa con sillas; table: mesa de comer o de trabajo sola; coffee-table: mesa ratona o baja entre sillones; desk: escritorio;
   counter: mostrador / barra; kitchen-counter: mesada de cocina; planter: maceta redonda o cuadrada con planta; planter-box: jardinera (macetero largo con plantas);
   tree: árbol o planta grande de interior; rug: alfombra; bench: banco; side-table: mesa auxiliar o de luz; ottoman: puff;
   wardrobe: placard; shelving: estantería; tv: mueble de TV;
@@ -162,6 +162,8 @@ Devolvé SOLO un JSON:
 - facing: hacia dónde mira el frente (un sillón hacia el lado opuesto a su respaldo, una cama hacia los pies, un mostrador hacia el público). "up" = arriba del recorte.
 - Listá CADA pieza por separado (cada sillón, cada maceta, cada mesa), con su box ajustado a esa pieza; no un box para todo el grupo.
 - Un sillón en L, en U o modular (varios cuerpos pegados) es UN solo sofa con el box de toda la forma: no lo partas en armchairs. armchair es solo un sillón individual suelto. Una barra o mostrador es un counter con el box solo de la barra (no el espacio de atrás).
+- Símbolos usuales: rectángulo o cuadrado con una o dos diagonales (o un rombo) entre sillones = coffee-table (mesa ratona de vidrio); círculos con hojas = planter; fila de círculos con hojas dentro de un rectángulo largo = planter-box; rectángulo con almohadones dibujados (líneas paralelas) y respaldo engrosado = sofa.
+- Revisá todo el recorte: si hay dos o más sillones, mesas o macetas, listalos todos (no omitas los del borde).
 - No inventes objetos: solo lo dibujado. Las puertas y los textos listalos como door / text.`;
 }
 

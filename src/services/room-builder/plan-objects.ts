@@ -7,7 +7,7 @@
 
 import type { FurnitureItem, FurnitureKind } from "./furnishing";
 import { boxToPolygon, pointInPolygon, type PlanPoint } from "./plan-polygon";
-import { sofaBackEdges, unionRects } from "./plan-shape";
+import { sofaBackEdges, tidyFootprint, unionRects } from "./plan-shape";
 
 /** Tipos que la clasificación puede devolver. */
 export const OBJECT_KINDS = [
@@ -16,6 +16,7 @@ export const OBJECT_KINDS = [
   "bed",
   "dining-set",
   "table",
+  "coffee-table",
   "desk",
   "chair",
   "counter",
@@ -227,6 +228,7 @@ const TO_FURNITURE: Record<Exclude<ObjectKind, "door" | "text" | "stairs" | "oth
   bed: { kind: "bed", group: "Camas" },
   "dining-set": { kind: "conference-table", group: "Mesas" },
   table: { kind: "conference-table", group: "Mesas" },
+  "coffee-table": { kind: "coffee-table", group: "Mesas" },
   desk: { kind: "desk", group: "Escritorios" },
   chair: { kind: "side-chair", group: "Sillas" },
   counter: { kind: "reception-desk", group: "Mostradores" },
@@ -282,10 +284,12 @@ export function objectsToFurniture(objects: ClassifiedObject[], map: RoomMapping
     if (SHAPED.has(o.kind)) {
       // Sin contorno legible, el recuadro: igual se arma a medida (nunca un modelo estirado).
       const outline = o.shape && o.shape.length >= 3 ? o.shape : boxToPolygon(o.box);
-      const local = outline.map((p) => ({
+      const meters = outline.map((p) => ({
         x: Math.round(((p.x * map.widthPx - cxPx) * map.mppX) * 1000) / 1000,
         y: Math.round(((p.y * map.heightPx - cyPx) * map.mppZ) * 1000) / 1000,
       }));
+      // Contorno prolijo; en asientos, alfombras y jardineras se cierra el frente que el dibujo deja abierto.
+      const local = tidyFootprint(meters, !OPEN_SHAPES.has(o.kind));
       const front = FACING_VECTOR[o.facing];
       items.push({
         ...base,
@@ -305,6 +309,8 @@ export function objectsToFurniture(objects: ClassifiedObject[], map: RoomMapping
 
 /** Hacia dónde mira el frente en coordenadas del plano (y hacia abajo). */
 const FACING_VECTOR: Record<Facing, { x: number; y: number }> = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
+/** Tipos cuyos huecos son reales (la pasada detrás de una barra, el hueco de un escritorio en U). */
+const OPEN_SHAPES = new Set<ObjectKind>(["counter", "kitchen-counter", "desk"]);
 /** Tipos que se construyen sobre su forma real. */
 const SHAPED = new Set<ObjectKind>(["sofa", "counter", "kitchen-counter", "table", "desk", "rug", "planter-box", "bench"]);
 
@@ -357,6 +363,8 @@ export function snapBoxToInk(
   height: number,
   grow = 0.15,
 ): PlanObject["box"] {
+  // La IA a veces devuelve las esquinas al revés.
+  approx = { x0: Math.min(approx.x0, approx.x1), y0: Math.min(approx.y0, approx.y1), x1: Math.max(approx.x0, approx.x1), y1: Math.max(approx.y0, approx.y1) };
   const gw = (approx.x1 - approx.x0) * grow;
   const gh = (approx.y1 - approx.y0) * grow;
   const x0 = Math.max(parent.x0, approx.x0 - gw);
@@ -380,6 +388,7 @@ export function snapBoxToInk(
       my1 = Math.max(my1, y);
     }
   }
+  if (x1 <= x0 || y1 <= y0) return approx;
   if (!Number.isFinite(mx0)) return { x0, y0, x1, y1 };
   return { x0: mx0 / width, y0: my0 / height, x1: (mx1 + 1) / width, y1: (my1 + 1) / height };
 }

@@ -5,7 +5,7 @@
  */
 
 import { cleanPolygon, pointInPolygon, type PlanPoint } from "./plan-polygon";
-import { orthogonalize, simplifyClosed, traceOuterBoundary } from "./plan-contour";
+import { orthogonalize, removeSmallSteps, simplifyClosed, traceOuterBoundary } from "./plan-contour";
 
 /** Tolerancia de simplificación del contorno (celdas). */
 const SHAPE_SIMPLIFY = 1.2;
@@ -256,4 +256,58 @@ export function unionRects(rects: Rect[], gap: number): PlanPoint[] {
   }
   const outline = cleanPolygon(traceOuterBoundary(labels, W, H, new Set([1])).map((p) => ({ x: xs[p.x]!, y: ys[p.y]! })));
   return cleanPolygon(insetPolygon(outline, outline.map(() => g)));
+}
+
+/** Tolerancias (m) para limpiar el contorno de un mueble. */
+const TIDY_SIMPLIFY = 0.05;
+const TIDY_STEP = 0.12;
+/** Hueco máximo (m) que se rellena: el asiento de un sillón dibujado sin frente, no la pasada de una barra. */
+const POCKET_DEPTH = 0.6;
+const POCKET_SKEW = 0.15;
+
+/**
+ * Contorno de un mueble en metros, prolijo: sin escalones de ruido y a
+ * escuadra. Con `fillPockets`, los huecos poco profundos en forma de U (el
+ * frente de un sillón que el plano no cierra) se rellenan; las L se respetan.
+ */
+export function tidyFootprint(poly: PlanPoint[], fillPockets: boolean): PlanPoint[] {
+  // Primero el hueco (los apoyabrazos dibujados como líneas finas lo encierran), después los escalones.
+  let p = cleanPolygon(orthogonalize(simplifyClosed(poly, TIDY_SIMPLIFY)));
+  if (fillPockets) p = cleanPolygon(orthogonalize(fillShallowPockets(p)));
+  p = cleanPolygon(removeSmallSteps(p, TIDY_STEP));
+  return p.length >= 3 ? p : poly;
+}
+
+function fillShallowPockets(poly: PlanPoint[]): PlanPoint[] {
+  let p = poly;
+  for (let guard = 0; guard < poly.length && p.length > 4; guard++) {
+    const n = p.length;
+    let filled = false;
+    for (let i = 0; i < n && !filled; i++) {
+      const a = p[i]!;
+      const b = p[(i + 1) % n]!;
+      const c = p[(i + 2) % n]!;
+      const d = p[(i + 3) % n]!;
+      const ab = { x: b.x - a.x, y: b.y - a.y };
+      const cd = { x: d.x - c.x, y: d.y - c.y };
+      const bc = { x: c.x - b.x, y: c.y - b.y };
+      const lenAB = Math.hypot(ab.x, ab.y);
+      const lenCD = Math.hypot(cd.x, cd.y);
+      const lenBC = Math.hypot(bc.x, bc.y);
+      if (!lenAB || !lenCD || !lenBC) continue;
+      // Entra, recorre el fondo y vuelve a salir: lados opuestos, perpendiculares al fondo.
+      const opposite = (ab.x * cd.x + ab.y * cd.y) / (lenAB * lenCD) < -0.95;
+      const square = Math.abs(ab.x * bc.x + ab.y * bc.y) / (lenAB * lenBC) < 0.1;
+      if (!opposite || !square) continue;
+      if (Math.max(lenAB, lenCD) > POCKET_DEPTH || Math.abs(lenAB - lenCD) > POCKET_SKEW) continue;
+      const mid = { x: (a.x + b.x + c.x + d.x) / 4, y: (a.y + b.y + c.y + d.y) / 4 };
+      if (pointInPolygon(mid, p)) continue;
+      const bi = (i + 1) % n;
+      const ci = (i + 2) % n;
+      p = p.filter((_, k) => k !== bi && k !== ci);
+      filled = true;
+    }
+    if (!filled) break;
+  }
+  return p;
 }

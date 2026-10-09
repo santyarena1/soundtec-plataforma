@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { armEdges, footprintPolygon, insetPolygon, inwardNormal, isRectangle, isRoundish, seatCushions, sofaBackEdges, unionRects } from "./plan-shape";
+import { armEdges, footprintPolygon, insetPolygon, inwardNormal, isRectangle, isRoundish, seatCushions, sofaBackEdges, tidyFootprint, unionRects } from "./plan-shape";
 import { polygonAreaPx } from "./plan-polygon";
 
 function canvas(w: number, h: number) {
@@ -124,4 +124,29 @@ test("unión de rectángulos pegados: dos piezas forman una L", () => {
   assert.equal(poly.length, 6, JSON.stringify(poly));
   const xs = poly.map((p) => p.x);
   assert.ok(Math.abs(Math.min(...xs)) < 1e-6 && Math.abs(Math.max(...xs) - 3) < 1e-6);
+});
+
+test("contorno de un sillón con el frente abierto (dato real): queda el rectángulo lleno", () => {
+  const raw = [[-0.639, -1.098], [0.663, -1.098], [0.663, -1.048], [0.205, -1.048], [0.205, 1.011], [0.663, 1.011], [0.663, 1.073], [-0.133, 1.073], [-0.133, 1.098], [-0.639, 1.098]].map(([x, y]) => ({ x: x!, y: y! }));
+  const tidy = tidyFootprint(raw, true);
+  assert.equal(tidy.length, 4, JSON.stringify(tidy));
+  const xs = tidy.map((p) => p.x);
+  assert.ok(Math.min(...xs) < -0.6 && Math.max(...xs) > 0.6);
+  // Sin rellenar huecos (mostrador con pasillo), el pasillo se respeta.
+  assert.ok(tidyFootprint(raw, false).length > 4);
+});
+
+test("contorno con escalones de ruido se limpia; la L se mantiene", () => {
+  const noisy = [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 1, y: 2 },
+    { x: 1.04, y: 2 },
+    { x: 1.04, y: 2.03 },
+    { x: 3, y: 2.03 },
+    { x: 3, y: 3 },
+    { x: 0, y: 3 },
+  ];
+  const tidy = tidyFootprint(noisy, true);
+  assert.equal(tidy.length, 6, JSON.stringify(tidy));
 });

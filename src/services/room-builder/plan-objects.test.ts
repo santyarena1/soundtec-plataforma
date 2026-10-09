@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractRoomObjects, facingAwayFromWall, guessKind, mergeSeating, objectsToFurniture } from "./plan-objects";
+import { extractRoomObjects, facingAwayFromWall, guessKind, mergeSeating, objectsToFurniture, snapBoxToInk } from "./plan-objects";
 
 /** Grilla 100×100 (1 celda = 0,1 m): ambiente de 0.1 a 0.9; sillón contra la pared de abajo; mesa al medio. */
 function grid() {
@@ -111,4 +111,12 @@ test("piezas de asiento pegadas se unen en un solo sillón en L; las sueltas no"
   assert.equal(sofas[0]!.shape?.length, 6);
   assert.equal(out.filter((o) => o.kind === "armchair").length, 2);
   assert.equal(out.length, 4);
+});
+
+test("recuadro de la IA con las esquinas al revés: se ordena", () => {
+  const ink = new Uint8Array(100 * 100);
+  for (let x = 20; x <= 40; x++) for (let y = 20; y <= 30; y++) ink[y * 100 + x] = 1;
+  const box = snapBoxToInk({ x0: 0.41, y0: 0.31, x1: 0.2, y1: 0.2 }, { x0: 0, y0: 0, x1: 1, y1: 1 }, ink, 100, 100);
+  assert.ok(box.x1 > box.x0 && box.y1 > box.y0, JSON.stringify(box));
+  assert.ok(Math.abs(box.x0 - 0.2) < 0.011 && Math.abs(box.x1 - 0.41) < 0.011);
 });

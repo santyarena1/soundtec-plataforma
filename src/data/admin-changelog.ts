@@ -1583,4 +1583,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Los modelos 3D ya no se estiran fuera de proporción para llenar un contorno: lo que no calza se arma a medida." },
     ],
   },
+  {
+    id: "ship-2026-10-10-muebles-contorno-prolijo",
+    version: "1.55.1",
+    releasedAt: "2026-10-10T23:30:00.000Z",
+    summary: "Salas desde plano: contornos de muebles más prolijos y mesas ratonas reconocidas.",
+    items: [
+      { kind: "MEJORA", text: "Los contornos de los muebles se limpian (sin escalones de ruido) y los sillones dibujados sin frente se cierran: se arman completos, con el respaldo del lado correcto." },
+      { kind: "MEJORA", text: "Mesas ratonas (rectángulo con diagonales entre sillones) se reconocen como mesa baja, no como mesa de comedor." },
+      { kind: "FIX", text: "Muebles con medidas negativas cuando la IA devolvía el recuadro al revés." },
+    ],
+  },
 ];
