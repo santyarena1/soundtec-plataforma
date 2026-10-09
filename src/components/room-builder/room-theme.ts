@@ -10,12 +10,12 @@ export const MAT = {
   metal: "#64748b",
   metalDark: "#334155",
   white: "#f1f5f9",
-  wall: "#eef2f6",
-  wallAccent: "#dbe4ee",
+  wall: "#f3f2ef",
+  wallAccent: "#e1dfda",
   glass: "#93c5fd",
   screen: "#0c1929",
   screenLit: "#1e3a5f",
-  carpet: "#9aa3b2",
+  carpet: "#a19d97",
   carpetWarm: "#b8a99a",
   tile: "#d6d3d1",
   concrete: "#c5cdd6",
@@ -88,8 +88,8 @@ export function roomTheme(
   if (category === "commercial") {
     return {
       floor: MAT.concrete,
-      wall: "#f6f6f4",
-      wallFront: "#e7e5e1",
+      wall: "#f4f2ee",
+      wallFront: "#e4e0d9",
       ceiling: "#ffffff",
       trim: MAT.metalDark,
       fog: "#d4d8dc",
@@ -113,8 +113,8 @@ export function roomTheme(
   if (category === "hotel") {
     return {
       floor: MAT.carpetWarm,
-      wall: "#f3ece3",
-      wallFront: "#ebe2d6",
+      wall: "#f2eee8",
+      wallFront: "#ddd3c6",
       ceiling: "#faf7f2",
       trim: MAT.woodDark,
       fog: "#ddd5c8",
@@ -125,8 +125,8 @@ export function roomTheme(
   if (category === "classroom" || category === "training") {
     return {
       floor: MAT.tile,
-      wall: "#f8fafc",
-      wallFront: "#e2e8f0",
+      wall: "#f5f4f1",
+      wallFront: "#dfe3e1",
       ceiling: "#ffffff",
       trim: MAT.metal,
       fog: "#d0d7e0",
@@ -149,11 +149,11 @@ export function roomTheme(
   if (category === "lobby" || category === "signage") {
     return {
       floor: MAT.tile,
-      wall: "#f1f5f9",
-      wallFront: "#e2e8f0",
+      wall: "#f3f1ec",
+      wallFront: "#d8d2c8",
       ceiling: "#ffffff",
       trim: MAT.metalDark,
-      fog: "#c8d0da",
+      fog: "#d6d3cd",
       ambient: 0.5,
       envPreset: "lobby",
     };
@@ -161,9 +161,9 @@ export function roomTheme(
   if (category === "residential") {
     return {
       floor: MAT.wood,
-      wall: "#f5f0e8",
-      wallFront: "#ebe4d8",
-      ceiling: "#faf8f4",
+      wall: "#f3f0ea",
+      wallFront: "#e2dbd0",
+      ceiling: "#faf9f6",
       trim: MAT.woodDark,
       fog: "#d9d0c2",
       ambient: 0.42,

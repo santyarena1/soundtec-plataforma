@@ -83,7 +83,7 @@ function QualitySync({ quality }: { quality: Quality }) {
   const setDpr = useThree((s) => s.setDpr);
   useEffect(() => {
     // Con efectos, el tono lo aplica el compositor; sin efectos, el renderer.
-    gl.toneMapping = quality === "high" ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
+    gl.toneMapping = quality === "high" ? THREE.NoToneMapping : THREE.NeutralToneMapping;
     setDpr(Math.min(window.devicePixelRatio || 1, quality === "high" ? 1.75 : 1.25));
   }, [gl, setDpr, quality]);
   return null;

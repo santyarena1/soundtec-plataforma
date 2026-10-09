@@ -18,7 +18,12 @@ import { MAT } from "../room-theme";
 export type TextureSetName = "oak" | "walnut" | "carpet" | "plaster" | "concrete" | "marble" | "fabric" | "leather";
 
 const TEXTURE_ROOT = "/room-builder/textures";
-const MAPS = ["diffuse", "normal", "roughness"] as const;
+/**
+ * detail: la foto del material pasada a grises (veta, trama, relieve) con brillo
+ * medio fijo. El color lo pone siempre la paleta: así una pared blanca es blanca
+ * y una madera es del tono elegido, sin el tinte de la foto original.
+ */
+const MAPS = ["detail", "normal", "roughness"] as const;
 type MapName = (typeof MAPS)[number];
 type TextureSet = Partial<Record<MapName, THREE.Texture>>;
 
@@ -60,34 +65,34 @@ export interface SurfaceSpec {
 export function surfaceFor(color: string, roughness = 0.75, metalness = 0.05): SurfaceSpec {
   switch (color) {
     case MAT.wood:
-      return { color: "#a88565", roughness: 0.55, metalness: 0, set: "oak", normalScale: 0.6 };
+      return { color: "#d8b48a", roughness: 0.5, metalness: 0, set: "oak", normalScale: 0.5 };
     case MAT.woodLight:
-      return { color: "#d6bb98", roughness: 0.55, metalness: 0, set: "oak", normalScale: 0.6 };
+      return { color: "#efdcc0", roughness: 0.5, metalness: 0, set: "oak", normalScale: 0.5 };
     case MAT.woodDark:
-      return { color: "#6b5341", roughness: 0.5, metalness: 0, set: "walnut", normalScale: 0.6 };
+      return { color: "#86624a", roughness: 0.45, metalness: 0, set: "walnut", normalScale: 0.5 };
     case MAT.fabric:
-      return { color: "#5a6577", roughness: 0.95, metalness: 0, set: "fabric", normalScale: 0.8 };
+      return { color: "#8a8c8a", roughness: 0.95, metalness: 0, set: "fabric", normalScale: 0.8 };
     case MAT.fabricLight:
-      return { color: "#b4bcc8", roughness: 0.95, metalness: 0, set: "fabric", normalScale: 0.8 };
+      return { color: "#f1ece3", roughness: 0.97, metalness: 0, set: "fabric", normalScale: 1 };
     case MAT.fabricWarm:
-      return { color: "#8f7a66", roughness: 0.95, metalness: 0, set: "fabric", normalScale: 0.8 };
+      return { color: "#d9c6ad", roughness: 0.95, metalness: 0, set: "fabric", normalScale: 0.9 };
     case MAT.metal:
-      return { color: "#9aa4b2", roughness: 0.32, metalness: 0.85 };
+      return { color: "#c4c7cb", roughness: 0.28, metalness: 0.9 };
     case MAT.metalDark:
-      return { color: "#3b4552", roughness: 0.38, metalness: 0.8 };
+      return { color: "#26282b", roughness: 0.42, metalness: 0.7 };
     case MAT.black:
       return { color: "#121417", roughness: 0.4, metalness: 0.2, clearcoat: 0.4 };
     case MAT.white:
     case MAT.cream:
       return { color: color === MAT.cream ? "#f2ece2" : "#eef1f4", roughness: 0.45, metalness: 0, clearcoat: 0.3 };
     case MAT.carpet:
-      return { color: "#8c95a3", roughness: 1, metalness: 0, set: "carpet", normalScale: 0.9 };
+      return { color: "#a3a5a8", roughness: 1, metalness: 0, set: "carpet", normalScale: 0.9 };
     case MAT.carpetWarm:
-      return { color: "#a8998a", roughness: 1, metalness: 0, set: "carpet", normalScale: 0.9 };
+      return { color: "#c2b6a7", roughness: 1, metalness: 0, set: "carpet", normalScale: 0.9 };
     case MAT.concrete:
-      return { color: "#c9ced4", roughness: 0.85, metalness: 0, set: "concrete", normalScale: 0.5 };
+      return { color: "#d8d6d1", roughness: 0.8, metalness: 0, set: "concrete", normalScale: 0.4 };
     case MAT.tile:
-      return { color: "#e2ddd6", roughness: 0.3, metalness: 0, set: "marble", normalScale: 0.4 };
+      return { color: "#f2f0ec", roughness: 0.25, metalness: 0, set: "marble", normalScale: 0.3 };
     case MAT.stage:
       return { color: "#232a36", roughness: 0.7, metalness: 0, set: "carpet", normalScale: 0.6 };
     default:
@@ -116,7 +121,7 @@ function loadSet(loader: THREE.TextureLoader, name: TextureSetName, anisotropy: 
               tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
               tex.repeat.set(1 / tile, 1 / tile);
               tex.anisotropy = anisotropy;
-              tex.colorSpace = map === "diffuse" ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+              tex.colorSpace = map === "detail" ? THREE.SRGBColorSpace : THREE.NoColorSpace;
               resolve([map, tex]);
             },
             undefined,
@@ -167,7 +172,7 @@ export function useSurface(color: string, roughness?: number, metalness?: number
       clearcoatRoughness: 0.35,
       envMapIntensity: 1,
     });
-    if (set?.diffuse) mat.map = set.diffuse;
+    if (set?.detail) mat.map = set.detail;
     if (set?.normal) {
       mat.normalMap = set.normal;
       const s = spec.normalScale ?? 0.6;
@@ -193,8 +198,7 @@ export function useLargeSurface(set: TextureSetName, color: string, roughness: n
       if (repeatMeters) c.repeat.set(repeatMeters[0] / TILE_METERS[set], repeatMeters[1] / TILE_METERS[set]);
       return c;
     };
-    // El revoque solo aporta relieve: su foto es cálida y teñía las paredes de naranja.
-    if (set !== "plaster") mat.map = clone(textures.diffuse);
+    mat.map = clone(textures.detail);
     mat.normalMap = clone(textures.normal);
     mat.roughnessMap = clone(textures.roughness);
     if (mat.normalMap) mat.normalScale = new THREE.Vector2(0.7, 0.7);

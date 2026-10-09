@@ -18,6 +18,18 @@ import { useLargeSurface, useSurface, type TextureSetName } from "./surfaces";
 const WALL_T = 0.12;
 
 /** Piso según la tipología. */
+/** Color de cada terminación de piso (la textura solo aporta veta y relieve). */
+const FLOOR_COLOR: Record<TextureSetName, string | null> = {
+  oak: "#e2c4a0",
+  walnut: "#94704f",
+  concrete: "#d9d7d2",
+  marble: "#f4f2ee",
+  plaster: "#efece7",
+  fabric: null,
+  leather: null,
+  carpet: null, // la alfombra toma el color de la tipología
+};
+
 export function floorSetFor(category: string, templateKey: string): { set: TextureSetName; roughness: number } {
   if (templateKey === "hotel-pool-bar-m" || templateKey === "residential-outdoor-m") return { set: "concrete", roughness: 0.8 };
   if (templateKey === "residential-cinema-m") return { set: "carpet", roughness: 1 };
@@ -240,7 +252,7 @@ export function RoomShell({
 }) {
   const theme = roomTheme(category, templateKey);
   const floorSpec = floorSetFor(category, templateKey);
-  const floorTint = floorSpec.set === "carpet" ? theme.floor : "#ffffff";
+  const floorTint = FLOOR_COLOR[floorSpec.set] ?? theme.floor;
   const floor = useLargeSurface(floorSpec.set, floorTint, floorSpec.roughness, [w, d]);
   const wallMat = useLargeSurface("plaster", theme.wall, 0.92, [Math.max(w, d), h]);
   const accentMat = useLargeSurface("plaster", theme.wallFront, 0.9, [w, h]);

@@ -50,8 +50,10 @@ export function hotelGuestAnchors(d: Dims) {
     nightstandX: bedW / 2 + 0.35,
     nightstandZ: -d.depthM * 0.05,
     nightstandTopY: 0.54,
-    deskX: d.widthM / 2 - 0.7,
-    deskZ: -d.depthM / 2 + 0.7,
+    // Escritorio contra la pared del fondo, en el rincón, con paso desde la mesa de luz.
+    deskW: 0.9,
+    deskX: d.widthM / 2 - 0.47,
+    deskZ: -d.depthM / 2 + 0.27,
     deskTopY: 0.76,
     wardrobeX: -d.widthM / 2 + 0.35,
     wardrobeZ: -d.depthM / 2 + 0.5,

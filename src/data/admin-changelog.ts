@@ -1701,4 +1701,22 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Auditoría automática de cada tipología en 4 tamaños y 3 cantidades (equipos en su superficie, dentro de la sala, sin encimarse, muebles sin pisarse) en cada cambio." },
     ],
   },
+  {
+    id: "ship-2026-10-12-render-moderno-y-espacios",
+    version: "1.62.0",
+    releasedAt: "2026-10-12T15:00:00.000Z",
+    summary: "Render 3D modernizado (colores reales, luz neutra, muebles actuales y ambientación) y salas armadas con espacio de paso, muebles contra la pared y planos respetados al 100%.",
+    items: [
+      { kind: "MEJORA", text: "Fin del tinte anaranjado: las texturas solo aportan veta y relieve, el color lo pone la paleta. Paredes blanco cálido, madera natural, luz y tono de cámara neutros." },
+      { kind: "MEJORA", text: "Muebles actuales en todas las tipologías: sillones de tela con almohadones, butacas, mesas con patas finas, sillas de oficina y de comedor, mostrador de cuarzo con LED, tótem fino, placard con puertas." },
+      { kind: "NUEVO", text: "Ambientación automática según la sala real: cuadros en paredes libres (nunca sobre pantallas, puertas o ventanas), lámparas de pie junto a sillones y plantas en esquinas libres. Se pueden quitar desde la lista." },
+      { kind: "NUEVO", text: "Detalles sobre los muebles: notebook y monitor mirando a quien se sienta, libros y florero en la mesa ratona, centro de mesa, lámparas en mesas de luz, almohadas y manta en la cama." },
+      { kind: "FIX", text: "Cama, mesas de luz, placard, aparadores y muebles de TV quedan apoyados contra la pared; las mesas de luz pegadas a la cabecera." },
+      { kind: "FIX", text: "Espacio de paso entre muebles (40 cm; 25 cm detrás de una silla). Si algo no entra con su espacio sale lo menos importante." },
+      { kind: "FIX", text: "Corrección de la v1.61.2: aulas, restaurantes y salas de reunión perdían sillas al tomarse la silla bajo la mesa como choque. Una silla solo va bajo la mesa a la que mira." },
+      { kind: "FIX", text: "Tipologías corregidas: aula con zona docente y filas que entran, capacitación en U real (cada uno afuera mirando al centro), sillas de mesas redondas mirando a la mesa, oficina, suite, comedor, local y lobby con lugar para cada cosa." },
+      { kind: "FIX", text: "Planos: los muebles dibujados quedan exactamente donde están, sin moverse, apoyarse ni sumar objetos." },
+      { kind: "MEJORA", text: "Auditoría automática ampliada: paso libre, sillas mirando a su mesa, muebles de pared apoyados, plano respetado y ninguna tipología pierde muebles en su tamaño normal." },
+    ],
+  },
 ];

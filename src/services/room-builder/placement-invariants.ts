@@ -5,10 +5,17 @@
  */
 
 import { resolveSceneFurniture } from "./furnishing";
-import { overlaps } from "./furniture-fit";
+import { clearanceBetween, footprint, occupiesFloor, overlaps, seatFaces } from "./furniture-fit";
 import { pointInPolygon } from "./plan-polygon";
 import type { RoomScene } from "./scene";
 import { layoutSceneDevices, sceneDims } from "./units";
+
+const SEAT_KINDS = new Set(["chair", "side-chair", "bar-stool"]);
+const SEAT_TABLES = new Set(["conference-table", "round-table", "desk", "bar-counter", "kitchen-counter", "control-console"]);
+/** Una silla es de una mesa si está a menos de esto de su borde (m). */
+const SEAT_TABLE_REACH_M = 0.55;
+/** Tolerancia de la auditoría sobre el paso libre (m). */
+const PASSAGE_SLACK_M = 0.05;
 
 export type PlacementViolation = { rule: string; detail: string };
 
@@ -16,8 +23,6 @@ export type PlacementViolation = { rule: string; detail: string };
 const WALL_TOL = 0.16;
 /** Separación mínima entre unidades montadas en la misma superficie (m). */
 const MIN_GAP = 0.25;
-const TABLE_KINDS = new Set(["conference-table", "round-table", "desk", "reception-desk", "kitchen-counter", "bar-counter", "coffee-table"]);
-const SOLID_KINDS_SKIP = new Set(["rug", "side-chair", "chair", "bar-stool"]);
 
 type Unit = { label: string; mount: string; x: number; y: number; z: number; rotY: number };
 
@@ -90,32 +95,36 @@ export function auditPlacement(scene: RoomScene, category: string): PlacementVio
 
   // Muebles: dentro de la sala y sin pisarse.
   const furniture = resolveSceneFurniture(scene, category).filter((f) => !f.hiddenBy && f.mount === "floor");
-  const corners = (f: (typeof furniture)[number]) => {
-    const w = f.w ?? 0.6;
-    const d = f.d ?? 0.6;
-    const c = Math.cos(f.rotY);
-    const s = Math.sin(f.rotY);
-    return [
-      [-w / 2, -d / 2],
-      [w / 2, -d / 2],
-      [w / 2, d / 2],
-      [-w / 2, d / 2],
-    ].map(([lx, lz]) => ({ x: f.x + lx! * c + lz! * s, z: f.z - lx! * s + lz! * c }));
-  };
-  for (const f of furniture) {
-    const out = corners(f).filter((p) => !inside(p.x, p.z, 0.08));
+  for (const f of furniture.filter(occupiesFloor)) {
+    const out = footprint(f).filter((p) => !inside(p.x, p.y, 0.08));
     if (out.length) v.push({ rule: "mueble-fuera-de-la-sala", detail: `${f.kind} ${f.id}` });
   }
-  const solids = furniture.filter((f) => !SOLID_KINDS_SKIP.has(f.kind));
+  // Rectángulos girados exactos (separación de ejes): silla bajo su mesa o sillas juntas no cuentan.
+  const solids = furniture.filter(occupiesFloor);
   for (let i = 0; i < solids.length; i++) {
     for (let j = i + 1; j < solids.length; j++) {
       const a = solids[i]!;
       const b = solids[j]!;
-      // Rectángulos girados exactos (separación de ejes), con 3 cm de contacto.
-      const pa = corners(a).map((p) => ({ x: p.x, y: p.z }));
-      const pb = corners(b).map((p) => ({ x: p.x, y: p.z }));
-      if (overlaps(pa, pb) && !(TABLE_KINDS.has(a.kind) && TABLE_KINDS.has(b.kind))) v.push({ rule: "muebles-encimados", detail: `${a.kind} ${a.id} y ${b.kind} ${b.id}` });
+      const gap = clearanceBetween(a, b, floor);
+      if (gap === Number.NEGATIVE_INFINITY) continue;
+      const pa = footprint(a);
+      const pb = footprint(b);
+      if (overlaps(pa, pb)) v.push({ rule: "muebles-encimados", detail: `${a.kind} ${a.id} y ${b.kind} ${b.id}` });
+      else if (gap > 0 && overlaps(pa, pb, -(gap - PASSAGE_SLACK_M))) v.push({ rule: "muebles-sin-paso", detail: `${a.kind} ${a.id} y ${b.kind} ${b.id}` });
     }
+  }
+  // Cada silla junto a mesas mira a alguna de ellas (nunca de espaldas o de costado a todas).
+  const tables = solids.filter((f) => SEAT_TABLES.has(f.kind));
+  for (const c of solids.filter((f) => SEAT_KINDS.has(f.kind))) {
+    const near = tables.filter((t) => {
+      const box = footprint(t);
+      const xs = box.map((p) => p.x);
+      const ys = box.map((p) => p.y);
+      const dx = Math.max(Math.min(...xs) - c.x, 0, c.x - Math.max(...xs));
+      const dz = Math.max(Math.min(...ys) - c.z, 0, c.z - Math.max(...ys));
+      return Math.hypot(dx, dz) < SEAT_TABLE_REACH_M;
+    });
+    if (near.length && !near.some((t) => seatFaces(c, t))) v.push({ rule: "silla-de-espaldas", detail: `${c.id} → ${near.map((t) => t.id).join(", ")}` });
   }
   return v;
 }

@@ -7,8 +7,8 @@
  */
 
 import { Html } from "@react-three/drei";
-import type { ThreeEvent } from "@react-three/fiber";
-import { useMemo, useState, type ReactNode } from "react";
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { RotateCw, Trash2 } from "lucide-react";
 import type { FurnitureItem, FurnitureOverrides, ResolvedFurniture } from "@/services/room-builder/furnishing";
@@ -18,29 +18,31 @@ import {
   BarCounter,
   BarStool,
   Bed,
-  Chair,
-  CoffeeTable,
   ControlConsole,
   Credenza,
-  DeskTable,
   Lectern,
-  LoungeChair,
   MAT,
   MediaConsole,
   Nightstand,
   RackCabinet,
-  ReceptionDesk,
   RoundTable,
-  SideChair,
-  Sofa,
   Stage,
   Whiteboard,
 } from "../scene-primitives";
 import { MODELS, ModelOr } from "./models";
 import { BenchSeat, DiningChair, OfficeChair, Ottoman, Wardrobe, PlanterBox, PottedPlant, Rug, ShapedCounter, ShapedSofa, ShapedTable, SideTable, rectShape } from "./plan-models";
 import { useSurfaceDrag } from "./use-surface-drag";
+import { FloorLamp, FurnitureProps, SignageTotem, WallArt } from "./decor-models";
 
 const ROTATE_STEP = Math.PI / 4;
+/** Medidas de los sillones de tipología (m). */
+const SOFA_DEPTH = 0.92;
+const LOUNGE_SIZE = 0.82;
+/** Butaca: tela salvia que acompaña a los sillones claros. */
+const LOUNGE_FABRIC = "#c3cbbf";
+/** Placard de tipología (m), igual que su contorno en planta. */
+const WARDROBE_W = 0.55;
+const WARDROBE_D = 0.7;
 /** Movimiento máximo (px) para que un toque cuente como click. */
 const CLICK_SLOP_PX = 4;
 
@@ -96,14 +98,13 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
   switch (item.kind) {
     case "conference-table":
     case "desk":
-      if (item.shape) return <ShapedTable shape={item.shape} />;
-      return <DeskTable width={w} depth={d} color={item.color} />;
+      // Tapa de madera con canto suave y patas finas de metal (también en las tipologías).
+      return <ShapedTable shape={item.shape ?? rectShape(w, d)} />;
     case "chair":
-      if (item.fit) return <OfficeChair />;
-      return <Chair x={0} z={0} color={item.color} />;
+      // Silla de oficina tapizada sobre cinco rayos (también en las tipologías).
+      return <OfficeChair />;
     case "side-chair":
-      if (item.fit) return <DiningChair variant={item.variant ?? 0} />;
-      return <SideChair x={0} z={0} color={item.color} />;
+      return <DiningChair variant={item.variant ?? 0} />;
     case "credenza":
       return <Credenza width={w} x={0} z={0} />;
     case "whiteboard":
@@ -112,13 +113,13 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
       return <Lectern x={0} z={0} />;
     case "sofa":
       if (item.shape) return <ShapedSofa shape={item.shape} backEdges={item.backEdges} color={item.color} />;
-      return <Sofa width={w} x={0} z={0} color={item.color} />;
+      // Sillón de tela moderno: respaldo atrás (−z), apoyabrazos y almohadones.
+      return <ShapedSofa shape={rectShape(item.w ?? 1.8, SOFA_DEPTH)} backEdges={[0]} color={item.color} />;
     case "lounge-chair":
       if (item.shape) return <ShapedSofa shape={item.shape} backEdges={item.backEdges} color={item.color} />;
-      return <LoungeChair x={0} z={0} />;
+      return <ShapedSofa shape={rectShape(LOUNGE_SIZE, LOUNGE_SIZE)} backEdges={[0]} color={item.color ?? LOUNGE_FABRIC} />;
     case "coffee-table":
-      if (item.shape) return <ShapedTable shape={item.shape} low />;
-      return <CoffeeTable x={0} z={0} w={item.w} d={item.d} />;
+      return <ShapedTable shape={item.shape ?? rectShape(item.w ?? 1.1, item.d ?? 0.55)} low />;
     case "media-console":
       return <MediaConsole width={w} x={0} z={0} />;
     case "planter": {
@@ -130,13 +131,8 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
     case "nightstand":
       return <Nightstand x={0} z={0} />;
     case "wardrobe":
-      if (item.fit) return <Wardrobe w={w} d={d} />;
-      return (
-        <mesh position={[0, 1.1, 0]} castShadow>
-          <boxGeometry args={[0.55, 2.2, 0.7]} />
-          <meshStandardMaterial color={MAT.wood} roughness={0.85} />
-        </mesh>
-      );
+      // Placard de puertas lisas con tiradores negros (también en las tipologías).
+      return <Wardrobe w={item.w ?? WARDROBE_W} d={item.d ?? WARDROBE_D} />;
     case "round-table":
       return <RoundTable radius={w / 2} color={item.color} />;
     case "bar-counter":
@@ -144,8 +140,8 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
     case "bar-stool":
       return <BarStool x={0} z={0} />;
     case "reception-desk":
-      if (item.shape) return <ShapedCounter shape={item.shape} />;
-      return <ReceptionDesk width={w} depth={d} />;
+      // Mostrador de cuarzo con frente de madera y luz LED bajo la tapa.
+      return <ShapedCounter shape={item.shape ?? rectShape(w, d)} />;
     case "stage":
       return <Stage width={w} depth={d} height={item.h} />;
     case "backdrop":
@@ -209,17 +205,7 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
         </group>
       );
     case "signage-totem":
-      return (
-        <group>
-          <mesh position={[0, 1.2, 0]}>
-            <boxGeometry args={[0.35, 2.4, 0.2]} />
-            <meshStandardMaterial color={MAT.metalDark} />
-          </mesh>
-          <group position={[0, 1.5, 0.11]}>
-            <ScreenFace w={0.3} h={1.2} />
-          </group>
-        </group>
-      );
+      return <SignageTotem />;
     case "acoustic-panel":
       return (
         <mesh castShadow>
@@ -297,6 +283,10 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
       return <SideTable w={w} d={d} />;
     case "ottoman":
       return <Ottoman w={w} d={d} variant={item.variant ?? 0} />;
+    case "wall-art":
+      return <WallArt w={w} h={item.h ?? 0.8} variant={item.variant ?? 0} />;
+    case "floor-lamp":
+      return <FloorLamp />;
   }
   // Todos los tipos tienen dibujo: si se agrega uno nuevo sin caso, no compila.
   const unhandled: never = item.kind;
@@ -366,9 +356,18 @@ function FurniturePiece({
   const z = drag?.z ?? item.z;
   const y = drag && item.mount === "wall" ? drag.y : (item.y ?? 0);
   const rotY = drag ? (drag.rotY * Math.PI) / 180 : item.rotY;
+  // Lo colgado en una pared se oculta junto con ella cuando la cámara queda del otro lado.
+  const ref = useRef<THREE.Group>(null);
+  useFrame(({ camera }) => {
+    const g = ref.current;
+    if (!g || item.mount !== "wall") return;
+    const behind = (camera.position.x - x) * Math.sin(rotY) + (camera.position.z - z) * Math.cos(rotY) < 0;
+    if (g.visible === behind) g.visible = !behind;
+  });
 
   return (
     <group
+      ref={ref}
       position={[x, y, z]}
       rotation={[0, rotY, 0]}
       onPointerDown={(e: ThreeEvent<PointerEvent>) => {
@@ -391,6 +390,7 @@ function FurniturePiece({
       <group scale={fitScale(item)}>
         <FurnitureBody item={item} />
       </group>
+      <FurnitureProps item={item} />
       {selected ? <SelectionMark item={item} /> : null}
       {selected && !drag ? (
         <Toolbar

@@ -21,14 +21,14 @@ export function moodFor(category: string, templateKey: string): LightMood {
   if (category === "commercial" || category === "office" || category === "common") return "office";
   if (category === "residential" || category === "hotel") return "warm";
   if (category === "event" || category === "control-room") return "dark";
-  if (category === "lobby") return "evening";
+  if (category === "lobby") return "office";
   return "office";
 }
 
 const MOODS: Record<LightMood, { key: string; keyIntensity: number; fill: string; ambient: number; panel: string; window: string; env: number }> = {
-  office: { key: "#fff6ea", keyIntensity: 2.2, fill: "#dbe7ff", ambient: 0.18, panel: "#ffffff", window: "#e8f1ff", env: 0.9 },
-  warm: { key: "#fff0dc", keyIntensity: 2.2, fill: "#f4f1ec", ambient: 0.16, panel: "#fff6ea", window: "#fff8ee", env: 0.75 },
-  evening: { key: "#ffd9a8", keyIntensity: 1.8, fill: "#c9d6ff", ambient: 0.14, panel: "#ffe6c4", window: "#9fb6ff", env: 0.8 },
+  office: { key: "#fffaf3", keyIntensity: 2.4, fill: "#eef2f7", ambient: 0.3, panel: "#ffffff", window: "#f2f6fb", env: 1.35 },
+  warm: { key: "#fff4e6", keyIntensity: 2.3, fill: "#f3f1ee", ambient: 0.28, panel: "#fffaf2", window: "#fbf8f3", env: 1.25 },
+  evening: { key: "#ffe7c7", keyIntensity: 1.9, fill: "#dfe4f0", ambient: 0.2, panel: "#fff1dc", window: "#c4d0ee", env: 1.05 },
   outdoor: { key: "#fff4dc", keyIntensity: 3, fill: "#cfe3ff", ambient: 0.25, panel: "#ffffff", window: "#ffffff", env: 1 },
   dark: { key: "#e6ecff", keyIntensity: 1.2, fill: "#8fa6ff", ambient: 0.08, panel: "#dfe8ff", window: "#5a6fa8", env: 0.55 },
 };
@@ -36,8 +36,9 @@ const MOODS: Record<LightMood, { key: string; keyIntensity: number; fill: string
 /** HDRI propio (Poly Haven, CC0) para reflejos y luz rebotada; "dark" usa el ambiente generado. */
 const HDRI_BY_MOOD: Partial<Record<LightMood, string>> = {
   office: "/room-builder/hdri/interior-office-bright.hdr",
-  warm: "/room-builder/hdri/interior-warm-living.hdr",
-  evening: "/room-builder/hdri/interior-warm-living.hdr",
+  // El HDRI del living es muy anaranjado: teñía paredes y techo. La calidez la pone la luz principal.
+  warm: "/room-builder/hdri/interior-office-bright.hdr",
+  evening: "/room-builder/hdri/interior-office-bright.hdr",
   outdoor: "/room-builder/hdri/interior-office-bright.hdr",
 };
 
@@ -81,7 +82,8 @@ export function SceneLighting({
       </Suspense>
 
       <ambientLight intensity={m.ambient} color={m.fill} />
-      <hemisphereLight args={[m.fill, "#6b5f52", 0.35]} />
+      {/* Rebote del piso: gris cálido claro (un marrón oscuro apagaba las paredes blancas). */}
+      <hemisphereLight args={[m.fill, mood === "dark" ? "#6b5f52" : "#bdb4a8", mood === "dark" ? 0.35 : 0.55]} />
       {/* Luz principal: entra desde el lado de la ventana, sombras suaves */}
       <directionalLight
         castShadow
