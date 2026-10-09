@@ -1334,4 +1334,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Descarga de la maqueta en .glb para compartir o abrir en otros programas 3D." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-ar-fix",
+    version: "1.43.1",
+    releasedAt: "2026-10-09T13:50:00.000Z",
+    summary: "Room Builder: la maqueta AR muestra la sala de cerca, sin terreno ni techo.",
+    items: [
+      { kind: "FIX", text: "La maqueta 3D / AR se encuadra en la sala (antes quedaba chiquita por el terreno de alrededor) y se ve por dentro, sin techo; pesa menos." },
+    ],
+  },
 ];
