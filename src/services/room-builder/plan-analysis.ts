@@ -37,6 +37,8 @@ export type DetectedRoom = {
   /** null = no lleva equipos (baño, pasillo, lavadero…). */
   templateKey: string | null;
   box: PlanBox;
+  /** Forma real cuando no es un recuadro (dibujada con el lápiz o editada); box es su caja contenedora. */
+  polygon?: Array<{ x: number; y: number }>;
   /** Medidas leídas del plano (m), si estaban escritas. */
   widthM: number | null;
   depthM: number | null;

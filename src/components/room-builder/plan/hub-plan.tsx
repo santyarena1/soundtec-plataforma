@@ -22,8 +22,26 @@ export function HubPlan({ data, existingIds }: { data: Required<HubPlanData>; ex
     <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 bg-white">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={data.planImage.url} alt="Plano del proyecto" className="block w-full select-none" draggable={false} />
+      {rooms.some((r) => r.polygon) ? (
+        <svg viewBox="0 0 1 1" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
+          {rooms.map((r, i) =>
+            r.polygon ? (
+              <polygon
+                key={r.projectId}
+                points={r.polygon.map((p) => `${p.x},${p.y}`).join(" ")}
+                fill={`${ROOM_COLORS[i % ROOM_COLORS.length]}22`}
+                stroke={ROOM_COLORS[i % ROOM_COLORS.length]}
+                strokeWidth={2}
+                vectorEffect="non-scaling-stroke"
+              />
+            ) : null,
+          )}
+        </svg>
+      ) : null}
       {rooms.map((r, i) => {
         const color = ROOM_COLORS[i % ROOM_COLORS.length];
+        // Las formas libres se dibujan arriba; el enlace queda transparente sobre su caja.
+        const shaped = Boolean(r.polygon);
         return (
           <Link
             key={r.projectId}
@@ -34,8 +52,8 @@ export function HubPlan({ data, existingIds }: { data: Required<HubPlanData>; ex
               top: `${r.box.y0 * 100}%`,
               width: `${(r.box.x1 - r.box.x0) * 100}%`,
               height: `${(r.box.y1 - r.box.y0) * 100}%`,
-              borderColor: color,
-              background: `${color}22`,
+              borderColor: shaped ? "transparent" : color,
+              background: shaped ? "transparent" : `${color}22`,
             }}
             title={`Entrar a ${r.name}`}
           >

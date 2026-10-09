@@ -10,10 +10,13 @@ import { initialBrief } from "@/components/room-builder/wizard/wizard-data";
 import type { BrandGroup, BriefControl, BriefTier, BriefVcPlatform, RoomBrief } from "./brief";
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { PLAN_KIND_CATEGORY, type PlanBox, type PlanKind } from "./plan-analysis";
-import { createSpaceProject, getRoomProject } from "./project-service";
+import { boundsFromPolygon, wallsFromPolygon, type PlanModeState } from "./plan-mode";
+import { normalizePolygon, polygonToRoomMeters, type PlanPoint } from "./plan-polygon";
+import { createSpaceProject, getRoomProject, updateRoomProjectScene } from "./project-service";
+import { parseScene } from "./scene";
 import { getRoomTemplate } from "./templates";
 
-export type PlanRoomInput = { name: string; templateKey: string; box: PlanBox; widthM: number; depthM: number };
+export type PlanRoomInput = { name: string; templateKey: string; box: PlanBox; polygon?: PlanPoint[]; widthM: number; depthM: number };
 
 export type PlanProjectInput = {
   ownerId: string;
@@ -29,7 +32,7 @@ export type PlanProjectInput = {
 };
 
 /** Ambiente del proyecto contenedor ubicado sobre el plano. */
-export type PlanRoomLink = { projectId: string; name: string; templateKey: string; box: PlanBox };
+export type PlanRoomLink = { projectId: string; name: string; templateKey: string; box: PlanBox; polygon?: PlanPoint[] };
 
 const MIN_SIDE_M = 1.5;
 const MAX_SIDE_M = 80;
@@ -80,6 +83,7 @@ export async function createProjectFromPlan(input: PlanProjectInput) {
     data: { roomProjectId: hub.id, data: input.image.data, mimeType: "image/webp", widthPx: input.image.widthPx, heightPx: input.image.heightPx },
   });
 
+  const imageUrl = `/api/admin/room-builder/projects/${hub.id}/plan-image?v=${Date.now()}`;
   const links: PlanRoomLink[] = [];
   let totalArea = 0;
   for (const room of rooms) {
@@ -87,7 +91,6 @@ export async function createProjectFromPlan(input: PlanProjectInput) {
     if (!template) continue;
     const widthM = clampSide(room.widthM);
     const depthM = clampSide(room.depthM);
-    totalArea += widthM * depthM;
     const space = await createSpaceProject({
       ownerId: input.ownerId,
       name: room.name,
@@ -99,10 +102,15 @@ export async function createProjectFromPlan(input: PlanProjectInput) {
       parentId: hub.id,
       brief: briefForPlanRoom(template.category, template.key, input),
     });
-    links.push({ projectId: space.id, name: room.name, templateKey: template.key, box: room.box });
+    const polygon = room.polygon ? normalizePolygon(room.polygon) : null;
+    if (polygon) {
+      totalArea += await applyRoomShape(space.id, polygon, { widthM, depthM, heightM: input.heightM, imageUrl, image: input.image });
+    } else {
+      totalArea += widthM * depthM;
+    }
+    links.push({ projectId: space.id, name: room.name, templateKey: template.key, box: room.box, ...(polygon ? { polygon } : {}) });
   }
 
-  const imageUrl = `/api/admin/room-builder/projects/${hub.id}/plan-image?v=${Date.now()}`;
   await prisma.roomProject.update({
     where: { id: hub.id },
     data: {
@@ -125,4 +133,32 @@ export async function createProjectFromPlan(input: PlanProjectInput) {
     },
   });
   return getRoomProject(hub.id);
+}
+
+/**
+ * Ambiente con forma libre (L, ochava…): las paredes 3D siguen el polígono
+ * dibujado sobre el plano. Devuelve la superficie real en m².
+ */
+async function applyRoomShape(
+  projectId: string,
+  polygon: PlanPoint[],
+  ctx: { widthM: number; depthM: number; heightM: number; imageUrl: string; image: { widthPx: number; heightPx: number } },
+): Promise<number> {
+  const floorPolygon = polygonToRoomMeters(polygon, ctx.widthM, ctx.depthM);
+  const bounds = boundsFromPolygon(floorPolygon);
+  const project = await getRoomProject(projectId);
+  const scene = project ? parseScene(project.sceneJson) : null;
+  if (!scene) return ctx.widthM * ctx.depthM;
+  const plan: PlanModeState = {
+    enabled: true,
+    imageUrl: ctx.imageUrl,
+    metersPerPixel: ctx.widthM / Math.max(1, ctx.image.widthPx),
+    imageWidthPx: ctx.image.widthPx,
+    imageHeightPx: ctx.image.heightPx,
+    heightM: ctx.heightM,
+    walls: wallsFromPolygon(floorPolygon),
+    floorPolygon,
+  };
+  await updateRoomProjectScene(projectId, { ...scene, plan, areaM2: bounds.areaM2 }, { areaM2: bounds.areaM2 });
+  return bounds.areaM2;
 }

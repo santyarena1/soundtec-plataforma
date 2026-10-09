@@ -1431,4 +1431,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Botón 'Agregar equipo': cualquier producto del catálogo, en techo, pared, mesa, piso o rack, con cantidad; aparece en el 3D para arrastrarlo. Se puede quitar después." },
     ],
   },
+  {
+    id: "ship-2026-10-09-plano-lapiz",
+    version: "1.47.0",
+    releasedAt: "2026-10-10T01:00:00.000Z",
+    summary: "Proyecto desde plano: lápiz para dibujar ambientes con líneas, edición de los detectados y renombre sobre el plano.",
+    items: [
+      { kind: "NUEVO", text: "Herramienta Lápiz: marcás cada esquina con un clic y se arma el ambiente (forma de L, ochavas, lo que sea). Las líneas se enderezan solas y se pegan a las esquinas de los ambientes vecinos; se cierra tocando el primer punto, con doble clic o Enter." },
+      { kind: "NUEVO", text: "Ambientes detectados editables: arrastrás esquinas y paredes, doble clic en una pared agrega una esquina y doble clic en una esquina la quita." },
+      { kind: "NUEVO", text: "Doble clic adentro de un ambiente para cambiarle el nombre ahí mismo. Si el tipo era automático, se deduce del nombre (por ejemplo 'Sala de reuniones')." },
+      { kind: "MEJORA", text: "Los ambientes con forma libre se generan en 3D con sus paredes y piso reales, muestran la superficie real y se ven con su forma en el plano del proyecto." },
+    ],
+  },
 ];

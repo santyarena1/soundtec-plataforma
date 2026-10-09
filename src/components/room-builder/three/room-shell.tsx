@@ -251,9 +251,7 @@ export function RoomShell({
   if (plan?.enabled && plan.walls.length > 0) {
     return (
       <group>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={floor}>
-          <planeGeometry args={[w * 1.3, d * 1.3]} />
-        </mesh>
+        <PolygonFloor points={plan.floorPolygon} material={floor} fallback={[w * 1.3, d * 1.3]} />
         {plan.walls.map((wall) => {
           const dx = wall.b.x - wall.a.x;
           const dz = wall.b.y - wall.a.y;
@@ -296,4 +294,38 @@ export function RoomShell({
       <Ceiling w={w} d={d} h={h} color={theme.ceiling} />
     </group>
   );
+}
+
+/**
+ * Piso con la forma real del ambiente (L, ochava…). El polígono viene en
+ * metros sobre el plano XZ; la figura se arma en XY y se acuesta.
+ */
+function PolygonFloor({ points, material, fallback }: { points: Array<{ x: number; y: number }>; material: THREE.Material; fallback: [number, number] }) {
+  const geometry = useMemo(() => {
+    if (points.length < 3) return null;
+    let contour = points.map((p) => new THREE.Vector2(p.x, -p.y));
+    if (THREE.ShapeUtils.isClockWise(contour)) contour = [...contour].reverse();
+    const geo = new THREE.ShapeGeometry(new THREE.Shape(contour));
+    // UV 0..1 sobre la caja contenedora: la textura repite igual que en un piso rectangular.
+    geo.computeBoundingBox();
+    const bb = geo.boundingBox ?? new THREE.Box3();
+    const sx = bb.max.x - bb.min.x || 1;
+    const sy = bb.max.y - bb.min.y || 1;
+    const pos = geo.attributes.position;
+    const uv = new Float32Array(pos.count * 2);
+    for (let i = 0; i < pos.count; i += 1) {
+      uv[i * 2] = (pos.getX(i) - bb.min.x) / sx;
+      uv[i * 2 + 1] = (pos.getY(i) - bb.min.y) / sy;
+    }
+    geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    return geo;
+  }, [points]);
+  if (!geometry) {
+    return (
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={material}>
+        <planeGeometry args={fallback} />
+      </mesh>
+    );
+  }
+  return <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={material} geometry={geometry} />;
 }

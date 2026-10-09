@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { BRAND_GROUPS, BRIEF_CONTROLS, BRIEF_TIERS, BRIEF_VC_PLATFORMS } from "@/services/room-builder/brief";
 import { PLAN_KINDS } from "@/services/room-builder/plan-analysis";
+import { MAX_POLYGON_POINTS, MIN_POLYGON_POINTS } from "@/services/room-builder/plan-polygon";
 import { createProjectFromPlan } from "@/services/room-builder/plan-project";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const DATA_URL_PREFIX = "data:image/webp;base64,";
 
 const box = z.object({ x0: z.number().min(0).max(1), y0: z.number().min(0).max(1), x1: z.number().min(0).max(1), y1: z.number().min(0).max(1) });
+const point = z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) });
 const slug = z.string().regex(/^[a-z0-9-]{1,60}$/);
 
 const schema = z.object({
@@ -26,7 +28,7 @@ const schema = z.object({
   tier: z.enum(BRIEF_TIERS),
   brands: z.record(z.enum(BRAND_GROUPS), z.array(slug).max(12)).default({}),
   rooms: z
-    .array(z.object({ name: z.string().trim().min(1).max(60), templateKey: z.string().min(1).max(60), box, widthM: z.number().min(1).max(200), depthM: z.number().min(1).max(200) }))
+    .array(z.object({ name: z.string().trim().min(1).max(60), templateKey: z.string().min(1).max(60), box, polygon: z.array(point).min(MIN_POLYGON_POINTS).max(MAX_POLYGON_POINTS).optional(), widthM: z.number().min(1).max(200), depthM: z.number().min(1).max(200) }))
     .min(1)
     .max(40),
 });

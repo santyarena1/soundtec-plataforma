@@ -2,28 +2,30 @@
 
 /**
  * Proyecto desde un plano: se sube, la IA detecta qué es y sus ambientes,
- * se revisa sobre el plano (mover, estirar, dibujar, tipo, escala) y se
- * genera un ambiente 3D por cada recuadro.
+ * se revisa sobre el plano (mover, estirar, dibujar con lápiz, renombrar,
+ * tipo, escala) y se genera un ambiente 3D por cada uno, con su forma real.
  */
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, MousePointer2, Ruler, ScanLine, Sparkles, SquareDashed, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Loader2, MousePointer2, PenLine, Ruler, ScanLine, Sparkles, SquareDashed, Trash2, Upload } from "lucide-react";
 import {
+  GENERIC_TEMPLATE,
   PLAN_KINDS,
   PLAN_KIND_LABELS,
   estimateMetersPerPixel,
   roomSizeMeters,
+  templateFromName,
   type DetectedRoom,
   type PlanAnalysis,
-  type PlanBox,
   type PlanKind,
 } from "@/services/room-builder/plan-analysis";
 import type { BriefControl, BriefTier, BriefVcPlatform } from "@/services/room-builder/brief";
 import { CONTROL_OPTIONS, TIER_OPTIONS, VC_OPTIONS } from "../wizard/wizard-data";
 import { shrinkForUpload } from "../plan-panel";
-import { PlanCanvas, ROOM_COLORS, type CanvasMode, type PlanPoint } from "./plan-canvas";
+import { polygonAreaPx } from "@/services/room-builder/plan-polygon";
+import { PlanCanvas, ROOM_COLORS, roomPolygon, type CanvasMode, type PlanPoint, type RoomShape } from "./plan-canvas";
 
 type Template = { key: string; name: string; category: string };
 type PlanImage = { dataUrl: string; widthPx: number; heightPx: number };
@@ -66,6 +68,7 @@ export function PlanWizard() {
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<CanvasMode>("select");
+  const [renameRequest, setRenameRequest] = useState<{ id: string; seq: number } | null>(null);
   const [calibration, setCalibration] = useState<PlanPoint[]>([]);
   const [calibrationMeters, setCalibrationMeters] = useState(4);
   const [manualMpp, setManualMpp] = useState<number | null>(null);
@@ -133,11 +136,40 @@ export function PlanWizard() {
 
   const updateRoom = (id: string, patch: Partial<DetectedRoom>) => setRooms((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
-  function addRoom(box: PlanBox) {
+  /** Ambiente dibujado a mano: arranca como ambiente libre e incluido, y se pide el nombre en el plano. */
+  function addRoom(shape: RoomShape) {
     const id = `m${Date.now().toString(36)}`;
-    setRooms((rs) => [...rs, { id, name: `Ambiente ${rs.length + 1}`, templateKey: null, box, widthM: null, depthM: null, include: false }]);
+    const templateKey = templateByKey.has(GENERIC_TEMPLATE) ? GENERIC_TEMPLATE : null;
+    setRooms((rs) => [
+      ...rs,
+      { id, name: `Ambiente ${rs.length + 1}`, templateKey, box: shape.box, polygon: shape.polygon, widthM: null, depthM: null, include: Boolean(templateKey) },
+    ]);
     setSelectedId(id);
-    setMode("select");
+    setRenameRequest({ id, seq: Date.now() });
+  }
+
+  /**
+   * Al renombrar, si el tipo todavía es el automático (libre o sin equipos) se
+   * deduce del nombre: "Sala de reuniones" pasa a sala de reuniones, etc.
+   */
+  function renameRoom(id: string, newName: string) {
+    setRooms((rs) =>
+      rs.map((r) => {
+        if (r.id !== id) return r;
+        const auto = !r.templateKey || r.templateKey === GENERIC_TEMPLATE;
+        const fromName = auto ? templateFromName(newName) : undefined;
+        if (fromName === undefined || (fromName && !templateByKey.has(fromName))) return { ...r, name: newName };
+        return { ...r, name: newName, templateKey: fromName, include: Boolean(fromName) };
+      }),
+    );
+  }
+
+  /** Superficie real: en formas libres se descuenta lo que queda fuera del polígono. */
+  function areaM2(r: DetectedRoom, size: { widthM: number; depthM: number }): number {
+    const rect = size.widthM * size.depthM;
+    if (!r.polygon || !image) return rect;
+    const boxPx = (r.box.x1 - r.box.x0) * image.widthPx * (r.box.y1 - r.box.y0) * image.heightPx;
+    return boxPx > 0 ? (rect * polygonAreaPx(roomPolygon(r), image.widthPx, image.heightPx)) / boxPx : rect;
   }
 
   function calibrationPoint(p: PlanPoint) {
@@ -184,7 +216,7 @@ export function PlanWizard() {
           vcPlatform: hasVc ? vcPlatform : null,
           tier,
           brands: {},
-          rooms: included.map((r) => ({ name: r.name, templateKey: r.templateKey, box: r.box, ...(sizes.get(r.id) as { widthM: number; depthM: number }) })),
+          rooms: included.map((r) => ({ name: r.name, templateKey: r.templateKey, box: r.box, polygon: r.polygon, ...(sizes.get(r.id) as { widthM: number; depthM: number }) })),
         }),
       });
       const json = await res.json().catch(() => null);
@@ -276,8 +308,9 @@ export function PlanWizard() {
           <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
             {(
               [
-                ["select", MousePointer2, "Mover / estirar"],
-                ["draw", SquareDashed, "Dibujar ambiente"],
+                ["select", MousePointer2, "Editar"],
+                ["pen", PenLine, "Lápiz"],
+                ["rect", SquareDashed, "Rectángulo"],
                 ["calibrate", Ruler, "Calibrar escala"],
               ] as const
             ).map(([m, Icon, label]) => (
@@ -317,7 +350,17 @@ export function PlanWizard() {
             ) : null}
           </div>
         ) : null}
-        {mode === "draw" ? <p className="rounded-xl bg-sky-50 px-4 py-2.5 text-sm text-sky-900">Arrastrá sobre el plano para marcar un ambiente nuevo.</p> : null}
+        {mode === "select" && rooms.length ? (
+          <p className="rounded-xl bg-slate-50 px-4 py-2.5 text-xs text-slate-600">
+            Tocá un ambiente para editarlo: arrastrá sus <b>esquinas</b> o sus <b>paredes</b>. Doble clic en una pared agrega una esquina; doble clic en una esquina la quita. <b>Doble clic adentro</b> para cambiarle el nombre.
+          </p>
+        ) : null}
+        {mode === "pen" ? (
+          <p className="rounded-xl bg-sky-50 px-4 py-2.5 text-xs text-sky-900">
+            Hacé clic en cada esquina del ambiente siguiendo las paredes: las líneas se enderezan solas y se pegan a las esquinas de los ambientes vecinos (Alt = trazo libre). Cerralo tocando el <b>primer punto</b>, con doble clic o Enter. Retroceso borra el último punto; Esc cancela.
+          </p>
+        ) : null}
+        {mode === "rect" ? <p className="rounded-xl bg-sky-50 px-4 py-2.5 text-xs text-sky-900">Arrastrá sobre el plano para marcar un ambiente rectangular.</p> : null}
 
         <PlanCanvas
           imageUrl={image.dataUrl}
@@ -328,9 +371,11 @@ export function PlanWizard() {
           mode={mode}
           calibration={calibration}
           onSelect={setSelectedId}
-          onBoxChange={(id, box) => updateRoom(id, { box })}
-          onDraw={addRoom}
+          onShapeChange={(id, shape) => updateRoom(id, { box: shape.box, polygon: shape.polygon })}
+          onDrawShape={addRoom}
+          onRename={renameRoom}
           onCalibrationPoint={calibrationPoint}
+          renameRequest={renameRequest}
         />
         <button type="button" onClick={() => fileRef.current?.click()} className="text-xs font-semibold text-[#1e3553] underline">
           Subir otro plano
@@ -419,7 +464,7 @@ export function PlanWizard() {
               {included.length} con equipos de {rooms.length}
             </span>
           </div>
-          {!rooms.length ? <p className="text-xs text-slate-500">Dibujá los ambientes sobre el plano con “Dibujar ambiente”.</p> : null}
+          {!rooms.length ? <p className="text-xs text-slate-500">Dibujá los ambientes sobre el plano con el “Lápiz” o un “Rectángulo”.</p> : null}
           <ul className="max-h-[52vh] space-y-2 overflow-y-auto pr-1">
             {rooms.map((r, i) => {
               const size = image ? roomSizeMeters(r, mpp, image.widthPx, image.heightPx) : null;
@@ -431,7 +476,15 @@ export function PlanWizard() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: ROOM_COLORS[i % ROOM_COLORS.length] }} />
-                    <input value={r.name} onChange={(e) => updateRoom(r.id, { name: e.target.value })} className="min-w-0 flex-1 rounded-md border border-transparent px-1 py-0.5 text-sm font-semibold hover:border-slate-200 focus:border-slate-300 focus:outline-none" />
+                    <input
+                      value={r.name}
+                      maxLength={60}
+                      onChange={(e) => updateRoom(r.id, { name: e.target.value })}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v) renameRoom(r.id, v);
+                      }}
+                      className="min-w-0 flex-1 rounded-md border border-transparent px-1 py-0.5 text-sm font-semibold hover:border-slate-200 focus:border-slate-300 focus:outline-none" />
                     <button
                       type="button"
                       onClick={(e) => {
@@ -473,7 +526,7 @@ export function PlanWizard() {
                     </label>
                   </div>
                   <p className="mt-1 text-[11px] text-slate-500">
-                    {size ? `${size.widthM} × ${size.depthM} m · ${(size.widthM * size.depthM).toFixed(1)} m²` : "Medidas: falta la escala"}
+                    {size ? `${r.polygon ? "Forma libre · " : ""}${size.widthM} × ${size.depthM} m · ${areaM2(r, size).toFixed(1)} m²` : "Medidas: falta la escala"}
                   </p>
                 </li>
               );
