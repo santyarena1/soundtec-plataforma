@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { analyzePlanImage } from "@/server/room-builder/plan-ai";
+import { placeRooms } from "@/services/room-builder/plan-segment";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -39,7 +40,20 @@ export async function POST(req: NextRequest) {
 
   const dataUrl = `data:image/webp;base64,${image.data.toString("base64")}`;
   try {
-    const analysis = await analyzePlanImage(dataUrl);
+    const read = await analyzePlanImage(dataUrl);
+    // La IA lee qué es cada ambiente pero ubica aproximado: la forma sale de los espacios cerrados del plano.
+    const { data: gray, info } = await sharp(image.data).greyscale().raw().toBuffer({ resolveWithObject: true });
+    const placed = placeRooms(read.rooms, { data: new Uint8Array(gray), width: info.width, height: info.height });
+    const extras = placed.extras.map((box, i) => ({
+      id: `x${i + 1}`,
+      name: `Ambiente sin nombre ${i + 1}`,
+      templateKey: null,
+      box,
+      widthM: null,
+      depthM: null,
+      include: false,
+    }));
+    const analysis = { ...read, rooms: [...placed.rooms, ...extras] };
     return NextResponse.json({ ok: true, analysis, image: { dataUrl, widthPx: image.width, heightPx: image.height } });
   } catch (error) {
     console.error("[room-builder/plan-analyze] IA", error);

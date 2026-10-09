@@ -1363,4 +1363,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Genera todas las salas 3D de una, con medidas reales, control y nivel comunes y productos sugeridos; el proyecto muestra el plano con cada ambiente para entrar." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-plano-muros",
+    version: "1.44.1",
+    releasedAt: "2026-10-09T17:00:00.000Z",
+    summary: "Room Builder: los ambientes del plano se ubican exactos sobre los muros.",
+    items: [
+      { kind: "MEJORA", text: "La forma de cada ambiente sale de los espacios cerrados del plano (muros detectados en la imagen); la IA aporta nombre y tipo. Antes los recuadros quedaban corridos." },
+      { kind: "NUEVO", text: "Si el plano tiene un espacio que la IA no nombró, aparece como 'Ambiente sin nombre' para que le pongas tipo." },
+    ],
+  },
 ];
