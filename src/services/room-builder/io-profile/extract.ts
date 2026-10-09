@@ -17,9 +17,11 @@ import {
   type IoCapabilities,
   type IoPort,
   type IoProfileData,
+  type WirelessLink,
+  WIRELESS_PROTOCOLS,
 } from "./types";
 
-export const IO_EXTRACTOR_VERSION = 3;
+export const IO_EXTRACTOR_VERSION = 4;
 
 export const IO_SYSTEM_PROMPT = `Sos un integrador AV senior (Crestron, Shure, Biamp, QSC, Sonance, Kramer, Extron, Samsung, LG, Logitech, Yealink…).
 Leés la ficha de UN producto y listás sus conexiones físicas EXACTAMENTE como las declara la ficha, para
@@ -52,6 +54,11 @@ CAPACIDADES en "capabilities" (cada una { "value": ..., "evidence": "cita textua
 - "ampChannels": canales de amplificación; "ampWattsPerChannel": objeto carga→W, p. ej. {"8Ω": 100, "4Ω": 150, "70V": 150}.
 - "lineVoltage": "low-z" | "70v" | "100v" | "both" (amplificadores y parlantes).
 - "controlProtocols": lista entre ["RS-232", "IP", "IR", "CEC", "Cresnet", "USB", "Relay"] según cómo se lo controla.
+- "wireless": lista de { "protocol", "role", "capacity" } con TODA conexión inalámbrica que declare la ficha:
+  · protocol: "wifi" | "bluetooth" | "infinet" (Crestron infiNET EX) | "zigbee" | "zwave" | "rf-mic" (micrófono inalámbrico UHF/VHF/2.4 GHz) | "dect" | "airplay" | "chromecast" | "wireless-presentation" (ClickShare, AirMedia, Solstice: botón/app a base) | "ir-remote" (control remoto IR).
+  · role: "client" (se conecta a otro equipo), "gateway" (puente: infiNET EX / Zigbee gateway, procesador con radio integrada), "receiver" (receptor de micrófonos), "transmitter" (petaca / mano / emisor), "base" (base de presentación inalámbrica), "access-point" (da Wi-Fi).
+  · capacity: cuántos dispositivos admite un gateway/receptor/base si la ficha lo dice; si no null.
+  La cita va en "evidence" de "wireless" (una frase que mencione lo inalámbrico).
 
 REGLAS DE INTEGRADOR (obligatorias):
 - Un AMPLIFICADOR siempre lista sus salidas de parlante ("speaker", "out"), una por canal o por grupo de canales, aunque la ficha las nombre "Speaker Outputs", "Outputs 1-4" o "bornes". Sus entradas de línea aparte.
@@ -77,6 +84,7 @@ export type ValidatedIo = {
 };
 
 const MAX_COUNT = 128;
+const WIRELESS_ROLES = ["client", "gateway", "receiver", "transmitter", "base", "access-point"];
 const MAX_CHANNELS = 1024;
 const POE_STANDARDS = ["802.3af", "802.3at", "802.3bt", "PoE", "PoE+", "PoE++"];
 const CONTROL = ["RS-232", "IP", "IR", "CEC", "Cresnet", "USB", "Relay"];
@@ -217,6 +225,18 @@ export function validateExtraction(raw: RawExtraction, sourceText: string): Vali
     return Object.keys(out).length ? out : null;
   });
   take("lineVoltage", (v) => lineVoltageOf(v));
+  take("wireless", (v) => {
+    const list = (Array.isArray(v) ? v : [])
+      .map((x) => {
+        const o = (x ?? {}) as Record<string, unknown>;
+        const protocol = String(o.protocol ?? "").toLowerCase();
+        const role = String(o.role ?? "").toLowerCase();
+        if (!(WIRELESS_PROTOCOLS as readonly string[]).includes(protocol) || !WIRELESS_ROLES.includes(role)) return null;
+        return { protocol, role, capacity: int(o.capacity, 1000) } as WirelessLink;
+      })
+      .filter((x): x is WirelessLink => Boolean(x));
+    return list.length ? list : null;
+  });
   take("controlProtocols", (v) => {
     const list = (Array.isArray(v) ? v : typeof v === "string" ? v.split(/[,/;]/) : []).map((x) => controlOf(x)).filter((x): x is string => Boolean(x) && CONTROL.includes(x as string));
     return list.length ? [...new Set(list)] : null;

@@ -94,7 +94,16 @@ export type IoCapabilities = {
   lineVoltage?: Evidenced<string>;
   /** RS-232, IP, IR, CEC, Cresnet… (cómo se controla el equipo). */
   controlProtocols?: Evidenced<string[]>;
+  /** Conexiones inalámbricas que usa (protocolo y su papel). */
+  wireless?: Evidenced<WirelessLink[]>;
 };
+
+/** Protocolos inalámbricos del sistema AV. */
+export const WIRELESS_PROTOCOLS = ["wifi", "bluetooth", "infinet", "zigbee", "zwave", "rf-mic", "dect", "airplay", "chromecast", "wireless-presentation", "ir-remote"] as const;
+export type WirelessProtocol = (typeof WIRELESS_PROTOCOLS)[number];
+/** client: se conecta a otro; gateway / receiver / base: recibe a los clientes; access-point: da Wi-Fi. */
+export type WirelessRole = "client" | "gateway" | "receiver" | "transmitter" | "base" | "access-point";
+export type WirelessLink = { protocol: WirelessProtocol; role: WirelessRole; /** Cuántos clientes admite (gateway/receptor), si la ficha lo dice. */ capacity?: number | null };
 
 export type IoProfileData = { ports: IoPort[]; capabilities: IoCapabilities };
 
