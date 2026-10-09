@@ -103,6 +103,13 @@ export async function interpretRoomText(text: string): Promise<TextRoomPlan> {
     BRAND_GROUPS.map((g) => [g, (Array.isArray(rawBrands[g]) ? rawBrands[g] : []).filter((s): s is string => typeof s === "string" && slugs.has(s))]).filter(([, v]) => (v as string[]).length),
   );
 
+  // El control nombrado (Crestron, Control4…) también es la marca preferida de control.
+  const controlBrand = typeof raw.control === "string" ? raw.control.split("-")[0] : "";
+  if (controlBrand && slugs.has(controlBrand) && !brandPrefs.control) brandPrefs.control = [controlBrand];
+  // Sin aclaraciones que contradigan lo detectado (ej. "no se mencionaron marcas" con Crestron en la frase).
+  const hasBrands = Object.keys(brandPrefs).length > 0;
+  const cleanAssumptions = assumptions.filter((a) => !(hasBrands && /marca/i.test(a)));
+
   const base = initialBrief(template.category, template.key);
   const merged = {
     ...base,
@@ -127,6 +134,6 @@ export async function interpretRoomText(text: string): Promise<TextRoomPlan> {
     heightM: heightM ?? template.heightM,
     unitCount: Math.min(MAX_UNITS, Math.max(1, Math.round(Number(raw.unitCount) || 1))),
     brief,
-    assumptions,
+    assumptions: cleanAssumptions,
   };
 }

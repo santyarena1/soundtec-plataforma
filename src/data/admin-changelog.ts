@@ -1729,4 +1729,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Luz de oficina y cálida apenas más suave para que el blanco no se queme." },
     ],
   },
+  {
+    id: "ship-2026-10-12-sala-desde-texto-marcas",
+    version: "1.62.2",
+    releasedAt: "2026-10-12T19:00:00.000Z",
+    summary: "Sala desde una frase: el control nombrado (ej. Crestron) queda como marca preferida y no se muestran aclaraciones que contradigan la frase.",
+    items: [
+      { kind: "FIX", text: "\"Crestron\" en la frase ahora también fija la marca de control para elegir los equipos." },
+      { kind: "FIX", text: "Se descartan aclaraciones contradictorias (ej. \"no se mencionaron marcas\" cuando la frase nombra una)." },
+    ],
+  },
 ];
