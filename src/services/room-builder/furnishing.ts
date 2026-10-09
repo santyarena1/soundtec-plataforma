@@ -10,7 +10,8 @@
 import type { RoomScene } from "./scene";
 import { hotelGuestAnchors } from "./slot-layout";
 import { pointInPolygon } from "./plan-polygon";
-import { normalizeDeviceUnits, sceneDims } from "./units";
+import { layoutSceneDevices, sceneDims } from "./units";
+import { fitFurnitureToRoom } from "./furniture-fit";
 
 export type FurnitureKind =
   | "conference-table"
@@ -94,7 +95,8 @@ export type FurnitureOverrides = {
 export type RoomDims = { widthM: number; depthM: number; heightM: number };
 
 /** Lo que muestra la lista: item resuelto + por qué no se ve. */
-export type ResolvedFurniture = FurnitureItem & { hiddenBy: "user" | "display" | null };
+/** hiddenBy: lo sacó el usuario, lo tapa una pantalla, o no entra en la sala. */
+export type ResolvedFurniture = FurnitureItem & { hiddenBy: "user" | "display" | "space" | null };
 
 const PI = Math.PI;
 const COLOR = {
@@ -581,12 +583,22 @@ export function furnitureGroups(items: ResolvedFurniture[]): Array<{ group: stri
 export function resolveSceneFurniture(scene: RoomScene, category: string): ResolvedFurniture[] {
   const dims = sceneDims(scene);
   const slots = new Map(scene.slots.map((s) => [s.key, s]));
-  const displays = scene.devices
-    .filter((d) => d.designRole === "display")
-    .flatMap((d) => normalizeDeviceUnits(d, slots.get(d.slotKey), dims).units ?? [])
+  const displays = layoutSceneDevices(scene.devices, slots, dims)
+    .filter((l) => l.device.designRole === "display")
+    .flatMap((l) => l.device.units ?? [])
     .map((u) => u.pose);
   const items = resolveFurniture(scene.templateKey, category, dims, scene.furniture, displays, scene.planFurniture);
-  // En formas libres (L), lo que cae fuera de las paredes reales no se muestra.
-  const floor = dims.floor;
-  return floor ? items.filter((it) => pointInPolygon({ x: it.x, y: it.z }, floor)) : items;
+  // Los muebles del plano son lo dibujado: se respetan tal cual.
+  if (scene.planFurniture?.length) {
+    const floor = dims.floor;
+    return floor ? items.filter((it) => pointInPolygon({ x: it.x, y: it.z }, floor)) : items;
+  }
+  // El amoblamiento de la tipología se ajusta a la sala real (medidas, forma en L).
+  const floor = dims.floor ?? [
+    { x: -dims.widthM / 2, y: -dims.depthM / 2 },
+    { x: dims.widthM / 2, y: -dims.depthM / 2 },
+    { x: dims.widthM / 2, y: dims.depthM / 2 },
+    { x: -dims.widthM / 2, y: dims.depthM / 2 },
+  ];
+  return fitFurnitureToRoom(items, floor);
 }

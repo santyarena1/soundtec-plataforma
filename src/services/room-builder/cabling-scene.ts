@@ -8,7 +8,7 @@ import { planCabling, type CableNode, type CablingPlan } from "./cabling";
 import type { CablingProfile } from "./cabling-db";
 import { resolveSceneFurniture } from "./furnishing";
 import type { RoomScene } from "./scene";
-import { normalizeDeviceUnits, sceneDims } from "./units";
+import { layoutSceneDevices, sceneDims } from "./units";
 
 /** Montaje por rol cuando el equipo no tiene un lugar de la tipología. */
 const MOUNT_BY_ROLE: Record<string, string> = { display: "wall", camera: "wall", mic: "ceiling", speaker: "ceiling", touch: "table", codec: "rack", processor: "rack" };
@@ -32,11 +32,12 @@ export function buildCableNodes(scene: RoomScene, profile: CablingProfile): Cabl
   const dims = sceneDims(scene);
   const slots = new Map(scene.slots.map((s) => [s.key, s]));
   const nodes: CableNode[] = [];
-  for (const d of scene.devices) {
+  const laid = layoutSceneDevices(scene.devices, slots, dims);
+  for (const [i, d] of scene.devices.entries()) {
     const info = profile.devices[d.id];
     if (!info || !d.productId) continue;
     const slot = slots.get(d.slotKey);
-    const units = normalizeDeviceUnits(d, slot, dims).units ?? [];
+    const units = laid[i]!.device.units ?? [];
     const mount = slot?.mount ?? MOUNT_BY_ROLE[d.designRole] ?? "rack";
     units.forEach((u, k) => {
       nodes.push({

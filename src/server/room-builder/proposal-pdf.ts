@@ -18,7 +18,7 @@ import { resolveSceneFurniture } from "@/services/room-builder/furnishing";
 import { getRoomProject } from "@/services/room-builder/project-service";
 import { diagramSvg, planSvg, type PlanMark, type PlanOpening } from "@/services/room-builder/proposal-svg";
 import { parseScene } from "@/services/room-builder/scene";
-import { normalizeDeviceUnits, sceneDims } from "@/services/room-builder/units";
+import { layoutSceneDevices, sceneDims } from "@/services/room-builder/units";
 
 export type Snapshot = { label: string; dataUrl: string };
 
@@ -48,11 +48,12 @@ export async function buildProposalHtml(projectId: string, snapshots: Snapshot[]
   const dims = sceneDims(scene);
   const slots = new Map(scene.slots.map((s) => [s.key, s]));
   const marks: PlanMark[] = [];
+  const laid = new Map(layoutSceneDevices(scene.devices, slots, dims).map((l, i) => [scene.devices[i]!, l.device]));
   const devices = scene.devices
     .filter((d) => d.productId)
     .map((d, i) => {
       const n = i + 1;
-      const units = normalizeDeviceUnits(d, slots.get(d.slotKey), dims).units ?? [];
+      const units = laid.get(d)?.units ?? [];
       for (const u of units) marks.push({ n, x: u.pose.x, z: u.pose.z, role: d.designRole });
       const p = byId.get(d.productId!);
       return { n, role: ROLE_LABEL[d.designRole] ?? d.label, brand: p?.brand?.name ?? d.brandName ?? "", model: p?.normalizedName ?? d.productName ?? d.label, qty: d.quantity, mount: MOUNT_LABEL[slots.get(d.slotKey)?.mount ?? ""] ?? "—", sheet: SOURCE_LABEL[profile?.devices[d.id]?.datasheet ?? "missing"] };

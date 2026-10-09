@@ -24,7 +24,7 @@ import { SceneEffects } from "./three/effects";
 import { SceneLighting, moodFor } from "./three/lighting";
 import { RoomShell } from "./three/room-shell";
 import { SceneDeviceUnits } from "./three/scene-devices";
-import type { DeviceUnit } from "@/services/room-builder/units";
+import { layoutSceneDevices, type DeviceUnit } from "@/services/room-builder/units";
 import { resolveSceneFurniture, type FurnitureOverrides } from "@/services/room-builder/furnishing";
 import { FurnitureLayer } from "./three/furniture-layer";
 import { PlanUnderlay } from "./three/plan-underlay";
@@ -133,6 +133,7 @@ function SceneContent({
   const dims = useMemo(() => ({ widthM, depthM, heightM, floor }), [widthM, depthM, heightM, floor]);
   const slotByKey = useMemo(() => new Map(scene.slots.map((sl) => [sl.key, sl])), [scene.slots]);
   const furniture = useMemo(() => resolveSceneFurniture(scene, category), [scene, category]);
+  const unitLayout = useMemo(() => layoutSceneDevices(scene.devices, slotByKey, dims), [scene.devices, slotByKey, dims]);
 
   return (
     <SurfaceProvider enabled>
@@ -159,10 +160,11 @@ function SceneContent({
         onSelect={onSelectFurniture}
         onChange={onFurnitureChange}
       />
-      {scene.devices.map((device) => (
+      {scene.devices.map((device, i) => (
         <SceneDeviceUnits
           key={device.id}
           device={device}
+          others={unitLayout[i]?.others}
           slot={slotByKey.get(device.slotKey)}
           dims={dims}
           selected={device.slotKey === scene.selectedSlotKey}

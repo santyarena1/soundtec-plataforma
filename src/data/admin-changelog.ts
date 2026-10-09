@@ -1688,4 +1688,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Batería de 2.000 salas al azar (24.000 cables) que verifica en cada cambio: puertos reales en ambos extremos, recorridos dentro de la sala y a escuadra, canales de baja impedancia, PoE, Dante, pantallas con señal, diagrama completo y metros de cable cubiertos." },
     ],
   },
+  {
+    id: "ship-2026-10-11-ubicacion-3d-auditada",
+    version: "1.61.2",
+    releasedAt: "2026-10-11T19:00:00.000Z",
+    summary: "Ubicación 3D auditada: equipos y muebles siempre dentro de la sala y sin encimarse, en cualquier tamaño y cantidad.",
+    items: [
+      { kind: "FIX", text: "Equipos de rack y de mesa en cantidad ya no se salen de la sala: se acomodan en filas hacia el centro." },
+      { kind: "FIX", text: "Unidades de equipos distintos en el mismo techo o pared (ej. micrófono de techo y parlantes) se separan solas al lugar libre más cercano. Lo mismo en el plano del PDF y en el cableado." },
+      { kind: "MEJORA", text: "Paredes llenas: muchos parlantes en una pared corta se reparten aprovechando las esquinas en vez de quedar pegados." },
+      { kind: "FIX", text: "Muebles de la tipología ajustados a la sala real: lo que se sale se mete adentro, y si no entra o pisa a otro más importante se saca (primero sillas, macetas y mesas auxiliares)." },
+      { kind: "MEJORA", text: "Auditoría automática de cada tipología en 4 tamaños y 3 cantidades (equipos en su superficie, dentro de la sala, sin encimarse, muebles sin pisarse) en cada cambio." },
+    ],
+  },
 ];

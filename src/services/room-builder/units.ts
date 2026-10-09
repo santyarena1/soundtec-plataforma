@@ -26,6 +26,8 @@ export const WALL_INSET_M = 0.08;
 const CEILING_DROP_M = 0.05;
 /** Margen a las esquinas para no pegar equipos al rincón. */
 const CORNER_MARGIN_M = 0.45;
+/** Margen mínimo a la esquina cuando la pared está llena. */
+const MIN_CORNER_M = 0.15;
 const SIDE_BY_SIDE_M = 0.55;
 export const MAX_UNITS = 48;
 
@@ -51,7 +53,9 @@ function opposite(w: Wall): Wall {
 
 /** n posiciones repartidas a lo largo de un tramo, centradas. */
 function spread(n: number, length: number): number[] {
-  const usable = Math.max(0, length - CORNER_MARGIN_M * 2);
+  // Con muchas unidades se resigna margen de esquina antes que separación entre ellas.
+  const margin = clamp((length - n * UNIT_GAP_M) / 2, MIN_CORNER_M, CORNER_MARGIN_M);
+  const usable = Math.max(0, length - margin * 2);
   if (n <= 1) return [0];
   const step = usable / n;
   return Array.from({ length: n }, (_, i) => -usable / 2 + step * (i + 0.5));
@@ -104,11 +108,57 @@ export function distributeUnits(anchor: Pose, mount: Mount, count: number, dims:
     const perWall = walls.map((_, i) => Math.floor(n / walls.length) + (i < n % walls.length ? 1 : 0));
     return walls.flatMap((w, i) => spread(perWall[i], wallLength(w, dims)).map((along) => onWall(w, along, y, dims)));
   }
-  // mesa, rack: uno al lado del otro
-  return Array.from({ length: n }, (_, i) => ({
-    ...anchor,
-    x: r2(anchor.x + (i - (n - 1) / 2) * SIDE_BY_SIDE_M),
-  }));
+  // mesa, rack: uno al lado del otro, en filas que no se salen de la sala.
+  const fx = dims.widthM / 2 - WALL_INSET_M;
+  const fz = dims.depthM / 2 - WALL_INSET_M;
+  const perRow = Math.max(1, Math.floor((fx * 2) / SIDE_BY_SIDE_M) + 1);
+  const rowDir = anchor.z > 0 ? -1 : 1; // las filas siguientes, hacia el centro
+  return Array.from({ length: n }, (_, i) => {
+    const row = Math.floor(i / perRow);
+    const inRow = Math.min(perRow, n - row * perRow);
+    const half = ((inRow - 1) / 2) * SIDE_BY_SIDE_M;
+    const cx = clamp(anchor.x, -fx + half, fx - half);
+    return {
+      ...anchor,
+      x: r2(clamp(cx + ((i % perRow) - (inRow - 1) / 2) * SIDE_BY_SIDE_M, -fx, fx)),
+      z: r2(clamp(anchor.z + rowDir * row * SIDE_BY_SIDE_M, -fz, fz)),
+    };
+  });
+}
+
+/** Separación mínima entre unidades de equipos distintos en la misma superficie (m). */
+export const UNIT_GAP_M = 0.3;
+const NUDGE_STEP_M = 0.1;
+const NUDGE_MAX_STEPS = 20;
+
+/** Corre una pose de techo/pared/piso al lugar libre más cercano sobre su superficie, dentro de la sala. */
+function nudgeAway(pose: Pose, mount: Mount, others: Pose[], dims: RoomDims): Pose {
+  const clear = (p: Pose) => others.every((o) => Math.hypot(o.x - p.x, o.y - p.y, o.z - p.z) >= UNIT_GAP_M);
+  if (!others.length || clear(pose)) return pose;
+  const inside = (p: Pose) => !dims.floor || dims.floor.length < 3 || pointInPolygon({ x: p.x, y: p.z }, dims.floor);
+  // Direcciones sobre la superficie: en la pared, a lo largo de ella; en techo y piso, en el plano.
+  const r = (pose.rotY * Math.PI) / 180;
+  const along = { x: Math.cos(r), z: -Math.sin(r) };
+  const dirs =
+    mount === "wall"
+      ? [along, { x: -along.x, z: -along.z }]
+      : [
+          { x: 1, z: 0 },
+          { x: -1, z: 0 },
+          { x: 0, z: 1 },
+          { x: 0, z: -1 },
+          { x: Math.SQRT1_2, z: Math.SQRT1_2 },
+          { x: -Math.SQRT1_2, z: Math.SQRT1_2 },
+          { x: Math.SQRT1_2, z: -Math.SQRT1_2 },
+          { x: -Math.SQRT1_2, z: -Math.SQRT1_2 },
+        ];
+  for (let k = 1; k <= NUDGE_MAX_STEPS; k++) {
+    for (const d of dirs) {
+      const p = clampPoseToRoom({ ...pose, x: pose.x + d.x * k * NUDGE_STEP_M, z: pose.z + d.z * k * NUDGE_STEP_M }, dims);
+      if (clear(p) && inside(p)) return p;
+    }
+  }
+  return pose;
 }
 
 /** Mantiene una pose dentro de la sala (por si se achicó). */
@@ -147,14 +197,25 @@ function freeIds(slotKey: string, count: number, taken: Set<string>, reuse: stri
  * Deja `device.units` coherente con su cantidad: agrega o quita unidades,
  * reparte las no ubicadas a mano y acomoda las ubicadas dentro de la sala.
  */
-export function normalizeDeviceUnits(device: SceneDevice, slot: Pick<RoomSlot, "mount" | "pose"> | undefined, dims: RoomDims): SceneDevice {
+export function normalizeDeviceUnits(
+  device: SceneDevice,
+  slot: Pick<RoomSlot, "mount" | "pose"> | undefined,
+  dims: RoomDims,
+  /** Unidades de otros equipos en la misma superficie: las libres se separan de ellas. */
+  others: Pose[] = [],
+): SceneDevice {
   const quantity = clamp(Math.round(device.quantity || 1), 1, MAX_UNITS);
   const prev = Array.isArray(device.units) ? device.units : [];
   const placed = prev.filter((u) => u.placed).slice(0, quantity).map((u) => ({ ...u, pose: clampPoseToRoom(u.pose, dims) }));
   const freeCount = quantity - placed.length;
   const anchor = slot?.pose ?? device.pose;
   const mount = slot?.mount ?? "wall";
-  const freePoses = (freeCount > 0 ? distributeUnits(anchor, mount, freeCount, dims) : []).map((p) => fitPoseToFloor(p, mount, dims.floor));
+  // El reparto propio ya es parejo: las libres solo se separan de los demás equipos y de las ubicadas a mano.
+  const avoid = [...others, ...placed.map((u) => u.pose)];
+  const freePoses = (freeCount > 0 ? distributeUnits(anchor, mount, freeCount, dims) : []).map((p) => {
+    const fitted = fitPoseToFloor(p, mount, dims.floor);
+    return SHARED_SURFACE.has(mount) ? nudgeAway(fitted, mount, avoid, dims) : fitted;
+  });
   const ids = freeIds(device.slotKey, freePoses.length, new Set(placed.map((u) => u.id)), prev.filter((u) => !u.placed).map((u) => u.id));
   const free = freePoses.map((pose, i) => ({ id: ids[i], pose }));
   const units = [...placed, ...free];
@@ -211,11 +272,35 @@ export function fitPoseToFloor(pose: Pose, mount: Mount, floor: RoomDims["floor"
   return { ...pose, x: r2(best.x + best.nx * FLOOR_INSET_M), z: r2(best.y + best.ny * FLOOR_INSET_M) };
 }
 
+/** Superficies compartidas por varios equipos (mesa y rack se apilan/alinean aparte). */
+const SHARED_SURFACE = new Set<Mount>(["wall", "ceiling", "floor"]);
+
+/**
+ * Reparte las unidades de toda la escena en orden: cada equipo conoce lo que
+ * ya ocupan los anteriores en su superficie, así nunca se enciman.
+ * Devuelve, por id de equipo, las unidades ajenas que tiene que evitar y el equipo normalizado.
+ */
+export function layoutSceneDevices(
+  devices: SceneDevice[],
+  slots: Map<string, Pick<RoomSlot, "mount" | "pose">>,
+  dims: RoomDims,
+): Array<{ device: SceneDevice; others: Pose[] }> {
+  const byMount = new Map<Mount, Pose[]>();
+  return devices.map((d) => {
+    const slot = slots.get(d.slotKey);
+    const mount = slot?.mount ?? "wall";
+    const others = [...(byMount.get(mount) ?? [])];
+    const device = normalizeDeviceUnits(d, slot, dims, others);
+    byMount.set(mount, [...others, ...(device.units ?? []).map((u) => u.pose)]);
+    return { device, others };
+  });
+}
+
 /** Aplica normalizeDeviceUnits a toda la escena. */
 export function normalizeSceneUnits(scene: RoomScene): RoomScene {
   const dims = sceneDims(scene);
   const slots = new Map(scene.slots.map((s) => [s.key, s]));
-  return { ...scene, devices: scene.devices.map((d) => normalizeDeviceUnits(d, slots.get(d.slotKey), dims)) };
+  return { ...scene, devices: layoutSceneDevices(scene.devices, slots, dims).map((l) => l.device) };
 }
 
 /* ── Arrastre: en qué superficie de la sala cae el puntero ── */

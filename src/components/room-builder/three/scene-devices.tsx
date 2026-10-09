@@ -281,6 +281,7 @@ export function SceneDeviceUnits({
   onSelect,
   onSelectUnit,
   onUnitsChange,
+  others,
 }: {
   device: SceneDevice;
   slot: RoomSlot | undefined;
@@ -292,8 +293,10 @@ export function SceneDeviceUnits({
   onSelect: (slotKey: string) => void;
   onSelectUnit: (unitId: string) => void;
   onUnitsChange?: (slotKey: string, units: DeviceUnit[]) => void;
+  /** Unidades de otros equipos en la misma superficie (para no encimarse). */
+  others?: Pose[];
 }) {
-  const normalized = useMemo(() => normalizeDeviceUnits(device, slot, dims), [device, slot, dims]);
+  const normalized = useMemo(() => normalizeDeviceUnits(device, slot, dims, others), [device, slot, dims, others]);
   const units = normalized.units ?? [];
   const mount = (slot?.mount ?? "wall") as MountOption;
   const activeId = selected ? (selectedUnitId && units.some((u) => u.id === selectedUnitId) ? selectedUnitId : units[0]?.id) : null;
