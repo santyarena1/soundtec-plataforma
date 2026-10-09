@@ -65,6 +65,18 @@ function checkAudio(devices: CheckDevice[], brief: RoomBrief | null): Finding[] 
   const speakerSpec = speakers.find((d) => d.spec)?.spec ?? null;
   const findings: Finding[] = [];
 
+  if (!amps.length && brief?.centralized?.audio) {
+    return [
+      {
+        id: "amp-central",
+        level: "info",
+        area: "audio",
+        title: "Amplificación en el equipamiento central",
+        detail: `${total} parlante${total > 1 ? "s" : ""} en ${zones} zona${zones > 1 ? "s" : ""}: se suman al sistema del proyecto (ver “Sistema del proyecto”).`,
+      },
+    ];
+  }
+
   if (!amps.length) {
     const needed = channelsNeeded(total, zones, { minOhms: 4 }, speakerSpec?.nominalOhms ?? null);
     findings.push({

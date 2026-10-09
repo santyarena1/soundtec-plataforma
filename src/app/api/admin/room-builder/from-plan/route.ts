@@ -5,6 +5,7 @@ import { BRAND_GROUPS, BRIEF_CONTROLS, BRIEF_TIERS, BRIEF_VC_PLATFORMS } from "@
 import { PLAN_KINDS } from "@/services/room-builder/plan-analysis";
 import { MAX_POLYGON_POINTS, MIN_POLYGON_POINTS } from "@/services/room-builder/plan-polygon";
 import { createProjectFromPlan } from "@/services/room-builder/plan-project";
+import { SYSTEM_LOCATIONS, SYSTEM_MODES, type SystemLocation, type SystemMode } from "@/services/room-builder/project-system";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,6 +28,10 @@ const schema = z.object({
   vcPlatform: z.enum(BRIEF_VC_PLATFORMS).nullable(),
   tier: z.enum(BRIEF_TIERS),
   brands: z.record(z.enum(BRAND_GROUPS), z.array(slug).max(12)).default({}),
+  system: z
+    .object({ mode: z.enum(SYSTEM_MODES as [SystemMode, ...SystemMode[]]), location: z.enum(SYSTEM_LOCATIONS as [SystemLocation, ...SystemLocation[]]) })
+    .nullable()
+    .default(null),
   rooms: z
     .array(z.object({ name: z.string().trim().min(1).max(60), templateKey: z.string().min(1).max(60), box, polygon: z.array(point).min(MIN_POLYGON_POINTS).max(MAX_POLYGON_POINTS).optional(), widthM: z.number().min(1).max(200), depthM: z.number().min(1).max(200) }))
     .min(1)
@@ -53,6 +58,7 @@ export async function POST(req: NextRequest) {
       vcPlatform: parsed.data.vcPlatform,
       tier: parsed.data.tier,
       brands: parsed.data.brands,
+      system: parsed.data.system,
       rooms: parsed.data.rooms,
     });
     return NextResponse.json({ ok: true, project });

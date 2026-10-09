@@ -52,6 +52,11 @@ export async function buildProjectBom(projectId: string): Promise<BomLine[]> {
     for (const child of project.children) {
       await addSpace(child.id);
     }
+    // Equipamiento central del proyecto (amplificación, procesador, streaming, red).
+    for (const device of project.devices) {
+      if (!device.productId) continue;
+      accumulateBom(lines, device.productId, device.quantity, `Equipamiento central · ${device.slotKey ?? "equipo"}`);
+    }
   } else {
     await addSpace(project.id);
   }

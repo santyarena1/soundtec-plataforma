@@ -15,6 +15,13 @@ import { normalizePolygon, planUnderlayFor, polygonBox, polygonToRoomMeters, typ
 import { createSpaceProject, getRoomProject, updateRoomProjectScene } from "./project-service";
 import { parseScene } from "./scene";
 import { getRoomTemplate } from "./templates";
+import { centralizedFor, defaultProjectSystem, type ProjectSystem } from "./project-system";
+
+/** Sistema del proyecto: lo elegido al generar o la recomendación para el tipo de obra. */
+function projectSystemFor(input: PlanProjectInput): ProjectSystem {
+  const base = defaultProjectSystem(input.kind, input.control);
+  return input.system ? { ...base, mode: input.system.mode, location: input.system.location } : base;
+}
 
 export type PlanRoomInput = { name: string; templateKey: string; box: PlanBox; polygon?: PlanPoint[]; widthM: number; depthM: number };
 
@@ -29,6 +36,8 @@ export type PlanProjectInput = {
   tier: BriefTier;
   brands: Partial<Record<BrandGroup, string[]>>;
   rooms: PlanRoomInput[];
+  /** Equipamiento central o por ambiente y dónde va. */
+  system?: Pick<ProjectSystem, "mode" | "location"> | null;
 };
 
 /** Ambiente del proyecto contenedor ubicado sobre el plano. */
@@ -41,7 +50,12 @@ const MAX_SIDE_M = 80;
 const clampSide = (n: number) => Math.min(MAX_SIDE_M, Math.max(MIN_SIDE_M, Math.round(n * 10) / 10));
 
 /** Respuestas del asistente para un ambiente, con lo común del proyecto. */
-export function briefForPlanRoom(category: string, templateKey: string, common: Pick<PlanProjectInput, "control" | "vcPlatform" | "tier" | "brands">): RoomBrief {
+export function briefForPlanRoom(
+  category: string,
+  templateKey: string,
+  common: Pick<PlanProjectInput, "control" | "vcPlatform" | "tier" | "brands">,
+  centralized: RoomBrief["centralized"] = null,
+): RoomBrief {
   const base = initialBrief(category, templateKey);
   const wantsControl = common.control !== "none";
   const systems = wantsControl
@@ -54,6 +68,7 @@ export function briefForPlanRoom(category: string, templateKey: string, common: 
     vcPlatform: systems.includes("vc") ? (common.vcPlatform ?? base.vcPlatform ?? "teams") : null,
     tier: common.tier,
     brands: common.brands,
+    centralized,
   };
 }
 
@@ -95,6 +110,7 @@ export async function createProjectFromPlan(input: PlanProjectInput) {
   const links = results.filter((r): r is { link: PlanRoomLink; area: number } => r != null).map((r) => r.link);
   const totalArea = results.reduce((n, r) => n + (r?.area ?? 0), 0);
 
+  const system = projectSystemFor(input);
   await prisma.roomProject.update({
     where: { id: hub.id },
     data: {
@@ -113,6 +129,7 @@ export async function createProjectFromPlan(input: PlanProjectInput) {
         devices: [],
         planImage: { url: imageUrl, widthPx: input.image.widthPx, heightPx: input.image.heightPx },
         planRooms: links,
+        system,
       } as unknown as Prisma.InputJsonValue,
     },
   });
@@ -172,7 +189,7 @@ async function createPlanSpace(room: PlanRoomInput, hubId: string, imageUrl: str
     heightM: input.heightM,
     areaM2,
     parentId: hubId,
-    brief: briefForPlanRoom(template.category, template.key, input),
+    brief: briefForPlanRoom(template.category, template.key, input, centralizedFor(projectSystemFor(input), null)),
   });
   // El recuadro de la forma (el polígono manda) para que el plano del piso calce con las paredes.
   const box = polygon ? polygonBox(polygon) : room.box;

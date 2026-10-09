@@ -1514,4 +1514,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Dos baños (u otros ambientes) con el mismo nombre separados por una pared quedan como dos ambientes; solo se unen los sectores que se comunican sin pared." },
     ],
   },
+  {
+    id: "ship-2026-10-10-sistema-del-proyecto",
+    version: "1.52.0",
+    releasedAt: "2026-10-10T13:00:00.000Z",
+    summary: "Proyectos de varios ambientes: “Sistema del proyecto” suma lo de todos los ambientes y arma el equipamiento central (o uno por ambiente).",
+    items: [
+      { kind: "NUEVO", text: "Sistema del proyecto: elegís equipamiento central para todo o cada ambiente con lo suyo, dónde va lo central (rack, armario, escondido en cielorraso o detrás de la TV, en un mueble) y la plataforma (Crestron Home, Crestron programado o sin control)." },
+      { kind: "NUEVO", text: "Suma por ambiente: parlantes, zonas, canales a amplificar (× unidades si el ambiente se repite), paneles y teclados. Un ambiente se puede marcar “por su cuenta” para que lleve lo suyo." },
+      { kind: "NUEVO", text: "Equipos centrales sugeridos del catálogo con un clic: amplificadores que cubren todos los canales (con la cantidad de unidades), procesador (Crestron Home: uno solo para toda la obra), streaming y switch de red." },
+      { kind: "MEJORA", text: "Los ambientes centralizados ya no piden su propio amplificador ni procesador; su chequeo de sistema indica que lo resuelve el equipamiento central. Al cambiar el modo, los ambientes se re-arman solos." },
+      { kind: "MEJORA", text: "Proyecto desde plano: al generar varios ambientes se pregunta si el equipamiento va central o por ambiente, con la recomendación según el tipo de obra." },
+      { kind: "MEJORA", text: "La cotización agregada incluye el equipamiento central sin duplicar amplificadores ni procesadores." },
+    ],
+  },
 ];

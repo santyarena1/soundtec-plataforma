@@ -79,6 +79,11 @@ export type RoomBrief = {
   brands: Partial<Record<BrandGroup, string[]>>;
   tier: BriefTier;
   notes: string | null;
+  /**
+   * Lo que resuelve el equipamiento central del proyecto (varios ambientes):
+   * el ambiente no pide su propio amplificador / procesador.
+   */
+  centralized?: { audio: boolean; control: boolean } | null;
 };
 
 export const MAX_SPEAKERS = 48;
@@ -163,7 +168,11 @@ export function applyBriefToSlots(slots: RoomSlot[], brief: RoomBrief, dims: Roo
   const has = (s: BriefSystem) => brief.systems.includes(s);
   const wantsControl = has("control") && brief.control !== "none";
 
+  const central = brief.centralized ?? null;
   let next = slots.filter((slot) => {
+    // Lo resuelve el equipamiento central del proyecto.
+    if (central?.audio && slot.role === "processor" && /amp/i.test(slot.key)) return false;
+    if (central?.control && slot.role === "processor" && !/amp/i.test(slot.key) && isControlSlot(slot)) return false;
     if (slot.role === "display") return has("video") || has("vc") || (has("signage") && /signage/.test(slot.key));
     if (VC_ROLES.has(slot.role)) return has("vc") || (slot.role === "mic" && brief.audio?.use === "voice");
     if (slot.role === "speaker") return has("audio") || has("vc");
@@ -212,7 +221,7 @@ export function applyBriefToSlots(slots: RoomSlot[], brief: RoomBrief, dims: Roo
     });
   }
 
-  if (has("audio") && brief.audio && !next.some((s) => s.key === "amplifier")) {
+  if (has("audio") && brief.audio && !central?.audio && !next.some((s) => s.key === "amplifier")) {
     next.push({
       key: "amplifier",
       role: "processor",
@@ -224,7 +233,7 @@ export function applyBriefToSlots(slots: RoomSlot[], brief: RoomBrief, dims: Roo
     });
   }
 
-  if (wantsControl && !next.some((s) => s.role === "processor" && !/amp/i.test(s.key))) {
+  if (wantsControl && !central?.control && !next.some((s) => s.role === "processor" && !/amp/i.test(s.key))) {
     next.push({
       key: "processor",
       role: "processor",
@@ -316,6 +325,10 @@ export function normalizeBrief(raw: unknown): RoomBrief | null {
     brands,
     tier: pick(r.tier, BRIEF_TIERS, "recomendado"),
     notes: typeof r.notes === "string" && r.notes.trim() ? r.notes.trim().slice(0, 1000) : null,
+    centralized:
+      r.centralized && typeof r.centralized === "object"
+        ? { audio: Boolean((r.centralized as Record<string, unknown>).audio), control: Boolean((r.centralized as Record<string, unknown>).control) }
+        : null,
   };
 }
 

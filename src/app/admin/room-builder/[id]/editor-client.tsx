@@ -24,6 +24,7 @@ import {
 import { rankModeForTier } from "@/services/room-builder/brief";
 import { HubPlan, readHubPlan } from "@/components/room-builder/plan/hub-plan";
 import { HubSpaces } from "@/components/room-builder/plan/hub-spaces";
+import { ProjectSystemPanel } from "@/components/room-builder/plan/project-system-panel";
 import { normalizeDeviceUnits, sceneDims, type DeviceUnit } from "@/services/room-builder/units";
 import type { FurnitureOverrides } from "@/services/room-builder/furnishing";
 import {
@@ -478,6 +479,8 @@ export function RoomBuilderEditor({
             <HubPlan data={hubPlan} existingIds={new Set(project.children.map((c) => c.id))} />
           </section>
         ) : null}
+
+        <ProjectSystemPanel hubId={project.id} />
 
         <HubSpaces
           spaces={project.children}

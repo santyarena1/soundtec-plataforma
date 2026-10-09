@@ -22,6 +22,7 @@ import {
   type PlanKind,
 } from "@/services/room-builder/plan-analysis";
 import type { BriefControl, BriefTier, BriefVcPlatform } from "@/services/room-builder/brief";
+import { SYSTEM_LOCATION_LABELS, SYSTEM_LOCATIONS, defaultProjectSystem, type SystemLocation, type SystemMode } from "@/services/room-builder/project-system";
 import { CONTROL_OPTIONS, TIER_OPTIONS, VC_OPTIONS } from "../wizard/wizard-data";
 import { shrinkForUpload } from "../plan-panel";
 import { polygonAreaPx } from "@/services/room-builder/plan-polygon";
@@ -75,6 +76,8 @@ export function PlanWizard() {
   const [control, setControl] = useState<BriefControl>("crestron-home");
   const [vcPlatform, setVcPlatform] = useState<BriefVcPlatform>("teams");
   const [tier, setTier] = useState<BriefTier>("recomendado");
+  const [systemMode, setSystemMode] = useState<SystemMode>("central");
+  const [systemLocation, setSystemLocation] = useState<SystemLocation>("closet");
   const [heightM, setHeightM] = useState(2.6);
   const [, startTransition] = useTransition();
   /** Estado propio: en React 18 la transición no queda "pendiente" durante un await. */
@@ -119,6 +122,12 @@ export function PlanWizard() {
         setSummary(analysis.summary);
         setKind(analysis.kind === "otro" ? "residencial" : analysis.kind);
         setHeightM(DEFAULT_HEIGHT[analysis.kind]);
+        {
+          const control = analysis.kind === "residencial" || analysis.kind === "hoteleria" ? "crestron-home" : analysis.kind === "corporativo" ? "crestron-pro" : "none";
+          const rec = defaultProjectSystem(analysis.kind, control);
+          setSystemMode(rec.mode);
+          setSystemLocation(rec.location);
+        }
         setControl(analysis.kind === "residencial" || analysis.kind === "hoteleria" ? "crestron-home" : analysis.kind === "corporativo" ? "crestron-pro" : "none");
         setName((n) => n || analysis.summary.split(/[.,]/)[0]?.slice(0, 80) || "Proyecto desde plano");
         setManualMpp(null);
@@ -216,6 +225,7 @@ export function PlanWizard() {
           vcPlatform: hasVc ? vcPlatform : null,
           tier,
           brands: {},
+          system: included.length > 1 ? { mode: systemMode, location: systemLocation } : null,
           rooms: included.map((r) => ({ name: r.name, templateKey: r.templateKey, box: r.box, polygon: r.polygon, ...(sizes.get(r.id) as { widthM: number; depthM: number }) })),
         }),
       });
@@ -435,6 +445,39 @@ export function PlanWizard() {
                 ))}
               </select>
             </label>
+            {included.length > 1 ? (
+              <div className="col-span-2 space-y-1.5 rounded-lg border border-slate-200 p-2.5">
+                <p className="text-xs font-semibold text-slate-600">Equipamiento (amplificación, procesador, streaming)</p>
+                <div className="flex rounded-lg border border-slate-200 p-0.5">
+                  {(["central", "per-room"] as SystemMode[]).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setSystemMode(m)}
+                      className={`flex-1 rounded-md px-2 py-1 text-[11px] font-semibold ${systemMode === m ? "bg-[#1e3553] text-white" : "text-slate-600 hover:bg-slate-50"}`}
+                    >
+                      {m === "central" ? "Central para todo" : "Cada ambiente con lo suyo"}
+                    </button>
+                  ))}
+                </div>
+                {systemMode === "central" ? (
+                  <select value={systemLocation} onChange={(e) => setSystemLocation(e.target.value as SystemLocation)} className={`${input} text-xs`}>
+                    {SYSTEM_LOCATIONS.map((l) => (
+                      <option key={l} value={l}>
+                        {SYSTEM_LOCATION_LABELS[l]}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                <p className="text-[10.5px] text-slate-500">
+                  {control === "crestron-home"
+                    ? "Con Crestron Home el procesador es uno solo para toda la obra."
+                    : systemMode === "central"
+                      ? "Se suman los canales de todos los ambientes para elegir amplificadores que sirvan para todo."
+                      : "Cada ambiente lleva su amplificación y control."}
+                </p>
+              </div>
+            ) : null}
             {hasVc ? (
               <label className="col-span-2 block text-xs font-semibold text-slate-600">
                 Videoconferencia

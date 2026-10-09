@@ -87,3 +87,16 @@ test("streaming pedido y no resuelto", () => {
   const solved = runSystemCheck([speakers(2), amp("DM-NAX-AMP-X300", "crestron")], b, []);
   assert.ok(solved.some((x) => x.id === "stream-ok"));
 });
+
+test("ambiente con audio central: no pide amplificador propio", () => {
+  const speaker = {
+    slotKey: "speakers",
+    role: "speaker",
+    label: "Parlantes",
+    quantity: 6,
+    product: { id: "p1", name: "VX60R", brandSlug: "sonance", brandName: "Sonance" },
+    spec: null,
+  };
+  const findings = runSystemCheck([speaker as CheckDevice], brief({ centralized: { audio: true, control: true } }), []);
+  assert.equal(findings[0]?.id, "amp-central");
+});
