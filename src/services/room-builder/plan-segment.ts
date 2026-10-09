@@ -33,12 +33,29 @@ const TEXT_LINE_ASPECT = 3;
 const TEXT_LINE_DENSITY = 0.85;
 /** Entrantes del contorno más angostos que esto (×2) se rellenan: hojas de puerta, muebles contra la pared. */
 const CONTOUR_CLOSE = 0.02;
+/** Vanos de puerta: tramos de pared de al menos esto a cada lado, hueco de a lo sumo esto (fracción del lado). */
+const DOOR_MIN_WALL = 0.03;
+const DOOR_MAX_GAP = 0.16;
+/** Parte del arco que tiene que estar dibujada para considerar que hay una puerta. */
+const DOOR_ARC_HITS = 0.6;
+/** Tramo abierto (sin muro) entre dos espacios, frente al lado del más chico y del más grande, para unirlos. */
+const OPEN_MERGE_SMALL = 0.7;
+const OPEN_MERGE_BIG = 0.5;
+/** Trazo claro: hasta este gris, o el umbral de muro + este margen. */
+const LIGHT_INK_MAX = 245;
+const LIGHT_INK_DELTA = 25;
 /** Hasta dónde un ambiente se suma trazos sin dueño (muebles contra la pared, muros): fracción del lado mayor. */
 const ABSORB_REACH = 0.05;
 /** Hueco blanco encerrado más grande que esto no es un mueble (fracción del plano). */
-const POCKET_MAX = 0.006;
+const POCKET_MAX = 0.03;
 /** Cuánto puede pasarse un ambiente de su recuadro original al sumar muebles y muros. */
 const ABSORB_MARGIN = 0.012;
+/** Una línea fina (arco de puerta, contorno de mueble) mide a lo sumo esto (fracción del lado). */
+const ARC_GAP = 0.005;
+/** Parte del borde de un hueco que tiene que dar a un ambiente (a través de línea fina) para sumarlo. */
+const THIN_POCKET_SHARE = 0.3;
+/** Ancho medio mínimo de un hueco para sumarlo (fracción del lado): más fino es el interior de un muro. */
+const POCKET_MIN_WIDTH = 0.015;
 /** Espacios más chicos que esto son letras o ruido. */
 const MIN_REGION_FRAC = 0.004;
 /** Mínima superposición para asignar un espacio a un ambiente de la IA. */
@@ -46,12 +63,15 @@ const MIN_MATCH = 0.12;
 /** Espacios sin nombre que vale la pena ofrecer (no placards ni ductos). */
 const MIN_EXTRA_FRAC = 0.012;
 
-function downsampleWalls(img: GrayImage): { wall: Uint8Array; width: number; height: number } {
+function downsampleWalls(img: GrayImage): { wall: Uint8Array; light: Uint8Array; width: number; height: number } {
   const dark = inkThreshold(img);
+  // Trazo claro (arcos de puertas en color, líneas finas grises): solo para reconocer puertas.
+  const pale = Math.min(LIGHT_INK_MAX, dark + LIGHT_INK_DELTA);
   const scale = Math.max(1, Math.max(img.width, img.height) / SEG_MAX_SIDE);
   const width = Math.max(1, Math.round(img.width / scale));
   const height = Math.max(1, Math.round(img.height / scale));
   const wall = new Uint8Array(width * height);
+  const light = new Uint8Array(width * height);
   for (let y = 0; y < height; y++) {
     const sy0 = Math.floor(y * scale);
     const sy1 = Math.min(img.height, Math.ceil((y + 1) * scale));
@@ -60,19 +80,23 @@ function downsampleWalls(img: GrayImage): { wall: Uint8Array; width: number; hei
       const sx1 = Math.min(img.width, Math.ceil((x + 1) * scale));
       // Es muro si alguno de los píxeles que representa es oscuro.
       let ink = 0;
+      let soft = 0;
       for (let sy = sy0; sy < sy1 && !ink; sy++) {
         const base = sy * img.width;
         for (let sx = sx0; sx < sx1; sx++) {
-          if (img.data[base + sx] < dark) {
+          const v = img.data[base + sx];
+          if (v < pale) soft = 1;
+          if (v < dark) {
             ink = 1;
             break;
           }
         }
       }
       wall[y * width + x] = ink;
+      light[y * width + x] = ink || soft;
     }
   }
-  return { wall, width, height };
+  return { wall, light, width, height };
 }
 
 /**
@@ -128,6 +152,90 @@ function removeLooseInk(mask: Uint8Array, width: number, height: number): Uint8A
   return out;
 }
 
+/**
+ * Cierra los vanos de puerta con una línea en el plano de la pared, de jamba a
+ * jamba (como en los programas de arquitectura): así el ambiente termina en la
+ * pared y no en el arco de la hoja. Solo se cierra un hueco entre dos tramos de
+ * pared alineados si al lado hay trazo de puerta (hoja o arco); un paso abierto
+ * o el espacio entre dos plantas dibujadas en la misma lámina no se tocan.
+ */
+export function bridgeDoorways(wall: Uint8Array, light: Uint8Array, width: number, height: number): Uint8Array {
+  const side = Math.max(width, height);
+  const minSeg = Math.max(4, Math.round(DOOR_MIN_WALL * side));
+  const maxGap = Math.max(4, Math.round(DOOR_MAX_GAP * side));
+  const out = new Uint8Array(wall);
+  const at = (x: number, y: number) => (x < 0 || y < 0 || x >= width || y >= height ? 0 : wall[y * width + x]);
+  const inkNear = (x: number, y: number) => {
+    const cx = Math.round(x);
+    const cy = Math.round(y);
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const xx = cx + dx;
+        const yy = cy + dy;
+        if (xx >= 0 && yy >= 0 && xx < width && yy < height && light[yy * width + xx]) return true;
+      }
+    }
+    return false;
+  };
+  /**
+   * ¿Hay un arco de puerta? Cuarto de círculo con centro en la jamba (u, v),
+   * radio r, que va hacia "dir" a lo largo de la pared y hacia "out" (un lado
+   * del muro). (u, v) = (a lo largo, a través) del muro.
+   */
+  const arc = (horizontal: boolean, line: number, hinge: number, r: number, dir: 1 | -1, out: 1 | -1) => {
+    let hit = 0;
+    const samples = 10;
+    for (let k = 0; k < samples; k++) {
+      const t = ((15 + (60 * k) / (samples - 1)) * Math.PI) / 180;
+      const along = hinge + dir * r * Math.cos(t);
+      const across = line + out * r * Math.sin(t);
+      if (horizontal ? inkNear(along, across) : inkNear(across, along)) hit++;
+    }
+    return hit / samples >= DOOR_ARC_HITS;
+  };
+  const isDoor = (horizontal: boolean, line: number, a: number, b: number) => {
+    const g = b - a + 1;
+    for (const out of [1, -1] as const) {
+      // Una hoja: bisagra en una jamba, radio = vano.
+      if (arc(horizontal, line, a - 1, g, 1, out) || arc(horizontal, line, b + 1, g, -1, out)) return true;
+      // Dos hojas: bisagra en cada jamba, radio = medio vano.
+      if (arc(horizontal, line, a - 1, g / 2, 1, out) && arc(horizontal, line, b + 1, g / 2, -1, out)) return true;
+    }
+    return false;
+  };
+  const scan = (horizontal: boolean) => {
+    const lines = horizontal ? height : width;
+    const len = horizontal ? width : height;
+    for (let i = 0; i < lines; i++) {
+      const get = (j: number) => (horizontal ? at(j, i) : at(i, j));
+      let j = 0;
+      let prevEnd = -1;
+      let prevLen = 0;
+      while (j < len) {
+        if (!get(j)) {
+          j++;
+          continue;
+        }
+        const start = j;
+        while (j < len && get(j)) j++;
+        const runLen = j - start;
+        const gap = start - prevEnd - 1;
+        // Una jamba puede ser un muñón corto (el tabique entre dos puertas); la otra, pared.
+        if (prevEnd >= 0 && Math.min(prevLen, runLen) >= 2 && Math.max(prevLen, runLen) >= minSeg && gap > 0 && gap <= maxGap) {
+          const a = prevEnd + 1;
+          const b = start - 1;
+          if (isDoor(horizontal, i, a, b)) for (let k = a; k <= b; k++) out[horizontal ? i * width + k : k * width + i] = 1;
+        }
+        prevEnd = j - 1;
+        prevLen = runLen;
+      }
+    }
+  };
+  scan(true);
+  scan(false);
+  return out;
+}
+
 /** Engrosa los muros r píxeles (cierra huecos chicos). Separable: horizontal y vertical. */
 function dilate(mask: Uint8Array, width: number, height: number, r: number): Uint8Array {
   const horizontal = new Uint8Array(mask.length);
@@ -179,8 +287,8 @@ function distanceToInk(blocked: Uint8Array, width: number, height: number): Floa
  * Lo que toca el borde de la imagen es el exterior.
  */
 export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: Grid; closeCells: number } {
-  const { wall: rawWall, width, height } = downsampleWalls(img);
-  const wall = removeLooseInk(rawWall, width, height);
+  const { wall: rawWall, light, width, height } = downsampleWalls(img);
+  const wall = bridgeDoorways(removeLooseInk(rawWall, width, height), light, width, height);
   const r = Math.max(1, Math.round(CLOSE_RADIUS * Math.max(width, height)));
   const closed = dilate(wall, width, height, r);
   const dist = distanceToInk(closed, width, height);
@@ -258,6 +366,10 @@ export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: G
     frontier = nextFrontier;
   }
 
+  // 2c) Dos espacios que se tocan sin muro en una porción grande de su borde
+  //     (no una puerta) son el mismo ambiente: cubículos de un baño, un estar en L.
+  mergeOpenNeighbors(labels, width, height, next, coreBorder);
+
   // 3) Recuadro y tamaño de cada espacio; el exterior (lo que toca el borde) se descarta.
   const stats = Array.from({ length: next }, () => ({ count: 0, x0: width, y0: height, x1: 0, y1: 0, border: false }));
   for (let p = 0; p < labels.length; p++) {
@@ -287,11 +399,12 @@ export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: G
   const closeCells = Math.max(1, Math.round(CONTOUR_CLOSE * Math.max(width, height)));
   // 4) Los muebles son parte del ambiente: lo encerrado (mostrador, isla) y lo
   //    pegado a la pared (sillones, macetas) se suma al ambiente que lo rodea.
-  const tiny = new Set<number>();
+  // Exterior: lo que toca el borde de la imagen (nunca se suma a un ambiente).
+  const exterior = new Set<number>();
   stats.forEach((st, label) => {
-    if (!coreBorder[label] && !st.border && st.count / (width * height) < MIN_REGION_FRAC) tiny.add(label);
+    if (coreBorder[label] || st.border) exterior.add(label);
   });
-  const rooms = absorbFurniture(labels, wall, width, height, regions, tiny, Math.round(ABSORB_REACH * Math.max(width, height)), r + 2);
+  const rooms = absorbFurniture(labels, wall, width, height, regions, exterior, Math.round(ABSORB_REACH * Math.max(width, height)), r + 2);
   const kept = rooms.map((reg) => {
     const polygon = regionPolygon(grid, [reg.label], closeCells);
     // Un recuadro no necesita polígono: solo las formas en L, ochavas, etc.
@@ -307,7 +420,7 @@ export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: G
  * la pared, hojas de puerta, muros) hasta `reach` celdas, sin pisar otros
  * ambientes ni el exterior. Devuelve los ambientes con su tamaño actualizado.
  */
-function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, height: number, regions: PlanRegion[], tiny: Set<number>, reach: number, wallDepth: number): PlanRegion[] {
+function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, height: number, regions: PlanRegion[], exterior: Set<number>, reach: number, wallDepth: number): PlanRegion[] {
   const rooms = dropFurniture(regions);
   const roomLabels = new Set(rooms.map((r) => r.label));
   // Mueble → ambiente que lo contiene (el más chico que lo encierra).
@@ -344,7 +457,14 @@ function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, he
   const pocketOk = new Uint8Array(labels.length);
   const seen = new Uint8Array(labels.length);
   const maxPocket = POCKET_MAX * width * height;
-  const isPocket = (q: number) => !outside[q] && ((labels[q] === -1 && !wall[q]) || tiny.has(labels[q]));
+  const gapCells = Math.max(2, Math.round(ARC_GAP * Math.max(width, height)));
+  // Hueco: blanco sin dueño o un espacio chico que no quedó como ambiente (la cuña
+  // entre el arco de una puerta y la pared, un mueble que no se pudo ubicar).
+  const isPocket = (q: number) => {
+    if (outside[q]) return false;
+    const l = labels[q];
+    return l === -1 ? !wall[q] : !roomLabels.has(l) && !exterior.has(l);
+  };
   for (let start = 0; start < labels.length; start++) {
     if (seen[start] || !isPocket(start)) continue;
     const comp: number[] = [];
@@ -362,7 +482,7 @@ function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, he
         }
       }
     }
-    if (comp.length <= maxPocket) for (const p of comp) pocketOk[p] = 1;
+    if (comp.length <= maxPocket && !isWallInterior(comp, labels, width, height, roomLabels, outside, gapCells)) for (const p of comp) pocketOk[p] = 1;
   }
   const absorbedInk = new Uint8Array(labels.length);
   // Cada ambiente solo suma dentro de su recuadro original + el espesor de un muro:
@@ -396,6 +516,10 @@ function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, he
     }
     frontier = nextFrontier;
   }
+  // Cuñas de puertas: un hueco que quedó separado de un ambiente solo por una
+  // línea fina (el arco de la hoja) es de ese ambiente; detrás de un muro grueso, no.
+  claimThinPockets(labels, width, height, roomLabels, isPocket, gapCells, outside);
+
   // Los muros vuelven a ser muros: se pela el trazo sumado que toca el exterior u
   // otro ambiente, capa por capa, hasta el espesor de un muro. Los contornos de
   // muebles (adentro del ambiente) no tocan nada de eso y se quedan.
@@ -438,11 +562,153 @@ function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, he
   });
 }
 
+/**
+ * Interior de un muro doble: una franja angosta que separa dos ambientes
+ * distintos (o un ambiente del exterior). Una franja angosta con el mismo
+ * ambiente de los dos lados es parte de un mueble (almohadones, maceteros).
+ */
+function isWallInterior(comp: number[], labels: Int32Array, width: number, height: number, roomLabels: Set<number>, outside: Uint8Array, gap: number): boolean {
+  let bx0 = width;
+  let by0 = height;
+  let bx1 = 0;
+  let by1 = 0;
+  for (const p of comp) {
+    const x = p % width;
+    const y = (p - x) / width;
+    if (x < bx0) bx0 = x;
+    if (x > bx1) bx1 = x;
+    if (y < by0) by0 = y;
+    if (y > by1) by1 = y;
+  }
+  const thin = comp.length / (Math.max(bx1 - bx0, by1 - by0) + 1) < POCKET_MIN_WIDTH * Math.max(width, height);
+  if (!thin) return false;
+  const sides = new Set<number>();
+  for (let y = Math.max(0, by0 - gap); y <= Math.min(height - 1, by1 + gap); y++) {
+    for (let x = Math.max(0, bx0 - gap); x <= Math.min(width - 1, bx1 + gap); x++) {
+      const p = y * width + x;
+      if (outside[p]) return true;
+      if (roomLabels.has(labels[p])) sides.add(labels[p]);
+    }
+  }
+  return sides.size >= 2;
+}
+
+/**
+ * Asigna cada hueco sin dueño al ambiente que lo rodea a través de líneas
+ * finas (a no más de `gap` celdas) en buena parte de su borde.
+ */
+function claimThinPockets(labels: Int32Array, width: number, height: number, roomLabels: Set<number>, isPocket: (q: number) => boolean, gap: number, outside: Uint8Array) {
+  const seen = new Uint8Array(labels.length);
+  const stack: number[] = [];
+  for (let start = 0; start < labels.length; start++) {
+    if (seen[start] || !isPocket(start)) continue;
+    const comp: number[] = [];
+    seen[start] = 1;
+    stack.push(start);
+    while (stack.length) {
+      const p = stack.pop() as number;
+      comp.push(p);
+      const x = p % width;
+      const ns = [x > 0 ? p - 1 : -1, x < width - 1 ? p + 1 : -1, p >= width ? p - width : -1, p < width * (height - 1) ? p + width : -1];
+      for (const q of ns) {
+        if (q >= 0 && !seen[q] && isPocket(q)) {
+          seen[q] = 1;
+          stack.push(q);
+        }
+      }
+    }
+    if (comp.length > POCKET_MAX * width * height) continue;
+    if (isWallInterior(comp, labels, width, height, roomLabels, outside, gap)) continue;
+    const inComp = new Set(comp);
+    // Ambientes que tocan el hueco directo (por un vano abierto): no votan. El
+    // espacio que barre una puerta es del ambiente hacia donde abre, del otro
+    // lado del arco.
+    const direct = new Set<number>();
+    for (const p of comp) {
+      const x = p % width;
+      const ns = [x > 0 ? p - 1 : -1, x < width - 1 ? p + 1 : -1, p >= width ? p - width : -1, p < width * (height - 1) ? p + width : -1];
+      for (const q of ns) if (q >= 0 && roomLabels.has(labels[q])) direct.add(labels[q]);
+    }
+    const votes = new Map<number, number>();
+    let border = 0;
+    for (const p of comp) {
+      const x = p % width;
+      const y = (p - x) / width;
+      const ns = [x > 0 ? p - 1 : -1, x < width - 1 ? p + 1 : -1, p >= width ? p - width : -1, p < width * (height - 1) ? p + width : -1];
+      if (ns.every((q) => q < 0 || inComp.has(q))) continue;
+      border++;
+      const near = new Set<number>();
+      for (let dy = -gap; dy <= gap; dy++) {
+        for (let dx = -gap; dx <= gap; dx++) {
+          const xx = x + dx;
+          const yy = y + dy;
+          if (xx < 0 || yy < 0 || xx >= width || yy >= height) continue;
+          const l = labels[yy * width + xx];
+          if (roomLabels.has(l) && !direct.has(l)) near.add(l);
+        }
+      }
+      for (const l of near) votes.set(l, (votes.get(l) ?? 0) + 1);
+    }
+    const best = [...votes.entries()].sort((a, b) => b[1] - a[1])[0];
+    if (best && border > 0 && best[1] >= border * THIN_POCKET_SHARE) for (const p of comp) labels[p] = best[0];
+  }
+}
+
 function containsBox(outer: PlanBox, inner: PlanBox): boolean {
   const ix = Math.max(0, Math.min(inner.x1, outer.x1) - Math.max(inner.x0, outer.x0));
   const iy = Math.max(0, Math.min(inner.y1, outer.y1) - Math.max(inner.y0, outer.y0));
   const area = boxArea(inner);
   return area > 0 && (ix * iy) / area >= CONTAINED;
+}
+
+/**
+ * Une espacios vecinos separados solo por el crecimiento (sin trazo entre
+ * ellos) cuando el tramo abierto es grande frente al tamaño de ambos: una
+ * puerta es angosta comparada con el ambiente; la abertura entre el sector del
+ * inodoro y el de la bacha de un mismo baño, no.
+ */
+function mergeOpenNeighbors(labels: Int32Array, width: number, height: number, count: number, exterior: boolean[]) {
+  const area = new Array<number>(count).fill(0);
+  for (let p = 0; p < labels.length; p++) if (labels[p] >= 0) area[labels[p]]++;
+  // Extensión del tramo abierto entre cada par (no la cantidad de celdas: un
+  // límite escalonado contaría casi el doble).
+  const open = new Map<number, { x0: number; y0: number; x1: number; y1: number }>();
+  const key = (a: number, b: number) => (a < b ? a * count + b : b * count + a);
+  for (let p = 0; p < labels.length; p++) {
+    const a = labels[p];
+    if (a < 0 || exterior[a]) continue;
+    const x = p % width;
+    const y = (p - x) / width;
+    for (const q of [x < width - 1 ? p + 1 : -1, p < width * (height - 1) ? p + width : -1]) {
+      if (q < 0) continue;
+      const b = labels[q];
+      if (b < 0 || b === a || exterior[b]) continue;
+      const k = key(a, b);
+      const e = open.get(k);
+      if (!e) open.set(k, { x0: x, y0: y, x1: x, y1: y });
+      else {
+        e.x0 = Math.min(e.x0, x);
+        e.y0 = Math.min(e.y0, y);
+        e.x1 = Math.max(e.x1, x);
+        e.y1 = Math.max(e.y1, y);
+      }
+    }
+  }
+  const parent = Array.from({ length: count }, (_, i) => i);
+  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  for (const [k, ext] of open) {
+    const len = Math.hypot(ext.x1 - ext.x0 + 1, ext.y1 - ext.y0 + 1);
+    const a = Math.floor(k / count);
+    const b = k % count;
+    const small = Math.sqrt(Math.min(area[a], area[b]));
+    const big = Math.sqrt(Math.max(area[a], area[b]));
+    if (len >= OPEN_MERGE_SMALL * small && len >= OPEN_MERGE_BIG * big) {
+      const ra = find(a);
+      const rb = find(b);
+      if (ra !== rb) parent[rb] = ra;
+    }
+  }
+  for (let p = 0; p < labels.length; p++) if (labels[p] >= 0) labels[p] = find(labels[p]);
 }
 
 /** Un espacio dentro de otro y mucho más chico es un mueble (mostrador, sillón, maceta), no un ambiente. */

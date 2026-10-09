@@ -6,6 +6,10 @@
 
 import { MAX_POLYGON_POINTS, cleanPolygon, type PlanPoint } from "./plan-polygon";
 
+/** Un muro es un trazo de al menos este espesor (fracción del lado); un arco de puerta es más fino. */
+const THICK_WALL_FRAC = 0.007;
+/** Cortes en diagonal más cortos que esto (fracción del lado) sin nada detrás se completan como esquina. */
+const CORNER_CUT_FRAC = 0.1;
 /** Escalones más cortos que esto (fracción del lado) se alinean: dientes en las uniones. */
 const STEP_FRAC = 0.012;
 /** Tolerancia de simplificación, en celdas de la grilla. */
@@ -263,11 +267,45 @@ export function regionPolygon(
     return set.has(labels[gy * grid.width + gx]);
   };
   const stepCells = Math.max(3, Math.round(STEP_FRAC * Math.max(grid.width, grid.height)));
+  const cornerCut = Math.round(CORNER_CUT_FRAC * Math.max(grid.width, grid.height));
+  const foreign = (x: number, y: number) => {
+    const gx = Math.floor(x);
+    const gy = Math.floor(y);
+    if (gx < 0 || gy < 0 || gx >= grid.width || gy >= grid.height) return true;
+    const l = grid.labels[gy * grid.width + gx];
+    return l >= 0 && !set.has(l);
+  };
+  // Del lado de afuera de un tramo: ¿cuántas celdas seguidas de trazo (sin dueño) hay?
+  const wallCells = Math.max(3, Math.round(THICK_WALL_FRAC * Math.max(grid.width, grid.height)));
+  const thickBeyond = (a: PlanPoint, b: PlanPoint, out: PlanPoint) => {
+    let thick = 0;
+    const samples = 3;
+    for (let i = 1; i <= samples; i++) {
+      const t = i / (samples + 1);
+      let x = a.x + (b.x - a.x) * t;
+      let y = a.y + (b.y - a.y) * t;
+      let run = 0;
+      for (let d = 0; d < wallCells + 2; d++) {
+        x += out.x;
+        y += out.y;
+        const gx = Math.floor(x);
+        const gy = Math.floor(y);
+        if (gx < 0 || gy < 0 || gx >= grid.width || gy >= grid.height) break;
+        const l = grid.labels[gy * grid.width + gx];
+        if (set.has(l)) continue;
+        if (l !== -1) break;
+        run++;
+      }
+      if (run >= wallCells) thick++;
+    }
+    return thick >= 2;
+  };
   const shape = (e: number) => {
     let p = cleanPolygon(orthogonalize(simplifyClosed(raw, e)));
     // Arcos de puertas y curvas → esquina recta; escalones chicos en las uniones → alineados.
-    p = cleanPolygon(orthogonalize(straightenCurves(p, inside)));
-    return cleanPolygon(orthogonalize(removeSmallSteps(p, stepCells)));
+    p = cleanPolygon(orthogonalize(straightenCurves(p, inside, thickBeyond, foreign, cornerCut)));
+    p = cleanPolygon(orthogonalize(removeSmallSteps(p, stepCells)));
+    return cleanPolygon(fillCornerNotches(p, foreign, cornerCut));
   };
   let eps = SIMPLIFY_CELLS;
   let poly = shape(eps);
@@ -281,6 +319,20 @@ export function regionPolygon(
 }
 
 const isAxisEdge = (a: PlanPoint, b: PlanPoint) => Math.abs(a.x - b.x) < 1e-6 || Math.abs(a.y - b.y) < 1e-6;
+
+/** ¿Algún punto del triángulo a-b-c cumple la condición? (muestreo) */
+function triangleHas(a: PlanPoint, b: PlanPoint, c: PlanPoint, test: (x: number, y: number) => boolean): boolean {
+  const N = 8;
+  for (let i = 0; i <= N; i++) {
+    for (let j = 0; i + j <= N; j++) {
+      const u = i / N;
+      const v = j / N;
+      const w = 1 - u - v;
+      if (test(a.x * u + b.x * v + c.x * w, a.y * u + b.y * v + c.y * w)) return true;
+    }
+  }
+  return false;
+}
 
 /** Fracción del triángulo a-b-c que pertenece al espacio (muestreo). */
 function triangleMembership(a: PlanPoint, b: PlanPoint, c: PlanPoint, inside: (x: number, y: number) => boolean): number {
@@ -304,7 +356,16 @@ function triangleMembership(a: PlanPoint, b: PlanPoint, c: PlanPoint, inside: (x
  * se cambian por una esquina recta: la que mejor coincide con el espacio.
  * Un único tramo inclinado es una pared en diagonal de verdad y se respeta.
  */
-export function straightenCurves(poly: PlanPoint[], inside: (x: number, y: number) => boolean): PlanPoint[] {
+export function straightenCurves(
+  poly: PlanPoint[],
+  inside: (x: number, y: number) => boolean,
+  /** ¿Del lado de afuera de este tramo hay un muro grueso? (pared curva real, no se toca) */
+  thickBeyond: (a: PlanPoint, b: PlanPoint, outward: PlanPoint) => boolean = () => false,
+  /** ¿El punto es de otro ambiente o del exterior? (para completar esquinas mordidas) */
+  foreign: (x: number, y: number) => boolean = () => true,
+  /** Largo máximo de un corte en diagonal que se completa como esquina. */
+  maxCornerCut = 0,
+): PlanPoint[] {
   const n = poly.length;
   if (n < 4) return poly;
   const diag = poly.map((p, i) => !isAxisEdge(p, poly[(i + 1) % n]!));
@@ -325,7 +386,30 @@ export function straightenCurves(poly: PlanPoint[], inside: (x: number, y: numbe
     const a = poly[e]!;
     const b = poly[(start + k + len) % n]!;
     out.push(a);
-    if (len >= 2) {
+    // Una curva contra un muro grueso es una pared curva: se deja como está.
+    let wallCurve = false;
+    for (let j = 0; j < len && !wallCurve; j++) {
+      const p = poly[(e + j) % n]!;
+      const q = poly[(e + j + 1) % n]!;
+      const ex = q.x - p.x;
+      const ey = q.y - p.y;
+      const l = Math.hypot(ex, ey) || 1;
+      // Normal con producto cruz positivo; adentro si coincide con el signo del área.
+      const sign = area > 0 ? -1 : 1;
+      wallCurve = thickBeyond(p, q, { x: (-ey / l) * sign, y: (ex / l) * sign });
+    }
+    if (len === 1 && maxCornerCut > 0 && Math.hypot(b.x - a.x, b.y - a.y) <= maxCornerCut) {
+      // Un corte en diagonal corto sin nada del otro lado: es una esquina mordida
+      // por un mueble, no una ochava. Se completa la esquina.
+      for (const c of [{ x: b.x, y: a.y }, { x: a.x, y: b.y }]) {
+        const cross = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+        if (Math.sign(cross) === Math.sign(area)) continue;
+        if (!triangleHas(a, b, c, foreign)) out.push(c);
+        break;
+      }
+    } else if (wallCurve) {
+      for (let j = 1; j < len; j++) out.push(poly[(e + j) % n]!);
+    } else if (len >= 2) {
       const pick = [{ x: b.x, y: a.y }, { x: a.x, y: b.y }]
         .map((c) => {
           const cross = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
@@ -372,6 +456,39 @@ export function removeSmallSteps(poly: PlanPoint[], tol: number): PlanPoint[] {
       } else {
         a.x = b.x = c.x;
       }
+      p = cleanPolygon(p);
+      changed = true;
+    }
+    if (!changed) break;
+  }
+  return p;
+}
+
+/**
+ * Entrantes rectangulares chicos (dos lados cortos que "muerden" una esquina,
+ * típicamente un mueble contra dos paredes): si detrás no hay otro ambiente ni
+ * exterior, la esquina se completa.
+ */
+export function fillCornerNotches(poly: PlanPoint[], foreign: (x: number, y: number) => boolean, maxLen: number): PlanPoint[] {
+  let p = poly.map((q) => ({ ...q }));
+  const area = shoelace(p);
+  for (let iter = 0; iter < poly.length; iter++) {
+    const n = p.length;
+    if (n <= 4) return p;
+    let changed = false;
+    for (let i = 0; i < n && !changed; i++) {
+      const b = p[i]!;
+      const c = p[(i + 1) % n]!;
+      const d = p[(i + 2) % n]!;
+      if (!isAxisEdge(b, c) || !isAxisEdge(c, d)) continue;
+      if (Math.hypot(c.x - b.x, c.y - b.y) > maxLen || Math.hypot(d.x - c.x, d.y - c.y) > maxLen) continue;
+      // Esquina cóncava en c (el interior queda del lado de afuera del giro).
+      const turn = (c.x - b.x) * (d.y - c.y) - (c.y - b.y) * (d.x - c.x);
+      if (Math.sign(turn) === Math.sign(area) || turn === 0) continue;
+      const e = { x: b.x + d.x - c.x, y: b.y + d.y - c.y };
+      if (triangleHas(b, c, d, foreign) || triangleHas(b, d, e, foreign)) continue;
+      // Se reemplaza c por la esquina opuesta del rectángulo.
+      p[(i + 1) % n] = e;
       p = cleanPolygon(p);
       changed = true;
     }

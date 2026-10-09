@@ -1492,4 +1492,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Los escalones cortos que aparecían en las uniones de muros se alinean con la pared más larga." },
     ],
   },
+  {
+    id: "ship-2026-10-10-plano-vanos-y-muebles",
+    version: "1.51.0",
+    releasedAt: "2026-10-10T10:00:00.000Z",
+    summary: "Planos: las puertas se cierran en el plano de la pared, los muebles grandes y las esquinas quedan dentro del ambiente y no se unen ambientes distintos.",
+    items: [
+      { kind: "MEJORA", text: "Vanos de puerta: cuando hay un arco de puerta dibujado, el ambiente se cierra con una línea de jamba a jamba (puertas simples y dobles), como en los programas de arquitectura." },
+      { kind: "MEJORA", text: "La cuña que barre una puerta es del ambiente hacia donde abre; el interior de un muro doble nunca se suma a un ambiente." },
+      { kind: "MEJORA", text: "Muebles grandes contra la pared (barras, mostradores, sillones en L) y ventanas retiradas quedan dentro del ambiente; las esquinas mordidas por un mueble se completan si detrás no hay otro ambiente." },
+      { kind: "MEJORA", text: "Dos sectores abiertos de un mismo ambiente (por ejemplo, inodoros y bachas de un baño) se unen cuando la IA les pone el mismo nombre, con la forma de la unión." },
+    ],
+  },
 ];
