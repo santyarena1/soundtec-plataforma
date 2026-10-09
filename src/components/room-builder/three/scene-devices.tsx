@@ -7,7 +7,7 @@
  */
 
 import { Html } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import { CopyPlus, RotateCw, Trash2 } from "lucide-react";
 import * as THREE from "three";
@@ -103,6 +103,9 @@ function SelectionHalo() {
   );
 }
 
+/** Las zonas de cobertura son solo visuales: el mouse las atraviesa (no agarran el equipo). */
+const NO_RAYCAST = () => null;
+
 function CoverageCone({ device, mode }: { device: SceneDevice; mode: CoverageViewMode }) {
   if (mode === "off") return null;
   const cov = device.coverage as DeviceCoverage | null;
@@ -111,7 +114,7 @@ function CoverageCone({ device, mode }: { device: SceneDevice; mode: CoverageVie
     const range = cov.maxRangeM ?? 4;
     const angle = (cov.hfovDeg * Math.PI) / 180;
     return (
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, range / 2]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, range / 2]} raycast={NO_RAYCAST}>
         <coneGeometry args={[Math.tan(angle / 2) * range, range, 48, 1, true]} />
         <meshBasicMaterial color="#14b8a6" transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
@@ -119,7 +122,7 @@ function CoverageCone({ device, mode }: { device: SceneDevice; mode: CoverageVie
   }
   if (device.designRole === "mic" && cov.micRadiusM) {
     return (
-      <mesh position={[0, -device.pose.y + 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, -device.pose.y + 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={NO_RAYCAST}>
         <ringGeometry args={[cov.micRadiusM * 0.97, cov.micRadiusM, 64]} />
         <meshBasicMaterial color="#f59e0b" transparent opacity={0.55} depthWrite={false} />
       </mesh>
@@ -240,7 +243,15 @@ function UnitItem({
     <group
       position={[pose.x, pose.y, pose.z]}
       rotation={[0, (pose.rotY * Math.PI) / 180, 0]}
-      onPointerDown={startDrag}
+      // Igual que los muebles: sin elegir, arrastrar mueve la cámara y un toque lo elige; elegido, se arrastra.
+      onPointerDown={(e: ThreeEvent<PointerEvent>) => {
+        if (selected) startDrag(e);
+      }}
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        if (selected || e.delta > CLICK_SLOP_PX) return;
+        e.stopPropagation();
+        onSelect();
+      }}
       onPointerOver={(e) => {
         e.stopPropagation();
         setHover(true);
@@ -268,6 +279,8 @@ function UnitItem({
 }
 
 const DUPLICATE_OFFSET_M = 0.45;
+/** Movimiento máximo (px) para que un toque cuente como click. */
+const CLICK_SLOP_PX = 4;
 
 /** Todas las unidades de un equipo, con sus acciones (mover, girar, duplicar, quitar). */
 export function SceneDeviceUnits({

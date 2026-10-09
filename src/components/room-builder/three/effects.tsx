@@ -14,7 +14,7 @@ export function SceneEffects() {
     <EffectComposer multisampling={0} enableNormalPass={false}>
       <N8AO halfRes aoRadius={0.55} distanceFalloff={0.9} intensity={2.6} color="#1a1410" />
       {/* Solo brillan las luces y pantallas (una pared blanca bien iluminada no debe "resplandecer"). */}
-      <Bloom mipmapBlur luminanceThreshold={1.6} luminanceSmoothing={0.15} intensity={0.45} />
+      <Bloom mipmapBlur radius={0.35} luminanceThreshold={1.8} luminanceSmoothing={0.1} intensity={0.3} />
       {/* Neutral (Khronos PBR): colores fieles, sin el amarillo apagado de ACES. */}
       <ToneMapping mode={ToneMappingMode.NEUTRAL} />
       <Vignette offset={0.4} darkness={0.22} />

@@ -1739,4 +1739,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Se descartan aclaraciones contradictorias (ej. \"no se mencionaron marcas\" cuando la frase nombra una)." },
     ],
   },
+  {
+    id: "ship-2026-10-12-arrastre-camara",
+    version: "1.62.3",
+    releasedAt: "2026-10-12T20:00:00.000Z",
+    summary: "Mover la cámara ya no agarra equipos: un equipo solo se arrastra después de elegirlo.",
+    items: [
+      { kind: "FIX", text: "Arrastrar en el 3D mueve la cámara aunque empiece sobre un equipo; un toque lo elige y recién ahí se arrastra (igual que los muebles)." },
+      { kind: "FIX", text: "Las zonas de cobertura (cono de la cámara, anillo de micrófonos) son solo visuales: ya no toman el mouse." },
+      { kind: "FIX", text: "Brillo de las luces de techo más contenido en calidad alta (sin velo sobre la imagen)." },
+    ],
+  },
 ];
