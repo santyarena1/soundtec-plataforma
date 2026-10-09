@@ -12,6 +12,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { IoProfilesCard } from "@/components/room-builder/io-profiles-card";
 
 type HubPreset = {
   key: string;
@@ -230,6 +231,8 @@ export function RoomBuilderHome() {
           </div>
         </div>
       </section>
+
+      <IoProfilesCard />
 
       <section className="grid gap-4 lg:grid-cols-3">
         <Link

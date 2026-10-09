@@ -29,6 +29,8 @@ import { resolveSceneFurniture, type FurnitureOverrides } from "@/services/room-
 import { FurnitureLayer } from "./three/furniture-layer";
 import { PlanUnderlay } from "./three/plan-underlay";
 import { NavHelp } from "./three/nav-help";
+import { CableLayer } from "./three/cable-layer";
+import type { CableLink } from "@/services/room-builder/cabling";
 import { SurfaceProvider } from "./three/surfaces";
 
 const PRESET_LABELS: Record<CameraPreset, string> = {
@@ -99,7 +101,10 @@ function SceneContent({
   quality,
   autoTour,
   showPlan,
+  cables,
 }: {
+  /** Cables a dibujar (pestaña Cableado). */
+  cables?: CableLink[] | null;
   scene: RoomScene;
   category: string;
   templateKey: string;
@@ -172,6 +177,7 @@ function SceneContent({
         />
       ))}
       <CameraRig preset={scene.cameraPreset} widthM={widthM} depthM={depthM} heightM={heightM} selected={selected} autoTour={autoTour} />
+      {cables?.length ? <CableLayer links={cables} /> : null}
       {quality === "high" ? <SceneEffects /> : null}
     </SurfaceProvider>
   );
@@ -189,7 +195,10 @@ export function RoomViewport({
   onUnitsChange,
   onFurnitureChange,
   projectName = "Sala",
+  cables = null,
 }: {
+  /** Cables del ambiente (se muestran al activarlos en la pestaña Cableado). */
+  cables?: CableLink[] | null;
   scene: RoomScene;
   category?: string;
   templateKey?: string;
@@ -284,6 +293,7 @@ export function RoomViewport({
               quality={quality}
               autoTour={autoTour}
               showPlan={showPlan}
+              cables={cables}
             />
           </Canvas>
           <LoadingOverlay />

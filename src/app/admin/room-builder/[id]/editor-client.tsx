@@ -25,6 +25,7 @@ import { rankModeForTier } from "@/services/room-builder/brief";
 import { HubPlan, readHubPlan } from "@/components/room-builder/plan/hub-plan";
 import { HubSpaces } from "@/components/room-builder/plan/hub-spaces";
 import { ProjectSystemPanel } from "@/components/room-builder/plan/project-system-panel";
+import { useCabling } from "@/components/room-builder/cabling/use-cabling";
 import { normalizeDeviceUnits, sceneDims, type DeviceUnit } from "@/services/room-builder/units";
 import type { FurnitureOverrides } from "@/services/room-builder/furnishing";
 import {
@@ -134,6 +135,8 @@ export function RoomBuilderEditor({
   const [ranking, setRanking] = useState(false);
   /** Producto elegido para ubicar en un slot (flujo producto → click slot). */
   const [staged, setStaged] = useState<StagedProduct | null>(null);
+  const cabling = useCabling(project.id, scene, project.category);
+  const [showCables, setShowCables] = useState(false);
 
   const selectedSlot = useMemo(
     () => scene.slots.find((s) => s.key === scene.selectedSlotKey) ?? null,
@@ -572,6 +575,7 @@ export function RoomBuilderEditor({
             onUnitsChange={onUnitsChange}
             onFurnitureChange={onFurnitureChange}
             projectName={project.name}
+            cables={showCables ? (cabling.plan?.links ?? null) : null}
           />
         </div>
       </div>
@@ -599,6 +603,9 @@ export function RoomBuilderEditor({
         onAddDevice={onAddDevice}
         onRemoveDevice={onRemoveDevice}
         onReload={() => void reloadProject()}
+        cabling={cabling}
+        showCables={showCables}
+        onShowCables={setShowCables}
       />
     </div>
   );

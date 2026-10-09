@@ -1616,4 +1616,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Barras y mesadas que se unen con otra pieza ya no salen como un marco vacío." },
     ],
   },
+  {
+    id: "ship-2026-10-11-cableado-fichas",
+    version: "1.57.0",
+    releasedAt: "2026-10-11T06:00:00.000Z",
+    summary: "Cableado de cada sala con los puertos reales de las fichas del fabricante: recorridos, metros y validación de señal, puertos, PoE y Dante.",
+    items: [
+      { kind: "NUEVO", text: "Puertos reales por producto: se leen de la tabla de especificaciones, la página y los PDF del fabricante; si el catálogo no tiene ficha, se busca la oficial en el sitio de la marca (y, si no está publicada, en distribuidores, manuales y foros técnicos). Cada dato guarda la cita textual de la ficha: lo que no se puede verificar no entra." },
+      { kind: "NUEVO", text: "Pestaña Cableado: cables por tipo con metros, conexiones puerto a puerto y recorrido por pared y cielorraso; los cables se ven en el 3D con el color de su señal y se recalculan al mover un equipo." },
+      { kind: "NUEVO", text: "Validación de integrador: señal en común entre equipos, puertos libres, salidas de video, presupuesto PoE del switch, canales Dante, parlantes de baja impedancia en líneas de 70/100 V y largos máximos de HDMI, USB y red." },
+      { kind: "NUEVO", text: "Equipos sin ficha leída se marcan y no se cablean con suposiciones: \"Leer fichas ahora\" las busca y las lee en el momento. En el admin, \"Puertos reales (fichas)\" carga todo el catálogo con su avance." },
+    ],
+  },
 ];

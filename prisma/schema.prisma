@@ -386,6 +386,7 @@ model Product {
   labels          ProductLabel[]
   quoteItems      QuoteItem[]
   aiProfile       ProductAiProfile?
+  ioProfile       ProductIoProfile?
   systemSpec      ProductSystemSpec?
   designProfile   ProductDesignProfile?
   roomPlacements  RoomProjectDevice[]
@@ -1777,6 +1778,41 @@ model ProductAiProfile {
   @@index([environment])
   @@index([audioLine])
   @@index([ipRating])
+  @@index([builtAt])
+}
+
+/// Puertos y capacidades de conexión REALES de un producto, leídos de su ficha
+/// oficial (tabla de especificaciones del portal, HTML y PDF del fabricante).
+/// Cada puerto guarda la cita textual de la ficha que lo respalda: lo que no
+/// tiene cita verificable no entra. Es la base del cableado y del diagrama.
+model ProductIoProfile {
+  id        String  @id @default(cuid())
+  productId String  @unique
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  /// IoPort[]: { signal, direction, count, connector, channels, poe, label, evidence }
+  ports        Json
+  /// IoCapabilities: canales Dante, PoE (consumo / presupuesto), video máximo,
+  /// HDCP, USB, amplificación por canal, protocolos de control, con su evidencia.
+  capabilities Json
+  /// datasheet (PDF del fabricante) | specs (tabla del portal) | page (HTML) | none
+  source       String
+  sourceUrls   String[] @default([])
+  /// auto (todo con cita) | needs_review (faltan citas o hay dudas) | approved | not_applicable
+  status       String   @default("auto")
+  /// 0..1: parte de los datos con cita verificada.
+  confidence   Float    @default(0)
+  notes        String?  @db.Text
+  /// Citas que el modelo dio y no aparecían en la ficha (descartadas).
+  rejected     Json?
+  sourceHash       String
+  extractorVersion Int      @default(1)
+  model            String?
+  builtAt          DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  reviewedBy       String?
+
+  @@index([status])
   @@index([builtAt])
 }
 

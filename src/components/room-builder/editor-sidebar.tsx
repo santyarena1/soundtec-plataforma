@@ -21,6 +21,8 @@ import { PlanPanel } from "./plan-panel";
 import { DimensionsPanel } from "./dimensions-panel";
 import { InterconnectPanel } from "./interconnect-panel";
 import { SystemPanel, useSystemCheck } from "./system-panel";
+import { CablingPanel } from "./cabling/cabling-panel";
+import type { CablingState } from "./cabling/use-cabling";
 
 export type RankRow = {
   productId: string;
@@ -74,7 +76,7 @@ const SORT_LABELS: Record<RankSortMode, string> = {
   premium: "Premium",
 };
 
-type Tab = "equipos" | "sala" | "sistema" | "guia";
+type Tab = "equipos" | "sala" | "sistema" | "cableado" | "guia";
 
 export function roleLabel(role: string) {
   return ROLE_LABELS[role] ?? role;
@@ -488,6 +490,9 @@ export function EditorSidebar({
   onPickAny,
   onAddDevice,
   onRemoveDevice,
+  cabling,
+  showCables = false,
+  onShowCables = () => {},
 }: {
   projectId: string;
   category: string;
@@ -513,6 +518,10 @@ export function EditorSidebar({
   /** Equipo nuevo, de cualquier producto y con cualquier montaje. */
   onAddDevice: (productId: string, mount: MountOption, quantity: number) => void;
   onRemoveDevice: (slotKey: string) => void;
+  /** Cableado del ambiente (pestaña Cableado). */
+  cabling?: CablingState;
+  showCables?: boolean;
+  onShowCables?: (v: boolean) => void;
 }) {
   const [tab, setTab] = useState<Tab>("equipos");
   const [adding, setAdding] = useState(false);
@@ -522,6 +531,7 @@ export function EditorSidebar({
   const devicesKey = scene.devices.map((d) => `${d.slotKey}:${d.productId ?? ""}:${d.quantity}`).join("|");
   const system = useSystemCheck(projectId, devicesKey);
   const problems = system.findings?.filter((f) => f.level === "error" || f.level === "warn").length ?? 0;
+  const cableIssues = cabling?.plan?.findings.filter((f) => f.level === "error" || f.level === "warn").length ?? 0;
   const total = scene.slots.length;
   const done = scene.slots.filter((s) => scene.devices.some((d) => d.slotKey === s.key && d.productId)).length;
 
@@ -538,6 +548,7 @@ export function EditorSidebar({
     ["equipos", `Equipos ${done}/${total}`],
     ["sala", "Sala"],
     ["sistema", problems ? `Sistema · ${problems}` : "Sistema"],
+    ["cableado", cableIssues ? `Cableado · ${cableIssues}` : "Cableado"],
     ["guia", "Guía"],
   ];
 
@@ -717,6 +728,7 @@ export function EditorSidebar({
           </div>
         ) : null}
 
+        {tab === "cableado" && cabling ? <CablingPanel state={cabling} show3d={showCables} onShow3d={onShowCables} /> : null}
         {tab === "guia" ? (
           <div className="space-y-3 p-3">
             <PlatformGuideCard category={category} platform={platform} />
