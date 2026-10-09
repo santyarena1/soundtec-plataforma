@@ -26,8 +26,8 @@ export function moodFor(category: string, templateKey: string): LightMood {
 }
 
 const MOODS: Record<LightMood, { key: string; keyIntensity: number; fill: string; ambient: number; panel: string; window: string; env: number }> = {
-  office: { key: "#fffaf3", keyIntensity: 2.4, fill: "#eef2f7", ambient: 0.3, panel: "#ffffff", window: "#f2f6fb", env: 1.35 },
-  warm: { key: "#fff4e6", keyIntensity: 2.3, fill: "#f3f1ee", ambient: 0.28, panel: "#fffaf2", window: "#fbf8f3", env: 1.25 },
+  office: { key: "#fffaf3", keyIntensity: 2.4, fill: "#eef2f7", ambient: 0.24, panel: "#ffffff", window: "#f2f6fb", env: 1.15 },
+  warm: { key: "#fff4e6", keyIntensity: 2.3, fill: "#f3f1ee", ambient: 0.24, panel: "#fffaf2", window: "#fbf8f3", env: 1.12 },
   evening: { key: "#ffe7c7", keyIntensity: 1.9, fill: "#dfe4f0", ambient: 0.2, panel: "#fff1dc", window: "#c4d0ee", env: 1.05 },
   outdoor: { key: "#fff4dc", keyIntensity: 3, fill: "#cfe3ff", ambient: 0.25, panel: "#ffffff", window: "#ffffff", env: 1 },
   dark: { key: "#e6ecff", keyIntensity: 1.2, fill: "#8fa6ff", ambient: 0.08, panel: "#dfe8ff", window: "#5a6fa8", env: 0.55 },

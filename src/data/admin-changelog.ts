@@ -1719,4 +1719,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Auditoría automática ampliada: paso libre, sillas mirando a su mesa, muebles de pared apoyados, plano respetado y ninguna tipología pierde muebles en su tamaño normal." },
     ],
   },
+  {
+    id: "ship-2026-10-12-render-sin-velo",
+    version: "1.62.1",
+    releasedAt: "2026-10-12T17:00:00.000Z",
+    summary: "3D nítido: sin el velo blanco sobre las paredes en la vista a la altura de los ojos.",
+    items: [
+      { kind: "FIX", text: "El brillo de luces ahora solo afecta a luces y pantallas: las paredes blancas ya no resplandecen ni se ven borrosas." },
+      { kind: "MEJORA", text: "Luz de oficina y cálida apenas más suave para que el blanco no se queme." },
+    ],
+  },
 ];
