@@ -61,6 +61,22 @@ export type RoomScene = {
   brief?: RoomBrief | null;
   /** Muebles quitados o movidos por el usuario (sobre el amoblamiento de la tipología). */
   furniture?: FurnitureOverrides | null;
+  /** El plano original debajo de la sala (ambientes creados desde un plano). */
+  planUnderlay?: PlanUnderlay | null;
+};
+
+/**
+ * Cómo calza el plano en el piso de la sala: el centro de la sala (0,0) cae en
+ * `centerPx` de la imagen; X a la derecha y Z hacia abajo del plano.
+ */
+export type PlanUnderlay = {
+  imageUrl: string;
+  widthPx: number;
+  heightPx: number;
+  centerPx: { x: number; y: number };
+  /** Metros por píxel en cada eje. */
+  mppX: number;
+  mppZ: number;
 };
 
 export function buildSceneFromTemplate(template: RoomTemplate): RoomScene {

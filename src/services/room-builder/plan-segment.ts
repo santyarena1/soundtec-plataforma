@@ -33,6 +33,12 @@ const TEXT_LINE_ASPECT = 3;
 const TEXT_LINE_DENSITY = 0.85;
 /** Entrantes del contorno más angostos que esto (×2) se rellenan: hojas de puerta, muebles contra la pared. */
 const CONTOUR_CLOSE = 0.02;
+/** Hasta dónde un ambiente se suma trazos sin dueño (muebles contra la pared, muros): fracción del lado mayor. */
+const ABSORB_REACH = 0.05;
+/** Hueco blanco encerrado más grande que esto no es un mueble (fracción del plano). */
+const POCKET_MAX = 0.006;
+/** Cuánto puede pasarse un ambiente de su recuadro original al sumar muebles y muros. */
+const ABSORB_MARGIN = 0.012;
 /** Espacios más chicos que esto son letras o ruido. */
 const MIN_REGION_FRAC = 0.004;
 /** Mínima superposición para asignar un espacio a un ambiente de la IA. */
@@ -279,12 +285,164 @@ export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: G
   });
   const grid = { labels, width, height };
   const closeCells = Math.max(1, Math.round(CONTOUR_CLOSE * Math.max(width, height)));
-  const kept = dropFurniture(regions).map((reg) => {
+  // 4) Los muebles son parte del ambiente: lo encerrado (mostrador, isla) y lo
+  //    pegado a la pared (sillones, macetas) se suma al ambiente que lo rodea.
+  const tiny = new Set<number>();
+  stats.forEach((st, label) => {
+    if (!coreBorder[label] && !st.border && st.count / (width * height) < MIN_REGION_FRAC) tiny.add(label);
+  });
+  const rooms = absorbFurniture(labels, wall, width, height, regions, tiny, Math.round(ABSORB_REACH * Math.max(width, height)), r + 2);
+  const kept = rooms.map((reg) => {
     const polygon = regionPolygon(grid, [reg.label], closeCells);
     // Un recuadro no necesita polígono: solo las formas en L, ochavas, etc.
     return polygon && !isAxisRect(polygon) ? { ...reg, polygon } : reg;
   });
   return { regions: kept, grid, closeCells };
+}
+
+/**
+ * Suma los muebles a los ambientes. Los espacios "mueble" (dentro de otro y
+ * mucho más chicos) pasan a ser del ambiente que los contiene; después cada
+ * ambiente crece sobre trazos y huecos sin dueño (contornos de muebles contra
+ * la pared, hojas de puerta, muros) hasta `reach` celdas, sin pisar otros
+ * ambientes ni el exterior. Devuelve los ambientes con su tamaño actualizado.
+ */
+function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, height: number, regions: PlanRegion[], tiny: Set<number>, reach: number, wallDepth: number): PlanRegion[] {
+  const rooms = dropFurniture(regions);
+  const roomLabels = new Set(rooms.map((r) => r.label));
+  // Mueble → ambiente que lo contiene (el más chico que lo encierra).
+  const owner = new Map<number, number>();
+  for (const f of regions) {
+    if (roomLabels.has(f.label)) continue;
+    const host = rooms.filter((o) => containsBox(o.box, f.box)).sort((a, b) => a.areaFrac - b.areaFrac)[0];
+    if (host) owner.set(f.label, host.label);
+  }
+  let frontier: number[] = [];
+  for (let p = 0; p < labels.length; p++) {
+    const l = labels[p];
+    const host = owner.get(l);
+    if (host !== undefined) labels[p] = host;
+    if (roomLabels.has(labels[p])) frontier.push(p);
+  }
+  // Exterior: el blanco conectado al borde de la imagen sin cruzar trazos ni ambientes.
+  const outside = new Uint8Array(labels.length);
+  const stack: number[] = [];
+  for (let x = 0; x < width; x++) stack.push(x, (height - 1) * width + x);
+  for (let y = 0; y < height; y++) stack.push(y * width, y * width + width - 1);
+  while (stack.length) {
+    const p = stack.pop() as number;
+    if (outside[p] || wall[p] || roomLabels.has(labels[p])) continue;
+    outside[p] = 1;
+    const x = p % width;
+    if (x > 0) stack.push(p - 1);
+    if (x < width - 1) stack.push(p + 1);
+    if (p >= width) stack.push(p - width);
+    if (p < width * (height - 1)) stack.push(p + width);
+  }
+  // Huecos blancos sin dueño: solo los chicos son interiores de muebles. Los
+  // grandes (un placard o pasillo que no se detectó) no se tocan.
+  const pocketOk = new Uint8Array(labels.length);
+  const seen = new Uint8Array(labels.length);
+  const maxPocket = POCKET_MAX * width * height;
+  const isPocket = (q: number) => !outside[q] && ((labels[q] === -1 && !wall[q]) || tiny.has(labels[q]));
+  for (let start = 0; start < labels.length; start++) {
+    if (seen[start] || !isPocket(start)) continue;
+    const comp: number[] = [];
+    seen[start] = 1;
+    stack.push(start);
+    while (stack.length) {
+      const p = stack.pop() as number;
+      comp.push(p);
+      const x = p % width;
+      const ns = [x > 0 ? p - 1 : -1, x < width - 1 ? p + 1 : -1, p >= width ? p - width : -1, p < width * (height - 1) ? p + width : -1];
+      for (const q of ns) {
+        if (q >= 0 && !seen[q] && isPocket(q)) {
+          seen[q] = 1;
+          stack.push(q);
+        }
+      }
+    }
+    if (comp.length <= maxPocket) for (const p of comp) pocketOk[p] = 1;
+  }
+  const absorbedInk = new Uint8Array(labels.length);
+  // Cada ambiente solo suma dentro de su recuadro original + el espesor de un muro:
+  // un sillón contra la pared está adentro; el ambiente de al lado, no.
+  const margin = Math.max(1, Math.round(ABSORB_MARGIN * Math.max(width, height)));
+  const limits = new Map(
+    rooms.map((r) => [
+      r.label,
+      { x0: Math.floor(r.box.x0 * width) - margin, y0: Math.floor(r.box.y0 * height) - margin, x1: Math.ceil(r.box.x1 * width) + margin, y1: Math.ceil(r.box.y1 * height) + margin },
+    ]),
+  );
+  for (let step = 0; step < reach && frontier.length; step++) {
+    const nextFrontier: number[] = [];
+    for (const p of frontier) {
+      const x = p % width;
+      const lim = limits.get(labels[p]);
+      const ns = [x > 0 ? p - 1 : -1, x < width - 1 ? p + 1 : -1, p >= width ? p - width : -1, p < width * (height - 1) ? p + width : -1];
+      for (const q of ns) {
+        if (q < 0 || outside[q]) continue;
+        const qx = q % width;
+        const qy = (q - qx) / width;
+        if (lim && (qx < lim.x0 || qx >= lim.x1 || qy < lim.y0 || qy >= lim.y1)) continue;
+        const l = labels[q];
+        if ((l === -1 && wall[q]) || pocketOk[q]) {
+          if (l === -1 && wall[q]) absorbedInk[q] = 1;
+          pocketOk[q] = 0;
+          labels[q] = labels[p];
+          nextFrontier.push(q);
+        }
+      }
+    }
+    frontier = nextFrontier;
+  }
+  // Los muros vuelven a ser muros: se pela el trazo sumado que toca el exterior u
+  // otro ambiente, capa por capa, hasta el espesor de un muro. Los contornos de
+  // muebles (adentro del ambiente) no tocan nada de eso y se quedan.
+  const blocks = (p: number, own: number) => {
+    const l = labels[p];
+    return outside[p] === 1 || (l !== own && l !== -1) || (l === -1 && !wall[p]);
+  };
+  for (let layer = 0; layer < wallDepth; layer++) {
+    const peel: number[] = [];
+    for (let p = 0; p < labels.length; p++) {
+      if (!absorbedInk[p]) continue;
+      const own = labels[p];
+      const x = p % width;
+      const edge = x === 0 || x === width - 1 || p < width || p >= width * (height - 1);
+      const ns = [x > 0 ? p - 1 : -1, x < width - 1 ? p + 1 : -1, p >= width ? p - width : -1, p < width * (height - 1) ? p + width : -1];
+      if (edge || ns.some((q) => q >= 0 && (blocks(q, own) || (labels[q] === -1 && wall[q])))) peel.push(p);
+    }
+    if (!peel.length) break;
+    for (const p of peel) {
+      labels[p] = -1;
+      absorbedInk[p] = 0;
+    }
+  }
+  // Recuadro y superficie con lo sumado.
+  const byLabel = new Map(rooms.map((r) => [r.label, { count: 0, x0: width, y0: height, x1: 0, y1: 0 }]));
+  for (let p = 0; p < labels.length; p++) {
+    const st = byLabel.get(labels[p]);
+    if (!st) continue;
+    const x = p % width;
+    const y = (p - x) / width;
+    st.count++;
+    if (x < st.x0) st.x0 = x;
+    if (x > st.x1) st.x1 = x;
+    if (y < st.y0) st.y0 = y;
+    if (y > st.y1) st.y1 = y;
+  }
+  return rooms.map((r) => {
+    const st = byLabel.get(r.label)!;
+    return { ...r, areaFrac: st.count / (width * height), box: { x0: st.x0 / width, y0: st.y0 / height, x1: Math.min(1, (st.x1 + 1) / width), y1: Math.min(1, (st.y1 + 1) / height) } };
+  });
+}
+
+function containsBox(outer: PlanBox, inner: PlanBox): boolean {
+  const ix = Math.max(0, Math.min(inner.x1, outer.x1) - Math.max(inner.x0, outer.x0));
+  const iy = Math.max(0, Math.min(inner.y1, outer.y1) - Math.max(inner.y0, outer.y0));
+  const area = boxArea(inner);
+  return area > 0 && (ix * iy) / area >= CONTAINED;
 }
 
 /** Un espacio dentro de otro y mucho más chico es un mueble (mostrador, sillón, maceta), no un ambiente. */

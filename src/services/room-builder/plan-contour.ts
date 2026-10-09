@@ -208,11 +208,29 @@ function closeRegion(grid: { labels: Int32Array; width: number; height: number }
   const inverse = new Uint8Array(grown.length);
   for (let i = 0; i < grown.length; i++) inverse[i] = grown[i] ? 0 : 1;
   const shrunkInv = dilateSquare(inverse, w, h, k);
+  // Apertura chica: saca puntas finas (líneas de cota o de muebles que quedaron pegadas).
+  const kOpen = Math.max(1, Math.round(k / 4));
+  const thin = dilateSquare(shrunkInv, w, h, kOpen);
+  const coreMask = new Uint8Array(thin.length);
+  for (let i = 0; i < thin.length; i++) coreMask[i] = thin[i] ? 0 : 1;
+  const opened = dilateSquare(coreMask, w, h, kOpen);
   const target = members.values().next().value as number;
   const out = new Int32Array(labels);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      if (shrunkInv[y * w + x]) continue;
+      if (shrunkInv[y * w + x]) {
+        // Afuera del cierre: si era del espacio, igual se descarta solo si es una punta.
+        const gx = x + wx0;
+        const gy = y + wy0;
+        if (gx >= 0 && gy >= 0 && gx < width && gy < height && members.has(labels[gy * width + gx])) out[gy * width + gx] = -1;
+        continue;
+      }
+      if (!opened[y * w + x]) {
+        const gx = x + wx0;
+        const gy = y + wy0;
+        if (gx >= 0 && gy >= 0 && gx < width && gy < height && members.has(labels[gy * width + gx])) out[gy * width + gx] = -1;
+        continue;
+      }
       const gx = x + wx0;
       const gy = y + wy0;
       if (gx < 0 || gy < 0 || gx >= width || gy >= height) continue;

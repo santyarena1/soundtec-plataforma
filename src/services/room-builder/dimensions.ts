@@ -22,6 +22,15 @@ export function resizeSceneMeters(
     areaM2: Math.round(widthM * depthM * 100) / 100,
   };
 
+  // El plano del piso se estira con la sala (mismos píxeles, más o menos metros).
+  if (scene.planUnderlay && scene.widthM > 0 && scene.depthM > 0) {
+    resized.planUnderlay = {
+      ...scene.planUnderlay,
+      mppX: (scene.planUnderlay.mppX * resized.widthM) / scene.widthM,
+      mppZ: (scene.planUnderlay.mppZ * resized.depthM) / scene.depthM,
+    };
+  }
+
   // Forma libre (desde el plano): las paredes se estiran con la sala.
   if (scene.plan?.enabled && scene.plan.floorPolygon.length >= 3) {
     const sx = resized.widthM / (scene.widthM || resized.widthM);

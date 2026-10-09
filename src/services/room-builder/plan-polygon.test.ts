@@ -14,6 +14,7 @@ import {
   removeVertex,
   snapOrtho,
   snapToVertices,
+  planUnderlayFor,
   polygonToRoomMeters,
   translatePolygon,
 } from "./plan-polygon";
@@ -107,4 +108,16 @@ test("polígono a metros: centrado y a la medida de la sala", () => {
   assert.deepEqual(m[0], { x: -4, y: -2 });
   assert.deepEqual(m[2], { x: 4, y: 0 });
   assert.deepEqual(m[4], { x: 0, y: 2 });
+});
+
+test("el plano calza en el piso: el centro de la sala cae en el centro del recuadro", () => {
+  const u = planUnderlayFor({ x0: 0.1, y0: 0.2, x1: 0.5, y1: 0.6 }, 8, 6, { url: "/p.webp", widthPx: 1000, heightPx: 500 });
+  const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-6, `${a} ≈ ${b}`);
+  near(u.centerPx.x, 300);
+  near(u.centerPx.y, 200);
+  near(u.mppX, 8 / 400);
+  near(u.mppZ, 6 / 200);
+  // La esquina de la sala (-4, -3) m cae en la esquina del recuadro.
+  near(u.centerPx.x + -4 / u.mppX, 100);
+  near(u.centerPx.y + -3 / u.mppZ, 100);
 });

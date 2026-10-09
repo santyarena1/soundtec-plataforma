@@ -11,7 +11,7 @@ import type { BrandGroup, BriefControl, BriefTier, BriefVcPlatform, RoomBrief } 
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { PLAN_KIND_CATEGORY, type PlanBox, type PlanKind } from "./plan-analysis";
 import { boundsFromPolygon, wallsFromPolygon, type PlanModeState } from "./plan-mode";
-import { normalizePolygon, polygonToRoomMeters, type PlanPoint } from "./plan-polygon";
+import { normalizePolygon, planUnderlayFor, polygonBox, polygonToRoomMeters, type PlanPoint } from "./plan-polygon";
 import { createSpaceProject, getRoomProject, updateRoomProjectScene } from "./project-service";
 import { parseScene } from "./scene";
 import { getRoomTemplate } from "./templates";
@@ -120,30 +120,37 @@ export async function createProjectFromPlan(input: PlanProjectInput) {
 }
 
 /**
- * Ambiente con forma libre (L, ochava…): las paredes 3D siguen el polígono
- * dibujado sobre el plano. Devuelve la superficie real en m².
+ * Lo que el ambiente toma del plano: el plano impreso en su piso (siempre) y,
+ * si tiene forma libre (L, ochava…), paredes y piso con esa forma. Devuelve
+ * la superficie real en m².
  */
-async function applyRoomShape(
+async function applyPlanContext(
   projectId: string,
-  polygon: PlanPoint[],
+  box: PlanBox,
+  polygon: PlanPoint[] | null,
   ctx: { widthM: number; depthM: number; heightM: number; imageUrl: string; image: { widthPx: number; heightPx: number } },
 ): Promise<number> {
-  const floorPolygon = polygonToRoomMeters(polygon, ctx.widthM, ctx.depthM);
-  const bounds = boundsFromPolygon(floorPolygon);
   const project = await getRoomProject(projectId);
   const scene = project ? parseScene(project.sceneJson) : null;
   if (!scene) return ctx.widthM * ctx.depthM;
+  const planUnderlay = planUnderlayFor(box, ctx.widthM, ctx.depthM, { url: ctx.imageUrl, widthPx: ctx.image.widthPx, heightPx: ctx.image.heightPx });
+  if (!polygon) {
+    await updateRoomProjectScene(projectId, { ...scene, planUnderlay });
+    return ctx.widthM * ctx.depthM;
+  }
+  const floorPolygon = polygonToRoomMeters(polygon, ctx.widthM, ctx.depthM);
+  const bounds = boundsFromPolygon(floorPolygon);
   const plan: PlanModeState = {
     enabled: true,
     imageUrl: ctx.imageUrl,
-    metersPerPixel: ctx.widthM / Math.max(1, ctx.image.widthPx),
+    metersPerPixel: planUnderlay.mppX,
     imageWidthPx: ctx.image.widthPx,
     imageHeightPx: ctx.image.heightPx,
     heightM: ctx.heightM,
     walls: wallsFromPolygon(floorPolygon),
     floorPolygon,
   };
-  await updateRoomProjectScene(projectId, { ...scene, plan, areaM2: bounds.areaM2 }, { areaM2: bounds.areaM2 });
+  await updateRoomProjectScene(projectId, { ...scene, plan, planUnderlay, areaM2: bounds.areaM2 }, { areaM2: bounds.areaM2 });
   return bounds.areaM2;
 }
 
@@ -167,6 +174,8 @@ async function createPlanSpace(room: PlanRoomInput, hubId: string, imageUrl: str
     parentId: hubId,
     brief: briefForPlanRoom(template.category, template.key, input),
   });
-  const area = polygon ? await applyRoomShape(space.id, polygon, { widthM, depthM, heightM: input.heightM, imageUrl, image: input.image }) : areaM2;
+  // El recuadro de la forma (el polígono manda) para que el plano del piso calce con las paredes.
+  const box = polygon ? polygonBox(polygon) : room.box;
+  const area = await applyPlanContext(space.id, box, polygon, { widthM, depthM, heightM: input.heightM, imageUrl, image: input.image });
   return { link: { projectId: space.id, name: room.name, templateKey: template.key, box: room.box, ...(polygon ? { polygon } : {}) }, area };
 }

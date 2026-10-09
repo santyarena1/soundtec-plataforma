@@ -1471,4 +1471,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Proyecto desde plano: los ambientes se generan de a varios a la vez (más rápido y sin cortes con planos grandes)." },
     ],
   },
+  {
+    id: "ship-2026-10-10-plano-muebles-y-piso",
+    version: "1.50.0",
+    releasedAt: "2026-10-10T07:00:00.000Z",
+    summary: "Planos: los muebles dibujados quedan dentro del ambiente y cada sala 3D muestra el plano original en el piso.",
+    items: [
+      { kind: "MEJORA", text: "Detección: distingue muebles de paredes. Mostradores, sillones, macetas o islas (encerrados o contra la pared) ahora son parte del ambiente y no lo recortan. Las paredes no se suman y nunca se toma un ambiente vecino." },
+      { kind: "NUEVO", text: "Plano en el piso: cada sala creada desde un plano muestra el plano original debajo, alineado con sus paredes (muebles, puertas y sanitarios dibujados) con los equipos 3D encima. Botón “Piso: plano / muebles 3D” para alternar." },
+      { kind: "MEJORA", text: "Al cambiar las medidas de la sala o usar Reparar 3D, el plano del piso y la forma real se mantienen." },
+    ],
+  },
 ];

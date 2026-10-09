@@ -196,5 +196,7 @@ export function rebuildSceneKeepingProducts(
   next.cameraPreset = current.cameraPreset || "general";
   next.coverageView = current.coverageView || "zones";
   next.plan = current.plan ?? null;
+  next.planUnderlay = current.planUnderlay ?? null;
+  if (current.plan?.enabled) next.areaM2 = current.areaM2;
   return next;
 }

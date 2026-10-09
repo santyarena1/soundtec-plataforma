@@ -11,7 +11,7 @@
 
 import { Canvas, useThree } from "@react-three/fiber";
 import { PerformanceMonitor, useProgress } from "@react-three/drei";
-import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { Box as BoxIcon } from "lucide-react";
 import { ArModal } from "./ar-modal";
 import { SceneExportBridge, type ExportRoomFn } from "./three/scene-export";
@@ -27,6 +27,7 @@ import { SceneDeviceUnits } from "./three/scene-devices";
 import type { DeviceUnit } from "@/services/room-builder/units";
 import { resolveSceneFurniture, type FurnitureOverrides } from "@/services/room-builder/furnishing";
 import { FurnitureLayer } from "./three/furniture-layer";
+import { PlanUnderlay } from "./three/plan-underlay";
 import { SurfaceProvider } from "./three/surfaces";
 
 const PRESET_LABELS: Record<CameraPreset, string> = {
@@ -96,6 +97,7 @@ function SceneContent({
   onSelectFurniture,
   quality,
   autoTour,
+  showPlan,
 }: {
   scene: RoomScene;
   category: string;
@@ -108,6 +110,8 @@ function SceneContent({
   onSelectFurniture: (id: string | null) => void;
   quality: Quality;
   autoTour: boolean;
+  /** Plano dibujado en el piso en vez de los muebles genéricos. */
+  showPlan: boolean;
 }) {
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const selected = scene.devices.find((d) => d.slotKey === scene.selectedSlotKey) ?? null;
@@ -135,8 +139,13 @@ function SceneContent({
         shadowMapSize={quality === "high" ? 2048 : 1024}
       />
       <RoomShell widthM={widthM} depthM={depthM} heightM={heightM} plan={scene.plan} category={category} templateKey={templateKey} />
+      {scene.planUnderlay && showPlan ? (
+        <Suspense fallback={null}>
+          <PlanUnderlay underlay={scene.planUnderlay} floor={floor} widthM={widthM} depthM={depthM} />
+        </Suspense>
+      ) : null}
       <FurnitureLayer
-        items={furniture}
+        items={scene.planUnderlay && showPlan ? [] : furniture}
         overrides={scene.furniture}
         dims={dims}
         selectedId={selectedFurnitureId}
@@ -204,6 +213,7 @@ export function RoomViewport({
   const [selectedFurnitureId, setSelectedFurnitureId] = useState<string | null>(null);
   const [quality, setQuality] = useState<Quality>("high");
   const [autoTour, setAutoTour] = useState(true);
+  const [showPlan, setShowPlan] = useState(true);
   const [canvasKey, setCanvasKey] = useState(0);
   const [showHelp, setShowHelp] = useState(true);
   const presets = Object.keys(PRESET_LABELS) as CameraPreset[];
@@ -272,6 +282,7 @@ export function RoomViewport({
               onSelectFurniture={setSelectedFurnitureId}
               quality={quality}
               autoTour={autoTour}
+              showPlan={showPlan}
             />
           </Canvas>
           <LoadingOverlay />
@@ -309,6 +320,16 @@ export function RoomViewport({
           >
             <BoxIcon className="h-3.5 w-3.5" /> AR
           </button>
+          {scene.planUnderlay ? (
+            <button
+              type="button"
+              onClick={() => setShowPlan((v) => !v)}
+              className={`rounded-lg px-2 py-1 text-[11px] font-semibold sm:px-2.5 sm:py-1.5 sm:text-xs ${showPlan ? "bg-teal-700 text-white" : "text-slate-700 hover:bg-white"}`}
+              title="Piso con el plano original (muebles y puertas dibujados) o con muebles 3D genéricos"
+            >
+              {showPlan ? "Piso: plano" : "Piso: muebles 3D"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => setAutoTour((v) => !v)}

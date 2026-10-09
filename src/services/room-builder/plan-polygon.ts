@@ -190,3 +190,25 @@ export function polygonToRoomMeters(poly: PlanPoint[], widthM: number, depthM: n
   const r2 = (n: number) => Math.round(n * 100) / 100;
   return poly.map((p) => ({ x: r2(((p.x - cx) / bw) * widthM), y: r2(((p.y - cy) / bh) * depthM) }));
 }
+
+/**
+ * Cómo calza el plano en el piso de una sala armada con el recuadro `box`
+ * (fracción de la imagen) y medidas `widthM` × `depthM`.
+ */
+export function planUnderlayFor(
+  box: PlanBox,
+  widthM: number,
+  depthM: number,
+  image: { url: string; widthPx: number; heightPx: number },
+): { imageUrl: string; widthPx: number; heightPx: number; centerPx: { x: number; y: number }; mppX: number; mppZ: number } {
+  const bwPx = Math.max(1, (box.x1 - box.x0) * image.widthPx);
+  const bhPx = Math.max(1, (box.y1 - box.y0) * image.heightPx);
+  return {
+    imageUrl: image.url,
+    widthPx: image.widthPx,
+    heightPx: image.heightPx,
+    centerPx: { x: ((box.x0 + box.x1) / 2) * image.widthPx, y: ((box.y0 + box.y1) / 2) * image.heightPx },
+    mppX: widthM / bwPx,
+    mppZ: depthM / bhPx,
+  };
+}
