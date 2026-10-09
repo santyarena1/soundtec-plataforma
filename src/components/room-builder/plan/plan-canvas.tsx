@@ -113,6 +113,8 @@ export function PlanCanvas({
   const [preview, setPreview] = useState<{ id: string; poly: PlanPoint[] } | null>(null);
   const [pen, setPen] = useState<PlanPoint[]>([]);
   const [cursor, setCursor] = useState<PlanPoint | null>(null);
+  /** El cursor del lápiz quedó pegado a una esquina existente (se marca con un aro). */
+  const [cursorSnapped, setCursorSnapped] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
 
   /** Píxeles de imagen por píxel de pantalla. */
@@ -166,6 +168,9 @@ export function PlanCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, pen]);
 
+  /** ¿El punto coincide con una esquina existente? */
+  const isMagnet = (p: PlanPoint) => [...otherVertices(null), ...pen].some((v) => v.x === p.x && v.y === p.y);
+
   /** Siguiente punto del lápiz: imán a esquinas existentes, si no, línea enderezada. */
   function penPoint(raw: PlanPoint, free: boolean): PlanPoint {
     const scale = imgPerScreen();
@@ -202,7 +207,9 @@ export function PlanCanvas({
   function onMove(e: ReactPointerEvent<SVGSVGElement>) {
     const p = toPoint(e);
     if (mode === "pen") {
-      setCursor(penPoint(p, e.altKey));
+      const next = penPoint(p, e.altKey);
+      setCursor(next);
+      setCursorSnapped(!e.altKey && isMagnet(next));
       return;
     }
     if (!drag) return;
@@ -261,9 +268,25 @@ export function PlanCanvas({
   const ordered = rooms.map((room, i) => [room, i] as const).sort(([a], [b]) => Number(a.id === selectedId) - Number(b.id === selectedId));
 
   return (
-    <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <div
+      className="relative w-full select-none overflow-hidden rounded-xl border border-slate-200 bg-white"
+      // El navegador no debe seleccionar ni arrastrar la imagen del plano: cada clic es un punto.
+      onPointerDownCapture={(e) => {
+        if ((e.target as HTMLElement).closest("input")) return;
+        if (e.pointerType === "mouse") e.preventDefault();
+        window.getSelection()?.removeAllRanges();
+      }}
+      onDragStart={(e) => e.preventDefault()}
+      onContextMenu={(e) => {
+        // Clic derecho con el lápiz = deshacer el último punto.
+        if (mode === "pen") {
+          e.preventDefault();
+          setPen((p) => p.slice(0, -1));
+        }
+      }}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={imageUrl} alt="Plano" className="block w-full select-none" draggable={false} />
+      <img src={imageUrl} alt="Plano" className="pointer-events-none block w-full select-none" draggable={false} />
       <svg
         ref={svgRef}
         viewBox={`0 0 ${widthPx} ${heightPx}`}
@@ -426,7 +449,10 @@ export function PlanCanvas({
           </g>
         ) : null}
         {mode === "pen" && cursor ? (
-          <circle cx={cursor.x * widthPx} cy={cursor.y * heightPx} r={handleR * 0.7} fill="#1e3553" className="pointer-events-none" />
+          <g className="pointer-events-none">
+            <circle cx={cursor.x * widthPx} cy={cursor.y * heightPx} r={handleR * 0.7} fill="#1e3553" />
+            {cursorSnapped ? <circle cx={cursor.x * widthPx} cy={cursor.y * heightPx} r={handleR * 1.8} fill="none" stroke="#f59e0b" strokeWidth={3} vectorEffect="non-scaling-stroke" /> : null}
+          </g>
         ) : null}
 
         {calibration.length === 2 ? (

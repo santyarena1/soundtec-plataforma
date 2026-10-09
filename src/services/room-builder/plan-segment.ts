@@ -7,9 +7,12 @@
  */
 
 import type { PlanBox } from "./plan-analysis";
+import { regionPolygon } from "./plan-contour";
+import { isAxisRect, type PlanPoint } from "./plan-polygon";
 import { inkThreshold, snapBoxToWalls, type GrayImage } from "./plan-snap";
 
-export type PlanRegion = { box: PlanBox; areaFrac: number; label: number };
+/** Espacio cerrado del plano; `polygon` cuando su forma no es un recuadro. */
+export type PlanRegion = { box: PlanBox; areaFrac: number; label: number; polygon?: PlanPoint[] };
 type Grid = { labels: Int32Array; width: number; height: number };
 
 /** Lado máximo de la grilla de trabajo (velocidad vs. detalle). */
@@ -27,7 +30,9 @@ const TEXT_TINY = 0.03;
 const TEXT_LINE_THICK = 0.03;
 const TEXT_LINE_LONG = 0.3;
 const TEXT_LINE_ASPECT = 3;
-const TEXT_LINE_DENSITY = 0.6;
+const TEXT_LINE_DENSITY = 0.85;
+/** Entrantes del contorno más angostos que esto (×2) se rellenan: hojas de puerta, muebles contra la pared. */
+const CONTOUR_CLOSE = 0.02;
 /** Espacios más chicos que esto son letras o ruido. */
 const MIN_REGION_FRAC = 0.004;
 /** Mínima superposición para asignar un espacio a un ambiente de la IA. */
@@ -167,7 +172,7 @@ function distanceToInk(blocked: Uint8Array, width: number, height: number): Floa
  * ambiente; después crecen hasta las paredes y cada puerta queda como borde.
  * Lo que toca el borde de la imagen es el exterior.
  */
-export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: Grid } {
+export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: Grid; closeCells: number } {
   const { wall: rawWall, width, height } = downsampleWalls(img);
   const wall = removeLooseInk(rawWall, width, height);
   const r = Math.max(1, Math.round(CLOSE_RADIUS * Math.max(width, height)));
@@ -220,6 +225,33 @@ export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: G
     frontier = nextFrontier;
   }
 
+  // 2b) El cierre achicó cada espacio r píxeles: se recupera hasta la cara real del muro.
+  frontier = [];
+  for (let p = 0; p < labels.length; p++) if (labels[p] !== -1) frontier.push(p);
+  for (let step = 0; step < r && frontier.length; step++) {
+    const nextFrontier: number[] = [];
+    for (const p of frontier) {
+      const x = p % width;
+      const y = (p - x) / width;
+      // 8 vecinos: las esquinas quedan en escuadra (con 4 saldrían ochavadas).
+      const ns: number[] = [];
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const xx = x + dx;
+          const yy = y + dy;
+          if ((dx || dy) && xx >= 0 && yy >= 0 && xx < width && yy < height) ns.push(yy * width + xx);
+        }
+      }
+      for (const q of ns) {
+        if (q >= 0 && labels[q] === -1 && !wall[q]) {
+          labels[q] = labels[p];
+          nextFrontier.push(q);
+        }
+      }
+    }
+    frontier = nextFrontier;
+  }
+
   // 3) Recuadro y tamaño de cada espacio; el exterior (lo que toca el borde) se descarta.
   const stats = Array.from({ length: next }, () => ({ count: 0, x0: width, y0: height, x1: 0, y1: 0, border: false }));
   for (let p = 0; p < labels.length; p++) {
@@ -239,19 +271,20 @@ export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: G
   stats.forEach((s, label) => {
     const areaFrac = s.count / (width * height);
     if (coreBorder[label] || s.border || areaFrac < MIN_REGION_FRAC) return;
-    // El cierre achicó el espacio r píxeles por lado: se compensa.
     regions.push({
       label,
       areaFrac,
-      box: {
-        x0: Math.max(0, (s.x0 - r) / width),
-        y0: Math.max(0, (s.y0 - r) / height),
-        x1: Math.min(1, (s.x1 + 1 + r) / width),
-        y1: Math.min(1, (s.y1 + 1 + r) / height),
-      },
+      box: { x0: s.x0 / width, y0: s.y0 / height, x1: Math.min(1, (s.x1 + 1) / width), y1: Math.min(1, (s.y1 + 1) / height) },
     });
   });
-  return { regions: dropFurniture(regions), grid: { labels, width, height } };
+  const grid = { labels, width, height };
+  const closeCells = Math.max(1, Math.round(CONTOUR_CLOSE * Math.max(width, height)));
+  const kept = dropFurniture(regions).map((reg) => {
+    const polygon = regionPolygon(grid, [reg.label], closeCells);
+    // Un recuadro no necesita polígono: solo las formas en L, ochavas, etc.
+    return polygon && !isAxisRect(polygon) ? { ...reg, polygon } : reg;
+  });
+  return { regions: kept, grid, closeCells };
 }
 
 /** Un espacio dentro de otro y mucho más chico es un mueble (mostrador, sillón, maceta), no un ambiente. */
@@ -317,7 +350,7 @@ export function matchRegions(boxes: PlanBox[], regions: PlanRegion[], grid: Grid
  * si no hay, su recuadro pegado a los muros. `extras`: espacios que la IA
  * no nombró.
  */
-export function placeRooms<T extends { box: PlanBox }>(rooms: T[], img: GrayImage): { rooms: T[]; extras: PlanBox[] } {
+export function placeRooms<T extends { box: PlanBox; polygon?: PlanPoint[] }>(rooms: T[], img: GrayImage): { rooms: T[]; extras: PlanBox[] } {
   const { regions, grid } = segmentRegions(img);
   const { assigned, unmatched } = matchRegions(
     rooms.map((r) => r.box),
@@ -325,7 +358,11 @@ export function placeRooms<T extends { box: PlanBox }>(rooms: T[], img: GrayImag
     grid,
   );
   return {
-    rooms: rooms.map((r, i) => ({ ...r, box: assigned[i]?.box ?? snapBoxToWalls(r.box, img) })),
+    rooms: rooms.map((r, i) => {
+      const region = assigned[i];
+      if (!region) return { ...r, box: snapBoxToWalls(r.box, img) };
+      return region.polygon ? { ...r, box: region.box, polygon: region.polygon } : { ...r, box: region.box };
+    }),
     extras: unmatched.filter((r) => r.areaFrac >= MIN_EXTRA_FRAC).map((r) => r.box),
   };
 }

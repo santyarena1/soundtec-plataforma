@@ -247,7 +247,11 @@ const sameName = (a: string, b: string) => a.trim().toLocaleLowerCase("es") === 
  * baño pueden partir un ambiente): si la IA le pone el mismo nombre a dos
  * espacios vecinos, son el mismo ambiente y se unen.
  */
-export function mergeSameNamedNeighbors(rooms: DetectedRoom[]): DetectedRoom[] {
+export function mergeSameNamedNeighbors(
+  rooms: DetectedRoom[],
+  /** Forma de la unión (la calcula quien tiene la grilla); sin ella queda la caja. */
+  unionPolygon?: (a: DetectedRoom, b: DetectedRoom) => DetectedRoom["polygon"],
+): DetectedRoom[] {
   const out = rooms.map((r) => ({ ...r, box: { ...r.box } }));
   let merged = true;
   while (merged) {
@@ -260,6 +264,7 @@ export function mergeSameNamedNeighbors(rooms: DetectedRoom[]): DetectedRoom[] {
         out[i] = {
           ...a,
           box: { x0: Math.min(a.box.x0, b.box.x0), y0: Math.min(a.box.y0, b.box.y0), x1: Math.max(a.box.x1, b.box.x1), y1: Math.max(a.box.y1, b.box.y1) },
+          polygon: unionPolygon?.(a, b),
           widthM: a.widthM ?? b.widthM,
           depthM: a.depthM ?? b.depthM,
           include: a.include || b.include,

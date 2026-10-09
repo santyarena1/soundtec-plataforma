@@ -43,6 +43,8 @@ export function useSurfaceDrag({
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
 
   return (e: ThreeEvent<PointerEvent>) => {
+    // Solo el botón principal arrastra (el derecho/medio quedan para la cámara).
+    if (e.nativeEvent.button !== 0) return;
     e.stopPropagation();
     onSelect();
     const el = gl.domElement;
@@ -52,6 +54,12 @@ export function useSurfaceDrag({
     let last: Pose | null = null;
 
     const move = (ev: PointerEvent) => {
+      // Si el botón ya no está apretado, el "soltar" se perdió (fuera de la
+      // ventana, menú contextual, gesto cancelado): se termina acá.
+      if (ev.pointerType === "mouse" && (ev.buttons & 1) === 0) {
+        up();
+        return;
+      }
       if (!dragging) {
         if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < DRAG_THRESHOLD_PX) return;
         dragging = true;
@@ -80,15 +88,23 @@ export function useSurfaceDrag({
       last = mount === "wall" ? hit.pose : { ...hit.pose, rotY: keepRotation };
       onMove(last);
     };
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
+    let finished = false;
+    function up() {
+      if (finished) return;
+      finished = true;
+      window.removeEventListener("pointermove", move, true);
+      window.removeEventListener("pointerup", up, true);
+      window.removeEventListener("pointercancel", up, true);
+      window.removeEventListener("blur", up);
       dragState.active = false;
       if (controls) controls.enabled = true;
       el.style.cursor = "";
       if (dragging && last) onCommit(last);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
+    }
+    // En captura: ningún overlay puede tragarse el "soltar".
+    window.addEventListener("pointermove", move, true);
+    window.addEventListener("pointerup", up, true);
+    window.addEventListener("pointercancel", up, true);
+    window.addEventListener("blur", up);
   };
 }

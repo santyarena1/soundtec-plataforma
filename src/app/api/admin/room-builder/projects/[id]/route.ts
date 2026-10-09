@@ -77,6 +77,11 @@ export async function DELETE(
   { params }: { params: { id: string } },
 ) {
   await requireAdmin();
-  await deleteRoomProject(params.id);
-  return NextResponse.json({ ok: true });
+  try {
+    await deleteRoomProject(params.id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("[room-builder/delete]", params.id, error);
+    return NextResponse.json({ ok: false, error: "No se pudo eliminar (puede que ya no exista)" }, { status: 400 });
+  }
 }

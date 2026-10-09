@@ -23,6 +23,7 @@ import {
 } from "@/services/room-builder/scene";
 import { rankModeForTier } from "@/services/room-builder/brief";
 import { HubPlan, readHubPlan } from "@/components/room-builder/plan/hub-plan";
+import { HubSpaces } from "@/components/room-builder/plan/hub-spaces";
 import { normalizeDeviceUnits, type DeviceUnit } from "@/services/room-builder/units";
 import type { FurnitureOverrides } from "@/services/room-builder/furnishing";
 import {
@@ -356,10 +357,9 @@ export function RoomBuilderEditor({
   }
 
   /**
-   * Click en producto del ranking:
-   * - con slot seleccionado → lo ubica ahí;
-   * - si hay varios slots del mismo rol, también queda en mano para
-   *   reubicarlo con click en otro slot verde (lista o 3D).
+   * Click en producto del ranking: se asigna al equipo abierto y listo. (Antes
+   * quedaba "en mano" si había varios lugares del mismo tipo y cada click en el
+   * 3D lo reubicaba: confundía y parecía que no se podía fijar.)
    */
   function pickProductForPlacement(row: RankRow) {
     if (!row.compatible) {
@@ -372,20 +372,8 @@ export function RoomBuilderEditor({
       );
       return;
     }
-    const role = selectedSlot.role;
-    const targets = scene.slots.filter((s) => s.role === role);
-    const multi = targets.length > 1;
-
-    if (multi) {
-      setStaged({
-        productId: row.productId,
-        name: row.name,
-        brand: row.brand,
-        role,
-      });
-    }
-
-    assignToSlot(selectedSlot.key, row.productId, { keepStaged: multi });
+    setStaged(null);
+    assignToSlot(selectedSlot.key, row.productId);
   }
 
   function assignProduct(productId: string | null) {
@@ -491,28 +479,10 @@ export function RoomBuilderEditor({
           </section>
         ) : null}
 
-        <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
-          {project.children.map((child) => (
-            <div
-              key={child.id}
-              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-            >
-              <div>
-                <p className="font-medium text-slate-900">{child.name}</p>
-                <p className="text-xs text-slate-500">
-                  {child.templateKey} · ×{child.unitCount} · {child._count.devices}{" "}
-                  slots · {child.status}
-                </p>
-              </div>
-              <Link
-                href={`/admin/room-builder/${child.id}`}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
-              >
-                Entrar al espacio
-              </Link>
-            </div>
-          ))}
-        </div>
+        <HubSpaces
+          spaces={project.children}
+          onDeleted={(id) => setProject({ ...project, children: project.children.filter((c) => c.id !== id) })}
+        />
       </div>
     );
   }

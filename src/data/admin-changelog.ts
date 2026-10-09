@@ -1443,4 +1443,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Los ambientes con forma libre se generan en 3D con sus paredes y piso reales, muestran la superficie real y se ven con su forma en el plano del proyecto." },
     ],
   },
+  {
+    id: "ship-2026-10-10-plano-deteccion-y-arrastre",
+    version: "1.48.0",
+    releasedAt: "2026-10-10T03:00:00.000Z",
+    summary: "Room Builder: mejor detección de ambientes con su forma real, lápiz más firme, equipos que ya no quedan pegados al mouse y ambientes que se pueden eliminar.",
+    items: [
+      { kind: "MEJORA", text: "Detección de planos: los rótulos de texto (por ejemplo DORMITORIO PRINCIPAL) ya no parten un ambiente en dos." },
+      { kind: "NUEVO", text: "Cada ambiente detectado viene con su forma real siguiendo las paredes (L, entrantes), en vez de un recuadro que pisaba a los vecinos." },
+      { kind: "FIX", text: "Lápiz: el navegador ya no selecciona ni arrastra la imagen del plano; cada clic es un punto. Un aro naranja avisa cuando el punto se pega a una esquina existente y el clic derecho deshace el último punto." },
+      { kind: "FIX", text: "3D: un equipo ya no queda pegado al mouse si el soltar se pierde (fuera de la ventana, clic derecho, gesto cancelado). Solo el botón izquierdo arrastra." },
+      { kind: "FIX", text: "Elegir un producto lo asigna al equipo abierto y listo: se quitó el modo “producto en mano” que lo reubicaba con cada clic en el 3D." },
+      { kind: "NUEVO", text: "Proyecto desde plano: cada ambiente de la lista se puede eliminar (con confirmación), con el nombre del tipo y el estado en castellano." },
+    ],
+  },
 ];

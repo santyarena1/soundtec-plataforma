@@ -3,6 +3,8 @@ import sharp from "sharp";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { analyzePlanImage, analyzePlanRegions } from "@/server/room-builder/plan-ai";
 import { mergeSameNamedNeighbors, type PlanAnalysis, type PlanBox } from "@/services/room-builder/plan-analysis";
+import { regionPolygon } from "@/services/room-builder/plan-contour";
+import { isAxisRect } from "@/services/room-builder/plan-polygon";
 import { placeRooms, segmentRegions } from "@/services/room-builder/plan-segment";
 import { snapBoxToWalls, type GrayImage } from "@/services/room-builder/plan-snap";
 
@@ -49,14 +51,30 @@ async function cropRegion(webp: Buffer, width: number, height: number, b: PlanBo
  * IA ubica los ambientes y se ajustan a los espacios / muros.
  */
 async function readPlan(webp: Buffer, dataUrl: string, gray: GrayImage): Promise<PlanAnalysis> {
-  const { regions } = segmentRegions(gray);
+  const { regions, grid, closeCells } = segmentRegions(gray);
   if (regions.length >= 1 && regions.length <= MAX_MARKS) {
-    const boxes = regions.map((r) => r.box).sort(readingOrder);
+    const sorted = [...regions].sort((a, b) => readingOrder(a.box, b.box));
+    const boxes = sorted.map((r) => r.box);
     const crops = await Promise.all(boxes.map((b) => cropRegion(webp, gray.width, gray.height, b)));
     const read = await analyzePlanRegions(dataUrl, crops, boxes);
-    // Los que la IA vio sin recorte vienen aproximados: se pegan a los muros. Los vecinos con el mismo nombre se unen.
-    const rooms = read.rooms.map((r) => (r.id.startsWith("m") ? { ...r, box: snapBoxToWalls(r.box, gray) } : r));
-    return { ...read, rooms: mergeSameNamedNeighbors(rooms) };
+    // Cada ambiente numerado lleva la forma real de su espacio (r1 = primer espacio, etc.).
+    const labelsById = new Map(sorted.map((r, i) => [`r${i + 1}`, [r.label]]));
+    const polygonById = new Map(sorted.map((r, i) => [`r${i + 1}`, r.polygon]));
+    // Los que la IA vio sin recorte vienen aproximados: se pegan a los muros.
+    const rooms = read.rooms.map((r) =>
+      r.id.startsWith("m") ? { ...r, box: snapBoxToWalls(r.box, gray) } : polygonById.get(r.id) ? { ...r, polygon: polygonById.get(r.id) } : r,
+    );
+    // Los vecinos con el mismo nombre se unen, con la forma de la unión.
+    const union = (a: { id: string }, b: { id: string }) => {
+      const la = labelsById.get(a.id);
+      const lb = labelsById.get(b.id);
+      if (!la || !lb) return undefined;
+      const merged = [...la, ...lb];
+      labelsById.set(a.id, merged);
+      const poly = regionPolygon(grid, merged, closeCells);
+      return poly && !isAxisRect(poly) ? poly : undefined;
+    };
+    return { ...read, rooms: mergeSameNamedNeighbors(rooms, union) };
   }
   const read = await analyzePlanImage(dataUrl);
   const placed = placeRooms(read.rooms, gray);
