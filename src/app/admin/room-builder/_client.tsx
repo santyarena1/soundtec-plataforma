@@ -13,6 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { IoProfilesCard } from "@/components/room-builder/io-profiles-card";
+import { TextRoomCard } from "@/components/room-builder/text-room-card";
 
 type HubPreset = {
   key: string;
@@ -231,6 +232,8 @@ export function RoomBuilderHome() {
           </div>
         </div>
       </section>
+
+      <TextRoomCard />
 
       <IoProfilesCard />
 

@@ -1669,4 +1669,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Aviso de pantalla sin fuente de video; la propuesta sin vistas 3D arranca el plano en la primera hoja; el diagrama ordena los equipos 1, 2… 10." },
     ],
   },
+  {
+    id: "ship-2026-10-11-sala-desde-frase",
+    version: "1.61.0",
+    releasedAt: "2026-10-11T15:00:00.000Z",
+    summary: "Sala desde una frase: escribís cómo es el ambiente y se arma con equipos del catálogo.",
+    items: [
+      { kind: "NUEVO", text: "En el Room Builder, \"Describí la sala en una frase\": la IA la interpreta como el asistente (tipología, medidas, cantidad de ambientes iguales, sistemas, plataforma, pantallas, marcas y nivel), muestra lo que entendió y lo que tuvo que suponer, y al confirmar genera la sala con productos del catálogo." },
+    ],
+  },
 ];
