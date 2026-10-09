@@ -1750,4 +1750,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Brillo de las luces de techo más contenido en calidad alta (sin velo sobre la imagen)." },
     ],
   },
+  {
+    id: "ship-2026-10-12-plano-equipos",
+    version: "1.63.0",
+    releasedAt: "2026-10-12T22:00:00.000Z",
+    summary: "Proyecto desde un plano: elegís si se preinstalan los equipos o los armás a mano, qué lleva cada ambiente y las marcas, y ves qué se va a instalar antes de generar.",
+    items: [
+      { kind: "NUEVO", text: "Pregunta al subir el plano: preinstalar equipos o armar a mano (salas con plano y muebles, sin equipos)." },
+      { kind: "NUEVO", text: "Por cada ambiente marcás qué lleva: audio, video, videoconferencia, control, iluminación, cortinas o cartelería." },
+      { kind: "NUEVO", text: "Marcas preferidas por grupo (audio, amplificación, video, videoconferencia, control) para elegir los productos." },
+      { kind: "NUEVO", text: "Resumen \"Qué se va a instalar\" por ambiente, con tipos y cantidades, calculado igual que al generar; avisa lo que va centralizado." },
+    ],
+  },
 ];

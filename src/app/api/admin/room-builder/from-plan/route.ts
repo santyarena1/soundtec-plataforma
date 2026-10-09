@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth-helpers";
-import { BRAND_GROUPS, BRIEF_CONTROLS, BRIEF_TIERS, BRIEF_VC_PLATFORMS } from "@/services/room-builder/brief";
+import { BRAND_GROUPS, BRIEF_CONTROLS, BRIEF_SYSTEMS, BRIEF_TIERS, BRIEF_VC_PLATFORMS } from "@/services/room-builder/brief";
 import { PLAN_KINDS } from "@/services/room-builder/plan-analysis";
 import { MAX_POLYGON_POINTS, MIN_POLYGON_POINTS } from "@/services/room-builder/plan-polygon";
 import { createProjectFromPlan } from "@/services/room-builder/plan-project";
@@ -32,8 +32,20 @@ const schema = z.object({
     .object({ mode: z.enum(SYSTEM_MODES as [SystemMode, ...SystemMode[]]), location: z.enum(SYSTEM_LOCATIONS as [SystemLocation, ...SystemLocation[]]) })
     .nullable()
     .default(null),
+  /** false: salas sin equipos (se arman a mano). */
+  equip: z.boolean().default(true),
   rooms: z
-    .array(z.object({ name: z.string().trim().min(1).max(60), templateKey: z.string().min(1).max(60), box, polygon: z.array(point).min(MIN_POLYGON_POINTS).max(MAX_POLYGON_POINTS).optional(), widthM: z.number().min(1).max(200), depthM: z.number().min(1).max(200) }))
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(60),
+        templateKey: z.string().min(1).max(60),
+        box,
+        polygon: z.array(point).min(MIN_POLYGON_POINTS).max(MAX_POLYGON_POINTS).optional(),
+        widthM: z.number().min(1).max(200),
+        depthM: z.number().min(1).max(200),
+        systems: z.array(z.enum(BRIEF_SYSTEMS)).max(BRIEF_SYSTEMS.length).nullable().optional(),
+      }),
+    )
     .min(1)
     .max(40),
 });
@@ -59,6 +71,7 @@ export async function POST(req: NextRequest) {
       tier: parsed.data.tier,
       brands: parsed.data.brands,
       system: parsed.data.system,
+      equip: parsed.data.equip,
       rooms: parsed.data.rooms,
     });
     return NextResponse.json({ ok: true, project });

@@ -122,6 +122,8 @@ export async function createSpaceProject(input: {
   heightM?: number;
   /** Relevamiento del asistente (opcional: sin él se usa la plantilla tal cual). */
   brief?: RoomBrief | null;
+  /** Sala sin equipos (se arman a mano): solo la sala y sus muebles. */
+  noEquipment?: boolean;
 }) {
   await ensureRoomBuilderSchema();
   const base = getRoomTemplate(input.templateKey);
@@ -140,7 +142,9 @@ export async function createSpaceProject(input: {
   }
   // Superficie real (formas libres): manda sobre ancho × profundidad para cantidades.
   if (input.widthM && input.depthM && input.areaM2 && input.areaM2 > 0) scene = { ...scene, areaM2: Math.round(input.areaM2 * 100) / 100 };
-  if (input.brief) {
+  if (input.noEquipment) {
+    scene = { ...buildSceneFromTemplate({ ...template, slots: [] }), widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM, areaM2: scene.areaM2 };
+  } else if (input.brief) {
     const slots = layoutSlotsForScene(template.key, scene, input.brief);
     scene = {
       ...buildSceneFromTemplate({ ...template, slots }),

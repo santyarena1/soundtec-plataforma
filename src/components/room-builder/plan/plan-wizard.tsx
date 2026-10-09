@@ -21,8 +21,11 @@ import {
   type PlanAnalysis,
   type PlanKind,
 } from "@/services/room-builder/plan-analysis";
-import type { BriefControl, BriefTier, BriefVcPlatform } from "@/services/room-builder/brief";
-import { SYSTEM_LOCATION_LABELS, SYSTEM_LOCATIONS, defaultProjectSystem, type SystemLocation, type SystemMode } from "@/services/room-builder/project-system";
+import type { BrandGroup, BriefControl, BriefSystem, BriefTier, BriefVcPlatform } from "@/services/room-builder/brief";
+import { SYSTEM_LOCATION_LABELS, SYSTEM_LOCATIONS, centralizedFor, defaultProjectSystem, type SystemLocation, type SystemMode } from "@/services/room-builder/project-system";
+import { briefForPlanRoom, defaultPlanSystems, plannedEquipment } from "@/services/room-builder/plan-brief";
+import type { BrandOption } from "../wizard/ui";
+import { EquipChoice, InstallSummary, PlanBrands, RoomSystemsChips, type EquipMode, type RoomInstall } from "./plan-equipment";
 import { CONTROL_OPTIONS, TIER_OPTIONS, VC_OPTIONS } from "../wizard/wizard-data";
 import { shrinkForUpload } from "../plan-panel";
 import { polygonAreaPx } from "@/services/room-builder/plan-polygon";
@@ -79,6 +82,11 @@ export function PlanWizard() {
   const [systemMode, setSystemMode] = useState<SystemMode>("central");
   const [systemLocation, setSystemLocation] = useState<SystemLocation>("closet");
   const [heightM, setHeightM] = useState(2.6);
+  // Equipos: se preinstalan (con sistemas por ambiente, marcas y resumen) o se arman a mano.
+  const [equipMode, setEquipMode] = useState<EquipMode | null>(null);
+  const [roomSystems, setRoomSystems] = useState<Record<string, BriefSystem[]>>({});
+  const [brands, setBrands] = useState<Partial<Record<BrandGroup, string[]>>>({});
+  const [brandOptions, setBrandOptions] = useState<Partial<Record<BrandGroup, BrandOption[]>> | null>(null);
   const [, startTransition] = useTransition();
   /** Estado propio: en React 18 la transición no queda "pendiente" durante un await. */
   const [generating, setGenerating] = useState(false);
@@ -89,6 +97,17 @@ export function PlanWizard() {
       .then((j) => j.ok && setTemplates(j.templates))
       .catch(() => toast.error("No se pudieron cargar los tipos de ambiente"));
   }, []);
+
+  useEffect(() => {
+    if (equipMode !== "auto" || brandOptions) return;
+    fetch("/api/admin/room-builder/brands")
+      .then((r) => r.json())
+      .then((j) => setBrandOptions(j.ok ? j.brands : {}))
+      .catch(() => {
+        setBrandOptions({});
+        toast.error("No se pudieron cargar las marcas");
+      });
+  }, [equipMode, brandOptions]);
 
   const autoMpp = useMemo(() => (image ? estimateMetersPerPixel(rooms, image.widthPx, image.heightPx) : null), [rooms, image]);
   const mpp = manualMpp ?? autoMpp;
@@ -200,11 +219,40 @@ export function PlanWizard() {
   const sizes = new Map(included.map((r) => [r.id, image ? roomSizeMeters(r, mpp, image.widthPx, image.heightPx) : null]));
   const missingSize = included.some((r) => !sizes.get(r.id));
   const hasVc = included.some((r) => templateByKey.get(r.templateKey ?? "")?.category === "videoconference");
+  const categoryOf = (r: DetectedRoom) => templateByKey.get(r.templateKey ?? "")?.category ?? "common";
+  /** Sistemas del ambiente: lo elegido, o los de su tipo con el control de la obra. */
+  const systemsOf = (r: DetectedRoom): BriefSystem[] => roomSystems[r.id] ?? defaultPlanSystems(categoryOf(r), r.templateKey ?? "", control);
+  const projectSystem = { ...defaultProjectSystem(kind, control), ...(included.length > 1 ? { mode: systemMode, location: systemLocation } : {}) };
+  const common = { control, vcPlatform: hasVc ? vcPlatform : null, tier, brands };
+  const allSystems = [...new Set(included.flatMap(systemsOf))];
+  const installs: RoomInstall[] =
+    equipMode === "auto"
+      ? included.map((r) => {
+          const size = sizes.get(r.id);
+          const key = r.templateKey ?? "";
+          const brief = briefForPlanRoom(categoryOf(r), key, common, centralizedFor(projectSystem, null), systemsOf(r));
+          return {
+            id: r.id,
+            name: r.name,
+            color: ROOM_COLORS[rooms.indexOf(r) % ROOM_COLORS.length]!,
+            items: size ? plannedEquipment(key, { ...size, heightM, areaM2: areaM2(r, size) }, brief) : null,
+          };
+        })
+      : [];
+  const central = centralizedFor(projectSystem, null);
+  const centralNote =
+    equipMode === "auto" && included.length > 1 && (central.audio || central.control)
+      ? `${[central.audio ? "Amplificación" : null, central.control ? "procesador de control" : null].filter(Boolean).join(" y ")} centralizados (${SYSTEM_LOCATION_LABELS[projectSystem.location].toLowerCase()}): se dimensionan con los canales de todos los ambientes.`
+      : null;
 
   function generate() {
     if (!image) return;
     if (!included.length) {
-      toast.error("Marcá al menos un ambiente con equipos");
+      toast.error("Marcá al menos un ambiente");
+      return;
+    }
+    if (!equipMode) {
+      toast.error("Elegí si preinstalamos los equipos o los armás a mano");
       return;
     }
     if (missingSize) {
@@ -224,9 +272,17 @@ export function PlanWizard() {
           control,
           vcPlatform: hasVc ? vcPlatform : null,
           tier,
-          brands: {},
+          brands: equipMode === "auto" ? brands : {},
           system: included.length > 1 ? { mode: systemMode, location: systemLocation } : null,
-          rooms: included.map((r) => ({ name: r.name, templateKey: r.templateKey, box: r.box, polygon: r.polygon, ...(sizes.get(r.id) as { widthM: number; depthM: number }) })),
+          equip: equipMode === "auto",
+          rooms: included.map((r) => ({
+            name: r.name,
+            templateKey: r.templateKey,
+            box: r.box,
+            polygon: r.polygon,
+            ...(sizes.get(r.id) as { widthM: number; depthM: number }),
+            systems: equipMode === "auto" ? systemsOf(r) : null,
+          })),
         }),
       });
       const json = await res.json().catch(() => null);
@@ -235,7 +291,7 @@ export function PlanWizard() {
         toast.error(json?.error || "No se pudo generar el proyecto");
         return;
       }
-      toast.success("Proyecto generado con todos los ambientes");
+      toast.success(equipMode === "auto" ? "Proyecto generado con los equipos de cada ambiente" : "Proyecto generado: agregá los equipos en cada sala");
       window.location.href = `/admin/room-builder/${json.project.id}`;
     });
   }
@@ -500,11 +556,33 @@ export function PlanWizard() {
           </p>
         </section>
 
+        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Equipos</h2>
+            <p className="text-xs text-slate-500">¿Querés que preinstalemos los equipos en cada ambiente o los armás a mano?</p>
+          </div>
+          <EquipChoice value={equipMode} onChange={setEquipMode} />
+          {equipMode === "auto" ? (
+            <>
+              <p className="text-[11px] text-slate-500">En cada ambiente de la lista marcá qué lleva (audio, video, videoconferencia, control…).</p>
+              <details className="rounded-lg border border-slate-200 p-2.5">
+                <summary className="cursor-pointer text-xs font-semibold text-slate-700">
+                  Marcas preferidas <span className="font-normal text-slate-500">(opcional)</span>
+                </summary>
+                <div className="mt-2.5">
+                  <PlanBrands systems={allSystems} control={control} brands={brands} options={brandOptions} onChange={setBrands} />
+                </div>
+              </details>
+              {included.length ? <InstallSummary rooms={installs} centralNote={centralNote} /> : null}
+            </>
+          ) : null}
+        </section>
+
         <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4">
           <div className="flex items-baseline justify-between">
             <h2 className="text-sm font-semibold text-slate-900">Ambientes</h2>
             <span className="text-xs text-slate-500">
-              {included.length} con equipos de {rooms.length}
+              {included.length} de {rooms.length} incluidos
             </span>
           </div>
           {!rooms.length ? <p className="text-xs text-slate-500">Dibujá los ambientes sobre el plano con el “Lápiz” o un “Rectángulo”.</p> : null}
@@ -543,7 +621,10 @@ export function PlanWizard() {
                   <div className="mt-1.5 flex items-center gap-2">
                     <select
                       value={r.templateKey ?? ""}
-                      onChange={(e) => updateRoom(r.id, { templateKey: e.target.value || null, include: Boolean(e.target.value) })}
+                      onChange={(e) => {
+                        updateRoom(r.id, { templateKey: e.target.value || null, include: Boolean(e.target.value) });
+                        setRoomSystems(({ [r.id]: _, ...rest }) => rest);
+                      }}
                       className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs"
                     >
                       <option value="">Sin equipos (baño, pasillo…)</option>
@@ -571,6 +652,11 @@ export function PlanWizard() {
                   <p className="mt-1 text-[11px] text-slate-500">
                     {size ? `${r.polygon ? "Forma libre · " : ""}${size.widthM} × ${size.depthM} m · ${areaM2(r, size).toFixed(1)} m²` : "Medidas: falta la escala"}
                   </p>
+                  {equipMode === "auto" && r.include && r.templateKey ? (
+                    <div className="mt-1.5">
+                      <RoomSystemsChips systems={systemsOf(r)} control={control} onChange={(next) => setRoomSystems((m) => ({ ...m, [r.id]: next }))} />
+                    </div>
+                  ) : null}
                 </li>
               );
             })}
@@ -580,13 +666,21 @@ export function PlanWizard() {
         <button
           type="button"
           onClick={generate}
-          disabled={generating || !included.length}
+          disabled={generating || !included.length || !equipMode}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1e3553] px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#162a44] disabled:opacity-50"
         >
           {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          Generar {included.length} ambiente{included.length === 1 ? "" : "s"} con equipos
+          {equipMode === "manual"
+            ? `Generar ${included.length} ambiente${included.length === 1 ? "" : "s"} sin equipos`
+            : `Generar ${included.length} ambiente${included.length === 1 ? "" : "s"} con equipos`}
         </button>
-        <p className="text-center text-[11px] text-slate-500">Puede tardar unos segundos por ambiente: elegimos los productos de cada uno.</p>
+        <p className="text-center text-[11px] text-slate-500">
+          {equipMode === "manual"
+            ? "Se crean las salas con su plano y muebles; los equipos los agregás vos."
+            : equipMode === "auto"
+              ? "Puede tardar unos segundos por ambiente: elegimos los productos de cada uno."
+              : "Elegí arriba si preinstalamos los equipos o los armás a mano."}
+        </p>
       </aside>
     </div>
   );

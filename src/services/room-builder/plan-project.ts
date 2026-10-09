@@ -6,8 +6,8 @@
 
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { initialBrief } from "@/components/room-builder/wizard/wizard-data";
-import type { BrandGroup, BriefControl, BriefTier, BriefVcPlatform, RoomBrief } from "./brief";
+import type { BrandGroup, BriefControl, BriefSystem, BriefTier, BriefVcPlatform } from "./brief";
+import { briefForPlanRoom } from "./plan-brief";
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { PLAN_KIND_CATEGORY, type PlanBox, type PlanKind } from "./plan-analysis";
 import { boundsFromPolygon, wallsFromPolygon, type PlanModeState } from "./plan-mode";
@@ -29,7 +29,16 @@ function projectSystemFor(input: PlanProjectInput): ProjectSystem {
   return input.system ? { ...base, mode: input.system.mode, location: input.system.location } : base;
 }
 
-export type PlanRoomInput = { name: string; templateKey: string; box: PlanBox; polygon?: PlanPoint[]; widthM: number; depthM: number };
+export type PlanRoomInput = {
+  name: string;
+  templateKey: string;
+  box: PlanBox;
+  polygon?: PlanPoint[];
+  widthM: number;
+  depthM: number;
+  /** Sistemas elegidos para este ambiente (si no, los de su tipo). */
+  systems?: BriefSystem[] | null;
+};
 
 export type PlanProjectInput = {
   ownerId: string;
@@ -44,6 +53,8 @@ export type PlanProjectInput = {
   rooms: PlanRoomInput[];
   /** Equipamiento central o por ambiente y dónde va. */
   system?: Pick<ProjectSystem, "mode" | "location"> | null;
+  /** false: las salas se crean con su plano y muebles, sin equipos (se arman a mano). */
+  equip?: boolean;
 };
 
 /** Ambiente del proyecto contenedor ubicado sobre el plano. */
@@ -55,28 +66,7 @@ const MIN_SIDE_M = 1.5;
 const MAX_SIDE_M = 80;
 const clampSide = (n: number) => Math.min(MAX_SIDE_M, Math.max(MIN_SIDE_M, Math.round(n * 10) / 10));
 
-/** Respuestas del asistente para un ambiente, con lo común del proyecto. */
-export function briefForPlanRoom(
-  category: string,
-  templateKey: string,
-  common: Pick<PlanProjectInput, "control" | "vcPlatform" | "tier" | "brands">,
-  centralized: RoomBrief["centralized"] = null,
-): RoomBrief {
-  const base = initialBrief(category, templateKey);
-  const wantsControl = common.control !== "none";
-  const systems = wantsControl
-    ? [...new Set([...base.systems, "control" as const])]
-    : base.systems.filter((s) => s !== "control" && s !== "lighting" && s !== "shades");
-  return {
-    ...base,
-    systems: systems.length ? systems : ["audio"],
-    control: wantsControl ? common.control : "none",
-    vcPlatform: systems.includes("vc") ? (common.vcPlatform ?? base.vcPlatform ?? "teams") : null,
-    tier: common.tier,
-    brands: common.brands,
-    centralized,
-  };
-}
+export { briefForPlanRoom };
 
 export async function createProjectFromPlan(input: PlanProjectInput) {
   await ensureRoomBuilderSchema();
@@ -136,7 +126,7 @@ export async function createProjectFromPlan(input: PlanProjectInput) {
         devices: [],
         planImage: { url: imageUrl, widthPx: input.image.widthPx, heightPx: input.image.heightPx },
         planRooms: links,
-        system,
+        system: input.equip === false ? null : system,
       } as unknown as Prisma.InputJsonValue,
     },
   });
@@ -212,7 +202,9 @@ async function createPlanSpace(room: PlanRoomInput, hubId: string, imageUrl: str
     heightM: input.heightM,
     areaM2,
     parentId: hubId,
-    brief: briefForPlanRoom(template.category, template.key, input, centralizedFor(projectSystemFor(input), null)),
+    ...(input.equip === false
+      ? { noEquipment: true, autoFill: false }
+      : { brief: briefForPlanRoom(template.category, template.key, input, centralizedFor(projectSystemFor(input), null), room.systems) }),
   });
   // El recuadro de la forma (el polígono manda) para que el plano del piso calce con las paredes.
   const box = polygon ? polygonBox(polygon) : room.box;
