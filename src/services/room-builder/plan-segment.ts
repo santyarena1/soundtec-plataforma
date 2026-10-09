@@ -33,6 +33,9 @@ const TEXT_LINE_ASPECT = 3;
 const TEXT_LINE_DENSITY = 0.85;
 /** Entrantes del contorno más angostos que esto (×2) se rellenan: hojas de puerta, muebles contra la pared. */
 const CONTOUR_CLOSE = 0.02;
+/** Muro de doble línea: separación máxima entre las líneas y largo mínimo de cada una (fracción del lado). */
+const DOUBLE_WALL_GAP = 0.015;
+const DOUBLE_WALL_LINE = 0.04;
 /** Vanos de puerta: tramos de pared de al menos esto a cada lado, hueco de a lo sumo esto (fracción del lado). */
 const DOOR_MIN_WALL = 0.03;
 const DOOR_MAX_GAP = 0.16;
@@ -148,6 +151,70 @@ function removeLooseInk(mask: Uint8Array, width: number, height: number): Uint8A
     const tiny = long < TEXT_TINY * side;
     const textLine = short < TEXT_LINE_THICK * side && long < TEXT_LINE_LONG * side && long / short >= TEXT_LINE_ASPECT && density < TEXT_LINE_DENSITY;
     if (tiny || textLine) for (const p of comp) out[p] = 0;
+  }
+  return out;
+}
+
+/**
+ * Muros de doble línea → muros sólidos: si dos líneas largas y paralelas están
+ * a distancia de espesor de muro, el blanco entre ellas es muro (no un espacio
+ * ni algo que un ambiente pueda sumarse).
+ */
+export function fillDoubleWalls(wall: Uint8Array, width: number, height: number): Uint8Array {
+  const side = Math.max(width, height);
+  const maxGap = Math.max(2, Math.round(DOUBLE_WALL_GAP * side));
+  const minLine = Math.max(4, Math.round(DOUBLE_WALL_LINE * side));
+  // Largo de la línea horizontal / vertical que pasa por cada celda de trazo.
+  const hLen = new Uint16Array(wall.length);
+  const vLen = new Uint16Array(wall.length);
+  for (let y = 0; y < height; y++) {
+    let x = 0;
+    while (x < width) {
+      if (!wall[y * width + x]) {
+        x++;
+        continue;
+      }
+      const start = x;
+      while (x < width && wall[y * width + x]) x++;
+      for (let k = start; k < x; k++) hLen[y * width + k] = Math.min(65535, x - start);
+    }
+  }
+  for (let x = 0; x < width; x++) {
+    let y = 0;
+    while (y < height) {
+      if (!wall[y * width + x]) {
+        y++;
+        continue;
+      }
+      const start = y;
+      while (y < height && wall[y * width + x]) y++;
+      for (let k = start; k < y; k++) vLen[k * width + x] = Math.min(65535, y - start);
+    }
+  }
+  const out = new Uint8Array(wall);
+  // Columnas: hueco entre dos líneas horizontales largas → muro horizontal.
+  for (let x = 0; x < width; x++) {
+    let lastInk = -1;
+    for (let y = 0; y < height; y++) {
+      if (!wall[y * width + x]) continue;
+      const gap = y - lastInk - 1;
+      if (lastInk >= 0 && gap > 0 && gap <= maxGap && hLen[lastInk * width + x] >= minLine && hLen[y * width + x] >= minLine) {
+        for (let k = lastInk + 1; k < y; k++) out[k * width + x] = 1;
+      }
+      lastInk = y;
+    }
+  }
+  // Filas: hueco entre dos líneas verticales largas → muro vertical.
+  for (let y = 0; y < height; y++) {
+    let lastInk = -1;
+    for (let x = 0; x < width; x++) {
+      if (!wall[y * width + x]) continue;
+      const gap = x - lastInk - 1;
+      if (lastInk >= 0 && gap > 0 && gap <= maxGap && vLen[y * width + lastInk] >= minLine && vLen[y * width + x] >= minLine) {
+        for (let k = lastInk + 1; k < x; k++) out[y * width + k] = 1;
+      }
+      lastInk = x;
+    }
   }
   return out;
 }
@@ -288,7 +355,7 @@ function distanceToInk(blocked: Uint8Array, width: number, height: number): Floa
  */
 export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: Grid; closeCells: number } {
   const { wall: rawWall, light, width, height } = downsampleWalls(img);
-  const wall = bridgeDoorways(removeLooseInk(rawWall, width, height), light, width, height);
+  const wall = bridgeDoorways(fillDoubleWalls(removeLooseInk(rawWall, width, height), width, height), light, width, height);
   const r = Math.max(1, Math.round(CLOSE_RADIUS * Math.max(width, height)));
   const closed = dilate(wall, width, height, r);
   const dist = distanceToInk(closed, width, height);
@@ -709,6 +776,21 @@ function mergeOpenNeighbors(labels: Int32Array, width: number, height: number, c
     }
   }
   for (let p = 0; p < labels.length; p++) if (labels[p] >= 0) labels[p] = find(labels[p]);
+}
+
+/** Cuántas celdas de un grupo de espacios tocan directo (sin trazo) a otro grupo. */
+export function openContact(grid: Grid, a: number[], b: number[]): number {
+  const sa = new Set(a);
+  const sb = new Set(b);
+  let n = 0;
+  const { labels, width, height } = grid;
+  for (let p = 0; p < labels.length; p++) {
+    if (!sa.has(labels[p])) continue;
+    const x = p % width;
+    const ns = [x > 0 ? p - 1 : -1, x < width - 1 ? p + 1 : -1, p >= width ? p - width : -1, p < width * (height - 1) ? p + width : -1];
+    if (ns.some((q) => q >= 0 && sb.has(labels[q]))) n++;
+  }
+  return n;
 }
 
 /** Un espacio dentro de otro y mucho más chico es un mueble (mostrador, sillón, maceta), no un ambiente. */

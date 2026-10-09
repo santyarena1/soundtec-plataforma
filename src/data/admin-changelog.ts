@@ -1504,4 +1504,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Dos sectores abiertos de un mismo ambiente (por ejemplo, inodoros y bachas de un baño) se unen cuando la IA les pone el mismo nombre, con la forma de la unión." },
     ],
   },
+  {
+    id: "ship-2026-10-10-plano-muros-dobles",
+    version: "1.51.1",
+    releasedAt: "2026-10-10T11:00:00.000Z",
+    summary: "Planos: los muros de doble línea se leen como muro sólido y dos ambientes con el mismo nombre separados por un muro ya no se unen.",
+    items: [
+      { kind: "FIX", text: "Muros de doble línea: el blanco entre las dos líneas es muro, no espacio de los ambientes vecinos." },
+      { kind: "FIX", text: "Dos baños (u otros ambientes) con el mismo nombre separados por una pared quedan como dos ambientes; solo se unen los sectores que se comunican sin pared." },
+    ],
+  },
 ];

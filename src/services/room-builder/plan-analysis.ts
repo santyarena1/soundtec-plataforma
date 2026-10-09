@@ -251,6 +251,8 @@ export function mergeSameNamedNeighbors(
   rooms: DetectedRoom[],
   /** Forma de la unión (la calcula quien tiene la grilla); sin ella queda la caja. */
   unionPolygon?: (a: DetectedRoom, b: DetectedRoom) => DetectedRoom["polygon"],
+  /** ¿Se comunican sin pared? (dos baños con el mismo nombre separados por un muro no se unen) */
+  canMerge?: (a: DetectedRoom, b: DetectedRoom) => boolean,
 ): DetectedRoom[] {
   const out = rooms.map((r) => ({ ...r, box: { ...r.box } }));
   let merged = true;
@@ -261,6 +263,7 @@ export function mergeSameNamedNeighbors(
         const a = out[i];
         const b = out[j];
         if (!sameName(a.name, b.name) || a.templateKey !== b.templateKey || !touching(a.box, b.box)) continue;
+        if (canMerge && !canMerge(a, b)) continue;
         out[i] = {
           ...a,
           box: { x0: Math.min(a.box.x0, b.box.x0), y0: Math.min(a.box.y0, b.box.y0), x1: Math.max(a.box.x1, b.box.x1), y1: Math.max(a.box.y1, b.box.y1) },

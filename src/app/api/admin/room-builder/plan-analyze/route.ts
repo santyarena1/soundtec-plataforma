@@ -5,7 +5,7 @@ import { analyzePlanImage, analyzePlanRegions } from "@/server/room-builder/plan
 import { mergeSameNamedNeighbors, type PlanAnalysis, type PlanBox } from "@/services/room-builder/plan-analysis";
 import { regionPolygon } from "@/services/room-builder/plan-contour";
 import { isAxisRect } from "@/services/room-builder/plan-polygon";
-import { placeRooms, segmentRegions } from "@/services/room-builder/plan-segment";
+import { openContact, placeRooms, segmentRegions } from "@/services/room-builder/plan-segment";
 import { snapBoxToWalls, type GrayImage } from "@/services/room-builder/plan-snap";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,8 @@ const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 const PLAN_MAX_SIDE = 2000;
 /** Con más espacios que esto el plano no se segmentó bien: se usa la lectura libre. */
 const MAX_MARKS = 40;
+/** Celdas de contacto sin muro para unir dos sectores con el mismo nombre. */
+const MIN_OPEN_CONTACT = 6;
 
 /** Orden de lectura (arriba-abajo, izquierda-derecha) para numerar. */
 function readingOrder(a: PlanBox, b: PlanBox): number {
@@ -74,7 +76,13 @@ async function readPlan(webp: Buffer, dataUrl: string, gray: GrayImage): Promise
       const poly = regionPolygon(grid, merged, closeCells);
       return poly && !isAxisRect(poly) ? poly : undefined;
     };
-    return { ...read, rooms: mergeSameNamedNeighbors(rooms, union) };
+    // Solo se unen si se comunican sin muro (sectores de un mismo baño; no dos baños pegados).
+    const canMerge = (a: { id: string }, b: { id: string }) => {
+      const la = labelsById.get(a.id);
+      const lb = labelsById.get(b.id);
+      return Boolean(la && lb && openContact(grid, la, lb) >= MIN_OPEN_CONTACT);
+    };
+    return { ...read, rooms: mergeSameNamedNeighbors(rooms, union, canMerge) };
   }
   const read = await analyzePlanImage(dataUrl);
   const placed = placeRooms(read.rooms, gray);
