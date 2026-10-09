@@ -337,7 +337,10 @@ export function planCabling(input: CablingInput): CablingPlan {
   // 3) Cámaras al codec (o al USB de la mesa en salas BYOD).
   for (const cam of of("camera")) {
     const target = codec ?? table;
-    if (!target) continue;
+    if (!target) {
+      findings.push({ id: `cam-none-${cam.id}`, level: "error", title: "Cámara sin equipo que la reciba", detail: `${cam.label}: no hay codec ni conexión de mesa en la sala para recibir su video.` });
+      continue;
+    }
     const s = common(cam, target, ["usb", "hdmi"]);
     if (s) add(cam, target, s);
     else if (cam.ports.network > 0 && target.ports.network > 0) {
@@ -353,6 +356,7 @@ export function planCabling(input: CablingInput): CablingPlan {
     if (portCount(mic.ports, "outputs", "usb") > 0) {
       const target = codec ?? table;
       if (target) add(mic, target, "usb");
+      else findings.push({ id: `mic-usb-${mic.id}`, level: "error", title: "Micrófono USB sin equipo que lo reciba", detail: `${mic.label}: no hay codec ni conexión de mesa con USB en la sala.` });
     } else if (portCount(mic.ports, "outputs", "line") > 0) {
       const target = [dsp, codec, central].find((t): t is Ready => Boolean(t && (t.virtual || portCount(t.ports, "inputs", "line") > 0))) ?? null;
       if (target) add(mic, target, "line", "Salida de audio", "Entrada de micrófono/línea");
@@ -384,11 +388,13 @@ export function planCabling(input: CablingInput): CablingPlan {
     const l = add(slot.amp, spk, "speaker", `Canal ${slot.ch}`, "Entrada");
     l.note = speakerGauge(l.runM, highZ);
   }
-  if (passive.length && !channels.length && !central) findings.push({ id: "spk-no-amp", level: "error", title: "Parlantes pasivos sin amplificador", detail: `${passive.length} parlante(s) pasivo(s) necesitan amplificación.` });
+  if (passive.length && !channels.length && !central) findings.push({ id: "spk-no-amp", level: "error", title: "Parlantes pasivos sin amplificador", detail: `${passive.length} parlante(s) pasivo(s) necesitan amplificación: ${passive.map((p) => p.label).join(", ")}.` });
   // Parlantes activos con entrada de línea.
   for (const spk of of("speaker", "subwoofer").filter((s) => portCount(s.ports, "inputs", "line") > 0 && portCount(s.ports, "inputs", "speaker") === 0)) {
     const src = [dsp, codec, ...of("streamer")].find((t): t is Ready => Boolean(t && portCount(t.ports, "outputs", "line") > 0)) ?? null;
     if (src) add(src, spk, "line", "Salida de audio", "Entrada de línea");
+    else if (central) add(central, spk, "line", "Audio central", "Entrada de línea", "Tramo hasta la sala técnica aparte");
+    else findings.push({ id: `spk-line-${spk.id}`, level: "error", title: "Parlante activo sin fuente de audio", detail: `${spk.label}: ningún DSP, codec o streamer de la sala declara salida de línea para alimentarlo.` });
   }
 
   // 6) Entrada de los amplificadores: por Dante si ambos están en red; si no, línea.
@@ -417,6 +423,17 @@ export function planCabling(input: CablingInput): CablingPlan {
 
   // 8) Conexiones inalámbricas: cada cliente con su gateway / receptor / base, y su capacidad.
   wirelessLinks(nodes, links, findings);
+
+  // Red de seguridad: ningún equipo con conexiones queda suelto sin un aviso que lo nombre.
+  const mentioned = () => findings.map((f) => `${f.title} ${f.detail}`).join(" | ");
+  for (const n of nodes) {
+    if (n.virtual) continue;
+    const p = n.ports;
+    const hasAny = p.inputs.length || p.outputs.length || p.network || (p.wireless ?? []).length;
+    if (!hasAny || links.some((l) => l.from === n.id || l.to === n.id) || mentioned().includes(n.label)) continue;
+    const kinds = [...new Set([...p.inputs, ...p.outputs].map((g) => SIGNAL_INFO[g.signal].label))].join(", ") || (p.wireless ?? []).map((w) => WIRELESS_LABEL[w.protocol] ?? w.protocol).join(", ");
+    findings.push({ id: `orphan-${n.id}`, level: "warn", title: "Equipo sin conectar", detail: `${n.label}: no hay en la sala un equipo compatible con sus puertos (${kinds}).` });
+  }
 
   // Puertos usados de más (solo equipos reales).
   for (const [key, n] of used) {

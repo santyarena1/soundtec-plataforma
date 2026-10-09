@@ -1678,4 +1678,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "En el Room Builder, \"Describí la sala en una frase\": la IA la interpreta como el asistente (tipología, medidas, cantidad de ambientes iguales, sistemas, plataforma, pantallas, marcas y nivel), muestra lo que entendió y lo que tuvo que suponer, y al confirmar genera la sala con productos del catálogo." },
     ],
   },
+  {
+    id: "ship-2026-10-11-cableado-auditado",
+    version: "1.61.1",
+    releasedAt: "2026-10-11T16:00:00.000Z",
+    summary: "Cableado auditado con 2.000 salas generadas: ningún equipo queda sin conectar sin un aviso que lo nombre.",
+    items: [
+      { kind: "MEJORA", text: "Avisos nuevos: cámara o micrófono USB sin equipo que los reciba, parlante activo sin fuente de audio, parlantes pasivos sin amplificador (con sus nombres) y cualquier equipo sin conectar por falta de un equipo compatible." },
+      { kind: "MEJORA", text: "Batería de 2.000 salas al azar (24.000 cables) que verifica en cada cambio: puertos reales en ambos extremos, recorridos dentro de la sala y a escuadra, canales de baja impedancia, PoE, Dante, pantallas con señal, diagrama completo y metros de cable cubiertos." },
+    ],
+  },
 ];
