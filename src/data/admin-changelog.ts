@@ -1762,4 +1762,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Resumen \"Qué se va a instalar\" por ambiente, con tipos y cantidades, calculado igual que al generar; avisa lo que va centralizado." },
     ],
   },
+  {
+    id: "ship-2026-10-12-plano-nota-central",
+    version: "1.63.1",
+    releasedAt: "2026-10-12T22:30:00.000Z",
+    summary: "El resumen del plano avisa siempre qué va centralizado (amplificación, procesador), también con un solo ambiente.",
+    items: [{ kind: "FIX", text: "Con un solo ambiente, el resumen aclara que la amplificación va en el Sistema del proyecto." }],
+  },
 ];

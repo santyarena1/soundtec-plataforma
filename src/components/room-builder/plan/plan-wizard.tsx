@@ -241,8 +241,8 @@ export function PlanWizard() {
       : [];
   const central = centralizedFor(projectSystem, null);
   const centralNote =
-    equipMode === "auto" && included.length > 1 && (central.audio || central.control)
-      ? `${[central.audio ? "Amplificación" : null, central.control ? "procesador de control" : null].filter(Boolean).join(" y ")} centralizados (${SYSTEM_LOCATION_LABELS[projectSystem.location].toLowerCase()}): se dimensionan con los canales de todos los ambientes.`
+    equipMode === "auto" && included.length > 0 && (central.audio || central.control)
+      ? `${[central.audio ? "Amplificación" : null, central.control ? "procesador de control" : null].filter(Boolean).join(" y ")} centralizados (${SYSTEM_LOCATION_LABELS[projectSystem.location].toLowerCase()}): se dimensionan con los canales de todos los ambientes y quedan en el Sistema del proyecto.`
       : null;
 
   function generate() {
