@@ -11,6 +11,7 @@ import {
   extractRoomObjects,
   facingAwayFromWall,
   guessKind,
+  mergeSeating,
   objectsToFurniture,
   snapBoxToInk,
   type ClassifiedObject,
@@ -19,6 +20,7 @@ import {
 } from "@/services/room-builder/plan-objects";
 import type { PlanPoint } from "@/services/room-builder/plan-polygon";
 import { planInkGrid, planOpenings } from "@/services/room-builder/plan-segment";
+import { footprintPolygon } from "@/services/room-builder/plan-shape";
 
 /** Margen alrededor de cada objeto al recortarlo (fracción de su tamaño). */
 const CROP_PAD = 0.25;
@@ -76,6 +78,9 @@ async function cropRoom(image: PlanImageInput, polygon: PlanPoint[]): Promise<st
 }
 
 /** Muebles de un ambiente según lo dibujado en el plano. */
+/** Junta máxima (m) entre piezas dibujadas de un mismo sillón. */
+const SEAT_JOINT_M = 0.12;
+
 export async function furnitureFromPlan(input: {
   image: PlanImageInput;
   ink: { ink: Uint8Array; width: number; height: number };
@@ -122,6 +127,7 @@ export async function furnitureFromPlan(input: {
           density: o.density,
           kind: item.kind,
           facing: item.facing,
+          shape: footprintPolygon(box, ink, width, height),
         });
       }
       return;
@@ -130,7 +136,9 @@ export async function furnitureFromPlan(input: {
     const dM = (o.box.y1 - o.box.y0) * input.image.heightPx * input.map.mppZ;
     const aspect = Math.max(wM, dM) / Math.max(0.01, Math.min(wM, dM));
     if (aspect >= TEXT_ASPECT && o.density < TEXT_DENSITY) return;
-    classified.push({ ...o, kind: guessKind(wM, dM, input.category, input.templateKey), facing: facingAwayFromWall(o.againstWall) });
+    classified.push({ ...o, kind: guessKind(wM, dM, input.category, input.templateKey), facing: facingAwayFromWall(o.againstWall), shape: footprintPolygon(o.box, ink, width, height) });
   });
-  return objectsToFurniture(classified, input.map);
+  // Sillones modulares o en L leídos por partes: un solo sillón con la forma de la unión.
+  const seats = mergeSeating(classified, SEAT_JOINT_M / (input.image.widthPx * input.map.mppX), SEAT_JOINT_M / (input.image.heightPx * input.map.mppZ));
+  return objectsToFurniture(seats, input.map);
 }

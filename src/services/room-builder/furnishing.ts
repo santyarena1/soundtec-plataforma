@@ -50,7 +50,13 @@ export type FurnitureKind =
   | "toilet"
   | "vanity"
   | "shower"
-  | "bathtub";
+  | "bathtub"
+  | "rug"
+  | "planter-box"
+  | "indoor-tree"
+  | "bench-seat"
+  | "side-table"
+  | "ottoman";
 
 export type FurnitureItem = {
   id: string;
@@ -72,6 +78,12 @@ export type FurnitureItem = {
   tall?: boolean;
   /** Mueble reconocido en el plano: el modelo se escala para llenar su contorno dibujado (w × d). */
   fit?: boolean;
+  /** Forma real dibujada (m, relativa al centro del mueble, sin girar): sillones en L, barras en trapecio. */
+  shape?: Array<{ x: number; y: number }>;
+  /** Lados del contorno donde va el respaldo (sillones). */
+  backEdges?: number[];
+  /** Variante de estilo estable (maceta, tela, especie de planta). */
+  variant?: number;
 };
 
 export type FurnitureOverrides = {

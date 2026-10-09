@@ -26,6 +26,11 @@ export const MODELS = {
   sideboard: "/room-builder/models/sideboard-modern-wood.glb",
   barStool: "/room-builder/models/barstool-wood-round.glb",
   vase: "/room-builder/models/decor-vase-ceramic.glb",
+  treePachiraTall: "/room-builder/models/tree-pachira-tall.glb",
+  treePachiraMedium: "/room-builder/models/tree-pachira-medium.glb",
+  plantFern: "/room-builder/models/plant-fern.glb",
+  plantCalathea: "/room-builder/models/plant-calathea.glb",
+  plantAnthurium: "/room-builder/models/plant-anthurium.glb",
 } as const;
 
 /**

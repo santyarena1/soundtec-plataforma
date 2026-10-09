@@ -6,7 +6,8 @@
  */
 
 import type { FurnitureItem, FurnitureKind } from "./furnishing";
-import { pointInPolygon, type PlanPoint } from "./plan-polygon";
+import { boxToPolygon, pointInPolygon, type PlanPoint } from "./plan-polygon";
+import { sofaBackEdges, unionRects } from "./plan-shape";
 
 /** Tipos que la clasificación puede devolver. */
 export const OBJECT_KINDS = [
@@ -22,6 +23,12 @@ export const OBJECT_KINDS = [
   "wardrobe",
   "shelving",
   "planter",
+  "planter-box",
+  "tree",
+  "rug",
+  "bench",
+  "side-table",
+  "ottoman",
   "toilet",
   "sink",
   "shower",
@@ -49,7 +56,8 @@ export type PlanObject = {
   density: number;
 };
 
-export type ClassifiedObject = PlanObject & { kind: ObjectKind; facing: Facing };
+/** shape: contorno real dibujado (normalizado), si se pudo leer. */
+export type ClassifiedObject = PlanObject & { kind: ObjectKind; facing: Facing; shape?: PlanPoint[] | null };
 
 /** Lado mínimo de un objeto (m) y parte máxima del ambiente que puede ocupar. */
 const MIN_SIDE_M = 0.3;
@@ -226,6 +234,12 @@ const TO_FURNITURE: Record<Exclude<ObjectKind, "door" | "text" | "stairs" | "oth
   wardrobe: { kind: "wardrobe", group: "Placards" },
   shelving: { kind: "shelving", group: "Estanterías" },
   planter: { kind: "planter", group: "Plantas" },
+  "planter-box": { kind: "planter-box", group: "Plantas" },
+  tree: { kind: "indoor-tree", group: "Plantas" },
+  rug: { kind: "rug", group: "Alfombras" },
+  bench: { kind: "bench-seat", group: "Bancos" },
+  "side-table": { kind: "side-table", group: "Mesas" },
+  ottoman: { kind: "ottoman", group: "Sillones" },
   toilet: { kind: "toilet", group: "Sanitarios" },
   sink: { kind: "vanity", group: "Sanitarios" },
   shower: { kind: "shower", group: "Sanitarios" },
@@ -264,10 +278,35 @@ export function objectsToFurniture(objects: ClassifiedObject[], map: RoomMapping
       if (o.kind === "dining-set") items.push(...chairsAround(table, round));
       return;
     }
-    items.push(base);
+    // Muebles con forma propia (sillones en L, barras, mesadas, alfombras, jardineras): se arman sobre el contorno dibujado.
+    if (SHAPED.has(o.kind)) {
+      // Sin contorno legible, el recuadro: igual se arma a medida (nunca un modelo estirado).
+      const outline = o.shape && o.shape.length >= 3 ? o.shape : boxToPolygon(o.box);
+      const local = outline.map((p) => ({
+        x: Math.round(((p.x * map.widthPx - cxPx) * map.mppX) * 1000) / 1000,
+        y: Math.round(((p.y * map.heightPx - cyPx) * map.mppZ) * 1000) / 1000,
+      }));
+      const front = FACING_VECTOR[o.facing];
+      items.push({
+        ...base,
+        rotY: 0,
+        w: Math.round(worldW * 100) / 100,
+        d: Math.round(worldD * 100) / 100,
+        shape: local,
+        ...(o.kind === "sofa" ? { backEdges: sofaBackEdges(local, front) } : {}),
+        variant: i,
+      });
+      return;
+    }
+    items.push({ ...base, variant: i });
   });
   return items;
 }
+
+/** Hacia dónde mira el frente en coordenadas del plano (y hacia abajo). */
+const FACING_VECTOR: Record<Facing, { x: number; y: number }> = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
+/** Tipos que se construyen sobre su forma real. */
+const SHAPED = new Set<ObjectKind>(["sofa", "counter", "kitchen-counter", "table", "desk", "rug", "planter-box", "bench"]);
 
 /** Sillas alrededor de una mesa (el plano suele dibujar mesa y sillas juntas). */
 function chairsAround(table: FurnitureItem, round: boolean): FurnitureItem[] {
@@ -343,4 +382,60 @@ export function snapBoxToInk(
   }
   if (!Number.isFinite(mx0)) return { x0, y0, x1, y1 };
   return { x0: mx0 / width, y0: my0 / height, x1: (mx1 + 1) / width, y1: (my1 + 1) / height };
+}
+
+const SEATING = new Set<ObjectKind>(["sofa", "armchair"]);
+/** Parte del lado compartido (respecto de la pieza más chica) para que dos piezas sean del mismo sillón. */
+const SHARED_SIDE = 0.5;
+
+/**
+ * Une las piezas de asiento que se tocan por un lado (sillón modular o en L
+ * dibujado por partes, o leído por la IA como sillones sueltos) en un solo
+ * sofá con la forma de la unión. `gapX`/`gapY`: junta máxima (normalizada).
+ */
+export function mergeSeating(objects: ClassifiedObject[], gapX: number, gapY: number): ClassifiedObject[] {
+  const parent = objects.map((_, i) => i);
+  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i]!)));
+  const touches = (a: PlanObject["box"], b: PlanObject["box"]) => {
+    const sepX = Math.max(a.x0, b.x0) - Math.min(a.x1, b.x1);
+    const sepY = Math.max(a.y0, b.y0) - Math.min(a.y1, b.y1);
+    if (sepX > gapX || sepY > gapY) return false;
+    // Lado a lado (pegadas o con junta): tienen que compartir buena parte del lado, no solo una esquina.
+    if (sepX >= -gapX) return -sepY >= SHARED_SIDE * Math.min(a.y1 - a.y0, b.y1 - b.y0);
+    if (sepY >= -gapY) return -sepX >= SHARED_SIDE * Math.min(a.x1 - a.x0, b.x1 - b.x0);
+    return true;
+  };
+  objects.forEach((a, i) => {
+    if (!SEATING.has(a.kind)) return;
+    objects.forEach((b, j) => {
+      if (j <= i || !SEATING.has(b.kind)) return;
+      if (touches(a.box, b.box)) parent[find(j)] = find(i);
+    });
+  });
+  const groups = new Map<number, number[]>();
+  objects.forEach((_, i) => groups.set(find(i), [...(groups.get(find(i)) ?? []), i]));
+  const out: ClassifiedObject[] = [];
+  for (const members of groups.values()) {
+    if (members.length === 1) {
+      out.push(objects[members[0]!]!);
+      continue;
+    }
+    const parts = members.map((i) => objects[i]!);
+    const area = (o: ClassifiedObject) => (o.box.x1 - o.box.x0) * (o.box.y1 - o.box.y0);
+    const main = [...parts].sort((a, b) => area(b) - area(a))[0]!;
+    out.push({
+      box: {
+        x0: Math.min(...parts.map((p) => p.box.x0)),
+        y0: Math.min(...parts.map((p) => p.box.y0)),
+        x1: Math.max(...parts.map((p) => p.box.x1)),
+        y1: Math.max(...parts.map((p) => p.box.y1)),
+      },
+      againstWall: [...new Set(parts.flatMap((p) => p.againstWall))],
+      density: parts.reduce((s, p) => s + p.density, 0) / parts.length,
+      kind: "sofa",
+      facing: main.facing,
+      shape: unionRects(parts.map((p) => p.box), Math.max(gapX, gapY)),
+    });
+  }
+  return out;
 }

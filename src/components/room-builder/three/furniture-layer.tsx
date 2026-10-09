@@ -28,7 +28,6 @@ import {
   MAT,
   MediaConsole,
   Nightstand,
-  Planter,
   RackCabinet,
   ReceptionDesk,
   RoundTable,
@@ -38,6 +37,7 @@ import {
   Whiteboard,
 } from "../scene-primitives";
 import { MODELS, ModelOr } from "./models";
+import { BenchSeat, Ottoman, PlanterBox, PottedPlant, Rug, ShapedCounter, ShapedSofa, ShapedTable, SideTable, rectShape } from "./plan-models";
 import { useSurfaceDrag } from "./use-surface-drag";
 
 const ROTATE_STEP = Math.PI / 4;
@@ -62,20 +62,22 @@ const NOMINAL: Partial<Record<FurnitureItem["kind"], [number, number]>> = {
   "side-chair": [0.5, 0.5],
   chair: [0.6, 0.6],
   "bar-stool": [0.42, 0.42],
-  planter: [0.5, 0.5],
   toilet: [0.4, 0.68],
   wardrobe: [0.55, 0.7],
   nightstand: [0.45, 0.4],
   lectern: [0.6, 0.5],
 };
-const FIT_MIN = 0.5;
-const FIT_MAX = 3;
+/** Rango de estiramiento de un modelo real: más allá se ve deforme. */
+const FIT_MIN = 0.75;
+const FIT_MAX = 1.35;
 
 /** Escala para que el modelo coincida con el contorno del plano (solo muebles reconocidos del plano). */
 /** Modelos que ya toman el ancho del plano pero tienen profundidad fija. */
 const NOMINAL_DEPTH: Partial<Record<FurnitureItem["kind"], number>> = { sofa: 0.9, credenza: 0.45, "media-console": 0.45 };
 
 function fitScale(item: FurnitureItem): [number, number, number] {
+  // Los muebles con forma propia y las plantas ya se arman a su medida.
+  if (item.shape || item.kind === "planter") return [1, 1, 1];
   const depth = NOMINAL_DEPTH[item.kind];
   if (item.fit && depth && item.d) return [1, 1, Math.min(FIT_MAX, Math.max(FIT_MIN, item.d / depth))];
   const nominal = NOMINAL[item.kind];
@@ -83,8 +85,7 @@ function fitScale(item: FurnitureItem): [number, number, number] {
   const clamp = (v: number) => Math.min(FIT_MAX, Math.max(FIT_MIN, v));
   const sx = clamp(item.w / nominal[0]);
   const sz = clamp(item.d / nominal[1]);
-  // La altura acompaña lo justo (una maceta grande es más alta; una silla no se estira).
-  return [sx, item.kind === "planter" ? Math.sqrt(sx * sz) : 1, sz];
+  return [sx, 1, sz];
 }
 
 /** Dibujo de cada tipo, en su origen (la posición y el giro los pone el contenedor). */
@@ -95,6 +96,7 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
   switch (item.kind) {
     case "conference-table":
     case "desk":
+      if (item.shape) return <ShapedTable shape={item.shape} />;
       return <DeskTable width={w} depth={d} color={item.color} />;
     case "chair":
       return <Chair x={0} z={0} color={item.color} />;
@@ -107,6 +109,7 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
     case "lectern":
       return <Lectern x={0} z={0} />;
     case "sofa":
+      if (item.shape) return <ShapedSofa shape={item.shape} backEdges={item.backEdges} color={item.color} />;
       return <Sofa width={w} x={0} z={0} color={item.color} />;
     case "lounge-chair":
       return <LoungeChair x={0} z={0} />;
@@ -114,8 +117,10 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
       return <CoffeeTable x={0} z={0} w={item.w} d={item.d} />;
     case "media-console":
       return <MediaConsole width={w} x={0} z={0} />;
-    case "planter":
-      return <Planter x={0} z={0} scale={item.scale} />;
+    case "planter": {
+      const size = item.fit && item.w && item.d ? Math.min(item.w, item.d) : 0.55 * (item.scale ?? 1);
+      return <PottedPlant w={size} d={size} variant={item.variant ?? 0} />;
+    }
     case "bed":
       return <Bed width={w} depth={d} />;
     case "nightstand":
@@ -134,6 +139,7 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
     case "bar-stool":
       return <BarStool x={0} z={0} />;
     case "reception-desk":
+      if (item.shape) return <ShapedCounter shape={item.shape} />;
       return <ReceptionDesk width={w} depth={d} />;
     case "stage":
       return <Stage width={w} depth={d} height={item.h} />;
@@ -264,6 +270,7 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
         </group>
       );
     case "kitchen-counter":
+      if (item.shape) return <ShapedCounter shape={item.shape} kitchen />;
       return <KitchenCounter width={w} depth={Math.max(0.5, Math.min(d, 1.2))} />;
     case "toilet":
       return <Toilet />;
@@ -273,6 +280,18 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
       return <Shower width={Math.max(0.7, w)} depth={Math.max(0.7, d)} />;
     case "bathtub":
       return <Bathtub width={Math.max(1.2, w)} depth={Math.max(0.65, Math.min(d, 1))} />;
+    case "rug":
+      return <Rug shape={item.shape ?? rectShape(w, d)} variant={item.variant ?? 0} />;
+    case "planter-box":
+      return <PlanterBox shape={item.shape ?? rectShape(w, d)} variant={item.variant ?? 0} />;
+    case "indoor-tree":
+      return <PottedPlant w={w} d={d} variant={item.variant ?? 0} tree />;
+    case "bench-seat":
+      return <BenchSeat shape={item.shape ?? rectShape(w, Math.min(d, 0.5))} />;
+    case "side-table":
+      return <SideTable w={w} d={d} />;
+    case "ottoman":
+      return <Ottoman w={w} d={d} variant={item.variant ?? 0} />;
   }
   // Todos los tipos tienen dibujo: si se agrega uno nuevo sin caso, no compila.
   const unhandled: never = item.kind;

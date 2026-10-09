@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractRoomObjects, facingAwayFromWall, guessKind, objectsToFurniture } from "./plan-objects";
+import { extractRoomObjects, facingAwayFromWall, guessKind, mergeSeating, objectsToFurniture } from "./plan-objects";
 
 /** Grilla 100×100 (1 celda = 0,1 m): ambiente de 0.1 a 0.9; sillón contra la pared de abajo; mesa al medio. */
 function grid() {
@@ -58,7 +58,14 @@ test("objeto → mueble 3D en su lugar y tamaño (el sillón mira al ambiente)",
   assert.equal(items[0]!.x, -0.45);
   assert.equal(items[0]!.z, 3.45);
   assert.equal(items[0]!.w, 3.1);
-  assert.equal(items[0]!.rotY, Math.PI);
+  // Se arma sobre su contorno (sin girar): el respaldo es el lado de la pared (abajo, y máxima).
+  assert.equal(items[0]!.rotY, 0);
+  const shape = items[0]!.shape!;
+  assert.equal(shape.length, 4);
+  assert.equal(items[0]!.backEdges!.length, 1);
+  const i = items[0]!.backEdges![0]!;
+  const maxY = Math.max(...shape.map((p) => p.y));
+  assert.ok(Math.abs(shape[i]!.y - maxY) < 1e-6 && Math.abs(shape[(i + 1) % 4]!.y - maxY) < 1e-6);
 });
 
 test("juego de comedor: mesa más chica que el recuadro y sillas alrededor; puertas y textos no se arman", () => {
@@ -74,4 +81,34 @@ test("juego de comedor: mesa más chica que el recuadro y sillas alrededor; puer
   assert.ok(table.w! < 2.2 && table.w! >= 1.2);
   assert.ok(items.filter((i) => i.kind === "side-chair").length >= 4);
   assert.ok(!items.some((i) => i.id.includes("plan-obj-1")));
+});
+
+test("piezas de asiento pegadas se unen en un solo sillón en L; las sueltas no", () => {
+  const piece = (x0: number, y0: number, x1: number, y1: number, kind: "sofa" | "armchair" | "table") => ({
+    box: { x0, y0, x1, y1 },
+    againstWall: [],
+    density: 0.3,
+    kind,
+    facing: "up" as const,
+    shape: null,
+  });
+  const out = mergeSeating(
+    [
+      piece(0.1, 0.1, 0.2, 0.4, "armchair"),
+      piece(0.2, 0.3, 0.5, 0.4, "sofa"),
+      // Sillón suelto frente a la mesa, separado.
+      piece(0.7, 0.1, 0.8, 0.2, "armchair"),
+      // Pegado sólo por la esquina: no es parte de la L.
+      piece(0.5, 0.4, 0.6, 0.5, "armchair"),
+      piece(0.3, 0.15, 0.45, 0.25, "table"),
+    ],
+    0.01,
+    0.01,
+  );
+  const sofas = out.filter((o) => o.kind === "sofa");
+  assert.equal(sofas.length, 1);
+  assert.deepEqual(sofas[0]!.box, { x0: 0.1, y0: 0.1, x1: 0.5, y1: 0.4 });
+  assert.equal(sofas[0]!.shape?.length, 6);
+  assert.equal(out.filter((o) => o.kind === "armchair").length, 2);
+  assert.equal(out.length, 4);
 });

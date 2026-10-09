@@ -647,6 +647,81 @@
       "frontAxis": "radially symmetric",
       "units": "meters, Y-up",
       "notes": "Tall modern ceramic vase 0.40 m. 512px textures."
+    },
+    {
+      "id": "tree-pachira-tall",
+      "role": "indoor-tree",
+      "file": "/room-builder/models/tree-pachira-tall.glb",
+      "source": "https://polyhaven.com/a/pachira_aquatica_01",
+      "sourceId": "pachira_aquatica_01",
+      "license": "CC0",
+      "sizeMeters": [
+        1.055,
+        1.902,
+        0.997
+      ],
+      "units": "meters, Y-up",
+      "notes": "Pachira (árbol de interior) alto, variante d, sin maceta. Separada del archivo original (que trae varias variantes), centrada en x/z y apoyada en y=0; meshopt + webp 1k."
+    },
+    {
+      "id": "tree-pachira-medium",
+      "role": "indoor-tree",
+      "file": "/room-builder/models/tree-pachira-medium.glb",
+      "source": "https://polyhaven.com/a/pachira_aquatica_01",
+      "sourceId": "pachira_aquatica_01",
+      "license": "CC0",
+      "sizeMeters": [
+        0.975,
+        1.149,
+        0.924
+      ],
+      "units": "meters, Y-up",
+      "notes": "Pachira mediana, variante c, sin maceta. Separada del archivo original (que trae varias variantes), centrada en x/z y apoyada en y=0; meshopt + webp 1k."
+    },
+    {
+      "id": "plant-fern",
+      "role": "plant",
+      "file": "/room-builder/models/plant-fern.glb",
+      "source": "https://polyhaven.com/a/fern_02",
+      "sourceId": "fern_02",
+      "license": "CC0",
+      "sizeMeters": [
+        0.99,
+        0.428,
+        0.894
+      ],
+      "units": "meters, Y-up",
+      "notes": "Helecho, variante b, sin maceta. Separada del archivo original (que trae varias variantes), centrada en x/z y apoyada en y=0; meshopt + webp 1k."
+    },
+    {
+      "id": "plant-calathea",
+      "role": "plant",
+      "file": "/room-builder/models/plant-calathea.glb",
+      "source": "https://polyhaven.com/a/calathea_orbifolia_01",
+      "sourceId": "calathea_orbifolia_01",
+      "license": "CC0",
+      "sizeMeters": [
+        0.601,
+        0.424,
+        0.526
+      ],
+      "units": "meters, Y-up",
+      "notes": "Calathea orbifolia, variante a, sin maceta. Separada del archivo original (que trae varias variantes), centrada en x/z y apoyada en y=0; meshopt + webp 1k."
+    },
+    {
+      "id": "plant-anthurium",
+      "role": "plant",
+      "file": "/room-builder/models/plant-anthurium.glb",
+      "source": "https://polyhaven.com/a/anthurium_botany_01",
+      "sourceId": "anthurium_botany_01",
+      "license": "CC0",
+      "sizeMeters": [
+        0.757,
+        0.472,
+        0.572
+      ],
+      "units": "meters, Y-up",
+      "notes": "Anturio, variante b, sin maceta. Separada del archivo original (que trae varias variantes), centrada en x/z y apoyada en y=0; meshopt + webp 1k."
     }
   ]
 }

@@ -1571,4 +1571,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Las salas rectangulares que vienen del plano también usan las paredes del plano y tienen techo con la forma real; al cambiar medidas, puertas y ventanas se acomodan." },
     ],
   },
+  {
+    id: "ship-2026-10-10-muebles-render-real",
+    version: "1.55.0",
+    releasedAt: "2026-10-10T23:00:00.000Z",
+    summary: "Salas desde plano: muebles armados sobre su forma real (sillones en L, barras en trapecio) y plantas reales en macetas variadas.",
+    items: [
+      { kind: "NUEVO", text: "Sillones sobre la forma dibujada: rectos, en L o modulares, con respaldo del lado de la pared, apoyabrazos en los extremos y almohadones (la esquina de la L lleva el suyo). Las piezas pegadas que se leían como sillones sueltos se unen en un solo sillón." },
+      { kind: "NUEVO", text: "Mostradores, barras y mesadas con su contorno exacto (trapecio, L): zócalo, frente de madera, luz bajo la tapa y tapa de cuarzo con vuelo. Mesas y escritorios también toman su forma." },
+      { kind: "NUEVO", text: "Plantas reales (pachira, helecho, calathea, anturio) en macetas de cerámica, terracota, negro mate u hormigón, con tamaño acorde al plano; jardineras con fila de plantas, árboles de interior, alfombras, bancos, puffs y mesas auxiliares." },
+      { kind: "MEJORA", text: "Los modelos 3D ya no se estiran fuera de proporción para llenar un contorno: lo que no calza se arma a medida." },
+    ],
+  },
 ];

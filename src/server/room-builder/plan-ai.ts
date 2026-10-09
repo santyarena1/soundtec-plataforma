@@ -155,11 +155,13 @@ Devolvé SOLO un JSON:
 - box: dónde está ese objeto dentro del recorte, en fracciones (0..1, x hacia la derecha, y hacia abajo). Si el recorte es un solo objeto, box ≈ todo el objeto.
 - kind es uno de: ${OBJECT_KINDS.join(", ")}.
   sofa: sillón de 2+ cuerpos; armchair: sillón individual; dining-set: mesa con sillas; table: mesa sola (incluye mesa ratona); desk: escritorio;
-  counter: mostrador / barra; kitchen-counter: mesada de cocina; planter: maceta o macetero; wardrobe: placard; shelving: estantería; tv: mueble de TV;
+  counter: mostrador / barra; kitchen-counter: mesada de cocina; planter: maceta redonda o cuadrada con planta; planter-box: jardinera (macetero largo con plantas);
+  tree: árbol o planta grande de interior; rug: alfombra; bench: banco; side-table: mesa auxiliar o de luz; ottoman: puff;
+  wardrobe: placard; shelving: estantería; tv: mueble de TV;
   toilet, sink (bacha / vanitory), shower, bathtub; door: arco de puerta; text: letras o cotas; stairs: escalera; other: no se reconoce.
 - facing: hacia dónde mira el frente (un sillón hacia el lado opuesto a su respaldo, una cama hacia los pies, un mostrador hacia el público). "up" = arriba del recorte.
 - Listá CADA pieza por separado (cada sillón, cada maceta, cada mesa), con su box ajustado a esa pieza; no un box para todo el grupo.
-- Un sillón en L es un solo sofa con el box de toda la L. Una barra o mostrador es un counter con el box solo de la barra (no el espacio de atrás).
+- Un sillón en L, en U o modular (varios cuerpos pegados) es UN solo sofa con el box de toda la forma: no lo partas en armchairs. armchair es solo un sillón individual suelto. Una barra o mostrador es un counter con el box solo de la barra (no el espacio de atrás).
 - No inventes objetos: solo lo dibujado. Las puertas y los textos listalos como door / text.`;
 }
 
