@@ -1401,4 +1401,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Dormitorios secundarios, livings y demás ambientes con nombre claro ya no quedan como 'sin equipos'; el nombre escrito en el plano define el tipo." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-generando",
+    version: "1.44.5",
+    releasedAt: "2026-10-09T19:10:00.000Z",
+    summary: "Room Builder: se ve que está generando al crear un proyecto desde el plano o el asistente.",
+    items: [
+      { kind: "FIX", text: "Al tocar Generar aparece 'Generando N ambientes…' y el botón queda bloqueado hasta terminar (antes no había señal y se podía tocar dos veces)." },
+    ],
+  },
 ];

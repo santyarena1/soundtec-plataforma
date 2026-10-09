@@ -71,7 +71,9 @@ export function PlanWizard() {
   const [vcPlatform, setVcPlatform] = useState<BriefVcPlatform>("teams");
   const [tier, setTier] = useState<BriefTier>("recomendado");
   const [heightM, setHeightM] = useState(2.6);
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  /** Estado propio: en React 18 la transición no queda "pendiente" durante un await. */
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/room-builder/templates")
@@ -166,6 +168,7 @@ export function PlanWizard() {
       toast.error("Falta la escala: calibrala tocando dos puntos de una medida conocida");
       return;
     }
+    setGenerating(true);
     startTransition(async () => {
       const res = await fetch("/api/admin/room-builder/from-plan", {
         method: "POST",
@@ -184,6 +187,7 @@ export function PlanWizard() {
       });
       const json = await res.json().catch(() => null);
       if (!json?.ok || !json.project?.id) {
+        setGenerating(false);
         toast.error(json?.error || "No se pudo generar el proyecto");
         return;
       }
@@ -247,6 +251,17 @@ export function PlanWizard() {
 
   return (
     <div className="mx-auto flex max-w-[1500px] flex-col gap-5 p-4 lg:flex-row">
+      {generating ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" role="status" aria-live="polite">
+          <div className="max-w-sm rounded-2xl bg-white px-6 py-5 text-center shadow-2xl">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#1e3553]" />
+            <p className="mt-3 text-sm font-semibold text-slate-900">
+              Generando {included.length} ambiente{included.length === 1 ? "" : "s"}…
+            </p>
+            <p className="mt-1 text-xs text-slate-500">Armamos cada sala 3D con sus medidas y elegimos los productos. Tarda unos segundos por ambiente.</p>
+          </div>
+        </div>
+      ) : null}
       <main className="min-w-0 flex-1 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -467,10 +482,10 @@ export function PlanWizard() {
         <button
           type="button"
           onClick={generate}
-          disabled={pending || !included.length}
+          disabled={generating || !included.length}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1e3553] px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#162a44] disabled:opacity-50"
         >
-          {pending && !analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           Generar {included.length} ambiente{included.length === 1 ? "" : "s"} con equipos
         </button>
         <p className="text-center text-[11px] text-slate-500">Puede tardar unos segundos por ambiente: elegimos los productos de cada uno.</p>

@@ -53,7 +53,9 @@ export function RoomWizard() {
   const [space, setSpace] = useState<SpaceState>({ sector: null, templateKey: "", name: "", unitCount: 1, widthM: 5, depthM: 4, heightM: 2.7 });
   const [brief, setBrief] = useState<RoomBrief>(() => initialBrief("residential", ""));
   const [step, setStep] = useState<WizardStep>("ambiente");
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  /** Estado propio: en React 18 la transición no queda "pendiente" durante un await. */
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/room-builder/templates")
@@ -100,6 +102,7 @@ export function RoomWizard() {
 
   function generate() {
     if (!template) return;
+    setPending(true);
     startTransition(async () => {
       const res = await fetch("/api/admin/room-builder/projects", {
         method: "POST",
@@ -118,6 +121,7 @@ export function RoomWizard() {
       });
       const json = await res.json().catch(() => null);
       if (!json?.ok || !json.project?.id) {
+        setPending(false);
         toast.error(json?.error || "No se pudo generar el ambiente");
         return;
       }
