@@ -8,6 +8,7 @@ import {
   Hotel,
   Loader2,
   Plus,
+  ScanLine,
   Sparkles,
   Trash2,
 } from "lucide-react";
@@ -230,20 +231,29 @@ export function RoomBuilderHome() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <section className="grid gap-4 lg:grid-cols-3">
         <Link
-          href="/admin/room-builder/nuevo"
-          className="group relative overflow-hidden rounded-2xl bg-[#1e3553] p-6 text-white shadow-lg transition hover:shadow-xl"
+          href="/admin/room-builder/plano"
+          className="group relative overflow-hidden rounded-2xl bg-[#1e3553] p-6 text-white shadow-lg transition hover:shadow-xl lg:col-span-2"
         >
           <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl transition group-hover:bg-white/15" />
-          <Sparkles className="h-6 w-6 text-sky-200" />
-          <h2 className="mt-3 text-xl font-semibold">Nuevo ambiente</h2>
-          <p className="mt-1 max-w-md text-sm text-sky-100/90">
-            Te preguntamos por pasos qué lleva (audio, video, control, marcas, nivel) y generamos la sala 3D con los equipos y productos.
+          <ScanLine className="h-6 w-6 text-sky-200" />
+          <h2 className="mt-3 text-xl font-semibold">Desde un plano</h2>
+          <p className="mt-1 max-w-lg text-sm text-sky-100/90">
+            Subí el plano: detectamos qué es, cada ambiente y sus medidas. Lo revisás sobre el plano y generamos todas las salas 3D con sus equipos.
           </p>
           <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#1e3553]">
-            <Plus className="h-4 w-4" /> Empezar
+            <Plus className="h-4 w-4" /> Subir plano
           </span>
+        </Link>
+        <Link
+          href="/admin/room-builder/nuevo"
+          className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-[#1e3553]/40 hover:shadow-md"
+        >
+          <Sparkles className="h-6 w-6 text-[#1e3553]" />
+          <h2 className="mt-3 text-lg font-semibold text-slate-900">Un ambiente, sin plano</h2>
+          <p className="mt-1 text-sm text-slate-500">Te preguntamos por pasos qué lleva (audio, video, control, marcas, nivel) y armamos la sala.</p>
+          <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#1e3553]">Empezar →</span>
         </Link>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">

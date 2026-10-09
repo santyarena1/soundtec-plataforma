@@ -21,6 +21,7 @@ import {
   type RoomScene,
 } from "@/services/room-builder/scene";
 import { rankModeForTier } from "@/services/room-builder/brief";
+import { HubPlan, readHubPlan } from "@/components/room-builder/plan/hub-plan";
 import { normalizeDeviceUnits, type DeviceUnit } from "@/services/room-builder/units";
 import type { FurnitureOverrides } from "@/services/room-builder/furnishing";
 import {
@@ -169,6 +170,8 @@ export function RoomBuilderEditor({
 
   // Reparar y persistir escenas viejas / corruptas al abrir.
   useEffect(() => {
+    // El proyecto contenedor no tiene sala propia: su escena guarda el plano y los ambientes.
+    if (initialProject.kind === "hub") return;
     const raw = parseScene(initialProject.sceneJson);
     try {
       const { scene: laid, changed } = hydrateRoomScene(raw, {
@@ -421,6 +424,7 @@ export function RoomBuilderEditor({
   }
 
   if (project.kind === "hub") {
+    const hubPlan = readHubPlan(project.sceneJson);
     return (
       <div className="mx-auto max-w-5xl space-y-6 p-6">
         <Link
@@ -435,8 +439,7 @@ export function RoomBuilderEditor({
               {project.name}
             </h1>
             <p className="text-sm text-slate-500">
-              Hub multi-espacio · {project.category} · {project.children.length}{" "}
-              ambientes
+              Proyecto con {project.children.length} ambientes
             </p>
           </div>
           <button
@@ -453,6 +456,13 @@ export function RoomBuilderEditor({
             Generar cotización agregada
           </button>
         </header>
+
+        {hubPlan ? (
+          <section className="space-y-2">
+            <p className="text-sm text-slate-600">Tocá un ambiente en el plano para entrar a su sala 3D.</p>
+            <HubPlan data={hubPlan} existingIds={new Set(project.children.map((c) => c.id))} />
+          </section>
+        ) : null}
 
         <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
           {project.children.map((child) => (

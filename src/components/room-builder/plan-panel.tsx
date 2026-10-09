@@ -22,7 +22,7 @@ const UPLOAD_MAX_SIDE = 2400;
 const UPLOAD_QUALITY = 0.85;
 
 /** Achica la imagen en el navegador antes de subirla (los planos suelen pesar mucho). */
-async function shrinkForUpload(file: File): Promise<Blob> {
+export async function shrinkForUpload(file: File): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, UPLOAD_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");

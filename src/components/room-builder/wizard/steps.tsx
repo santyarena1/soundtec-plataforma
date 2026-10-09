@@ -2,8 +2,10 @@
 
 /** Contenido de cada paso del asistente de nuevo ambiente. */
 
+import Link from "next/link";
 import {
   Blinds,
+  ScanLine,
   Building2,
   CalendarDays,
   GraduationCap,
@@ -86,6 +88,15 @@ export function AmbienteStep({
   return (
     <div className="space-y-7">
       <StepHeader title="¿Qué ambiente vamos a diseñar?" subtitle="Elegí el tipo de proyecto y el ambiente. Después te preguntamos qué lleva." />
+      <Link
+        href="/admin/room-builder/plano"
+        className="flex items-center gap-3 rounded-xl border border-[#1e3553]/20 bg-[#1e3553]/[0.04] px-4 py-3 text-sm text-slate-700 transition hover:border-[#1e3553]/50"
+      >
+        <ScanLine className="h-5 w-5 shrink-0 text-[#1e3553]" />
+        <span>
+          <b className="text-slate-900">¿Tenés el plano?</b> Subilo y detectamos el proyecto completo con todos sus ambientes y medidas.
+        </span>
+      </Link>
       <Section title="Tipo de proyecto">
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {SECTORS.map((s) => (

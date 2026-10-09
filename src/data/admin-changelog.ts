@@ -1352,4 +1352,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "La maqueta 3D se abre mirando la sala desde donde la estás viendo, con el interior a la vista (no la cara de afuera de una pared)." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-desde-plano",
+    version: "1.44.0",
+    releasedAt: "2026-10-09T16:00:00.000Z",
+    summary: "Room Builder: proyecto completo desde un plano (detecta el tipo, los ambientes y sus medidas).",
+    items: [
+      { kind: "NUEVO", text: "Desde un plano: lo subís y la IA detecta qué es (casa, oficina, hotel, local…), cada ambiente con su nombre y las medidas escritas, y propone el tipo de cada uno (baños y pasillos sin equipos)." },
+      { kind: "NUEVO", text: "Revisión sobre el plano: mover y estirar los recuadros, dibujar ambientes nuevos, cambiar tipo, incluir o no, y calibrar la escala tocando una medida conocida." },
+      { kind: "NUEVO", text: "Genera todas las salas 3D de una, con medidas reales, control y nivel comunes y productos sugeridos; el proyecto muestra el plano con cada ambiente para entrar." },
+    ],
+  },
 ];
