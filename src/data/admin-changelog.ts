@@ -1383,4 +1383,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Ambientes sin muros que los cierren (planta abierta) igual se detectan y se ajustan a las paredes cercanas." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-plano-recortes",
+    version: "1.44.3",
+    releasedAt: "2026-10-09T18:10:00.000Z",
+    summary: "Room Builder: cada ambiente del plano se lee por separado (sin nombres cruzados).",
+    items: [
+      { kind: "FIX", text: "La IA lee cada espacio del plano recortado por separado, así el nombre y las medidas de cada ambiente quedan en su lugar." },
+    ],
+  },
 ];

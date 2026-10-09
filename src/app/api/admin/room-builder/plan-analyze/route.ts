@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { requireAdmin } from "@/lib/auth-helpers";
-import { analyzeMarkedPlan, analyzePlanImage } from "@/server/room-builder/plan-ai";
+import { analyzePlanImage, analyzePlanRegions } from "@/server/room-builder/plan-ai";
 import type { PlanAnalysis, PlanBox } from "@/services/room-builder/plan-analysis";
 import { placeRooms, segmentRegions } from "@/services/room-builder/plan-segment";
 import { snapBoxToWalls, type GrayImage } from "@/services/room-builder/plan-snap";
@@ -16,7 +16,6 @@ const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 const PLAN_MAX_SIDE = 2000;
 /** Con más espacios que esto el plano no se segmentó bien: se usa la lectura libre. */
 const MAX_MARKS = 40;
-const MARK_COLORS = ["#2563eb", "#059669", "#d97706", "#7c3aed", "#dc2626", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#4f46e5"];
 
 /** Orden de lectura (arriba-abajo, izquierda-derecha) para numerar. */
 function readingOrder(a: PlanBox, b: PlanBox): number {
@@ -25,36 +24,36 @@ function readingOrder(a: PlanBox, b: PlanBox): number {
   return rowA - rowB || (a.x0 + a.x1) / 2 - (b.x0 + b.x1) / 2;
 }
 
-/** Plano con cada espacio recuadrado y numerado (para que la IA solo tenga que leer). */
-async function markedPlan(webp: Buffer, width: number, height: number, boxes: PlanBox[]): Promise<string> {
-  const r = Math.round(Math.max(width, height) * 0.013);
-  const marks = boxes
-    .map((b, i) => {
-      const color = MARK_COLORS[i % MARK_COLORS.length];
-      const x = b.x0 * width;
-      const y = b.y0 * height;
-      const cx = x + r * 1.4;
-      const cy = y + r * 1.4;
-      return `<rect x="${x}" y="${y}" width="${(b.x1 - b.x0) * width}" height="${(b.y1 - b.y0) * height}" fill="${color}" fill-opacity="0.07" stroke="${color}" stroke-width="${Math.max(2, r / 5)}"/>
-<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>
-<text x="${cx}" y="${cy + r * 0.38}" font-family="Arial, sans-serif" font-size="${r * 1.1}" font-weight="700" fill="white" text-anchor="middle">${i + 1}</text>`;
-    })
-    .join("\n");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${marks}</svg>`;
-  const out = await sharp(webp).composite([{ input: Buffer.from(svg) }]).webp({ quality: 85 }).toBuffer();
+/** Margen alrededor de cada recorte (para que entre el texto pegado a los muros). */
+const CROP_PAD = 0.01;
+/** Lado máximo de cada recorte (se manda en baja resolución a la IA). */
+const CROP_MAX_SIDE = 512;
+
+/** Recorte de un espacio del plano, como data URL. */
+async function cropRegion(webp: Buffer, width: number, height: number, b: PlanBox): Promise<string> {
+  const left = Math.max(0, Math.floor((b.x0 - CROP_PAD) * width));
+  const top = Math.max(0, Math.floor((b.y0 - CROP_PAD) * height));
+  const right = Math.min(width, Math.ceil((b.x1 + CROP_PAD) * width));
+  const bottom = Math.min(height, Math.ceil((b.y1 + CROP_PAD) * height));
+  const out = await sharp(webp)
+    .extract({ left, top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) })
+    .resize({ width: CROP_MAX_SIDE, height: CROP_MAX_SIDE, fit: "inside", withoutEnlargement: true })
+    .webp({ quality: 80 })
+    .toBuffer();
   return `data:image/webp;base64,${out.toString("base64")}`;
 }
 
 /**
  * Lectura del plano: primero se detectan los espacios cerrados en la imagen;
- * si salen bien, se numeran y la IA solo dice qué es cada número. Si no, la
+ * si salen bien, cada uno va recortado y la IA solo lee qué es. Si no, la
  * IA ubica los ambientes y se ajustan a los espacios / muros.
  */
 async function readPlan(webp: Buffer, dataUrl: string, gray: GrayImage): Promise<PlanAnalysis> {
   const { regions } = segmentRegions(gray);
   if (regions.length >= 1 && regions.length <= MAX_MARKS) {
     const boxes = regions.map((r) => r.box).sort(readingOrder);
-    const read = await analyzeMarkedPlan(await markedPlan(webp, gray.width, gray.height, boxes), boxes);
+    const crops = await Promise.all(boxes.map((b) => cropRegion(webp, gray.width, gray.height, b)));
+    const read = await analyzePlanRegions(dataUrl, crops, boxes);
     // Los ambientes sin número (no cerrados) vienen aproximados: se pegan a los muros.
     return { ...read, rooms: read.rooms.map((r) => (r.id.startsWith("m") ? { ...r, box: snapBoxToWalls(r.box, gray) } : r)) };
   }

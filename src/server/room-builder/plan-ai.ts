@@ -74,51 +74,55 @@ export async function analyzePlanImage(imageDataUrl: string): Promise<PlanAnalys
   );
 }
 
-function markedPrompt(count: number): string {
+function regionsPrompt(count: number): string {
   const templates = listRoomTemplates()
     .map((t) => `- ${t.key}: ${t.name} (${t.category})`)
     .join("\n");
   return `Sos un arquitecto que lee planos para un integrador audiovisual (Soundtec).
-Sobre el plano dibujamos ${count} espacios con un número del 1 al ${count} en un círculo de color (arriba a la izquierda de cada espacio).
-Leé el texto del plano DENTRO de cada espacio numerado y devolvé SOLO un JSON:
+Vas a recibir el PLANO COMPLETO y después ${count} RECORTES, cada uno precedido por el texto "Espacio N". Cada recorte es un ambiente cerrado del plano.
+Devolvé SOLO un JSON:
 {
   "kind": uno de ${PLAN_KINDS.map((k) => `"${k}"`).join(", ")},
   "summary": "qué es el plano en una frase",
-  "marks": [
-    { "n": 1, "name": "nombre escrito en ese espacio", "templateKey": "clave o null", "widthM": número o null, "depthM": número o null },
-    { "n": 7, "notARoom": true }
-  ],
+  "marks": [ { "n": 1, "name": "...", "templateKey": "clave o null", "widthM": número o null, "depthM": número o null } ],
   "missing": [ { "name": "...", "templateKey": "...", "box": { "x0": 0.1, "y0": 0.2, "x1": 0.3, "y1": 0.4 } } ]
 }
 
 Reglas:
-- Un elemento en "marks" por cada número del 1 al ${count}. El nombre es el texto que está dentro de ESE espacio; si no tiene texto, poné un nombre descriptivo.
-- "notARoom": true si el espacio numerado no es un ambiente (hueco de escalera, ducto, parte de un mueble, exterior sin uso).
-- widthM / depthM: solo si las medidas de ese ambiente están escritas en el plano (widthM = lado horizontal de la imagen). Si no se leen, null.
+- Un elemento en "marks" por cada Espacio del 1 al ${count}, usando SOLO lo que se ve en SU recorte (el texto escrito adentro). Si el recorte no tiene texto, deducí el ambiente por su forma y contexto.
+- { "n": N, "notARoom": true } si el recorte no es un ambiente (hueco de escalera, ducto, mueble, exterior sin uso).
+- widthM / depthM: solo si las medidas están escritas en ese recorte (widthM = lado horizontal). Si no, null.
 - templateKey: el tipo más parecido de esta lista; null para baños, pasillos, lavaderos, escaleras, depósitos, placards, vestidores:
 ${templates}
-- "missing": ambientes con nombre en el plano que NO tienen número (por ejemplo sin muros que los cierren), con su rectángulo aproximado en fracciones 0..1 de la imagen. Si no hay, [].`;
+- "missing": ambientes con nombre en el PLANO COMPLETO que no aparecen en ningún recorte, con su rectángulo aproximado (fracciones 0..1). Si no hay, [].`;
 }
 
-/** Lectura con los espacios ya numerados sobre la imagen (la IA solo lee, no ubica). */
-export async function analyzeMarkedPlan(markedDataUrl: string, regionBoxes: PlanBox[]): Promise<PlanAnalysis> {
+type ChatPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail: "low" | "high" } };
+
+/**
+ * Lectura por recortes: cada espacio cerrado va como imagen propia ("Espacio N"),
+ * así la IA solo lee el texto de cada uno y no puede cruzar nombres.
+ */
+export async function analyzePlanRegions(fullDataUrl: string, cropDataUrls: string[], regionBoxes: PlanBox[]): Promise<PlanAnalysis> {
   const oa = await getQuoteOpenAI();
   if (!oa) throw new Error("Falta la API key de OpenAI en Admin → API Keys para leer planos.");
   const model = (await getSetting(QUOTE_SETTING_KEYS.visionModel, "")) || DEFAULT_VISION_MODEL;
+  const content: ChatPart[] = [
+    { type: "text", text: "PLANO COMPLETO:" },
+    { type: "image_url", image_url: { url: fullDataUrl, detail: "high" } },
+  ];
+  cropDataUrls.forEach((url, i) => {
+    content.push({ type: "text", text: `Espacio ${i + 1}:` });
+    content.push({ type: "image_url", image_url: { url, detail: "low" } });
+  });
   const resp = await oa.client.chat.completions.create({
     model,
     temperature: 0.1,
     max_tokens: MAX_OUTPUT_TOKENS,
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: markedPrompt(regionBoxes.length) },
-      {
-        role: "user",
-        content: [
-          { type: "text", text: "Leé el plano numerado: tipo de proyecto y qué ambiente es cada número." },
-          { type: "image_url", image_url: { url: markedDataUrl, detail: "high" } },
-        ],
-      },
+      { role: "system", content: regionsPrompt(cropDataUrls.length) },
+      { role: "user", content },
     ],
   });
   let parsed: unknown;
