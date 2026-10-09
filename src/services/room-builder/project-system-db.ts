@@ -43,6 +43,9 @@ export type HubSystemView = {
 };
 
 const SUGGESTIONS = 3;
+const ACCESSORY = /(feet|foot|rack ?ear|rack ?kit|kit|bracket|mount|cable|cover|shelf|panel)/i;
+/** Por debajo de esto es un accesorio, no un amplificador. */
+const MIN_AMP_PRICE_USD = 80;
 const KIND_TO_PLAN: Record<string, string> = {
   residential: "residencial",
   hotel: "hoteleria",
@@ -121,7 +124,16 @@ async function actionsFor(req: CentralRequirement, preferred: string[]): Promise
     const rows = (await prisma.product.findMany({ where: { isActive: true, isDiscontinued: false, OR: AMPLIFIER_MATCH }, select: SPEC_PRODUCT_SELECT, take: 300 })) as unknown as SpecProduct[];
     return rows
       .map((p) => ({ p, spec: effectiveSpec(p) }))
-      .filter(({ spec }) => spec.kind === "amplifier" && (spec.channels ?? 0) >= 2 && (!req.networked || spec.networked) && spec.highImpedance === req.highImpedance)
+      .filter(
+        ({ p, spec }) =>
+          spec.kind === "amplifier" &&
+          (spec.channels ?? 0) >= 2 &&
+          (!req.networked || spec.networked) &&
+          spec.highImpedance === req.highImpedance &&
+          // Accesorios (patas, orejas de rack, kits) no son amplificadores.
+          !ACCESSORY.test(p.normalizedName) &&
+          (price(p) == null || (price(p) as number) >= MIN_AMP_PRICE_USD),
+      )
       .map(({ p, spec }) => {
         const units = unitsFor(req.minChannels, spec.channels as number);
         return { p, spec, units, total: (price(p) ?? Number.MAX_SAFE_INTEGER) * units };

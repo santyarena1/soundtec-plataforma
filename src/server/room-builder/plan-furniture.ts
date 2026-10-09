@@ -21,7 +21,9 @@ import { planInkGrid } from "@/services/room-builder/plan-segment";
 
 /** Margen alrededor de cada objeto al recortarlo (fracción de su tamaño). */
 const CROP_PAD = 0.25;
-const CROP_MAX_SIDE = 256;
+const CROP_MAX_SIDE = 640;
+/** Lado máximo de la imagen del ambiente entero que va de contexto. */
+const ROOM_MAX_SIDE = 1024;
 /** Sin IA: un renglón de texto es largo, angosto y ralo. */
 const TEXT_ASPECT = 4;
 const TEXT_DENSITY = 0.15;
@@ -55,6 +57,22 @@ async function cropObject(image: PlanImageInput, o: PlanObject): Promise<Crop> {
   };
 }
 
+/** El ambiente entero (contexto para la IA). */
+async function cropRoom(image: PlanImageInput, polygon: PlanPoint[]): Promise<string> {
+  const xs = polygon.map((p) => p.x);
+  const ys = polygon.map((p) => p.y);
+  const left = Math.max(0, Math.floor(Math.min(...xs) * image.widthPx));
+  const top = Math.max(0, Math.floor(Math.min(...ys) * image.heightPx));
+  const right = Math.min(image.widthPx, Math.ceil(Math.max(...xs) * image.widthPx));
+  const bottom = Math.min(image.heightPx, Math.ceil(Math.max(...ys) * image.heightPx));
+  const out = await sharp(image.data)
+    .extract({ left, top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) })
+    .resize({ width: ROOM_MAX_SIDE, height: ROOM_MAX_SIDE, fit: "inside", withoutEnlargement: false })
+    .webp({ quality: 80 })
+    .toBuffer();
+  return `data:image/webp;base64,${out.toString("base64")}`;
+}
+
 /** Muebles de un ambiente según lo dibujado en el plano. */
 export async function furnitureFromPlan(input: {
   image: PlanImageInput;
@@ -77,6 +95,7 @@ export async function furnitureFromPlan(input: {
     readings = await classifyPlanObjects(
       input.roomName,
       crops.map((c) => c.dataUrl),
+      await cropRoom(input.image, input.polygon),
     );
   } catch (error) {
     console.error("[room-builder/plan-furniture] IA", error);

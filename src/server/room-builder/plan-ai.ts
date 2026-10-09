@@ -158,6 +158,8 @@ Devolvé SOLO un JSON:
   counter: mostrador / barra; kitchen-counter: mesada de cocina; planter: maceta o macetero; wardrobe: placard; shelving: estantería; tv: mueble de TV;
   toilet, sink (bacha / vanitory), shower, bathtub; door: arco de puerta; text: letras o cotas; stairs: escalera; other: no se reconoce.
 - facing: hacia dónde mira el frente (un sillón hacia el lado opuesto a su respaldo, una cama hacia los pies, un mostrador hacia el público). "up" = arriba del recorte.
+- Listá CADA pieza por separado (cada sillón, cada maceta, cada mesa), con su box ajustado a esa pieza; no un box para todo el grupo.
+- Un sillón en L es un solo sofa con el box de toda la L. Una barra o mostrador es un counter con el box solo de la barra (no el espacio de atrás).
 - No inventes objetos: solo lo dibujado. Las puertas y los textos listalos como door / text.`;
 }
 
@@ -167,15 +169,20 @@ const frac = (v: unknown) => {
 };
 
 /** Clasifica los objetos de un ambiente (un solo pedido con todos los recortes). */
-export async function classifyPlanObjects(roomName: string, cropDataUrls: string[]): Promise<ObjectReading[]> {
+export async function classifyPlanObjects(roomName: string, cropDataUrls: string[], roomDataUrl?: string): Promise<ObjectReading[]> {
   if (!cropDataUrls.length) return [];
   const oa = await getQuoteOpenAI();
   if (!oa) return cropDataUrls.map(() => null);
   const model = (await getSetting(QUOTE_SETTING_KEYS.visionModel, "")) || DEFAULT_VISION_MODEL;
   const content: ChatPart[] = [];
+  // El ambiente entero como contexto (qué es cada cosa se entiende mejor viendo el conjunto).
+  if (roomDataUrl) {
+    content.push({ type: "text", text: "AMBIENTE COMPLETO (contexto, no lo listes):" });
+    content.push({ type: "image_url", image_url: { url: roomDataUrl, detail: "high" } });
+  }
   cropDataUrls.forEach((url, i) => {
     content.push({ type: "text", text: `Recorte ${i + 1}:` });
-    content.push({ type: "image_url", image_url: { url, detail: "low" } });
+    content.push({ type: "image_url", image_url: { url, detail: "high" } });
   });
   const resp = await oa.client.chat.completions.create({
     model,

@@ -1550,4 +1550,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Modelos 3D nuevos: mesada de cocina, inodoro, vanitory con bacha y espejo, ducha y bañera." },
     ],
   },
+  {
+    id: "ship-2026-10-10-objetos-precision",
+    version: "1.53.1",
+    releasedAt: "2026-10-10T16:00:00.000Z",
+    summary: "Objetos del plano más precisos y sugerencias de amplificación sin accesorios.",
+    items: [
+      { kind: "MEJORA", text: "La IA ve los objetos en alta resolución y el ambiente entero como contexto, y separa cada pieza de un grupo (cada sillón, cada maceta) con su lugar ajustado." },
+      { kind: "FIX", text: "Sistema del proyecto: las sugerencias de amplificador ya no incluyen accesorios (patas, orejas de rack, kits)." },
+    ],
+  },
 ];
