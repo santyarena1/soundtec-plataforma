@@ -301,7 +301,7 @@ export function planCabling(input: CablingInput): CablingPlan {
     }
   }
   if (switchNode) {
-    for (const n of netDevices) add(n, switchNode, n.ports.danteTx || n.ports.danteRx ? "dante" : "lan", "Red", "Puerto");
+    netDevices.forEach((n, k) => add(n, switchNode!, n.ports.danteTx || n.ports.danteRx ? "dante" : "lan", "Red", `Puerto ${k + 1}`));
     if (!switchNode.virtual) {
       if (netDevices.length > switchNode.ports.network) findings.push({ id: "net-ports", level: "error", title: "Puertos de red insuficientes", detail: `${switchNode.label} tiene ${switchNode.ports.network} puertos y van ${netDevices.length} equipos.` });
       const pds = netDevices.filter((n) => n.ports.poeWatts != null);

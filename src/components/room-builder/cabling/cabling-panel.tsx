@@ -6,7 +6,9 @@
  * Los equipos sin ficha leída se marcan y se pueden leer en el momento.
  */
 
-import { AlertTriangle, Cable, CircleAlert, FileSearch, Info, Loader2, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, Cable, CircleAlert, FileSearch, Info, Loader2, Eye, EyeOff, Workflow } from "lucide-react";
+import { ConnectionDiagram } from "./connection-diagram";
 import { SIGNAL_INFO, type Signal } from "@/services/room-builder/device-ports";
 import type { CableFinding, CableLink } from "@/services/room-builder/cabling";
 import type { CablingState } from "./use-cabling";
@@ -23,8 +25,9 @@ function Dot({ signal }: { signal: Signal }) {
   return <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: SIGNAL_INFO[signal].color }} />;
 }
 
-export function CablingPanel({ state, show3d, onShow3d }: { state: CablingState; show3d: boolean; onShow3d: (v: boolean) => void }) {
+export function CablingPanel({ state, show3d, onShow3d, title = "Sala" }: { state: CablingState; show3d: boolean; onShow3d: (v: boolean) => void; title?: string }) {
   const { plan, profile } = state;
+  const [diagram, setDiagram] = useState(false);
   if (!plan) {
     return (
       <div className="flex items-center gap-2 p-4 text-sm text-slate-500">
@@ -55,6 +58,17 @@ export function CablingPanel({ state, show3d, onShow3d }: { state: CablingState;
           {show3d ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />} Cables en 3D
         </button>
       </div>
+
+      {plan.links.length ? (
+        <button
+          type="button"
+          onClick={() => setDiagram(true)}
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#1e3553]/30 bg-[#1e3553]/5 px-3 py-2 text-xs font-semibold text-[#1e3553] hover:bg-[#1e3553]/10"
+        >
+          <Workflow className="h-4 w-4" /> Diagrama de conexiones
+        </button>
+      ) : null}
+      {diagram ? <ConnectionDiagram plan={plan} title={title} onClose={() => setDiagram(false)} /> : null}
 
       {missing || review.length ? (
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-rose-900">

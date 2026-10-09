@@ -1639,4 +1639,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Los accesorios sin conexiones (tapas, soportes) ya no figuran como fichas faltantes." },
     ],
   },
+  {
+    id: "ship-2026-10-11-diagrama-conexiones",
+    version: "1.59.0",
+    releasedAt: "2026-10-11T11:00:00.000Z",
+    summary: "Diagrama de conexiones puerto a puerto de cada sala y lectura de fichas de todo el catálogo.",
+    items: [
+      { kind: "NUEVO", text: "Diagrama de conexiones (pestaña Cableado): cada equipo es un bloque con sus puertos de ficha (usados y libres), en columnas según el flujo de la señal; cables con el color de su señal y metros, inalámbricos punteados. Zoom y descarga en SVG." },
+      { kind: "MEJORA", text: "La lectura de puertos ahora abarca todo el catálogo salvo soportes y cables (iluminación, energía, streamers y accesorios también se revisan; los que no tienen conexiones quedan marcados)." },
+      { kind: "MEJORA", text: "Los puertos del switch se numeran en el cableado." },
+    ],
+  },
 ];

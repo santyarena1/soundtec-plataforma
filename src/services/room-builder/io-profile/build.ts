@@ -9,9 +9,12 @@ import { prisma } from "@/lib/prisma";
 import { IO_EXTRACTOR_VERSION, extractIo } from "./extract";
 import { buildIoSource, type IoSourceRow } from "./source";
 
-/** Equipos que tienen conexiones de señal (los soportes, cables y accesorios no). */
-const RELEVANT_TYPES = ["speaker", "subwoofer", "amplifier", "processor", "control", "touchpanel", "display", "switcher", "camera", "microphone", "network"];
-const RELEVANT_ROLES = ["camera", "mic", "display", "speaker", "touch", "codec", "processor"];
+/**
+ * Todo el catálogo menos soportes y cables: iluminación, energía, accesorios y
+ * lo no clasificado también pueden conectarse (dimmers, PDU con IP, streamers).
+ * Lo que no tiene conexiones queda marcado "sin conexiones" en la misma lectura.
+ */
+const SKIPPED_TYPES = ["mount", "cable"];
 /** Confianza mínima para dar el perfil por bueno sin revisión. */
 const AUTO_CONFIDENCE = 0.9;
 const PARALLEL = 4;
@@ -35,7 +38,7 @@ const SELECT = {
 function relevantWhere(): Prisma.ProductWhereInput {
   return {
     isActive: true,
-    OR: [{ aiProfile: { is: { productType: { in: RELEVANT_TYPES } } } }, { designProfile: { is: { designRole: { in: RELEVANT_ROLES } } } }],
+    NOT: { aiProfile: { is: { productType: { in: SKIPPED_TYPES } } } },
   };
 }
 
