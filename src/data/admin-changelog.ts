@@ -1482,4 +1482,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Al cambiar las medidas de la sala o usar Reparar 3D, el plano del piso y la forma real se mantienen." },
     ],
   },
+  {
+    id: "ship-2026-10-10-plano-puertas-rectas",
+    version: "1.50.1",
+    releasedAt: "2026-10-10T08:00:00.000Z",
+    summary: "Planos: las puertas cierran el ambiente con una línea recta y desaparecen los dientes raros en las uniones.",
+    items: [
+      { kind: "FIX", text: "El contorno ya no sigue el arco de las hojas de puerta: el vano se cierra derecho, a ras de la pared. Las paredes en diagonal reales (ochavas) se respetan." },
+      { kind: "FIX", text: "Los escalones cortos que aparecían en las uniones de muros se alinean con la pared más larga." },
+    ],
+  },
 ];

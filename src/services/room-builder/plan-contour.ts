@@ -6,6 +6,8 @@
 
 import { MAX_POLYGON_POINTS, cleanPolygon, type PlanPoint } from "./plan-polygon";
 
+/** Escalones más cortos que esto (fracción del lado) se alinean: dientes en las uniones. */
+const STEP_FRAC = 0.012;
 /** Tolerancia de simplificación, en celdas de la grilla. */
 const SIMPLIFY_CELLS = 1.6;
 /** Lados a menos de estos grados de la horizontal/vertical se enderezan. */
@@ -255,13 +257,125 @@ export function regionPolygon(
   const labels = closeCells > 0 ? closeRegion(grid, set, closeCells) : grid.labels;
   const raw = traceOuterBoundary(labels, grid.width, grid.height, set);
   if (raw.length < 4) return null;
+  const inside = (x: number, y: number) => {
+    const gx = Math.min(grid.width - 1, Math.max(0, Math.floor(x)));
+    const gy = Math.min(grid.height - 1, Math.max(0, Math.floor(y)));
+    return set.has(labels[gy * grid.width + gx]);
+  };
+  const stepCells = Math.max(3, Math.round(STEP_FRAC * Math.max(grid.width, grid.height)));
+  const shape = (e: number) => {
+    let p = cleanPolygon(orthogonalize(simplifyClosed(raw, e)));
+    // Arcos de puertas y curvas → esquina recta; escalones chicos en las uniones → alineados.
+    p = cleanPolygon(orthogonalize(straightenCurves(p, inside)));
+    return cleanPolygon(orthogonalize(removeSmallSteps(p, stepCells)));
+  };
   let eps = SIMPLIFY_CELLS;
-  let poly = cleanPolygon(orthogonalize(simplifyClosed(raw, eps)));
+  let poly = shape(eps);
   while (poly.length > MAX_POLYGON_POINTS && eps < 50) {
     eps *= 1.6;
-    poly = cleanPolygon(orthogonalize(simplifyClosed(raw, eps)));
+    poly = shape(eps);
   }
   if (poly.length < 3 || poly.length > MAX_POLYGON_POINTS) return null;
   const r4 = (n: number) => Math.round(n * 10000) / 10000;
   return poly.map((p) => ({ x: r4(Math.min(1, Math.max(0, p.x / grid.width))), y: r4(Math.min(1, Math.max(0, p.y / grid.height))) }));
+}
+
+const isAxisEdge = (a: PlanPoint, b: PlanPoint) => Math.abs(a.x - b.x) < 1e-6 || Math.abs(a.y - b.y) < 1e-6;
+
+/** Fracción del triángulo a-b-c que pertenece al espacio (muestreo). */
+function triangleMembership(a: PlanPoint, b: PlanPoint, c: PlanPoint, inside: (x: number, y: number) => boolean): number {
+  const N = 6;
+  let hit = 0;
+  let total = 0;
+  for (let i = 1; i < N; i++) {
+    for (let j = 1; i + j < N; j++) {
+      const u = i / N;
+      const v = j / N;
+      const w = 1 - u - v;
+      total++;
+      if (inside(a.x * u + b.x * v + c.x * w, a.y * u + b.y * v + c.y * w)) hit++;
+    }
+  }
+  return total ? hit / total : 0;
+}
+
+/**
+ * Las curvas (varios tramos inclinados seguidos, como el arco de una puerta)
+ * se cambian por una esquina recta: la que mejor coincide con el espacio.
+ * Un único tramo inclinado es una pared en diagonal de verdad y se respeta.
+ */
+export function straightenCurves(poly: PlanPoint[], inside: (x: number, y: number) => boolean): PlanPoint[] {
+  const n = poly.length;
+  if (n < 4) return poly;
+  const diag = poly.map((p, i) => !isAxisEdge(p, poly[(i + 1) % n]!));
+  const start = diag.findIndex((d) => !d);
+  if (start < 0 || !diag.some(Boolean)) return poly;
+  const area = shoelace(poly);
+  const out: PlanPoint[] = [];
+  let k = 0;
+  while (k < n) {
+    const e = (start + k) % n;
+    if (!diag[e]) {
+      out.push(poly[e]!);
+      k++;
+      continue;
+    }
+    let len = 0;
+    while (k + len < n && diag[(start + k + len) % n]) len++;
+    const a = poly[e]!;
+    const b = poly[(start + k + len) % n]!;
+    out.push(a);
+    if (len >= 2) {
+      const pick = [{ x: b.x, y: a.y }, { x: a.x, y: b.y }]
+        .map((c) => {
+          const cross = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+          const m = triangleMembership(a, b, c, inside);
+          // Del lado de adentro la esquina recorta el triángulo; del de afuera lo suma.
+          return { c, score: Math.sign(cross) === Math.sign(area) ? 1 - m : m };
+        })
+        .sort((p, q) => q.score - p.score)[0]!;
+      out.push(pick.c);
+    }
+    k += len;
+  }
+  return out;
+}
+
+/**
+ * Saca escalones cortos (dientes en las uniones de muros): si entre dos tramos
+ * paralelos hay un tramo corto, el tramo vecino más corto se alinea con el largo.
+ */
+export function removeSmallSteps(poly: PlanPoint[], tol: number): PlanPoint[] {
+  let p = poly.map((q) => ({ ...q }));
+  for (let iter = 0; iter < 4 * poly.length; iter++) {
+    const n = p.length;
+    if (n <= 4) return p;
+    let changed = false;
+    for (let i = 0; i < n && !changed; i++) {
+      const a = p[(i - 1 + n) % n]!;
+      const b = p[i]!;
+      const c = p[(i + 1) % n]!;
+      const d = p[(i + 2) % n]!;
+      const step = Math.hypot(c.x - b.x, c.y - b.y);
+      if (step >= tol || !isAxisEdge(a, b) || !isAxisEdge(b, c) || !isAxisEdge(c, d)) continue;
+      const prevH = Math.abs(a.y - b.y) < 1e-6;
+      const nextH = Math.abs(c.y - d.y) < 1e-6;
+      const stepH = Math.abs(b.y - c.y) < 1e-6;
+      if (prevH !== nextH || stepH === prevH) continue;
+      const prevLen = Math.hypot(b.x - a.x, b.y - a.y);
+      const nextLen = Math.hypot(d.x - c.x, d.y - c.y);
+      if (prevH) {
+        if (prevLen >= nextLen) c.y = d.y = b.y;
+        else a.y = b.y = c.y;
+      } else if (prevLen >= nextLen) {
+        c.x = d.x = b.x;
+      } else {
+        a.x = b.x = c.x;
+      }
+      p = cleanPolygon(p);
+      changed = true;
+    }
+    if (!changed) break;
+  }
+  return p;
 }

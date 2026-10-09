@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { orthogonalize, regionPolygon, traceOuterBoundary } from "./plan-contour";
+import { orthogonalize, regionPolygon, removeSmallSteps, straightenCurves, traceOuterBoundary } from "./plan-contour";
 import { polygonAreaPx } from "./plan-polygon";
 
 /** Grilla 20x20 con una L (label 1) y un cuadrado vecino (label 2). */
@@ -64,4 +64,41 @@ test("el cierre rellena entrantes chicos pero respeta la L y al vecino", () => {
   assert.ok(poly);
   assert.equal(poly.length, 6);
   assert.equal(Math.round(polygonAreaPx(poly, 20, 20)), 176);
+});
+
+test("un arco (puerta) se vuelve una esquina recta; una pared en diagonal se respeta", () => {
+  // Cuadrado 0..10 con la esquina de abajo a la derecha "mordida" por un arco.
+  const arc = [
+    { x: 0, y: 0 },
+    { x: 10, y: 0 },
+    { x: 10, y: 6 },
+    { x: 9.5, y: 8 },
+    { x: 8, y: 9.5 },
+    { x: 6, y: 10 },
+    { x: 0, y: 10 },
+  ];
+  // El espacio real llena el cuadrado entero (el arco era la hoja de la puerta).
+  const out = straightenCurves(arc, (x, y) => x >= 0 && x <= 10 && y >= 0 && y <= 10);
+  assert.ok(out.some((p) => p.x === 10 && p.y === 10), JSON.stringify(out));
+  const chamfer = [
+    { x: 0, y: 0 },
+    { x: 10, y: 0 },
+    { x: 10, y: 6 },
+    { x: 6, y: 10 },
+    { x: 0, y: 10 },
+  ];
+  assert.equal(straightenCurves(chamfer, () => true).length, 5);
+});
+
+test("los dientes cortos en las uniones se alinean con la pared larga", () => {
+  const toothed = [
+    { x: 0, y: 0 },
+    { x: 10, y: 0 },
+    { x: 10, y: 10 },
+    { x: 5, y: 10 },
+    { x: 5, y: 10.4 },
+    { x: 0, y: 10.4 },
+  ];
+  const out = removeSmallSteps(toothed, 1);
+  assert.equal(out.length, 4, JSON.stringify(out));
 });
