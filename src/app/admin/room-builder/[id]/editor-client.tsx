@@ -561,6 +561,7 @@ export function RoomBuilderEditor({
             onCoverageView={onCoverageView}
             onUnitsChange={onUnitsChange}
             onFurnitureChange={onFurnitureChange}
+            projectName={project.name}
           />
         </div>
       </div>

@@ -11,7 +11,10 @@
 
 import { Canvas, useThree } from "@react-three/fiber";
 import { PerformanceMonitor, useProgress } from "@react-three/drei";
-import { Component, useEffect, useMemo, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { Box as BoxIcon } from "lucide-react";
+import { ArModal } from "./ar-modal";
+import { SceneExportBridge, type ExportRoomFn } from "./three/scene-export";
 import * as THREE from "three";
 import type { CameraPreset, CoverageViewMode } from "@/services/room-builder/types";
 import type { RoomScene } from "@/services/room-builder/scene";
@@ -173,6 +176,7 @@ export function RoomViewport({
   onCoverageView,
   onUnitsChange,
   onFurnitureChange,
+  projectName = "Sala",
 }: {
   scene: RoomScene;
   category?: string;
@@ -186,7 +190,15 @@ export function RoomViewport({
   onUnitsChange?: (slotKey: string, units: DeviceUnit[]) => void;
   /** Muebles quitados o movidos en el 3D. */
   onFurnitureChange?: (next: FurnitureOverrides) => void;
+  /** Nombre para la maqueta descargable. */
+  projectName?: string;
 }) {
+  const exportRef = useRef<ExportRoomFn | null>(null);
+  const [arOpen, setArOpen] = useState(false);
+  const buildModel = useCallback(
+    () => (exportRef.current ? exportRef.current() : Promise.reject(new Error("La sala 3D todavía está cargando"))),
+    [],
+  );
   const [selectedFurnitureId, setSelectedFurnitureId] = useState<string | null>(null);
   const [quality, setQuality] = useState<Quality>("high");
   const [autoTour, setAutoTour] = useState(true);
@@ -244,6 +256,7 @@ export function RoomViewport({
             onPointerMissed={() => setSelectedFurnitureId(null)}
           >
             <QualitySync quality={quality} />
+            <SceneExportBridge exportRef={exportRef} />
             {quality === "high" ? <PerformanceMonitor onDecline={() => setQuality("fast")} flipflops={2} /> : null}
             <SceneContent
               scene={scene}
@@ -287,6 +300,15 @@ export function RoomViewport({
         <div className="pointer-events-auto flex flex-wrap justify-end gap-1 rounded-xl bg-white/85 p-1 shadow-lg backdrop-blur">
           <button
             type="button"
+            onClick={() => setArOpen(true)}
+            disabled={!sceneOk}
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-white disabled:opacity-40 sm:px-2.5 sm:py-1.5 sm:text-xs"
+            title="Maqueta 3D para girar, descargar o ver en realidad aumentada"
+          >
+            <BoxIcon className="h-3.5 w-3.5" /> AR
+          </button>
+          <button
+            type="button"
             onClick={() => setAutoTour((v) => !v)}
             className={`rounded-lg px-2 py-1 text-[11px] font-semibold sm:px-2.5 sm:py-1.5 sm:text-xs ${autoTour ? "bg-indigo-700 text-white" : "text-slate-700 hover:bg-white"}`}
             title="Giro automático cuando no tocás la cámara"
@@ -322,6 +344,8 @@ export function RoomViewport({
           ))}
         </div>
       </div>
+
+      {arOpen ? <ArModal name={projectName} buildModel={buildModel} onClose={() => setArOpen(false)} /> : null}
 
       {showHelp && sceneOk ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-14 z-10 flex justify-center px-3">

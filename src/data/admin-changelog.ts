@@ -1324,4 +1324,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Al elegir una pantalla ya no aparecen soportes (MNT, mount, bracket); soportes, cables, fuentes y accesorios quedan fuera de los equipos sugeridos." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-ar",
+    version: "1.43.0",
+    releasedAt: "2026-10-09T13:30:00.000Z",
+    summary: "Room Builder: maqueta 3D descargable y realidad aumentada (Ver en tu espacio).",
+    items: [
+      { kind: "NUEVO", text: "Botón AR en el visor: la sala como maqueta 3D para girar; desde el celular, 'Ver en tu espacio' la pone en realidad aumentada (Android con Chrome, iPhone con Safari)." },
+      { kind: "NUEVO", text: "Descarga de la maqueta en .glb para compartir o abrir en otros programas 3D." },
+    ],
+  },
 ];
