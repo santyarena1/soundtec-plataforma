@@ -28,6 +28,7 @@ import type { DeviceUnit } from "@/services/room-builder/units";
 import { resolveSceneFurniture, type FurnitureOverrides } from "@/services/room-builder/furnishing";
 import { FurnitureLayer } from "./three/furniture-layer";
 import { PlanUnderlay } from "./three/plan-underlay";
+import { NavHelp } from "./three/nav-help";
 import { SurfaceProvider } from "./three/surfaces";
 
 const PRESET_LABELS: Record<CameraPreset, string> = {
@@ -288,6 +289,8 @@ export function RoomViewport({
           <LoadingOverlay />
         </CanvasErrorBoundary>
       )}
+
+      <NavHelp />
 
       {placementHint ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-12 z-10 flex justify-center px-3">

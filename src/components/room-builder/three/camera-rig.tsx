@@ -66,7 +66,12 @@ export function framingFor(preset: CameraPreset, w: number, d: number, h: number
   }
 }
 
-const IDLE_SECONDS = 9;
+const IDLE_SECONDS = 6;
+/** Velocidad del giro automático (rad/s): arranca y frena suave. */
+const TOUR_SPEED = 0.06;
+const TOUR_EASE = 0.8;
+/** Giro con Q / E (radianes). */
+const KEY_TURN = Math.PI / 12;
 
 export function CameraRig({
   preset,
@@ -88,6 +93,8 @@ export function CameraRig({
   const idleFor = useRef(0);
   const interacting = useRef(false);
   const fovTarget = useRef<number>((camera as THREE.PerspectiveCamera).fov);
+  const tourSpeed = useRef(0);
+  const gl = useThree((st) => st.gl);
   // Solo las vistas centradas en un equipo se mueven al elegir otro equipo.
   const framingKey = preset === "detail" || preset === "device_pov" ? (selected?.slotKey ?? "") : "";
 
@@ -133,6 +140,7 @@ export function CameraRig({
     const start = () => {
       interacting.current = true;
       idleFor.current = 0;
+      tourSpeed.current = 0;
     };
     const end = () => {
       interacting.current = false;
@@ -146,6 +154,62 @@ export function CameraRig({
     };
   }, []);
 
+  // Moverse con el teclado: W A S D / flechas, Q E para girar, + − para acercar.
+  useEffect(() => {
+    const step = () => Math.max(0.35, Math.hypot(widthM, depthM) * 0.06);
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el?.closest("input, textarea, select, [contenteditable=true]") || e.ctrlKey || e.metaKey || e.altKey) return;
+      const c = ref.current;
+      if (!c) return;
+      const k = e.key.toLowerCase();
+      const moves: Record<string, () => void> = {
+        w: () => void c.forward(step(), true),
+        arrowup: () => void c.forward(step(), true),
+        s: () => void c.forward(-step(), true),
+        arrowdown: () => void c.forward(-step(), true),
+        a: () => void c.truck(-step(), 0, true),
+        arrowleft: () => void c.truck(-step(), 0, true),
+        d: () => void c.truck(step(), 0, true),
+        arrowright: () => void c.truck(step(), 0, true),
+        q: () => void c.rotate(KEY_TURN, 0, true),
+        e: () => void c.rotate(-KEY_TURN, 0, true),
+        "+": () => void c.dolly(step(), true),
+        "=": () => void c.dolly(step(), true),
+        "-": () => void c.dolly(-step(), true),
+      };
+      const move = moves[k];
+      if (!move) return;
+      e.preventDefault();
+      idleFor.current = 0;
+      tourSpeed.current = 0;
+      move();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [widthM, depthM]);
+
+  // Doble clic en el piso: la cámara va a mirar ese punto.
+  useEffect(() => {
+    const el = gl.domElement;
+    const ray = new THREE.Raycaster();
+    const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const hit = new THREE.Vector3();
+    const onDbl = (e: MouseEvent) => {
+      const c = ref.current;
+      if (!c) return;
+      const rect = el.getBoundingClientRect();
+      ray.setFromCamera(new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1), camera);
+      if (!ray.ray.intersectPlane(floor, hit)) return;
+      if (Math.abs(hit.x) > widthM / 2 + 0.5 || Math.abs(hit.z) > depthM / 2 + 0.5) return;
+      idleFor.current = 0;
+      tourSpeed.current = 0;
+      void c.moveTo(hit.x, Math.min(heightM * 0.4, 1.1), hit.z, true);
+    };
+    el.addEventListener("dblclick", onDbl);
+    return () => el.removeEventListener("dblclick", onDbl);
+  }, [gl, camera, widthM, depthM, heightM]);
+
   useFrame((_, delta) => {
     const cam = camera as THREE.PerspectiveCamera;
     // El FOV también viaja suave.
@@ -155,12 +219,13 @@ export function CameraRig({
     }
     const c = ref.current;
     if (dragState.active) idleFor.current = 0;
-    if (!c || !autoTour || interacting.current || dragState.active) return;
-    idleFor.current += delta;
-    // Giro lento solo en vistas "de afuera" (no en las de ojo o equipo).
-    if (idleFor.current > IDLE_SECONDS && (preset === "general" || preset === "cinema")) {
-      void c.rotate(delta * 0.045, 0, false);
-    }
+    if (!c) return;
+    const touring = autoTour && !interacting.current && !dragState.active;
+    if (touring) idleFor.current += delta;
+    // Giro lento solo en vistas "de afuera" (no en las de ojo o equipo), que acelera y frena suave.
+    const want = touring && idleFor.current > IDLE_SECONDS && (preset === "general" || preset === "cinema") ? TOUR_SPEED : 0;
+    tourSpeed.current = THREE.MathUtils.damp(tourSpeed.current, want, want ? TOUR_EASE : TOUR_EASE * 4, delta);
+    if (tourSpeed.current > 0.0005) void c.rotate(delta * tourSpeed.current, 0, false);
   });
 
   return <CameraControls ref={ref} makeDefault />;

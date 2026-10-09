@@ -11,6 +11,7 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import type { RoomScene } from "@/services/room-builder/scene";
+import { pointInPolygon } from "@/services/room-builder/plan-polygon";
 import { roomTheme } from "../room-theme";
 import { useLargeSurface, useSurface, type TextureSetName } from "./surfaces";
 
@@ -252,22 +253,9 @@ export function RoomShell({
     return (
       <group>
         <PolygonFloor points={plan.floorPolygon} material={floor} fallback={[w * 1.3, d * 1.3]} />
-        {plan.walls.map((wall) => {
-          const dx = wall.b.x - wall.a.x;
-          const dz = wall.b.y - wall.a.y;
-          const len = Math.hypot(dx, dz);
-          return (
-            <mesh
-              key={wall.id}
-              position={[(wall.a.x + wall.b.x) / 2, h / 2, (wall.a.y + wall.b.y) / 2]}
-              rotation={[0, Math.atan2(dx, dz), 0]}
-              receiveShadow
-              material={wallMat}
-            >
-              <boxGeometry args={[WALL_T, h, len]} />
-            </mesh>
-          );
-        })}
+        {plan.walls.map((wall) => (
+          <PlanWall key={wall.id} a={wall.a} b={wall.b} floor={plan.floorPolygon} h={h} material={wallMat} />
+        ))}
       </group>
     );
   }
@@ -328,4 +316,60 @@ function PolygonFloor({ points, material, fallback }: { points: Array<{ x: numbe
     );
   }
   return <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={material} geometry={geometry} />;
+}
+
+/**
+ * Pared de una sala con forma libre: va por fuera del piso (la cara interior
+ * coincide con el borde), se alarga un espesor para cerrar las esquinas y se
+ * oculta cuando la cámara la mira desde afuera, para ver adentro sin que tape.
+ */
+function PlanWall({
+  a,
+  b,
+  floor,
+  h,
+  material,
+}: {
+  a: { x: number; y: number };
+  b: { x: number; y: number };
+  floor: Array<{ x: number; y: number }>;
+  h: number;
+  material: THREE.Material;
+}) {
+  const ref = useRef<THREE.Mesh>(null);
+  const geo = useMemo(() => {
+    const dx = b.x - a.x;
+    const dz = b.y - a.y;
+    const len = Math.hypot(dx, dz) || 1;
+    // Normal hacia afuera del piso.
+    let nx = dz / len;
+    let nz = -dx / len;
+    const mx = (a.x + b.x) / 2;
+    const mz = (a.y + b.y) / 2;
+    if (pointInPolygon({ x: mx + nx * 0.05, y: mz + nz * 0.05 }, floor)) {
+      nx = -nx;
+      nz = -nz;
+    }
+    return {
+      position: [mx + (nx * WALL_T) / 2, h / 2, mz + (nz * WALL_T) / 2] as [number, number, number],
+      rotationY: Math.atan2(dx, dz),
+      length: len + WALL_T,
+      mid: new THREE.Vector2(mx, mz),
+      normal: new THREE.Vector2(nx, nz),
+    };
+  }, [a, b, floor, h]);
+
+  useFrame(({ camera }) => {
+    const m = ref.current;
+    if (!m) return;
+    const side = (camera.position.x - geo.mid.x) * geo.normal.x + (camera.position.z - geo.mid.y) * geo.normal.y;
+    const show = side < 0.05;
+    if (m.visible !== show) m.visible = show;
+  });
+
+  return (
+    <mesh ref={ref} position={geo.position} rotation={[0, geo.rotationY, 0]} receiveShadow castShadow material={material}>
+      <boxGeometry args={[WALL_T, h, geo.length]} />
+    </mesh>
+  );
 }

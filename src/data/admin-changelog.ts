@@ -1528,4 +1528,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "La cotización agregada incluye el equipamiento central sin duplicar amplificadores ni procesadores." },
     ],
   },
+  {
+    id: "ship-2026-10-10-vista-3d",
+    version: "1.52.1",
+    releasedAt: "2026-10-10T13:30:00.000Z",
+    summary: "Vista 3D: las paredes que tapan se ocultan también en salas con forma del plano, recorrido suave y forma clara de moverse.",
+    items: [
+      { kind: "FIX", text: "Salas con forma libre (desde el plano): la pared del lado de la cámara se oculta al girar, como en las rectangulares; las esquinas cierran sin huecos." },
+      { kind: "MEJORA", text: "Recorrido automático suave: arranca y frena de a poco, y se corta apenas tocás la cámara." },
+      { kind: "NUEVO", text: "Moverse por la sala: W A S D o flechas para caminar, Q / E para girar, + / − para acercar y doble clic en el piso para ir a ese punto. Ayuda “Cómo moverse” en el visor." },
+    ],
+  },
 ];
