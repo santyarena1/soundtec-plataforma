@@ -53,6 +53,40 @@ function ScreenFace({ w, h, z = 0 }: { w: number; h: number; z?: number }) {
   );
 }
 
+/**
+ * Medida nominal (ancho × profundidad, m) de los modelos que no se dibujan a
+ * medida: para que un mueble del plano llene justo su contorno dibujado.
+ */
+const NOMINAL: Partial<Record<FurnitureItem["kind"], [number, number]>> = {
+  "lounge-chair": [0.8, 0.8],
+  "side-chair": [0.5, 0.5],
+  chair: [0.6, 0.6],
+  "bar-stool": [0.42, 0.42],
+  planter: [0.5, 0.5],
+  toilet: [0.4, 0.68],
+  wardrobe: [0.55, 0.7],
+  nightstand: [0.45, 0.4],
+  lectern: [0.6, 0.5],
+};
+const FIT_MIN = 0.5;
+const FIT_MAX = 3;
+
+/** Escala para que el modelo coincida con el contorno del plano (solo muebles reconocidos del plano). */
+/** Modelos que ya toman el ancho del plano pero tienen profundidad fija. */
+const NOMINAL_DEPTH: Partial<Record<FurnitureItem["kind"], number>> = { sofa: 0.9, credenza: 0.45, "media-console": 0.45 };
+
+function fitScale(item: FurnitureItem): [number, number, number] {
+  const depth = NOMINAL_DEPTH[item.kind];
+  if (item.fit && depth && item.d) return [1, 1, Math.min(FIT_MAX, Math.max(FIT_MIN, item.d / depth))];
+  const nominal = NOMINAL[item.kind];
+  if (!item.fit || !nominal || !item.w || !item.d) return [1, 1, 1];
+  const clamp = (v: number) => Math.min(FIT_MAX, Math.max(FIT_MIN, v));
+  const sx = clamp(item.w / nominal[0]);
+  const sz = clamp(item.d / nominal[1]);
+  // La altura acompaña lo justo (una maceta grande es más alta; una silla no se estira).
+  return [sx, item.kind === "planter" ? Math.sqrt(sx * sz) : 1, sz];
+}
+
 /** Dibujo de cada tipo, en su origen (la posición y el giro los pone el contenedor). */
 function FurnitureBody({ item }: { item: FurnitureItem }) {
   const w = item.w ?? 1;
@@ -330,7 +364,9 @@ function FurniturePiece({
         document.body.style.cursor = "";
       }}
     >
-      <FurnitureBody item={item} />
+      <group scale={fitScale(item)}>
+        <FurnitureBody item={item} />
+      </group>
       {selected ? <SelectionMark item={item} /> : null}
       {selected && !drag ? (
         <Toolbar

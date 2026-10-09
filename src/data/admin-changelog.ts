@@ -1560,4 +1560,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Sistema del proyecto: las sugerencias de amplificador ya no incluyen accesorios (patas, orejas de rack, kits)." },
     ],
   },
+  {
+    id: "ship-2026-10-10-puertas-ventanas-reales",
+    version: "1.54.0",
+    releasedAt: "2026-10-10T18:00:00.000Z",
+    summary: "Salas desde plano: puertas y ventanas reales en las paredes 3D y muebles ajustados a las líneas dibujadas.",
+    items: [
+      { kind: "NUEVO", text: "Puertas y ventanas del plano en 3D con su posición y ancho reales: hueco con dintel y hoja entreabierta para las puertas; antepecho, vidrio y dintel para las ventanas (se reconocen por las 3–4 líneas finas dentro del muro). Reemplazan a la puerta y ventanas genéricas." },
+      { kind: "MEJORA", text: "Muebles del plano ajustados a las líneas dibujadas: la IA dice qué es cada uno y el contorno lo toman los trazos reales; sillones, sillas, macetas e inodoros se escalan para llenar su contorno." },
+      { kind: "MEJORA", text: "Las salas rectangulares que vienen del plano también usan las paredes del plano y tienen techo con la forma real; al cambiar medidas, puertas y ventanas se acomodan." },
+    ],
+  },
 ];

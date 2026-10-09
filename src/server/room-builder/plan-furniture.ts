@@ -12,12 +12,13 @@ import {
   facingAwayFromWall,
   guessKind,
   objectsToFurniture,
+  snapBoxToInk,
   type ClassifiedObject,
   type PlanObject,
   type RoomMapping,
 } from "@/services/room-builder/plan-objects";
 import type { PlanPoint } from "@/services/room-builder/plan-polygon";
-import { planInkGrid } from "@/services/room-builder/plan-segment";
+import { planInkGrid, planOpenings } from "@/services/room-builder/plan-segment";
 
 /** Margen alrededor de cada objeto al recortarlo (fracción de su tamaño). */
 const CROP_PAD = 0.25;
@@ -30,10 +31,11 @@ const TEXT_DENSITY = 0.15;
 
 export type PlanImageInput = { data: Buffer; widthPx: number; heightPx: number };
 
-/** Trazo del plano en la grilla (se calcula una vez por proyecto). */
+/** Trazo del plano en la grilla y sus puertas / ventanas (se calcula una vez por proyecto). */
 export async function planInk(image: PlanImageInput) {
   const g = await sharp(image.data).greyscale().raw().toBuffer({ resolveWithObject: true });
-  return planInkGrid({ data: new Uint8Array(g.data), width: g.info.width, height: g.info.height });
+  const gray = { data: new Uint8Array(g.data), width: g.info.width, height: g.info.height };
+  return { ...planInkGrid(gray), openings: planOpenings(gray) };
 }
 
 type Crop = { dataUrl: string; rect: { x0: number; y0: number; x1: number; y1: number } };
@@ -108,9 +110,14 @@ export async function furnitureFromPlan(input: {
       // La IA descompone el recorte en muebles: cada uno en su lugar dentro del recorte.
       const cw = crop.rect.x1 - crop.rect.x0;
       const ch = crop.rect.y1 - crop.rect.y0;
+      const real = reading.filter((it) => it.kind !== "door" && it.kind !== "text" && it.kind !== "other");
       for (const item of reading) {
+        const approx = { x0: crop.rect.x0 + item.box.x0 * cw, y0: crop.rect.y0 + item.box.y0 * ch, x1: crop.rect.x0 + item.box.x1 * cw, y1: crop.rect.y0 + item.box.y1 * ch };
+        // Un solo mueble en el recorte: su contorno es el del objeto encontrado. Si son varios,
+        // cada uno se ajusta a los trazos que hay en su zona (cae sobre las líneas del plano).
+        const box = real.length === 1 && real[0] === item ? o.box : snapBoxToInk(approx, o.box, ink, width, height);
         classified.push({
-          box: { x0: crop.rect.x0 + item.box.x0 * cw, y0: crop.rect.y0 + item.box.y0 * ch, x1: crop.rect.x0 + item.box.x1 * cw, y1: crop.rect.y0 + item.box.y1 * ch },
+          box,
           againstWall: o.againstWall,
           density: o.density,
           kind: item.kind,

@@ -43,7 +43,15 @@ export function resizeSceneMeters(
     const sx = resized.widthM / (scene.widthM || resized.widthM);
     const sz = resized.depthM / (scene.depthM || resized.depthM);
     const floorPolygon = scene.plan.floorPolygon.map((p) => ({ x: Math.round(p.x * sx * 100) / 100, y: Math.round(p.y * sz * 100) / 100 }));
-    resized.plan = { ...scene.plan, heightM: resized.heightM, floorPolygon, walls: wallsFromPolygon(floorPolygon) };
+    const walls = wallsFromPolygon(floorPolygon);
+    // Puertas y ventanas: misma proporción a lo largo de cada pared.
+    const lenOf = (w: { a: { x: number; y: number }; b: { x: number; y: number } }) => Math.hypot(w.b.x - w.a.x, w.b.y - w.a.y);
+    const ratio = new Map(scene.plan.walls.map((w, i) => [w.id, walls[i] ? lenOf(walls[i]!) / (lenOf(w) || 1) : 1]));
+    const openings = scene.plan.openings?.map((o) => {
+      const k = ratio.get(o.wall) ?? 1;
+      return { ...o, from: Math.round(o.from * k * 100) / 100, to: Math.round(o.to * k * 100) / 100 };
+    });
+    resized.plan = { ...scene.plan, heightM: resized.heightM, floorPolygon, walls, ...(openings ? { openings } : {}) };
     resized.areaM2 = boundsFromPolygon(floorPolygon).areaM2;
   }
 

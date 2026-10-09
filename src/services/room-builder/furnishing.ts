@@ -70,6 +70,8 @@ export type FurnitureItem = {
   color?: string;
   scale?: number;
   tall?: boolean;
+  /** Mueble reconocido en el plano: el modelo se escala para llenar su contorno dibujado (w × d). */
+  fit?: boolean;
 };
 
 export type FurnitureOverrides = {

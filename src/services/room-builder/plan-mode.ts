@@ -19,6 +19,8 @@ export type PlanModeState = {
   walls: PlanWall[];
   /** polígono de piso en metros (centro = 0,0) */
   floorPolygon: PlanPoint[];
+  /** Puertas y ventanas del plano, por pared (metros desde el inicio de cada pared). */
+  openings?: Array<{ wall: string; kind: "door" | "window"; from: number; to: number }>;
 };
 
 export type PlanCalibration = {

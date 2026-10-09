@@ -254,8 +254,7 @@ export function objectsToFurniture(objects: ClassifiedObject[], map: RoomMapping
     const d = Math.round((sideways ? worldW : worldD) * 100) / 100;
     const x = Math.round((cxPx - map.centerPx.x) * map.mppX * 100) / 100;
     const z = Math.round((cyPx - map.centerPx.y) * map.mppZ * 100) / 100;
-    const base: FurnitureItem = { id: `plan-obj-${i}`, kind: spec.kind, group: spec.group, x, z, rotY: FACING_ROT[o.facing], mount: "floor", w, d, ...(spec.h ? { h: spec.h } : {}) };
-    if (o.kind === "planter") base.scale = Math.max(0.6, Math.min(1.6, Math.max(w, d) / 0.5));
+    const base: FurnitureItem = { id: `plan-obj-${i}`, kind: spec.kind, group: spec.group, x, z, rotY: FACING_ROT[o.facing], mount: "floor", w, d, fit: true, ...(spec.h ? { h: spec.h } : {}) };
     if (o.kind === "table" || o.kind === "dining-set") {
       const round = Math.abs(w - d) < 0.15 * Math.max(w, d);
       // En un juego de comedor el recuadro dibujado incluye las sillas: la mesa es más chica.
@@ -303,4 +302,45 @@ function chairsAround(table: FurnitureItem, round: boolean): FurnitureItem[] {
     }
   }
   return out;
+}
+
+/**
+ * Ajusta un recuadro aproximado (el que dice la IA) a los trazos reales del
+ * plano: el recuadro mínimo que contiene la tinta dentro de esa zona (un poco
+ * agrandada y sin salir del objeto padre). Así el mueble cae justo sobre las
+ * líneas dibujadas.
+ */
+export function snapBoxToInk(
+  approx: PlanObject["box"],
+  parent: PlanObject["box"],
+  ink: Uint8Array,
+  width: number,
+  height: number,
+  grow = 0.15,
+): PlanObject["box"] {
+  const gw = (approx.x1 - approx.x0) * grow;
+  const gh = (approx.y1 - approx.y0) * grow;
+  const x0 = Math.max(parent.x0, approx.x0 - gw);
+  const y0 = Math.max(parent.y0, approx.y0 - gh);
+  const x1 = Math.min(parent.x1, approx.x1 + gw);
+  const y1 = Math.min(parent.y1, approx.y1 + gh);
+  const cx0 = Math.max(0, Math.floor(x0 * width));
+  const cy0 = Math.max(0, Math.floor(y0 * height));
+  const cx1 = Math.min(width - 1, Math.ceil(x1 * width) - 1);
+  const cy1 = Math.min(height - 1, Math.ceil(y1 * height) - 1);
+  let mx0 = Infinity;
+  let my0 = Infinity;
+  let mx1 = -Infinity;
+  let my1 = -Infinity;
+  for (let y = cy0; y <= cy1; y++) {
+    for (let x = cx0; x <= cx1; x++) {
+      if (!ink[y * width + x]) continue;
+      mx0 = Math.min(mx0, x);
+      my0 = Math.min(my0, y);
+      mx1 = Math.max(mx1, x);
+      my1 = Math.max(my1, y);
+    }
+  }
+  if (!Number.isFinite(mx0)) return { x0, y0, x1, y1 };
+  return { x0: mx0 / width, y0: my0 / height, x1: (mx1 + 1) / width, y1: (my1 + 1) / height };
 }

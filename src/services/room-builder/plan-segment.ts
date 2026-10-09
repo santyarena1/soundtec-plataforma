@@ -36,6 +36,8 @@ const CONTOUR_CLOSE = 0.02;
 /** Muro de doble línea: separación máxima entre las líneas y largo mínimo de cada una (fracción del lado). */
 const DOUBLE_WALL_GAP = 0.015;
 const DOUBLE_WALL_LINE = 0.04;
+/** Abertura mínima a considerar (fracción del lado). */
+const OPENING_MIN = 0.02;
 /** Vanos de puerta: tramos de pared de al menos esto a cada lado, hueco de a lo sumo esto (fracción del lado). */
 const DOOR_MIN_WALL = 0.03;
 const DOOR_MAX_GAP = 0.16;
@@ -100,6 +102,16 @@ function downsampleWalls(img: GrayImage): { wall: Uint8Array; light: Uint8Array;
     }
   }
   return { wall, light, width, height };
+}
+
+/** Puertas (vanos con arco) y ventanas (3+ líneas finas en el muro) del plano, normalizadas. */
+export function planOpenings(img: GrayImage): PlanOpening[] {
+  const { wall: rawWall, light, width, height } = downsampleWalls(img);
+  const doors: OpeningLine[] = [];
+  bridgeDoorways(fillDoubleWalls(removeLooseInk(rawWall, width, height), width, height), light, width, height, doors);
+  const side = Math.max(width, height);
+  const minCells = Math.max(3, Math.round(OPENING_MIN * side));
+  return [...groupOpenings(doors, width, height, "door", minCells), ...groupOpenings(findWindows(rawWall, width, height), width, height, "window", minCells)];
 }
 
 /** Trazo del plano en la grilla de trabajo (para buscar objetos dentro de los ambientes). */
@@ -225,6 +237,74 @@ export function fillDoubleWalls(wall: Uint8Array, width: number, height: number)
   return out;
 }
 
+/** Un tramo de abertura sobre una línea de la grilla (fila si es horizontal, columna si no). */
+export type OpeningLine = { horizontal: boolean; line: number; a: number; b: number };
+/** Abertura agrupada (todas las líneas del espesor del muro), en coordenadas normalizadas. */
+export type PlanOpening = { kind: "door" | "window"; horizontal: boolean; at: number; from: number; to: number };
+
+/** Agrupa tramos de la misma abertura (las filas o columnas del espesor del muro). */
+export function groupOpenings(lines: OpeningLine[], width: number, height: number, kind: PlanOpening["kind"], minCells: number): PlanOpening[] {
+  const sorted = [...lines].sort((p, q) => Number(p.horizontal) - Number(q.horizontal) || p.line - q.line || p.a - q.a);
+  const groups: Array<{ horizontal: boolean; l0: number; l1: number; a: number; b: number }> = [];
+  for (const l of sorted) {
+    const g = groups.find((x) => x.horizontal === l.horizontal && l.line - x.l1 <= 2 && l.a <= x.b + 1 && x.a <= l.b + 1);
+    if (g) {
+      g.l1 = Math.max(g.l1, l.line);
+      g.a = Math.min(g.a, l.a);
+      g.b = Math.max(g.b, l.b);
+    } else groups.push({ horizontal: l.horizontal, l0: l.line, l1: l.line, a: l.a, b: l.b });
+  }
+  return groups
+    .filter((g) => g.b - g.a + 1 >= minCells)
+    .map((g) => {
+      const mid = (g.l0 + g.l1 + 1) / 2;
+      return g.horizontal
+        ? { kind, horizontal: true, at: mid / height, from: g.a / width, to: (g.b + 1) / width }
+        : { kind, horizontal: false, at: mid / width, from: g.a / height, to: (g.b + 1) / height };
+    });
+}
+
+/**
+ * Ventanas: en el plano se dibujan como 3 o 4 líneas finas paralelas dentro
+ * del espesor del muro (un muro común tiene 2). Se buscan en el trazo crudo.
+ */
+export function findWindows(raw: Uint8Array, width: number, height: number): OpeningLine[] {
+  const side = Math.max(width, height);
+  const maxSpan = Math.max(4, Math.round(DOUBLE_WALL_GAP * side * 1.6));
+  const thin = 2;
+  const out: OpeningLine[] = [];
+  // Recorre columnas (muros horizontales) y filas (muros verticales).
+  for (const horizontal of [true, false]) {
+    const lines = horizontal ? width : height;
+    const len = horizontal ? height : width;
+    const at = (i: number, j: number) => (horizontal ? raw[j * width + i] : raw[i * width + j]);
+    for (let i = 0; i < lines; i++) {
+      let j = 0;
+      const runs: Array<[number, number]> = [];
+      while (j < len) {
+        if (!at(i, j)) {
+          j++;
+          continue;
+        }
+        const s0 = j;
+        while (j < len && at(i, j)) j++;
+        runs.push([s0, j - 1]);
+      }
+      // 3+ trazos finos seguidos dentro de un espesor de muro.
+      for (let r = 0; r + 2 < runs.length; r++) {
+        const group = [runs[r]!, runs[r + 1]!, runs[r + 2]!];
+        if (group.every(([p, q]) => q - p + 1 <= thin) && group[2]![1] - group[0]![0] <= maxSpan) {
+          // La línea "del muro" es la fila central; el tramo se arma después agrupando columnas vecinas.
+          const center = Math.round((group[0]![0] + group[2]![1]) / 2);
+          out.push(horizontal ? { horizontal: true, line: center, a: i, b: i } : { horizontal: false, line: center, a: i, b: i });
+          r += 2;
+        }
+      }
+    }
+  }
+  return out;
+}
+
 /**
  * Cierra los vanos de puerta con una línea en el plano de la pared, de jamba a
  * jamba (como en los programas de arquitectura): así el ambiente termina en la
@@ -232,7 +312,7 @@ export function fillDoubleWalls(wall: Uint8Array, width: number, height: number)
  * pared alineados si al lado hay trazo de puerta (hoja o arco); un paso abierto
  * o el espacio entre dos plantas dibujadas en la misma lámina no se tocan.
  */
-export function bridgeDoorways(wall: Uint8Array, light: Uint8Array, width: number, height: number): Uint8Array {
+export function bridgeDoorways(wall: Uint8Array, light: Uint8Array, width: number, height: number, doors?: OpeningLine[]): Uint8Array {
   const side = Math.max(width, height);
   const minSeg = Math.max(4, Math.round(DOOR_MIN_WALL * side));
   const maxGap = Math.max(4, Math.round(DOOR_MAX_GAP * side));
@@ -297,7 +377,10 @@ export function bridgeDoorways(wall: Uint8Array, light: Uint8Array, width: numbe
         if (prevEnd >= 0 && Math.min(prevLen, runLen) >= 2 && Math.max(prevLen, runLen) >= minSeg && gap > 0 && gap <= maxGap) {
           const a = prevEnd + 1;
           const b = start - 1;
-          if (isDoor(horizontal, i, a, b)) for (let k = a; k <= b; k++) out[horizontal ? i * width + k : k * width + i] = 1;
+          if (isDoor(horizontal, i, a, b)) {
+            for (let k = a; k <= b; k++) out[horizontal ? i * width + k : k * width + i] = 1;
+            doors?.push({ horizontal, line: i, a, b });
+          }
         }
         prevEnd = j - 1;
         prevLen = runLen;

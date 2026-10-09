@@ -253,8 +253,17 @@ export function RoomShell({
     return (
       <group>
         <PolygonFloor points={plan.floorPolygon} material={floor} fallback={[w * 1.3, d * 1.3]} />
+        <PolygonCeiling points={plan.floorPolygon} h={h} color={theme.ceiling} />
         {plan.walls.map((wall) => (
-          <PlanWall key={wall.id} a={wall.a} b={wall.b} floor={plan.floorPolygon} h={h} material={wallMat} />
+          <PlanWall
+            key={wall.id}
+            a={wall.a}
+            b={wall.b}
+            floor={plan.floorPolygon}
+            h={h}
+            material={wallMat}
+            openings={(plan.openings ?? []).filter((o) => o.wall === wall.id)}
+          />
         ))}
       </group>
     );
@@ -318,10 +327,43 @@ function PolygonFloor({ points, material, fallback }: { points: Array<{ x: numbe
   return <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={material} geometry={geometry} />;
 }
 
+/** Alto de dintel de puertas y ventanas, y alto de antepecho de ventana (m). */
+const DOOR_H = 2.1;
+const SILL_H = 0.9;
+const LEAF_T = 0.04;
+/** Hoja de puerta entreabierta (radianes). */
+const LEAF_OPEN = 1.1;
+
+type WallPiece = { z0: number; z1: number; y0: number; y1: number; kind: "solid" | "glass" | "leaf" };
+
+/** Tramos de una pared con sus puertas y ventanas (z a lo largo de la pared, desde su inicio). */
+function wallPieces(len: number, h: number, openings: Array<{ kind: "door" | "window"; from: number; to: number }>): WallPiece[] {
+  const pieces: WallPiece[] = [];
+  const ops = [...openings].filter((o) => o.to > o.from).sort((p, q) => p.from - q.from);
+  let cursor = -WALL_T / 2;
+  const top = Math.min(DOOR_H, h - 0.05);
+  for (const o of ops) {
+    const from = Math.max(0, o.from);
+    const to = Math.min(len, o.to);
+    if (to <= from) continue;
+    if (from > cursor) pieces.push({ z0: cursor, z1: from, y0: 0, y1: h, kind: "solid" });
+    pieces.push({ z0: from, z1: to, y0: top, y1: h, kind: "solid" });
+    if (o.kind === "window") {
+      pieces.push({ z0: from, z1: to, y0: 0, y1: SILL_H, kind: "solid" });
+      pieces.push({ z0: from, z1: to, y0: SILL_H, y1: top, kind: "glass" });
+    } else {
+      pieces.push({ z0: from, z1: to, y0: 0, y1: top - 0.02, kind: "leaf" });
+    }
+    cursor = to;
+  }
+  if (cursor < len + WALL_T / 2) pieces.push({ z0: cursor, z1: len + WALL_T / 2, y0: 0, y1: h, kind: "solid" });
+  return pieces;
+}
+
 /**
- * Pared de una sala con forma libre: va por fuera del piso (la cara interior
- * coincide con el borde), se alarga un espesor para cerrar las esquinas y se
- * oculta cuando la cámara la mira desde afuera, para ver adentro sin que tape.
+ * Pared de una sala del plano: va por fuera del piso (la cara interior
+ * coincide con el borde), cierra las esquinas, lleva sus puertas y ventanas
+ * reales y se oculta cuando la cámara la mira desde afuera.
  */
 function PlanWall({
   a,
@@ -329,14 +371,16 @@ function PlanWall({
   floor,
   h,
   material,
+  openings,
 }: {
   a: { x: number; y: number };
   b: { x: number; y: number };
   floor: Array<{ x: number; y: number }>;
   h: number;
   material: THREE.Material;
+  openings: Array<{ kind: "door" | "window"; from: number; to: number }>;
 }) {
-  const ref = useRef<THREE.Mesh>(null);
+  const ref = useRef<THREE.Group>(null);
   const geo = useMemo(() => {
     const dx = b.x - a.x;
     const dz = b.y - a.y;
@@ -351,25 +395,77 @@ function PlanWall({
       nz = -nz;
     }
     return {
-      position: [mx + (nx * WALL_T) / 2, h / 2, mz + (nz * WALL_T) / 2] as [number, number, number],
+      // Origen en el inicio de la pared (a), corrido medio espesor hacia afuera.
+      position: [a.x + (nx * WALL_T) / 2, 0, a.y + (nz * WALL_T) / 2] as [number, number, number],
       rotationY: Math.atan2(dx, dz),
-      length: len + WALL_T,
+      pieces: wallPieces(len, h, openings),
+      // Lado de adentro en x local (para abrir la hoja hacia el ambiente).
+      inward: -Math.sign(nx * Math.cos(Math.atan2(dx, dz)) - nz * Math.sin(Math.atan2(dx, dz))) || 1,
       mid: new THREE.Vector2(mx, mz),
       normal: new THREE.Vector2(nx, nz),
     };
-  }, [a, b, floor, h]);
+  }, [a, b, floor, h, openings]);
 
   useFrame(({ camera }) => {
-    const m = ref.current;
-    if (!m) return;
+    const g = ref.current;
+    if (!g) return;
     const side = (camera.position.x - geo.mid.x) * geo.normal.x + (camera.position.z - geo.mid.y) * geo.normal.y;
     const show = side < 0.05;
-    if (m.visible !== show) m.visible = show;
+    if (g.visible !== show) g.visible = show;
   });
 
   return (
-    <mesh ref={ref} position={geo.position} rotation={[0, geo.rotationY, 0]} receiveShadow castShadow material={material}>
-      <boxGeometry args={[WALL_T, h, geo.length]} />
-    </mesh>
+    <group ref={ref} position={geo.position} rotation={[0, geo.rotationY, 0]}>
+      {geo.pieces.map((p, i) => {
+        const len = p.z1 - p.z0;
+        const hh = p.y1 - p.y0;
+        if (len <= 0.005 || hh <= 0.005) return null;
+        if (p.kind === "glass") {
+          return (
+            <mesh key={i} position={[0, p.y0 + hh / 2, p.z0 + len / 2]}>
+              <boxGeometry args={[0.02, hh, len]} />
+              <meshStandardMaterial color="#cfe3f2" transparent opacity={0.35} roughness={0.05} metalness={0.1} />
+            </mesh>
+          );
+        }
+        if (p.kind === "leaf") {
+          // Hoja entreabierta hacia adentro, con bisagra en el inicio del vano.
+          return (
+            <group key={i} position={[0, 0, p.z0]} rotation={[0, geo.inward * LEAF_OPEN, 0]}>
+              <mesh position={[0, p.y0 + hh / 2, len / 2]} castShadow>
+                <boxGeometry args={[LEAF_T, hh, len]} />
+                <meshStandardMaterial color="#8b6b4f" roughness={0.6} />
+              </mesh>
+            </group>
+          );
+        }
+        return (
+          <mesh key={i} position={[0, p.y0 + hh / 2, p.z0 + len / 2]} receiveShadow castShadow material={material}>
+            <boxGeometry args={[WALL_T, hh, len]} />
+          </mesh>
+        );
+      })}
+    </group>
   );
+}
+
+/** Techo con la forma real del ambiente; se oculta cuando la cámara está arriba (vista de maqueta). */
+function PolygonCeiling({ points, h, color }: { points: Array<{ x: number; y: number }>; h: number; color: string }) {
+  const ref = useRef<THREE.Mesh>(null);
+  const mat = useSurface(color, 0.95, 0);
+  const geometry = useMemo(() => {
+    if (points.length < 3) return null;
+    // Acostada con +90° en X: (x, y) → (x, 0, y), con la cara mirando hacia abajo.
+    let contour = points.map((p) => new THREE.Vector2(p.x, p.y));
+    if (THREE.ShapeUtils.isClockWise(contour)) contour = [...contour].reverse();
+    return new THREE.ShapeGeometry(new THREE.Shape(contour));
+  }, [points]);
+  useFrame(({ camera }) => {
+    const m = ref.current;
+    if (!m) return;
+    const show = camera.position.y < h - 0.05;
+    if (m.visible !== show) m.visible = show;
+  });
+  if (!geometry) return null;
+  return <mesh ref={ref} rotation={[Math.PI / 2, 0, 0]} position={[0, h, 0]} geometry={geometry} material={mat} userData={{ noExport: true }} />;
 }
