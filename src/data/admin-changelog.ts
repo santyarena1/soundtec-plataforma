@@ -1315,4 +1315,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "En plantillas con varios grupos de parlantes (cine) el asistente respeta frontales, envolventes y subwoofer." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-soportes",
+    version: "1.42.1",
+    releasedAt: "2026-10-09T12:30:00.000Z",
+    summary: "Room Builder: soportes y accesorios ya no se proponen como pantallas o equipos.",
+    items: [
+      { kind: "FIX", text: "Al elegir una pantalla ya no aparecen soportes (MNT, mount, bracket); soportes, cables, fuentes y accesorios quedan fuera de los equipos sugeridos." },
+    ],
+  },
 ];

@@ -65,6 +65,16 @@ export const AMPLIFIER_MATCH: Prisma.ProductWhereInput[] = [
   { normalizedName: { contains: "powerzone", mode: "insensitive" } },
 ];
 
+/** Soportes, cables, fuentes y accesorios no son equipos para ubicar en la sala. */
+const NOT_A_DEVICE: Prisma.ProductWhereInput = {
+  NOT: { aiProfile: { productType: { in: ["mount", "cable", "accessory", "power"] } } },
+};
+
+/** Algunos soportes de TV quedaron con rol "display": se descartan por nombre. */
+const NOT_A_DISPLAY_ACCESSORY: Prisma.ProductWhereInput = {
+  NOT: { OR: ["MNT", "mount", "bracket", "soporte", "cart"].map((t) => ({ normalizedName: { contains: t, mode: "insensitive" as const } })) },
+};
+
 function processorFilter(kind: ProcessorKind | undefined): Prisma.ProductWhereInput {
   if (kind === "amplifier") return { OR: AMPLIFIER_MATCH };
   if (kind === "control") return { NOT: AMPLIFIER_MATCH };
@@ -88,7 +98,12 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
       product: {
         isActive: true,
         isDiscontinued: false,
-        AND: [processorFilter(options.processorKind), brandSlugs ? { brand: { slug: { in: brandSlugs } } } : {}],
+        AND: [
+          processorFilter(options.processorKind),
+          NOT_A_DEVICE,
+          options.role === "display" ? NOT_A_DISPLAY_ACCESSORY : {},
+          brandSlugs ? { brand: { slug: { in: brandSlugs } } } : {},
+        ],
         ...(options.q
           ? {
               OR: [
