@@ -1343,4 +1343,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "La maqueta 3D / AR se encuadra en la sala (antes quedaba chiquita por el terreno de alrededor) y se ve por dentro, sin techo; pesa menos." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-ar-angulo",
+    version: "1.43.2",
+    releasedAt: "2026-10-09T14:10:00.000Z",
+    summary: "Room Builder: la maqueta AR abre desde el mismo ángulo que el editor.",
+    items: [
+      { kind: "FIX", text: "La maqueta 3D se abre mirando la sala desde donde la estás viendo, con el interior a la vista (no la cara de afuera de una pared)." },
+    ],
+  },
 ];

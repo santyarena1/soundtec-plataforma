@@ -9,6 +9,7 @@
 
 import { useEffect, useState, type DetailedHTMLProps, type HTMLAttributes } from "react";
 import { Box, Download, Loader2, Smartphone, X } from "lucide-react";
+import type { ExportedRoom } from "./three/scene-export";
 
 const MODEL_VIEWER_SRC = "https://cdn.jsdelivr.net/npm/@google/model-viewer@4.3.1/dist/model-viewer.min.js";
 
@@ -38,17 +39,19 @@ function loadModelViewer(): Promise<void> {
   return loader;
 }
 
-export function ArModal({ name, buildModel, onClose }: { name: string; buildModel: () => Promise<Blob>; onClose: () => void }) {
+export function ArModal({ name, buildModel, onClose }: { name: string; buildModel: () => Promise<ExportedRoom>; onClose: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [orbit, setOrbit] = useState("auto auto auto");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     let objectUrl: string | null = null;
     Promise.all([buildModel(), loadModelViewer()])
-      .then(([blob]) => {
+      .then(([room]) => {
         if (!alive) return;
-        objectUrl = URL.createObjectURL(blob);
+        objectUrl = URL.createObjectURL(room.blob);
+        setOrbit(room.cameraOrbit);
         setUrl(objectUrl);
       })
       .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : "No se pudo armar la maqueta"));
@@ -84,7 +87,7 @@ export function ArModal({ name, buildModel, onClose }: { name: string; buildMode
               ar-modes="webxr quick-look scene-viewer"
               ar-scale="auto"
               camera-controls=""
-              auto-rotate=""
+              camera-orbit={orbit}
               shadow-intensity="1"
               exposure="1"
               environment-image="neutral"

@@ -10,7 +10,17 @@ import { useThree } from "@react-three/fiber";
 import { useEffect, type MutableRefObject } from "react";
 import * as THREE from "three";
 
-export type ExportRoomFn = () => Promise<Blob>;
+/** Modelo exportado + ángulo de la cámara del editor (para abrir la maqueta igual). */
+export type ExportedRoom = { blob: Blob; cameraOrbit: string };
+export type ExportRoomFn = () => Promise<ExportedRoom>;
+
+/** Ángulo de cámara en formato model-viewer ("theta phi radio"). */
+export function cameraOrbitFrom(position: { x: number; y: number; z: number }): string {
+  const theta = (Math.atan2(position.x, position.z) * 180) / Math.PI;
+  const len = Math.hypot(position.x, position.y, position.z) || 1;
+  const phi = (Math.acos(Math.max(-1, Math.min(1, position.y / len))) * 180) / Math.PI;
+  return `${theta.toFixed(1)}deg ${Math.max(20, Math.min(80, phi)).toFixed(1)}deg auto`;
+}
 
 /** Transparencias por debajo de esto son ayudas (anillos, conos), no objetos. */
 const HELPER_OPACITY = 0.6;
@@ -26,6 +36,7 @@ function isHelper(o: THREE.Object3D): boolean {
 
 export function SceneExportBridge({ exportRef }: { exportRef: MutableRefObject<ExportRoomFn | null> }) {
   const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
 
   useEffect(() => {
     exportRef.current = async () => {
@@ -43,12 +54,12 @@ export function SceneExportBridge({ exportRef }: { exportRef: MutableRefObject<E
       });
       for (const o of drop) o.removeFromParent();
       const result = await new GLTFExporter().parseAsync(root, { binary: true, onlyVisible: true, maxTextureSize: 1024 });
-      return new Blob([result as ArrayBuffer], { type: "model/gltf-binary" });
+      return { blob: new Blob([result as ArrayBuffer], { type: "model/gltf-binary" }), cameraOrbit: cameraOrbitFrom(camera.position) };
     };
     return () => {
       exportRef.current = null;
     };
-  }, [scene, exportRef]);
+  }, [scene, camera, exportRef]);
 
   return null;
 }
