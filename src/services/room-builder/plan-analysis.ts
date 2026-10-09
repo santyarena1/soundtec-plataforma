@@ -83,6 +83,16 @@ export function templateFromName(name: string): string | null | undefined {
   return undefined;
 }
 
+/**
+ * Tipo final de un ambiente: el nombre manda cuando es claro (un "Dormitorio 2"
+ * es un dormitorio aunque la IA diga que no lleva equipos); si no, lo que
+ * propuso la IA; si nada, sin equipos.
+ */
+function resolveTemplate(proposed: string | undefined, fromName: string | null | undefined): string | null {
+  if (fromName !== undefined) return fromName;
+  return proposed ?? null;
+}
+
 function normalizeBox(raw: unknown): PlanBox | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -110,7 +120,7 @@ export function normalizePlanAnalysis(raw: unknown, templateKeys: string[]): Pla
     const name = typeof it.name === "string" && it.name.trim() ? it.name.trim().slice(0, 60) : `Ambiente ${i + 1}`;
     const proposed = typeof it.templateKey === "string" && valid.has(it.templateKey) ? it.templateKey : undefined;
     const fromName = templateFromName(name);
-    const templateKey = it.templateKey === null || it.noEquipment === true ? null : (proposed ?? (fromName === undefined ? null : fromName));
+    const templateKey = resolveTemplate(proposed, fromName);
     const w = num(it.widthM);
     const d = num(it.depthM);
     rooms.push({
@@ -185,7 +195,7 @@ export function normalizeMarkedAnalysis(raw: unknown, regionBoxes: PlanBox[], te
     const name = typeof m?.name === "string" && m.name.trim() ? m.name.trim().slice(0, 60) : `Ambiente ${i + 1}`;
     const proposed = typeof m?.templateKey === "string" && valid.has(m.templateKey) ? m.templateKey : undefined;
     const fromName = templateFromName(name);
-    const templateKey = m?.templateKey === null ? null : (proposed ?? (fromName === undefined ? null : fromName));
+    const templateKey = resolveTemplate(proposed, fromName);
     const w = num(m?.widthM);
     const d = num(m?.depthM);
     rooms.push({

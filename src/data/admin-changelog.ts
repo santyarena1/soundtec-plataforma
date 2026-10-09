@@ -1392,4 +1392,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "La IA lee cada espacio del plano recortado por separado, así el nombre y las medidas de cada ambiente quedan en su lugar." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-plano-tipos",
+    version: "1.44.4",
+    releasedAt: "2026-10-09T18:40:00.000Z",
+    summary: "Room Builder: los ambientes del plano toman su tipo por el nombre (Dormitorio 2 = dormitorio).",
+    items: [
+      { kind: "FIX", text: "Dormitorios secundarios, livings y demás ambientes con nombre claro ya no quedan como 'sin equipos'; el nombre escrito en el plano define el tipo." },
+    ],
+  },
 ];

@@ -84,3 +84,18 @@ test("marcas numeradas: cada espacio toma su nombre; se descartan los que no son
   assert.equal(a.rooms[0].widthM, 6);
   assert.equal(a.rooms[2].id, "m1");
 });
+
+test("un dormitorio secundario es dormitorio aunque la IA diga que no lleva equipos", async () => {
+  const { normalizeMarkedAnalysis } = await import("./plan-analysis");
+  const a = normalizeMarkedAnalysis(
+    { marks: [{ n: 1, name: "Dormitorio 3", templateKey: null }, { n: 2, name: "Estudio", templateKey: null }] },
+    [
+      { x0: 0.1, y0: 0.1, x1: 0.4, y1: 0.4 },
+      { x0: 0.5, y0: 0.1, x1: 0.8, y1: 0.4 },
+    ],
+    KEYS,
+  );
+  assert.equal(a.rooms[0].templateKey, "residential-bedroom-m");
+  assert.equal(a.rooms[0].include, true);
+  assert.equal(a.rooms[1].templateKey, null);
+});
