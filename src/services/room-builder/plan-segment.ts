@@ -102,6 +102,12 @@ function downsampleWalls(img: GrayImage): { wall: Uint8Array; light: Uint8Array;
   return { wall, light, width, height };
 }
 
+/** Trazo del plano en la grilla de trabajo (para buscar objetos dentro de los ambientes). */
+export function planInkGrid(img: GrayImage): { ink: Uint8Array; width: number; height: number } {
+  const { wall, width, height } = downsampleWalls(img);
+  return { ink: wall, width, height };
+}
+
 /**
  * Borra los trazos sueltos chicos (letras de los rótulos, números de cotas,
  * símbolos): si quedaran, partirían los ambientes al medio.

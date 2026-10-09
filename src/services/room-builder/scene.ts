@@ -9,7 +9,7 @@ import type {
 import type { PlanModeState } from "./plan-mode";
 import type { RoomBrief } from "./brief";
 import type { DeviceUnit } from "./units";
-import type { FurnitureOverrides } from "./furnishing";
+import type { FurnitureItem, FurnitureOverrides } from "./furnishing";
 
 export type SceneDevice = {
   id: string;
@@ -63,6 +63,8 @@ export type RoomScene = {
   furniture?: FurnitureOverrides | null;
   /** El plano original debajo de la sala (ambientes creados desde un plano). */
   planUnderlay?: PlanUnderlay | null;
+  /** Muebles reconocidos en el plano (reemplazan al amoblamiento de la tipología). */
+  planFurniture?: FurnitureItem[] | null;
 };
 
 /**

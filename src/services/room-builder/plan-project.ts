@@ -15,6 +15,10 @@ import { normalizePolygon, planUnderlayFor, polygonBox, polygonToRoomMeters, typ
 import { createSpaceProject, getRoomProject, updateRoomProjectScene } from "./project-service";
 import { parseScene } from "./scene";
 import { getRoomTemplate } from "./templates";
+import type { FurnitureItem } from "./furnishing";
+import { furnitureFromPlan, planInk } from "@/server/room-builder/plan-furniture";
+
+type PlanInk = Awaited<ReturnType<typeof planInk>>;
 import { centralizedFor, defaultProjectSystem, type ProjectSystem } from "./project-system";
 
 /** Sistema del proyecto: lo elegido al generar o la recomendación para el tipo de obra. */
@@ -101,11 +105,12 @@ export async function createProjectFromPlan(input: PlanProjectInput) {
   });
 
   const imageUrl = `/api/admin/room-builder/projects/${hub.id}/plan-image?v=${Date.now()}`;
+  const ink = await planInk(input.image);
   // De a varios en paralelo: con muchos ambientes, uno por uno no entra en el tiempo de la función.
   const results: Array<{ link: PlanRoomLink; area: number } | null> = [];
   for (let i = 0; i < rooms.length; i += CREATE_CONCURRENCY) {
     const chunk = rooms.slice(i, i + CREATE_CONCURRENCY);
-    results.push(...(await Promise.all(chunk.map((room) => createPlanSpace(room, hub.id, imageUrl, input)))));
+    results.push(...(await Promise.all(chunk.map((room) => createPlanSpace(room, hub.id, imageUrl, input, ink)))));
   }
   const links = results.filter((r): r is { link: PlanRoomLink; area: number } => r != null).map((r) => r.link);
   const totalArea = results.reduce((n, r) => n + (r?.area ?? 0), 0);
@@ -145,14 +150,14 @@ async function applyPlanContext(
   projectId: string,
   box: PlanBox,
   polygon: PlanPoint[] | null,
-  ctx: { widthM: number; depthM: number; heightM: number; imageUrl: string; image: { widthPx: number; heightPx: number } },
+  ctx: { widthM: number; depthM: number; heightM: number; imageUrl: string; image: { widthPx: number; heightPx: number }; planFurniture: FurnitureItem[] },
 ): Promise<number> {
   const project = await getRoomProject(projectId);
   const scene = project ? parseScene(project.sceneJson) : null;
   if (!scene) return ctx.widthM * ctx.depthM;
   const planUnderlay = planUnderlayFor(box, ctx.widthM, ctx.depthM, { url: ctx.imageUrl, widthPx: ctx.image.widthPx, heightPx: ctx.image.heightPx });
   if (!polygon) {
-    await updateRoomProjectScene(projectId, { ...scene, planUnderlay });
+    await updateRoomProjectScene(projectId, { ...scene, planUnderlay, planFurniture: ctx.planFurniture.length ? ctx.planFurniture : null });
     return ctx.widthM * ctx.depthM;
   }
   const floorPolygon = polygonToRoomMeters(polygon, ctx.widthM, ctx.depthM);
@@ -167,12 +172,16 @@ async function applyPlanContext(
     walls: wallsFromPolygon(floorPolygon),
     floorPolygon,
   };
-  await updateRoomProjectScene(projectId, { ...scene, plan, planUnderlay, areaM2: bounds.areaM2 }, { areaM2: bounds.areaM2 });
+  await updateRoomProjectScene(
+    projectId,
+    { ...scene, plan, planUnderlay, planFurniture: ctx.planFurniture.length ? ctx.planFurniture : null, areaM2: bounds.areaM2 },
+    { areaM2: bounds.areaM2 },
+  );
   return bounds.areaM2;
 }
 
 /** Un ambiente del plano: sala 3D con su forma, superficie real y equipos. */
-async function createPlanSpace(room: PlanRoomInput, hubId: string, imageUrl: string, input: PlanProjectInput): Promise<{ link: PlanRoomLink; area: number } | null> {
+async function createPlanSpace(room: PlanRoomInput, hubId: string, imageUrl: string, input: PlanProjectInput, ink: PlanInk): Promise<{ link: PlanRoomLink; area: number } | null> {
   const template = getRoomTemplate(room.templateKey);
   if (!template) return null;
   const widthM = clampSide(room.widthM);
@@ -193,6 +202,27 @@ async function createPlanSpace(room: PlanRoomInput, hubId: string, imageUrl: str
   });
   // El recuadro de la forma (el polígono manda) para que el plano del piso calce con las paredes.
   const box = polygon ? polygonBox(polygon) : room.box;
-  const area = await applyPlanContext(space.id, box, polygon, { widthM, depthM, heightM: input.heightM, imageUrl, image: input.image });
+  // Muebles dibujados en el plano: reconocidos y armados en su lugar.
+  const map = planUnderlayFor(box, widthM, depthM, { url: imageUrl, widthPx: input.image.widthPx, heightPx: input.image.heightPx });
+  let planFurniture: FurnitureItem[] = [];
+  try {
+    planFurniture = await furnitureFromPlan({
+      image: input.image,
+      ink,
+      polygon: polygon ?? [
+        { x: box.x0, y: box.y0 },
+        { x: box.x1, y: box.y0 },
+        { x: box.x1, y: box.y1 },
+        { x: box.x0, y: box.y1 },
+      ],
+      roomName: room.name,
+      category: template.category,
+      templateKey: template.key,
+      map,
+    });
+  } catch (error) {
+    console.error("[room-builder/plan-project] muebles", room.name, error);
+  }
+  const area = await applyPlanContext(space.id, box, polygon, { widthM, depthM, heightM: input.heightM, imageUrl, image: input.image, planFurniture });
   return { link: { projectId: space.id, name: room.name, templateKey: template.key, box: room.box, ...(polygon ? { polygon } : {}) }, area };
 }

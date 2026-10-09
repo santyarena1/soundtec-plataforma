@@ -31,6 +31,13 @@ export function resizeSceneMeters(
     };
   }
 
+  // Los muebles del plano se estiran con la sala.
+  if (scene.planFurniture?.length && scene.widthM > 0 && scene.depthM > 0) {
+    const fx = resized.widthM / scene.widthM;
+    const fz = resized.depthM / scene.depthM;
+    resized.planFurniture = scene.planFurniture.map((it) => ({ ...it, x: Math.round(it.x * fx * 100) / 100, z: Math.round(it.z * fz * 100) / 100 }));
+  }
+
   // Forma libre (desde el plano): las paredes se estiran con la sala.
   if (scene.plan?.enabled && scene.plan.floorPolygon.length >= 3) {
     const sx = resized.widthM / (scene.widthM || resized.widthM);

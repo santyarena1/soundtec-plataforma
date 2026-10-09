@@ -146,7 +146,7 @@ function SceneContent({
         </Suspense>
       ) : null}
       <FurnitureLayer
-        items={scene.planUnderlay && showPlan ? [] : furniture}
+        items={scene.planUnderlay && showPlan && !scene.planFurniture?.length ? [] : furniture}
         overrides={scene.furniture}
         dims={dims}
         selectedId={selectedFurnitureId}

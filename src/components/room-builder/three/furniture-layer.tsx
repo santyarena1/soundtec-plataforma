@@ -229,6 +229,16 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
           <ScreenFace w={w * 0.8} h={h * 0.82} z={0.04} />
         </group>
       );
+    case "kitchen-counter":
+      return <KitchenCounter width={w} depth={Math.max(0.5, Math.min(d, 1.2))} />;
+    case "toilet":
+      return <Toilet />;
+    case "vanity":
+      return <Vanity width={Math.max(0.45, w)} depth={Math.max(0.4, Math.min(d, 0.65))} />;
+    case "shower":
+      return <Shower width={Math.max(0.7, w)} depth={Math.max(0.7, d)} />;
+    case "bathtub":
+      return <Bathtub width={Math.max(1.2, w)} depth={Math.max(0.65, Math.min(d, 1))} />;
   }
   // Todos los tipos tienen dibujo: si se agrega uno nuevo sin caso, no compila.
   const unhandled: never = item.kind;
@@ -368,6 +378,103 @@ export function FurnitureLayer({
             }}
           />
         ))}
+    </group>
+  );
+}
+
+/* ── Objetos que vienen del plano: cocina y baño ── */
+
+const PORCELAIN = "#f4f5f7";
+const COUNTERTOP = "#d9d4cc";
+
+function KitchenCounter({ width, depth }: { width: number; depth: number }) {
+  return (
+    <group>
+      <mesh position={[0, 0.44, 0]} castShadow receiveShadow>
+        <boxGeometry args={[width, 0.86, depth - 0.04]} />
+        <meshStandardMaterial color="#e7e2da" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 0.89, 0]} castShadow receiveShadow>
+        <boxGeometry args={[width + 0.02, 0.04, depth]} />
+        <meshStandardMaterial color={COUNTERTOP} roughness={0.35} />
+      </mesh>
+    </group>
+  );
+}
+
+function Toilet() {
+  return (
+    <group>
+      <mesh position={[0, 0.2, 0.05]} castShadow>
+        <cylinderGeometry args={[0.18, 0.15, 0.4, 24]} />
+        <meshStandardMaterial color={PORCELAIN} roughness={0.25} />
+      </mesh>
+      <mesh position={[0, 0.42, 0.05]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.1, 0.19, 24]} />
+        <meshStandardMaterial color="#e5e7eb" roughness={0.3} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh position={[0, 0.6, -0.2]} castShadow>
+        <boxGeometry args={[0.4, 0.38, 0.17]} />
+        <meshStandardMaterial color={PORCELAIN} roughness={0.25} />
+      </mesh>
+    </group>
+  );
+}
+
+function Vanity({ width, depth }: { width: number; depth: number }) {
+  return (
+    <group>
+      <mesh position={[0, 0.42, 0]} castShadow>
+        <boxGeometry args={[width, 0.8, depth - 0.03]} />
+        <meshStandardMaterial color="#8a6f57" roughness={0.75} />
+      </mesh>
+      <mesh position={[0, 0.84, 0]} castShadow>
+        <boxGeometry args={[width + 0.02, 0.05, depth]} />
+        <meshStandardMaterial color={COUNTERTOP} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.87, 0.02]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[Math.min(width, depth) * 0.3, 24]} />
+        <meshStandardMaterial color={PORCELAIN} roughness={0.2} />
+      </mesh>
+      {/* espejo en la pared */}
+      <mesh position={[0, 1.45, -depth / 2 + 0.01]}>
+        <boxGeometry args={[Math.min(width, 0.9), 0.7, 0.01]} />
+        <meshStandardMaterial color="#cfd8e3" metalness={0.6} roughness={0.08} />
+      </mesh>
+    </group>
+  );
+}
+
+function Shower({ width, depth }: { width: number; depth: number }) {
+  return (
+    <group>
+      <mesh position={[0, 0.03, 0]} receiveShadow>
+        <boxGeometry args={[width, 0.06, depth]} />
+        <meshStandardMaterial color={PORCELAIN} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 1.0, depth / 2]}>
+        <boxGeometry args={[width, 1.9, 0.01]} />
+        <meshStandardMaterial color="#dbeafe" transparent opacity={0.25} roughness={0.05} />
+      </mesh>
+      <mesh position={[0, 2.0, -depth / 2 + 0.15]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.1, 0.1, 0.02, 20]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.8} roughness={0.2} />
+      </mesh>
+    </group>
+  );
+}
+
+function Bathtub({ width, depth }: { width: number; depth: number }) {
+  return (
+    <group>
+      <mesh position={[0, 0.28, 0]} castShadow receiveShadow>
+        <boxGeometry args={[width, 0.56, depth]} />
+        <meshStandardMaterial color={PORCELAIN} roughness={0.25} />
+      </mesh>
+      <mesh position={[0, 0.565, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[width - 0.16, depth - 0.16]} />
+        <meshStandardMaterial color="#e2e8f0" roughness={0.15} />
+      </mesh>
     </group>
   );
 }

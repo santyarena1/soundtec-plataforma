@@ -197,6 +197,7 @@ export function rebuildSceneKeepingProducts(
   next.coverageView = current.coverageView || "zones";
   next.plan = current.plan ?? null;
   next.planUnderlay = current.planUnderlay ?? null;
+  next.planFurniture = current.planFurniture ?? null;
   if (current.plan?.enabled) next.areaM2 = current.areaM2;
   return next;
 }

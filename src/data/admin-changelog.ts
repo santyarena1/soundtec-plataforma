@@ -1539,4 +1539,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Moverse por la sala: W A S D o flechas para caminar, Q / E para girar, + / − para acercar y doble clic en el piso para ir a ese punto. Ayuda “Cómo moverse” en el visor." },
     ],
   },
+  {
+    id: "ship-2026-10-10-objetos-del-plano",
+    version: "1.53.0",
+    releasedAt: "2026-10-10T15:00:00.000Z",
+    summary: "Proyecto desde plano: los muebles dibujados se reconocen y se arman en 3D en su lugar y tamaño.",
+    items: [
+      { kind: "NUEVO", text: "Objetos del plano: se encuentran los muebles dibujados en cada ambiente y la IA dice qué son (sillones, mesas con sillas, mostradores, camas, macetas, placards, mesadas, inodoros, bachas, duchas, bañeras) y hacia dónde miran; los grupos (sillones + macetas + mesa) se separan en cada mueble." },
+      { kind: "NUEVO", text: "Se arman en 3D en su posición y medida reales, encima del plano del piso; reemplazan a los muebles genéricos de la tipología. Sin IA se clasifican por medidas y tipo de ambiente." },
+      { kind: "NUEVO", text: "Modelos 3D nuevos: mesada de cocina, inodoro, vanitory con bacha y espejo, ducha y bañera." },
+    ],
+  },
 ];

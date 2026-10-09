@@ -45,7 +45,12 @@ export type FurnitureKind =
   | "acoustic-panel"
   | "pendant-lamp"
   | "shelving"
-  | "riser";
+  | "riser"
+  | "kitchen-counter"
+  | "toilet"
+  | "vanity"
+  | "shower"
+  | "bathtub";
 
 export type FurnitureItem = {
   id: string;
@@ -528,12 +533,14 @@ export function resolveFurniture(
   dims: RoomDims,
   overrides: FurnitureOverrides | null | undefined,
   displays: DisplayPose[],
+  /** Muebles reconocidos en el plano: reemplazan a los de la tipología. */
+  base?: FurnitureItem[] | null,
 ): ResolvedFurniture[] {
   const removed = new Set(overrides?.removed ?? []);
   const moved = overrides?.moved ?? {};
   const halfW = dims.widthM / 2;
   const halfD = dims.depthM / 2;
-  return layoutFurniture(templateKey, category, dims).map((item) => {
+  return (base?.length ? base : layoutFurniture(templateKey, category, dims)).map((item) => {
     const m = moved[item.id];
     const placed: FurnitureItem = m
       ? { ...item, x: Math.max(-halfW, Math.min(halfW, m.x)), z: Math.max(-halfD, Math.min(halfD, m.z)), rotY: m.rotY, y: m.y ?? item.y }
@@ -564,7 +571,7 @@ export function resolveSceneFurniture(scene: RoomScene, category: string): Resol
     .filter((d) => d.designRole === "display")
     .flatMap((d) => normalizeDeviceUnits(d, slots.get(d.slotKey), dims).units ?? [])
     .map((u) => u.pose);
-  const items = resolveFurniture(scene.templateKey, category, dims, scene.furniture, displays);
+  const items = resolveFurniture(scene.templateKey, category, dims, scene.furniture, displays, scene.planFurniture);
   // En formas libres (L), lo que cae fuera de las paredes reales no se muestra.
   const floor = dims.floor;
   return floor ? items.filter((it) => pointInPolygon({ x: it.x, y: it.z }, floor)) : items;
