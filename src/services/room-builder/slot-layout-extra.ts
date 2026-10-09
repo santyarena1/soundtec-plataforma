@@ -19,6 +19,12 @@ export const EXTRA_TEMPLATE_KEYS = [
   "residential-dining-m",
   "restaurant-m",
   "retail-store-m",
+  "office-private-m",
+  "office-open-l",
+  "breakroom-m",
+  "circulation-m",
+  "restroom-s",
+  "generic-room",
 ] as const;
 
 export function layoutExtraSlots(templateKey: string, d: Dims): RoomSlot[] | null {
@@ -67,6 +73,28 @@ export function layoutExtraSlots(templateKey: string, d: Dims): RoomSlot[] | nul
         { key: "signage", role: "display", label: "Cartelería de vidriera", required: true, mount: "wall", pose: pose(0, 1.7, frontZ, 180), defaultQty: 2 },
         { key: "processor", role: "processor", label: "Reproductor / DSP", required: true, mount: "rack", pose: rack, defaultQty: 1 },
       ];
+    case "office-private-m":
+      return [
+        { key: "display", role: "display", label: "Pantalla", required: false, mount: "wall", pose: pose(0, 1.4, frontZ, 180), defaultQty: 1 },
+        { key: "speakers", role: "speaker", label: "Parlantes de techo", required: true, mount: "ceiling", pose: pose(0, ceilY, 0), defaultQty: 2 },
+      ];
+    case "office-open-l":
+      return [
+        { key: "speakers", role: "speaker", label: "Parlantes de techo", required: true, mount: "ceiling", pose: pose(0, ceilY, 0), defaultQty: 6 },
+        { key: "displays", role: "display", label: "Pantallas informativas", required: false, mount: "wall", pose: pose(0, 1.8, frontZ, 180), defaultQty: 1 },
+        { key: "processor", role: "processor", label: "DSP / zonas", required: true, mount: "rack", pose: rack, defaultQty: 1 },
+      ];
+    case "breakroom-m":
+      return [
+        { key: "speakers", role: "speaker", label: "Parlantes de techo", required: true, mount: "ceiling", pose: pose(0, ceilY, 0), defaultQty: 2 },
+        { key: "tv", role: "display", label: "TV", required: false, mount: "wall", pose: pose(0, 1.6, frontZ, 180), defaultQty: 1 },
+      ];
+    case "circulation-m":
+      return [{ key: "speakers", role: "speaker", label: "Parlantes de techo", required: true, mount: "ceiling", pose: pose(0, ceilY, 0), defaultQty: 2 }];
+    case "restroom-s":
+      return [{ key: "speakers", role: "speaker", label: "Parlante de techo", required: true, mount: "ceiling", pose: pose(0, ceilY, 0), defaultQty: 1 }];
+    case "generic-room":
+      return [{ key: "speakers", role: "speaker", label: "Parlantes", required: false, mount: "ceiling", pose: pose(0, ceilY, 0), defaultQty: 2 }];
     default:
       return null;
   }

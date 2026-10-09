@@ -184,6 +184,10 @@ export function rebuildSceneKeepingProducts(
       proxyKey: prev.proxyKey,
     };
   });
+  // Los equipos agregados a mano (o desde la cadena) no son de la plantilla: se conservan tal cual.
+  const kept = (key: string) => key.startsWith("custom_") || key.startsWith("bom_");
+  next.slots = [...next.slots, ...current.slots.filter((s) => kept(s.key))];
+  next.devices = [...next.devices, ...current.devices.filter((d) => kept(d.slotKey))];
   next.selectedSlotKey =
     current.selectedSlotKey &&
     next.slots.some((s) => s.key === current.selectedSlotKey)

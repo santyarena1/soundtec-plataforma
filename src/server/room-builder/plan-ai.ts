@@ -35,7 +35,7 @@ Recibís la imagen de un plano. Devolvé SOLO un JSON con esta forma:
 Reglas:
 - "box" es el rectángulo interior de cada ambiente, en fracciones 0..1 de la imagen completa (x hacia la derecha, y hacia abajo). Sé preciso con los muros.
 - widthM / depthM: solo si las medidas del ambiente están escritas en el plano (cotas o "4,20 x 3,50"). widthM es el lado horizontal de la imagen. Si no se leen, null. No inventes medidas.
-- templateKey: el tipo de ambiente más parecido de esta lista; null para baños, pasillos, lavaderos, escaleras, depósitos, placards, vestidores y circulaciones:
+- templateKey: el tipo más parecido de esta lista (oficinas, open space, recepción, sala de descanso, baños, pasillos y cualquier espacio común también tienen tipo; si ninguno encaja usá \"generic-room\"). null SOLO para depósitos, placards, escaleras y ductos:
 ${templates}
 - Incluí todos los ambientes de todas las plantas que aparezcan.
 - Si la imagen no es un plano, devolvé "rooms": [] y explicalo en "summary".`;
@@ -92,7 +92,7 @@ Reglas:
 - Un elemento en "marks" por cada Espacio del 1 al ${count}, usando SOLO lo que se ve en SU recorte (el texto escrito adentro). Si el recorte no tiene texto, deducí el ambiente por su forma y contexto.
 - { "n": N, "notARoom": true } si el recorte no es un ambiente (hueco de escalera, ducto, mueble, exterior sin uso).
 - widthM / depthM: solo si las medidas están escritas en ese recorte (widthM = lado horizontal). Si no, null.
-- templateKey: el tipo más parecido de esta lista; null para baños, pasillos, lavaderos, escaleras, depósitos, placards, vestidores:
+- templateKey: el tipo más parecido de esta lista (oficinas, open space, recepción, sala de descanso, baños, pasillos y cualquier espacio común también tienen tipo; si ninguno encaja usá \"generic-room\"). null SOLO para depósitos, placards, escaleras y ductos:
 ${templates}
 - "missing": ambientes con nombre en el PLANO COMPLETO que no aparecen en ningún recorte, con su rectángulo aproximado (fracciones 0..1). Si no hay, [].`;
 }

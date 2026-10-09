@@ -33,7 +33,14 @@ test("tipo desconocido cae en 'otro'", () => {
 
 test("nombres comunes se mapean a ambientes; servicios no llevan equipos", () => {
   assert.equal(templateFromName("Cocina comedor"), "residential-dining-m");
-  assert.equal(templateFromName("Baño principal"), null);
+  assert.equal(templateFromName("Baño principal"), "restroom-s");
+  assert.equal(templateFromName("Depósito"), null);
+  assert.equal(templateFromName("Sala de directorio"), "vc-boardroom-m");
+  assert.equal(templateFromName("Oficina gerencia"), "office-private-m");
+  assert.equal(templateFromName("Open space"), "office-open-l");
+  assert.equal(templateFromName("Sala de descanso"), "breakroom-m");
+  assert.equal(templateFromName("Pasillo"), "circulation-m");
+  assert.equal(templateFromName("Consumo"), undefined);
   assert.equal(templateFromName("Algo raro"), undefined);
 });
 
@@ -119,4 +126,19 @@ test("dos espacios vecinos con el mismo nombre se unen; distintos o lejanos no",
   ]);
   assert.deepEqual(out.map((r) => r.name), ["Baño", "Baño 2", "Baño"]);
   assert.deepEqual(out[0].box, { x0: 0.1, y0: 0.1, x1: 0.3, y1: 0.4 });
+});
+
+test("todo ambiente se puede generar: sin tipo claro queda como ambiente libre (destildado)", async () => {
+  const { normalizeMarkedAnalysis } = await import("./plan-analysis");
+  const keys = [...KEYS, "generic-room", "restroom-s"];
+  const a = normalizeMarkedAnalysis(
+    { marks: [{ n: 1, name: "Espacio raro", templateKey: null }, { n: 2, name: "Baño" }, { n: 3, name: "Placard" }] },
+    [
+      { x0: 0.1, y0: 0.1, x1: 0.4, y1: 0.4 },
+      { x0: 0.5, y0: 0.1, x1: 0.8, y1: 0.4 },
+      { x0: 0.1, y0: 0.5, x1: 0.3, y1: 0.7 },
+    ],
+    keys,
+  );
+  assert.deepEqual(a.rooms.map((r) => [r.templateKey, r.include]), [["generic-room", false], ["restroom-s", false], [null, false]]);
 });

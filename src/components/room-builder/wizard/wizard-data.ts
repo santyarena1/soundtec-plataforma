@@ -19,10 +19,10 @@ export type SectorKey = "residencial" | "hoteleria" | "corporativo" | "educacion
 export const SECTORS: Array<{ key: SectorKey; label: string; hint: string; categories: string[] }> = [
   { key: "residencial", label: "Residencial", hint: "Living, dormitorio, cine, comedor, exterior", categories: ["residential"] },
   { key: "hoteleria", label: "Hotelería", hint: "Habitaciones, suites, lobby, pileta", categories: ["hotel", "lobby"] },
-  { key: "corporativo", label: "Corporativo", hint: "Salas de reunión, directorio, capacitación", categories: ["videoconference", "training", "control-room"] },
+  { key: "corporativo", label: "Corporativo", hint: "Salas de reunión, directorio, capacitación", categories: ["videoconference", "office", "training", "control-room", "common"] },
   { key: "educacion", label: "Educación", hint: "Aulas y salas de capacitación", categories: ["classroom", "training"] },
   { key: "eventos", label: "Eventos", hint: "Salones y auditorios", categories: ["event"] },
-  { key: "comercial", label: "Comercial y gastronomía", hint: "Restaurantes, locales, recepciones, cartelería", categories: ["commercial", "lobby", "signage"] },
+  { key: "comercial", label: "Comercial y gastronomía", hint: "Restaurantes, locales, recepciones, cartelería", categories: ["commercial", "lobby", "signage", "common"] },
 ];
 
 export const SYSTEM_OPTIONS: Array<{ key: BriefSystem; label: string; hint: string }> = [
@@ -87,6 +87,10 @@ export function defaultSystemsFor(category: string, templateKey = ""): BriefSyst
   switch (category) {
     case "commercial":
       return ["audio", "video", "signage"];
+    case "office":
+      return templateKey === "office-private-m" || templateKey === "breakroom-m" ? ["audio", "video"] : ["audio"];
+    case "common":
+      return ["audio"];
     case "residential":
       return ["audio", "video", "control"];
     case "hotel":
@@ -124,7 +128,7 @@ export function defaultSpeakerStyleFor(category: string, templateKey: string): S
 
 export function defaultAudioUseFor(category: string, templateKey = ""): AudioUse {
   if (templateKey === "residential-cinema-m") return "cinema";
-  if (category === "commercial") return "background";
+  if (category === "commercial" || category === "office" || category === "common") return "background";
   if (category === "classroom" || category === "training" || category === "videoconference") return "voice";
   if (category === "lobby" || category === "hotel" || category === "signage") return "background";
   return "music";

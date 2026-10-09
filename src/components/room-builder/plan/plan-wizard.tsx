@@ -39,6 +39,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   commercial: "Comercial",
   "control-room": "Sala técnica",
   signage: "Cartelería",
+  office: "Oficinas",
+  common: "Espacios comunes",
 };
 
 const DEFAULT_HEIGHT: Record<PlanKind, number> = {

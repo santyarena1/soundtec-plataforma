@@ -421,6 +421,58 @@ function retail({ widthM, depthM }: RoomDims): FurnitureItem[] {
   return items;
 }
 
+function privateOffice({ widthM, depthM }: RoomDims): FurnitureItem[] {
+  const deskZ = -depthM * 0.15;
+  return [
+    { id: "desk", kind: "desk", group: "Escritorio", x: 0, z: deskZ, rotY: 0, mount: "floor", w: Math.min(widthM * 0.45, 1.8), d: 0.8, color: COLOR.woodDark },
+    { id: "desk-chair", kind: "chair", group: "Silla", x: 0, z: deskZ - 0.65, rotY: 0, mount: "floor", color: COLOR.console },
+    { id: "guest-l", kind: "side-chair", group: "Sillas de visita", x: -0.45, z: deskZ + 0.85, rotY: PI, mount: "floor" },
+    { id: "guest-r", kind: "side-chair", group: "Sillas de visita", x: 0.45, z: deskZ + 0.85, rotY: PI, mount: "floor" },
+    { id: "credenza", kind: "credenza", group: "Aparador", x: 0, z: -depthM / 2 + 0.3, rotY: 0, mount: "floor", w: Math.min(widthM * 0.5, 1.6) },
+    { id: "sofa", kind: "sofa", group: "Sillón", x: widthM / 2 - 0.55, z: depthM * 0.2, rotY: -PI / 2, mount: "floor", w: Math.min(depthM * 0.45, 1.8), color: COLOR.slate },
+    { id: "planter", kind: "planter", group: "Plantas", x: -widthM / 2 + 0.4, z: depthM / 2 - 0.45, rotY: 0, mount: "floor" },
+  ];
+}
+
+function openSpace({ widthM, depthM }: RoomDims): FurnitureItem[] {
+  const items: FurnitureItem[] = [];
+  const cols = Math.max(2, Math.floor((widthM - 1.5) / 1.4));
+  const rows = Math.max(1, Math.floor((depthM - 2) / 3));
+  for (let row = 0; row < rows; row++) {
+    const z = -depthM / 2 + 1.6 + row * 3;
+    for (let col = 0; col < cols; col++) {
+      const x = (col - (cols - 1) / 2) * 1.4;
+      items.push({ id: `desk-a-r${row}c${col}`, kind: "desk", group: "Puestos de trabajo", x, z: z - 0.4, rotY: 0, mount: "floor", w: 1.3, d: 0.7, color: COLOR.woodLight });
+      items.push({ id: `desk-b-r${row}c${col}`, kind: "desk", group: "Puestos de trabajo", x, z: z + 0.4, rotY: 0, mount: "floor", w: 1.3, d: 0.7, color: COLOR.woodLight });
+      items.push({ id: `chair-a-r${row}c${col}`, kind: "chair", group: "Sillas", x, z: z - 1.05, rotY: 0, mount: "floor", color: COLOR.console });
+      items.push({ id: `chair-b-r${row}c${col}`, kind: "chair", group: "Sillas", x, z: z + 1.05, rotY: PI, mount: "floor", color: COLOR.console });
+    }
+  }
+  items.push({ id: "planter-a", kind: "planter", group: "Plantas", x: -widthM / 2 + 0.5, z: -depthM / 2 + 0.5, rotY: 0, mount: "floor", scale: 1.2 });
+  items.push({ id: "planter-b", kind: "planter", group: "Plantas", x: widthM / 2 - 0.5, z: depthM / 2 - 0.5, rotY: 0, mount: "floor", scale: 1.2 });
+  return items;
+}
+
+function breakroom({ widthM, depthM }: RoomDims): FurnitureItem[] {
+  const tables = Math.max(1, Math.min(3, Math.floor(widthM / 2.4)));
+  const items: FurnitureItem[] = [
+    { id: "counter", kind: "bar-counter", group: "Mesada", x: 0, z: -depthM / 2 + 0.45, rotY: PI, mount: "floor", w: Math.min(widthM * 0.7, 3.6) },
+  ];
+  for (let t = 0; t < tables; t++) {
+    const x = (t - (tables - 1) / 2) * 2.4;
+    items.push({ id: `table-${t}`, kind: "conference-table", group: "Mesas", x, z: depthM * 0.1, rotY: 0, mount: "floor", w: 1.2, d: 1.2, color: COLOR.woodLight });
+    for (const [j, c] of chairsAroundTable(1.2, 1.2, 4).entries()) {
+      items.push({ id: `chair-${t}-${j}`, kind: "side-chair", group: "Sillas", x: x + c.x, z: depthM * 0.1 + c.z, rotY: c.rotY, mount: "floor" });
+    }
+  }
+  items.push({ id: "planter", kind: "planter", group: "Plantas", x: widthM / 2 - 0.45, z: depthM / 2 - 0.45, rotY: 0, mount: "floor" });
+  return items;
+}
+
+function circulation({ widthM, depthM }: RoomDims): FurnitureItem[] {
+  return [{ id: "planter", kind: "planter", group: "Plantas", x: widthM / 2 - 0.35, z: depthM / 2 - 0.4, rotY: 0, mount: "floor", scale: 0.9 }];
+}
+
 /** Amoblamiento de la tipología para estas medidas. */
 export function layoutFurniture(templateKey: string, category: string, dims: RoomDims): FurnitureItem[] {
   if (templateKey.includes("huddle")) return videoconference(dims, "S");
@@ -429,6 +481,11 @@ export function layoutFurniture(templateKey: string, category: string, dims: Roo
   if (templateKey === "residential-outdoor-m") return outdoor(dims);
   if (templateKey === "residential-dining-m") return dining(dims);
   if (templateKey === "restaurant-m") return restaurant(dims);
+  if (templateKey === "office-private-m") return privateOffice(dims);
+  if (templateKey === "office-open-l") return openSpace(dims);
+  if (templateKey === "breakroom-m") return breakroom(dims);
+  if (templateKey === "circulation-m") return circulation(dims);
+  if (templateKey === "restroom-s" || templateKey === "generic-room") return [];
   if (templateKey === "retail-store-m" || category === "commercial") return retail(dims);
   if (category === "videoconference") return videoconference(dims, templateKey.endsWith("-l") ? "L" : "M");
   if (templateKey === "classroom-m" || category === "classroom") return classroom(dims);

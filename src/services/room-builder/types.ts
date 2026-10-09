@@ -24,6 +24,8 @@ export const ROOM_CATEGORIES = [
   "control-room",
   "signage",
   "commercial",
+  "office",
+  "common",
 ] as const;
 export type RoomCategory = (typeof ROOM_CATEGORIES)[number];
 

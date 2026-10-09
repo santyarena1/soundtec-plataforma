@@ -1420,4 +1420,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Si un ambiente quedó partido en dos y la IA les pone el mismo nombre, se unen solos." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-cualquier-ambiente",
+    version: "1.46.0",
+    releasedAt: "2026-10-09T23:00:00.000Z",
+    summary: "Room Builder: cualquier ambiente se genera y cualquier producto del catálogo se puede ubicar.",
+    items: [
+      { kind: "NUEVO", text: "Tipos nuevos: Oficina privada, Open space / puestos de trabajo, Sala de descanso / office, Pasillo / circulación, Baño y Ambiente libre. Desde un plano, todo ambiente detectado se puede generar (baños y pasillos vienen destildados)." },
+      { kind: "NUEVO", text: "En cada equipo: pestaña 'Todo el catálogo' para buscar libre por marca, modelo o SKU, con foto y precio, cuando los sugeridos no sirven." },
+      { kind: "NUEVO", text: "Botón 'Agregar equipo': cualquier producto del catálogo, en techo, pared, mesa, piso o rack, con cantidad; aparece en el 3D para arrastrarlo. Se puede quitar después." },
+    ],
+  },
 ];

@@ -22,6 +22,9 @@ export function floorSetFor(category: string, templateKey: string): { set: Textu
   if (templateKey === "residential-cinema-m") return { set: "carpet", roughness: 1 };
   if (templateKey === "restaurant-m") return { set: "walnut", roughness: 0.5 };
   if (templateKey === "retail-store-m") return { set: "concrete", roughness: 0.35 };
+  if (templateKey === "restroom-s") return { set: "marble", roughness: 0.2 };
+  if (category === "office") return { set: "carpet", roughness: 1 };
+  if (category === "common") return { set: "concrete", roughness: 0.5 };
   if (category === "residential" || category === "hotel") return { set: "oak", roughness: 0.45 };
   if (category === "lobby") return { set: "marble", roughness: 0.18 };
   if (category === "signage" || category === "control-room") return { set: "concrete", roughness: 0.6 };

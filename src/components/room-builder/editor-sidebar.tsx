@@ -10,9 +10,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { furnitureGroups, resolveSceneFurniture, type FurnitureOverrides } from "@/services/room-builder/furnishing";
-import { Check, ChevronDown, Loader2, Minus, Plus, Search, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, Minus, Plus, Search, Trash2, X } from "lucide-react";
+import { CatalogSearch } from "./catalog-search";
 import { MAX_UNITS } from "@/services/room-builder/units";
-import type { RankSortMode } from "@/services/room-builder/types";
+import type { MountOption, RankSortMode } from "@/services/room-builder/types";
+import type { CatalogHit } from "@/services/room-builder/custom-devices";
 import type { RoomScene } from "@/services/room-builder/scene";
 import { PlatformGuideCard } from "./platform-guide-card";
 import { PlanPanel } from "./plan-panel";
@@ -147,6 +149,8 @@ function ProductPicker({
   onPick,
   onClear,
   onQuantity,
+  onPickAny,
+  onRemove,
 }: {
   device: RoomScene["devices"][number] | undefined;
   ranked: RankRow[];
@@ -160,8 +164,13 @@ function ProductPicker({
   onPick: (row: RankRow) => void;
   onClear: () => void;
   onQuantity: (n: number) => void;
+  /** Cualquier producto del catálogo (búsqueda libre). */
+  onPickAny: (productId: string) => void;
+  /** Solo para equipos agregados a mano. */
+  onRemove?: () => void;
 }) {
   const firstCompatible = ranked.find((r) => r.compatible)?.productId;
+  const [source, setSource] = useState<"sugeridos" | "catalogo">("sugeridos");
   return (
     <div className="space-y-2.5 border-t border-slate-200 bg-slate-50/70 p-2.5">
       {device ? (
@@ -215,53 +224,190 @@ function ProductPicker({
         </div>
       ) : null}
 
-      <p className="text-[11px] font-semibold text-slate-700">{device?.productName ? "Cambiar por otro" : "Elegí el producto"}</p>
-      <div className="flex gap-1.5">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-400" />
-          <input
-            value={query}
-            onChange={(e) => onQuery(e.target.value)}
-            placeholder="Buscar marca o modelo…"
-            className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-7 pr-2 text-sm focus:border-[#1e3553] focus:outline-none focus:ring-2 focus:ring-[#1e3553]/15"
-          />
-        </div>
-        <select
-          value={rankMode}
-          onChange={(e) => onRankMode(e.target.value as RankSortMode)}
-          className="rounded-lg border border-slate-300 bg-white px-2 text-xs"
-          aria-label="Ordenar"
-        >
-          {(Object.keys(SORT_LABELS) as RankSortMode[]).map((m) => (
-            <option key={m} value={m}>
-              {SORT_LABELS[m]}
-            </option>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold text-slate-700">{device?.productName ? "Cambiar por otro" : "Elegí el producto"}</p>
+        <div className="flex rounded-lg border border-slate-200 bg-white p-0.5 text-[11px] font-semibold">
+          {(
+            [
+              ["sugeridos", "Sugeridos"],
+              ["catalogo", "Todo el catálogo"],
+            ] as const
+          ).map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setSource(m)}
+              className={`rounded-md px-2 py-1 ${source === m ? "bg-[#1e3553] text-white" : "text-slate-600 hover:bg-slate-100"}`}
+            >
+              {label}
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
-      <div className="space-y-1.5">
-        {ranking ? (
-          <p className="flex items-center gap-2 py-2 text-xs text-slate-500">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando los que mejor encajan…
-          </p>
-        ) : null}
-        {!ranking && ranked.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-slate-300 bg-white p-3 text-center text-xs text-slate-500">
-            No encontramos productos para este equipo. Probá otra búsqueda.
-          </p>
-        ) : null}
-        {ranked.map((row) => (
-          <ProductOption
-            key={row.productId}
-            row={row}
-            highlight={rankMode === "recommended" && row.productId === firstCompatible && !query}
-            active={staged?.productId === row.productId || device?.productId === row.productId}
-            disabled={pending}
-            onPick={() => onPick(row)}
-          />
-        ))}
+      {source === "catalogo" ? (
+        <CatalogSearch onPick={(hit) => onPickAny(hit.productId)} disabled={pending} autoFocus />
+      ) : (
+        <>
+          <div className="flex gap-1.5">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-400" />
+              <input
+                value={query}
+                onChange={(e) => onQuery(e.target.value)}
+                placeholder="Buscar marca o modelo…"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-7 pr-2 text-sm focus:border-[#1e3553] focus:outline-none focus:ring-2 focus:ring-[#1e3553]/15"
+              />
+            </div>
+            <select
+              value={rankMode}
+              onChange={(e) => onRankMode(e.target.value as RankSortMode)}
+              className="rounded-lg border border-slate-300 bg-white px-2 text-xs"
+              aria-label="Ordenar"
+            >
+              {(Object.keys(SORT_LABELS) as RankSortMode[]).map((m) => (
+                <option key={m} value={m}>
+                  {SORT_LABELS[m]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            {ranking ? (
+              <p className="flex items-center gap-2 py-2 text-xs text-slate-500">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando los que mejor encajan…
+              </p>
+            ) : null}
+            {!ranking && ranked.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-white p-3 text-center text-xs text-slate-500">
+                No hay sugeridos para este equipo.{" "}
+                <button type="button" onClick={() => setSource("catalogo")} className="font-semibold text-[#1e3553] underline">
+                  Buscar en todo el catálogo
+                </button>
+              </div>
+            ) : null}
+            {ranked.map((row) => (
+              <ProductOption
+                key={row.productId}
+                row={row}
+                highlight={rankMode === "recommended" && row.productId === firstCompatible && !query}
+                active={staged?.productId === row.productId || device?.productId === row.productId}
+                disabled={pending}
+                onPick={() => onPick(row)}
+              />
+            ))}
+            {!ranking && ranked.length > 0 ? (
+              <button type="button" onClick={() => setSource("catalogo")} className="w-full pt-1 text-center text-[11px] font-semibold text-[#1e3553] underline">
+                ¿No está? Buscar en todo el catálogo
+              </button>
+            ) : null}
+          </div>
+        </>
+      )}
+
+      {onRemove ? (
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={pending}
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+        >
+          <Trash2 className="h-3.5 w-3.5" /> Quitar este equipo del ambiente
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+const MOUNT_CHOICES: Array<[MountOption, string]> = [
+  ["ceiling", "Techo"],
+  ["wall", "Pared"],
+  ["table", "Mesa / mueble"],
+  ["floor", "Piso"],
+  ["rack", "Rack"],
+];
+
+/** Agregar cualquier producto del catálogo al ambiente, con el montaje elegido. */
+function AddDevicePanel({
+  pending,
+  onAdd,
+  onClose,
+}: {
+  pending: boolean;
+  onAdd: (productId: string, mount: MountOption, quantity: number) => void;
+  onClose: () => void;
+}) {
+  const [picked, setPicked] = useState<CatalogHit | null>(null);
+  const [mount, setMount] = useState<MountOption>("ceiling");
+  const [quantity, setQuantity] = useState(1);
+  return (
+    <div className="space-y-2.5 rounded-xl border border-[#1e3553]/30 bg-slate-50 p-2.5">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-slate-900">Agregar equipo al ambiente</p>
+        <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-200" aria-label="Cerrar">
+          <X className="h-4 w-4" />
+        </button>
       </div>
+      {!picked ? (
+        <CatalogSearch
+          autoFocus
+          disabled={pending}
+          onPick={(hit) => {
+            setPicked(hit);
+            setMount(hit.mount);
+          }}
+        />
+      ) : (
+        <div className="space-y-2.5">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
+            <Thumb src={picked.imageUrl} />
+            <div className="min-w-0 flex-1">
+              {picked.brand ? <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-slate-500">{picked.brand}</p> : null}
+              <p className="truncate text-xs font-medium text-slate-900">{picked.name}</p>
+            </div>
+            <button type="button" onClick={() => setPicked(null)} className="text-[11px] font-semibold text-[#1e3553] underline">
+              Cambiar
+            </button>
+          </div>
+          <div>
+            <p className="mb-1 text-[11px] font-semibold text-slate-700">¿Dónde va?</p>
+            <div className="flex flex-wrap gap-1">
+              {MOUNT_CHOICES.map(([m, label]) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMount(m)}
+                  className={`rounded-lg border px-2.5 py-1 text-[11px] font-semibold ${mount === m ? "border-[#1e3553] bg-[#1e3553] text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-semibold text-slate-700">Cantidad</p>
+            <div className="flex items-center rounded-lg border border-slate-300 bg-white">
+              <button type="button" disabled={quantity <= 1} onClick={() => setQuantity((q) => q - 1)} className="p-1.5 text-slate-600 disabled:opacity-30" aria-label="Una menos">
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <span className="min-w-[1.75rem] text-center text-sm font-semibold tabular-nums">{quantity}</span>
+              <button type="button" disabled={quantity >= MAX_UNITS} onClick={() => setQuantity((q) => q + 1)} className="p-1.5 text-slate-600 disabled:opacity-30" aria-label="Una más">
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => onAdd(picked.productId, mount, quantity)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#1e3553] py-2 text-xs font-semibold text-white disabled:opacity-50"
+          >
+            {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Agregar y ubicar en el 3D
+          </button>
+          <p className="text-[10.5px] text-slate-500">Después lo arrastrás en el 3D al lugar exacto.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -339,6 +485,9 @@ export function EditorSidebar({
   onQuantity,
   onFurnitureChange,
   onReload,
+  onPickAny,
+  onAddDevice,
+  onRemoveDevice,
 }: {
   projectId: string;
   category: string;
@@ -359,8 +508,14 @@ export function EditorSidebar({
   onQuantity: (slotKey: string, quantity: number) => void;
   onFurnitureChange: (next: FurnitureOverrides) => void;
   onReload: () => void;
+  /** Cualquier producto del catálogo en un equipo existente. */
+  onPickAny: (slotKey: string, productId: string) => void;
+  /** Equipo nuevo, de cualquier producto y con cualquier montaje. */
+  onAddDevice: (productId: string, mount: MountOption, quantity: number) => void;
+  onRemoveDevice: (slotKey: string) => void;
 }) {
   const [tab, setTab] = useState<Tab>("equipos");
+  const [adding, setAdding] = useState(false);
   /** Equipo cerrado a mano aunque esté seleccionado (tocar el abierto lo colapsa). */
   const [collapsedKey, setCollapsedKey] = useState<string | null>(null);
   const openRef = useRef<HTMLLIElement>(null);
@@ -409,6 +564,13 @@ export function EditorSidebar({
             <div>
               <div className="flex items-baseline justify-between">
                 <h2 className="text-sm font-semibold text-slate-900">Equipos de la sala</h2>
+                <button
+                  type="button"
+                  onClick={() => setAdding((v) => !v)}
+                  className="ml-auto mr-2 inline-flex items-center gap-1 rounded-lg bg-[#1e3553] px-2 py-1 text-[11px] font-semibold text-white"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Agregar equipo
+                </button>
                 <span className="text-[11px] font-medium text-slate-500">
                   {done} de {total} elegidos
                 </span>
@@ -420,6 +582,17 @@ export function EditorSidebar({
                 Abrí un equipo (acá o tocándolo en el 3D) y elegí el producto. Con <b>Autocompletar</b> se eligen todos solos.
               </p>
             </div>
+
+            {adding ? (
+              <AddDevicePanel
+                pending={pending}
+                onClose={() => setAdding(false)}
+                onAdd={(productId, mount, quantity) => {
+                  onAddDevice(productId, mount, quantity);
+                  setAdding(false);
+                }}
+              />
+            ) : null}
 
             {staged ? (
               <div className="flex items-start gap-2 rounded-lg border border-emerald-300 bg-emerald-50 p-2.5 text-[11px] text-emerald-900">
@@ -497,6 +670,8 @@ export function EditorSidebar({
                         onPick={onPickProduct}
                         onClear={onClearProduct}
                         onQuantity={(n) => onQuantity(slot.key, n)}
+                        onPickAny={(productId) => onPickAny(slot.key, productId)}
+                        onRemove={slot.key.startsWith("custom_") || slot.key.startsWith("bom_") ? () => onRemoveDevice(slot.key) : undefined}
                       />
                     ) : null}
                   </li>

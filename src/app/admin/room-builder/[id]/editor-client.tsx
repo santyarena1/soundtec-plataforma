@@ -14,6 +14,7 @@ import {
 import type {
   CameraPreset,
   CoverageViewMode,
+  MountOption,
   RankSortMode,
 } from "@/services/room-builder/types";
 import {
@@ -293,6 +294,32 @@ export function RoomBuilderEditor({
     };
     setScene(next);
     void persistScene(next);
+  }
+
+  /** Agrega o quita equipos libres (cualquier producto, cualquier montaje). */
+  function changeCustomDevice(init: RequestInit & { query?: string }, done: string) {
+    startTransition(async () => {
+      const res = await fetch(`/api/admin/room-builder/projects/${project.id}/devices${init.query ?? ""}`, init);
+      const json = await res.json().catch(() => null);
+      if (!json?.ok) {
+        toast.error(json?.error || "No se pudo actualizar el equipo");
+        return;
+      }
+      setProject(json.project);
+      setScene(parseScene(json.project.sceneJson) ?? scene);
+      toast.success(done);
+    });
+  }
+
+  function onAddDevice(productId: string, mount: MountOption, quantity: number) {
+    changeCustomDevice(
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId, mount, quantity }) },
+      "Equipo agregado: arrastralo en el 3D a su lugar",
+    );
+  }
+
+  function onRemoveDevice(slotKey: string) {
+    changeCustomDevice({ method: "DELETE", query: `?slotKey=${encodeURIComponent(slotKey)}` }, "Equipo quitado");
   }
 
   /** Muebles quitados, movidos o devueltos a la sala. */
@@ -595,6 +622,9 @@ export function RoomBuilderEditor({
         onClearProduct={() => assignProduct(null)}
         onQuantity={onQuantity}
         onFurnitureChange={onFurnitureChange}
+        onPickAny={(slotKey: string, productId: string) => assignToSlot(slotKey, productId)}
+        onAddDevice={onAddDevice}
+        onRemoveDevice={onRemoveDevice}
         onReload={() => void reloadProject()}
       />
     </div>

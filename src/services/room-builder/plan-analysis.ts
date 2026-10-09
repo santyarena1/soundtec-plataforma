@@ -58,11 +58,23 @@ const num = (v: unknown) => {
   return Number.isFinite(n) ? n : null;
 };
 
-/** Palabras del nombre → tipo de ambiente (respaldo si la IA no da uno válido). */
+/** Ambiente genérico: cualquier espacio que no encaja en un tipo (se le agregan equipos a mano). */
+export const GENERIC_TEMPLATE = "generic-room";
+
+/**
+ * Palabras del nombre → tipo de ambiente. El orden importa (lo más específico
+ * primero). null = no lleva equipos (depósitos, placards, escaleras).
+ */
 const KEYWORD_TEMPLATES: Array<[RegExp, string | null]> = [
-  [/baño|toilette|toilet|ducha|lavadero|lavandería|pasillo|hall de servicio|depósito|baulera|placard|vestidor|escalera|circulaci/i, null],
+  [/depósito|deposito|baulera|placard|vestidor|escalera|ducto|shaft|sala de máquinas|tablero/i, null],
+  [/baño|toilette|toilet|ducha|sanitario|vestuario|wc\b/i, "restroom-s"],
+  [/lavadero|lavandería/i, GENERIC_TEMPLATE],
+  [/pasillo|circulaci|hall de servicio|corredor/i, "circulation-m"],
   [/cine|home theater|media room/i, "residential-cinema-m"],
   [/dormitorio|habitaci|suite|cuarto|bedroom/i, "residential-bedroom-m"],
+  [/descanso|break|office\b|kitchenette|comedor de personal|cafetería interna/i, "breakroom-m"],
+  [/open ?space|puestos|estaciones de trabajo|workstation|área de trabajo|planta abierta/i, "office-open-l"],
+  [/oficina|despacho|gerencia|director\b|privado/i, "office-private-m"],
   [/cocina|comedor|kitchen|dining|desayunador/i, "residential-dining-m"],
   [/galer|jard|terraza|patio|quincho|balc|parrilla|pileta|piscina|exterior/i, "residential-outdoor-m"],
   [/living|estar|sala de estar|playroom|family/i, "residential-living-m"],
@@ -71,12 +83,15 @@ const KEYWORD_TEMPLATES: Array<[RegExp, string | null]> = [
   [/huddle|focus|phone/i, "vc-huddle-s"],
   [/capacitaci|training|sum\b/i, "training-l"],
   [/aula|clase/i, "classroom-m"],
-  [/recepci|lobby|hall|acceso/i, "lobby-m"],
+  [/recepci|lobby|hall|acceso|espera/i, "lobby-m"],
   [/restaurant|resto|bar|salón comedor|cafeter/i, "restaurant-m"],
   [/local|tienda|showroom|venta/i, "retail-store-m"],
   [/salón|evento|auditorio/i, "event-banquet-l"],
   [/sala técnica|rack|control|site/i, "control-room-m"],
 ];
+
+/** Tipos que se generan por defecto (los de servicio vienen destildados, pero se pueden incluir). */
+const OPTIONAL_BY_DEFAULT = new Set(["restroom-s", "circulation-m", GENERIC_TEMPLATE]);
 
 export function templateFromName(name: string): string | null | undefined {
   for (const [re, key] of KEYWORD_TEMPLATES) if (re.test(name)) return key;
@@ -86,12 +101,15 @@ export function templateFromName(name: string): string | null | undefined {
 /**
  * Tipo final de un ambiente: el nombre manda cuando es claro (un "Dormitorio 2"
  * es un dormitorio aunque la IA diga que no lleva equipos); si no, lo que
- * propuso la IA; si nada, sin equipos.
+ * propuso la IA; si nada, ambiente libre (todo ambiente se puede generar).
  */
-function resolveTemplate(proposed: string | undefined, fromName: string | null | undefined): string | null {
+function resolveTemplate(proposed: string | undefined, fromName: string | null | undefined, valid: Set<string>): string | null {
   if (fromName !== undefined) return fromName;
-  return proposed ?? null;
+  if (proposed) return proposed;
+  return valid.has(GENERIC_TEMPLATE) ? GENERIC_TEMPLATE : null;
 }
+
+const includeByDefault = (templateKey: string | null, valid: Set<string>) => Boolean(templateKey && valid.has(templateKey) && !OPTIONAL_BY_DEFAULT.has(templateKey));
 
 function normalizeBox(raw: unknown): PlanBox | null {
   if (!raw || typeof raw !== "object") return null;
@@ -120,7 +138,7 @@ export function normalizePlanAnalysis(raw: unknown, templateKeys: string[]): Pla
     const name = typeof it.name === "string" && it.name.trim() ? it.name.trim().slice(0, 60) : `Ambiente ${i + 1}`;
     const proposed = typeof it.templateKey === "string" && valid.has(it.templateKey) ? it.templateKey : undefined;
     const fromName = templateFromName(name);
-    const templateKey = resolveTemplate(proposed, fromName);
+    const templateKey = resolveTemplate(proposed, fromName, valid);
     const w = num(it.widthM);
     const d = num(it.depthM);
     rooms.push({
@@ -130,7 +148,7 @@ export function normalizePlanAnalysis(raw: unknown, templateKeys: string[]): Pla
       box,
       widthM: w && w > 0.5 && w < 200 ? w : null,
       depthM: d && d > 0.5 && d < 200 ? d : null,
-      include: Boolean(templateKey && valid.has(templateKey)),
+      include: includeByDefault(templateKey, valid),
     });
   });
   return { kind, summary: typeof r.summary === "string" ? r.summary.slice(0, 400) : "", rooms };
@@ -195,7 +213,7 @@ export function normalizeMarkedAnalysis(raw: unknown, regionBoxes: PlanBox[], te
     const name = typeof m?.name === "string" && m.name.trim() ? m.name.trim().slice(0, 60) : `Ambiente ${i + 1}`;
     const proposed = typeof m?.templateKey === "string" && valid.has(m.templateKey) ? m.templateKey : undefined;
     const fromName = templateFromName(name);
-    const templateKey = resolveTemplate(proposed, fromName);
+    const templateKey = resolveTemplate(proposed, fromName, valid);
     const w = num(m?.widthM);
     const d = num(m?.depthM);
     rooms.push({
@@ -205,7 +223,7 @@ export function normalizeMarkedAnalysis(raw: unknown, regionBoxes: PlanBox[], te
       box,
       widthM: w && w > 0.5 && w < 200 ? w : null,
       depthM: d && d > 0.5 && d < 200 ? d : null,
-      include: Boolean(templateKey && valid.has(templateKey)),
+      include: includeByDefault(templateKey, valid),
     });
   });
   // Ambientes que la IA ve en el plano pero no tienen número (no se pudieron cerrar).
