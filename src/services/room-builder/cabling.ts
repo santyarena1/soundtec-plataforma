@@ -408,6 +408,13 @@ export function planCabling(input: CablingInput): CablingPlan {
     }
   }
 
+  // Pantallas sin señal de video: les falta una fuente (reproductor, codec, matriz o conexión de mesa).
+  for (const d of displays) {
+    if (!links.some((l) => l.to === d.id && (l.signal === "hdmi" || l.signal === "hdbaset"))) {
+      findings.push({ id: `display-src-${d.id}`, level: "warn", title: "Pantalla sin fuente de video", detail: `${d.label} no recibe señal: sumá la fuente que corresponda (reproductor de cartelería, codec, matriz o conexión de mesa).` });
+    }
+  }
+
   // 8) Conexiones inalámbricas: cada cliente con su gateway / receptor / base, y su capacidad.
   wirelessLinks(nodes, links, findings);
 

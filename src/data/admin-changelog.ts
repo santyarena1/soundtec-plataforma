@@ -1659,4 +1659,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Botón Propuesta PDF en el editor: rótulo con el logo de la empresa, dos vistas 3D, plano con cotas de cada muro, aberturas, mobiliario y equipos numerados, lista de equipos con el origen de sus puertos, cableado con tipos, metros, conexiones puerto a puerto y cables del catálogo, diagrama de conexiones y validación del sistema." },
     ],
   },
+  {
+    id: "ship-2026-10-11-propuesta-ajustes",
+    version: "1.60.1",
+    releasedAt: "2026-10-11T14:00:00.000Z",
+    summary: "Ajustes de la propuesta y del cableado.",
+    items: [
+      { kind: "FIX", text: "Cables que se venden por metro figuran como metros (no como bobinas de 1 m)." },
+      { kind: "MEJORA", text: "Aviso de pantalla sin fuente de video; la propuesta sin vistas 3D arranca el plano en la primera hoja; el diagrama ordena los equipos 1, 2… 10." },
+    ],
+  },
 ];

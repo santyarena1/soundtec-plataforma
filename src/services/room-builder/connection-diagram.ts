@@ -59,7 +59,7 @@ export function buildDiagram(plan: CablingPlan): Diagram {
   columns.forEach((col, c) => {
     let y = TOP;
     const x = MARGIN + c * (BLOCK_W + COL_GAP);
-    for (const n of col.sort((a, b) => a.label.localeCompare(b.label))) {
+    for (const n of col.sort((a, b) => a.label.localeCompare(b.label, "es", { numeric: true }))) {
       const u = used.get(n.id) ?? { inputs: new Map(), outputs: new Map() };
       const inputs: DiagramPort[] = [...u.inputs.entries()].map(([label, signal]) => ({ label, signal, used: true, y: 0 }));
       const outputs: DiagramPort[] = [...u.outputs.entries()].map(([label, signal]) => ({ label, signal, used: true, y: 0 }));

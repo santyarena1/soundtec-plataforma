@@ -81,7 +81,8 @@ export function pickCables(plan: CablingPlan, catalog: CableProduct[]): { lines:
       continue;
     }
     const qty = reel.lengthM ? Math.ceil(b.meters / reel.lengthM) : Math.ceil(b.meters);
-    addLine(reel, qty, signal, Math.round(b.meters), reel.lengthM ? `${Math.round(b.meters)} m en ${qty} bobina(s) de ${reel.lengthM} m` : `${Math.ceil(b.meters)} m`);
+    const perMeter = !reel.lengthM || reel.lengthM <= 1;
+    addLine(reel, qty, signal, Math.round(b.meters), perMeter ? `${Math.ceil(b.meters)} m (se vende por metro)` : `${Math.round(b.meters)} m en ${qty} bobina(s) de ${reel.lengthM} m`);
   }
   return { lines, missing };
 }

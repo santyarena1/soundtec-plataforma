@@ -106,7 +106,7 @@ td { border-bottom: .5pt solid #dbe2ea; padding: 3pt 5pt; vertical-align: top; }
 
 ${snapshots.length ? `${h("Vistas 3D")}${snapshots.map((s) => `<div class="block"><img class="img" src="${escapeHtml(s.dataUrl)}"/><div class="muted">${escapeHtml(s.label)}</div></div>`).join("")}` : ""}
 
-<div class="page">${h("Plano con cotas y ubicación de equipos")}<div class="svg block">${planDrawing}</div></div>
+<div class="${snapshots.length ? "page" : ""}">${h("Plano con cotas y ubicación de equipos")}<div class="svg block">${planDrawing}</div></div>
 
 ${h("Equipos")}
 <table>${th(["#", "Función", "Marca", "Modelo", "Cant.", "Montaje", "Puertos"])}
