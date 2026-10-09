@@ -1,16 +1,26 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth-helpers";
+import { prisma } from "@/lib/prisma";
 import { buildIoProfiles, ioProfileStats } from "@/services/room-builder/io-profile/build";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 /** Avance de la carga de puertos reales (fichas del fabricante). */
-export async function GET() {
+export async function GET(req: Request) {
   await requireAdmin();
   try {
-    return NextResponse.json({ ok: true, stats: await ioProfileStats() });
+    // ?sample=N: las últimas fichas leídas, para revisar la calidad.
+    const sample = Math.min(50, Number(new URL(req.url).searchParams.get("sample") ?? 0) || 0);
+    const recent = sample
+      ? await prisma.productIoProfile.findMany({
+          orderBy: { builtAt: "desc" },
+          take: sample,
+          select: { status: true, confidence: true, source: true, sourceUrls: true, ports: true, capabilities: true, rejected: true, notes: true, model: true, product: { select: { normalizedName: true, brand: { select: { name: true } } } } },
+        })
+      : undefined;
+    return NextResponse.json({ ok: true, stats: await ioProfileStats(), recent });
   } catch (error) {
     console.error("[room-builder/io-profiles] stats", error);
     return NextResponse.json({ ok: false, error: "No se pudo leer el avance" }, { status: 500 });
