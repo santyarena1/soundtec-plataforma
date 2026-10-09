@@ -1,0 +1,67 @@
+/**
+ * Cableado de una escena guardada: arma los nodos (una unidad por equipo, en
+ * su lugar real), la conexión de mesa y la salida al rack central, y corre el
+ * motor. Lo usan el editor (en vivo) y la cotización (en el servidor).
+ */
+
+import { planCabling, type CableNode, type CablingPlan } from "./cabling";
+import type { CablingProfile } from "./cabling-db";
+import { resolveSceneFurniture } from "./furnishing";
+import type { RoomScene } from "./scene";
+import { normalizeDeviceUnits, sceneDims } from "./units";
+
+/** Montaje por rol cuando el equipo no tiene un lugar de la tipología. */
+const MOUNT_BY_ROLE: Record<string, string> = { display: "wall", camera: "wall", mic: "ceiling", speaker: "ceiling", touch: "table", codec: "rack", processor: "rack" };
+const TABLE_KINDS = new Set(["conference-table", "round-table", "desk"]);
+const TABLE_TOP_M = 0.75;
+
+/** Dónde sale el cableado hacia el rack central: la puerta del plano o una esquina. */
+export function centralExit(scene: RoomScene): { x: number; z: number } {
+  const plan = scene.plan;
+  const door = plan?.openings?.find((o) => o.kind === "door");
+  const wall = door ? plan?.walls.find((w) => w.id === door.wall) : undefined;
+  if (door && wall) {
+    const len = Math.hypot(wall.b.x - wall.a.x, wall.b.y - wall.a.y) || 1;
+    const t = (door.from + door.to) / 2 / len;
+    return { x: wall.a.x + (wall.b.x - wall.a.x) * t, z: wall.a.y + (wall.b.y - wall.a.y) * t };
+  }
+  return { x: -scene.widthM / 2 + 0.2, z: -scene.depthM / 2 + 0.2 };
+}
+
+export function buildCableNodes(scene: RoomScene, profile: CablingProfile): CableNode[] {
+  const dims = sceneDims(scene);
+  const slots = new Map(scene.slots.map((s) => [s.key, s]));
+  const nodes: CableNode[] = [];
+  for (const d of scene.devices) {
+    const info = profile.devices[d.id];
+    if (!info || !d.productId) continue;
+    const slot = slots.get(d.slotKey);
+    const units = normalizeDeviceUnits(d, slot, dims).units ?? [];
+    const mount = slot?.mount ?? MOUNT_BY_ROLE[d.designRole] ?? "rack";
+    units.forEach((u, k) => {
+      nodes.push({
+        id: `${d.id}#${k}`,
+        label: units.length > 1 ? `${info.label} (${k + 1})` : info.label,
+        cls: info.cls,
+        ports: info.ports,
+        pos: { x: u.pose.x, y: u.pose.y, z: u.pose.z },
+        mount,
+        productId: d.productId,
+      });
+    });
+  }
+  return nodes;
+}
+
+export function cablingForScene(scene: RoomScene, category: string, profile: CablingProfile): CablingPlan {
+  const nodes = buildCableNodes(scene, profile);
+  const tables = resolveSceneFurniture(scene, category).filter((f) => !f.hiddenBy && TABLE_KINDS.has(f.kind));
+  const table = [...tables].sort((a, b) => (b.w ?? 1) * (b.d ?? 1) - (a.w ?? 1) * (a.d ?? 1))[0];
+  const hasConferencing = nodes.some((n) => n.cls === "codec" || n.cls === "camera");
+  return planCabling({
+    nodes,
+    dims: { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM },
+    tableInput: table && hasConferencing ? { x: table.x, z: table.z, topY: TABLE_TOP_M } : null,
+    central: profile.central ? { label: profile.central.label, exit: centralExit(scene) } : null,
+  });
+}

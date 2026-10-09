@@ -5,6 +5,11 @@ import { getGlobalMarginPercent, getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { createQuoteShell } from "@/server/actions/quotes";
 import { getRoomProject } from "./project-service";
+import { loadCableCatalog } from "./cable-catalog";
+import { pickCables, type CableProduct } from "./cable-picks";
+import { cablingProfile } from "./cabling-db";
+import { cablingForScene } from "./cabling-scene";
+import { parseScene } from "./scene";
 
 type BomLine = {
   productId: string;
@@ -32,6 +37,7 @@ export async function buildProjectBom(projectId: string): Promise<BomLine[]> {
   if (!project) throw new Error("Proyecto no encontrado");
 
   const lines: BomLine[] = [];
+  let cableCatalog: CableProduct[] | null = null;
 
   async function addSpace(spaceId: string) {
     const space = await getRoomProject(spaceId);
@@ -45,6 +51,14 @@ export async function buildProjectBom(projectId: string): Promise<BomLine[]> {
         device.quantity * mult,
         `${space.name} · ${device.slotKey ?? device.designRole ?? "slot"}`,
       );
+    }
+    // Cableado del ambiente: los mismos cables y metros que muestra la pestaña Cableado.
+    const scene = parseScene(space.sceneJson);
+    const profile = scene ? await cablingProfile(space.id) : null;
+    if (scene && profile) {
+      cableCatalog ??= await loadCableCatalog();
+      const { lines: cables } = pickCables(cablingForScene(scene, space.category, profile), cableCatalog);
+      for (const c of cables) accumulateBom(lines, c.product.id, c.quantity * mult, `${space.name} · Cableado · ${c.note}`);
     }
   }
 

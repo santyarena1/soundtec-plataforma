@@ -1628,4 +1628,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Equipos sin ficha leída se marcan y no se cablean con suposiciones: \"Leer fichas ahora\" las busca y las lee en el momento. En el admin, \"Puertos reales (fichas)\" carga todo el catálogo con su avance." },
     ],
   },
+  {
+    id: "ship-2026-10-11-inalambrico-y-cables-cotizacion",
+    version: "1.58.0",
+    releasedAt: "2026-10-11T09:00:00.000Z",
+    summary: "Conexionado inalámbrico (infiNET EX, Zigbee, micrófonos RF, presentación inalámbrica, Wi-Fi) y cables del catálogo sumados a la cotización.",
+    items: [
+      { kind: "NUEVO", text: "Las fichas registran las conexiones inalámbricas de cada equipo y su papel (cliente, gateway, receptor, base, punto de acceso). El conexionado une cada cliente con su contraparte y avisa si falta el gateway o el receptor, o si se supera su capacidad." },
+      { kind: "NUEVO", text: "Cables del catálogo para el cableado: cada HDMI/USB con el largo estándar que alcanza (óptico o activo en tramos largos) y los rollos de UTP, parlante y audio por bobinas según los metros. Se ven en la pestaña Cableado y entran solos en la cotización; lo que el catálogo no tiene se informa." },
+      { kind: "MEJORA", text: "Los accesorios sin conexiones (tapas, soportes) ya no figuran como fichas faltantes." },
+    ],
+  },
 ];

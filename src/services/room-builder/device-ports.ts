@@ -4,10 +4,10 @@
  * puertos y no se cablea con suposiciones.
  */
 
-import type { IoProfileData, IoSignal } from "./io-profile/types";
+import type { IoProfileData, IoSignal, WirelessLink } from "./io-profile/types";
 import type { SystemSpec } from "./system-specs";
 
-export const SIGNALS = ["hdmi", "usb", "lan", "dante", "hdbaset", "speaker", "line", "rs232", "ir"] as const;
+export const SIGNALS = ["hdmi", "usb", "lan", "dante", "hdbaset", "speaker", "line", "rs232", "ir", "wireless"] as const;
 export type Signal = (typeof SIGNALS)[number];
 
 /** Nombre corto y color de cada señal (planos, 3D y diagrama). */
@@ -21,6 +21,7 @@ export const SIGNAL_INFO: Record<Signal, { label: string; color: string }> = {
   line: { label: "Audio de línea", color: "#ca8a04" },
   rs232: { label: "RS-232", color: "#64748b" },
   ir: { label: "IR", color: "#94a3b8" },
+  wireless: { label: "Inalámbrico", color: "#a855f7" },
 };
 
 /** Clase de equipo para el cableado (qué papel cumple en el sistema). */
@@ -41,6 +42,8 @@ export type DevicePorts = {
   danteRx?: number | null;
   /** Línea de parlantes declarada: low-z | 70v | 100v | both. */
   lineVoltage?: string | null;
+  /** Conexiones inalámbricas declaradas en la ficha. */
+  wireless?: WirelessLink[];
 };
 
 export type PortInput = {
@@ -105,7 +108,7 @@ const IO_TO_SIGNAL: Partial<Record<IoSignal, Signal>> = {
 
 /** Puertos reales leídos de la ficha; null si el equipo no tiene ficha leída. */
 export function devicePorts(io: IoProfileData | null | undefined): DevicePorts | null {
-  if (!io || !io.ports.length) return null;
+  if (!io || (!io.ports.length && !io.capabilities.wireless?.value.length)) return null;
   const inputs: PortGroup[] = [];
   const outputs: PortGroup[] = [];
   let network = 0;
@@ -132,6 +135,7 @@ export function devicePorts(io: IoProfileData | null | undefined): DevicePorts |
     danteTx: c.danteTx?.value ?? null,
     danteRx: c.danteRx?.value ?? null,
     lineVoltage: c.lineVoltage?.value ?? null,
+    wireless: c.wireless?.value ?? [],
   };
 }
 

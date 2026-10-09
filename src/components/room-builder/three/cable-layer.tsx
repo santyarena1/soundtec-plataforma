@@ -19,6 +19,8 @@ export function CableLayer({ links }: { links: CableLink[] }) {
       {links.map((l, k) => {
         const off = ((k % 9) - 4) * SPREAD_M;
         const pts = l.route.map((p, i): Point3 => (i === 0 || i === l.route.length - 1 ? p : [p[0] + off, p[1] - Math.abs(off) * 0.3, p[2] + off]));
+        // Inalámbrico: línea punteada directa entre los equipos.
+        if (l.signal === "wireless") return <Line key={l.id} points={l.route} color={SIGNAL_INFO.wireless.color} lineWidth={1.6} dashed dashSize={0.12} gapSize={0.08} transparent opacity={0.85} />;
         return <Line key={l.id} points={pts} color={SIGNAL_INFO[l.signal].color} lineWidth={2.2} transparent opacity={0.9} />;
       })}
     </group>

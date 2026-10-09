@@ -2,25 +2,22 @@
 
 /**
  * Cableado del ambiente en vivo: trae de la base los puertos de ficha de cada
- * equipo y arma el cableado con las posiciones reales de la sala (al mover un
- * equipo, los recorridos y los metros se recalculan al instante).
+ * equipo y los cables del catálogo, y arma el cableado con las posiciones
+ * reales de la sala (al mover un equipo, recorridos y metros se recalculan).
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { planCabling, type CableNode, type CablingPlan } from "@/services/room-builder/cabling";
+import type { CablingPlan } from "@/services/room-builder/cabling";
 import type { CablingProfile } from "@/services/room-builder/cabling-db";
-import { resolveSceneFurniture } from "@/services/room-builder/furnishing";
+import { cablingForScene } from "@/services/room-builder/cabling-scene";
+import { pickCables, type CableMissing, type CablePickLine, type CableProduct } from "@/services/room-builder/cable-picks";
 import type { RoomScene } from "@/services/room-builder/scene";
-import { normalizeDeviceUnits, sceneDims } from "@/services/room-builder/units";
-
-/** Montaje por rol cuando el equipo no tiene un lugar de la tipología. */
-const MOUNT_BY_ROLE: Record<string, string> = { display: "wall", camera: "wall", mic: "ceiling", speaker: "ceiling", touch: "table", codec: "rack", processor: "rack" };
-const TABLE_KINDS = new Set(["conference-table", "round-table", "desk"]);
-const TABLE_TOP_M = 0.75;
 
 export type CablingState = {
   plan: CablingPlan | null;
   profile: CablingProfile | null;
+  /** Cables del catálogo elegidos para este cableado y los que no hay. */
+  picks: { lines: CablePickLine[]; missing: CableMissing[] } | null;
   loading: boolean;
   /** Lectura de fichas en curso (productos sin ficha). */
   reading: boolean;
@@ -29,46 +26,9 @@ export type CablingState = {
   reload: () => Promise<void>;
 };
 
-/** Dónde sale el cableado hacia el rack central: la puerta del plano o una esquina. */
-function centralExit(scene: RoomScene): { x: number; z: number } {
-  const plan = scene.plan;
-  const door = plan?.openings?.find((o) => o.kind === "door");
-  const wall = door ? plan?.walls.find((w) => w.id === door.wall) : undefined;
-  if (door && wall) {
-    const len = Math.hypot(wall.b.x - wall.a.x, wall.b.y - wall.a.y) || 1;
-    const t = (door.from + door.to) / 2 / len;
-    return { x: wall.a.x + (wall.b.x - wall.a.x) * t, z: wall.a.y + (wall.b.y - wall.a.y) * t };
-  }
-  return { x: -scene.widthM / 2 + 0.2, z: -scene.depthM / 2 + 0.2 };
-}
-
-export function buildCableNodes(scene: RoomScene, profile: CablingProfile): CableNode[] {
-  const dims = sceneDims(scene);
-  const slots = new Map(scene.slots.map((s) => [s.key, s]));
-  const nodes: CableNode[] = [];
-  for (const d of scene.devices) {
-    const info = profile.devices[d.id];
-    if (!info || !d.productId) continue;
-    const slot = slots.get(d.slotKey);
-    const units = normalizeDeviceUnits(d, slot, dims).units ?? [];
-    const mount = slot?.mount ?? MOUNT_BY_ROLE[d.designRole] ?? "rack";
-    units.forEach((u, k) => {
-      nodes.push({
-        id: `${d.id}#${k}`,
-        label: units.length > 1 ? `${d.productName ?? d.label} (${k + 1})` : (d.productName ?? d.label),
-        cls: info.cls,
-        ports: info.ports,
-        pos: { x: u.pose.x, y: u.pose.y, z: u.pose.z },
-        mount,
-        productId: d.productId,
-      });
-    });
-  }
-  return nodes;
-}
-
 export function useCabling(projectId: string, scene: RoomScene, category: string): CablingState {
   const [profile, setProfile] = useState<CablingProfile | null>(null);
+  const [catalog, setCatalog] = useState<CableProduct[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [reading, setReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +52,19 @@ export function useCabling(projectId: string, scene: RoomScene, category: string
   useEffect(() => {
     void reload();
   }, [reload, devicesKey]);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/admin/room-builder/cable-catalog")
+      .then((r) => r.json())
+      .then((j) => {
+        if (alive && j?.ok) setCatalog(j.cables as CableProduct[]);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const readDatasheets = useCallback(
     async (productIds: string[]) => {
@@ -119,19 +92,8 @@ export function useCabling(projectId: string, scene: RoomScene, category: string
     [reload],
   );
 
-  const plan = useMemo(() => {
-    if (!profile) return null;
-    const nodes = buildCableNodes(scene, profile);
-    const tables = resolveSceneFurniture(scene, category).filter((f) => !f.hiddenBy && TABLE_KINDS.has(f.kind));
-    const table = tables.sort((a, b) => (b.w ?? 1) * (b.d ?? 1) - (a.w ?? 1) * (a.d ?? 1))[0];
-    const hasConferencing = nodes.some((n) => n.cls === "codec" || n.cls === "camera");
-    return planCabling({
-      nodes,
-      dims: { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM },
-      tableInput: table && hasConferencing ? { x: table.x, z: table.z, topY: TABLE_TOP_M } : null,
-      central: profile.central ? { label: profile.central.label, exit: centralExit(scene) } : null,
-    });
-  }, [profile, scene, category]);
+  const plan = useMemo(() => (profile ? cablingForScene(scene, category, profile) : null), [profile, scene, category]);
+  const picks = useMemo(() => (plan && catalog ? pickCables(plan, catalog) : null), [plan, catalog]);
 
-  return { plan, profile, loading, reading, error, readDatasheets, reload };
+  return { plan, profile, picks, loading, reading, error, readDatasheets, reload };
 }

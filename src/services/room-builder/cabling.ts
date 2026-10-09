@@ -37,6 +37,8 @@ export type CableLink = {
   /** Cable a comprar (m): con rulos de servicio y, en cables armados, el largo estándar. */
   cableM: number;
   note?: string;
+  /** Enlace inalámbrico: protocolo (sin cable ni metros). */
+  protocol?: string;
 };
 
 export type CableFinding = { id: string; level: "info" | "warn" | "error"; title: string; detail: string; linkId?: string; productIds?: string[] };
@@ -120,6 +122,75 @@ export function cableMeters(runM: number, signal: Signal): number {
   const need = runM * SLACK + 2 * SERVICE_LOOP_M;
   if (BULK.includes(signal)) return Math.ceil(need);
   return STANDARD_LENGTHS.find((l) => l >= need) ?? Math.ceil(need / 10) * 10;
+}
+
+/** Contraparte que necesita un cliente de cada protocolo (y cómo se llama). */
+const WIRELESS_PEER: Record<string, { roles: string[]; name: string; required: boolean }> = {
+  infinet: { roles: ["gateway"], name: "gateway infiNET EX", required: true },
+  zigbee: { roles: ["gateway"], name: "gateway Zigbee", required: true },
+  zwave: { roles: ["gateway"], name: "gateway Z-Wave", required: true },
+  "rf-mic": { roles: ["receiver"], name: "receptor de micrófonos", required: true },
+  dect: { roles: ["base", "receiver"], name: "base DECT", required: true },
+  "wireless-presentation": { roles: ["base"], name: "base de presentación inalámbrica", required: true },
+  wifi: { roles: ["access-point"], name: "punto de acceso Wi-Fi", required: false },
+};
+export const WIRELESS_LABEL: Record<string, string> = {
+  infinet: "infiNET EX",
+  zigbee: "Zigbee",
+  zwave: "Z-Wave",
+  "rf-mic": "RF",
+  dect: "DECT",
+  "wireless-presentation": "Presentación inalámbrica",
+  wifi: "Wi-Fi",
+  bluetooth: "Bluetooth",
+  airplay: "AirPlay",
+  chromecast: "Chromecast",
+  "ir-remote": "IR",
+};
+
+/** Conexiones inalámbricas: cada cliente con su gateway / receptor / base, respetando la capacidad declarada. */
+function wirelessLinks(nodes: Array<CableNode & { ports: DevicePorts }>, links: CableLink[], findings: CableFinding[]) {
+  const load = new Map<string, number>();
+  for (const client of nodes) {
+    for (const w of client.ports.wireless ?? []) {
+      if (w.role !== "client" && w.role !== "transmitter") continue;
+      const peer = WIRELESS_PEER[w.protocol];
+      if (!peer) continue;
+      const name = WIRELESS_LABEL[w.protocol] ?? w.protocol;
+      const hosts = nodes.filter((n) => n !== client && (n.ports.wireless ?? []).some((x) => x.protocol === w.protocol && peer.roles.includes(x.role)));
+      if (!hosts.length) {
+        findings.push(
+          peer.required
+            ? { id: `wl-${w.protocol}-${client.id}`, level: "error", title: `Falta ${peer.name}`, detail: `${client.label} se conecta por ${name} y no hay ${peer.name} en la sala.` }
+            : { id: `wl-${w.protocol}-${client.id}`, level: "info", title: `${name} del edificio`, detail: `${client.label} usa ${name}: necesita cobertura de la red inalámbrica en la sala.` },
+        );
+        continue;
+      }
+      // El de menos carga; la capacidad declarada en la ficha manda.
+      const host = [...hosts].sort((a, b) => (load.get(a.id) ?? 0) - (load.get(b.id) ?? 0))[0]!;
+      const cap = (host.ports.wireless ?? []).find((x) => x.protocol === w.protocol)?.capacity ?? null;
+      const used = (load.get(host.id) ?? 0) + 1;
+      load.set(host.id, used);
+      if (cap != null && used > cap) {
+        findings.push({ id: `wl-cap-${host.id}-${w.protocol}`, level: "error", title: `${peer.name} sin capacidad`, detail: `${host.label} admite ${cap} dispositivo(s) ${name} y el diseño usa ${used}.` });
+      }
+      links.push({
+        id: `${client.id}~${host.id}~${w.protocol}${links.length}`,
+        from: client.id,
+        to: host.id,
+        signal: "wireless",
+        fromPort: name,
+        toPort: peer.name,
+        route: [
+          [client.pos.x, client.pos.y, client.pos.z],
+          [host.pos.x, host.pos.y, host.pos.z],
+        ],
+        runM: 0,
+        cableM: 0,
+        protocol: w.protocol,
+      });
+    }
+  }
 }
 
 /** Sección de cable de parlante según el largo (baja impedancia). */
@@ -337,11 +408,14 @@ export function planCabling(input: CablingInput): CablingPlan {
     }
   }
 
+  // 8) Conexiones inalámbricas: cada cliente con su gateway / receptor / base, y su capacidad.
+  wirelessLinks(nodes, links, findings);
+
   // Puertos usados de más (solo equipos reales).
   for (const [key, n] of used) {
     const [id, side, signal] = key.split("|") as [string, "in" | "out", Signal];
     const node = nodes.find((x) => x.id === id);
-    if (!node || node.virtual || signal === "lan" || signal === "dante") continue;
+    if (!node || node.virtual || signal === "lan" || signal === "dante" || signal === "wireless") continue;
     const have = portCount(node.ports, side === "in" ? "inputs" : "outputs", signal);
     if (n > have) findings.push({ id: `ports-${key}`, level: "error", title: `Faltan puertos ${SIGNAL_INFO[signal].label}`, detail: `${node.label} declara ${have} ${side === "in" ? "entrada(s)" : "salida(s)"} ${SIGNAL_INFO[signal].label} y el diseño usa ${n}.` });
   }
@@ -361,7 +435,7 @@ export function planCabling(input: CablingInput): CablingPlan {
     }
   }
 
-  const totals = [...new Set(links.map((l) => l.signal))].map((signal) => {
+  const totals = [...new Set(links.filter((l) => l.signal !== "wireless").map((l) => l.signal))].map((signal) => {
     const ls = links.filter((l) => l.signal === signal);
     return { signal, count: ls.length, meters: Math.round(ls.reduce((n, l) => n + l.cableM, 0) * 10) / 10 };
   });

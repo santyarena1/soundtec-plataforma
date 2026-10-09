@@ -13,7 +13,7 @@ import { parseScene } from "./scene";
 import { effectiveSpec, SPEC_PRODUCT_SELECT, type SpecProduct } from "./system-check-db";
 
 /** Estado de la ficha del equipo: lista para cablear, a revisar o sin leer. */
-export type DatasheetState = "ok" | "review" | "missing";
+export type DatasheetState = "ok" | "none" | "review" | "missing";
 
 export type DeviceCablingProfile = {
   cls: DeviceClass;
@@ -53,14 +53,16 @@ export async function cablingProfile(projectId: string): Promise<CablingProfile 
     const io = d.productId ? ioById.get(d.productId) : undefined;
     // Solo cuenta la ficha validada (todas las citas verificadas o aprobada a mano).
     const valid = io && (io.status === "auto" || io.status === "approved");
-    const ports = valid ? devicePorts({ ports: io.ports as unknown as IoProfileData["ports"], capabilities: io.capabilities as unknown as IoProfileData["capabilities"] }) : null;
+    // Sin conexiones (accesorio): no se cablea y tampoco falta nada.
+    const none = io?.status === "not_applicable";
+    const ports = none ? { inputs: [], outputs: [], network: 0 } : valid ? devicePorts({ ports: io.ports as unknown as IoProfileData["ports"], capabilities: io.capabilities as unknown as IoProfileData["capabilities"] }) : null;
     devices[d.id] = {
       cls: deviceClass(input),
       ports,
       productId: d.productId,
       label: p ? [p.brand?.name, p.normalizedName].filter(Boolean).join(" ") : (d.productName ?? d.label),
       sourceKind: io?.source ?? null,
-      datasheet: ports ? "ok" : io && io.status === "needs_review" ? "review" : "missing",
+      datasheet: none ? "none" : ports ? "ok" : io && io.status === "needs_review" ? "review" : "missing",
       sources: io?.sourceUrls ?? [],
     };
   }

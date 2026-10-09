@@ -107,3 +107,18 @@ test("parlante de baja impedancia en un amplificador de 70 V: error", () => {
   });
   assert.ok(plan.findings.some((f) => f.title.includes("70/100 V")));
 });
+
+test("inalámbrico: teclado infiNET sin gateway es error; con gateway se enlaza y se controla la capacidad", () => {
+  const keypad = io([], { wireless: [{ protocol: "infinet", role: "client", capacity: null }] });
+  const gateway = io([["lan", "bidir", 1]], { wireless: [{ protocol: "infinet", role: "gateway", capacity: 1 }] });
+  const k1 = node("k1", "touch", "Crestron HZ-KPCN", [0, 1.2, -1.9], "wall", keypad);
+  const k2 = node("k2", "touch", "Crestron HZ-KPCN", [1, 1.2, -1.9], "wall", keypad);
+  const alone = planCabling({ nodes: [k1], dims });
+  assert.ok(alone.findings.some((f) => f.title === "Falta gateway infiNET EX"));
+  const gw = node("gw", "other", "Crestron CEN-GWEXER", [-2, 2.5, 0], "ceiling", gateway);
+  const plan = planCabling({ nodes: [k1, k2, gw], dims });
+  assert.equal(plan.links.filter((l) => l.signal === "wireless" && l.to === "gw").length, 2);
+  assert.ok(plan.findings.some((f) => f.title === "gateway infiNET EX sin capacidad"));
+  // Lo inalámbrico no suma metros de cable.
+  assert.ok(!plan.totals.some((t) => t.signal === "wireless"));
+});

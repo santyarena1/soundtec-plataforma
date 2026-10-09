@@ -122,7 +122,7 @@ export function CablingPanel({ state, show3d, onShow3d }: { state: CablingState;
                   <div className="min-w-0 text-xs text-slate-800">
                     <span className="font-medium">{label.get(l.from)}</span> <span className="text-slate-400">→</span> <span className="font-medium">{label.get(l.to)}</span>
                   </div>
-                  <span className="shrink-0 text-xs font-semibold tabular-nums text-slate-700">{l.cableM} m</span>
+                  <span className="shrink-0 text-xs font-semibold tabular-nums text-slate-700">{l.signal === "wireless" ? "sin cable" : `${l.cableM} m`}</span>
                 </div>
                 <div className="text-[11px] text-slate-500">
                   {l.fromPort} → {l.toPort}
@@ -134,6 +134,28 @@ export function CablingPanel({ state, show3d, onShow3d }: { state: CablingState;
         </div>
       ))}
 
+      {state.picks && (state.picks.lines.length || state.picks.missing.length) ? (
+        <div className="rounded-lg border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 px-2 py-1.5 text-xs font-semibold text-slate-700">Cables del catálogo (van a la cotización)</div>
+          <ul className="divide-y divide-slate-100">
+            {state.picks.lines.map((l) => (
+              <li key={l.product.id} className="flex items-start justify-between gap-2 px-2 py-1.5 text-[11px]">
+                <span className="min-w-0 text-slate-700">
+                  <span className="font-semibold">{l.quantity} ×</span> {[l.product.brand, l.product.name].filter(Boolean).join(" ")}
+                  <span className="block text-slate-500">{l.note}</span>
+                </span>
+                <Dot signal={l.signal} />
+              </li>
+            ))}
+            {state.picks.missing.map((m) => (
+              <li key={m.signal} className="px-2 py-1.5 text-[11px] text-amber-800">
+                <span className="font-semibold">{SIGNAL_INFO[m.signal].label}:</span> {m.count} cable(s), {m.meters} m — {m.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {profile ? (
         <details className="rounded-lg border border-slate-200 bg-white">
           <summary className="cursor-pointer px-2 py-1.5 text-xs font-semibold text-slate-700">Equipos y fichas</summary>
@@ -142,8 +164,8 @@ export function CablingPanel({ state, show3d, onShow3d }: { state: CablingState;
               <li key={id} className="flex items-start justify-between gap-2 px-2 py-1.5 text-[11px]">
                 <span className="min-w-0 text-slate-700">{d.label}</span>
                 <span className="shrink-0 text-right">
-                  <span className={d.datasheet === "ok" ? (d.sourceKind === "secondary" ? "text-amber-700" : "text-emerald-700") : "text-rose-700"}>
-                    {d.datasheet === "ok" ? (d.sourceKind === "secondary" ? "Fuente secundaria" : SOURCE_LABEL[d.sourceKind ?? ""] ?? "Ficha") : d.datasheet === "review" ? "A revisar" : "Falta ficha"}
+                  <span className={d.datasheet === "ok" || d.datasheet === "none" ? (d.sourceKind === "secondary" ? "text-amber-700" : "text-emerald-700") : "text-rose-700"}>
+                    {d.datasheet === "none" ? "Sin conexiones" : d.datasheet === "ok" ? (d.sourceKind === "secondary" ? "Fuente secundaria" : SOURCE_LABEL[d.sourceKind ?? ""] ?? "Ficha") : d.datasheet === "review" ? "A revisar" : "Falta ficha"}
                   </span>
                   {d.sources.slice(0, 2).map((u) => (
                     <a key={u} href={u} target="_blank" rel="noreferrer" className="ml-1.5 text-sky-700 underline">
