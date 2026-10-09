@@ -122,6 +122,13 @@ const WINDOW_SHARE = 0.6;
  * en citas largas, de un tramo de 40 caracteres (el modelo a veces recorta).
  */
 export function evidenceFound(evidence: string, source: string): boolean {
+  if (wholeFound(evidence, source)) return true;
+  // Cita armada con celdas de una tabla ("Analog Inputs: Ch 1 - 4: RCA"): vale si está cada tramo.
+  const pieces = evidence.split(/[:;|•]/).map((p) => p.trim()).filter((p) => normalizeForMatch(p).length >= MIN_EVIDENCE);
+  return pieces.length >= 2 && pieces.every((p) => wholeFound(p, source));
+}
+
+function wholeFound(evidence: string, source: string): boolean {
   const e = normalizeForMatch(evidence);
   if (e.length < MIN_EVIDENCE) return false;
   if (source.includes(e)) return true;

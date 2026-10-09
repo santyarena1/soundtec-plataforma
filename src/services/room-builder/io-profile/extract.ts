@@ -19,7 +19,7 @@ import {
   type IoProfileData,
 } from "./types";
 
-export const IO_EXTRACTOR_VERSION = 2;
+export const IO_EXTRACTOR_VERSION = 3;
 
 export const IO_SYSTEM_PROMPT = `Sos un integrador AV senior (Crestron, Shure, Biamp, QSC, Sonance, Kramer, Extron, Samsung, LG, Logitech, Yealink…).
 Leés la ficha de UN producto y listás sus conexiones físicas EXACTAMENTE como las declara la ficha, para
@@ -137,6 +137,7 @@ function controlOf(x: unknown): string | null {
 export function validateExtraction(raw: RawExtraction, sourceText: string): ValidatedIo {
   const source = normalizeForMatch(sourceText);
   const rejected: ValidatedIo["rejected"] = [];
+  // La confianza se mide sobre los puertos (lo que se cablea); las capacidades sin cita se descartan aparte.
   let offered = 0;
   let kept = 0;
 
@@ -180,16 +181,14 @@ export function validateExtraction(raw: RawExtraction, sourceText: string): Vali
     const o = c as Record<string, unknown>;
     const value = parse(o.value);
     const evidence = str(o.evidence, 240) ?? "";
-    offered++;
-    if (value == null) {
-      rejected.push({ what: `${key} inválido`, evidence });
+    if (value == null || !evidence) {
+      rejected.push({ what: `${key} sin valor o sin cita`, evidence });
       return;
     }
     if (!evidenceFound(evidence, source)) {
       rejected.push({ what: key, evidence });
       return;
     }
-    kept++;
     (capabilities as Record<string, Evidenced<T>>)[key] = { value, evidence };
   };
   take("danteTx", (v) => int(v, MAX_CHANNELS));

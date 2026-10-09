@@ -43,7 +43,8 @@ test("validación: entra lo citado textual, se descarta lo inventado", () => {
   assert.equal(v.data.capabilities.hdcp?.value, "2.3");
   assert.equal(v.data.capabilities.danteTx, undefined);
   assert.equal(v.rejected.length, 3);
-  assert.ok(v.confidence > 0.6 && v.confidence < 0.8);
+  // 3 de los 5 puertos ofrecidos tienen cita verificada.
+  assert.equal(v.confidence, 0.6);
 });
 
 test("cita: tolera diferencias de mayúsculas y signos, no frases que no están", () => {
@@ -92,4 +93,10 @@ test("normaliza formatos de capacidades y no deja usar la misma cita dos veces",
   assert.deepEqual(v.data.capabilities.controlProtocols?.value, ["RS-232", "IP"]);
   assert.equal(v.data.capabilities.poeStandard?.value, "802.3at");
   assert.equal(v.data.capabilities.lineVoltage?.value, "both");
+});
+
+test("cita armada con celdas de la tabla: vale si cada tramo está en la ficha", () => {
+  const src = normalizeForMatch("Analog Inputs: 4 channels\nCh 1 - 4: RCA Unbalanced\nCh 1 - 4: Balanced Mic/Line Euroblock");
+  assert.ok(evidenceFound("Analog Inputs: 4 channels Ch 1 - 4: RCA Unbalanced", src));
+  assert.ok(!evidenceFound("Analog Inputs: 8 channels Ch 1 - 8: XLR", src));
 });
