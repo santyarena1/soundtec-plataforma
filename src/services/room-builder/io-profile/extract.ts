@@ -6,7 +6,7 @@
  */
 
 import { getSetting } from "@/lib/settings";
-import { getOpenAiClient, getOpenAiModel } from "@/services/openai";
+import { getOpenAiClient } from "@/services/openai";
 import {
   IO_SIGNALS,
   evidenceFound,
@@ -19,7 +19,7 @@ import {
   type IoProfileData,
 } from "./types";
 
-export const IO_EXTRACTOR_VERSION = 1;
+export const IO_EXTRACTOR_VERSION = 2;
 
 export const IO_SYSTEM_PROMPT = `Sos un integrador AV senior (Crestron, Shure, Biamp, QSC, Sonance, Kramer, Extron, Samsung, LG, Logitech, Yealink…).
 Leés la ficha de UN producto y listás sus conexiones físicas EXACTAMENTE como las declara la ficha, para
@@ -53,6 +53,13 @@ CAPACIDADES en "capabilities" (cada una { "value": ..., "evidence": "cita textua
 - "lineVoltage": "low-z" | "70v" | "100v" | "both" (amplificadores y parlantes).
 - "controlProtocols": lista entre ["RS-232", "IP", "IR", "CEC", "Cresnet", "USB", "Relay"] según cómo se lo controla.
 
+REGLAS DE INTEGRADOR (obligatorias):
+- Un AMPLIFICADOR siempre lista sus salidas de parlante ("speaker", "out"), una por canal o por grupo de canales, aunque la ficha las nombre "Speaker Outputs", "Outputs 1-4" o "bornes". Sus entradas de línea aparte.
+- Si un RJ-45 se alimenta por PoE (dice PoE, PD, 802.3af/at/bt), va con "poe": "pd" y cargás "poeWatts"/"poeStandard" si están.
+- Cada puerto con SU propia cita: no uses la misma frase para dos grupos distintos del mismo tipo y dirección.
+- Si la ficha dice "Channel 1&2" y "Channel 3&4", son dos grupos de 2 (no de 4).
+- Un parlante pasivo lista su entrada de parlante; si declara transformador 70/100 V, "lineVoltage": "both" o "70v".
+
 "applies": false si el producto no tiene conexiones de señal (soporte, cable, accesorio mecánico); en ese caso "ports" vacío.
 "notes": una frase en español si algo es ambiguo (p. ej. "la ficha no detalla el panel trasero"), si no null.
 
@@ -81,6 +88,51 @@ const int = (v: unknown, max: number): number | null => {
 };
 const str = (v: unknown, max = 200): string | null => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
 
+/** "8 ohms", "4Ω", "70 V" → "8Ω", "4Ω", "70V". */
+function loadKey(k: string): string | null {
+  const ohm = k.match(/(\d+(?:\.\d+)?)\s*(?:ω|ohm|Ω)/i);
+  if (ohm) return `${ohm[1]}Ω`;
+  const v = k.match(/(70|100|25)\s*v/i);
+  return v ? `${v[1]}V` : null;
+}
+
+function poeStandardOf(v: unknown): string | null {
+  const s = str(v, 40)?.replace(/^ieee\s*/i, "") ?? null;
+  if (!s) return null;
+  const hit = POE_STANDARDS.find((p) => p.toLowerCase() === s.toLowerCase());
+  if (hit) return hit;
+  const std = s.match(/802\.3(af|at|bt)/i);
+  if (std) return `802.3${std[1]!.toLowerCase()}`;
+  const cls = s.match(/class\s*(\d)/i);
+  return cls ? `Class ${cls[1]}` : null;
+}
+
+function lineVoltageOf(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const s = v.toLowerCase();
+  if (LINE_VOLTAGE.includes(s)) return s;
+  const has70 = /70/.test(s);
+  const has100 = /100/.test(s);
+  const low = /low|baja|lo-?z|ohm/.test(s);
+  if (((has70 || has100) && low) || (has70 && has100)) return "both";
+  if (has70) return "70v";
+  if (has100) return "100v";
+  return low ? "low-z" : null;
+}
+
+function controlOf(x: unknown): string | null {
+  if (typeof x !== "string") return null;
+  const s = x.trim().toLowerCase();
+  if (/rs-?232|serial/.test(s)) return "RS-232";
+  if (/\bip\b|ethernet|tcp|\blan\b|network|web/.test(s)) return "IP";
+  if (/\bir\b|infra/.test(s)) return "IR";
+  if (/cec/.test(s)) return "CEC";
+  if (/cresnet/.test(s)) return "Cresnet";
+  if (/usb/.test(s)) return "USB";
+  if (/relay|relé/.test(s)) return "Relay";
+  return null;
+}
+
 /** Filtra la salida del modelo: vocabulario cerrado y cita verificada en la ficha. */
 export function validateExtraction(raw: RawExtraction, sourceText: string): ValidatedIo {
   const source = normalizeForMatch(sourceText);
@@ -101,6 +153,10 @@ export function validateExtraction(raw: RawExtraction, sourceText: string): Vali
     }
     if (!evidenceFound(evidence, source)) {
       rejected.push({ what: `${signal} ${String(r.label ?? "")}`.trim(), evidence });
+      continue;
+    }
+    if (ports.some((q) => q.signal === signal && q.direction === r.direction && normalizeForMatch(q.evidence) === normalizeForMatch(evidence))) {
+      rejected.push({ what: `${signal} ${String(r.label ?? "")} (cita repetida)`.trim(), evidence });
       continue;
     }
     kept++;
@@ -142,10 +198,7 @@ export function validateExtraction(raw: RawExtraction, sourceText: string): Vali
     const n = Number(v);
     return Number.isFinite(n) && n > 0 && n <= 100 ? n : null;
   });
-  take("poeStandard", (v) => {
-    const s = str(v, 20);
-    return s && (POE_STANDARDS.includes(s) || /^class \d$/i.test(s)) ? s : null;
-  });
+  take("poeStandard", (v) => poeStandardOf(v));
   take("poeBudgetWatts", (v) => {
     const n = Number(v);
     return Number.isFinite(n) && n > 0 && n <= 6000 ? n : null;
@@ -158,14 +211,15 @@ export function validateExtraction(raw: RawExtraction, sourceText: string): Vali
     if (!v || typeof v !== "object") return null;
     const out: Record<string, number> = {};
     for (const [k, w] of Object.entries(v as Record<string, unknown>)) {
-      const n = Number(w);
-      if (Number.isFinite(n) && n > 0 && n <= 5000 && k.length <= 8) out[k] = n;
+      const n = typeof w === "number" ? w : Number(String(w).replace(/[^0-9.]/g, ""));
+      const key = loadKey(k);
+      if (key && Number.isFinite(n) && n > 0 && n <= 5000) out[key] = n;
     }
     return Object.keys(out).length ? out : null;
   });
-  take("lineVoltage", (v) => (typeof v === "string" && LINE_VOLTAGE.includes(v) ? v : null));
+  take("lineVoltage", (v) => lineVoltageOf(v));
   take("controlProtocols", (v) => {
-    const list = Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && CONTROL.includes(x)) : [];
+    const list = (Array.isArray(v) ? v : typeof v === "string" ? v.split(/[,/;]/) : []).map((x) => controlOf(x)).filter((x): x is string => Boolean(x) && CONTROL.includes(x as string));
     return list.length ? [...new Set(list)] : null;
   });
 
@@ -175,7 +229,8 @@ export function validateExtraction(raw: RawExtraction, sourceText: string): Vali
 
 /** Modelo para leer fichas: el de `ai.io.model` si está configurado, si no el general. */
 export async function ioModel(): Promise<string> {
-  return (await getSetting("ai.io.model", "")) || getOpenAiModel();
+  // Leer fichas pide precisión de integrador: gpt-4.1 salvo que se configure otro.
+  return (await getSetting("ai.io.model", "")) || "gpt-4.1";
 }
 
 export async function extractIo(input: { brand: string | null; name: string; model: string | null; sourceText: string }) {

@@ -134,7 +134,7 @@ export async function buildIoSource(row: IoSourceRow, withNetwork = true, forceS
     parts.push(`DESCRIPCIÓN (página del producto):\n${html.slice(0, MAX_HTML_CHARS)}`);
     if (kind === "none") kind = "page";
   }
-  if (row.vendorProductUrl) urls.push(row.vendorProductUrl);
+  if (row.vendorProductUrl && /^https?:\/\//i.test(row.vendorProductUrl)) urls.push(row.vendorProductUrl);
   const discovered: IoSource["discovered"] = [];
   if (withNetwork) {
     const docs = documentsOf(row.documents)
