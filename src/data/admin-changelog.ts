@@ -1373,4 +1373,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Si el plano tiene un espacio que la IA no nombró, aparece como 'Ambiente sin nombre' para que le pongas tipo." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-plano-marcas",
+    version: "1.44.2",
+    releasedAt: "2026-10-09T17:40:00.000Z",
+    summary: "Room Builder: lectura de planos más precisa (cada espacio numerado y leído por la IA).",
+    items: [
+      { kind: "MEJORA", text: "Primero se detectan los espacios cerrados del plano y se numeran; la IA solo lee qué ambiente es cada número. Ya no se cruzan nombres entre ambientes vecinos." },
+      { kind: "MEJORA", text: "Ambientes sin muros que los cierren (planta abierta) igual se detectan y se ajustan a las paredes cercanas." },
+    ],
+  },
 ];

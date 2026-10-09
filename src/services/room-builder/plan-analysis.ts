@@ -164,3 +164,41 @@ export function roomSizeMeters(room: DetectedRoom, metersPerPixel: number | null
   }
   return null;
 }
+
+/** Respuesta de la IA cuando los espacios ya vienen numerados sobre el plano. */
+export function normalizeMarkedAnalysis(raw: unknown, regionBoxes: PlanBox[], templateKeys: string[]): PlanAnalysis {
+  const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const kind = PLAN_KINDS.includes(r.kind as PlanKind) ? (r.kind as PlanKind) : "otro";
+  const valid = new Set(templateKeys);
+  const marks = Array.isArray(r.marks) ? r.marks : [];
+  const byNumber = new Map<number, Record<string, unknown>>();
+  for (const m of marks) {
+    if (!m || typeof m !== "object") continue;
+    const n = num((m as Record<string, unknown>).n);
+    if (n != null) byNumber.set(Math.round(n), m as Record<string, unknown>);
+  }
+  const rooms: DetectedRoom[] = [];
+  regionBoxes.forEach((box, i) => {
+    const m = byNumber.get(i + 1);
+    // La IA puede descartar un número que no es un ambiente (hueco, ducto, exterior).
+    if (m?.notARoom === true) return;
+    const name = typeof m?.name === "string" && m.name.trim() ? m.name.trim().slice(0, 60) : `Ambiente ${i + 1}`;
+    const proposed = typeof m?.templateKey === "string" && valid.has(m.templateKey) ? m.templateKey : undefined;
+    const fromName = templateFromName(name);
+    const templateKey = m?.templateKey === null ? null : (proposed ?? (fromName === undefined ? null : fromName));
+    const w = num(m?.widthM);
+    const d = num(m?.depthM);
+    rooms.push({
+      id: `r${i + 1}`,
+      name,
+      templateKey: templateKey && valid.has(templateKey) ? templateKey : null,
+      box,
+      widthM: w && w > 0.5 && w < 200 ? w : null,
+      depthM: d && d > 0.5 && d < 200 ? d : null,
+      include: Boolean(templateKey && valid.has(templateKey)),
+    });
+  });
+  // Ambientes que la IA ve en el plano pero no tienen número (no se pudieron cerrar).
+  const missing = normalizePlanAnalysis({ rooms: Array.isArray(r.missing) ? r.missing : [] }, templateKeys).rooms.map((m, i) => ({ ...m, id: `m${i + 1}` }));
+  return { kind, summary: typeof r.summary === "string" ? r.summary.slice(0, 400) : "", rooms: [...rooms, ...missing] };
+}

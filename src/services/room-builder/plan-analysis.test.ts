@@ -56,3 +56,31 @@ test("escala por mediana de medidas leídas y medidas por ambiente", () => {
   assert.equal(roomSizeMeters(rooms[2], null, 1200, 1200), null);
   assert.deepEqual(roomSizeMeters(rooms[0], null, 1200, 1200), { widthM: 6, depthM: 3 });
 });
+
+test("marcas numeradas: cada espacio toma su nombre; se descartan los que no son ambientes", async () => {
+  const { normalizeMarkedAnalysis } = await import("./plan-analysis");
+  const boxes = [
+    { x0: 0.05, y0: 0.05, x1: 0.4, y1: 0.4 },
+    { x0: 0.4, y0: 0.05, x1: 0.8, y1: 0.4 },
+    { x0: 0.8, y0: 0.05, x1: 0.95, y1: 0.2 },
+  ];
+  const a = normalizeMarkedAnalysis(
+    {
+      kind: "residencial",
+      summary: "Casa",
+      marks: [
+        { n: 1, name: "Living", templateKey: "residential-living-m", widthM: 6, depthM: 5 },
+        { n: 2, name: "Dormitorio 3", templateKey: "nada" },
+        { n: 3, notARoom: true },
+      ],
+      missing: [{ name: "Galería", box: { x0: 0.1, y0: 0.6, x1: 0.5, y1: 0.9 } }],
+    },
+    boxes,
+    KEYS,
+  );
+  assert.deepEqual(a.rooms.map((r) => r.name), ["Living", "Dormitorio 3", "Galería"]);
+  assert.deepEqual(a.rooms[1].box, boxes[1]);
+  assert.equal(a.rooms[1].templateKey, "residential-bedroom-m");
+  assert.equal(a.rooms[0].widthM, 6);
+  assert.equal(a.rooms[2].id, "m1");
+});
