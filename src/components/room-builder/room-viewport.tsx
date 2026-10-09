@@ -22,6 +22,8 @@ import { SceneLighting, moodFor } from "./three/lighting";
 import { RoomShell } from "./three/room-shell";
 import { SceneDeviceUnits } from "./three/scene-devices";
 import type { DeviceUnit } from "@/services/room-builder/units";
+import { resolveSceneFurniture, type FurnitureOverrides } from "@/services/room-builder/furnishing";
+import { FurnitureLayer } from "./three/furniture-layer";
 import { SurfaceProvider } from "./three/surfaces";
 
 const PRESET_LABELS: Record<CameraPreset, string> = {
@@ -86,6 +88,9 @@ function SceneContent({
   placementSlotKeys,
   onSelectSlot,
   onUnitsChange,
+  onFurnitureChange,
+  selectedFurnitureId,
+  onSelectFurniture,
   quality,
   autoTour,
 }: {
@@ -95,6 +100,9 @@ function SceneContent({
   placementSlotKeys: string[];
   onSelectSlot: (slotKey: string) => void;
   onUnitsChange?: (slotKey: string, units: DeviceUnit[]) => void;
+  onFurnitureChange?: (next: FurnitureOverrides) => void;
+  selectedFurnitureId: string | null;
+  onSelectFurniture: (id: string | null) => void;
   quality: Quality;
   autoTour: boolean;
 }) {
@@ -108,6 +116,7 @@ function SceneContent({
   const background = theme.outdoor ? "#b9c8b0" : "#c9d1db";
   const dims = useMemo(() => ({ widthM, depthM, heightM }), [widthM, depthM, heightM]);
   const slotByKey = useMemo(() => new Map(scene.slots.map((sl) => [sl.key, sl])), [scene.slots]);
+  const furniture = useMemo(() => resolveSceneFurniture(scene, category), [scene, category]);
 
   return (
     <SurfaceProvider enabled>
@@ -121,6 +130,14 @@ function SceneContent({
         shadowMapSize={quality === "high" ? 2048 : 1024}
       />
       <RoomShell widthM={widthM} depthM={depthM} heightM={heightM} plan={scene.plan} category={category} templateKey={templateKey} />
+      <FurnitureLayer
+        items={furniture}
+        overrides={scene.furniture}
+        dims={dims}
+        selectedId={selectedFurnitureId}
+        onSelect={onSelectFurniture}
+        onChange={onFurnitureChange}
+      />
       {scene.devices.map((device) => (
         <SceneDeviceUnits
           key={device.id}
@@ -131,7 +148,10 @@ function SceneContent({
           selectedUnitId={selectedUnitId}
           placementTarget={placeSet.has(device.slotKey)}
           coverageView={scene.coverageView}
-          onSelect={onSelectSlot}
+          onSelect={(key) => {
+            onSelectFurniture(null);
+            onSelectSlot(key);
+          }}
           onSelectUnit={setSelectedUnitId}
           onUnitsChange={onUnitsChange}
         />
@@ -152,6 +172,7 @@ export function RoomViewport({
   onCameraPreset,
   onCoverageView,
   onUnitsChange,
+  onFurnitureChange,
 }: {
   scene: RoomScene;
   category?: string;
@@ -163,7 +184,10 @@ export function RoomViewport({
   onCoverageView: (mode: CoverageViewMode) => void;
   /** Unidades movidas, giradas, duplicadas o quitadas en el 3D. */
   onUnitsChange?: (slotKey: string, units: DeviceUnit[]) => void;
+  /** Muebles quitados o movidos en el 3D. */
+  onFurnitureChange?: (next: FurnitureOverrides) => void;
 }) {
+  const [selectedFurnitureId, setSelectedFurnitureId] = useState<string | null>(null);
   const [quality, setQuality] = useState<Quality>("high");
   const [autoTour, setAutoTour] = useState(true);
   const [canvasKey, setCanvasKey] = useState(0);
@@ -217,7 +241,7 @@ export function RoomViewport({
                 { once: true },
               );
             }}
-            onPointerMissed={() => undefined}
+            onPointerMissed={() => setSelectedFurnitureId(null)}
           >
             <QualitySync quality={quality} />
             {quality === "high" ? <PerformanceMonitor onDecline={() => setQuality("fast")} flipflops={2} /> : null}
@@ -228,6 +252,9 @@ export function RoomViewport({
               placementSlotKeys={placementSlotKeys}
               onSelectSlot={onSelectSlot}
               onUnitsChange={onUnitsChange}
+              onFurnitureChange={onFurnitureChange}
+              selectedFurnitureId={selectedFurnitureId}
+              onSelectFurniture={setSelectedFurnitureId}
               quality={quality}
               autoTour={autoTour}
             />

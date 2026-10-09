@@ -22,6 +22,7 @@ import {
 } from "@/services/room-builder/scene";
 import { rankModeForTier } from "@/services/room-builder/brief";
 import { normalizeDeviceUnits, type DeviceUnit } from "@/services/room-builder/units";
+import type { FurnitureOverrides } from "@/services/room-builder/furnishing";
 import {
   hydrateRoomScene,
   rebuildSceneKeepingProducts,
@@ -291,6 +292,13 @@ export function RoomBuilderEditor({
     void persistScene(next);
   }
 
+  /** Muebles quitados, movidos o devueltos a la sala. */
+  function onFurnitureChange(next: FurnitureOverrides) {
+    const updated: RoomScene = { ...scene, furniture: next };
+    setScene(updated);
+    void persistScene(updated);
+  }
+
   /** Cantidad desde el panel: agrega o quita unidades (las nuevas se reparten solas). */
   function onQuantity(slotKey: string, quantity: number) {
     const slot = scene.slots.find((s) => s.key === slotKey);
@@ -552,6 +560,7 @@ export function RoomBuilderEditor({
             onCameraPreset={onCameraPreset}
             onCoverageView={onCoverageView}
             onUnitsChange={onUnitsChange}
+            onFurnitureChange={onFurnitureChange}
           />
         </div>
       </div>
@@ -574,6 +583,7 @@ export function RoomBuilderEditor({
         onPickProduct={pickProductForPlacement}
         onClearProduct={() => assignProduct(null)}
         onQuantity={onQuantity}
+        onFurnitureChange={onFurnitureChange}
         onReload={() => void reloadProject()}
       />
     </div>

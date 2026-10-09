@@ -1292,4 +1292,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Potencias de parlante imposibles (menos de 10 W) se ignoran en el cálculo." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-muebles",
+    version: "1.41.0",
+    releasedAt: "2026-10-09T10:30:00.000Z",
+    summary: "Room Builder: los muebles y objetos de la sala se mueven, giran o quitan.",
+    items: [
+      { kind: "NUEVO", text: "Tocá un mueble u objeto (pizarrón, pupitres, sillones, escenario…) para moverlo, girarlo o quitarlo de la sala." },
+      { kind: "NUEVO", text: "Si ponés una pantalla encima del pizarrón, el pizarrón se oculta solo; si la pantalla va en otro lugar, queda." },
+      { kind: "NUEVO", text: "Pestaña Sala → Muebles y objetos: lista por grupo para quitar o volver a poner, y Restaurar todo." },
+    ],
+  },
 ];

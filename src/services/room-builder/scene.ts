@@ -9,6 +9,7 @@ import type {
 import type { PlanModeState } from "./plan-mode";
 import type { RoomBrief } from "./brief";
 import type { DeviceUnit } from "./units";
+import type { FurnitureOverrides } from "./furnishing";
 
 export type SceneDevice = {
   id: string;
@@ -58,6 +59,8 @@ export type RoomScene = {
   plan?: PlanModeState | null;
   /** Relevamiento del asistente: define qué equipos lleva la sala y con qué marcas. */
   brief?: RoomBrief | null;
+  /** Muebles quitados o movidos por el usuario (sobre el amoblamiento de la tipología). */
+  furniture?: FurnitureOverrides | null;
 };
 
 export function buildSceneFromTemplate(template: RoomTemplate): RoomScene {

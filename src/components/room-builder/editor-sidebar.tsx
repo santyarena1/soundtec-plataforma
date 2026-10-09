@@ -8,7 +8,8 @@
  * - Guía: qué plataforma y audio convienen para este ambiente.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { furnitureGroups, resolveSceneFurniture, type FurnitureOverrides } from "@/services/room-builder/furnishing";
 import { Check, ChevronDown, Loader2, Minus, Plus, Search, X } from "lucide-react";
 import { MAX_UNITS } from "@/services/room-builder/units";
 import type { RankSortMode } from "@/services/room-builder/types";
@@ -265,6 +266,59 @@ function ProductPicker({
   );
 }
 
+/** Muebles y objetos de la sala, por grupo: quitar o volver a poner. */
+function FurnitureList({ scene, category, onChange }: { scene: RoomScene; category: string; onChange: (next: FurnitureOverrides) => void }) {
+  const groups = useMemo(() => furnitureGroups(resolveSceneFurniture(scene, category)), [scene, category]);
+  const removed = new Set(scene.furniture?.removed ?? []);
+  const touched = removed.size > 0 || Object.keys(scene.furniture?.moved ?? {}).length > 0;
+  const setGroup = (ids: string[], show: boolean) => {
+    const next = new Set(removed);
+    for (const id of ids) {
+      if (show) next.delete(id);
+      else next.add(id);
+    }
+    onChange({ ...(scene.furniture ?? {}), removed: [...next] });
+  };
+  if (!groups.length) return null;
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-sm font-semibold text-slate-900">Muebles y objetos</h3>
+        {touched ? (
+          <button type="button" onClick={() => onChange({})} className="text-[11px] font-semibold text-[#1e3553] underline">
+            Restaurar todo
+          </button>
+        ) : null}
+      </div>
+      <p className="text-[11px] leading-relaxed text-slate-500">Tocá un mueble en el 3D para moverlo, girarlo o quitarlo. Acá los volvés a poner.</p>
+      <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+        {groups.map((g) => {
+          const removedHere = g.ids.filter((id) => removed.has(id)).length;
+          const allRemoved = removedHere === g.ids.length;
+          return (
+            <li key={g.group} className="flex items-center justify-between gap-2 px-2.5 py-1.5">
+              <div className="min-w-0">
+                <p className={`truncate text-xs font-medium ${allRemoved ? "text-slate-400 line-through" : "text-slate-800"}`}>
+                  {g.group}
+                  {g.ids.length > 1 ? <span className="ml-1 font-normal text-slate-400">×{g.visible}{g.visible !== g.ids.length ? ` de ${g.ids.length}` : ""}</span> : null}
+                </p>
+                {g.hiddenByDisplay ? <p className="text-[10.5px] text-sky-700">Lo tapa una pantalla</p> : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => setGroup(g.ids, removedHere > 0)}
+                className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100"
+              >
+                {removedHere > 0 ? "Volver a poner" : "Quitar"}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export function EditorSidebar({
   projectId,
   category,
@@ -283,6 +337,7 @@ export function EditorSidebar({
   onPickProduct,
   onClearProduct,
   onQuantity,
+  onFurnitureChange,
   onReload,
 }: {
   projectId: string;
@@ -302,6 +357,7 @@ export function EditorSidebar({
   onPickProduct: (row: RankRow) => void;
   onClearProduct: () => void;
   onQuantity: (slotKey: string, quantity: number) => void;
+  onFurnitureChange: (next: FurnitureOverrides) => void;
   onReload: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("equipos");
@@ -462,6 +518,7 @@ export function EditorSidebar({
               heightM={scene.heightM}
               onUpdated={onReload}
             />
+            <FurnitureList scene={scene} category={category} onChange={onFurnitureChange} />
             <PlanPanel projectId={projectId} planImageUrl={scene.plan?.imageUrl} onUpdated={onReload} />
           </div>
         ) : null}

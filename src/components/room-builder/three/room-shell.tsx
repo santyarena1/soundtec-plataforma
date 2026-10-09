@@ -12,7 +12,6 @@ import { useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import type { RoomScene } from "@/services/room-builder/scene";
 import { roomTheme } from "../room-theme";
-import { TypologyFurniture } from "../scene-furniture";
 import { useLargeSurface, useSurface, type TextureSetName } from "./surfaces";
 
 const WALL_T = 0.12;
@@ -264,7 +263,6 @@ export function RoomShell({
             </mesh>
           );
         })}
-        <TypologyFurniture templateKey={templateKey} category={category} widthM={w} depthM={d} heightM={h} />
       </group>
     );
   }
@@ -289,7 +287,6 @@ export function RoomShell({
         {windows ? <WindowPanel width={winW} height={winH} position={[w / 2 - 0.005, h * 0.55, -d * 0.12]} rotationY={-Math.PI / 2} /> : null}
       </Wall>
       <Ceiling w={w} d={d} h={h} color={theme.ceiling} />
-      <TypologyFurniture templateKey={templateKey} category={category} widthM={w} depthM={d} heightM={h} />
     </group>
   );
 }
