@@ -48,6 +48,55 @@ export function roomTheme(
   outdoor?: boolean;
   envPreset: RoomEnvPreset;
 } {
+  if (templateKey === "residential-outdoor-m") {
+    return {
+      floor: MAT.outdoor,
+      wall: "#e8e2d8",
+      wallFront: "#ddd5c8",
+      ceiling: "#f2efe9",
+      trim: MAT.woodDark,
+      fog: "#c9d2c4",
+      ambient: 0.55,
+      outdoor: true,
+      envPreset: "sunset",
+    };
+  }
+  if (templateKey === "residential-cinema-m") {
+    return {
+      floor: MAT.carpet,
+      wall: "#2b2f36",
+      wallFront: "#1c1f24",
+      ceiling: "#16181c",
+      trim: "#3a3f47",
+      fog: "#1c1f24",
+      ambient: 0.22,
+      envPreset: "night",
+    };
+  }
+  if (templateKey === "restaurant-m") {
+    return {
+      floor: MAT.woodDark,
+      wall: "#e9dfd1",
+      wallFront: "#d9c9b4",
+      ceiling: "#f3ede4",
+      trim: MAT.woodDark,
+      fog: "#d6cab8",
+      ambient: 0.4,
+      envPreset: "apartment",
+    };
+  }
+  if (category === "commercial") {
+    return {
+      floor: MAT.concrete,
+      wall: "#f6f6f4",
+      wallFront: "#e7e5e1",
+      ceiling: "#ffffff",
+      trim: MAT.metalDark,
+      fog: "#d4d8dc",
+      ambient: 0.5,
+      envPreset: "city",
+    };
+  }
   if (templateKey === "hotel-pool-bar-m") {
     return {
       floor: MAT.outdoor,

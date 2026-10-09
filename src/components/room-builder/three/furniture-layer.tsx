@@ -37,6 +37,7 @@ import {
   Stage,
   Whiteboard,
 } from "../scene-primitives";
+import { MODELS, ModelOr } from "./models";
 import { useSurfaceDrag } from "./use-surface-drag";
 
 const ROTATE_STEP = Math.PI / 4;
@@ -174,6 +175,50 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
           </group>
         </group>
       );
+    case "acoustic-panel":
+      return (
+        <mesh castShadow>
+          <boxGeometry args={[w, h, 0.06]} />
+          <meshStandardMaterial color="#3a3f47" roughness={1} />
+        </mesh>
+      );
+    case "pendant-lamp":
+      return (
+        <ModelOr
+          url={MODELS.pendant}
+          fit={{ width: 0.4 }}
+          fallback={
+            <mesh position={[0, 0.5, 0]}>
+              <sphereGeometry args={[0.18, 24, 16]} />
+              <meshStandardMaterial color="#fff4dc" emissive="#ffd9a0" emissiveIntensity={0.8} />
+            </mesh>
+          }
+        />
+      );
+    case "shelving":
+      return (
+        <group>
+          {[0.15, 0.6, 1.05, 1.5, 1.95].map((y) => (
+            <mesh key={y} position={[0, y, 0]} castShadow receiveShadow>
+              <boxGeometry args={[w, 0.03, 0.45]} />
+              <meshStandardMaterial color={MAT.woodLight} roughness={0.7} />
+            </mesh>
+          ))}
+          {[-1, 1].map((s) => (
+            <mesh key={s} position={[(s * w) / 2, 1.05, 0]}>
+              <boxGeometry args={[0.04, 2.1, 0.45]} />
+              <meshStandardMaterial color={MAT.metalDark} />
+            </mesh>
+          ))}
+        </group>
+      );
+    case "riser":
+      return (
+        <mesh position={[0, h / 2, 0]} castShadow receiveShadow>
+          <boxGeometry args={[w, h, d]} />
+          <meshStandardMaterial color="#2a2d33" roughness={0.95} />
+        </mesh>
+      );
     case "signage-panel":
       return (
         <group>
@@ -185,6 +230,9 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
         </group>
       );
   }
+  // Todos los tipos tienen dibujo: si se agrega uno nuevo sin caso, no compila.
+  const unhandled: never = item.kind;
+  return unhandled;
 }
 
 function SelectionMark({ item }: { item: FurnitureItem }) {

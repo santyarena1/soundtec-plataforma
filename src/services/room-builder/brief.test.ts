@@ -119,3 +119,30 @@ test("Reparar 3D y el rearmado respetan el relevamiento", async () => {
   assert.ok(!hydrated.slots.some((s) => s.role === "display"));
   assert.equal(hydrated.slots.find((s) => s.role === "speaker")?.mount, "wall");
 });
+
+test("cine en casa: respeta frontales, envolventes y sub de la plantilla", () => {
+  const base = layoutSlotsForTemplate("residential-cinema-m", dims.widthM, dims.depthM, dims.heightM);
+  const slots = applyBriefToSlots(base, brief({ systems: ["audio", "video"] }), dims);
+  const speakers = slots.filter((s) => s.role === "speaker");
+  assert.deepEqual(
+    speakers.map((s) => [s.key, s.mount, s.defaultQty]),
+    [
+      ["speakers_front", "wall", 3],
+      ["speakers_surround", "wall", 4],
+      ["subwoofer", "floor", 1],
+    ],
+  );
+});
+
+test("ambientes nuevos: plantillas, equipos y muebles", async () => {
+  const { getRoomTemplate } = await import("./templates");
+  const { layoutFurniture } = await import("./furnishing");
+  for (const key of ["residential-bedroom-m", "residential-cinema-m", "residential-outdoor-m", "residential-dining-m", "restaurant-m", "retail-store-m"]) {
+    const t = getRoomTemplate(key);
+    assert.ok(t, key);
+    assert.ok(t.slots.length > 0, key);
+    const ids = layoutFurniture(t.key, t.category, t).map((f) => f.id);
+    assert.ok(ids.length > 0, key);
+    assert.equal(new Set(ids).size, ids.length, key);
+  }
+});

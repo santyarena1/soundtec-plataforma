@@ -18,7 +18,10 @@ const WALL_T = 0.12;
 
 /** Piso según la tipología. */
 export function floorSetFor(category: string, templateKey: string): { set: TextureSetName; roughness: number } {
-  if (templateKey === "hotel-pool-bar-m") return { set: "concrete", roughness: 0.8 };
+  if (templateKey === "hotel-pool-bar-m" || templateKey === "residential-outdoor-m") return { set: "concrete", roughness: 0.8 };
+  if (templateKey === "residential-cinema-m") return { set: "carpet", roughness: 1 };
+  if (templateKey === "restaurant-m") return { set: "walnut", roughness: 0.5 };
+  if (templateKey === "retail-store-m") return { set: "concrete", roughness: 0.35 };
   if (category === "residential" || category === "hotel") return { set: "oak", roughness: 0.45 };
   if (category === "lobby") return { set: "marble", roughness: 0.18 };
   if (category === "signage" || category === "control-room") return { set: "concrete", roughness: 0.6 };

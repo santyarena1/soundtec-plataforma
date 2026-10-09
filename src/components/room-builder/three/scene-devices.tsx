@@ -148,6 +148,25 @@ function ProductCard({ device }: { device: SceneDevice }) {
 
 type UnitAction = "rotate" | "duplicate" | "remove";
 
+/** Mueble técnico bajo los equipos de rack (que no queden flotando). */
+function RackStand({ height }: { height: number }) {
+  if (height < 0.1) return null;
+  return (
+    <group position={[0, -height / 2 - 0.025, 0]}>
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[0.6, height, 0.5]} />
+        <meshStandardMaterial color="#1d2025" roughness={0.6} metalness={0.3} />
+      </mesh>
+      {Array.from({ length: Math.max(1, Math.floor(height / 0.12)) }, (_, i) => (
+        <mesh key={i} position={[0, height / 2 - 0.08 - i * 0.12, 0.252]}>
+          <boxGeometry args={[0.5, 0.012, 0.004]} />
+          <meshStandardMaterial color="#3a3f47" />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 /** Barra de acciones de la unidad seleccionada. */
 function UnitToolbar({ canRotate, canRemove, onAction }: { canRotate: boolean; canRemove: boolean; onAction: (a: UnitAction) => void }) {
   const btn = "flex h-8 items-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-35";
@@ -234,6 +253,7 @@ function UnitItem({
       scale={hover && !selected ? 1.04 : 1}
     >
       <DeviceBody device={{ ...device, pose }} heightM={dims.heightM} />
+      {mount === "rack" ? <RackStand height={pose.y - 0.03} /> : null}
       {placementTarget ? <PlacementRing y={groundOffset} /> : null}
       {selected ? (
         <group position={[0, groundOffset, 0]}>

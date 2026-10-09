@@ -1303,4 +1303,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Pestaña Sala → Muebles y objetos: lista por grupo para quitar o volver a poner, y Restaurar todo." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-ambientes",
+    version: "1.42.0",
+    releasedAt: "2026-10-09T12:00:00.000Z",
+    summary: "Room Builder: 6 ambientes nuevos (dormitorio, cine en casa, galería, comedor, restaurante, local) y equipos de rack sobre su mueble.",
+    items: [
+      { kind: "NUEVO", text: "Residencial: Dormitorio principal, Cine en casa (L-C-R, envolventes, sub, butacas en tarima y paneles acústicos), Galería / jardín y Cocina / comedor." },
+      { kind: "NUEVO", text: "Comercial: Restaurante / bar (música por zonas, pantallas, menú digital) y Local comercial (cartelería de vidriera, estanterías, caja)." },
+      { kind: "MEJORA", text: "Amplificadores y procesadores se apoyan sobre un mueble técnico en vez de flotar; cada ambiente tiene su piso, colores y luz." },
+      { kind: "FIX", text: "En plantillas con varios grupos de parlantes (cine) el asistente respeta frontales, envolventes y subwoofer." },
+    ],
+  },
 ];

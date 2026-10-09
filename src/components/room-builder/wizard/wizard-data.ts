@@ -17,12 +17,12 @@ import type {
 export type SectorKey = "residencial" | "hoteleria" | "corporativo" | "educacion" | "eventos" | "comercial";
 
 export const SECTORS: Array<{ key: SectorKey; label: string; hint: string; categories: string[] }> = [
-  { key: "residencial", label: "Residencial", hint: "Casas, departamentos, cine en casa", categories: ["residential"] },
+  { key: "residencial", label: "Residencial", hint: "Living, dormitorio, cine, comedor, exterior", categories: ["residential"] },
   { key: "hoteleria", label: "Hotelería", hint: "Habitaciones, suites, lobby, pileta", categories: ["hotel", "lobby"] },
   { key: "corporativo", label: "Corporativo", hint: "Salas de reunión, directorio, capacitación", categories: ["videoconference", "training", "control-room"] },
   { key: "educacion", label: "Educación", hint: "Aulas y salas de capacitación", categories: ["classroom", "training"] },
   { key: "eventos", label: "Eventos", hint: "Salones y auditorios", categories: ["event"] },
-  { key: "comercial", label: "Comercial y gastronomía", hint: "Locales, recepciones, cartelería", categories: ["lobby", "signage", "hotel"] },
+  { key: "comercial", label: "Comercial y gastronomía", hint: "Restaurantes, locales, recepciones, cartelería", categories: ["commercial", "lobby", "signage"] },
 ];
 
 export const SYSTEM_OPTIONS: Array<{ key: BriefSystem; label: string; hint: string }> = [
@@ -81,8 +81,12 @@ export const BRAND_GROUP_LABELS: Record<BrandGroup, string> = {
 export const DISPLAY_SIZES = [43, 55, 65, 75, 85, 98];
 
 /** Sistemas típicos de cada tipo de ambiente (punto de partida editable). */
-export function defaultSystemsFor(category: string): BriefSystem[] {
+export function defaultSystemsFor(category: string, templateKey = ""): BriefSystem[] {
+  if (templateKey === "residential-outdoor-m" || templateKey === "residential-dining-m") return ["audio", "control"];
+  if (templateKey === "residential-cinema-m") return ["audio", "video", "control"];
   switch (category) {
+    case "commercial":
+      return ["audio", "video", "signage"];
     case "residential":
       return ["audio", "video", "control"];
     case "hotel":
@@ -112,12 +116,15 @@ export function defaultControlFor(category: string): BriefControl {
 }
 
 export function defaultSpeakerStyleFor(category: string, templateKey: string): SpeakerStyle {
-  if (templateKey === "hotel-pool-bar-m" || templateKey === "hotel-common-m") return "outdoor";
+  if (templateKey === "hotel-pool-bar-m" || templateKey === "hotel-common-m" || templateKey === "residential-outdoor-m") return "outdoor";
+  if (templateKey === "residential-cinema-m") return "wall";
   if (category === "event") return "column";
   return "ceiling";
 }
 
-export function defaultAudioUseFor(category: string): AudioUse {
+export function defaultAudioUseFor(category: string, templateKey = ""): AudioUse {
+  if (templateKey === "residential-cinema-m") return "cinema";
+  if (category === "commercial") return "background";
   if (category === "classroom" || category === "training" || category === "videoconference") return "voice";
   if (category === "lobby" || category === "hotel" || category === "signage") return "background";
   return "music";
@@ -135,7 +142,7 @@ export function brandGroupsFor(systems: BriefSystem[], control: BriefControl): B
 
 /** Respuestas iniciales para un ambiente. */
 export function initialBrief(category: string, templateKey: string): RoomBrief {
-  const systems = defaultSystemsFor(category);
+  const systems = defaultSystemsFor(category, templateKey);
   return {
     version: 1,
     systems,
@@ -143,10 +150,10 @@ export function initialBrief(category: string, templateKey: string): RoomBrief {
     vcPlatform: systems.includes("vc") ? "teams" : null,
     audio: {
       speakerStyle: defaultSpeakerStyleFor(category, templateKey),
-      use: defaultAudioUseFor(category),
+      use: defaultAudioUseFor(category, templateKey),
       zones: 1,
       speakers: null,
-      streaming: category === "residential" || category === "hotel" || category === "lobby",
+      streaming: category === "residential" || category === "hotel" || category === "lobby" || category === "commercial",
     },
     video: { displays: 1, sizeIn: null },
     brands: {},

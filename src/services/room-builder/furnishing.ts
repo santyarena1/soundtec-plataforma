@@ -40,7 +40,11 @@ export type FurnitureKind =
   | "av-panel"
   | "video-wall"
   | "signage-totem"
-  | "signage-panel";
+  | "signage-panel"
+  | "acoustic-panel"
+  | "pendant-lamp"
+  | "shelving"
+  | "riser";
 
 export type FurnitureItem = {
   id: string;
@@ -294,9 +298,138 @@ function signageCorridor({ widthM, depthM }: RoomDims): FurnitureItem[] {
   ];
 }
 
+function bedroom({ widthM, depthM }: RoomDims): FurnitureItem[] {
+  const bedW = Math.min(widthM * 0.5, 1.9);
+  const bedD = Math.min(depthM * 0.45, 2.1);
+  const bedZ = -depthM / 2 + bedD / 2 + 0.1;
+  return [
+    { id: "bed", kind: "bed", group: "Cama", x: 0, z: bedZ, rotY: 0, mount: "floor", w: bedW, d: bedD },
+    { id: "nightstand-l", kind: "nightstand", group: "Mesas de luz", x: -bedW / 2 - 0.35, z: -depthM / 2 + 0.35, rotY: 0, mount: "floor" },
+    { id: "nightstand-r", kind: "nightstand", group: "Mesas de luz", x: bedW / 2 + 0.35, z: -depthM / 2 + 0.35, rotY: 0, mount: "floor" },
+    { id: "media-console", kind: "media-console", group: "Mueble de TV", x: 0, z: depthM / 2 - 0.3, rotY: PI, mount: "floor", w: Math.min(widthM * 0.5, 1.6) },
+    { id: "wardrobe", kind: "wardrobe", group: "Placard", x: -widthM / 2 + 0.35, z: depthM * 0.15, rotY: PI / 2, mount: "floor" },
+    { id: "lounge", kind: "lounge-chair", group: "Butaca", x: widthM / 2 - 0.6, z: depthM * 0.2, rotY: -2.2, mount: "floor" },
+    { id: "planter", kind: "planter", group: "Plantas", x: widthM / 2 - 0.4, z: -depthM / 2 + 0.4, rotY: 0, mount: "floor", scale: 0.8 },
+  ];
+}
+
+function cinema({ widthM, depthM, heightM }: RoomDims): FurnitureItem[] {
+  const rowZ = [-depthM * 0.05, -depthM * 0.32];
+  const seats = Math.max(3, Math.min(4, Math.floor(widthM / 0.95)));
+  const items: FurnitureItem[] = [
+    { id: "riser", kind: "riser", group: "Tarima", x: 0, z: rowZ[1], rotY: 0, mount: "floor", w: widthM - 0.4, d: 1.3, h: 0.3 },
+    { id: "media-console", kind: "media-console", group: "Mueble técnico", x: 0, z: depthM / 2 - 0.3, rotY: PI, mount: "floor", w: Math.min(widthM * 0.5, 2) },
+  ];
+  rowZ.forEach((z, row) => {
+    for (let i = 0; i < seats; i++) {
+      items.push({ id: `seat-r${row}-${i}`, kind: "lounge-chair", group: "Butacas", x: (i - (seats - 1) / 2) * 0.95, y: row === 1 ? 0.3 : 0, z, rotY: 0, mount: "floor" });
+    }
+  });
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 3; i++) {
+      items.push({
+        id: `panel-${side < 0 ? "l" : "r"}${i}`,
+        kind: "acoustic-panel",
+        group: "Paneles acústicos",
+        x: side * (widthM / 2 - 0.06),
+        y: Math.min(1.5, heightM / 2),
+        z: depthM * 0.3 - i * (depthM * 0.28),
+        rotY: side < 0 ? PI / 2 : -PI / 2,
+        mount: "wall",
+        w: 0.9,
+        h: 1.4,
+      });
+    }
+  }
+  return items;
+}
+
+function outdoor({ widthM, depthM }: RoomDims): FurnitureItem[] {
+  return [
+    { id: "sofa", kind: "sofa", group: "Sillón de exterior", x: 0, z: depthM * 0.05, rotY: 0, mount: "floor", w: Math.min(widthM * 0.4, 2.4), color: "#9aa39a" },
+    { id: "lounge-a", kind: "lounge-chair", group: "Reposeras", x: -widthM * 0.22, z: depthM * 0.25, rotY: 0.6, mount: "floor" },
+    { id: "lounge-b", kind: "lounge-chair", group: "Reposeras", x: widthM * 0.22, z: depthM * 0.25, rotY: -0.6, mount: "floor" },
+    { id: "coffee-table", kind: "coffee-table", group: "Mesa baja", x: 0, z: depthM * 0.25, rotY: 0, mount: "floor", w: 1.1, d: 0.6 },
+    { id: "dining", kind: "round-table", group: "Mesa", x: -widthM * 0.28, z: -depthM * 0.25, rotY: 0, mount: "floor", w: 1.2, color: COLOR.woodLight },
+    ...[0, 1, 2, 3].map((j): FurnitureItem => {
+      const a = (j / 4) * PI * 2;
+      return { id: `chair-${j}`, kind: "side-chair", group: "Sillas", x: -widthM * 0.28 + Math.cos(a) * 0.9, z: -depthM * 0.25 + Math.sin(a) * 0.9, rotY: -a + PI, mount: "floor", color: "#7c8b7a" };
+    }),
+    { id: "umbrella", kind: "umbrella", group: "Sombrilla", x: -widthM * 0.28, z: -depthM * 0.25, rotY: 0, mount: "floor" },
+    { id: "planter-a", kind: "planter", group: "Plantas", x: widthM / 2 - 0.5, z: -depthM / 2 + 0.5, rotY: 0, mount: "floor", scale: 1.3 },
+    { id: "planter-b", kind: "planter", group: "Plantas", x: -widthM / 2 + 0.5, z: depthM / 2 - 0.5, rotY: 0, mount: "floor", scale: 1.1 },
+  ];
+}
+
+function dining({ widthM, depthM, heightM }: RoomDims): FurnitureItem[] {
+  const tableW = Math.min(widthM * 0.4, 2.2);
+  const tableX = -widthM * 0.12;
+  const tableZ = -depthM * 0.15;
+  const islandX = widthM * 0.12;
+  const islandZ = depthM * 0.22;
+  return [
+    { id: "table", kind: "conference-table", group: "Mesa de comedor", x: tableX, z: tableZ, rotY: 0, mount: "floor", w: tableW, d: 0.95, color: "#8a6a4f" },
+    ...chairsAroundTable(tableW, 0.95, 6).map((c, i): FurnitureItem => ({ id: `chair-${i}`, kind: "side-chair", group: "Sillas", x: tableX + c.x, z: tableZ + c.z, rotY: c.rotY, mount: "floor", color: COLOR.warm })),
+    { id: "island", kind: "bar-counter", group: "Isla", x: islandX, z: islandZ, rotY: 0, mount: "floor", w: Math.min(widthM * 0.45, 2.6) },
+    ...[0, 1, 2].map((i): FurnitureItem => ({ id: `stool-${i}`, kind: "bar-stool", group: "Banquetas", x: islandX + (i - 1) * 0.65, z: islandZ - 0.75, rotY: 0, mount: "floor" })),
+    ...[-1, 1].map((s): FurnitureItem => ({ id: `pendant-${s < 0 ? "l" : "r"}`, kind: "pendant-lamp", group: "Lámparas colgantes", x: tableX + s * tableW * 0.25, y: heightM - 1.15, z: tableZ, rotY: 0, mount: "floor" })),
+    { id: "credenza", kind: "credenza", group: "Aparador", x: -widthM * 0.2, z: -depthM / 2 + 0.3, rotY: 0, mount: "floor", w: 1.6 },
+    { id: "planter", kind: "planter", group: "Plantas", x: -widthM / 2 + 0.45, z: depthM / 2 - 0.5, rotY: 0, mount: "floor" },
+  ];
+}
+
+function restaurant({ widthM, depthM }: RoomDims): FurnitureItem[] {
+  const barW = Math.min(widthM * 0.45, 5);
+  const items: FurnitureItem[] = [
+    { id: "bar", kind: "bar-counter", group: "Barra", x: widthM * 0.15, z: depthM / 2 - 0.9, rotY: PI, mount: "floor", w: barW },
+  ];
+  const stools = Math.max(4, Math.floor(barW / 0.65));
+  for (let i = 0; i < stools; i++) {
+    items.push({ id: `stool-${i}`, kind: "bar-stool", group: "Banquetas", x: widthM * 0.15 + (i - (stools - 1) / 2) * 0.65, z: depthM / 2 - 1.65, rotY: 0, mount: "floor" });
+  }
+  const cols = Math.max(2, Math.floor((widthM - 1.5) / 2.2));
+  const rows = Math.max(2, Math.floor((depthM - 3) / 2.2));
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x = (col - (cols - 1) / 2) * 2.2;
+      const z = -depthM / 2 + 1.4 + row * 2.2;
+      items.push({ id: `table-r${row}c${col}`, kind: "round-table", group: "Mesas", x, z, rotY: 0, mount: "floor", w: 0.9, color: COLOR.woodLight });
+      [0, 1, 2, 3].forEach((j) => {
+        const a = (j / 4) * PI * 2 + PI / 4;
+        items.push({ id: `chair-r${row}c${col}-${j}`, kind: "side-chair", group: "Sillas", x: x + Math.cos(a) * 0.7, z: z + Math.sin(a) * 0.7, rotY: -a - PI / 2, mount: "floor", color: "#6b4f3a" });
+      });
+    }
+  }
+  items.push({ id: "planter-a", kind: "planter", group: "Plantas", x: -widthM / 2 + 0.5, z: depthM / 2 - 0.5, rotY: 0, mount: "floor", scale: 1.3 });
+  items.push({ id: "planter-b", kind: "planter", group: "Plantas", x: widthM / 2 - 0.5, z: -depthM / 2 + 0.5, rotY: 0, mount: "floor", scale: 1.3 });
+  return items;
+}
+
+function retail({ widthM, depthM }: RoomDims): FurnitureItem[] {
+  const shelves = Math.max(2, Math.floor((depthM - 2) / 1.6));
+  const items: FurnitureItem[] = [
+    { id: "cashier", kind: "reception-desk", group: "Caja", x: widthM / 2 - 1.2, z: -depthM / 2 + 1, rotY: 0, mount: "floor", w: 1.8, d: 0.7 },
+    { id: "display-a", kind: "desk", group: "Mesas de exhibición", x: -widthM * 0.12, z: depthM * 0.1, rotY: 0, mount: "floor", w: 1.6, d: 0.9, color: COLOR.woodLight },
+    { id: "display-b", kind: "desk", group: "Mesas de exhibición", x: widthM * 0.15, z: -depthM * 0.1, rotY: 0, mount: "floor", w: 1.6, d: 0.9, color: COLOR.woodLight },
+    { id: "planter", kind: "planter", group: "Plantas", x: -widthM / 2 + 0.5, z: depthM / 2 - 0.5, rotY: 0, mount: "floor", scale: 1.2 },
+  ];
+  for (let i = 0; i < shelves; i++) {
+    const z = -depthM / 2 + 1 + i * 1.6;
+    items.push({ id: `shelf-l${i}`, kind: "shelving", group: "Estanterías", x: -widthM / 2 + 0.25, z, rotY: PI / 2, mount: "floor", w: 1.4 });
+    items.push({ id: `shelf-r${i}`, kind: "shelving", group: "Estanterías", x: widthM / 2 - 0.25, z: z + 0.8, rotY: -PI / 2, mount: "floor", w: 1.4 });
+  }
+  return items;
+}
+
 /** Amoblamiento de la tipología para estas medidas. */
 export function layoutFurniture(templateKey: string, category: string, dims: RoomDims): FurnitureItem[] {
   if (templateKey.includes("huddle")) return videoconference(dims, "S");
+  if (templateKey === "residential-bedroom-m") return bedroom(dims);
+  if (templateKey === "residential-cinema-m") return cinema(dims);
+  if (templateKey === "residential-outdoor-m") return outdoor(dims);
+  if (templateKey === "residential-dining-m") return dining(dims);
+  if (templateKey === "restaurant-m") return restaurant(dims);
+  if (templateKey === "retail-store-m" || category === "commercial") return retail(dims);
   if (category === "videoconference") return videoconference(dims, templateKey.endsWith("-l") ? "L" : "M");
   if (templateKey === "classroom-m" || category === "classroom") return classroom(dims);
   if (templateKey === "training-l" || category === "training") return training(dims);

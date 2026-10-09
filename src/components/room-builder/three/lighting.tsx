@@ -15,7 +15,10 @@ import { Suspense } from "react";
 export type LightMood = "office" | "warm" | "evening" | "outdoor" | "dark";
 
 export function moodFor(category: string, templateKey: string): LightMood {
-  if (templateKey === "hotel-pool-bar-m") return "outdoor";
+  if (templateKey === "hotel-pool-bar-m" || templateKey === "residential-outdoor-m") return "outdoor";
+  if (templateKey === "residential-cinema-m") return "dark";
+  if (templateKey === "restaurant-m") return "evening";
+  if (category === "commercial") return "office";
   if (category === "residential" || category === "hotel") return "warm";
   if (category === "event" || category === "control-room") return "dark";
   if (category === "lobby") return "evening";

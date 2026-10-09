@@ -169,7 +169,11 @@ export function applyBriefToSlots(slots: RoomSlot[], brief: RoomBrief, dims: Roo
     return true;
   });
 
+  // Con varios grupos de parlantes (cine: frontales, envolventes, sub) la plantilla ya es un sistema diseñado.
+  const designedAudio = next.filter((s) => s.role === "speaker").length > 1;
+
   next = next.map((slot) => {
+    if (slot.role === "speaker" && designedAudio) return { ...slot, required: true };
     if (slot.role === "speaker" && brief.audio) {
       const qty = brief.audio.speakers ?? suggestSpeakerCount(areaM2, brief.audio.use, brief.audio.zones);
       const mount = SPEAKER_MOUNT[brief.audio.speakerStyle];

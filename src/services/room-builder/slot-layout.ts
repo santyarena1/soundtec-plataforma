@@ -1,6 +1,7 @@
 import type { Pose, RoomSlot } from "./types";
 import type { RoomScene } from "./scene";
 import { applyBriefToSlots, type RoomBrief, type RoomDims } from "./brief";
+import { layoutExtraSlots } from "./slot-layout-extra";
 
 type Dims = { widthM: number; depthM: number; heightM: number };
 
@@ -512,6 +513,9 @@ export function layoutSlotsForTemplate(
       }),
     ];
   }
+
+  const extra = layoutExtraSlots(templateKey, d);
+  if (extra) return extra;
 
   // fallback: display en pared frontal
   return [
