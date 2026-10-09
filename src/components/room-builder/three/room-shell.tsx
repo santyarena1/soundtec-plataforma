@@ -127,7 +127,8 @@ function Ceiling({ w, d, h, color }: { w: number; d: number; h: number; color: s
   });
 
   return (
-    <group ref={ref}>
+    // La maqueta exportada va sin techo, para verla por dentro.
+    <group ref={ref} userData={{ noExport: true }}>
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, h, 0]} material={mat}>
         <planeGeometry args={[w, d]} />
       </mesh>
@@ -273,7 +274,7 @@ export function RoomShell({
   return (
     <group>
       {/* terreno alrededor (solo se ve en la vista de maqueta) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow material={outdoorGround}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow material={outdoorGround} userData={{ noExport: true }}>
         <planeGeometry args={[w * 4, d * 4]} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={floor}>

@@ -16,6 +16,7 @@ export type ExportRoomFn = () => Promise<Blob>;
 const HELPER_OPACITY = 0.6;
 
 function isHelper(o: THREE.Object3D): boolean {
+  if (o.userData?.noExport) return true;
   if ((o as THREE.Light).isLight || (o as THREE.LineSegments).isLineSegments || (o as THREE.Line).isLine || (o as THREE.Sprite).isSprite) return true;
   const mesh = o as THREE.Mesh;
   if (!mesh.isMesh) return false;
@@ -32,6 +33,7 @@ export function SceneExportBridge({ exportRef }: { exportRef: MutableRefObject<E
       const root = new THREE.Group();
       root.name = "Sala";
       for (const child of scene.children) {
+        // Como se ve ahora: corte tipo casa de muñecas (paredes del lado de la cámara ocultas).
         if (!child.visible || isHelper(child)) continue;
         root.add(child.clone(true));
       }
@@ -40,7 +42,7 @@ export function SceneExportBridge({ exportRef }: { exportRef: MutableRefObject<E
         if (o !== root && isHelper(o)) drop.push(o);
       });
       for (const o of drop) o.removeFromParent();
-      const result = await new GLTFExporter().parseAsync(root, { binary: true, onlyVisible: true, maxTextureSize: 2048 });
+      const result = await new GLTFExporter().parseAsync(root, { binary: true, onlyVisible: true, maxTextureSize: 1024 });
       return new Blob([result as ArrayBuffer], { type: "model/gltf-binary" });
     };
     return () => {
