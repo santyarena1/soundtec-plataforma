@@ -94,6 +94,9 @@ export function isRectangle(poly: PlanPoint[]): boolean {
  * (`inset[i]` para el lado i → i+1). Para armar el asiento de un sillón sin
  * el respaldo ni los apoyabrazos, o la tapa de una mesada con vuelo (negativo).
  */
+/** Hasta cuántas veces el corrimiento puede alejarse una esquina al achicar. */
+const MITER_LIMIT = 3;
+
 export function insetPolygon(poly: PlanPoint[], inset: number[]): PlanPoint[] {
   const n = poly.length;
   if (n < 3) return poly;
@@ -110,15 +113,20 @@ export function insetPolygon(poly: PlanPoint[], inset: number[]): PlanPoint[] {
       ny = -ny;
     }
     const d = inset[i] ?? 0;
-    return { px: p.x + nx * d, py: p.y + ny * d, dx: dx / len, dy: dy / len };
+    return { px: p.x + nx * d, py: p.y + ny * d, dx: dx / len, dy: dy / len, nx, ny, d };
   });
   return poly.map((_, j) => {
     const a = lines[(j - 1 + n) % n]!;
     const b = lines[j]!;
     const det = a.dx * b.dy - a.dy * b.dx;
-    if (Math.abs(det) < 1e-9) return { x: b.px, y: b.py };
+    const p = poly[j]!;
+    // Esquina muy aguda: el cruce de los lados corridos se iría lejos; se corta (bisel).
+    const bevel = { x: p.x + ((a.nx * a.d + b.nx * b.d) / 2), y: p.y + ((a.ny * a.d + b.ny * b.d) / 2) };
+    if (Math.abs(det) < 1e-9) return bevel;
     const t = ((b.px - a.px) * b.dy - (b.py - a.py) * b.dx) / det;
-    return { x: a.px + a.dx * t, y: a.py + a.dy * t };
+    const hit = { x: a.px + a.dx * t, y: a.py + a.dy * t };
+    const limit = MITER_LIMIT * Math.max(Math.abs(a.d), Math.abs(b.d), 1e-3);
+    return Math.hypot(hit.x - p.x, hit.y - p.y) > limit ? bevel : hit;
   });
 }
 
@@ -272,9 +280,10 @@ const POCKET_SKEW = 0.15;
  */
 export function tidyFootprint(poly: PlanPoint[], fillPockets: boolean): PlanPoint[] {
   // Primero el hueco (los apoyabrazos dibujados como líneas finas lo encierran), después los escalones.
-  let p = cleanPolygon(orthogonalize(simplifyClosed(poly, TIDY_SIMPLIFY)));
-  if (fillPockets) p = cleanPolygon(orthogonalize(fillShallowPockets(p)));
-  p = cleanPolygon(removeSmallSteps(p, TIDY_STEP));
+  let p = cleanPolygon(removeSpikes(poly));
+  if (fillPockets) p = cleanPolygon(fillShallowPockets(p));
+  p = cleanPolygon(orthogonalize(removeSpikes(simplifyClosed(p, TIDY_SIMPLIFY))));
+  p = cleanPolygon(removeSpikes(removeSmallSteps(p, TIDY_STEP)));
   return p.length >= 3 ? p : poly;
 }
 
@@ -308,6 +317,29 @@ function fillShallowPockets(poly: PlanPoint[]): PlanPoint[] {
       filled = true;
     }
     if (!filled) break;
+  }
+  return p;
+}
+
+/** Coseno a partir del cual una esquina es una púa (ida y vuelta casi sobre la misma línea). */
+const SPIKE_COS = 0.94;
+
+/** Saca las púas: vértices donde el contorno va y vuelve casi por el mismo lugar. */
+function removeSpikes(poly: PlanPoint[]): PlanPoint[] {
+  let p = poly;
+  for (let guard = 0; guard < poly.length && p.length > 3; guard++) {
+    const n = p.length;
+    const k = p.findIndex((b, i) => {
+      const a = p[(i - 1 + n) % n]!;
+      const c = p[(i + 1) % n]!;
+      const u = { x: a.x - b.x, y: a.y - b.y };
+      const v = { x: c.x - b.x, y: c.y - b.y };
+      const lu = Math.hypot(u.x, u.y);
+      const lv = Math.hypot(v.x, v.y);
+      return lu > 0 && lv > 0 && (u.x * v.x + u.y * v.y) / (lu * lv) > SPIKE_COS;
+    });
+    if (k < 0) break;
+    p = p.filter((_, i) => i !== k);
   }
   return p;
 }

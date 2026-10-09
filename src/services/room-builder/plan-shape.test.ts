@@ -132,8 +132,9 @@ test("contorno de un sillón con el frente abierto (dato real): queda el rectán
   assert.equal(tidy.length, 4, JSON.stringify(tidy));
   const xs = tidy.map((p) => p.x);
   assert.ok(Math.min(...xs) < -0.6 && Math.max(...xs) > 0.6);
-  // Sin rellenar huecos (mostrador con pasillo), el pasillo se respeta.
-  assert.ok(tidyFootprint(raw, false).length > 4);
+  // Sin rellenar huecos (mostrador en U con pasillo), el pasillo se respeta.
+  const bar = [[0, 0], [3, 0], [3, 1.2], [2.4, 1.2], [2.4, 0.6], [0.6, 0.6], [0.6, 1.2], [0, 1.2]].map(([x, y]) => ({ x: x!, y: y! }));
+  assert.equal(tidyFootprint(bar, false).length, 8);
 });
 
 test("contorno con escalones de ruido se limpia; la L se mantiene", () => {
@@ -149,4 +150,22 @@ test("contorno con escalones de ruido se limpia; la L se mantiene", () => {
   ];
   const tidy = tidyFootprint(noisy, true);
   assert.equal(tidy.length, 6, JSON.stringify(tidy));
+});
+
+test("achicar no dispara vértices en esquinas agudas (púas del contorno)", () => {
+  // Rectángulo con una púa finita hacia abajo.
+  const poly = [
+    { x: 0, y: 0 },
+    { x: 4, y: 0 },
+    { x: 4, y: 1 },
+    { x: 2.01, y: 1 },
+    { x: 2.005, y: 3 },
+    { x: 2, y: 1 },
+    { x: 0, y: 1 },
+  ];
+  const out = insetPolygon(poly, poly.map(() => 0.06));
+  for (const p of out) assert.ok(p.y <= 3.1 && p.y >= -0.1 && p.x >= -0.1 && p.x <= 4.1, JSON.stringify(p));
+  // Y el contorno prolijo saca la púa.
+  const tidy = tidyFootprint(poly, false);
+  assert.ok(Math.max(...tidy.map((p) => p.y)) <= 1.0001, JSON.stringify(tidy));
 });

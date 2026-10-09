@@ -1594,4 +1594,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Muebles con medidas negativas cuando la IA devolvía el recuadro al revés." },
     ],
   },
+  {
+    id: "ship-2026-10-11-muebles-sin-puas",
+    version: "1.55.2",
+    releasedAt: "2026-10-11T00:30:00.000Z",
+    summary: "Salas desde plano: sin líneas sueltas que salían de mostradores y barras.",
+    items: [
+      { kind: "FIX", text: "Mostradores y barras con esquinas muy agudas dibujaban líneas negras largas cruzando la sala: las esquinas se biselan y las púas del contorno se quitan (también en salas ya generadas)." },
+    ],
+  },
 ];
