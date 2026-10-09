@@ -7,6 +7,7 @@ import { layoutSlotsForScene } from "./slot-layout";
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { getHubPreset } from "./hub-presets";
 import { getRoomTemplate, resizeTemplate } from "./templates";
+import { displayProxyKey, targetDisplayInches } from "./sizing";
 import { buildSceneFromTemplate, parseScene, productSizeCm, type ProductSizeCm, type RoomScene } from "./scene";
 
 function decimal(n: number) {
@@ -66,6 +67,7 @@ export async function getRoomProject(id: string) {
               heightCm: true,
               depthCm: true,
               brand: { select: { name: true } },
+              designProfile: { select: { diagonalIn: true } },
               images: {
                 where: { isPrimary: true },
                 select: { url: true },
@@ -82,6 +84,7 @@ export async function getRoomProject(id: string) {
   const scene = parseScene(project.sceneJson);
   if (!scene) return project;
   const bySlot = new Map(project.devices.map((d) => [d.slotKey, d]));
+  const emptyDisplay = `tv_${targetDisplayInches(scene, project.category)}`;
   scene.devices = scene.devices.map((device) => {
     const row = device.slotKey ? bySlot.get(device.slotKey) : undefined;
     return {
@@ -91,6 +94,13 @@ export async function getRoomProject(id: string) {
       productName: row?.product?.normalizedName ?? device.productName ?? null,
       brandName: row?.product?.brand?.name ?? device.brandName ?? null,
       sizeCm: row?.product ? productSizeCm(row.product) : device.sizeCm ?? null,
+      // Pantallas: sus pulgadas reales; sin producto, el tamaño que corresponde al ambiente.
+      proxyKey:
+        device.designRole !== "display"
+          ? device.proxyKey ?? null
+          : row?.product
+            ? displayProxyKey({ diagonalIn: row.product.designProfile?.diagonalIn, name: row.product.normalizedName, widthCm: row.product.widthCm }) ?? emptyDisplay
+            : emptyDisplay,
     };
   });
   return { ...project, sceneJson: scene };
@@ -128,6 +138,8 @@ export async function createSpaceProject(input: {
       heightM: input.heightM,
     });
   }
+  // Superficie real (formas libres): manda sobre ancho × profundidad para cantidades.
+  if (input.widthM && input.depthM && input.areaM2 && input.areaM2 > 0) scene = { ...scene, areaM2: Math.round(input.areaM2 * 100) / 100 };
   if (input.brief) {
     const slots = layoutSlotsForScene(template.key, scene, input.brief);
     scene = {
@@ -178,8 +190,9 @@ export async function createSpaceProject(input: {
   if (input.autoFill !== false) {
     try {
       await autoFillProjectSlots(created.id, { includeOptional: false });
-    } catch {
-      // ranking vacío no debe romper el alta
+    } catch (error) {
+      // Un ranking que falla no debe romper el alta, pero queda registrado.
+      console.error("[room-builder/auto-fill]", created.id, error);
     }
     return (await getRoomProject(created.id)) ?? created;
   }
@@ -321,6 +334,7 @@ export async function assignProductToSlot(input: {
     brand: string | null;
     imageUrl: string | null;
     sizeCm: ProductSizeCm | null;
+    proxyKey: string | null;
     designRole: string | null;
     coverage: Prisma.InputJsonValue | typeof Prisma.JsonNull;
   } = {
@@ -328,6 +342,7 @@ export async function assignProductToSlot(input: {
     brand: null,
     imageUrl: null,
     sizeCm: null,
+    proxyKey: null,
     designRole: null,
     coverage: Prisma.JsonNull,
   };
@@ -355,6 +370,10 @@ export async function assignProductToSlot(input: {
       brand: product.brand?.name ?? null,
       imageUrl: product.images[0]?.url ?? null,
       sizeCm: productSizeCm(product),
+      proxyKey:
+        product.designProfile?.designRole === "display"
+          ? displayProxyKey({ diagonalIn: product.designProfile.diagonalIn, name: product.normalizedName, widthCm: product.widthCm })
+          : null,
       designRole: product.designProfile?.designRole ?? null,
       coverage: product.designProfile
         ? ({
@@ -402,6 +421,7 @@ export async function assignProductToSlot(input: {
           brandName: productMeta.brand,
           imageUrl: productMeta.imageUrl,
           sizeCm: productMeta.sizeCm,
+          proxyKey: productMeta.proxyKey,
           quantity: input.quantity ?? d.quantity,
           coverage:
             productMeta.coverage === Prisma.JsonNull

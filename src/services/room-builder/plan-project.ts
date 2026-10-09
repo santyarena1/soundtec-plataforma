@@ -34,6 +34,8 @@ export type PlanProjectInput = {
 /** Ambiente del proyecto contenedor ubicado sobre el plano. */
 export type PlanRoomLink = { projectId: string; name: string; templateKey: string; box: PlanBox; polygon?: PlanPoint[] };
 
+/** Ambientes que se crean a la vez (cada uno rankea productos para sus equipos). */
+const CREATE_CONCURRENCY = 4;
 const MIN_SIDE_M = 1.5;
 const MAX_SIDE_M = 80;
 const clampSide = (n: number) => Math.min(MAX_SIDE_M, Math.max(MIN_SIDE_M, Math.round(n * 10) / 10));
@@ -84,32 +86,14 @@ export async function createProjectFromPlan(input: PlanProjectInput) {
   });
 
   const imageUrl = `/api/admin/room-builder/projects/${hub.id}/plan-image?v=${Date.now()}`;
-  const links: PlanRoomLink[] = [];
-  let totalArea = 0;
-  for (const room of rooms) {
-    const template = getRoomTemplate(room.templateKey);
-    if (!template) continue;
-    const widthM = clampSide(room.widthM);
-    const depthM = clampSide(room.depthM);
-    const space = await createSpaceProject({
-      ownerId: input.ownerId,
-      name: room.name,
-      templateKey: template.key,
-      widthM,
-      depthM,
-      heightM: input.heightM,
-      areaM2: widthM * depthM,
-      parentId: hub.id,
-      brief: briefForPlanRoom(template.category, template.key, input),
-    });
-    const polygon = room.polygon ? normalizePolygon(room.polygon) : null;
-    if (polygon) {
-      totalArea += await applyRoomShape(space.id, polygon, { widthM, depthM, heightM: input.heightM, imageUrl, image: input.image });
-    } else {
-      totalArea += widthM * depthM;
-    }
-    links.push({ projectId: space.id, name: room.name, templateKey: template.key, box: room.box, ...(polygon ? { polygon } : {}) });
+  // De a varios en paralelo: con muchos ambientes, uno por uno no entra en el tiempo de la función.
+  const results: Array<{ link: PlanRoomLink; area: number } | null> = [];
+  for (let i = 0; i < rooms.length; i += CREATE_CONCURRENCY) {
+    const chunk = rooms.slice(i, i + CREATE_CONCURRENCY);
+    results.push(...(await Promise.all(chunk.map((room) => createPlanSpace(room, hub.id, imageUrl, input)))));
   }
+  const links = results.filter((r): r is { link: PlanRoomLink; area: number } => r != null).map((r) => r.link);
+  const totalArea = results.reduce((n, r) => n + (r?.area ?? 0), 0);
 
   await prisma.roomProject.update({
     where: { id: hub.id },
@@ -161,4 +145,28 @@ async function applyRoomShape(
   };
   await updateRoomProjectScene(projectId, { ...scene, plan, areaM2: bounds.areaM2 }, { areaM2: bounds.areaM2 });
   return bounds.areaM2;
+}
+
+/** Un ambiente del plano: sala 3D con su forma, superficie real y equipos. */
+async function createPlanSpace(room: PlanRoomInput, hubId: string, imageUrl: string, input: PlanProjectInput): Promise<{ link: PlanRoomLink; area: number } | null> {
+  const template = getRoomTemplate(room.templateKey);
+  if (!template) return null;
+  const widthM = clampSide(room.widthM);
+  const depthM = clampSide(room.depthM);
+  const polygon = room.polygon ? normalizePolygon(room.polygon) : null;
+  // Con forma libre, las cantidades (parlantes, micrófonos) salen de la superficie real.
+  const areaM2 = polygon ? boundsFromPolygon(polygonToRoomMeters(polygon, widthM, depthM)).areaM2 : widthM * depthM;
+  const space = await createSpaceProject({
+    ownerId: input.ownerId,
+    name: room.name,
+    templateKey: template.key,
+    widthM,
+    depthM,
+    heightM: input.heightM,
+    areaM2,
+    parentId: hubId,
+    brief: briefForPlanRoom(template.category, template.key, input),
+  });
+  const area = polygon ? await applyRoomShape(space.id, polygon, { widthM, depthM, heightM: input.heightM, imageUrl, image: input.image }) : areaM2;
+  return { link: { projectId: space.id, name: room.name, templateKey: template.key, box: room.box, ...(polygon ? { polygon } : {}) }, area };
 }

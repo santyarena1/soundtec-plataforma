@@ -24,7 +24,7 @@ import {
 import { rankModeForTier } from "@/services/room-builder/brief";
 import { HubPlan, readHubPlan } from "@/components/room-builder/plan/hub-plan";
 import { HubSpaces } from "@/components/room-builder/plan/hub-spaces";
-import { normalizeDeviceUnits, type DeviceUnit } from "@/services/room-builder/units";
+import { normalizeDeviceUnits, sceneDims, type DeviceUnit } from "@/services/room-builder/units";
 import type { FurnitureOverrides } from "@/services/room-builder/furnishing";
 import {
   hydrateRoomScene,
@@ -333,7 +333,7 @@ export function RoomBuilderEditor({
   /** Cantidad desde el panel: agrega o quita unidades (las nuevas se reparten solas). */
   function onQuantity(slotKey: string, quantity: number) {
     const slot = scene.slots.find((s) => s.key === slotKey);
-    const dims = { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM };
+    const dims = sceneDims(scene);
     const next: RoomScene = {
       ...scene,
       devices: scene.devices.map((d) =>

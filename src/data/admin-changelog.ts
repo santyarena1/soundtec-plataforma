@@ -1457,4 +1457,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Proyecto desde plano: cada ambiente de la lista se puede eliminar (con confirmación), con el nombre del tipo y el estado en castellano." },
     ],
   },
+  {
+    id: "ship-2026-10-10-dimensionado",
+    version: "1.49.0",
+    releasedAt: "2026-10-10T05:00:00.000Z",
+    summary: "Room Builder: los equipos se dimensionan según el ambiente y el autocompletado ya no deja lugares vacíos.",
+    items: [
+      { kind: "FIX", text: "Autocompletar con nivel Esencial o Premium no asignaba nada por un puntaje mal escalado. Ahora elige por calidad y el nivel decide entre los buenos: el más económico, el recomendado o el de gama más alta." },
+      { kind: "NUEVO", text: "Pantallas del tamaño que corresponde: se calcula por la distancia de visión (criterio AVIXA en salas, ~30° en hogar) y se elige el producto de ese tamaño. Si en el relevamiento pusiste pulgadas, mandan esas." },
+      { kind: "FIX", text: "El 3D dibuja cada pantalla con sus pulgadas reales (antes todas se veían de 65\"). Sin producto, se ve del tamaño recomendado para el ambiente." },
+      { kind: "MEJORA", text: "Cantidades por superficie real: parlantes y micrófonos de techo (uno cada ~35 m²) se calculan con los m² de la forma, no del rectángulo. Las plantillas con 2 pantallas las mantienen." },
+      { kind: "MEJORA", text: "Ambientes con forma de L: los equipos de pared se pegan a la pared real más cercana, los de techo quedan adentro y los muebles que caerían fuera de las paredes no se muestran." },
+      { kind: "MEJORA", text: "Proyecto desde plano: los ambientes se generan de a varios a la vez (más rápido y sin cortes con planos grandes)." },
+    ],
+  },
 ];

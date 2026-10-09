@@ -117,7 +117,9 @@ function SceneContent({
   const depthM = Math.max(scene.depthM || 0, 1.5);
   const heightM = Math.max(scene.heightM || 0, 2.2);
   const background = theme.outdoor ? "#b9c8b0" : "#c9d1db";
-  const dims = useMemo(() => ({ widthM, depthM, heightM }), [widthM, depthM, heightM]);
+  // Forma real del piso (L, ochava) cuando el ambiente viene de un plano.
+  const floor = scene.plan?.enabled && scene.plan.floorPolygon.length >= 3 ? scene.plan.floorPolygon : null;
+  const dims = useMemo(() => ({ widthM, depthM, heightM, floor }), [widthM, depthM, heightM, floor]);
   const slotByKey = useMemo(() => new Map(scene.slots.map((sl) => [sl.key, sl])), [scene.slots]);
   const furniture = useMemo(() => resolveSceneFurniture(scene, category), [scene, category]);
 

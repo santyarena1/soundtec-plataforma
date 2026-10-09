@@ -9,6 +9,7 @@
 
 import type { Pose, RoomSlot } from "./types";
 import type { RoomScene, SceneDevice } from "./scene";
+import { pointInPolygon } from "./plan-polygon";
 
 export type DeviceUnit = {
   id: string;
@@ -17,7 +18,8 @@ export type DeviceUnit = {
   placed?: boolean;
 };
 
-export type RoomDims = { widthM: number; depthM: number; heightM: number };
+/** floor: forma real del piso en metros (x, y = z de la escena), si no es un rectángulo. */
+export type RoomDims = { widthM: number; depthM: number; heightM: number; floor?: Array<{ x: number; y: number }> | null };
 type Mount = RoomSlot["mount"];
 
 export const WALL_INSET_M = 0.08;
@@ -152,16 +154,66 @@ export function normalizeDeviceUnits(device: SceneDevice, slot: Pick<RoomSlot, "
   const freeCount = quantity - placed.length;
   const anchor = slot?.pose ?? device.pose;
   const mount = slot?.mount ?? "wall";
-  const freePoses = freeCount > 0 ? distributeUnits(anchor, mount, freeCount, dims) : [];
+  const freePoses = (freeCount > 0 ? distributeUnits(anchor, mount, freeCount, dims) : []).map((p) => fitPoseToFloor(p, mount, dims.floor));
   const ids = freeIds(device.slotKey, freePoses.length, new Set(placed.map((u) => u.id)), prev.filter((u) => !u.placed).map((u) => u.id));
   const free = freePoses.map((pose, i) => ({ id: ids[i], pose }));
   const units = [...placed, ...free];
   return { ...device, quantity, units, pose: units[0]?.pose ?? device.pose };
 }
 
+/** Medidas de la escena, con la forma real del piso si viene de un plano. */
+export function sceneDims(scene: Pick<RoomScene, "widthM" | "depthM" | "heightM" | "plan">): RoomDims {
+  const floor = scene.plan?.enabled && scene.plan.floorPolygon.length >= 3 ? scene.plan.floorPolygon : null;
+  return { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM, floor };
+}
+
+/** Distancia mínima de un equipo a la pared real cuando se lo mete adentro. */
+const FLOOR_INSET_M = 0.3;
+
+/**
+ * Lleva una pose a la forma real del ambiente (L, ochava): lo de pared se pega
+ * a la pared real más cercana mirando hacia adentro; lo demás, si quedó
+ * afuera, se mete adentro. Sin forma (rectángulo) no cambia nada.
+ */
+export function fitPoseToFloor(pose: Pose, mount: Mount, floor: RoomDims["floor"]): Pose {
+  if (!floor || floor.length < 3) return pose;
+  const p = { x: pose.x, y: pose.z };
+  const inside = pointInPolygon(p, floor);
+  // Punto más cercano sobre el contorno y la normal hacia adentro.
+  let best = { d: Infinity, x: 0, y: 0, nx: 0, ny: 0 };
+  for (let i = 0; i < floor.length; i++) {
+    const a = floor[i]!;
+    const b = floor[(i + 1) % floor.length]!;
+    const ex = b.x - a.x;
+    const ey = b.y - a.y;
+    const len2 = ex * ex + ey * ey || 1;
+    const t = clamp(((p.x - a.x) * ex + (p.y - a.y) * ey) / len2, 0, 1);
+    const qx = a.x + t * ex;
+    const qy = a.y + t * ey;
+    const d = Math.hypot(p.x - qx, p.y - qy);
+    if (d >= best.d) continue;
+    const len = Math.sqrt(len2);
+    let nx = -ey / len;
+    let ny = ex / len;
+    // Normal hacia adentro: probar un paso y ver si cae dentro.
+    if (!pointInPolygon({ x: qx + nx * 0.05, y: qy + ny * 0.05 }, floor)) {
+      nx = -nx;
+      ny = -ny;
+    }
+    best = { d, x: qx, y: qy, nx, ny };
+  }
+  if (mount === "wall") {
+    if (inside && best.d <= WALL_INSET_M + 0.15) return pose;
+    const rotY = Math.round((Math.atan2(best.nx, best.ny) * 180) / Math.PI);
+    return { ...pose, x: r2(best.x + best.nx * WALL_INSET_M), z: r2(best.y + best.ny * WALL_INSET_M), rotY };
+  }
+  if (inside) return pose;
+  return { ...pose, x: r2(best.x + best.nx * FLOOR_INSET_M), z: r2(best.y + best.ny * FLOOR_INSET_M) };
+}
+
 /** Aplica normalizeDeviceUnits a toda la escena. */
 export function normalizeSceneUnits(scene: RoomScene): RoomScene {
-  const dims = { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM };
+  const dims = sceneDims(scene);
   const slots = new Map(scene.slots.map((s) => [s.key, s]));
   return { ...scene, devices: scene.devices.map((d) => normalizeDeviceUnits(d, slots.get(d.slotKey), dims)) };
 }

@@ -8,7 +8,8 @@
 
 import type { Pose, RankSortMode, RoomPlatform, RoomSlot } from "./types";
 
-export type RoomDims = { widthM: number; depthM: number; heightM: number };
+/** areaM2: superficie real si no es un rectángulo (forma libre desde el plano). */
+export type RoomDims = { widthM: number; depthM: number; heightM: number; areaM2?: number };
 
 const WALL_INSET_M = 0.08;
 const RACK_Y_M = 0.45;
@@ -81,6 +82,8 @@ export type RoomBrief = {
 };
 
 export const MAX_SPEAKERS = 48;
+/** Superficie que cubre un micrófono de techo (array tipo MXA / Sennheiser TCC). */
+const M2_PER_CEILING_MIC = 35;
 export const MAX_ZONES = 24;
 export const MAX_DISPLAYS = 12;
 
@@ -156,7 +159,7 @@ function isControlSlot(slot: RoomSlot): boolean {
  * No calcula poses: eso lo hace el layout con las medidas reales.
  */
 export function applyBriefToSlots(slots: RoomSlot[], brief: RoomBrief, dims: RoomDims): RoomSlot[] {
-  const areaM2 = dims.widthM * dims.depthM;
+  const areaM2 = dims.areaM2 && dims.areaM2 > 0 ? dims.areaM2 : dims.widthM * dims.depthM;
   const has = (s: BriefSystem) => brief.systems.includes(s);
   const wantsControl = has("control") && brief.control !== "none";
 
@@ -187,7 +190,12 @@ export function applyBriefToSlots(slots: RoomSlot[], brief: RoomBrief, dims: Roo
       };
     }
     if (slot.role === "display" && brief.video && !/signage/.test(slot.key)) {
-      return { ...slot, required: true, defaultQty: Math.min(MAX_DISPLAYS, Math.max(1, brief.video.displays)) };
+      // La plantilla manda como mínimo (un directorio grande trae 2 pantallas).
+      return { ...slot, required: true, defaultQty: Math.min(MAX_DISPLAYS, Math.max(1, brief.video.displays, slot.defaultQty)) };
+    }
+    if (slot.role === "mic" && slot.mount === "ceiling") {
+      // Micrófonos de techo: uno cada ~35 m² (cobertura típica de un array de techo).
+      return { ...slot, defaultQty: Math.min(8, Math.max(slot.defaultQty, Math.ceil(areaM2 / M2_PER_CEILING_MIC))) };
     }
     return slot;
   });

@@ -9,7 +9,7 @@ import { createProjectFromPlan } from "@/services/room-builder/plan-project";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 /** Crea varios ambientes con productos sugeridos: puede tardar. */
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 const DATA_URL_PREFIX = "data:image/webp;base64,";

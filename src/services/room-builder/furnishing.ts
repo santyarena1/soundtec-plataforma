@@ -9,7 +9,8 @@
 
 import type { RoomScene } from "./scene";
 import { hotelGuestAnchors } from "./slot-layout";
-import { normalizeDeviceUnits } from "./units";
+import { pointInPolygon } from "./plan-polygon";
+import { normalizeDeviceUnits, sceneDims } from "./units";
 
 export type FurnitureKind =
   | "conference-table"
@@ -557,11 +558,14 @@ export function furnitureGroups(items: ResolvedFurniture[]): Array<{ group: stri
 
 /** Muebles resueltos de una escena (usa las pantallas ya ubicadas). */
 export function resolveSceneFurniture(scene: RoomScene, category: string): ResolvedFurniture[] {
-  const dims = { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM };
+  const dims = sceneDims(scene);
   const slots = new Map(scene.slots.map((s) => [s.key, s]));
   const displays = scene.devices
     .filter((d) => d.designRole === "display")
     .flatMap((d) => normalizeDeviceUnits(d, slots.get(d.slotKey), dims).units ?? [])
     .map((u) => u.pose);
-  return resolveFurniture(scene.templateKey, category, dims, scene.furniture, displays);
+  const items = resolveFurniture(scene.templateKey, category, dims, scene.furniture, displays);
+  // En formas libres (L), lo que cae fuera de las paredes reales no se muestra.
+  const floor = dims.floor;
+  return floor ? items.filter((it) => pointInPolygon({ x: it.x, y: it.z }, floor)) : items;
 }

@@ -1,7 +1,8 @@
 import { assignProductToSlot, getRoomProject } from "./project-service";
 import { parseScene } from "./scene";
 import { processorKindForSlot, rankProductsForSlot } from "./rank-from-db";
-import { preferredBrandsForSlot, rankModeForTier } from "./brief";
+import { preferredBrandsForSlot } from "./brief";
+import { pickForTier, targetDisplayInches } from "./sizing";
 import type { DesignRole, MountOption } from "./types";
 
 /**
@@ -18,7 +19,8 @@ export async function autoFillProjectSlots(
   const scene = parseScene(project.sceneJson);
   if (!scene) return { filled: 0, attempted: 0 };
 
-  const minScore = options?.minScore ?? 35;
+  const tier = scene.brief?.tier ?? "recomendado";
+  const displayInches = scene.brief?.video?.sizeIn ?? targetDisplayInches(scene, project.category);
   let filled = 0;
   let attempted = 0;
 
@@ -34,12 +36,16 @@ export async function autoFillProjectSlots(
       projectCategory: project.category,
       roomDepthM: scene.depthM,
       roomWidthM: scene.widthM,
-      mode: scene.brief ? rankModeForTier(scene.brief.tier) : "recommended",
-      limit: 8,
+      // Siempre por calidad: el nivel decide después entre los buenos (ver pickForTier).
+      mode: "recommended",
+      limit: 30,
       processorKind: processorKindForSlot(slot.key, slot.role),
       preferredBrands: preferredBrandsForSlot(scene.brief, slot.role, slot.key),
     });
-    const best = ranked.find((r) => r.compatible && r.score >= minScore);
+    const best = pickForTier(ranked, tier, {
+      minScore: options?.minScore,
+      targetInches: slot.role === "display" && !/signage/.test(slot.key) ? displayInches : null,
+    });
     if (!best) continue;
 
     await assignProductToSlot({
