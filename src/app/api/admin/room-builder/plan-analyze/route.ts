@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { analyzePlanImage, analyzePlanRegions } from "@/server/room-builder/plan-ai";
-import type { PlanAnalysis, PlanBox } from "@/services/room-builder/plan-analysis";
+import { mergeSameNamedNeighbors, type PlanAnalysis, type PlanBox } from "@/services/room-builder/plan-analysis";
 import { placeRooms, segmentRegions } from "@/services/room-builder/plan-segment";
 import { snapBoxToWalls, type GrayImage } from "@/services/room-builder/plan-snap";
 
@@ -54,8 +54,9 @@ async function readPlan(webp: Buffer, dataUrl: string, gray: GrayImage): Promise
     const boxes = regions.map((r) => r.box).sort(readingOrder);
     const crops = await Promise.all(boxes.map((b) => cropRegion(webp, gray.width, gray.height, b)));
     const read = await analyzePlanRegions(dataUrl, crops, boxes);
-    // Los ambientes sin número (no cerrados) vienen aproximados: se pegan a los muros.
-    return { ...read, rooms: read.rooms.map((r) => (r.id.startsWith("m") ? { ...r, box: snapBoxToWalls(r.box, gray) } : r)) };
+    // Los que la IA vio sin recorte vienen aproximados: se pegan a los muros. Los vecinos con el mismo nombre se unen.
+    const rooms = read.rooms.map((r) => (r.id.startsWith("m") ? { ...r, box: snapBoxToWalls(r.box, gray) } : r));
+    return { ...read, rooms: mergeSameNamedNeighbors(rooms) };
   }
   const read = await analyzePlanImage(dataUrl);
   const placed = placeRooms(read.rooms, gray);

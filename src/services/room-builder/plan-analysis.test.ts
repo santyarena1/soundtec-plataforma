@@ -99,3 +99,24 @@ test("un dormitorio secundario es dormitorio aunque la IA diga que no lleva equi
   assert.equal(a.rooms[0].include, true);
   assert.equal(a.rooms[1].templateKey, null);
 });
+
+test("dos espacios vecinos con el mismo nombre se unen; distintos o lejanos no", async () => {
+  const { mergeSameNamedNeighbors } = await import("./plan-analysis");
+  const room = (id: string, name: string, x0: number, x1: number, y0 = 0.1, y1 = 0.4) => ({
+    id,
+    name,
+    templateKey: null,
+    box: { x0, y0, x1, y1 },
+    widthM: null,
+    depthM: null,
+    include: false,
+  });
+  const out = mergeSameNamedNeighbors([
+    room("a", "Baño", 0.1, 0.2),
+    room("b", "baño", 0.2, 0.3),
+    room("c", "Baño 2", 0.3, 0.4),
+    room("d", "Baño", 0.7, 0.8),
+  ]);
+  assert.deepEqual(out.map((r) => r.name), ["Baño", "Baño 2", "Baño"]);
+  assert.deepEqual(out[0].box, { x0: 0.1, y0: 0.1, x1: 0.3, y1: 0.4 });
+});

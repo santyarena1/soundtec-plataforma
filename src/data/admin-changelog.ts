@@ -1410,4 +1410,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Al tocar Generar aparece 'Generando N ambientes…' y el botón queda bloqueado hasta terminar (antes no había señal y se podía tocar dos veces)." },
     ],
   },
+  {
+    id: "ship-2026-10-09-room-builder-plano-cad",
+    version: "1.45.0",
+    releasedAt: "2026-10-09T21:00:00.000Z",
+    summary: "Room Builder: lectura de planos CAD reales (muros finos, puertas abiertas, muebles dibujados).",
+    items: [
+      { kind: "MEJORA", text: "Detecta muros en gris claro y finos (planos CAD), separa ambientes aunque las puertas estén abiertas y no confunde muebles, mostradores ni textos con ambientes." },
+      { kind: "MEJORA", text: "Si un ambiente quedó partido en dos y la IA les pone el mismo nombre, se unen solos." },
+    ],
+  },
 ];

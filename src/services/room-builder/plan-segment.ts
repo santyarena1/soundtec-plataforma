@@ -7,17 +7,27 @@
  */
 
 import type { PlanBox } from "./plan-analysis";
-import { snapBoxToWalls, type GrayImage } from "./plan-snap";
+import { inkThreshold, snapBoxToWalls, type GrayImage } from "./plan-snap";
 
 export type PlanRegion = { box: PlanBox; areaFrac: number; label: number };
 type Grid = { labels: Int32Array; width: number; height: number };
 
-/** Píxel "de muro": más oscuro que esto. */
-const DARK = 110;
 /** Lado máximo de la grilla de trabajo (velocidad vs. detalle). */
 const SEG_MAX_SIDE = 700;
 /** Radio de cierre de huecos chicos, en fracción del lado mayor. */
 const CLOSE_RADIUS = 0.006;
+/**
+ * Distancia mínima a la pared para ser núcleo de un ambiente (fracción del
+ * lado mayor). Por debajo están los cuellos: puertas y pasos angostos.
+ */
+const CORE_RADIUS = 0.03;
+/** Trazos sueltos más chicos que esto (letras y números sueltos) no son muros. */
+const TEXT_TINY = 0.03;
+/** Renglón de texto: más angosto que esto, alargado y ralo (huecos entre letras). */
+const TEXT_LINE_THICK = 0.03;
+const TEXT_LINE_LONG = 0.3;
+const TEXT_LINE_ASPECT = 3;
+const TEXT_LINE_DENSITY = 0.6;
 /** Espacios más chicos que esto son letras o ruido. */
 const MIN_REGION_FRAC = 0.004;
 /** Mínima superposición para asignar un espacio a un ambiente de la IA. */
@@ -26,6 +36,7 @@ const MIN_MATCH = 0.12;
 const MIN_EXTRA_FRAC = 0.012;
 
 function downsampleWalls(img: GrayImage): { wall: Uint8Array; width: number; height: number } {
+  const dark = inkThreshold(img);
   const scale = Math.max(1, Math.max(img.width, img.height) / SEG_MAX_SIDE);
   const width = Math.max(1, Math.round(img.width / scale));
   const height = Math.max(1, Math.round(img.height / scale));
@@ -37,20 +48,73 @@ function downsampleWalls(img: GrayImage): { wall: Uint8Array; width: number; hei
       const sx0 = Math.floor(x * scale);
       const sx1 = Math.min(img.width, Math.ceil((x + 1) * scale));
       // Es muro si alguno de los píxeles que representa es oscuro.
-      let dark = 0;
-      for (let sy = sy0; sy < sy1 && !dark; sy++) {
+      let ink = 0;
+      for (let sy = sy0; sy < sy1 && !ink; sy++) {
         const base = sy * img.width;
         for (let sx = sx0; sx < sx1; sx++) {
-          if (img.data[base + sx] < DARK) {
-            dark = 1;
+          if (img.data[base + sx] < dark) {
+            ink = 1;
             break;
           }
         }
       }
-      wall[y * width + x] = dark;
+      wall[y * width + x] = ink;
     }
   }
   return { wall, width, height };
+}
+
+/**
+ * Borra los trazos sueltos chicos (letras de los rótulos, números de cotas,
+ * símbolos): si quedaran, partirían los ambientes al medio.
+ */
+function removeLooseInk(mask: Uint8Array, width: number, height: number): Uint8Array {
+  const side = Math.max(width, height);
+  const out = new Uint8Array(mask);
+  const seen = new Uint8Array(mask.length);
+  const stack: number[] = [];
+  const comp: number[] = [];
+  for (let start = 0; start < mask.length; start++) {
+    if (!mask[start] || seen[start]) continue;
+    comp.length = 0;
+    let x0 = width;
+    let y0 = height;
+    let x1 = 0;
+    let y1 = 0;
+    seen[start] = 1;
+    stack.push(start);
+    while (stack.length) {
+      const p = stack.pop() as number;
+      comp.push(p);
+      const x = p % width;
+      const y = (p - x) / width;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const xx = x + dx;
+          const yy = y + dy;
+          if (xx < 0 || yy < 0 || xx >= width || yy >= height) continue;
+          const q = yy * width + xx;
+          if (mask[q] && !seen[q]) {
+            seen[q] = 1;
+            stack.push(q);
+          }
+        }
+      }
+    }
+    // Letras sueltas, o un renglón de texto (fino, alargado, con huecos entre letras).
+    // Los arcos de puertas y los muros se quedan: separan ambientes.
+    const long = Math.max(x1 - x0, y1 - y0) + 1;
+    const short = Math.min(x1 - x0, y1 - y0) + 1;
+    const density = comp.length / ((x1 - x0 + 1) * (y1 - y0 + 1));
+    const tiny = long < TEXT_TINY * side;
+    const textLine = short < TEXT_LINE_THICK * side && long < TEXT_LINE_LONG * side && long / short >= TEXT_LINE_ASPECT && density < TEXT_LINE_DENSITY;
+    if (tiny || textLine) for (const p of comp) out[p] = 0;
+  }
+  return out;
 }
 
 /** Engrosa los muros r píxeles (cierra huecos chicos). Separable: horizontal y vertical. */
@@ -72,68 +136,142 @@ function dilate(mask: Uint8Array, width: number, height: number, r: number): Uin
   return out;
 }
 
-/** Espacios cerrados (que no tocan el borde de la imagen) con su recuadro. */
+/** Distancia (en píxeles de grilla, chamfer 3-4) de cada punto libre al trazo más cercano. */
+function distanceToInk(blocked: Uint8Array, width: number, height: number): Float32Array {
+  const INF = 1e9;
+  const d = new Float32Array(width * height);
+  for (let i = 0; i < d.length; i++) d[i] = blocked[i] ? 0 : INF;
+  const at = (x: number, y: number) => (x < 0 || y < 0 || x >= width || y >= height ? 0 : d[y * width + x]);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (!d[i]) continue;
+      d[i] = Math.min(d[i], at(x - 1, y) + 3, at(x, y - 1) + 3, at(x - 1, y - 1) + 4, at(x + 1, y - 1) + 4);
+    }
+  }
+  for (let y = height - 1; y >= 0; y--) {
+    for (let x = width - 1; x >= 0; x--) {
+      const i = y * width + x;
+      if (!d[i]) continue;
+      d[i] = Math.min(d[i], at(x + 1, y) + 3, at(x, y + 1) + 3, at(x + 1, y + 1) + 4, at(x - 1, y + 1) + 4);
+    }
+  }
+  for (let i = 0; i < d.length; i++) d[i] /= 3;
+  return d;
+}
+
+/**
+ * Espacios del plano. Las puertas suelen estar abiertas (hueco sin hoja), así
+ * que los ambientes se tocan: se separan por "cuellos". Con la distancia a los
+ * muros, los núcleos anchos (lejos de toda pared) quedan aislados en cada
+ * ambiente; después crecen hasta las paredes y cada puerta queda como borde.
+ * Lo que toca el borde de la imagen es el exterior.
+ */
 export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: Grid } {
-  const { wall, width, height } = downsampleWalls(img);
+  const { wall: rawWall, width, height } = downsampleWalls(img);
+  const wall = removeLooseInk(rawWall, width, height);
   const r = Math.max(1, Math.round(CLOSE_RADIUS * Math.max(width, height)));
   const closed = dilate(wall, width, height, r);
+  const dist = distanceToInk(closed, width, height);
+  const coreMin = Math.max(2, CORE_RADIUS * Math.max(width, height));
+
+  // 1) Núcleos: zonas libres lejos de toda pared.
   const labels = new Int32Array(width * height).fill(-1);
-  const regions: PlanRegion[] = [];
+  const coreBorder: boolean[] = [];
   const stack: number[] = [];
   let next = 0;
   for (let start = 0; start < labels.length; start++) {
-    if (closed[start] || labels[start] !== -1) continue;
+    if (labels[start] !== -1 || dist[start] < coreMin) continue;
     const label = next++;
-    let count = 0;
-    let touchesBorder = false;
-    let x0 = width;
-    let y0 = height;
-    let x1 = 0;
-    let y1 = 0;
+    let border = false;
     labels[start] = label;
     stack.push(start);
     while (stack.length) {
       const p = stack.pop() as number;
       const x = p % width;
       const y = (p - x) / width;
-      count++;
-      if (x === 0 || y === 0 || x === width - 1 || y === height - 1) touchesBorder = true;
-      if (x < x0) x0 = x;
-      if (x > x1) x1 = x;
-      if (y < y0) y0 = y;
-      if (y > y1) y1 = y;
-      if (x > 0 && !closed[p - 1] && labels[p - 1] === -1) {
-        labels[p - 1] = label;
-        stack.push(p - 1);
-      }
-      if (x < width - 1 && !closed[p + 1] && labels[p + 1] === -1) {
-        labels[p + 1] = label;
-        stack.push(p + 1);
-      }
-      if (y > 0 && !closed[p - width] && labels[p - width] === -1) {
-        labels[p - width] = label;
-        stack.push(p - width);
-      }
-      if (y < height - 1 && !closed[p + width] && labels[p + width] === -1) {
-        labels[p + width] = label;
-        stack.push(p + width);
+      if (x === 0 || y === 0 || x === width - 1 || y === height - 1) border = true;
+      const ns = [x > 0 ? p - 1 : -1, x < width - 1 ? p + 1 : -1, y > 0 ? p - width : -1, y < height - 1 ? p + width : -1];
+      for (const q of ns) {
+        if (q >= 0 && labels[q] === -1 && dist[q] >= coreMin) {
+          labels[q] = label;
+          stack.push(q);
+        }
       }
     }
-    const areaFrac = count / (width * height);
-    if (touchesBorder || areaFrac < MIN_REGION_FRAC) continue;
+    coreBorder[label] = border;
+  }
+
+  // 2) Crecen sobre lo libre, de a un píxel por vuelta, hasta las paredes (como un watershed).
+  let frontier: number[] = [];
+  for (let p = 0; p < labels.length; p++) if (labels[p] !== -1) frontier.push(p);
+  while (frontier.length) {
+    const nextFrontier: number[] = [];
+    for (const p of frontier) {
+      const x = p % width;
+      const ns = [x > 0 ? p - 1 : -1, x < width - 1 ? p + 1 : -1, p >= width ? p - width : -1, p < width * (height - 1) ? p + width : -1];
+      for (const q of ns) {
+        if (q >= 0 && labels[q] === -1 && !closed[q]) {
+          labels[q] = labels[p];
+          nextFrontier.push(q);
+        }
+      }
+    }
+    frontier = nextFrontier;
+  }
+
+  // 3) Recuadro y tamaño de cada espacio; el exterior (lo que toca el borde) se descarta.
+  const stats = Array.from({ length: next }, () => ({ count: 0, x0: width, y0: height, x1: 0, y1: 0, border: false }));
+  for (let p = 0; p < labels.length; p++) {
+    const l = labels[p];
+    if (l < 0) continue;
+    const s = stats[l];
+    const x = p % width;
+    const y = (p - x) / width;
+    s.count++;
+    if (x < s.x0) s.x0 = x;
+    if (x > s.x1) s.x1 = x;
+    if (y < s.y0) s.y0 = y;
+    if (y > s.y1) s.y1 = y;
+    if (x === 0 || y === 0 || x === width - 1 || y === height - 1) s.border = true;
+  }
+  const regions: PlanRegion[] = [];
+  stats.forEach((s, label) => {
+    const areaFrac = s.count / (width * height);
+    if (coreBorder[label] || s.border || areaFrac < MIN_REGION_FRAC) return;
     // El cierre achicó el espacio r píxeles por lado: se compensa.
     regions.push({
       label,
       areaFrac,
       box: {
-        x0: Math.max(0, (x0 - r) / width),
-        y0: Math.max(0, (y0 - r) / height),
-        x1: Math.min(1, (x1 + 1 + r) / width),
-        y1: Math.min(1, (y1 + 1 + r) / height),
+        x0: Math.max(0, (s.x0 - r) / width),
+        y0: Math.max(0, (s.y0 - r) / height),
+        x1: Math.min(1, (s.x1 + 1 + r) / width),
+        y1: Math.min(1, (s.y1 + 1 + r) / height),
       },
     });
-  }
-  return { regions, grid: { labels, width, height } };
+  });
+  return { regions: dropFurniture(regions), grid: { labels, width, height } };
+}
+
+/** Un espacio dentro de otro y mucho más chico es un mueble (mostrador, sillón, maceta), no un ambiente. */
+const FURNITURE_MAX_SHARE = 0.3;
+const CONTAINED = 0.9;
+
+function boxArea(b: PlanBox): number {
+  return Math.max(0, b.x1 - b.x0) * Math.max(0, b.y1 - b.y0);
+}
+
+function dropFurniture(regions: PlanRegion[]): PlanRegion[] {
+  return regions.filter((r) => {
+    const area = boxArea(r.box);
+    return !regions.some((o) => {
+      if (o === r || o.areaFrac <= r.areaFrac) return false;
+      const ix = Math.max(0, Math.min(r.box.x1, o.box.x1) - Math.max(r.box.x0, o.box.x0));
+      const iy = Math.max(0, Math.min(r.box.y1, o.box.y1) - Math.max(r.box.y0, o.box.y0));
+      return area > 0 && (ix * iy) / area >= CONTAINED && r.areaFrac <= o.areaFrac * FURNITURE_MAX_SHARE;
+    });
+  });
 }
 
 /** Fracción del recuadro que ocupa cada espacio. */

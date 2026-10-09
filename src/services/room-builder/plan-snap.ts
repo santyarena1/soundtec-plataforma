@@ -12,8 +12,31 @@ import type { PlanBox } from "./plan-analysis";
 
 export type GrayImage = { data: Uint8Array; width: number; height: number };
 
-/** Píxel "de muro": más oscuro que esto. */
-const DARK = 110;
+/** Diferencia mínima con el fondo para considerar un píxel como trazo (muro o línea). */
+const INK_CONTRAST = 45;
+const MIN_DARK = 90;
+const MAX_DARK = 215;
+
+/**
+ * Umbral de "trazo" según el fondo del plano: los CAD suelen tener muros en
+ * gris claro y finos, los escaneos en negro. Se toma el tono más común de los
+ * claros (el papel) y todo lo bastante más oscuro es trazo.
+ */
+export function inkThreshold(img: GrayImage): number {
+  const hist = new Uint32Array(256);
+  const step = Math.max(1, Math.floor(img.data.length / 200000));
+  for (let i = 0; i < img.data.length; i += step) hist[img.data[i]]++;
+  let paper = 255;
+  let best = -1;
+  for (let v = 128; v < 256; v++) {
+    if (hist[v] > best) {
+      best = hist[v];
+      paper = v;
+    }
+  }
+  return Math.min(MAX_DARK, Math.max(MIN_DARK, paper - INK_CONTRAST));
+}
+
 /** Fracción del borde que tiene que ser muro para considerarlo una pared. */
 const WALL_DENSITY = 0.45;
 /** Se ignoran las puntas del borde (ahí cruzan las paredes perpendiculares). */
@@ -23,19 +46,19 @@ const SEARCH_IMAGE = 0.08;
 const SEARCH_BOX = 0.35;
 const PASSES = 2;
 
-function rowDensity(img: GrayImage, y: number, x0: number, x1: number): number {
+function rowDensity(img: GrayImage, y: number, x0: number, x1: number, dark: number): number {
   if (y < 0 || y >= img.height || x1 <= x0) return 0;
-  let dark = 0;
+  let ink = 0;
   const base = y * img.width;
-  for (let x = x0; x < x1; x++) if (img.data[base + x] < DARK) dark++;
-  return dark / (x1 - x0);
+  for (let x = x0; x < x1; x++) if (img.data[base + x] < dark) ink++;
+  return ink / (x1 - x0);
 }
 
-function colDensity(img: GrayImage, x: number, y0: number, y1: number): number {
+function colDensity(img: GrayImage, x: number, y0: number, y1: number, dark: number): number {
   if (x < 0 || x >= img.width || y1 <= y0) return 0;
-  let dark = 0;
-  for (let y = y0; y < y1; y++) if (img.data[y * img.width + x] < DARK) dark++;
-  return dark / (y1 - y0);
+  let ink = 0;
+  for (let y = y0; y < y1; y++) if (img.data[y * img.width + x] < dark) ink++;
+  return ink / (y1 - y0);
 }
 
 /**
@@ -63,6 +86,7 @@ function snapEdge(pos: number, inward: 1 | -1, limit: number, window: number, de
 
 /** Ajusta un recuadro (normalizado) a los muros de la imagen. */
 export function snapBoxToWalls(box: PlanBox, img: GrayImage): PlanBox {
+  const dark = inkThreshold(img);
   let x0 = box.x0 * img.width;
   let x1 = box.x1 * img.width;
   let y0 = box.y0 * img.height;
@@ -76,10 +100,10 @@ export function snapBoxToWalls(box: PlanBox, img: GrayImage): PlanBox {
     const yb = Math.round(y1 - h * EDGE_TRIM);
     const winY = Math.min(img.height * SEARCH_IMAGE, h * SEARCH_BOX) + 2;
     const winX = Math.min(img.width * SEARCH_IMAGE, w * SEARCH_BOX) + 2;
-    const ny0 = snapEdge(y0, 1, img.height, winY, (y) => rowDensity(img, y, xa, xb));
-    const ny1 = snapEdge(y1, -1, img.height, winY, (y) => rowDensity(img, y, xa, xb));
-    const nx0 = snapEdge(x0, 1, img.width, winX, (x) => colDensity(img, x, ya, yb));
-    const nx1 = snapEdge(x1, -1, img.width, winX, (x) => colDensity(img, x, ya, yb));
+    const ny0 = snapEdge(y0, 1, img.height, winY, (y) => rowDensity(img, y, xa, xb, dark));
+    const ny1 = snapEdge(y1, -1, img.height, winY, (y) => rowDensity(img, y, xa, xb, dark));
+    const nx0 = snapEdge(x0, 1, img.width, winX, (x) => colDensity(img, x, ya, yb, dark));
+    const nx1 = snapEdge(x1, -1, img.width, winX, (x) => colDensity(img, x, ya, yb, dark));
     // Solo se acepta si el recuadro sigue siendo razonable.
     if (ny1 - ny0 > h * 0.4 && nx1 - nx0 > w * 0.4) {
       [x0, x1, y0, y1] = [nx0, nx1, ny0, ny1];

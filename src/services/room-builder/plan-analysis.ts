@@ -212,3 +212,42 @@ export function normalizeMarkedAnalysis(raw: unknown, regionBoxes: PlanBox[], te
   const missing = normalizePlanAnalysis({ rooms: Array.isArray(r.missing) ? r.missing : [] }, templateKeys).rooms.map((m, i) => ({ ...m, id: `m${i + 1}` }));
   return { kind, summary: typeof r.summary === "string" ? r.summary.slice(0, 400) : "", rooms: [...rooms, ...missing] };
 }
+
+/** Separación máxima (fracción de la imagen) para considerar vecinos dos recuadros. */
+const NEIGHBOR_GAP = 0.02;
+
+function touching(a: PlanBox, b: PlanBox): boolean {
+  return a.x0 <= b.x1 + NEIGHBOR_GAP && b.x0 <= a.x1 + NEIGHBOR_GAP && a.y0 <= b.y1 + NEIGHBOR_GAP && b.y0 <= a.y1 + NEIGHBOR_GAP;
+}
+
+const sameName = (a: string, b: string) => a.trim().toLocaleLowerCase("es") === b.trim().toLocaleLowerCase("es");
+
+/**
+ * La detección prefiere cortar de más (un texto grande o los cubículos de un
+ * baño pueden partir un ambiente): si la IA le pone el mismo nombre a dos
+ * espacios vecinos, son el mismo ambiente y se unen.
+ */
+export function mergeSameNamedNeighbors(rooms: DetectedRoom[]): DetectedRoom[] {
+  const out = rooms.map((r) => ({ ...r, box: { ...r.box } }));
+  let merged = true;
+  while (merged) {
+    merged = false;
+    for (let i = 0; i < out.length && !merged; i++) {
+      for (let j = i + 1; j < out.length && !merged; j++) {
+        const a = out[i];
+        const b = out[j];
+        if (!sameName(a.name, b.name) || a.templateKey !== b.templateKey || !touching(a.box, b.box)) continue;
+        out[i] = {
+          ...a,
+          box: { x0: Math.min(a.box.x0, b.box.x0), y0: Math.min(a.box.y0, b.box.y0), x1: Math.max(a.box.x1, b.box.x1), y1: Math.max(a.box.y1, b.box.y1) },
+          widthM: a.widthM ?? b.widthM,
+          depthM: a.depthM ?? b.depthM,
+          include: a.include || b.include,
+        };
+        out.splice(j, 1);
+        merged = true;
+      }
+    }
+  }
+  return out;
+}
