@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { armEdges, footprintPolygon, insetPolygon, inwardNormal, isRectangle, isRoundish, seatCushions, sofaBackEdges, tidyFootprint, unionRects } from "./plan-shape";
+import { armEdges, footprintPolygon, insetPolygon, inwardNormal, isRectangle, isRoundish, isCurved, seatCushions, sofaBackEdges, tidyFootprint, unionRects } from "./plan-shape";
 import { polygonAreaPx } from "./plan-polygon";
 
 function canvas(w: number, h: number) {
@@ -168,4 +168,31 @@ test("achicar no dispara vértices en esquinas agudas (púas del contorno)", () 
   // Y el contorno prolijo saca la púa.
   const tidy = tidyFootprint(poly, false);
   assert.ok(Math.max(...tidy.map((p) => p.y)) <= 1.0001, JSON.stringify(tidy));
+});
+
+test("mesa redonda u ovalada dibujada: contorno curvo, no escalonado", () => {
+  const W = 120;
+  const ink = new Uint8Array(W * W);
+  // Óvalo de 60×40 celdas centrado en (60,60), solo el contorno.
+  for (let a = 0; a < 2 * Math.PI; a += 0.005) {
+    const x = Math.round(60 + 30 * Math.cos(a));
+    const y = Math.round(60 + 20 * Math.sin(a));
+    ink[y * W + x] = 1;
+  }
+  const poly = footprintPolygon({ x0: 0.24, y0: 0.32, x1: 0.77, y1: 0.69 }, ink, W, W);
+  assert.ok(poly && poly.length >= 24, String(poly?.length));
+  const xs = poly!.map((p) => p.x * W);
+  const ys = poly!.map((p) => p.y * W);
+  assert.ok(Math.abs(Math.max(...xs) - Math.min(...xs) - 61) < 3);
+  assert.ok(Math.abs(Math.max(...ys) - Math.min(...ys) - 41) < 3);
+  assert.ok(isCurved(poly!));
+});
+
+test("contorno que se escapa (recuadro cortando el trazo): sin forma, se usa el recuadro", () => {
+  const W = 100;
+  const ink = new Uint8Array(W * W);
+  // Rectángulo abierto arriba (el recuadro lo corta justo en su borde superior).
+  for (let y = 20; y <= 80; y++) ink[y * W + 40] = ink[y * W + 55] = 1;
+  for (let x = 40; x <= 55; x++) ink[80 * W + x] = 1;
+  assert.equal(footprintPolygon({ x0: 0.4, y0: 0.2, x1: 0.56, y1: 0.81 }, ink, W, W), null);
 });

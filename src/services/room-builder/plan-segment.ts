@@ -53,6 +53,15 @@ const LIGHT_INK_DELTA = 25;
 const ABSORB_REACH = 0.05;
 /** Hueco blanco encerrado más grande que esto no es un mueble (fracción del plano). */
 const POCKET_MAX = 0.03;
+/**
+ * Hueco más grande que se suma igual si lo encierran trazos finos (el interior de
+ * un sillón en L o de una mesa grande dibujados como contorno), no muros gruesos.
+ */
+const FURNITURE_POCKET_MAX = 0.12;
+/** Espesor máximo (fracción del lado) de un trazo de mueble; un muro es más grueso. */
+const THIN_STROKE = 0.0045;
+/** Hasta dónde (fracción del lado) puede pasarse un ambiente de su recuadro al llegar al muro grueso. */
+const FILL_REACH = 0.08;
 /** Cuánto puede pasarse un ambiente de su recuadro original al sumar muebles y muros. */
 const ABSORB_MARGIN = 0.012;
 /** Una línea fina (arco de puerta, contorno de mueble) mide a lo sumo esto (fracción del lado). */
@@ -444,7 +453,12 @@ function distanceToInk(blocked: Uint8Array, width: number, height: number): Floa
  */
 export function segmentRegions(img: GrayImage): { regions: PlanRegion[]; grid: Grid; closeCells: number } {
   const { wall: rawWall, light, width, height } = downsampleWalls(img);
-  const wall = bridgeDoorways(fillDoubleWalls(removeLooseInk(rawWall, width, height), width, height), light, width, height);
+  const filled = fillDoubleWalls(removeLooseInk(rawWall, width, height), width, height);
+  const drawn = bridgeDoorways(filled, light, width, height);
+  // Con muros gruesos, los ambientes se arman solo con ellos (más los cierres de
+  // puertas): los muebles (trazo fino) no parten una sala ni se comen sus rincones.
+  const walls = wallsOnly(filled, width, height);
+  const wall = walls === filled ? drawn : drawn.map((v, p) => (walls[p] || (v && !filled[p]) ? 1 : 0));
   const r = Math.max(1, Math.round(CLOSE_RADIUS * Math.max(width, height)));
   const closed = dilate(wall, width, height, r);
   const dist = distanceToInk(closed, width, height);
@@ -611,8 +625,13 @@ function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, he
   // Huecos blancos sin dueño: solo los chicos son interiores de muebles. Los
   // grandes (un placard o pasillo que no se detectó) no se tocan.
   const pocketOk = new Uint8Array(labels.length);
+  // Cada hueco aceptado se suma entero de una vez (un sillón largo no se llena celda por celda).
+  const pocketId = new Int32Array(labels.length).fill(-1);
+  const pockets: number[][] = [];
   const seen = new Uint8Array(labels.length);
   const maxPocket = POCKET_MAX * width * height;
+  const maxFurniturePocket = FURNITURE_POCKET_MAX * width * height;
+  const thinCells = Math.max(2, Math.round(THIN_STROKE * Math.max(width, height)));
   const gapCells = Math.max(2, Math.round(ARC_GAP * Math.max(width, height)));
   // Hueco: blanco sin dueño o un espacio chico que no quedó como ambiente (la cuña
   // entre el arco de una puerta y la pared, un mueble que no se pudo ubicar).
@@ -638,7 +657,14 @@ function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, he
         }
       }
     }
-    if (comp.length <= maxPocket && !isWallInterior(comp, labels, width, height, roomLabels, outside, gapCells)) for (const p of comp) pocketOk[p] = 1;
+    const small = comp.length <= maxPocket || (comp.length <= maxFurniturePocket && boundedByThinStrokes(comp, labels, wall, width, height, thinCells));
+    if (small && !isWallInterior(comp, labels, width, height, roomLabels, outside, gapCells)) {
+      for (const p of comp) {
+        pocketOk[p] = 1;
+        pocketId[p] = pockets.length;
+      }
+      pockets.push(comp);
+    }
   }
   const absorbedInk = new Uint8Array(labels.length);
   // Cada ambiente solo suma dentro de su recuadro original + el espesor de un muro:
@@ -662,7 +688,15 @@ function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, he
         const qy = (q - qx) / width;
         if (lim && (qx < lim.x0 || qx >= lim.x1 || qy < lim.y0 || qy >= lim.y1)) continue;
         const l = labels[q];
-        if ((l === -1 && wall[q]) || pocketOk[q]) {
+        const whole = pocketOk[q] && pocketId[q] >= 0 ? pockets[pocketId[q]]! : null;
+        const fits = (c: number) => !lim || (c % width >= lim.x0 && c % width < lim.x1 && Math.floor(c / width) >= lim.y0 && Math.floor(c / width) < lim.y1);
+        if (whole && whole.every(fits)) {
+          for (const c of whole) {
+            pocketOk[c] = 0;
+            labels[c] = labels[p];
+            nextFrontier.push(c);
+          }
+        } else if ((l === -1 && wall[q]) || pocketOk[q]) {
           if (l === -1 && wall[q]) absorbedInk[q] = 1;
           pocketOk[q] = 0;
           labels[q] = labels[p];
@@ -672,6 +706,11 @@ function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, he
     }
     frontier = nextFrontier;
   }
+  // Lo que está contra la pared (sillones en L, consolas, macetas en las esquinas): el
+  // ambiente llega hasta el muro grueso, sin pasar a otro ambiente ni al exterior.
+  const far = Math.round(FILL_REACH * Math.max(width, height));
+  const wide = new Map([...limits].map(([l, b]) => [l, { x0: b.x0 - far, y0: b.y0 - far, x1: b.x1 + far, y1: b.y1 + far }]));
+  fillToThickWalls(labels, wall, width, height, roomLabels, exterior, outside, wide, absorbedInk, thinCells);
   // Cuñas de puertas: un hueco que quedó separado de un ambiente solo por una
   // línea fina (el arco de la hoja) es de ese ambiente; detrás de un muro grueso, no.
   claimThinPockets(labels, width, height, roomLabels, isPocket, gapCells, outside);
@@ -723,6 +762,138 @@ function absorbFurniture(labels: Int32Array, wall: Uint8Array, width: number, he
  * distintos (o un ambiente del exterior). Una franja angosta con el mismo
  * ambiente de los dos lados es parte de un mueble (almohadones, maceteros).
  */
+/** Parte de la tinta que tiene que ser muro grueso para armar los ambientes solo con muros. */
+const THICK_WALL_SHARE = 0.35;
+/** Distancia (fracción del lado) a un muro grueso dentro de la cual el trazo fino se conserva (ventanas, cierres de puertas). */
+const NEAR_WALL = 0.02;
+
+/**
+ * Tinta para armar ambientes: los muros gruesos y el trazo fino pegado a ellos
+ * (ventanas, puertas). Los muebles sueltos en la sala no cuentan. Si el plano
+ * no tiene muros gruesos (dibujo a línea simple), queda todo como estaba.
+ */
+function wallsOnly(wall: Uint8Array, width: number, height: number): Uint8Array {
+  const side = Math.max(width, height);
+  const thin = Math.max(2, Math.round(THIN_STROKE * side));
+  const thick = thickWalls(wall, width, height, thin);
+  let total = 0;
+  let strong = 0;
+  for (let p = 0; p < wall.length; p++) {
+    total += wall[p]!;
+    strong += thick[p]!;
+  }
+  if (!total || strong / total < THICK_WALL_SHARE) return wall;
+  const near = dilate(thick, width, height, Math.max(1, Math.round(NEAR_WALL * side)));
+  const out = new Uint8Array(wall.length);
+  for (let p = 0; p < wall.length; p++) out[p] = wall[p] && near[p] ? 1 : 0;
+  return out;
+}
+
+/**
+ * Crece cada ambiente sobre todo lo que no es muro grueso (trazos finos de
+ * muebles y el blanco entre ellos) dentro de su recuadro + margen. Se detiene en
+ * los muros, en otros ambientes y en el exterior.
+ */
+function fillToThickWalls(
+  labels: Int32Array,
+  wall: Uint8Array,
+  width: number,
+  height: number,
+  roomLabels: Set<number>,
+  exterior: Set<number>,
+  outside: Uint8Array,
+  limits: Map<number, { x0: number; y0: number; x1: number; y1: number }>,
+  absorbedInk: Uint8Array,
+  thin: number,
+) {
+  // Libre: sin dueño, o un espacio que no quedó como ambiente (el pasillo entre un sillón y la pared).
+  const free = (l: number) => l === -1 || (!roomLabels.has(l) && !exterior.has(l));
+  const thick = thickWalls(wall, width, height, thin);
+  const queue: number[] = [];
+  for (let p = 0; p < labels.length; p++) if (roomLabels.has(labels[p])) queue.push(p);
+  for (let head = 0; head < queue.length; head++) {
+    const p = queue[head]!;
+    const own = labels[p];
+    const lim = limits.get(own);
+    const x = p % width;
+    const ns = [x > 0 ? p - 1 : -1, x < width - 1 ? p + 1 : -1, p >= width ? p - width : -1, p < width * (height - 1) ? p + width : -1];
+    for (const q of ns) {
+      if (q < 0 || outside[q] || thick[q] || !free(labels[q])) continue;
+      const qx = q % width;
+      const qy = (q - qx) / width;
+      if (lim && (qx < lim.x0 || qx >= lim.x1 || qy < lim.y0 || qy >= lim.y1)) continue;
+      labels[q] = own;
+      if (wall[q]) absorbedInk[q] = 1;
+      queue.push(q);
+    }
+  }
+}
+
+/** Muros: trazo más grueso que `thin` en las dos direcciones (erosión y vuelta a engrosar). */
+function thickWalls(wall: Uint8Array, width: number, height: number, thin: number): Uint8Array {
+  const r = thin;
+  const runH = new Uint8Array(wall.length);
+  for (let y = 0; y < height; y++) {
+    let run = 0;
+    for (let x = 0; x < width + r; x++) {
+      run = x < width && wall[y * width + x] ? run + 1 : 0;
+      const cx = x - r;
+      if (cx >= 0 && cx < width && run >= 2 * r + 1) runH[y * width + cx] = 1;
+    }
+  }
+  const core = new Uint8Array(wall.length);
+  for (let x = 0; x < width; x++) {
+    let run = 0;
+    for (let y = 0; y < height + r; y++) {
+      run = y < height && runH[y * width + x] ? run + 1 : 0;
+      const cy = y - r;
+      if (cy >= 0 && cy < height && run >= 2 * r + 1) core[cy * width + x] = 1;
+    }
+  }
+  const out = new Uint8Array(wall.length);
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      if (!core[y * width + x]) continue;
+      for (let dy = -r - 1; dy <= r + 1; dy++)
+        for (let dx = -r - 1; dx <= r + 1; dx++) {
+          const xx = x + dx;
+          const yy = y + dy;
+          if (xx >= 0 && yy >= 0 && xx < width && yy < height && wall[yy * width + xx]) out[yy * width + xx] = 1;
+        }
+    }
+  return out;
+}
+
+/**
+ * ¿El hueco está cerrado por trazos finos? Mide el espesor de la tinta que lo
+ * rodea (mediana): un contorno de mueble es una línea; un muro, un bloque.
+ */
+function boundedByThinStrokes(comp: number[], labels: Int32Array, wall: Uint8Array, width: number, height: number, thin: number): boolean {
+  const widths: number[] = [];
+  const steps: Array<[number, number]> = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
+  const isInk = (x: number, y: number) => x >= 0 && y >= 0 && x < width && y < height && labels[y * width + x] === -1 && wall[y * width + x] === 1;
+  const stride = Math.max(1, Math.floor(comp.length / 4000));
+  for (let i = 0; i < comp.length; i += stride) {
+    const p = comp[i]!;
+    const x = p % width;
+    const y = (p - x) / width;
+    for (const [dx, dy] of steps) {
+      if (!isInk(x + dx, y + dy)) continue;
+      let n = 0;
+      while (n <= thin * 3 && isInk(x + dx * (n + 1), y + dy * (n + 1))) n++;
+      widths.push(n);
+    }
+  }
+  if (!widths.length) return false;
+  widths.sort((a, b) => a - b);
+  return widths[Math.floor(widths.length / 2)]! <= thin;
+}
+
 function isWallInterior(comp: number[], labels: Int32Array, width: number, height: number, roomLabels: Set<number>, outside: Uint8Array, gap: number): boolean {
   let bx0 = width;
   let by0 = height;

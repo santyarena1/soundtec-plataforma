@@ -1603,4 +1603,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Mostradores y barras con esquinas muy agudas dibujaban líneas negras largas cruzando la sala: las esquinas se biselan y las púas del contorno se quitan (también en salas ya generadas)." },
     ],
   },
+  {
+    id: "ship-2026-10-11-muebles-donde-van",
+    version: "1.56.0",
+    releasedAt: "2026-10-11T03:00:00.000Z",
+    summary: "Salas desde plano: ambientes armados solo con los muros y muebles en su lugar exacto (sillas mirando a su mesa, mesas redondas y ovaladas, placares).",
+    items: [
+      { kind: "MEJORA", text: "Los ambientes se arman con los muros: los muebles dibujados (mesas largas, sillones contra la pared, mostradores) ya no parten una sala ni quedan afuera de ella." },
+      { kind: "MEJORA", text: "Cada mueble se pega a sus propias líneas: una alfombra que pasa por debajo ya no agranda los sillones, y lo que el plano dibuja junto a la pared se detecta." },
+      { kind: "NUEVO", text: "Mesas y sillas por separado: cada silla queda donde está dibujada y mira a su mesa (en diagonal en las redondas); frente a un escritorio es silla de oficina y frente a una barra, banqueta." },
+      { kind: "NUEVO", text: "Mesas redondas y ovaladas con pie central, mesas ratonas bajas con tapa de piedra, sillas de comedor y de oficina modernas, sillones individuales armados como los sillones y placares a medida con puertas." },
+      { kind: "FIX", text: "Barras y mesadas que se unen con otra pieza ya no salen como un marco vacío." },
+    ],
+  },
 ];

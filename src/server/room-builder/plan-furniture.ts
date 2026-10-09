@@ -31,6 +31,14 @@ const ROOM_MAX_SIDE = 1024;
 const TEXT_ASPECT = 4;
 const TEXT_DENSITY = 0.15;
 
+/** Lee los recortes: un listado de muebles por recorte (null si no se pudo). `where`: dónde está cada recorte en el plano. */
+export type PlanObjectClassifier = (
+  roomName: string,
+  crops: string[],
+  roomDataUrl?: string,
+  where?: { rects: Crop["rect"][]; boxes: PlanObject["box"][] },
+) => ReturnType<typeof classifyPlanObjects>;
+
 export type PlanImageInput = { data: Buffer; widthPx: number; heightPx: number };
 
 /** Trazo del plano en la grilla y sus puertas / ventanas (se calcula una vez por proyecto). */
@@ -89,7 +97,10 @@ export async function furnitureFromPlan(input: {
   category: string;
   templateKey: string;
   map: RoomMapping;
+  /** Clasificador (la IA por defecto; las pruebas pasan uno con la respuesta conocida). */
+  classify?: PlanObjectClassifier;
 }): Promise<FurnitureItem[]> {
+  const classify = input.classify ?? classifyPlanObjects;
   const { ink, width, height } = input.ink;
   // Metros por celda de la grilla.
   const cellM = input.map.mppX * (input.image.widthPx / width);
@@ -99,10 +110,11 @@ export async function furnitureFromPlan(input: {
   let crops: Crop[] = [];
   try {
     crops = await Promise.all(objects.map((o) => cropObject(input.image, o)));
-    readings = await classifyPlanObjects(
+    readings = await classify(
       input.roomName,
       crops.map((c) => c.dataUrl),
       await cropRoom(input.image, input.polygon),
+      { rects: crops.map((c) => c.rect), boxes: objects.map((o) => o.box) },
     );
   } catch (error) {
     console.error("[room-builder/plan-furniture] IA", error);

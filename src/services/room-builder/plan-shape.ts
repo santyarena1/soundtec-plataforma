@@ -7,6 +7,21 @@
 import { cleanPolygon, pointInPolygon, type PlanPoint } from "./plan-polygon";
 import { orthogonalize, removeSmallSteps, simplifyClosed, traceOuterBoundary } from "./plan-contour";
 
+/** Parte de lo relleno que tiene que quedar dentro del contorno trazado. */
+const TRACED_SHARE = 0.6;
+
+function shoelace(poly: PlanPoint[]): number {
+  let a = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const p = poly[i]!;
+    const q = poly[(i + 1) % poly.length]!;
+    a += p.x * q.y - q.x * p.y;
+  }
+  return a / 2;
+}
+
+/** Parte mínima del recuadro que tiene que llenar el contorno leído. */
+const MIN_FILL = 0.2;
 /** Tolerancia de simplificación del contorno (celdas). */
 const SHAPE_SIMPLIFY = 1.2;
 
@@ -62,12 +77,58 @@ export function footprintPolygon(
     labels[i] = outside[i] ? -1 : 1;
     if (labels[i] === 1) n++;
   }
-  if (n < 6) return null;
+  // Muy poco relleno: el contorno no cierra dentro del recuadro (se escapó por un borde).
+  if (n < 6 || n < MIN_FILL * W * H) return null;
   const raw = traceOuterBoundary(labels, W, H, new Set([1]));
   if (raw.length < 4) return null;
+  // Redondo u ovalado (mesa, alfombra, maceta): llena ~π/4 de su recuadro. Se devuelve la curva.
+  const ellipse = ellipseOf(labels, W, H, n);
+  if (ellipse) return ellipse.map((p) => ({ x: (gx0 + p.x) / width, y: (gy0 + p.y) / height }));
   const poly = cleanPolygon(orthogonalize(simplifyClosed(raw, SHAPE_SIMPLIFY)));
   if (poly.length < 3) return null;
+  // El contorno tiene que abarcar casi todo lo relleno; si no, el trazo vino en piezas sueltas.
+  if (Math.abs(shoelace(poly)) < TRACED_SHARE * n) return null;
   return poly.map((p) => ({ x: (gx0 + p.x) / width, y: (gy0 + p.y) / height }));
+}
+
+/** Vértices de la curva de una forma redonda u ovalada. */
+const CURVE_SIDES = 40;
+/** Parte del recuadro que llena una elipse (π/4) y tolerancia. */
+const ELLIPSE_FILL = Math.PI / 4;
+const ELLIPSE_TOL = 0.05;
+
+/** Si las celdas llenas forman una elipse, su contorno (en celdas); si no, null. */
+function ellipseOf(labels: Int32Array, W: number, H: number, n: number): PlanPoint[] | null {
+  let x0 = W;
+  let y0 = H;
+  let x1 = -1;
+  let y1 = -1;
+  for (let i = 0; i < labels.length; i++) {
+    if (labels[i] !== 1) continue;
+    const x = i % W;
+    const y = (i - x) / W;
+    x0 = Math.min(x0, x);
+    y0 = Math.min(y0, y);
+    x1 = Math.max(x1, x);
+    y1 = Math.max(y1, y);
+  }
+  const bw = x1 - x0 + 1;
+  const bh = y1 - y0 + 1;
+  if (bw < 6 || bh < 6 || Math.abs(n / (bw * bh) - ELLIPSE_FILL) > ELLIPSE_TOL) return null;
+  // Confirmación: las esquinas del recuadro están vacías y el centro lleno.
+  const cx = (x0 + x1 + 1) / 2;
+  const cy = (y0 + y1 + 1) / 2;
+  const at = (x: number, y: number) => labels[Math.floor(y) * W + Math.floor(x)] === 1;
+  if (!at(cx, cy) || at(x0 + bw * 0.08, y0 + bh * 0.08) || at(x1 - bw * 0.08, y1 - bh * 0.08)) return null;
+  return Array.from({ length: CURVE_SIDES }, (_, k) => {
+    const a = (k / CURVE_SIDES) * Math.PI * 2;
+    return { x: cx + (bw / 2) * Math.cos(a), y: cy + (bh / 2) * Math.sin(a) };
+  });
+}
+
+/** ¿Es una curva (forma redonda u ovalada devuelta por el contorno)? */
+export function isCurved(poly: PlanPoint[]): boolean {
+  return poly.length >= CURVE_SIDES * 0.75;
 }
 
 /** ¿Es (casi) un círculo? Muchos lados y proporciones parejas: mesa redonda, maceta. */

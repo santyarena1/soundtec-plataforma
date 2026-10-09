@@ -120,3 +120,17 @@ test("recuadro de la IA con las esquinas al revés: se ordena", () => {
   assert.ok(box.x1 > box.x0 && box.y1 > box.y0, JSON.stringify(box));
   assert.ok(Math.abs(box.x0 - 0.2) < 0.011 && Math.abs(box.x1 - 0.41) < 0.011);
 });
+
+test("ajuste a las líneas: una alfombra que cruza por debajo no estira el sillón", () => {
+  const W = 100;
+  const ink = new Uint8Array(W * W);
+  const rect = (x0: number, y0: number, x1: number, y1: number) => {
+    for (let x = x0; x <= x1; x++) ink[y0 * W + x] = ink[y1 * W + x] = 1;
+    for (let y = y0; y <= y1; y++) ink[y * W + x0] = ink[y * W + x1] = 1;
+  };
+  rect(20, 20, 50, 35); // sillón
+  rect(10, 30, 70, 60); // alfombra
+  const box = snapBoxToInk({ x0: 0.18, y0: 0.22, x1: 0.53, y1: 0.37 }, { x0: 0.1, y0: 0.2, x1: 0.71, y1: 0.61 }, ink, W, W);
+  const r = (v: number) => Math.round(v * 100);
+  assert.deepEqual([r(box.x0), r(box.y0), r(box.x1), r(box.y1)], [20, 20, 51, 36]);
+});

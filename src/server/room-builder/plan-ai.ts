@@ -161,6 +161,7 @@ Devolvé SOLO un JSON:
   toilet, sink (bacha / vanitory), shower, bathtub; door: arco de puerta; text: letras o cotas; stairs: escalera; other: no se reconoce.
 - facing: hacia dónde mira el frente (un sillón hacia el lado opuesto a su respaldo, una cama hacia los pies, un mostrador hacia el público). "up" = arriba del recorte.
 - Listá CADA pieza por separado (cada sillón, cada maceta, cada mesa), con su box ajustado a esa pieza; no un box para todo el grupo.
+- Una mesa con sillas va como la mesa (table) y cada silla (chair) por separado, cada una con su box; usá dining-set solo si no se distinguen las sillas.
 - Un sillón en L, en U o modular (varios cuerpos pegados) es UN solo sofa con el box de toda la forma: no lo partas en armchairs. armchair es solo un sillón individual suelto. Una barra o mostrador es un counter con el box solo de la barra (no el espacio de atrás).
 - Símbolos usuales: rectángulo o cuadrado con una o dos diagonales (o un rombo) entre sillones = coffee-table (mesa ratona de vidrio); círculos con hojas = planter; fila de círculos con hojas dentro de un rectángulo largo = planter-box; rectángulo con almohadones dibujados (líneas paralelas) y respaldo engrosado = sofa.
 - Revisá todo el recorte: si hay dos o más sillones, mesas o macetas, listalos todos (no omitas los del borde).

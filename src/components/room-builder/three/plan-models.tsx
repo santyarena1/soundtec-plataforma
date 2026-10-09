@@ -14,7 +14,7 @@ import { RoundedBox } from "@react-three/drei";
 import { useEffect, useMemo, type ReactNode } from "react";
 import * as THREE from "three";
 import type { PlanPoint } from "@/services/room-builder/plan-polygon";
-import { armEdges, insetPolygon, inwardNormal, isRoundish, seatCushions } from "@/services/room-builder/plan-shape";
+import { armEdges, insetPolygon, inwardNormal, isCurved, isRoundish, seatCushions } from "@/services/room-builder/plan-shape";
 import { MAT } from "../room-theme";
 import { MODELS, ModelOr } from "./models";
 import { useSurface } from "./surfaces";
@@ -226,18 +226,93 @@ export function ShapedCounter({ shape, kitchen = false }: { shape: Shape; kitche
 }
 
 /** Mesa o escritorio sobre su forma: tapa de madera y patas en las esquinas. */
-export function ShapedTable({ shape }: { shape: Shape }) {
+export function ShapedTable({ shape, low = false }: { shape: Shape; low?: boolean }) {
   const wood = useSurface(MAT.wood);
+  const stone = useSurface(QUARTZ, 0.25, 0);
   const metal = useSurface(MAT.metalDark);
+  const top = low ? 0.4 : 0.74;
+  const thick = low ? 0.05 : 0.035;
+  const surface = low ? stone : wood;
+  // Redonda u ovalada (o un octógono de un círculo chico): tapa curva y pie central.
+  if (isCurved(shape) || isRoundish(shape)) {
+    const xs = shape.map((p) => p.x);
+    const ys = shape.map((p) => p.y);
+    const rx = (Math.max(...xs) - Math.min(...xs)) / 2;
+    const ry = (Math.max(...ys) - Math.min(...ys)) / 2;
+    const cx = (Math.max(...xs) + Math.min(...xs)) / 2;
+    const cy = (Math.max(...ys) + Math.min(...ys)) / 2;
+    const curve = isCurved(shape) ? shape : Array.from({ length: 48 }, (_, k) => ({ x: cx + rx * Math.cos((k / 48) * Math.PI * 2), y: cy + ry * Math.sin((k / 48) * Math.PI * 2) }));
+    const span = Math.min(rx, ry) * 2;
+    return (
+      <group>
+        <Prism poly={curve} y0={top - thick} height={thick} material={surface} bevel={0.008} />
+        <mesh position={[0, (top - thick) / 2, 0]} material={metal} castShadow>
+          <cylinderGeometry args={[0.045, 0.06, top - thick, 20]} />
+        </mesh>
+        <mesh position={[0, 0.012, 0]} material={metal} castShadow receiveShadow>
+          <cylinderGeometry args={[span * 0.28, span * 0.3, 0.024, 40]} />
+        </mesh>
+      </group>
+    );
+  }
   const legs = inset(shape, 0.07);
   return (
     <group>
-      <Prism poly={shape} y0={0.72} height={0.035} material={wood} bevel={0.008} />
+      <Prism poly={shape} y0={top - thick} height={thick} material={surface} bevel={0.008} />
       {legs.map((p, i) => (
-        <mesh key={i} position={[p.x, 0.36, p.y]} material={metal} castShadow>
-          <boxGeometry args={[0.05, 0.72, 0.05]} />
+        <mesh key={i} position={[p.x, (top - thick) / 2, p.y]} material={metal} castShadow>
+          <boxGeometry args={[0.045, top - thick, 0.045]} />
         </mesh>
       ))}
+    </group>
+  );
+}
+
+/** Silla de comedor moderna: patas finas de madera, asiento tapizado y respaldo curvo. Mira hacia +z. */
+export function DiningChair({ variant = 0 }: { variant?: number }) {
+  const wood = useSurface(MAT.wood);
+  const fabric = useSurface(MAT.fabric, undefined, undefined, UPHOLSTERY[(variant + 1) % UPHOLSTERY.length]);
+  const legs: Array<[number, number]> = [
+    [-0.19, -0.19],
+    [0.19, -0.19],
+    [-0.19, 0.19],
+    [0.19, 0.19],
+  ];
+  return (
+    <group>
+      {legs.map(([x, z], i) => (
+        <mesh key={i} position={[x, 0.22, z]} rotation={[z * 0.25, 0, -x * 0.25]} material={wood} castShadow>
+          <cylinderGeometry args={[0.014, 0.011, 0.45, 10]} />
+        </mesh>
+      ))}
+      <RoundedBox args={[0.46, 0.07, 0.45]} radius={0.025} smoothness={3} position={[0, 0.47, 0]} material={fabric} castShadow receiveShadow />
+      {/* Respaldo tapizado, apenas inclinado, sobre dos parantes */}
+      <RoundedBox args={[0.44, 0.36, 0.06]} radius={0.025} smoothness={3} position={[0, 0.74, -0.2]} rotation={[-0.1, 0, 0]} material={fabric} castShadow />
+      {[-0.19, 0.19].map((x) => (
+        <mesh key={x} position={[x, 0.62, -0.205]} rotation={[-0.1, 0, 0]} material={wood} castShadow>
+          <boxGeometry args={[0.025, 0.28, 0.025]} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Silla de oficina: base de cinco rayos, asiento y respaldo tapizados. Mira hacia +z. */
+export function OfficeChair() {
+  const fabric = useSurface(MAT.fabric, undefined, undefined, "#4a4f57");
+  const metal = useSurface(MAT.black);
+  return (
+    <group>
+      {Array.from({ length: 5 }, (_, k) => (
+        <mesh key={k} position={[Math.sin((k / 5) * Math.PI * 2) * 0.15, 0.06, Math.cos((k / 5) * Math.PI * 2) * 0.15]} rotation={[0, (k / 5) * Math.PI * 2, 0]} material={metal} castShadow>
+          <boxGeometry args={[0.035, 0.03, 0.3]} />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.27, 0]} material={metal} castShadow>
+        <cylinderGeometry args={[0.025, 0.025, 0.4, 12]} />
+      </mesh>
+      <RoundedBox args={[0.5, 0.08, 0.48]} radius={0.035} smoothness={3} position={[0, 0.48, 0.02]} material={fabric} castShadow receiveShadow />
+      <RoundedBox args={[0.46, 0.52, 0.07]} radius={0.04} smoothness={3} position={[0, 0.82, -0.22]} rotation={[-0.12, 0, 0]} material={fabric} castShadow />
     </group>
   );
 }
@@ -271,12 +346,45 @@ export function SideTable({ w, d }: { w: number; d: number }) {
   );
 }
 
+/** Placard a medida: puertas de abrir con sus juntas y tiradores. El frente mira hacia +z. */
+export function Wardrobe({ w, d }: { w: number; d: number }) {
+  const body = useSurface(MAT.woodLight);
+  const dark = useSurface(MAT.black);
+  const h = 2.2;
+  const depth = Math.max(0.45, Math.min(d, 0.7));
+  const doors = Math.max(2, Math.round(w / 0.5));
+  return (
+    <group>
+      <mesh position={[0, 0.05, 0]} material={dark} castShadow receiveShadow>
+        <boxGeometry args={[w - 0.04, 0.1, depth - 0.04]} />
+      </mesh>
+      <mesh position={[0, 0.1 + (h - 0.1) / 2, 0]} material={body} castShadow receiveShadow>
+        <boxGeometry args={[w, h - 0.1, depth]} />
+      </mesh>
+      {Array.from({ length: doors - 1 }, (_, k) => (
+        <mesh key={k} position={[-w / 2 + (w * (k + 1)) / doors, 0.1 + (h - 0.1) / 2, depth / 2 + 0.001]} material={dark}>
+          <boxGeometry args={[0.006, h - 0.14, 0.004]} />
+        </mesh>
+      ))}
+      {Array.from({ length: doors }, (_, k) => {
+        const x = -w / 2 + (w * (k + 0.5)) / doors + ((k % 2 === 0 ? 1 : -1) * w) / doors / 2 - (k % 2 === 0 ? 0.05 : -0.05);
+        return (
+          <mesh key={k} position={[x, 1.1, depth / 2 + 0.012]} material={dark} castShadow>
+            <boxGeometry args={[0.015, 0.32, 0.02]} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
 /* ── Alfombras ── */
 
-const RUG_TONES = ["#e6ddd0", "#c9d0d8", "#dccfbf", "#b9c2bb"];
+const RUG_TONES = ["#f4ede2", "#e3e7ec", "#efe4d4", "#dfe5df"];
 
 export function Rug({ shape, variant = 0 }: { shape: Shape; variant?: number }) {
-  const carpet = useSurface(MAT.carpet, undefined, undefined, RUG_TONES[variant % RUG_TONES.length]);
+  // Tejido claro (la textura de alfombra de oficina oscurece demasiado).
+  const carpet = useSurface(MAT.fabricLight, undefined, undefined, RUG_TONES[variant % RUG_TONES.length]);
   if (isRoundish(shape)) {
     const xs = shape.map((p) => p.x);
     const ys = shape.map((p) => p.y);
@@ -347,7 +455,8 @@ function FoliageStandIn({ width, height }: { width: number; height: number }) {
 export function PottedPlant({ w, d, variant = 0, tree = false }: { w: number; d: number; variant?: number; tree?: boolean }) {
   const footprint = Math.min(tree ? 1.1 : 0.9, Math.max(0.3, Math.min(w, d)));
   const style = POT_STYLES[variant % POT_STYLES.length]!;
-  const potD = footprint * (tree ? 0.62 : 0.7);
+  // La maceta es el círculo dibujado (la planta lo desborda un poco).
+  const potD = footprint * (tree ? 0.75 : 0.88);
   const potH = potD * (style === "ceramic" ? 1.15 : style === "terracotta" ? 0.85 : 0.9);
   const big = tree || footprint >= 0.75;
   const url = big ? (footprint >= 0.85 ? MODELS.treePachiraTall : MODELS.treePachiraMedium) : footprint >= 0.5 ? MODELS.plantFern : SMALL_PLANTS[variant % SMALL_PLANTS.length]!;

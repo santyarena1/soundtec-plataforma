@@ -37,7 +37,7 @@ import {
   Whiteboard,
 } from "../scene-primitives";
 import { MODELS, ModelOr } from "./models";
-import { BenchSeat, Ottoman, PlanterBox, PottedPlant, Rug, ShapedCounter, ShapedSofa, ShapedTable, SideTable, rectShape } from "./plan-models";
+import { BenchSeat, DiningChair, OfficeChair, Ottoman, Wardrobe, PlanterBox, PottedPlant, Rug, ShapedCounter, ShapedSofa, ShapedTable, SideTable, rectShape } from "./plan-models";
 import { useSurfaceDrag } from "./use-surface-drag";
 
 const ROTATE_STEP = Math.PI / 4;
@@ -77,7 +77,7 @@ const NOMINAL_DEPTH: Partial<Record<FurnitureItem["kind"], number>> = { sofa: 0.
 
 function fitScale(item: FurnitureItem): [number, number, number] {
   // Los muebles con forma propia y las plantas ya se arman a su medida.
-  if (item.shape || item.kind === "planter") return [1, 1, 1];
+  if (item.shape || item.kind === "planter" || (item.fit && item.kind === "wardrobe")) return [1, 1, 1];
   const depth = NOMINAL_DEPTH[item.kind];
   if (item.fit && depth && item.d) return [1, 1, Math.min(FIT_MAX, Math.max(FIT_MIN, item.d / depth))];
   const nominal = NOMINAL[item.kind];
@@ -99,8 +99,10 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
       if (item.shape) return <ShapedTable shape={item.shape} />;
       return <DeskTable width={w} depth={d} color={item.color} />;
     case "chair":
+      if (item.fit) return <OfficeChair />;
       return <Chair x={0} z={0} color={item.color} />;
     case "side-chair":
+      if (item.fit) return <DiningChair variant={item.variant ?? 0} />;
       return <SideChair x={0} z={0} color={item.color} />;
     case "credenza":
       return <Credenza width={w} x={0} z={0} />;
@@ -112,8 +114,10 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
       if (item.shape) return <ShapedSofa shape={item.shape} backEdges={item.backEdges} color={item.color} />;
       return <Sofa width={w} x={0} z={0} color={item.color} />;
     case "lounge-chair":
+      if (item.shape) return <ShapedSofa shape={item.shape} backEdges={item.backEdges} color={item.color} />;
       return <LoungeChair x={0} z={0} />;
     case "coffee-table":
+      if (item.shape) return <ShapedTable shape={item.shape} low />;
       return <CoffeeTable x={0} z={0} w={item.w} d={item.d} />;
     case "media-console":
       return <MediaConsole width={w} x={0} z={0} />;
@@ -126,6 +130,7 @@ function FurnitureBody({ item }: { item: FurnitureItem }) {
     case "nightstand":
       return <Nightstand x={0} z={0} />;
     case "wardrobe":
+      if (item.fit) return <Wardrobe w={w} d={d} />;
       return (
         <mesh position={[0, 1.1, 0]} castShadow>
           <boxGeometry args={[0.55, 2.2, 0.7]} />

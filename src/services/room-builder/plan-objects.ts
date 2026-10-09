@@ -7,7 +7,7 @@
 
 import type { FurnitureItem, FurnitureKind } from "./furnishing";
 import { boxToPolygon, pointInPolygon, type PlanPoint } from "./plan-polygon";
-import { sofaBackEdges, tidyFootprint, unionRects } from "./plan-shape";
+import { isCurved, sofaBackEdges, tidyFootprint, unionRects } from "./plan-shape";
 
 /** Tipos que la clasificación puede devolver. */
 export const OBJECT_KINDS = [
@@ -62,7 +62,7 @@ export type ClassifiedObject = PlanObject & { kind: ObjectKind; facing: Facing; 
 
 /** Lado mínimo de un objeto (m) y parte máxima del ambiente que puede ocupar. */
 const MIN_SIDE_M = 0.3;
-const MAX_ROOM_SHARE = 0.7;
+const MAX_ROOM_SHARE = 0.9;
 const MAX_OBJECTS = 24;
 /** Tolerancia (celdas) al ver si un trazo cae dentro de otro. */
 const MERGE_GAP = 1;
@@ -100,7 +100,11 @@ export function extractRoomObjects(ink: Uint8Array, width: number, height: numbe
       inside[y * W + x] = pointInPolygon({ x: (gx0 + x + 0.5) / width, y: (gy0 + y + 0.5) / height }, polygon) ? 1 : 0;
     }
   }
-  const at = (x: number, y: number) => inside[y * W + x] === 1 && ink[(gy0 + y) * width + gx0 + x] === 1;
+  // Los muros (trazo grueso) no son muebles: si quedan dentro del ambiente, envuelven todo.
+  const thick = thickInk(ink, width, gx0, gy0, W, H, Math.max(1, Math.ceil((WALL_MIN_M / Math.max(1e-6, cellM) - 1) / 2)));
+  // La línea del muro que quedó justo adentro del borde tampoco: uniría todo lo que toca la pared.
+  const core = erode(inside, W, H, Math.max(1, Math.round(EDGE_SKIP_M / Math.max(1e-6, cellM))));
+  const at = (x: number, y: number) => core[y * W + x] === 1 && ink[(gy0 + y) * width + gx0 + x] === 1 && thick[y * W + x] === 0;
   const seen = new Uint8Array(W * H);
   type Comp = { x0: number; y0: number; x1: number; y1: number; n: number };
   const comps: Comp[] = [];
@@ -135,6 +139,11 @@ export function extractRoomObjects(ink: Uint8Array, width: number, height: numbe
       }
     }
     comps.push(c);
+  }
+  // Un trazo que ocupa casi todo el ambiente (un muro que quedó adentro) no es un mueble ni agrupa a los demás.
+  for (let i = comps.length - 1; i >= 0; i--) {
+    const c = comps[i]!;
+    if (c.x1 - c.x0 + 1 > W * MAX_ROOM_SHARE + 1 || c.y1 - c.y0 + 1 > H * MAX_ROOM_SHARE + 1) comps.splice(i, 1);
   }
   // Trazos cercanos son el mismo objeto (almohadones de un sillón, sillas de una mesa).
   let merged = true;
@@ -184,6 +193,71 @@ export function extractRoomObjects(ink: Uint8Array, width: number, height: numbe
       againstWall: touches(c),
       density: c.n / ((c.x1 - c.x0 + 1) * (c.y1 - c.y0 + 1)),
     }));
+}
+
+/** Franja (m) junto al borde del ambiente que no cuenta para muebles (la línea interior del muro). */
+const EDGE_SKIP_M = 0.06;
+
+/** Achica una máscara r celdas (lo que queda a más de r del borde). */
+function erode(mask: Uint8Array, W: number, H: number, r: number): Uint8Array {
+  const runH = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) {
+    let run = 0;
+    for (let x = 0; x < W + r; x++) {
+      run = x < W && mask[y * W + x] ? run + 1 : 0;
+      const cx = x - r;
+      if (cx >= 0 && cx < W && run >= 2 * r + 1) runH[y * W + cx] = 1;
+    }
+  }
+  const out = new Uint8Array(W * H);
+  for (let x = 0; x < W; x++) {
+    let run = 0;
+    for (let y = 0; y < H + r; y++) {
+      run = y < H && runH[y * W + x] ? run + 1 : 0;
+      const cy = y - r;
+      if (cy >= 0 && cy < H && run >= 2 * r + 1) out[cy * W + x] = 1;
+    }
+  }
+  return out;
+}
+
+/** Espesor mínimo (m) de un muro: los trazos de muebles son más finos. */
+const WALL_MIN_M = 0.12;
+
+/** Celdas de trazo grueso (muros) en la ventana del ambiente: lo que sobrevive a una erosión de radio r, vuelto a engrosar. */
+function thickInk(ink: Uint8Array, width: number, gx0: number, gy0: number, W: number, H: number, r: number): Uint8Array {
+  const at = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && ink[(gy0 + y) * width + gx0 + x] === 1;
+  // Erosión separable: corrida horizontal y vertical de tinta de largo 2r+1 centrada en la celda.
+  const runH = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) {
+    let run = 0;
+    for (let x = 0; x < W + r; x++) {
+      run = x < W && at(x, y) ? run + 1 : 0;
+      const cx = x - r;
+      if (cx >= 0 && cx < W && run >= 2 * r + 1) runH[y * W + cx] = 1;
+    }
+  }
+  const core = new Uint8Array(W * H);
+  for (let x = 0; x < W; x++) {
+    let run = 0;
+    for (let y = 0; y < H + r; y++) {
+      run = y < H && runH[y * W + x] ? run + 1 : 0;
+      const cy = y - r;
+      if (cy >= 0 && cy < H && run >= 2 * r + 1) core[cy * W + x] = 1;
+    }
+  }
+  const out = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      if (!core[y * W + x]) continue;
+      for (let dy = -r - 1; dy <= r + 1; dy++)
+        for (let dx = -r - 1; dx <= r + 1; dx++) {
+          const xx = x + dx;
+          const yy = y + dy;
+          if (xx >= 0 && yy >= 0 && xx < W && yy < H) out[yy * W + xx] = 1;
+        }
+    }
+  return out;
 }
 
 /** Hacia dónde mira: lejos de la pared que toca (un sillón contra la pared mira al ambiente). */
@@ -271,7 +345,7 @@ export function objectsToFurniture(objects: ClassifiedObject[], map: RoomMapping
     const x = Math.round((cxPx - map.centerPx.x) * map.mppX * 100) / 100;
     const z = Math.round((cyPx - map.centerPx.y) * map.mppZ * 100) / 100;
     const base: FurnitureItem = { id: `plan-obj-${i}`, kind: spec.kind, group: spec.group, x, z, rotY: FACING_ROT[o.facing], mount: "floor", w, d, fit: true, ...(spec.h ? { h: spec.h } : {}) };
-    if (o.kind === "table" || o.kind === "dining-set") {
+    if (o.kind === "dining-set") {
       const round = Math.abs(w - d) < 0.15 * Math.max(w, d);
       // En un juego de comedor el recuadro dibujado incluye las sillas: la mesa es más chica.
       const shrink = o.kind === "dining-set" ? 1 : 0;
@@ -288,8 +362,10 @@ export function objectsToFurniture(objects: ClassifiedObject[], map: RoomMapping
         x: Math.round(((p.x * map.widthPx - cxPx) * map.mppX) * 1000) / 1000,
         y: Math.round(((p.y * map.heightPx - cyPx) * map.mppZ) * 1000) / 1000,
       }));
-      // Contorno prolijo; en asientos, alfombras y jardineras se cierra el frente que el dibujo deja abierto.
-      const local = tidyFootprint(meters, !OPEN_SHAPES.has(o.kind));
+      // Contorno prolijo (las curvas quedan como están); en asientos, alfombras y jardineras se cierra el frente abierto.
+      const tidy = isCurved(meters) ? meters : tidyFootprint(meters, !OPEN_SHAPES.has(o.kind));
+      // Si la forma quedó mucho más chica que el mueble (se leyó solo un pedazo), va el recuadro.
+      const local = coversBox(tidy, worldW, worldD) ? tidy : boxShape(worldW, worldD);
       const front = FACING_VECTOR[o.facing];
       items.push({
         ...base,
@@ -297,14 +373,69 @@ export function objectsToFurniture(objects: ClassifiedObject[], map: RoomMapping
         w: Math.round(worldW * 100) / 100,
         d: Math.round(worldD * 100) / 100,
         shape: local,
-        ...(o.kind === "sofa" ? { backEdges: sofaBackEdges(local, front) } : {}),
+        ...(o.kind === "sofa" || o.kind === "armchair" ? { backEdges: sofaBackEdges(local, front) } : {}),
         variant: i,
       });
       return;
     }
     items.push({ ...base, variant: i });
   });
-  return items;
+  return orientChairs(items);
+}
+
+/** Parte mínima de cada lado del recuadro que tiene que cubrir la forma leída. */
+const SHAPE_MIN_SPAN = 0.5;
+
+function coversBox(poly: PlanPoint[], w: number, d: number): boolean {
+  const xs = poly.map((p) => p.x);
+  const ys = poly.map((p) => p.y);
+  return Math.max(...xs) - Math.min(...xs) >= SHAPE_MIN_SPAN * w && Math.max(...ys) - Math.min(...ys) >= SHAPE_MIN_SPAN * d;
+}
+
+function boxShape(w: number, d: number): PlanPoint[] {
+  const r = (v: number) => Math.round(v * 1000) / 1000;
+  return [
+    { x: r(-w / 2), y: r(-d / 2) },
+    { x: r(w / 2), y: r(-d / 2) },
+    { x: r(w / 2), y: r(d / 2) },
+    { x: r(-w / 2), y: r(d / 2) },
+  ];
+}
+
+/** Muebles a los que se arrima una silla. */
+const SEAT_TARGETS = new Set<FurnitureKind>(["conference-table", "round-table", "desk", "reception-desk", "kitchen-counter", "bar-counter"]);
+/** Distancia máxima (m) entre una silla y el borde de su mesa. */
+const CHAIR_REACH = 0.9;
+
+/**
+ * Cada silla dibujada mira a la mesa que tiene al lado (con su ángulo real: las
+ * sillas de una mesa redonda van en diagonal). Frente a un escritorio es silla de
+ * oficina; frente a una barra o mesada, banqueta.
+ */
+function orientChairs(items: FurnitureItem[]): FurnitureItem[] {
+  const targets = items.filter((t) => SEAT_TARGETS.has(t.kind));
+  return items.map((c) => {
+    if ((c.kind !== "side-chair" && c.kind !== "chair") || c.id.includes("-c")) return c;
+    let best: { t: FurnitureItem; gap: number } | null = null;
+    for (const t of targets) {
+      const hw = (t.w ?? 1) / 2;
+      const hd = (t.d ?? 1) / 2;
+      // Distancia al borde del recuadro de la mesa (sin girar: los muebles con forma van en rotY 0).
+      const dx = Math.max(0, Math.abs(c.x - t.x) - hw);
+      const dz = Math.max(0, Math.abs(c.z - t.z) - hd);
+      const gap = Math.hypot(dx, dz);
+      if (gap <= CHAIR_REACH && (!best || gap < best.gap)) best = { t, gap };
+    }
+    if (!best) return c;
+    const t = best.t;
+    // Apunta al punto más cercano de la mesa (en una mesa larga, de frente; en una redonda, al centro).
+    const round = t.kind === "round-table" || (t.shape != null && isCurved(t.shape));
+    const px = round ? t.x : Math.min(t.x + (t.w ?? 1) / 2, Math.max(t.x - (t.w ?? 1) / 2, c.x));
+    const pz = round ? t.z : Math.min(t.z + (t.d ?? 1) / 2, Math.max(t.z - (t.d ?? 1) / 2, c.z));
+    const rotY = Math.round(Math.atan2(px - c.x, pz - c.z) * 1000) / 1000;
+    const kind: FurnitureKind = t.kind === "desk" ? "chair" : t.kind === "reception-desk" || t.kind === "kitchen-counter" || t.kind === "bar-counter" ? "bar-stool" : "side-chair";
+    return { ...c, rotY, kind };
+  });
 }
 
 /** Hacia dónde mira el frente en coordenadas del plano (y hacia abajo). */
@@ -312,7 +443,7 @@ const FACING_VECTOR: Record<Facing, { x: number; y: number }> = { up: { x: 0, y:
 /** Tipos cuyos huecos son reales (la pasada detrás de una barra, el hueco de un escritorio en U). */
 const OPEN_SHAPES = new Set<ObjectKind>(["counter", "kitchen-counter", "desk"]);
 /** Tipos que se construyen sobre su forma real. */
-const SHAPED = new Set<ObjectKind>(["sofa", "counter", "kitchen-counter", "table", "desk", "rug", "planter-box", "bench"]);
+const SHAPED = new Set<ObjectKind>(["sofa", "armchair", "counter", "kitchen-counter", "table", "coffee-table", "desk", "rug", "planter-box", "bench"]);
 
 /** Sillas alrededor de una mesa (el plano suele dibujar mesa y sillas juntas). */
 function chairsAround(table: FurnitureItem, round: boolean): FurnitureItem[] {
@@ -324,7 +455,7 @@ function chairsAround(table: FurnitureItem, round: boolean): FurnitureItem[] {
     const seats = 4;
     for (let k = 0; k < seats; k++) {
       const a = (k / seats) * Math.PI * 2;
-      out.push({ id: `${table.id}-c${k}`, kind: "side-chair", group: "Sillas", x: r2(table.x + Math.sin(a) * (tw / 2 + 0.35)), z: r2(table.z + Math.cos(a) * (tw / 2 + 0.35)), rotY: a + Math.PI, mount: "floor" });
+      out.push({ id: `${table.id}-c${k}`, kind: "side-chair", group: "Sillas", fit: true, w: 0.46, d: 0.5, x: r2(table.x + Math.sin(a) * (tw / 2 + 0.35)), z: r2(table.z + Math.cos(a) * (tw / 2 + 0.35)), rotY: a + Math.PI, mount: "floor" });
     }
     return out;
   }
@@ -339,6 +470,9 @@ function chairsAround(table: FurnitureItem, round: boolean): FurnitureItem[] {
         id: `${table.id}-c${k}${side > 0 ? "a" : "b"}`,
         kind: "side-chair",
         group: "Sillas",
+        fit: true,
+        w: 0.46,
+        d: 0.5,
         x: r2(table.x + lx * c + lz * s),
         z: r2(table.z - lx * s + lz * c),
         rotY: table.rotY + (side > 0 ? Math.PI : 0),
@@ -351,9 +485,9 @@ function chairsAround(table: FurnitureItem, round: boolean): FurnitureItem[] {
 
 /**
  * Ajusta un recuadro aproximado (el que dice la IA) a los trazos reales del
- * plano: el recuadro mínimo que contiene la tinta dentro de esa zona (un poco
- * agrandada y sin salir del objeto padre). Así el mueble cae justo sobre las
- * líneas dibujadas.
+ * plano, lado por lado: cada borde se pega a la línea dibujada más marcada
+ * cerca de él (sin salir del objeto padre). Una alfombra o mueble vecino que
+ * cruza por debajo no lo estira, porque no corre a lo largo del borde.
  */
 export function snapBoxToInk(
   approx: PlanObject["box"],
@@ -361,37 +495,58 @@ export function snapBoxToInk(
   ink: Uint8Array,
   width: number,
   height: number,
-  grow = 0.15,
+  reach = SNAP_REACH,
 ): PlanObject["box"] {
   // La IA a veces devuelve las esquinas al revés.
-  approx = { x0: Math.min(approx.x0, approx.x1), y0: Math.min(approx.y0, approx.y1), x1: Math.max(approx.x0, approx.x1), y1: Math.max(approx.y0, approx.y1) };
-  const gw = (approx.x1 - approx.x0) * grow;
-  const gh = (approx.y1 - approx.y0) * grow;
-  const x0 = Math.max(parent.x0, approx.x0 - gw);
-  const y0 = Math.max(parent.y0, approx.y0 - gh);
-  const x1 = Math.min(parent.x1, approx.x1 + gw);
-  const y1 = Math.min(parent.y1, approx.y1 + gh);
-  const cx0 = Math.max(0, Math.floor(x0 * width));
-  const cy0 = Math.max(0, Math.floor(y0 * height));
-  const cx1 = Math.min(width - 1, Math.ceil(x1 * width) - 1);
-  const cy1 = Math.min(height - 1, Math.ceil(y1 * height) - 1);
-  let mx0 = Infinity;
-  let my0 = Infinity;
-  let mx1 = -Infinity;
-  let my1 = -Infinity;
-  for (let y = cy0; y <= cy1; y++) {
-    for (let x = cx0; x <= cx1; x++) {
-      if (!ink[y * width + x]) continue;
-      mx0 = Math.min(mx0, x);
-      my0 = Math.min(my0, y);
-      mx1 = Math.max(mx1, x);
-      my1 = Math.max(my1, y);
+  const a = { x0: Math.min(approx.x0, approx.x1), y0: Math.min(approx.y0, approx.y1), x1: Math.max(approx.x0, approx.x1), y1: Math.max(approx.y0, approx.y1) };
+  const cx0 = Math.round(a.x0 * width);
+  const cy0 = Math.round(a.y0 * height);
+  const cx1 = Math.round(a.x1 * width) - 1;
+  const cy1 = Math.round(a.y1 * height) - 1;
+  if (cx1 <= cx0 || cy1 <= cy0) return a;
+  const px0 = Math.max(0, Math.floor(parent.x0 * width));
+  const py0 = Math.max(0, Math.floor(parent.y0 * height));
+  const px1 = Math.min(width - 1, Math.ceil(parent.x1 * width) - 1);
+  const py1 = Math.min(height - 1, Math.ceil(parent.y1 * height) - 1);
+  const tx = Math.max(SNAP_MIN_CELLS, Math.round((cx1 - cx0) * reach));
+  const ty = Math.max(SNAP_MIN_CELLS, Math.round((cy1 - cy0) * reach));
+  // Tinta a lo largo de una columna (o fila) en el tramo del recuadro.
+  const col = (x: number) => {
+    let n = 0;
+    for (let y = cy0; y <= cy1; y++) n += ink[y * width + x] ?? 0;
+    return n / (cy1 - cy0 + 1);
+  };
+  const row = (y: number) => {
+    let n = 0;
+    for (let x = cx0; x <= cx1; x++) n += ink[y * width + x] ?? 0;
+    return n / (cx1 - cx0 + 1);
+  };
+  // El borde va a la línea más marcada cerca; entre parejas, la más cercana al borde aproximado.
+  const best = (from: number, to: number, at: number, score: (v: number) => number, keep: number) => {
+    let pick = keep;
+    let top = SNAP_MIN_SHARE;
+    for (let v = from; v <= to; v++) {
+      const sc = score(v) - Math.abs(v - at) * 1e-3;
+      if (sc > top) {
+        top = sc;
+        pick = v;
+      }
     }
-  }
-  if (x1 <= x0 || y1 <= y0) return approx;
-  if (!Number.isFinite(mx0)) return { x0, y0, x1, y1 };
-  return { x0: mx0 / width, y0: my0 / height, x1: (mx1 + 1) / width, y1: (my1 + 1) / height };
+    return pick;
+  };
+  const x0 = best(Math.max(px0, cx0 - tx), Math.min(px1, cx0 + tx), cx0, col, cx0);
+  const x1 = best(Math.max(px0, cx1 - tx), Math.min(px1, cx1 + tx), cx1, col, cx1);
+  const y0 = best(Math.max(py0, cy0 - ty), Math.min(py1, cy0 + ty), cy0, row, cy0);
+  const y1 = best(Math.max(py0, cy1 - ty), Math.min(py1, cy1 + ty), cy1, row, cy1);
+  if (x1 <= x0 || y1 <= y0) return a;
+  return { x0: x0 / width, y0: y0 / height, x1: (x1 + 1) / width, y1: (y1 + 1) / height };
 }
+
+/** Cuánto puede moverse cada borde al pegarse a una línea (fracción del lado del recuadro). */
+const SNAP_REACH = 0.15;
+const SNAP_MIN_CELLS = 2;
+/** Parte del borde que tiene que tener tinta para ser una línea del mueble. */
+const SNAP_MIN_SHARE = 0.35;
 
 const SEATING = new Set<ObjectKind>(["sofa", "armchair"]);
 /** Parte del lado compartido (respecto de la pieza más chica) para que dos piezas sean del mismo sillón. */
