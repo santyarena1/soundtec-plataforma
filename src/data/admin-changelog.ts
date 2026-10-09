@@ -1650,4 +1650,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Los puertos del switch se numeran en el cableado." },
     ],
   },
+  {
+    id: "ship-2026-10-11-propuesta-pdf",
+    version: "1.60.0",
+    releasedAt: "2026-10-11T13:00:00.000Z",
+    summary: "Propuesta técnica en PDF de cada ambiente: vistas 3D, plano con cotas, equipos, cableado y diagrama de conexiones.",
+    items: [
+      { kind: "NUEVO", text: "Botón Propuesta PDF en el editor: rótulo con el logo de la empresa, dos vistas 3D, plano con cotas de cada muro, aberturas, mobiliario y equipos numerados, lista de equipos con el origen de sus puertos, cableado con tipos, metros, conexiones puerto a puerto y cables del catálogo, diagrama de conexiones y validación del sistema." },
+    ],
+  },
 ];

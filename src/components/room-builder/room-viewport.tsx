@@ -11,7 +11,7 @@
 
 import { Canvas, useThree } from "@react-three/fiber";
 import { PerformanceMonitor, useProgress } from "@react-three/drei";
-import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type MutableRefObject, type ReactNode } from "react";
 import { Box as BoxIcon } from "lucide-react";
 import { ArModal } from "./ar-modal";
 import { SceneExportBridge, type ExportRoomFn } from "./three/scene-export";
@@ -30,6 +30,7 @@ import { FurnitureLayer } from "./three/furniture-layer";
 import { PlanUnderlay } from "./three/plan-underlay";
 import { NavHelp } from "./three/nav-help";
 import { CableLayer } from "./three/cable-layer";
+import { SnapshotBridge, type SnapshotFn } from "./three/snapshot-bridge";
 import type { CableLink } from "@/services/room-builder/cabling";
 import { SurfaceProvider } from "./three/surfaces";
 
@@ -196,9 +197,12 @@ export function RoomViewport({
   onFurnitureChange,
   projectName = "Sala",
   cables = null,
+  snapshotRef,
 }: {
   /** Cables del ambiente (se muestran al activarlos en la pestaña Cableado). */
   cables?: CableLink[] | null;
+  /** Captura de la vista actual (propuesta en PDF). */
+  snapshotRef?: MutableRefObject<SnapshotFn | null>;
   scene: RoomScene;
   category?: string;
   templateKey?: string;
@@ -279,6 +283,7 @@ export function RoomViewport({
           >
             <QualitySync quality={quality} />
             <SceneExportBridge exportRef={exportRef} />
+            {snapshotRef ? <SnapshotBridge snapshotRef={snapshotRef} /> : null}
             {quality === "high" ? <PerformanceMonitor onDecline={() => setQuality("fast")} flipflops={2} /> : null}
             <SceneContent
               scene={scene}

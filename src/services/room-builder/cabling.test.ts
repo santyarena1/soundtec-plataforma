@@ -31,15 +31,15 @@ const TOUCH = io([["lan", "bidir", 1, { poe: "pd" }]], { poeWatts: 6.5 });
 
 function meetingRoom(opts: { extraDisplays?: number; missingTouch?: boolean } = {}) {
   const nodes: CableNode[] = [
-    node("codec", "codec", "Lenovo ThinkSmart Core Teams Rooms PC", [-2.8, 0.45, 1.8], "rack", CODEC),
-    node("d1", "display", "Samsung QM65C", [-0.9, 1.4, -1.95], "wall", DISPLAY),
-    node("d2", "display", "Samsung QM65C", [0.9, 1.4, -1.95], "wall", DISPLAY),
-    ...Array.from({ length: opts.extraDisplays ?? 0 }, (_, k) => node(`dx${k}`, "display", "LG 55UH5J", [2.9, 1.4, -1 + k], "wall", DISPLAY)),
-    node("cam", "camera", "Logitech Brio 4K", [0, 1.1, -1.95], "wall", CAMERA),
-    node("m1", "mic", "Shure MXA920", [0, 2.75, 0], "ceiling", MXA),
-    ...[0, 1, 2, 3].map((k) => node(`s${k}`, "speaker", "JBL Control 24CT Micro", [-1.5 + k, 2.75, 1], "ceiling", SPEAKER)),
-    node("amp", "other", "Crestron AMP-4150", [-2.8, 0.45, 1.6], "rack", AMP, "amplifier"),
-    node("dsp", "processor", "Biamp TesiraFORTE AI", [-2.8, 0.45, 1.4], "rack", DSP),
+    node("codec", "codec", "Crestron UC-C160-T", [-2.8, 0.45, 1.8], "rack", CODEC),
+    node("d1", "display", "Pantalla 65 pulgadas", [-0.9, 1.4, -1.95], "wall", DISPLAY),
+    node("d2", "display", "Pantalla 65 pulgadas", [0.9, 1.4, -1.95], "wall", DISPLAY),
+    ...Array.from({ length: opts.extraDisplays ?? 0 }, (_, k) => node(`dx${k}`, "display", "Pantalla 55 pulgadas", [2.9, 1.4, -1 + k], "wall", DISPLAY)),
+    node("cam", "camera", "Crestron IV-CAM-I20-W", [0, 1.1, -1.95], "wall", CAMERA),
+    node("m1", "mic", "Micrófono de techo Dante", [0, 2.75, 0], "ceiling", MXA),
+    ...[0, 1, 2, 3].map((k) => node(`s${k}`, "speaker", "Sonance VP62R", [-1.5 + k, 2.75, 1], "ceiling", SPEAKER)),
+    node("amp", "other", "Blaze PowerZone Connect 504", [-2.8, 0.45, 1.6], "rack", AMP, "amplifier"),
+    node("dsp", "processor", "DSP de sala Dante", [-2.8, 0.45, 1.4], "rack", DSP),
     node("ctl", "processor", "Crestron CP4N", [-2.8, 0.45, 1.2], "rack", CP4N),
     node("tp", "touch", "Crestron TSW-770", [0, 0.76, 0], "table", opts.missingTouch ? null : TOUCH),
   ];
@@ -58,7 +58,7 @@ test("sala de reunión con puertos de ficha: video, cámara, red, parlantes y co
   assert.ok(!has("dsp", "amp", "line"));
   assert.ok(has("ctl", "d1", "rs232") && has("ctl", "d2", "rs232"));
   assert.ok(plan.findings.some((f) => f.id === "net-switch-new" && /PoE/.test(f.detail)));
-  // El MXA920 transmite 9 canales y el DSP recibe 8.
+  // El micrófono transmite 9 canales Dante y el DSP recibe 8.
   assert.ok(plan.findings.some((f) => f.id === "dante-rx"));
   assert.equal(plan.missing.length, 0);
 });
@@ -92,7 +92,7 @@ test("largos: cable armado al largo estándar, rollo por metro; HDMI largo avisa
   assert.equal(cableMeters(3.2, "lan"), 5);
   assert.equal(cableMeters(8.6, "hdmi"), 15);
   const big = planCabling({
-    nodes: [node("codec", "codec", "Teams Rooms PC", [-9, 0.45, 4], "rack", CODEC), node("d1", "display", "Samsung QM98C", [9, 1.6, -4.9], "wall", DISPLAY)],
+    nodes: [node("codec", "codec", "Crestron UC-C160-T", [-9, 0.45, 4], "rack", CODEC), node("d1", "display", "Pantalla 98 pulgadas", [9, 1.6, -4.9], "wall", DISPLAY)],
     dims: { widthM: 20, depthM: 10, heightM: 3 },
   });
   assert.ok(big.findings.some((f) => f.title.startsWith("HDMI de")));

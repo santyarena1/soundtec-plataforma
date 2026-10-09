@@ -2,11 +2,12 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
   FileSpreadsheet,
+  FileText,
   Loader2,
   RefreshCw,
   Sparkles,
@@ -26,6 +27,10 @@ import { HubPlan, readHubPlan } from "@/components/room-builder/plan/hub-plan";
 import { HubSpaces } from "@/components/room-builder/plan/hub-spaces";
 import { ProjectSystemPanel } from "@/components/room-builder/plan/project-system-panel";
 import { useCabling } from "@/components/room-builder/cabling/use-cabling";
+import type { SnapshotFn } from "@/components/room-builder/three/snapshot-bridge";
+
+/** Tiempo para que la cámara llegue a la vista antes de capturarla (ms). */
+const SNAPSHOT_SETTLE_MS = 1600;
 import { normalizeDeviceUnits, sceneDims, type DeviceUnit } from "@/services/room-builder/units";
 import type { FurnitureOverrides } from "@/services/room-builder/furnishing";
 import {
@@ -137,6 +142,8 @@ export function RoomBuilderEditor({
   const [staged, setStaged] = useState<StagedProduct | null>(null);
   const cabling = useCabling(project.id, scene, project.category);
   const [showCables, setShowCables] = useState(false);
+  const [proposalBusy, setProposalBusy] = useState(false);
+  const snapshotRef = useRef<SnapshotFn | null>(null);
 
   const selectedSlot = useMemo(
     () => scene.slots.find((s) => s.key === scene.selectedSlotKey) ?? null,
@@ -388,6 +395,47 @@ export function RoomBuilderEditor({
     assignToSlot(selectedSlot.key, productId);
   }
 
+  /** Propuesta técnica en PDF: captura dos vistas del 3D y la arma en el servidor. */
+  async function downloadProposal() {
+    if (proposalBusy) return;
+    setProposalBusy(true);
+    const original = scene.cameraPreset;
+    const shots: Array<{ label: string; dataUrl: string }> = [];
+    try {
+      for (const [preset, label] of [
+        ["general", "Vista general"],
+        ["eye", "A nivel de los ojos"],
+      ] as Array<[CameraPreset, string]>) {
+        setScene((s) => ({ ...s, cameraPreset: preset }));
+        await new Promise((r) => setTimeout(r, SNAPSHOT_SETTLE_MS));
+        const dataUrl = snapshotRef.current?.();
+        if (dataUrl && dataUrl.length > 1000) shots.push({ label, dataUrl });
+      }
+      setScene((s) => ({ ...s, cameraPreset: original }));
+      const res = await fetch(`/api/admin/room-builder/projects/${project.id}/proposal-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ snapshots: shots }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.error ?? "No se pudo generar la propuesta");
+      }
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `Propuesta_${project.name.replace(/[^\w\-]+/g, "_")}.pdf`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast.success("Propuesta descargada");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo generar la propuesta");
+    } finally {
+      setScene((s) => ({ ...s, cameraPreset: original }));
+      setProposalBusy(false);
+    }
+  }
+
   function createQuote() {
     startTransition(async () => {
       const res = await fetch(
@@ -555,6 +603,16 @@ export function RoomBuilderEditor({
               )}
               Cotizar
             </button>
+            <button
+              type="button"
+              onClick={() => void downloadProposal()}
+              disabled={proposalBusy}
+              className="inline-flex items-center gap-1.5 rounded-md border border-[#1e3553] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#1e3553] disabled:opacity-60"
+              title="Propuesta técnica en PDF: vistas 3D, plano con cotas, equipos, cableado y diagrama de conexiones"
+            >
+              {proposalBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+              Propuesta PDF
+            </button>
           </div>
         </header>
 
@@ -576,6 +634,7 @@ export function RoomBuilderEditor({
             onFurnitureChange={onFurnitureChange}
             projectName={project.name}
             cables={showCables ? (cabling.plan?.links ?? null) : null}
+            snapshotRef={snapshotRef}
           />
         </div>
       </div>

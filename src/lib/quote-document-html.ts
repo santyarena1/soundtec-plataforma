@@ -84,7 +84,7 @@ export type QuoteDocumentHtmlInput = {
   }>;
 };
 
-function escapeHtml(value: string) {
+export function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -123,7 +123,7 @@ async function fileToDataUri(publicPath: string): Promise<string | null> {
   }
 }
 
-async function resolveAssetSrc(url: string, origin?: string): Promise<string> {
+export async function resolveAssetSrc(url: string, origin?: string): Promise<string> {
   if (!url) return "";
   if (url.startsWith("data:") || url.startsWith("http://") || url.startsWith("https://")) return url;
   if (url.startsWith("/")) {
