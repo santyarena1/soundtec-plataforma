@@ -247,6 +247,15 @@ export function validateExtraction(raw: RawExtraction, sourceText: string): Vali
 }
 
 /** Modelo para leer fichas: el de `ai.io.model` si está configurado, si no el general. */
+
+/**
+ * Texto apto para la API: sin mitades sueltas de caracteres (PDFs mal
+ * extraídos) ni caracteres de control, que hacen fallar el JSON del pedido.
+ */
+function cleanText(text: string): string {
+  return text.replace(/\p{Cs}/gu, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, " ");
+}
+
 export async function ioModel(): Promise<string> {
   // Leer fichas pide precisión de integrador: gpt-4.1 salvo que se configure otro.
   return (await getSetting("ai.io.model", "")) || "gpt-4.1";
@@ -262,7 +271,7 @@ export async function extractIo(input: { brand: string | null; name: string; mod
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: IO_SYSTEM_PROMPT },
-      { role: "user", content: `PRODUCTO: ${[input.brand, input.name, input.model ? `(modelo ${input.model})` : ""].filter(Boolean).join(" ")}\n\n${input.sourceText}` },
+      { role: "user", content: cleanText(`PRODUCTO: ${[input.brand, input.name, input.model ? `(modelo ${input.model})` : ""].filter(Boolean).join(" ")}\n\n${input.sourceText}`) },
     ],
   });
   const content = res.choices[0]?.message?.content ?? "{}";

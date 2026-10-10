@@ -1798,4 +1798,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Las obras de varios ambientes aceptan las respuestas del asistente por ambiente y completan el equipamiento central y lo que falte." },
     ],
   },
+  {
+    id: "ship-2026-10-10-fichas-texto-limpio",
+    version: "1.65.1",
+    releasedAt: "2026-10-13T01:30:00.000Z",
+    summary: "Lectura de fichas: se limpian caracteres rotos de los PDF antes de mandarlos a la IA (algunas fichas fallaban con error de JSON).",
+    items: [{ kind: "FIX", text: "Fichas con caracteres rotos (PDF mal extraído) ya no fallan al leerse." }],
+  },
 ];
