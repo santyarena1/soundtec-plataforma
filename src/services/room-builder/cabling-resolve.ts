@@ -57,10 +57,11 @@ export async function resolveAndWire(projectId: string): Promise<ResolveResult> 
     const fixes = new Map<string, CableFinding>();
     const count = (key: string) => added.filter((a) => a.generic === key).length;
     // Con amplificación en el rack central no se suman amplificadores en la sala.
-    const centralAudio = Boolean(profile.central && profile.centralDevices?.some((c) => c.cls === "amp"));
+    const centralCls = new Set(profile.central ? (profile.centralDevices ?? []).map((c) => c.cls) : []);
     for (const f of remaining) {
       if (!f.fix || !genericByKey(f.fix.generic) || fixes.has(f.fix.generic) || count(f.fix.generic) >= MAX_SAME) continue;
-      if (centralAudio && genericByKey(f.fix.generic)!.cls === "amp") continue;
+      const cls = genericByKey(f.fix.generic)!.cls;
+      if ((cls === "amp" || cls === "switch") && centralCls.has(cls)) continue;
       fixes.set(f.fix.generic, f);
     }
     if (!fixes.size) break;
@@ -97,13 +98,14 @@ async function removeUnused(projectId: string): Promise<ResolvedAddition[]> {
   const plan = cablingForScene(scene, project.category, profile);
   const linked = new Set(plan.links.flatMap((l) => [l.from.replace(/#\d+$/, ""), l.to.replace(/#\d+$/, "")]));
   const removed: ResolvedAddition[] = [];
-  const centralAudio = Boolean(profile.central && profile.centralDevices?.some((c) => c.cls === "amp"));
+  // Clases que ya cubre el rack central del proyecto (amplificación, red).
+  const centralCls = new Set(profile.central ? (profile.centralDevices ?? []).map((c) => c.cls) : []);
   for (const d of scene.devices) {
     if (!d.generic || !d.slotKey.startsWith("custom_")) continue;
     const template = genericByKey(d.generic.key);
     // Amplificador genérico en una sala que se amplifica desde el rack central: sobra aunque tenga parlantes asignados.
-    const redundantAmp = centralAudio && template?.cls === "amp";
-    if (linked.has(d.id) && !redundantAmp) continue;
+    const redundant = Boolean(template && (template.cls === "amp" || template.cls === "switch") && centralCls.has(template.cls));
+    if (linked.has(d.id) && !redundant) continue;
     // Solo lo que existe para alimentar o distribuir; un motor o un sensor sin cables (inalámbrico/a definir) se deja.
     if (!template || !["amp", "dsp", "streamer", "source", "video-switch", "switch"].includes(template.cls)) continue;
     await removeCustomDevice(projectId, d.slotKey);
