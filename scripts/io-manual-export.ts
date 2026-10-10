@@ -5,7 +5,7 @@
  *   SOUNDTEC_URL=https://… CATALOG_IO_TOKEN=stk_… npx tsx scripts/io-manual-export.ts <carpeta> [estados] [límite]
  */
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const BATCH = 5;
@@ -16,6 +16,18 @@ async function main() {
   const token = process.env.CATALOG_IO_TOKEN;
   if (!dir || !base || !token) throw new Error("Faltan carpeta, SOUNDTEC_URL o CATALOG_IO_TOKEN");
   await mkdir(dir, { recursive: true });
+  // "ids:<archivo>": exporta exactamente esos productos (uno por línea), sea cual sea su estado.
+  if (statuses.startsWith("ids:")) {
+    const ids = (await readFile(statuses.slice(4), "utf8")).split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const res = await fetch(`${base}/api/integration/catalog-io?ids=${ids.slice(i, i + BATCH).join(",")}&limit=${BATCH}`, { headers: { Authorization: `Bearer ${token}` } });
+      const json = (await res.json()) as { ok: boolean; error?: string; items: Array<{ id: string }> };
+      if (!json.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      for (const item of json.items) await writeFile(join(dir, `${item.id}.json`), JSON.stringify(item, null, 1));
+      console.log(`${Math.min(i + BATCH, ids.length)}/${ids.length}`);
+    }
+    return;
+  }
   let after = "";
   let written = 0;
   for (;;) {
