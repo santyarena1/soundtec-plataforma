@@ -1817,4 +1817,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Iluminación suma dimmers / módulos de iluminación y cortinas suma motores, de la marca de control elegida." },
     ],
   },
+  {
+    id: "ship-2026-10-10-teclados-exterior",
+    version: "1.65.3",
+    releasedAt: "2026-10-13T03:00:00.000Z",
+    summary: "Teclas de iluminación con keypads reales (Horizon, Cameo, CLWI) en vez de paneles táctiles, y parlantes de exterior de línea intemperie.",
+    items: [
+      { kind: "FIX", text: "Teclas de iluminación: keypads reales del catálogo, nunca un panel táctil de 10\"." },
+      { kind: "FIX", text: "Parlantes de exterior: solo líneas para intemperie (Sonance Patio)." },
+      { kind: "FIX", text: "Motores de cortina: ya no se confunden con sensores; si el catálogo no tiene motores, el lugar queda a la vista sin producto." },
+    ],
+  },
 ];

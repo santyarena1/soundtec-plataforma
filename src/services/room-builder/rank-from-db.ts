@@ -97,10 +97,14 @@ const nameHas = (terms: string[]): Prisma.ProductWhereInput[] => terms.map((t) =
  */
 export function slotProductFilter(slotKey: string | undefined, role: string): { where: Prisma.ProductWhereInput; anyRole: boolean } | null {
   if (!slotKey) return null;
+  // Teclados de iluminación / escenas: keypads reales (en el catálogo figuran con otros roles), nunca un panel táctil.
+  if (/keypad/i.test(slotKey)) return { where: { OR: nameHas(["-KP", "KPEX", "KPCN", "KPL", "keypad"]), NOT: { OR: nameHas(["TSW-", "TSS-", "TST-"]) } }, anyRole: true };
+  // Parlantes de exterior: líneas para intemperie (pueden figurar con otro rol).
+  if (role === "speaker" && /outdoor/i.test(slotKey)) return { where: { OR: [{ aiProfile: { environment: "outdoor" } }, ...nameHas(["outdoor", "patio", "landscape", "mariner", "garden"])], NOT: { OR: nameHas(["volume control"]) } }, anyRole: true };
   if (role === "speaker" && /sub/i.test(slotKey)) return { where: { OR: [{ aiProfile: { productType: "subwoofer" } }, ...nameHas(["subwoofer", " SUB", "-SUB"])] }, anyRole: false };
   if (role === "speaker") return { where: { NOT: { aiProfile: { productType: "subwoofer" } } }, anyRole: false };
   if (slotKey === "lighting_dimmer") return { where: { OR: [{ aiProfile: { productType: "lighting" } }, ...nameHas(["dimmer", "DIM", "lighting module"])] }, anyRole: true };
-  if (slotKey === "shade_motor") return { where: { OR: nameHas(["shade", "QMT", "CSM-", "motor", "cortina", "persiana", "drape"]) }, anyRole: true };
+  if (slotKey === "shade_motor") return { where: { OR: nameHas(["shade", "QMT", "motor", "cortina", "persiana", "drape"]) }, anyRole: true };
   return null;
 }
 
