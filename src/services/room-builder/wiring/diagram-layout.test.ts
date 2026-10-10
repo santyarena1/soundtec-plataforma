@@ -5,12 +5,12 @@ import { expandIoPorts } from "./ports";
 import type { IoPort } from "../io-profile/types";
 
 const io = (signal: IoPort["signal"], direction: IoPort["direction"], count: number, label: string): IoPort => ({ signal, direction, count, connector: null, channels: null, poe: null, label, evidence: label });
-const dev = (deviceId: string, role: string) => ({ deviceId, unit: 0, label: deviceId, short: deviceId, x: 0, y: 0, z: 0, rotY: 0, mount: "wall", remote: false, role });
+const dev = (deviceId: string, role: string, cls?: string) => ({ deviceId, unit: 0, label: deviceId, short: deviceId, x: 0, y: 0, z: 0, rotY: 0, mount: "wall", remote: false, role, cls });
 const wire = (id: string, a: string, ap: string, b: string, bp: string) => ({ id, from: { deviceId: a, unit: 0, portId: ap }, to: { deviceId: b, unit: 0, portId: bp }, signal: "hdmi" as const, cableProductId: null, label: id, points: [], lengthOverrideM: null, origin: "manual" as const, lengthM: 1 });
 
 function model() {
   return {
-    devices: [dev("tv", "display"), dev("sw", "other"), dev("pc", "other")],
+    devices: [dev("tv", "display", "display"), dev("sw", "processor", "video-switch"), dev("pc", "other", "source")],
     ports: {
       pc: expandIoPorts([io("hdmi", "out", 1, "HDMI OUT")]),
       sw: expandIoPorts([io("hdmi", "in", 2, "HDMI IN 1-2"), io("hdmi", "out", 1, "HDMI OUT")]),
@@ -21,12 +21,13 @@ function model() {
   };
 }
 
-test("diagrama: columnas por flujo de señal (fuente → proceso → salida)", () => {
+test("diagrama: columnas por categoría profesional en orden de flujo (fuentes → distribución → pantallas)", () => {
   const d = layoutDiagram(model() as never);
   const col = (k: string) => d.blocks.find((b) => b.key === blockKey(k, 0))!.column;
   assert.equal(col("pc"), 0);
-  assert.equal(col("sw"), 1);
-  assert.equal(col("tv"), 2);
+  assert.equal(col("sw"), 3);
+  assert.equal(col("tv"), 6);
+  assert.deepEqual(d.columns, ["Fuentes y captura", "Distribución de video", "Pantallas"]);
   const x = (k: string) => d.blocks.find((b) => b.key === blockKey(k, 0))!.x;
   assert.ok(x("pc") < x("sw") && x("sw") < x("tv"));
 });
@@ -59,9 +60,9 @@ test("diagrama: respeta la posición movida a mano y los equipos sin cables van 
   assert.equal(d.blocks.find((b) => b.key === "cam#0")!.noPorts, true);
 });
 
-test("diagrama: el rack central va a proceso y sus parlantes a la columna siguiente; columnas altas se reparten", () => {
-  const amp = { ...dev("central:amp", "processor"), remote: true };
-  const speakers = Array.from({ length: 14 }, (_, i) => dev(`spk${i}`, "speaker"));
+test("diagrama: amplificación antes que parlantes; columnas altas se reparten", () => {
+  const amp = { ...dev("central:amp", "processor", "amp"), remote: true };
+  const speakers = Array.from({ length: 14 }, (_, i) => dev(`spk${i}`, "speaker", "speaker"));
   const m = {
     devices: [amp, ...speakers],
     ports: { "central:amp": expandIoPorts([io("speaker", "out", 4, "CH1-CH4")]), ...Object.fromEntries(speakers.map((s) => [s.deviceId, expandIoPorts([io("speaker", "in", 1, "IN")])])) },

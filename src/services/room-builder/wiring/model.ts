@@ -31,6 +31,8 @@ export type PlacedDevice = {
   /** Fuera de la sala (rack central): se dibuja en la salida hacia la sala técnica. */
   remote: boolean;
   role: string;
+  /** Clase del equipo para el cableado (amp, display, control…). */
+  cls?: string;
 };
 
 export type WiringModel = {
@@ -57,20 +59,27 @@ export function buildWiringModel(scene: RoomScene, profile: CablingProfile | nul
   const ports: Record<string, WirePort[]> = {};
 
   for (const { device } of layoutSceneDevices(scene.devices, slots, dims)) {
+    // Un lugar sin producto ni genérico todavía no es un equipo: no se dibuja ni se cablea.
+    if (!device.productId && !device.generic) continue;
     const info = profile?.devices[device.id];
-    const short = info?.label ? info.label.replace(/^\S+\s/, "") : (device.productName ?? device.label);
+    // Rótulo corto: el modelo sin la marca (los genéricos van con su nombre completo).
+    const brand = device.brandName?.trim();
+    const short = device.generic ? device.generic.name : info?.label ? (brand && info.label.startsWith(`${brand} `) ? info.label.slice(brand.length + 1) : info.label) : (device.productName ?? device.label);
     for (const [k, u] of (device.units ?? []).entries()) {
-      devices.push({ deviceId: device.id, unit: k, label: info?.label ?? device.label, short, x: u.pose.x, y: u.pose.y, z: u.pose.z, rotY: u.pose.rotY, mount: slots.get(device.slotKey)?.mount ?? "wall", remote: false, role: device.designRole });
+      devices.push({ deviceId: device.id, unit: k, label: info?.label ?? device.label, short, x: u.pose.x, y: u.pose.y, z: u.pose.z, rotY: u.pose.rotY, mount: slots.get(device.slotKey)?.mount ?? "wall", remote: false, role: device.designRole, cls: info?.cls });
     }
     const fromSheet = info?.ioPorts?.length ? expandIoPorts(info.ioPorts) : [];
     ports[device.id] = wiring.ports[device.id] ?? (info?.sourceKind === "generic" ? fromSheet.map((q) => ({ ...q, source: "generic" as const })) : fromSheet);
   }
   if (profile?.central && profile.centralDevices?.length) {
     const exit = centralExit(scene);
+    // Del rack central se muestran solo los equipos que tienen cables hacia esta sala.
+    const wiredCentral = new Set(wiring.wires.flatMap((w) => [w.from.deviceId, w.to.deviceId]).filter((id) => id.startsWith(CENTRAL_PREFIX)));
     profile.centralDevices.forEach((c, i) => {
       const id = `${CENTRAL_PREFIX}${c.key}`;
+      if (!wiredCentral.has(id)) return;
       for (let k = 0; k < c.quantity; k++) {
-        devices.push({ deviceId: id, unit: k, label: `${c.label} · rack central`, short: c.label.replace(/^\S+\s/, ""), x: exit.x, y: 0.45, z: exit.z + (i * c.quantity + k) * CENTRAL_STEP_M, rotY: 0, mount: "rack", remote: true, role: "processor" });
+        devices.push({ deviceId: id, unit: k, label: `${c.label} · rack central`, short: c.label.replace(/^\S+\s/, ""), x: exit.x, y: 0.45, z: exit.z + (i * c.quantity + k) * CENTRAL_STEP_M, rotY: 0, mount: "rack", remote: true, role: "processor", cls: c.cls });
       }
       ports[id] = wiring.ports[id] ?? (c.ioPorts?.length ? expandIoPorts(c.ioPorts) : []);
     });

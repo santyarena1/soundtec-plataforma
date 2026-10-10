@@ -1927,4 +1927,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "En lugar de la lista de faltantes, el panel muestra qué agregó el sistema; lo que no se puede resolver solo queda plegado para revisar." },
     ],
   },
+  {
+    id: "ship-2026-10-10-plano-tecnico-unificado",
+    version: "1.71.0",
+    releasedAt: "2026-10-13T13:00:00.000Z",
+    summary: "El plano técnico vuelve a la pantalla del modelo y se resuelve solo al abrirlo.",
+    items: [
+      { kind: "MEJORA", text: "3D y Plano técnico en la misma pantalla: planta, diagrama de señal, cables y metros juntos, sin perder información." },
+      { kind: "NUEVO", text: "Al abrir el plano técnico el sistema completa solo lo que falta (lugares vacíos con su genérico, amplificación, fuentes, gateways, red) y traza todos los cables." },
+      { kind: "MEJORA", text: "Diagrama por categorías profesionales: fuentes y captura, control y automatización, red, distribución de video, proceso de audio, amplificación, pantallas y parlantes." },
+      { kind: "MEJORA", text: "Del rack central solo aparece lo que alimenta el ambiente; los amplificadores se llenan de a uno antes de usar otro." },
+      { kind: "MEJORA", text: "La pestaña Cableado del 3D muestra el resumen de cables y abre el plano técnico; ya no lista problemas." },
+    ],
+  },
 ];

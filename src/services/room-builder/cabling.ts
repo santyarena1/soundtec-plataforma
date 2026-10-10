@@ -343,6 +343,19 @@ export function planCabling(input: CablingInput): CablingPlan {
       else incompatible(codec, d, "Codec y pantalla", "la pantalla no declara entrada HDMI.");
     });
     if (displays.length > outs) findings.push({ id: "video-outs", level: "error", title: "Salidas de video insuficientes", detail: `${codec.label} tiene ${outs} salida(s) HDMI y hay ${displays.length} pantallas: sumá un splitter o una matriz HDMI.` });
+  } else if (of("video-switch").length) {
+    const vs = of("video-switch")[0]!;
+    const outs = portCount(vs.ports, "outputs", "hdmi") + portCount(vs.ports, "outputs", "hdbaset");
+    displays.forEach((d, k) => {
+      if (k >= outs) return;
+      if (portCount(d.ports, "inputs", "hdmi") > 0) add(vs, d, "hdmi", `Salida ${k + 1}`, "Entrada HDMI");
+    });
+    if (table && portCount(vs.ports, "inputs", "hdmi") > 0 && !links.some((l) => l.from === table.id)) add(table, vs, "hdmi", "HDMI notebook", "Entrada HDMI");
+    // Las fuentes de la sala entran a la matriz.
+    for (const src of of("source", "streamer").filter((s) => portCount(s.ports, "outputs", "hdmi") > 0)) {
+      if (links.filter((l) => l.to === vs.id).length < portCount(vs.ports, "inputs", "hdmi")) add(src, vs, "hdmi", "Salida HDMI", "Entrada HDMI");
+    }
+    if (displays.length > outs) findings.push({ id: "video-outs", level: "error", title: "Salidas de video insuficientes", detail: `${vs.label} tiene ${outs} salida(s) y hay ${displays.length} pantallas.`, fix: { generic: "matrix-8x8", label: "Sumar matriz HDMI 8x8" } });
   } else if (displays.length > 1) {
     findings.push({ id: "video-split", level: "error", title: "Pantallas sin distribución de video", detail: `Hay ${displays.length} pantallas y ningún codec o matriz que las alimente: sumá un splitter/matriz HDMI.`, fix: { generic: "matrix-4x4", label: "Sumar matriz HDMI 4x4" } });
   }
@@ -401,7 +414,9 @@ export function planCabling(input: CablingInput): CablingPlan {
     const fits = (c: Channel, m: "low" | "high") => ampModes(c.amp).includes(m) && (c.mode == null || c.mode === m) && (m === "high" || c.load < LOWZ_PER_CHANNEL);
     let pick: { c: Channel; m: "low" | "high" } | null = null;
     for (const m of spkModes) {
-      const c = channels.filter((x) => fits(x, m)).sort((a, b) => Number(b.mode === m) - Number(a.mode === m) || a.load - b.load)[0];
+      // Primero canales del mismo modo, después amplificadores ya en uso (se llena uno antes de abrir otro).
+      const inUse = (a: Ready) => channels.some((x) => x.amp === a && x.load > 0);
+      const c = channels.filter((x) => fits(x, m)).sort((a, b) => Number(b.mode === m) - Number(a.mode === m) || Number(inUse(b.amp)) - Number(inUse(a.amp)) || a.load - b.load)[0];
       if (c) {
         pick = { c, m };
         break;

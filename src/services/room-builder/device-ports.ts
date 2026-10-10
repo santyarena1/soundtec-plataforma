@@ -25,7 +25,7 @@ export const SIGNAL_INFO: Record<Signal, { label: string; color: string }> = {
 };
 
 /** Clase de equipo para el cableado (qué papel cumple en el sistema). */
-export type DeviceClass = "display" | "camera" | "mic" | "speaker" | "subwoofer" | "amp" | "dsp" | "codec" | "control" | "touch" | "switch" | "streamer" | "source" | "other";
+export type DeviceClass = "display" | "camera" | "mic" | "speaker" | "subwoofer" | "amp" | "dsp" | "codec" | "control" | "touch" | "switch" | "video-switch" | "streamer" | "source" | "other";
 
 export type PortGroup = { signal: Signal; count: number; label: string; /** Cita de la ficha. */ evidence?: string };
 export type DevicePorts = {

@@ -49,9 +49,32 @@ export type DiagramPositions = Record<string, { x: number; y: number }>;
 
 export const blockKey = (deviceId: string, unit: number) => `${deviceId}#${unit}`;
 
-/** Columna base por rol cuando el equipo no tiene cables que definan su lugar. */
-const ROLE_RANK: Record<string, number> = { camera: 0, mic: 0, source: 0, codec: 1, processor: 1, other: 1, touch: 1, display: 2, speaker: 2 };
-const COLUMN_TITLES = ["Fuentes", "Proceso y distribución", "Salidas", "Salidas", "Salidas"];
+/** Columnas del esquema, en el orden del flujo de la señal. */
+export const DIAGRAM_CATEGORIES = [
+  "Fuentes y captura",
+  "Control y automatización",
+  "Red",
+  "Distribución de video",
+  "Proceso de audio",
+  "Amplificación",
+  "Pantallas",
+  "Parlantes",
+  "Otros equipos",
+] as const;
+
+/** Categoría de un equipo por su clase de cableado (y su rol si no la tiene). */
+export function categoryOf(d: { cls?: string; role: string; label: string }): number {
+  const c = d.cls ?? "";
+  if (["source", "streamer", "camera", "mic"].includes(c) || ["camera", "mic"].includes(d.role)) return 0;
+  if (["control", "touch"].includes(c) || d.role === "touch" || /cortina|shade|dimmer|teclado|keypad|sensor|termostato|rel[eé]/i.test(d.label)) return 1;
+  if (c === "switch") return 2;
+  if (c === "video-switch" || c === "codec" || d.role === "codec" || /extensor|hdbaset|matriz|matrix|switcher/i.test(d.label)) return 3;
+  if (c === "dsp") return 4;
+  if (c === "amp") return 5;
+  if (c === "display" || d.role === "display") return 6;
+  if (c === "speaker" || c === "subwoofer" || d.role === "speaker") return 7;
+  return 8;
+}
 
 /** Lado del puerto: entradas a la izquierda; salidas y E/S a la derecha (salvo E/S que solo reciben). */
 function sideOf(port: WirePort, asTarget: number, asSource: number): "left" | "right" {
@@ -60,47 +83,10 @@ function sideOf(port: WirePort, asTarget: number, asSource: number): "left" | "r
   return asTarget > asSource ? "left" : "right";
 }
 
-/** Columna de cada bloque: camino más largo desde una fuente siguiendo el sentido de los cables. */
-function columnsOf(devices: PlacedDevice[], wires: Wire[]): Map<string, number> {
-  const keys = devices.map((d) => blockKey(d.deviceId, d.unit));
-  const out = new Map<string, string[]>(keys.map((k) => [k, []]));
-  const indeg = new Map<string, number>(keys.map((k) => [k, 0]));
-  for (const w of wires) {
-    const a = blockKey(w.from.deviceId, w.from.unit);
-    const b = blockKey(w.to.deviceId, w.to.unit);
-    if (a === b || !out.has(a) || !out.has(b)) continue;
-    out.get(a)!.push(b);
-    indeg.set(b, (indeg.get(b) ?? 0) + 1);
-  }
-  const col = new Map<string, number>();
-  const connected = new Set(wires.flatMap((w) => [blockKey(w.from.deviceId, w.from.unit), blockKey(w.to.deviceId, w.to.unit)]));
-  // Kahn con relajación del camino más largo (los ciclos se cortan por tope de iteraciones).
-  const queue = keys.filter((k) => (indeg.get(k) ?? 0) === 0);
-  // Los equipos del rack central arrancan en la columna de proceso; sus destinos se corren detrás.
-  const remote = new Set(devices.filter((d) => d.remote).map((d) => blockKey(d.deviceId, d.unit)));
-  for (const k of keys) col.set(k, remote.has(k) ? 1 : 0);
-  const seen = new Map<string, number>();
-  while (queue.length) {
-    const k = queue.shift()!;
-    for (const n of out.get(k) ?? []) {
-      col.set(n, Math.max(col.get(n) ?? 0, (col.get(k) ?? 0) + 1));
-      const left = (indeg.get(n) ?? 1) - 1;
-      indeg.set(n, left);
-      const times = (seen.get(n) ?? 0) + 1;
-      seen.set(n, times);
-      if (left === 0 && times <= keys.length) queue.push(n);
-    }
-  }
-  for (const d of devices) {
-    const k = blockKey(d.deviceId, d.unit);
-    if (!connected.has(k)) col.set(k, d.remote ? 1 : (ROLE_RANK[d.role] ?? 1));
-  }
-  return col;
-}
-
 export function layoutDiagram(model: WiringModel, positions: DiagramPositions = {}): DiagramLayout {
   const wires = model.wires;
-  const cols = columnsOf(model.devices, wires);
+  // Columna = categoría profesional del equipo (fuentes → control → red → video → audio → amplificación → salidas).
+  const cols = new Map(model.devices.map((d) => [blockKey(d.deviceId, d.unit), categoryOf(d)]));
   const usage = new Map<string, { target: number; source: number; used: number }>();
   const bump = (deviceId: string, unit: number, portId: string, as: "target" | "source") => {
     const k = `${blockKey(deviceId, unit)}|${portId}`;
@@ -246,6 +232,6 @@ export function layoutDiagram(model: WiringModel, positions: DiagramPositions = 
 
   const width = Math.max(...blocks.map((b) => b.x + b.w), 600) + MARGIN;
   const height = Math.max(...blocks.map((b) => b.y + b.h), 400) + MARGIN;
-  const columns = colIdx.map((c) => COLUMN_TITLES[Math.min(c, COLUMN_TITLES.length - 1)] ?? "");
+  const columns = colIdx.map((c) => DIAGRAM_CATEGORIES[c] ?? "");
   return { blocks, wires: diagramWires, width, height, columns };
 }

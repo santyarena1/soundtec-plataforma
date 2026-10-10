@@ -508,6 +508,7 @@ export function EditorSidebar({
   cabling,
   showCables = false,
   onShowCables = () => {},
+  onOpenTechnical,
 }: {
   projectId: string;
   category: string;
@@ -541,6 +542,8 @@ export function EditorSidebar({
   cabling?: CablingState;
   showCables?: boolean;
   onShowCables?: (v: boolean) => void;
+  /** Abre el plano técnico en la misma pantalla. */
+  onOpenTechnical?: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("equipos");
   const [adding, setAdding] = useState(false);
@@ -756,7 +759,7 @@ export function EditorSidebar({
           </div>
         ) : null}
 
-        {tab === "cableado" && cabling ? <CablingPanel state={cabling} show3d={showCables} onShow3d={onShowCables} /> : null}
+        {tab === "cableado" && cabling ? <CablingPanel state={cabling} show3d={showCables} onShow3d={onShowCables} onOpenTechnical={onOpenTechnical} /> : null}
         {tab === "guia" ? (
           <div className="space-y-3 p-3">
             <PlatformGuideCard category={category} platform={platform} />

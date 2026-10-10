@@ -14,7 +14,7 @@ export type DiagramWire = { id: string; signal: Signal; points: Array<[number, n
 export type Diagram = { blocks: DiagramBlock[]; wires: DiagramWire[]; width: number; height: number; columns: string[] };
 
 const COLUMN_TITLES = ["Fuentes y captura", "Procesamiento y red", "Amplificación", "Pantallas, parlantes y control"];
-const STAGE: Record<DeviceClass, number> = { source: 0, camera: 0, mic: 0, codec: 1, dsp: 1, control: 1, switch: 1, streamer: 1, other: 1, amp: 2, display: 3, speaker: 3, subwoofer: 3, touch: 3 };
+const STAGE: Record<DeviceClass, number> = { source: 0, camera: 0, mic: 0, codec: 1, dsp: 1, control: 1, switch: 1, "video-switch": 1, streamer: 1, other: 1, amp: 2, display: 3, speaker: 3, subwoofer: 3, touch: 3 };
 
 const BIDIR: Signal[] = ["lan", "dante", "wireless"];
 const BLOCK_W = 230;

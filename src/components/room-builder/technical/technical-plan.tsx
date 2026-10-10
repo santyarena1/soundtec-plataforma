@@ -6,7 +6,7 @@
  * ficha de equipo y ficha de cable. Todo se guarda en la escena del proyecto.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Cable, MousePointer2, X } from "lucide-react";
 import { toast } from "sonner";
 import type { CablingState } from "../cabling/use-cabling";
@@ -42,6 +42,7 @@ export function TechnicalPlan({
   const [tool, setTool] = useState<TechTool>("select");
   const [resolving, setResolving] = useState(false);
   const [resolved, setResolved] = useState<Array<{ name: string; reason: string }> | null>(null);
+  const autoRan = useRef(false);
   /** Vista del cableado: planta (recorridos reales) o diagrama de señal (esquema de puertos). */
   const [view, setView] = useState<"planta" | "diagrama">("planta");
   const [selection, setSelection] = useState<TechSelection>(null);
@@ -98,6 +99,31 @@ export function TechnicalPlan({
   }
 
   const fromPort = from ? model.ports[from.deviceId]?.find((q) => q.id === from.portId) : null;
+
+  const runResolve = useCallback(async () => {
+    if (!onResolve) return;
+    setResolving(true);
+    try {
+      const r = await onResolve();
+      if (r) {
+        setResolved(r.added);
+        toast.success(r.added.length ? `El sistema agregó ${r.added.length} equipo(s) y trazó ${r.wires} cables` : `${r.wires} cables trazados con los puertos de cada ficha`);
+      }
+    } finally {
+      setResolving(false);
+    }
+  }, [onResolve]);
+
+  // Al abrir: si no hay cables trazados, hay lugares sin equipo o algo que el sistema sabe resolver, lo resuelve solo (una vez).
+  useEffect(() => {
+    if (autoRan.current || !onResolve || !cabling.plan) return;
+    const fixable = cabling.plan.findings.some((f) => f.fix);
+    const emptySlots = scene.devices.some((d) => !d.productId && !d.generic);
+    if (!wiringOf(scene).wires.length || fixable || emptySlots) {
+      autoRan.current = true;
+      void runResolve();
+    }
+  }, [cabling.plan, onResolve, runResolve, scene]);
 
   function moveDevice(d: PlacedDevice, x: number, z: number) {
     const dev = scene.devices.find((s) => s.id === d.deviceId);
@@ -204,16 +230,7 @@ export function TechnicalPlan({
           }
           onAutoWire={async () => {
             if (onResolve) {
-              setResolving(true);
-              try {
-                const r = await onResolve();
-                if (r) {
-                  setResolved(r.added);
-                  toast.success(r.added.length ? `Se agregaron ${r.added.length} equipo(s) y se trazaron ${r.wires} cables` : `${r.wires} cables trazados con los puertos de cada ficha`);
-                }
-              } finally {
-                setResolving(false);
-              }
+              await runResolve();
               return;
             }
             if (!cabling.plan) return;

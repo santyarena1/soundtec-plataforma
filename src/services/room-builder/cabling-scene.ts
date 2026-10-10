@@ -79,10 +79,15 @@ export function cablingForScene(scene: RoomScene, category: string, profile: Cab
   const tables = resolveSceneFurniture(scene, category).filter((f) => !f.hiddenBy && TABLE_KINDS.has(f.kind));
   const table = [...tables].sort((a, b) => (b.w ?? 1) * (b.d ?? 1) - (a.w ?? 1) * (a.d ?? 1))[0];
   const hasConferencing = nodes.some((n) => n.cls === "codec" || n.cls === "camera");
-  return planCabling({
-    nodes,
+  const input = {
     dims: { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM },
     tableInput: table && hasConferencing ? { x: table.x, z: table.z, topY: TABLE_TOP_M } : null,
     central: profile.central ? { label: profile.central.label, exit: centralExit(scene) } : null,
-  });
+  };
+  const first = planCabling({ ...input, nodes });
+  // Del rack central entra solo lo que alimenta esta sala: el resto sirve a otros ambientes.
+  const unused = nodes.filter((n) => n.id.startsWith("central:") && !first.links.some((l) => l.from === n.id || l.to === n.id));
+  if (!unused.length) return first;
+  const drop = new Set(unused.map((n) => n.id));
+  return planCabling({ ...input, nodes: nodes.filter((n) => !drop.has(n.id)) });
 }
