@@ -41,7 +41,7 @@ async function main() {
         console.warn(`${id}: sin texto fuente, se omite`);
         continue;
       }
-      const kind = r.source ?? exp.kind ?? "page";
+      const kind = r.source && SOURCES.includes(r.source) ? r.source : (exp.kind ?? "page");
       readings.push({
         productId: id,
         sourceText: sourceText.trim() ? sourceText : (r.extraction.notes ?? "Sin conexiones de señal."),
