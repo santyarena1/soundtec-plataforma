@@ -11,7 +11,7 @@ import type { Signal } from "../device-ports";
 import type { IoSignal } from "../io-profile/types";
 import type { RoomScene } from "../scene";
 import { layoutSceneDevices, sceneDims } from "../units";
-import { expandIoPorts, signalFamily } from "./ports";
+import { expandIoPorts, portsFromSignals, signalFamily } from "./ports";
 import { EMPTY_WIRING, type SceneWiring, type Wire, type WireEnd, type WirePoint, type WirePort } from "./types";
 import { validateWires, wireRunM, type WireIssue } from "./validate";
 
@@ -124,6 +124,8 @@ function planPoints(route: Array<[number, number, number]>): WirePoint[] {
  * los automáticos anteriores se reemplazan.
  */
 export function autoWires(plan: CablingPlan, model: WiringModel, current: SceneWiring): SceneWiring {
+  const generic = placeholderPorts(plan, model);
+  if (Object.keys(generic).length) model = { ...model, ports: { ...model.ports, ...generic } };
   const manual = current.wires.filter((w) => w.origin === "manual");
   const taken = new Set(manual.flatMap((w) => [`${w.from.deviceId}#${w.from.unit}#${w.from.portId}`, `${w.to.deviceId}#${w.to.unit}#${w.to.portId}`]));
   const wires: Wire[] = [...manual];
@@ -149,9 +151,56 @@ export function autoWires(plan: CablingPlan, model: WiringModel, current: SceneW
     taken.add(`${a.deviceId}#${a.unit}#${fromPort}`);
     taken.add(`${b.deviceId}#${b.unit}#${toPort}`);
     const signal = (model.ports[a.deviceId] ?? []).find((p) => p.id === fromPort)?.signal ?? wanted[0]!;
-    wires.push({ id: `auto-${++n}-${link.id}`, from: { ...a, portId: fromPort }, to: { ...b, portId: toPort }, signal, cableProductId: null, label: null, points: planPoints(link.route), lengthOverrideM: null, origin: "auto" });
+    const da = model.devices.find((d) => d.deviceId === a.deviceId && d.unit === a.unit);
+    const db = model.devices.find((d) => d.deviceId === b.deviceId && d.unit === b.unit);
+    wires.push({ id: `auto-${++n}-${link.id}`, from: { ...a, portId: fromPort }, to: { ...b, portId: toPort }, signal, cableProductId: null, label: null, points: squarePoints(planPoints(link.route), da, db), lengthOverrideM: null, origin: "auto" });
   }
-  return { ...current, wires: numberLabels(wires) };
+  return { ...current, ports: { ...generic, ...current.ports }, wires: numberLabels(wires) };
+}
+
+/**
+ * Equipos sin ficha validada: puertos genéricos según los enlaces que les
+ * asignó el motor (uno por cable), para poder cablearlos igual. Quedan como
+ * puertos cargados a mano, editables, hasta que se valide la ficha.
+ */
+function placeholderPorts(plan: CablingPlan, model: WiringModel): Record<string, WirePort[]> {
+  const need = new Map<string, Map<string, number>>();
+  const add = (nodeId: string, signal: Signal, direction: "in" | "out") => {
+    const end = nodeEnd(nodeId);
+    if (!end || model.ports[end.deviceId]?.length || signal === "wireless") return;
+    const io = ENGINE_TO_IO[signal][0];
+    if (!io) return;
+    const per = need.get(end.deviceId) ?? new Map<string, number>();
+    const key = `${direction}|${io}|${end.unit}`;
+    per.set(key, (per.get(key) ?? 0) + 1);
+    need.set(end.deviceId, per);
+  };
+  for (const link of plan.links) {
+    add(link.from, link.signal, "out");
+    add(link.to, link.signal, "in");
+  }
+  const out: Record<string, WirePort[]> = {};
+  for (const [deviceId, per] of need) {
+    // Por unidad pueden variar; alcanza con el máximo de cada señal y sentido.
+    const max = new Map<string, number>();
+    for (const [key, n] of per) {
+      const [direction, io] = key.split("|");
+      const k = `${direction}|${io}`;
+      max.set(k, Math.max(max.get(k) ?? 0, n));
+    }
+    out[deviceId] = portsFromSignals([...max].map(([k, count]) => {
+      const [direction, signal] = k.split("|") as ["in" | "out", IoSignal];
+      return { signal, direction, count };
+    }));
+  }
+  return out;
+}
+
+/** Sin quiebres y con puntas desalineadas: un quiebre a escuadra (como se tiende en obra). */
+function squarePoints(points: WirePoint[], a: { x: number; z: number } | undefined, b: { x: number; z: number } | undefined): WirePoint[] {
+  if (points.length || !a || !b) return points;
+  if (Math.abs(a.x - b.x) < 0.05 || Math.abs(a.z - b.z) < 0.05) return points;
+  return [{ x: Math.round(b.x * 100) / 100, z: Math.round(a.z * 100) / 100 }];
 }
 
 /** Etiquetas de obra correlativas por señal para los cables que no tienen ("HDMI-001"). */

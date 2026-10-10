@@ -1849,4 +1849,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Validación de cada cable: señal compatible, sentido, puerto ocupado y largo máximo por señal." },
     ],
   },
+  {
+    version: "1.66.1",
+    releasedAt: "2026-10-13T06:00:00.000Z",
+    summary: "Plano técnico: el trazado automático cablea todos los parlantes y los equipos sin ficha validada.",
+    items: [
+      { kind: "MEJORA", text: "Equipos sin ficha validada reciben puertos genéricos (editables) para poder cablearlos igual." },
+      { kind: "MEJORA", text: "Los cables automáticos van a escuadra en vez de en diagonal." },
+      { kind: "MEJORA", text: "Puertos con rango en la ficha (CH1-CH4, OUT 1-OUT 8) se separan bien." },
+      { kind: "MEJORA", text: "Resumen con lo que falta para cablear todo (canales que no alcanzan, equipos sin ficha)." },
+      { kind: "FIX", text: "El botón \"Trazar cables automáticamente\" no se veía." },
+    ],
+  },
 ];

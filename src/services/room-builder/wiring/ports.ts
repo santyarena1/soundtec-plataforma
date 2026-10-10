@@ -7,11 +7,17 @@
 import type { IoPort, IoSignal } from "../io-profile/types";
 import { WIRE_SIGNAL_STYLE, type WirePort } from "./types";
 
-/** "HDMI IN 1-4" → { base: "HDMI IN", from: 1 }; "COM" → null. */
-function rangeOf(label: string): { base: string; from: number } | null {
-  const m = /^(.*?)(\d+)\s*[-–a]\s*(\d+)\s*$/.exec(label.trim());
+/**
+ * Rango numerado del rótulo: "HDMI IN 1-4" → { base: "HDMI IN", from: 1 },
+ * "CH1-CH4" → { base: "CH", from: 1, joined: true }, "OUT 1-OUT 8" → "OUT" desde 1.
+ */
+function rangeOf(label: string): { base: string; from: number; joined: boolean } | null {
+  const t = label.trim();
+  const repeated = /^(.*?)(\s?)(\d+)\s*[-–]\s*\1\s?(\d+)\s*$/.exec(t);
+  if (repeated) return { base: repeated[1]!.trim(), from: Number(repeated[3]), joined: !repeated[2] };
+  const m = /^(.*?)(\s?)(\d+)\s*[-–a]\s*(\d+)\s*$/.exec(t);
   if (!m) return null;
-  return { base: m[1]!.trim(), from: Number(m[2]) };
+  return { base: m[1]!.trim(), from: Number(m[3]), joined: !m[2] && m[1]!.length > 0 };
 }
 
 /** Puertos individuales a partir de los grupos de la ficha, con ids estables. */
@@ -22,7 +28,7 @@ export function expandIoPorts(groups: IoPort[]): WirePort[] {
     const n = Math.max(1, Math.round(g.count || 1));
     const range = rangeOf(g.label);
     for (let i = 0; i < n; i++) {
-      const label = range ? `${range.base} ${range.from + i}` : n > 1 ? `${g.label.trim()} ${i + 1}` : g.label.trim() || WIRE_SIGNAL_STYLE[g.signal].label;
+      const label = range ? `${range.base}${range.joined ? "" : " "}${range.from + i}`.trim() : n > 1 ? `${g.label.trim()} ${i + 1}` : g.label.trim() || WIRE_SIGNAL_STYLE[g.signal].label;
       let id = `${g.direction}:${g.signal}:${i + 1}`;
       for (let k = 2; used.has(id); k++) id = `${g.direction}:${g.signal}:${i + 1}-${k}`;
       used.add(id);

@@ -66,7 +66,7 @@ export const WIRE_SIGNAL_STYLE: Record<IoSignal, { label: string; color: string 
   dante: { label: "Dante / audio en red", color: "#0d9488" },
   "analog-audio": { label: "Audio analógico", color: "#16a34a" },
   mic: { label: "Micrófono", color: "#22c55e" },
-  speaker: { label: "Parlante", color: "#a3a3a3" },
+  speaker: { label: "Parlante", color: "#57534e" },
   "digital-audio": { label: "Audio digital S/PDIF", color: "#ca8a04" },
   rs232: { label: "Control RS-232", color: "#06b6d4" },
   rs485: { label: "RS-485", color: "#0891b2" },

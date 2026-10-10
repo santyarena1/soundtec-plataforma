@@ -19,6 +19,7 @@ import type { TechSelection } from "./technical-canvas";
 
 const input = "w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-[#1e3553] focus:outline-none focus:ring-2 focus:ring-[#1e3553]/15";
 const btn = "inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50";
+const primary = "inline-flex items-center gap-1.5 rounded-md bg-[#1e3553] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#162a44] disabled:opacity-50";
 
 /** Familia de señal → grupo de cables del catálogo. */
 const CABLE_GROUP: Record<string, CableProduct["signal"] | null> = { hdmi: "hdmi", usb: "usb", net: "utp", hdbaset: "utp", speaker: "speaker", audio: "line", rs232: "rs232" };
@@ -28,6 +29,8 @@ type Props = {
   selection: TechSelection;
   catalog: CableProduct[] | null;
   autoAvailable: boolean;
+  /** Avisos del sistema (canales que no alcanzan, equipos sin ficha, equipos sin conectar). */
+  systemNotes: Array<{ level: string; title: string; detail: string }>;
   onSelect: (s: TechSelection) => void;
   onUpdateWire: (id: string, patch: Partial<Wire>) => void;
   onDeleteWire: (id: string) => void;
@@ -70,7 +73,7 @@ function SummaryPanel(p: Props) {
         <Stat label="Cables" value={p.model.wires.length} />
       </div>
       <div className="space-y-1.5">
-        <button type="button" className={`${btn} w-full justify-center bg-[#1e3553] text-white hover:bg-[#162a44]`} disabled={!p.autoAvailable} onClick={p.onAutoWire}>
+        <button type="button" className={`${primary} w-full justify-center`} disabled={!p.autoAvailable} onClick={p.onAutoWire}>
           <Wand2 className="h-3.5 w-3.5" /> Trazar cables automáticamente
         </button>
         <p className="text-[11px] leading-snug text-slate-500">Propone todo el conexionado con los puertos reales de cada ficha. Lo que tocaste a mano queda fijo; los cables automáticos anteriores se rehacen.</p>
@@ -80,6 +83,17 @@ function SummaryPanel(p: Props) {
           </button>
         ) : null}
       </div>
+      {p.systemNotes.length ? (
+        <div className="space-y-1">
+          <p className="font-semibold text-slate-700">Lo que falta para cablear todo</p>
+          {p.systemNotes.map((n, k) => (
+            <div key={k} className={`rounded-md px-2 py-1.5 ${n.level === "error" ? "bg-rose-50 text-rose-900" : "bg-amber-50 text-amber-900"}`}>
+              <p className="font-semibold">{n.title}</p>
+              <p className="text-[11px] leading-snug">{n.detail}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
       {errors.length || warns.length ? (
         <div className="space-y-1">
           <p className="font-semibold text-slate-700">Avisos</p>
@@ -318,7 +332,7 @@ function SignalEditor({ onSave }: { onSave: (ports: WirePort[]) => void }) {
       </ul>
       <button
         type="button"
-        className={`${btn} bg-[#1e3553] text-white hover:bg-[#162a44]`}
+        className={primary}
         onClick={() => onSave(portsFromSignals(Object.entries(rows).filter(([, r]) => r.on).map(([s, r]) => ({ signal: s as IoSignal, direction: r.direction, count: r.count }))).map((q) => ({ ...q, source: "manual" as const })))}
       >
         Guardar puertos

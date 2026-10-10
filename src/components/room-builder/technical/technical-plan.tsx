@@ -147,6 +147,7 @@ export function TechnicalPlan({
           selection={selection}
           catalog={cabling.catalog}
           autoAvailable={Boolean(cabling.plan)}
+          systemNotes={(cabling.plan?.findings ?? []).filter((f) => f.level === "error" || f.level === "warn").map((f) => ({ level: f.level, title: f.title, detail: f.detail }))}
           onSelect={setSelection}
           onUpdateWire={(id, patch) => setWiring((w) => ({ ...w, wires: w.wires.map((x) => (x.id === id ? { ...x, ...patch } : x)) }))}
           onDeleteWire={(id) => {

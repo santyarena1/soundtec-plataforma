@@ -87,3 +87,22 @@ test("propuesta automática → cables editables: puertos libres de la señal, c
   assert.deepEqual(auto.points, [{ x: 3, z: 0 }], "quiebre en planta");
   assert.equal(auto.label, "HDMI-001");
 });
+
+test("rótulos de rango: CH1-CH4, OUT 1-OUT 8, ZONE 1-4", () => {
+  const labels = (l: string, n: number) => expandIoPorts([io("speaker", "out", n, l)]).map((p) => p.label);
+  assert.deepEqual(labels("CH1-CH4", 4), ["CH1", "CH2", "CH3", "CH4"]);
+  assert.deepEqual(labels("OUT 1-OUT 8", 3), ["OUT 1", "OUT 2", "OUT 3"]);
+  assert.deepEqual(labels("ZONE 1-4", 2), ["ZONE 1", "ZONE 2"]);
+});
+
+test("equipo sin ficha: puertos genéricos por enlace para cablear todos los parlantes", async () => {
+  const { autoWires } = await import("./model");
+  const model = { devices: [], ports: { amp: [] as never[], s1: [], s2: [], s3: [] }, wires: [], issues: [] };
+  const link = (n: number) => ({ id: `l${n}`, from: "amp#0", to: `s${n}#0`, signal: "speaker", fromPort: "", toPort: "", route: [], runM: 0, cableM: 0 });
+  const plan = { nodes: [], links: [link(1), link(2), link(3)], findings: [], totals: [], missing: [] } as never;
+  const out = autoWires(plan, model as never, { version: 1, wires: [], ports: {} });
+  assert.equal(out.wires.length, 3, "los tres parlantes quedan cableados");
+  assert.equal(out.ports.amp!.length, 3);
+  assert.equal(out.ports.amp![0]!.source, "generic");
+  assert.equal(new Set(out.wires.map((w) => w.from.portId)).size, 3, "una salida por parlante");
+});
