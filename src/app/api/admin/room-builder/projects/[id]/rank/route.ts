@@ -66,6 +66,8 @@ export async function GET(
     limit: 40,
     processorKind: processorKindForSlot(slot?.key ?? "", effectiveRole),
     preferredBrands: preferredBrandsForSlot(brief, effectiveRole, slot?.key ?? ""),
+    // El lugar define el tipo puntual (teclado, subwoofer, exterior…), igual que al autocompletar.
+    slotKey: slot?.key,
   });
 
   return NextResponse.json({
