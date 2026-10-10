@@ -188,11 +188,26 @@ export function layoutDiagram(model: WiringModel, positions: DiagramPositions = 
     }
     x += (sub + 1) * (BLOCK_W + SUB_GAP) - SUB_GAP + COL_GAP;
   }
-  for (const b of blocks) {
+  const pinned = blocks.filter((b) => {
     const saved = positions[b.key];
-    if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
-      b.x = saved.x;
-      b.y = saved.y;
+    if (!saved || !Number.isFinite(saved.x) || !Number.isFinite(saved.y)) return false;
+    b.x = saved.x;
+    b.y = saved.y;
+    return true;
+  });
+  // Equipos nuevos en un diagrama ya acomodado a mano: van debajo de todo, sin pisar nada.
+  if (pinned.length) {
+    const pinnedKeys = new Set(pinned.map((b) => b.key));
+    let y = Math.max(...pinned.map((b) => b.y + b.h)) + ROW_GAP * 2;
+    let x = MARGIN;
+    for (const b of blocks.filter((q) => !pinnedKeys.has(q.key))) {
+      b.x = x;
+      b.y = y;
+      x += BLOCK_W + SUB_GAP;
+      if (x > MARGIN + 4 * (BLOCK_W + SUB_GAP)) {
+        x = MARGIN;
+        y += b.h + ROW_GAP;
+      }
     }
   }
 

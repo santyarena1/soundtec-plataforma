@@ -35,7 +35,8 @@ type Props = {
   wireless: CableLink[];
   onSelect: (s: TechSelection) => void;
   onConnect: (a: End, b: End) => void;
-  onMoveBlock: (key: string, x: number, y: number) => void;
+  /** Al mover un bloque se fija la posición de todos (el diagrama deja de reacomodarse solo). */
+  onMoveBlocks: (positions: DiagramPositions) => void;
   onResetLayout: () => void;
 };
 
@@ -112,7 +113,7 @@ export function TechnicalDiagram(p: Props) {
   function onPointerUp() {
     if (drag?.kind === "block") {
       const pos = live[drag.key];
-      if (drag.moved && pos) p.onMoveBlock(drag.key, pos.x, pos.y);
+      if (drag.moved && pos) p.onMoveBlocks({ ...Object.fromEntries(d.blocks.map((b) => [b.key, { x: b.x, y: b.y }])), [drag.key]: pos });
       if (!drag.moved) {
         const b = d.blocks.find((x) => x.key === drag.key);
         if (b) p.onSelect({ kind: "device", deviceId: b.deviceId, unit: b.unit });
@@ -184,7 +185,7 @@ export function TechnicalDiagram(p: Props) {
         </select>
       </div>
       {pending ? (
-        <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-full bg-[#1e3553] px-3 py-1.5 text-xs font-semibold text-white shadow">
+        <div className="absolute left-1/2 top-12 z-10 -translate-x-1/2 rounded-full bg-[#1e3553] px-3 py-1.5 text-xs font-semibold text-white shadow">
           Desde {pending.port.label}: tocá un puerto compatible (resaltado) · Esc cancela
         </div>
       ) : null}

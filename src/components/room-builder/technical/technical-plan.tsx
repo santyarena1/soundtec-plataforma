@@ -120,7 +120,7 @@ export function TechnicalPlan({
             wireless={(cabling.plan?.links ?? []).filter((l) => l.signal === "wireless")}
             onSelect={setSelection}
             onConnect={addWire}
-            onMoveBlock={(key, x, y) => setWiring((w) => ({ ...w, diagram: { ...(w.diagram ?? {}), [key]: { x, y } } }))}
+            onMoveBlocks={(positions) => setWiring((w) => ({ ...w, diagram: positions }))}
             onResetLayout={() => setWiring((w) => ({ ...w, diagram: {} }))}
           />
         ) : (
