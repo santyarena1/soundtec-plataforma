@@ -8,8 +8,10 @@ import { prisma } from "@/lib/prisma";
 import { cablingProfile } from "./cabling-db";
 import type { CableLink } from "./cabling";
 import { cablingForScene } from "./cabling-scene";
+
 import { getRoomProject } from "./project-service";
-import { parseScene } from "./scene";
+import { parseScene, type ProjectTechnicalSettings } from "./scene";
+import { centralExit } from "./cabling-scene";
 import { buildWiringModel, type PlacedDevice, type WiringModel } from "./wiring/model";
 import { WIRE_SIGNAL_STYLE, type Wire, type WirePort } from "./wiring/types";
 
@@ -28,8 +30,28 @@ export type ScheduleRow = {
 };
 export type EquipmentRow = { room: string; name: string; brand: string | null; quantity: number; productId: string | null; generic: boolean; missing: string[] };
 export type MaterialRow = { signal: string; cables: number; meters: number };
+/** Un ambiente en la planta del proyecto: su recuadro en el plano, sus equipos y cables (m de la sala). */
+export type FloorRoom = {
+  id: string;
+  name: string;
+  level: string;
+  widthM: number;
+  depthM: number;
+  box: { x0: number; y0: number; x1: number; y1: number } | null;
+  exit: { x: number; z: number };
+  devices: Array<{ x: number; z: number; short: string; role: string }>;
+  wires: Array<{ color: string; label: string | null; pts: Array<{ x: number; z: number }> }>;
+  /** Cables que salen hacia el rack central, por tipo. */
+  trunk: Record<string, number>;
+};
+export type ProjectFloor = {
+  image: { url: string; widthPx: number; heightPx: number } | null;
+  rack: { u: number; v: number } | null;
+  rooms: FloorRoom[];
+};
 export type ProjectTechnical = {
   model: WiringModel;
+  floor: ProjectFloor;
   /** Enlaces inalámbricos (cliente → gateway/receptor) de todos los ambientes. */
   wireless: CableLink[];
   rooms: Array<{ id: string; name: string; wires: number; devices: number }>;
@@ -58,6 +80,11 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
   const seenCentral = new Set<string>();
   const cableIds = new Set<string>();
   const wireless: CableLink[] = [];
+  const hubSceneRaw = (hub.sceneJson && typeof hub.sceneJson === "object" ? hub.sceneJson : {}) as Record<string, unknown>;
+  const settings = (hubSceneRaw.technical ?? {}) as ProjectTechnicalSettings;
+  const planRooms = Array.isArray(hubSceneRaw.planRooms) ? (hubSceneRaw.planRooms as Array<{ projectId: string; box: FloorRoom["box"] }>) : [];
+  const planImage = (hubSceneRaw.planImage ?? null) as ProjectFloor["image"];
+  const floorRooms: FloorRoom[] = [];
 
   for (const child of hub.children) {
     const space = await getRoomProject(child.id);
@@ -107,6 +134,28 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
       equipment.push({ room: space.name, name: d.generic?.name ?? d.productName ?? d.label, brand: d.brandName ?? null, quantity: Math.max(1, d.quantity || 1) * Math.max(1, space.unitCount), productId: d.productId, generic: Boolean(d.generic), missing });
     }
     rooms.push({ id: space.id, name: space.name, wires: m.wires.length, devices: m.devices.filter((d) => !d.remote).length });
+    // Planta: equipos y recorridos de la sala, y la troncal que va al rack.
+    const pos = new Map(m.devices.map((d) => [`${d.deviceId}#${d.unit}`, d]));
+    const trunk: Record<string, number> = {};
+    const exit = centralExit(scene);
+    floorRooms.push({
+      id: space.id,
+      name: space.name,
+      level: settings.levels?.[space.id] ?? "Planta baja",
+      widthM: scene.widthM,
+      depthM: scene.depthM,
+      box: planRooms.find((r) => r.projectId === space.id)?.box ?? null,
+      exit,
+      devices: m.devices.filter((d) => !d.remote).map((d) => ({ x: d.x, z: d.z, short: d.short, role: d.role })),
+      wires: m.wires.map((w) => {
+        const a = pos.get(`${w.from.deviceId}#${w.from.unit}`);
+        const b = pos.get(`${w.to.deviceId}#${w.to.unit}`);
+        if (a?.remote || b?.remote) trunk[WIRE_SIGNAL_STYLE[w.signal].label] = (trunk[WIRE_SIGNAL_STYLE[w.signal].label] ?? 0) + 1;
+        const ends = [a?.remote ? exit : a, ...w.points, b?.remote ? exit : b].filter((p): p is { x: number; z: number } => Boolean(p));
+        return { color: WIRE_SIGNAL_STYLE[w.signal].color, label: w.label, pts: ends.map((p) => ({ x: p.x, z: p.z })) };
+      }),
+      trunk,
+    });
   }
 
   // Equipamiento central del proyecto (rack).
@@ -136,6 +185,7 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
 
   return {
     model: { devices, ports, wires, issues: [] },
+    floor: { image: planImage, rack: settings.rack ?? null, rooms: floorRooms },
     wireless,
     rooms,
     schedule,

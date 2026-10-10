@@ -12,9 +12,10 @@ import { toast } from "sonner";
 import type { DiagramPositions } from "@/services/room-builder/wiring/diagram-layout";
 import type { ProjectTechnical } from "@/services/room-builder/project-technical";
 import { TechnicalDiagram } from "./technical-diagram";
+import { ProjectFloorPlan } from "./project-floor-plan";
 import type { TechSelection } from "./technical-canvas";
 
-type Tab = "diagrama" | "planilla" | "materiales";
+type Tab = "planta" | "diagrama" | "planilla" | "materiales";
 
 function csv(rows: Array<Array<string | number | null>>): string {
   return rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
@@ -32,7 +33,7 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
   const [data, setData] = useState<ProjectTechnical | null>(null);
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState(false);
-  const [tab, setTab] = useState<Tab>("diagrama");
+  const [tab, setTab] = useState<Tab>("planta");
   const [positions, setPositions] = useState<DiagramPositions>({});
   const [selection, setSelection] = useState<TechSelection>(null);
 
@@ -94,7 +95,7 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex rounded-lg border border-slate-300 bg-white p-0.5" role="tablist">
-          {([["diagrama", "Diagrama general"], ["planilla", "Planilla de cables"], ["materiales", "Equipos y materiales"]] as const).map(([k, label]) => (
+          {([["planta", "Planta del proyecto"], ["diagrama", "Diagrama general"], ["planilla", "Planilla de cables"], ["materiales", "Equipos y materiales"]] as const).map(([k, label]) => (
             <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`rounded-md px-3 py-1 text-xs font-semibold ${tab === k ? "bg-[#1e3553] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
               {label}
             </button>
@@ -109,6 +110,22 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
           </button>
         </div>
       </div>
+
+      {tab === "planta" ? (
+        <ProjectFloorPlan
+          floor={data.floor}
+          onSaveRack={async (rack) => {
+            const res = await fetch(`/api/admin/room-builder/projects/${hubId}/technical`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rack }) }).then((r) => r.json()).catch(() => null);
+            if (!res?.ok) toast.error("No se pudo guardar la ubicación del rack");
+            else setData((d) => (d ? { ...d, floor: { ...d.floor, rack } } : d));
+          }}
+          onSaveLevel={async (roomId, level) => {
+            setData((d) => (d ? { ...d, floor: { ...d.floor, rooms: d.floor.rooms.map((r) => (r.id === roomId ? { ...r, level } : r)) } } : d));
+            const res = await fetch(`/api/admin/room-builder/projects/${hubId}/technical`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ levels: { [roomId]: level } }) }).then((r) => r.json()).catch(() => null);
+            if (!res?.ok) toast.error("No se pudo guardar el piso");
+          }}
+        />
+      ) : null}
 
       {tab === "diagrama" ? (
         <div className="h-[70vh] overflow-hidden rounded-xl border border-slate-200 bg-white">

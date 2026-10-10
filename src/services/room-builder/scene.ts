@@ -13,6 +13,14 @@ import type { RoomBrief } from "./brief";
 import type { DeviceUnit } from "./units";
 import type { FurnitureItem, FurnitureOverrides } from "./furnishing";
 
+/** Datos técnicos del proyecto (contenedor): dónde va el rack y en qué piso está cada ambiente. */
+export type ProjectTechnicalSettings = {
+  /** Ubicación del rack: en el plano (0..1 de la imagen) o en la planta esquemática (m). */
+  rack?: { u: number; v: number } | null;
+  /** Piso de cada ambiente (id del ambiente → nombre del piso). */
+  levels?: Record<string, string>;
+};
+
 export type SceneDevice = {
   id: string;
   slotKey: string;

@@ -1998,4 +1998,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "El diagrama del proyecto muestra los enlaces inalámbricos (teclados y dimmers infiNET con su gateway)." },
     ],
   },
+  {
+    id: "ship-2026-10-10-planta-proyecto",
+    version: "1.77.0",
+    releasedAt: "2026-10-13T19:00:00.000Z",
+    summary: "Planta del proyecto: todos los ambientes, el rack y las troncales, separada por pisos.",
+    items: [
+      { kind: "NUEVO", text: "Pestaña Planta del proyecto: cada ambiente con sus equipos y cables, sobre el plano subido o en una planta esquemática a escala." },
+      { kind: "NUEVO", text: "Rack central arrastrable a su ubicación real; troncales desde el rack a la salida de cada ambiente con la cantidad de cables por tipo." },
+      { kind: "NUEVO", text: "Pisos: cada ambiente se asigna a su piso y la planta se separa por piso." },
+    ],
+  },
 ];
