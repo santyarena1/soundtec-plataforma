@@ -2009,4 +2009,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Pisos: cada ambiente se asigna a su piso y la planta se separa por piso." },
     ],
   },
+  {
+    id: "ship-2026-10-10-planta-rediseno",
+    version: "1.78.0",
+    releasedAt: "2026-10-13T21:00:00.000Z",
+    summary: "Planta del proyecto rediseñada: ambientes arrastrables, equipos por color y detalle en panel lateral.",
+    items: [
+      { kind: "MEJORA", text: "Los ambientes se arrastran para armar la planta real de la casa y la posición queda guardada." },
+      { kind: "MEJORA", text: "Equipos como puntos de color por categoría (nombre al pasar el mouse), sin textos encimados; cableado interno con botón para mostrarlo." },
+      { kind: "MEJORA", text: "Troncales ortogonales por pasillo con la cantidad de cables en la salida; al tocar un ambiente se ven cables por tipo, metros al rack y equipos." },
+    ],
+  },
 ];

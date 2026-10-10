@@ -10,6 +10,7 @@ import type { Prisma } from "@prisma/client";
 const settingsSchema = z.object({
   rack: z.object({ u: z.number().min(-1000).max(1000), v: z.number().min(-1000).max(1000) }).nullable().optional(),
   levels: z.record(z.string().min(1).max(64), z.string().min(1).max(40)).optional(),
+  roomPos: z.record(z.string().min(1).max(64), z.object({ x: z.number().min(-10000).max(10000), y: z.number().min(-10000).max(10000) })).optional(),
 });
 
 /** Ubicación del rack en la planta del proyecto y piso de cada ambiente. */
@@ -24,6 +25,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const technical = {
     ...current,
     ...(parsed.data.rack !== undefined ? { rack: parsed.data.rack } : {}),
+    ...(parsed.data.roomPos ? { roomPos: { ...((current.roomPos as Record<string, unknown>) ?? {}), ...parsed.data.roomPos } } : {}),
     ...(parsed.data.levels ? { levels: { ...((current.levels as Record<string, string>) ?? {}), ...parsed.data.levels } } : {}),
   };
   await prisma.roomProject.update({ where: { id: params.id }, data: { sceneJson: { ...scene, technical } as unknown as Prisma.InputJsonValue } });

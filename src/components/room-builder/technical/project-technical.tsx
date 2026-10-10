@@ -119,6 +119,11 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
             if (!res?.ok) toast.error("No se pudo guardar la ubicación del rack");
             else setData((d) => (d ? { ...d, floor: { ...d.floor, rack } } : d));
           }}
+          onSaveRoomPos={async (roomId, pos) => {
+            setData((d) => (d ? { ...d, floor: { ...d.floor, rooms: d.floor.rooms.map((r) => (r.id === roomId ? { ...r, pos } : r)) } } : d));
+            const res = await fetch(`/api/admin/room-builder/projects/${hubId}/technical`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roomPos: { [roomId]: pos } }) }).then((r) => r.json()).catch(() => null);
+            if (!res?.ok) toast.error("No se pudo guardar la posición del ambiente");
+          }}
           onSaveLevel={async (roomId, level) => {
             setData((d) => (d ? { ...d, floor: { ...d.floor, rooms: d.floor.rooms.map((r) => (r.id === roomId ? { ...r, level } : r)) } } : d));
             const res = await fetch(`/api/admin/room-builder/projects/${hubId}/technical`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ levels: { [roomId]: level } }) }).then((r) => r.json()).catch(() => null);

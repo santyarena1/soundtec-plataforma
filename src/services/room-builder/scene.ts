@@ -19,6 +19,8 @@ export type ProjectTechnicalSettings = {
   rack?: { u: number; v: number } | null;
   /** Piso de cada ambiente (id del ambiente → nombre del piso). */
   levels?: Record<string, string>;
+  /** Posición de cada ambiente en la planta esquemática (px), cuando no hay plano subido. */
+  roomPos?: Record<string, { x: number; y: number }>;
 };
 
 export type SceneDevice = {

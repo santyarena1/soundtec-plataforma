@@ -39,10 +39,14 @@ export type FloorRoom = {
   depthM: number;
   box: { x0: number; y0: number; x1: number; y1: number } | null;
   exit: { x: number; z: number };
-  devices: Array<{ x: number; z: number; short: string; role: string }>;
+  devices: Array<{ x: number; z: number; short: string; label: string; role: string; cls: string | null }>;
   wires: Array<{ color: string; label: string | null; pts: Array<{ x: number; z: number }> }>;
   /** Cables que salen hacia el rack central, por tipo. */
   trunk: Record<string, number>;
+  /** Metros de cable del ambiente al rack. */
+  trunkMeters: number;
+  /** Posición guardada en la planta esquemática (px). */
+  pos: { x: number; y: number } | null;
 };
 export type ProjectFloor = {
   image: { url: string; widthPx: number; heightPx: number } | null;
@@ -137,6 +141,7 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
     // Planta: equipos y recorridos de la sala, y la troncal que va al rack.
     const pos = new Map(m.devices.map((d) => [`${d.deviceId}#${d.unit}`, d]));
     const trunk: Record<string, number> = {};
+    let trunkMeters = 0;
     const exit = centralExit(scene);
     floorRooms.push({
       id: space.id,
@@ -146,15 +151,20 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
       depthM: scene.depthM,
       box: planRooms.find((r) => r.projectId === space.id)?.box ?? null,
       exit,
-      devices: m.devices.filter((d) => !d.remote).map((d) => ({ x: d.x, z: d.z, short: d.short, role: d.role })),
+      devices: m.devices.filter((d) => !d.remote).map((d) => ({ x: d.x, z: d.z, short: d.short, label: d.label, role: d.role, cls: d.cls ?? null })),
       wires: m.wires.map((w) => {
         const a = pos.get(`${w.from.deviceId}#${w.from.unit}`);
         const b = pos.get(`${w.to.deviceId}#${w.to.unit}`);
-        if (a?.remote || b?.remote) trunk[WIRE_SIGNAL_STYLE[w.signal].label] = (trunk[WIRE_SIGNAL_STYLE[w.signal].label] ?? 0) + 1;
+        if (a?.remote || b?.remote) {
+          trunk[WIRE_SIGNAL_STYLE[w.signal].label] = (trunk[WIRE_SIGNAL_STYLE[w.signal].label] ?? 0) + 1;
+          trunkMeters += w.lengthM;
+        }
         const ends = [a?.remote ? exit : a, ...w.points, b?.remote ? exit : b].filter((p): p is { x: number; z: number } => Boolean(p));
         return { color: WIRE_SIGNAL_STYLE[w.signal].color, label: w.label, pts: ends.map((p) => ({ x: p.x, z: p.z })) };
       }),
       trunk,
+      trunkMeters: Math.round(trunkMeters),
+      pos: settings.roomPos?.[space.id] ?? null,
     });
   }
 
