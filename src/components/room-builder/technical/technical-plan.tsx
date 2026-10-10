@@ -29,6 +29,7 @@ export function TechnicalPlan({
   cabling,
   onSceneChange,
   onUnitsChange,
+  onEditDevice,
   onResolve,
 }: {
   scene: RoomScene;
@@ -37,6 +38,8 @@ export function TechnicalPlan({
   onSceneChange: (next: RoomScene) => void;
   onUnitsChange: (slotKey: string, units: DeviceUnit[]) => void;
   /** Resolver y trazar en el servidor: devuelve la escena nueva (con lo agregado y los cables). */
+  /** Tocar un equipo lo abre para editarlo en el panel de equipos (cambiar producto, cantidad, quitar). */
+  onEditDevice?: (deviceId: string) => void;
   onResolve?: () => Promise<{ added: Array<{ name: string; reason: string; catalog?: boolean }>; removed?: Array<{ name: string; reason: string }>; remaining: Array<{ title: string; detail: string; fix?: unknown }>; wires: number } | null>;
 }) {
   const [tool, setTool] = useState<TechTool>("select");
@@ -46,6 +49,10 @@ export function TechnicalPlan({
   /** Vista del cableado: planta (recorridos reales) o diagrama de señal (esquema de puertos). */
   const [view, setView] = useState<"planta" | "diagrama">("planta");
   const [selection, setSelection] = useState<TechSelection>(null);
+  // Equipo seleccionado en planta o diagrama → se abre en el panel de equipos.
+  useEffect(() => {
+    if (selection?.kind === "device" && !selection.deviceId.startsWith("central:")) onEditDevice?.(selection.deviceId);
+  }, [selection, onEditDevice]);
   const [from, setFrom] = useState<End | null>(null);
   const [picker, setPicker] = useState<Picker | null>(null);
 

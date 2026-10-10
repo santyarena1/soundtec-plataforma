@@ -146,10 +146,10 @@ export function RoomBuilderEditor({
   const cabling = useCabling(project.id, scene, project.category);
   const [showCables, setShowCables] = useState(false);
   /** Vista principal: el modelo 3D o el plano técnico (planta, diagrama de señal y cableado), en la misma pantalla. */
-  const [view, setView] = useState<"3d" | "tecnico">("3d");
-  // ?view=tecnico abre directo en el plano técnico (se lee en el navegador, después de hidratar).
+  // El sistema (equipos y conexionado) es lo principal: se abre en el plano técnico; el 3D es la presentación.
+  const [view, setView] = useState<"3d" | "tecnico">("tecnico");
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("view") === "tecnico") setView("tecnico");
+    if (new URLSearchParams(window.location.search).get("view") === "3d") setView("3d");
   }, []);
   const [proposalBusy, setProposalBusy] = useState(false);
   const snapshotRef = useRef<SnapshotFn | null>(null);
@@ -601,7 +601,7 @@ export function RoomBuilderEditor({
           </div>
           <div className="flex shrink-0 flex-wrap gap-1.5">
             <div className="flex rounded-md border border-slate-300 bg-slate-50 p-0.5" role="tablist" aria-label="Vista">
-              {(["3d", "tecnico"] as const).map((v) => (
+              {(["tecnico", "3d"] as const).map((v) => (
                 <button
                   key={v}
                   type="button"
@@ -675,6 +675,10 @@ export function RoomBuilderEditor({
                 void persistScene(next);
               }}
               onUnitsChange={onUnitsChange}
+              onEditDevice={(deviceId) => {
+                const d = scene.devices.find((x) => x.id === deviceId);
+                if (d && scene.selectedSlotKey !== d.slotKey) onSelectSlot(d.slotKey);
+              }}
               onResolve={async () => {
                 const res = await fetch(`/api/admin/room-builder/projects/${project.id}/cabling`, { method: "POST" });
                 const json = await res.json().catch(() => null);
@@ -712,7 +716,8 @@ export function RoomBuilderEditor({
         </div>
       </div>
 
-      {view === "3d" ? (
+      {/* Panel de equipos: en el plano técnico va a la izquierda (elegir, cambiar, agregar, quitar). */}
+      <div className={`flex min-h-0 ${view === "tecnico" ? "xl:order-first" : ""}`}>
       <EditorSidebar
         projectId={project.id}
         category={project.category}
@@ -743,7 +748,7 @@ export function RoomBuilderEditor({
         onShowCables={setShowCables}
         onOpenTechnical={() => setView("tecnico")}
       />
-      ) : null}
+      </div>
     </div>
   );
 }

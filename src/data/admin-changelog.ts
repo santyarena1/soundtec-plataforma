@@ -1976,4 +1976,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "La fuente de música del rack central ya no se suma en cada ambiente; teclados y dimmers vacíos se completan con productos del catálogo." },
     ],
   },
+  {
+    id: "ship-2026-10-10-tecnico-primero",
+    version: "1.75.0",
+    releasedAt: "2026-10-13T17:00:00.000Z",
+    summary: "El sistema primero: el editor abre en el plano técnico y desde ahí se arma y se cambia todo.",
+    items: [
+      { kind: "MEJORA", text: "El ambiente abre en el Plano técnico; el 3D queda como presentación." },
+      { kind: "NUEVO", text: "Panel de equipos a la izquierda del plano técnico: elegir producto, cambiarlo, agregar del catálogo o genérico, cantidades y quitar, sin salir del conexionado." },
+      { kind: "MEJORA", text: "Tocar un equipo en la planta o el diagrama lo abre en el panel para cambiarlo." },
+    ],
+  },
 ];
