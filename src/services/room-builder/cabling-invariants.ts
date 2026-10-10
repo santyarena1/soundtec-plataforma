@@ -71,6 +71,12 @@ export function auditCabling(plan: CablingPlan, dims: { widthM: number; depthM: 
     const node = byId.get(id);
     if (!node || node.virtual || !node.ports) continue;
     const have = portCount(node.ports, side, signal);
+    // Salidas de parlante: varios parlantes por canal; el tope (2 en baja impedancia) se controla abajo por canal.
+    if (side === "outputs" && (signal as string) === "speaker") {
+      const lowZ = node.ports.lineVoltage !== "70v" && node.ports.lineVoltage !== "100v" && node.ports.lineVoltage !== "both";
+      if (lowZ && n > have * 2 && !plan.findings.some((f) => /canal|amplific/i.test(f.title))) v.push({ rule: "canal-sobrecargado-sin-aviso", detail: `${node.label}: ${n} parlantes en ${have} canales` });
+      continue;
+    }
     if (n > have && !plan.findings.some((f) => f.id.startsWith("ports-") && f.detail.includes(node.label))) v.push({ rule: "puertos-excedidos-sin-aviso", detail: `${node.label}: ${n}/${have} ${signal}` });
   }
 

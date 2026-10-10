@@ -501,6 +501,8 @@ export function planCabling(input: CablingInput): CablingPlan {
     const [id, side, signal] = key.split("|") as [string, "in" | "out", Signal];
     const node = nodes.find((x) => x.id === id);
     if (!node || node.virtual || signal === "lan" || signal === "dante" || signal === "wireless") continue;
+    // Salidas de parlante: varios parlantes por canal (lo controla la asignación de canales).
+    if (signal === "speaker" && side === "out") continue;
     const have = portCount(node.ports, side === "in" ? "inputs" : "outputs", signal);
     if (n > have) findings.push({ id: `ports-${key}`, level: "error", title: `Faltan puertos ${SIGNAL_INFO[signal].label}`, detail: `${node.label} declara ${have} ${side === "in" ? "entrada(s)" : "salida(s)"} ${SIGNAL_INFO[signal].label} y el diseño usa ${n}.` });
   }

@@ -86,7 +86,9 @@ export function cablingForScene(scene: RoomScene, category: string, profile: Cab
   };
   const first = planCabling({ ...input, nodes });
   // Del rack central entra solo lo que alimenta esta sala: el resto sirve a otros ambientes.
-  const unused = nodes.filter((n) => n.id.startsWith("central:") && !first.links.some((l) => l.from === n.id || l.to === n.id));
+  // Un amplificador central entra solo si mueve parlantes de esta sala (recibir audio no alcanza).
+  const serves = (n: CableNode) => (n.cls === "amp" ? first.links.some((l) => l.from === n.id && l.signal === "speaker") : first.links.some((l) => l.from === n.id || l.to === n.id));
+  const unused = nodes.filter((n) => n.id.startsWith("central:") && !serves(n));
   if (!unused.length) return first;
   const drop = new Set(unused.map((n) => n.id));
   return planCabling({ ...input, nodes: nodes.filter((n) => !drop.has(n.id)) });
