@@ -13,6 +13,7 @@ import { addCustomDevice, addGenericDevice, removeCustomDevice } from "./custom-
 import { catalogFor } from "./catalog-match";
 import { assignProductToSlot } from "./project-service";
 import type { RoomScene } from "./scene";
+import { roomNeeds, ruleContext } from "./room-rules";
 import { genericByKey, genericForSlot } from "./generic/library";
 import { getRoomProject, updateRoomProjectScene } from "./project-service";
 import { parseScene } from "./scene";
@@ -28,20 +29,37 @@ export type ResolvedAddition = { generic: string; name: string; reason: string; 
 /** Marcas preferidas del proyecto: las del brief y las de lo que ya está elegido. */
 function brandsOf(scene: RoomScene) {
   const projectBrands = [...new Set(scene.devices.map((d) => d.brandName).filter((b): b is string => Boolean(b)).map((b) => b.toLowerCase().replace(/\s+/g, "-")))];
-  return { brief: scene.brief?.brands ?? {}, projectBrands };
+  return { brief: scene.brief?.brands ?? {}, projectBrands, platform: scene.brief?.control ?? null };
 }
 
 /** Suma lo que resuelve una necesidad: primero un producto del catálogo que sirva; si no hay, el genérico. */
-async function addSolution(projectId: string, scene: RoomScene, key: string, reason: string, near?: { x: number; z: number }): Promise<ResolvedAddition> {
+async function addSolution(projectId: string, scene: RoomScene, key: string, reason: string, near?: { x: number; z: number }, quantity = 1): Promise<ResolvedAddition> {
   const template = genericByKey(key)!;
-  const { brief, projectBrands } = brandsOf(scene);
-  const pick = await catalogFor(key, brief, projectBrands);
+  const { brief, projectBrands, platform } = brandsOf(scene);
+  const pick = await catalogFor(key, brief, projectBrands, platform);
   if (pick) {
-    await addCustomDevice({ projectId, productId: pick.productId, mount: template.mount, quantity: 1, near, addedBy: "system" });
-    return { generic: key, name: pick.name, reason, catalog: true };
+    await addCustomDevice({ projectId, productId: pick.productId, mount: template.mount, quantity, near, addedBy: "system" });
+    return { generic: key, name: quantity > 1 ? `${quantity} × ${pick.name}` : pick.name, reason, catalog: true };
   }
-  await addGenericDevice({ projectId, key, quantity: 1, near, addedBy: "system" });
-  return { generic: key, name: template.name, reason };
+  await addGenericDevice({ projectId, key, quantity, near, addedBy: "system" });
+  return { generic: key, name: quantity > 1 ? `${quantity} × ${template.name}` : template.name, reason };
+}
+
+/** Reglas de integrador del ambiente (teclas por acceso, junto a la cama, control de cortinas, audio y TV). */
+async function applyRoomRules(projectId: string): Promise<ResolvedAddition[]> {
+  const project = await getRoomProject(projectId);
+  const scene = project ? parseScene(project.sceneJson) : null;
+  const profile = scene ? await cablingProfile(projectId) : null;
+  if (!project || !scene || !profile) return [];
+  const out: ResolvedAddition[] = [];
+  const seen = new Set<string>();
+  for (const need of roomNeeds(ruleContext(scene, project.name, project.category, profile.devices))) {
+    // Una regla por tipo de equipo en cada pasada (las teclas de varias reglas se suman en la siguiente).
+    if (seen.has(need.generic)) continue;
+    seen.add(need.generic);
+    out.push(await addSolution(projectId, scene, need.generic, need.title, undefined, need.quantity));
+  }
+  return out;
 }
 
 /** Genéricos que ya estaban en la sala y tienen un producto del catálogo que los reemplaza. */
@@ -49,11 +67,11 @@ async function upgradeGenerics(projectId: string): Promise<ResolvedAddition[]> {
   const project = await getRoomProject(projectId);
   const scene = project ? parseScene(project.sceneJson) : null;
   if (!project || !scene) return [];
-  const { brief, projectBrands } = brandsOf(scene);
+  const { brief, projectBrands, platform } = brandsOf(scene);
   const out: ResolvedAddition[] = [];
   for (const d of scene.devices) {
     if (!d.generic) continue;
-    const pick = await catalogFor(d.generic.key, brief, projectBrands);
+    const pick = await catalogFor(d.generic.key, brief, projectBrands, platform);
     if (!pick) continue;
     // El lugar queda y pasa a ser el producto real (se le saca el genérico).
     const fresh = parseScene((await getRoomProject(projectId))?.sceneJson);
@@ -72,7 +90,7 @@ async function fillEmptySlots(projectId: string): Promise<ResolvedAddition[]> {
   const scene = project ? parseScene(project.sceneJson) : null;
   if (!project || !scene) return [];
   const filled: ResolvedAddition[] = [];
-  const { brief, projectBrands } = brandsOf(scene);
+  const { brief, projectBrands, platform } = brandsOf(scene);
   const toGeneric = new Map<string, { key: string; name: string }>();
   for (const d of scene.devices) {
     if (d.productId || d.generic) continue;
@@ -81,7 +99,7 @@ async function fillEmptySlots(projectId: string): Promise<ResolvedAddition[]> {
     const template = key ? genericByKey(key) : null;
     if (!template) continue;
     // Primero un producto real del catálogo; el genérico solo si no hay.
-    const pick = await catalogFor(template.key, brief, projectBrands);
+    const pick = await catalogFor(template.key, brief, projectBrands, platform);
     if (pick) {
       await assignProductToSlot({ projectId, slotKey: d.slotKey, productId: pick.productId, quantity: Math.max(1, d.quantity || 1) });
       filled.push({ generic: template.key, name: pick.name, reason: "Lugar sin equipo elegido", catalog: true });
@@ -131,6 +149,13 @@ export async function resolveAndWire(projectId: string): Promise<ResolveResult> 
       if (added.some((a) => a.generic === key && a.reason === f.title)) continue;
       added.push(await addSolution(projectId, scene, key, f.title, f.fix?.near));
     }
+  }
+
+  // Reglas de integrador (dos pasadas: una regla puede destrabar otra, ej. tecla de acceso y luego la de la cama).
+  for (let i = 0; i < 2; i++) {
+    const r = await applyRoomRules(projectId);
+    if (!r.length) break;
+    added.push(...r);
   }
 
   // Lo que sobra: genéricos que quedaron sin ninguna conexión (ej. un amplificador cuando la sala usa el rack central).

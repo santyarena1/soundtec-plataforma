@@ -102,13 +102,28 @@ const NEEDS: Record<string, { group: BrandGroup; score: (c: Candidate) => number
   "keypad-wired": { group: "control", score: (c) => (/\bKP|keypad|teclado|KPEX|KPCN|\bC2N-CB|CBD/i.test(c.name) && !/BTN|ENGRAVED|BLANK|FP-|FACEPLATE/i.test(c.name) && (c.ports.length > 0 || c.caps.wireless) ? 6 + (radio(c, "infinet", "client") ? 1 : 0) : 0) },
   "keypad-zigbee": { group: "control", score: (c) => (/\bKP|keypad|teclado/i.test(c.name) && radio(c, "zigbee", "client") ? 8 : 0) },
   "dimmer": { group: "control", score: (c) => (/DIM|dimmer/i.test(c.name) && !/BTN|ENGRAVED|BLANK|FP-|FACEPLATE|LCD/i.test(c.name) && (c.ports.length > 0 || c.caps.wireless) ? 6 : 0) },
+  "handheld-remote": { group: "control", score: (c) => (/\bHR-\d|\bTSR-\d/i.test(c.name) && !/BTN|ENGRAVED|BLANK|DS\b|-DS-|CRADLE|DOCK/i.test(c.name) ? 7 + (radio(c, "infinet", "client") ? 1 : 0) : 0) },
   "touch-panel": { group: "control", score: (c) => (/TSW|TS-|touch|táctil/i.test(c.name) && count(c, ["lan"], "in") > 0 ? 6 : 0) },
 };
 
 export type CatalogPick = { productId: string; name: string };
 
 /** El mejor producto del catálogo para una solución, o null si no hay (entonces va el genérico). */
-export async function catalogFor(genericKey: string, brands: Partial<Record<BrandGroup, string[]>> = {}, projectBrands: string[] = []): Promise<CatalogPick | null> {
+/**
+ * Plataforma de control: Crestron Home trabaja con los procesadores residenciales "-R"
+ * (CP4-R, MC4-R, DIN-AP4-R…); Crestron programado con la línea estándar (CP4, MC4, PRO4).
+ */
+function platformBonus(c: Candidate, platform: string | null): number {
+  if (!platform || platform === "none" || !/crestron/i.test(c.brandName ?? c.brandSlug ?? "")) return 0;
+  const residential = /-R(-I)?\b|-R-/i.test(c.name) || /crestron home/i.test(c.name);
+  const processor = /\b(CP4|MC4|PRO4|DIN-AP4|RMC4|CP4N|MC4-R)/i.test(c.name);
+  if (!processor) return 0;
+  if (platform === "crestron-home") return residential ? 4 : -4;
+  if (platform === "crestron-pro") return residential ? -2 : 2;
+  return 0;
+}
+
+export async function catalogFor(genericKey: string, brands: Partial<Record<BrandGroup, string[]>> = {}, projectBrands: string[] = [], platform: string | null = null): Promise<CatalogPick | null> {
   const need = NEEDS[genericKey];
   if (!need) return null;
   const preferred = new Set([...(brands[need.group] ?? []), ...projectBrands].map((b) => b.toLowerCase()));
@@ -118,6 +133,9 @@ export async function catalogFor(genericKey: string, brands: Partial<Record<Bran
     let s = need.score(c);
     if (s <= 0) continue;
     if (c.brandSlug && preferred.has(c.brandSlug.toLowerCase())) s += 5;
+    s += platformBonus(c, platform);
+    // En proyectos con control Crestron, la interfaz (teclas, remotos, paneles, gateways) es Crestron.
+    if (need.group === "control" && platform && platform.startsWith("crestron") && /crestron/i.test(c.brandName ?? "")) s += 3;
     if (!best || s > best.s) best = { c, s };
   }
   return best ? { productId: best.c.id, name: [best.c.brandName, best.c.name].filter(Boolean).join(" ") } : null;

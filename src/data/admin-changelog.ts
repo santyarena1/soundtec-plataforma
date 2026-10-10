@@ -1965,4 +1965,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Gateways infiNET (CEN-GW1, CEN-GWEXER) y procesadores MC4-R con su radio cargada desde la ficha; un gateway no reemplaza el control del rack central." },
     ],
   },
+  {
+    id: "ship-2026-10-10-reglas-integrador",
+    version: "1.74.0",
+    releasedAt: "2026-10-13T16:00:00.000Z",
+    summary: "Reglas de integrador por ambiente y elección de productos según la plataforma de control.",
+    items: [
+      { kind: "NUEVO", text: "Iluminación controlada lleva una tecla por acceso; los dormitorios, otra junto a la cama; cortinas, audio y TV de una sala controlada llevan su control (tecla, panel o remoto)." },
+      { kind: "MEJORA", text: "Crestron Home elige procesadores residenciales (-R); Crestron programado, la línea estándar. Con control Crestron, teclas, remotos y gateways salen de Crestron." },
+      { kind: "FIX", text: "La fuente de música del rack central ya no se suma en cada ambiente; teclados y dimmers vacíos se completan con productos del catálogo." },
+    ],
+  },
 ];
