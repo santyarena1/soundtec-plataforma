@@ -59,7 +59,7 @@ export async function cablingProfile(projectId: string): Promise<CablingProfile 
       // (un amplificador local no le saca el control central, ni un procesador local la amplificación).
       const real = Object.values(devices).filter((d) => d.sourceKind !== "generic" && d.productId);
       const localAudio = real.some((d) => d.cls === "amp" || d.cls === "dsp");
-      const localControl = real.some((d) => d.cls === "control" && !/gateway|gw\b|bridge|antena|antenna/i.test(d.label));
+      const localControl = real.some((d) => d.cls === "control" && !/gateway|\bgw|gwex|bridge|antena|antenna/i.test(d.label));
       const audioCentral = c.audio && !localAudio;
       const controlCentral = c.control && !localControl;
       if (audioCentral || controlCentral) {

@@ -1952,4 +1952,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "No se duplica amplificación ni switch que ya da el rack central; lo que el sistema sumó y quedó sin uso se quita." },
     ],
   },
+  {
+    id: "ship-2026-10-10-proyecto-tecnico",
+    version: "1.73.0",
+    releasedAt: "2026-10-13T15:00:00.000Z",
+    summary: "Plano técnico del proyecto completo: todos los ambientes y el rack central como una sola instalación.",
+    items: [
+      { kind: "NUEVO", text: "En proyectos de varios ambientes: diagrama general de señal con todos los equipos y el rack central." },
+      { kind: "NUEVO", text: "Planilla de cables de obra de todo el proyecto (ambiente, etiqueta, origen y puerto, destino y puerto, señal, largo, cable) con descarga CSV." },
+      { kind: "NUEVO", text: "Equipos y materiales totales: equipos por ambiente y rack, metros por tipo de cable y conectores a armar en obra (CSV)." },
+      { kind: "NUEVO", text: "Resolver y trazar todo el proyecto de una vez; los ambientes sin cables se resuelven solos al abrir." },
+      { kind: "FIX", text: "Gateways infiNET (CEN-GW1, CEN-GWEXER) y procesadores MC4-R con su radio cargada desde la ficha; un gateway no reemplaza el control del rack central." },
+    ],
+  },
 ];

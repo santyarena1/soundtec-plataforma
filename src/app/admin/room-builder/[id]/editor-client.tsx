@@ -29,6 +29,7 @@ import { HubSpaces } from "@/components/room-builder/plan/hub-spaces";
 import { ProjectSystemPanel } from "@/components/room-builder/plan/project-system-panel";
 import { useCabling } from "@/components/room-builder/cabling/use-cabling";
 import { TechnicalPlan } from "@/components/room-builder/technical/technical-plan";
+import { ProjectTechnicalView } from "@/components/room-builder/technical/project-technical";
 import type { SnapshotFn } from "@/components/room-builder/three/snapshot-bridge";
 
 /** Tiempo para que la cámara llegue a la vista antes de capturarla (ms). */
@@ -512,7 +513,7 @@ export function RoomBuilderEditor({
   if (project.kind === "hub") {
     const hubPlan = readHubPlan(project.sceneJson);
     return (
-      <div className="mx-auto max-w-5xl space-y-6 p-6">
+      <div className={`mx-auto space-y-6 p-6 ${view === "tecnico" ? "max-w-[1600px]" : "max-w-5xl"}`}>
         <Link
           href="/admin/room-builder"
           className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"
@@ -543,19 +544,32 @@ export function RoomBuilderEditor({
           </button>
         </header>
 
-        {hubPlan ? (
+        <div className="flex rounded-lg border border-slate-300 bg-slate-50 p-0.5 w-fit" role="tablist" aria-label="Vista del proyecto">
+          {(["3d", "tecnico"] as const).map((v) => (
+            <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)} className={`inline-flex items-center gap-1 rounded-md px-3 py-1 text-xs font-semibold ${view === v ? "bg-[#1e3553] text-white" : "text-slate-700 hover:bg-white"}`}>
+              {v === "tecnico" ? <Cable className="h-3.5 w-3.5" /> : null}
+              {v === "3d" ? "Ambientes" : "Plano técnico del proyecto"}
+            </button>
+          ))}
+        </div>
+
+        {view === "tecnico" ? <ProjectTechnicalView hubId={project.id} projectName={project.name} /> : null}
+
+        {view === "3d" && hubPlan ? (
           <section className="space-y-2">
             <p className="text-sm text-slate-600">Tocá un ambiente en el plano para entrar a su sala 3D.</p>
             <HubPlan data={hubPlan} existingIds={new Set(project.children.map((c) => c.id))} />
           </section>
         ) : null}
 
-        <ProjectSystemPanel hubId={project.id} />
+        {view === "3d" ? <ProjectSystemPanel hubId={project.id} /> : null}
 
+        {view === "3d" ? (
         <HubSpaces
           spaces={project.children}
           onDeleted={(id) => setProject({ ...project, children: project.children.filter((c) => c.id !== id) })}
         />
+        ) : null}
       </div>
     );
   }
