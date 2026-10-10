@@ -1828,4 +1828,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Motores de cortina: ya no se confunden con sensores; si el catálogo no tiene motores, el lugar queda a la vista sin producto." },
     ],
   },
+  {
+    id: "ship-2026-10-10-selector-por-lugar",
+    version: "1.65.4",
+    releasedAt: "2026-10-13T03:15:00.000Z",
+    summary: "El selector manual de productos muestra lo mismo que el autocompletado para cada lugar (teclados, subwoofer, exterior, dimmers).",
+    items: [{ kind: "FIX", text: "Al elegir a mano un teclado, subwoofer o parlante de exterior, la lista ya viene filtrada por ese tipo de equipo." }],
+  },
 ];
