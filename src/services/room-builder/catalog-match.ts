@@ -99,6 +99,9 @@ const NEEDS: Record<string, { group: BrandGroup; score: (c: Candidate) => number
   },
   "control-processor": { group: "control", score: (c) => (count(c, ["rs232"], "out") + count(c, ["ir"], "out") >= 2 && count(c, ["lan"], "in") > 0 && /processor|control|MC4|CP4|PRO4|RMC/i.test(`${c.name} ${c.productType}`) ? 8 : 0) },
   "shade-motor": { group: "control", score: (c) => (/\b(shade|shades|cortina|cortinas|persiana|drape|roller shade)\b|motor de cortina/i.test(c.name) && !/controller|hvac|thermostat/i.test(c.name) && (c.ports.length > 0 || c.caps.wireless) ? 8 : 0) },
+  "keypad-wired": { group: "control", score: (c) => (/\bKP|keypad|teclado|KPEX|KPCN|\bC2N-CB|CBD/i.test(c.name) && !/BTN|ENGRAVED|BLANK|FP-|FACEPLATE/i.test(c.name) && (c.ports.length > 0 || c.caps.wireless) ? 6 + (radio(c, "infinet", "client") ? 1 : 0) : 0) },
+  "keypad-zigbee": { group: "control", score: (c) => (/\bKP|keypad|teclado/i.test(c.name) && radio(c, "zigbee", "client") ? 8 : 0) },
+  "dimmer": { group: "control", score: (c) => (/DIM|dimmer/i.test(c.name) && !/BTN|ENGRAVED|BLANK|FP-|FACEPLATE|LCD/i.test(c.name) && (c.ports.length > 0 || c.caps.wireless) ? 6 : 0) },
   "touch-panel": { group: "control", score: (c) => (/TSW|TS-|touch|táctil/i.test(c.name) && count(c, ["lan"], "in") > 0 ? 6 : 0) },
 };
 

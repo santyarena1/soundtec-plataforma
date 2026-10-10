@@ -453,6 +453,8 @@ export function planCabling(input: CablingInput): CablingPlan {
 
   // 6) Entrada de los amplificadores: por Dante si ambos están en red; si no, línea.
   for (const amp of amps) {
+    // Amplificador del rack central: su fuente (streamer del rack) se resuelve a nivel proyecto.
+    if (amp.id.startsWith("central:")) continue;
     if (dsp && amp.ports.danteRx && dsp.ports.danteTx) continue;
     const src = [dsp, ...of("streamer"), codec].find((t): t is Ready => Boolean(t && portCount(t.ports, "outputs", "line") > 0)) ?? null;
     if (src && portCount(amp.ports, "inputs", "line") > 0) add(src, amp, "line", "Salida de audio", "Entrada de línea");

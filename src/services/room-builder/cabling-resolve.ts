@@ -157,7 +157,8 @@ async function removeUnused(projectId: string): Promise<ResolvedAddition[]> {
   const profile = scene ? await cablingProfile(projectId) : null;
   if (!project || !scene || !profile) return [];
   const plan = cablingForScene(scene, project.category, profile);
-  const linked = new Set(plan.links.flatMap((l) => [l.from.replace(/#\d+$/, ""), l.to.replace(/#\d+$/, "")]));
+  // Conexiones que sirven a la sala (un equipo que solo alimenta al rack central no cuenta).
+  const linked = new Set(plan.links.filter((l) => !l.to.startsWith("central:") && !l.from.startsWith("central:")).flatMap((l) => [l.from.replace(/#\d+$/, ""), l.to.replace(/#\d+$/, "")]));
   const removed: ResolvedAddition[] = [];
   // Clases que ya cubre el rack central del proyecto (amplificación, red).
   const centralCls = new Set(profile.central ? (profile.centralDevices ?? []).map((c) => c.cls) : []);
