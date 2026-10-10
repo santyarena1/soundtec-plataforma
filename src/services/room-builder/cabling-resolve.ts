@@ -37,7 +37,7 @@ export async function resolveAndWire(projectId: string): Promise<ResolveResult> 
     if (!fixes.size) break;
     for (const [key, f] of fixes) {
       const template = genericByKey(key)!;
-      await addGenericDevice({ projectId, key, quantity: 1 });
+      await addGenericDevice({ projectId, key, quantity: 1, near: f.fix?.near });
       added.push({ generic: key, name: template.name, reason: f.title });
     }
   }

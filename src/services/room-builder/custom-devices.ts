@@ -113,7 +113,7 @@ export async function removeCustomDevice(projectId: string, slotKey: string) {
 }
 
 /** Agrega un equipo genérico (no es del catálogo) con las conexiones de su plantilla. */
-export async function addGenericDevice(input: { projectId: string; key: string; mount?: MountOption; quantity: number; name?: string }) {
+export async function addGenericDevice(input: { projectId: string; key: string; mount?: MountOption; quantity: number; name?: string; near?: { x: number; z: number } }) {
   const template = genericByKey(input.key);
   if (!template) throw new Error("Plantilla genérica inexistente");
   const mount = input.mount && MOUNT_OPTIONS.includes(input.mount) ? input.mount : template.mount;
@@ -124,7 +124,10 @@ export async function addGenericDevice(input: { projectId: string; key: string; 
   const key = `${CUSTOM_SLOT_PREFIX}${Date.now().toString(36)}`;
   const qty = Math.max(1, Math.min(48, Math.round(input.quantity)));
   const name = input.name?.trim().slice(0, 120) || template.name;
-  const pose = poseForMount(mount, { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM }, template.role);
+  const base = poseForMount(mount, { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM }, template.role);
+  // Junto al equipo al que sirve (un poco corrido para no taparlo), dentro de la sala.
+  const clamp = (v: number, half: number) => Math.max(-half + 0.2, Math.min(half - 0.2, v));
+  const pose = input.near ? { ...base, x: clamp(input.near.x + 0.35, scene.widthM / 2), z: clamp(input.near.z + 0.2, scene.depthM / 2) } : base;
   scene.slots.push({ key, role: template.role, label: name, required: false, mount, pose, defaultQty: qty });
   scene.devices.push({ id: `slot-${key}`, slotKey: key, productId: null, designRole: template.role, label: name, productName: name, quantity: qty, pose, coverage: null, generic: { key: template.key, name, description: null, priceUsd: null } });
   scene.selectedSlotKey = key;

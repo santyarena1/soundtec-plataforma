@@ -42,7 +42,7 @@ export type CableLink = {
 };
 
 /** Solución que el sistema puede aplicar solo: sumar un equipo genérico (que después se cablea solo). */
-export type FindingFix = { generic: string; label: string };
+export type FindingFix = { generic: string; label: string; /** Junto a qué equipo conviene ubicarlo (m). */ near?: { x: number; z: number } };
 export type CableFinding = { id: string; level: "info" | "warn" | "error"; title: string; detail: string; linkId?: string; productIds?: string[]; fix?: FindingFix };
 
 export type CablingInput = {
@@ -173,7 +173,7 @@ function wirelessLinks(nodes: Array<CableNode & { ports: DevicePorts }>, links: 
       if (!hosts.length) {
         findings.push(
           peer.required
-            ? { id: `wl-${w.protocol}-${client.id}`, level: "error", title: `Falta ${peer.name}`, detail: `${client.label} se conecta por ${name} y no hay ${peer.name} en la sala.`, fix: WIRELESS_FIX[w.protocol] }
+            ? { id: `wl-${w.protocol}-${client.id}`, level: "error", title: `Falta ${peer.name}`, detail: `${client.label} se conecta por ${name} y no hay ${peer.name} en la sala.`, fix: WIRELESS_FIX[w.protocol] ? { ...WIRELESS_FIX[w.protocol]!, near: { x: client.pos.x, z: client.pos.z } } : undefined }
             : { id: `wl-${w.protocol}-${client.id}`, level: "info", title: `${name} del edificio`, detail: `${client.label} usa ${name}: necesita cobertura de la red inalámbrica en la sala.` },
         );
         continue;
@@ -373,9 +373,9 @@ export function planCabling(input: CablingInput): CablingPlan {
     } else if (portCount(mic.ports, "outputs", "line") > 0) {
       const target = [dsp, codec, central].find((t): t is Ready => Boolean(t && (t.virtual || portCount(t.ports, "inputs", "line") > 0))) ?? null;
       if (target) add(mic, target, "line", "Salida de audio", "Entrada de micrófono/línea");
-      else findings.push({ id: `mic-${mic.id}`, level: "error", title: "Micrófono sin entrada que lo reciba", detail: `${mic.label} sale en audio analógico y ningún equipo de la sala declara entradas de audio.`, fix: { generic: "dsp", label: "Sumar procesador de audio (DSP)" } });
+      else findings.push({ id: `mic-${mic.id}`, level: "error", title: "Micrófono sin entrada que lo reciba", detail: `${mic.label} sale en audio analógico y ningún equipo de la sala declara entradas de audio.`, fix: { generic: "dsp", label: "Sumar procesador de audio (DSP)", near: { x: mic.pos.x, z: mic.pos.z } } });
     } else if (mic.ports.network > 0 && !dsp && !codec && !central) {
-      findings.push({ id: `mic-net-${mic.id}`, level: "error", title: "Micrófono de red sin procesador", detail: `${mic.label} entrega audio por red: sumá un DSP o codec que lo reciba.`, fix: { generic: "dsp", label: "Sumar procesador de audio (DSP)" } });
+      findings.push({ id: `mic-net-${mic.id}`, level: "error", title: "Micrófono de red sin procesador", detail: `${mic.label} entrega audio por red: sumá un DSP o codec que lo reciba.`, fix: { generic: "dsp", label: "Sumar procesador de audio (DSP)", near: { x: mic.pos.x, z: mic.pos.z } } });
     }
   }
   const rx = (dsp ?? codec)?.ports.danteRx;
@@ -433,7 +433,7 @@ export function planCabling(input: CablingInput): CablingPlan {
     const src = [dsp, codec, ...of("streamer")].find((t): t is Ready => Boolean(t && portCount(t.ports, "outputs", "line") > 0)) ?? null;
     if (src) add(src, spk, "line", "Salida de audio", "Entrada de línea");
     else if (central) add(central, spk, "line", "Audio central", "Entrada de línea", "Tramo hasta la sala técnica aparte");
-    else findings.push({ id: `spk-line-${spk.id}`, level: "error", title: "Parlante activo sin fuente de audio", detail: `${spk.label}: ningún DSP, codec o streamer de la sala declara salida de línea para alimentarlo.`, fix: { generic: "audio-streamer", label: "Sumar streamer de audio" } });
+    else findings.push({ id: `spk-line-${spk.id}`, level: "error", title: "Parlante activo sin fuente de audio", detail: `${spk.label}: ningún DSP, codec o streamer de la sala declara salida de línea para alimentarlo.`, fix: { generic: "audio-streamer", label: "Sumar streamer de audio", near: { x: spk.pos.x, z: spk.pos.z } } });
   }
 
   // 6) Entrada de los amplificadores: por Dante si ambos están en red; si no, línea.
@@ -441,7 +441,7 @@ export function planCabling(input: CablingInput): CablingPlan {
     if (dsp && amp.ports.danteRx && dsp.ports.danteTx) continue;
     const src = [dsp, ...of("streamer"), codec].find((t): t is Ready => Boolean(t && portCount(t.ports, "outputs", "line") > 0)) ?? null;
     if (src && portCount(amp.ports, "inputs", "line") > 0) add(src, amp, "line", "Salida de audio", "Entrada de línea");
-    else if (!src) findings.push({ id: `amp-src-${amp.id}`, level: "warn", title: "Amplificador sin fuente de audio", detail: `${amp.label}: ningún DSP, streamer ni codec de la sala declara salida de audio para alimentarlo.`, fix: { generic: "audio-streamer", label: "Sumar streamer de audio" } });
+    else if (!src) findings.push({ id: `amp-src-${amp.id}`, level: "warn", title: "Amplificador sin fuente de audio", detail: `${amp.label}: ningún DSP, streamer ni codec de la sala declara salida de audio para alimentarlo.`, fix: { generic: "audio-streamer", label: "Sumar streamer de audio", near: { x: amp.pos.x, z: amp.pos.z } } });
   }
 
   // 7) Control de pantallas: RS-232 si las dos puntas lo declaran; si no IR; si no, por red.
@@ -464,7 +464,7 @@ export function planCabling(input: CablingInput): CablingPlan {
       add(src, d, "hdmi", "Salida HDMI", "Entrada HDMI");
       continue;
     }
-    findings.push({ id: `display-src-${d.id}`, level: "warn", title: "Pantalla sin fuente de video", detail: `${d.label} no recibe señal: sumá la fuente que corresponda (reproductor de cartelería, codec, matriz o conexión de mesa).`, fix: table ? { generic: "wireless-presentation", label: "Sumar presentación inalámbrica (sin cables a la mesa)" } : { generic: "media-player", label: "Sumar reproductor / streaming" } });
+    findings.push({ id: `display-src-${d.id}`, level: "warn", title: "Pantalla sin fuente de video", detail: `${d.label} no recibe señal: sumá la fuente que corresponda (reproductor de cartelería, codec, matriz o conexión de mesa).`, fix: { ...(table ? { generic: "wireless-presentation", label: "Sumar presentación inalámbrica (sin cables a la mesa)" } : { generic: "media-player", label: "Sumar reproductor / streaming" }), near: { x: d.pos.x, z: d.pos.z } } });
   }
 
   // 8) Conexiones inalámbricas: cada cliente con su gateway / receptor / base, y su capacidad.
