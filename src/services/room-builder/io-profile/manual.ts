@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { IO_EXTRACTOR_VERSION, validateExtraction, type RawExtraction } from "./extract";
-import { buildIoSource, type IoSourceRow } from "./source";
+import { buildIoSource, pageText, type IoSourceRow } from "./source";
 
 const AUTO_CONFIDENCE = 0.9;
 export const MANUAL_MODEL_PREFIX = "manual:";
@@ -85,10 +85,37 @@ export type ManualReading = {
   extraction: RawExtraction;
   /** Quién leyó: "claude", "integrador"… */
   reader: string;
+  /**
+   * Fichas encontradas en la web: el servidor las baja él mismo y suma su texto
+   * a la fuente, así las citas se validan contra la ficha real y no contra un
+   * texto pegado.
+   */
+  fetchUrls?: string[];
 };
+
+const MAX_FETCH = 3;
+const MAX_FETCHED_CHARS = 60_000;
+
+async function fetchedText(urls: string[]): Promise<{ text: string; urls: string[] }> {
+  const parts: string[] = [];
+  const ok: string[] = [];
+  for (const url of urls.slice(0, MAX_FETCH)) {
+    try {
+      const t = await pageText(url);
+      if (t.length < 200) continue;
+      parts.push(`FICHA OFICIAL (${new URL(url).hostname}):\n${t.slice(0, MAX_FETCHED_CHARS)}`);
+      ok.push(url);
+    } catch (error) {
+      console.warn("[io-profile/manual] no se pudo bajar", url, error instanceof Error ? error.message : error);
+    }
+  }
+  return { text: parts.join("\n\n"), urls: ok };
+}
 
 /** Guarda una lectura externa con la misma validación que la automática. */
 export async function saveManualReading(r: ManualReading) {
+  const fetched = r.fetchUrls?.length ? await fetchedText(r.fetchUrls) : { text: "", urls: [] };
+  if (fetched.text) r = { ...r, sourceText: `${r.sourceText}\n\n${fetched.text}`, sourceUrls: [...r.sourceUrls, ...fetched.urls], source: r.source === "specs" || r.source === "page" ? "datasheet" : r.source };
   const result = validateExtraction(r.extraction, r.sourceText);
   const status = !result.applies ? "not_applicable" : result.data.ports.length && result.confidence >= AUTO_CONFIDENCE ? "auto" : "needs_review";
   const data = {

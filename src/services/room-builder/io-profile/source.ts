@@ -105,7 +105,8 @@ async function pdfText(url: string): Promise<string> {
   return (Array.isArray(text) ? text.join(" ") : text).replace(/\s+/g, " ").trim();
 }
 
-async function pageText(url: string): Promise<string> {
+/** Texto de una página o PDF (el mismo que usa la lectura automática). */
+export async function pageText(url: string): Promise<string> {
   const res = await fetch(url, { signal: AbortSignal.timeout(PDF_TIMEOUT_MS), headers: { "User-Agent": "Mozilla/5.0 (Soundtec catalog)" } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const type = res.headers.get("content-type") ?? "";

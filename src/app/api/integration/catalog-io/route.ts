@@ -43,6 +43,7 @@ const reading = z.object({
     notes: z.string().max(600).optional(),
   }),
   reader: z.string().min(1).max(40).default("claude"),
+  fetchUrls: z.array(z.string().url().max(1000)).max(3).optional(),
 });
 const schema = z.object({ readings: z.array(reading).min(1).max(25) });
 
