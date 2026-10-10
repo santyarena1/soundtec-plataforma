@@ -7,13 +7,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { hasIntegrationToken } from "@/lib/integration-token";
 import { ioProfileStats } from "@/services/room-builder/io-profile/build";
-import { manualQueue, saveManualReading } from "@/services/room-builder/io-profile/manual";
+import { listProfiles, manualQueue, saveManualReading } from "@/services/room-builder/io-profile/manual";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const STATUSES = ["needs_review", "not_applicable", "auto", "approved"] as const;
 const MAX_BATCH = 10;
+const MAX_PROFILES = 300;
 
 /** Cola de fichas para leer afuera: producto + texto fuente armado por el sistema (specs, página y PDF). */
 export async function GET(req: Request) {
@@ -23,6 +24,11 @@ export async function GET(req: Request) {
   const limit = Math.min(MAX_BATCH, Math.max(1, Number(q.get("limit") ?? 5) || 5));
   const ids = q.get("ids")?.split(",").filter(Boolean).slice(0, MAX_BATCH);
   try {
+    // ?mode=profiles: perfiles ya cargados en bloque (sin bajar fichas), para auditarlos.
+    if (q.get("mode") === "profiles") {
+      const items = await listProfiles({ statuses: statuses.length ? statuses : ["auto"], limit: Math.min(MAX_PROFILES, Math.max(1, Number(q.get("limit") ?? 100) || 100)), afterId: q.get("after") ?? undefined });
+      return NextResponse.json({ ok: true, items });
+    }
     const out = await manualQueue({ statuses: statuses.length ? statuses : ["needs_review"], limit, afterId: q.get("after") ?? undefined, withNetwork: q.get("network") !== "0", productIds: ids });
     return NextResponse.json({ ok: true, ...out, stats: await ioProfileStats() });
   } catch (error) {

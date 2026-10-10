@@ -76,6 +76,41 @@ export async function manualQueue(options: { statuses: string[]; limit: number; 
   return { items, remaining };
 }
 
+/** Perfiles ya cargados, sin armar la fuente: para auditar en bloque qué tan completos están. */
+export async function listProfiles(options: { statuses: string[]; limit: number; afterId?: string }) {
+  const rows = await prisma.productIoProfile.findMany({
+    where: { status: { in: options.statuses }, product: { isActive: true }, ...(options.afterId ? { productId: { gt: options.afterId } } : {}) },
+    orderBy: { productId: "asc" },
+    take: options.limit,
+    select: {
+      productId: true,
+      status: true,
+      source: true,
+      confidence: true,
+      model: true,
+      notes: true,
+      ports: true,
+      capabilities: true,
+      product: { select: { normalizedName: true, modelNumber: true, brand: { select: { name: true } }, aiProfile: { select: { productType: true } }, designProfile: { select: { designRole: true } } } },
+    },
+  });
+  return rows.map((r) => ({
+    id: r.productId,
+    name: r.product.normalizedName,
+    model: r.product.modelNumber,
+    brand: r.product.brand?.name ?? null,
+    productType: r.product.aiProfile?.productType ?? null,
+    designRole: r.product.designProfile?.designRole ?? null,
+    status: r.status,
+    source: r.source,
+    confidence: r.confidence,
+    reader: r.model,
+    notes: r.notes,
+    ports: r.ports,
+    capabilities: r.capabilities,
+  }));
+}
+
 export type ManualReading = {
   productId: string;
   /** Texto de la ficha leída (el que mandó la cola o el que se encontró en la web). */
