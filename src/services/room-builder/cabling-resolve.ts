@@ -9,7 +9,10 @@
 import { cablingProfile } from "./cabling-db";
 import { cablingForScene } from "./cabling-scene";
 import type { CableFinding } from "./cabling";
-import { addGenericDevice, removeCustomDevice } from "./custom-devices";
+import { addCustomDevice, addGenericDevice, removeCustomDevice } from "./custom-devices";
+import { catalogFor } from "./catalog-match";
+import { assignProductToSlot } from "./project-service";
+import type { RoomScene } from "./scene";
 import { genericByKey, genericForSlot } from "./generic/library";
 import { getRoomProject, updateRoomProjectScene } from "./project-service";
 import { parseScene } from "./scene";
@@ -20,7 +23,47 @@ const MAX_ROUNDS = 4;
 /** Máximo de un mismo genérico que el sistema suma solo (si hace falta más, es una decisión de diseño). */
 const MAX_SAME = 3;
 
-export type ResolvedAddition = { generic: string; name: string; reason: string };
+export type ResolvedAddition = { generic: string; name: string; reason: string; /** Producto del catálogo (si no, es un genérico). */ catalog?: boolean };
+
+/** Marcas preferidas del proyecto: las del brief y las de lo que ya está elegido. */
+function brandsOf(scene: RoomScene) {
+  const projectBrands = [...new Set(scene.devices.map((d) => d.brandName).filter((b): b is string => Boolean(b)).map((b) => b.toLowerCase().replace(/\s+/g, "-")))];
+  return { brief: scene.brief?.brands ?? {}, projectBrands };
+}
+
+/** Suma lo que resuelve una necesidad: primero un producto del catálogo que sirva; si no hay, el genérico. */
+async function addSolution(projectId: string, scene: RoomScene, key: string, reason: string, near?: { x: number; z: number }): Promise<ResolvedAddition> {
+  const template = genericByKey(key)!;
+  const { brief, projectBrands } = brandsOf(scene);
+  const pick = await catalogFor(key, brief, projectBrands);
+  if (pick) {
+    await addCustomDevice({ projectId, productId: pick.productId, mount: template.mount, quantity: 1, near, addedBy: "system" });
+    return { generic: key, name: pick.name, reason, catalog: true };
+  }
+  await addGenericDevice({ projectId, key, quantity: 1, near, addedBy: "system" });
+  return { generic: key, name: template.name, reason };
+}
+
+/** Genéricos que ya estaban en la sala y tienen un producto del catálogo que los reemplaza. */
+async function upgradeGenerics(projectId: string): Promise<ResolvedAddition[]> {
+  const project = await getRoomProject(projectId);
+  const scene = project ? parseScene(project.sceneJson) : null;
+  if (!project || !scene) return [];
+  const { brief, projectBrands } = brandsOf(scene);
+  const out: ResolvedAddition[] = [];
+  for (const d of scene.devices) {
+    if (!d.generic) continue;
+    const pick = await catalogFor(d.generic.key, brief, projectBrands);
+    if (!pick) continue;
+    // El lugar queda y pasa a ser el producto real (se le saca el genérico).
+    const fresh = parseScene((await getRoomProject(projectId))?.sceneJson);
+    if (!fresh) continue;
+    await updateRoomProjectScene(projectId, { ...fresh, devices: fresh.devices.map((x) => (x.id === d.id ? { ...x, generic: null } : x)) });
+    await assignProductToSlot({ projectId, slotKey: d.slotKey, productId: pick.productId, quantity: Math.max(1, d.quantity || 1) });
+    out.push({ generic: d.generic.key, name: pick.name, reason: `Reemplaza al genérico "${d.generic.name}"`, catalog: true });
+  }
+  return out;
+}
 export type ResolveResult = { added: ResolvedAddition[]; removed: ResolvedAddition[]; remaining: CableFinding[]; wires: number };
 
 /** Lugares de la plantilla sin producto: se cubren con el genérico que corresponde (precio y descripción a completar). */
@@ -29,22 +72,40 @@ async function fillEmptySlots(projectId: string): Promise<ResolvedAddition[]> {
   const scene = project ? parseScene(project.sceneJson) : null;
   if (!project || !scene) return [];
   const filled: ResolvedAddition[] = [];
-  const devices = scene.devices.map((d) => {
-    if (d.productId || d.generic) return d;
+  const { brief, projectBrands } = brandsOf(scene);
+  const toGeneric = new Map<string, { key: string; name: string }>();
+  for (const d of scene.devices) {
+    if (d.productId || d.generic) continue;
     const slot = scene.slots.find((s) => s.key === d.slotKey);
     const key = genericForSlot(slot?.label ?? d.label, d.designRole);
     const template = key ? genericByKey(key) : null;
-    if (!template) return d;
+    if (!template) continue;
+    // Primero un producto real del catálogo; el genérico solo si no hay.
+    const pick = await catalogFor(template.key, brief, projectBrands);
+    if (pick) {
+      await assignProductToSlot({ projectId, slotKey: d.slotKey, productId: pick.productId, quantity: Math.max(1, d.quantity || 1) });
+      filled.push({ generic: template.key, name: pick.name, reason: "Lugar sin equipo elegido", catalog: true });
+      continue;
+    }
     const name = slot?.label?.trim() || template.name;
-    filled.push({ generic: template.key, name, reason: "Lugar sin equipo elegido" });
-    return { ...d, generic: { key: template.key, name, description: null, priceUsd: null }, productName: name };
-  });
-  if (filled.length) await updateRoomProjectScene(projectId, { ...scene, devices });
+    toGeneric.set(d.id, { key: template.key, name });
+    filled.push({ generic: template.key, name, reason: "Lugar sin equipo elegido (no hay en el catálogo)" });
+  }
+  if (toGeneric.size) {
+    const fresh = parseScene((await getRoomProject(projectId))?.sceneJson);
+    if (fresh) {
+      const devices = fresh.devices.map((d) => {
+        const g = toGeneric.get(d.id);
+        return g ? { ...d, generic: { key: g.key, name: g.name, description: null, priceUsd: null }, productName: g.name } : d;
+      });
+      await updateRoomProjectScene(projectId, { ...fresh, devices });
+    }
+  }
   return filled;
 }
 
 export async function resolveAndWire(projectId: string): Promise<ResolveResult> {
-  const added: ResolvedAddition[] = await fillEmptySlots(projectId);
+  const added: ResolvedAddition[] = [...(await upgradeGenerics(projectId)), ...(await fillEmptySlots(projectId))];
   let remaining: CableFinding[] = [];
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const project = await getRoomProject(projectId);
@@ -65,11 +126,7 @@ export async function resolveAndWire(projectId: string): Promise<ResolveResult> 
       fixes.set(f.fix.generic, f);
     }
     if (!fixes.size) break;
-    for (const [key, f] of fixes) {
-      const template = genericByKey(key)!;
-      await addGenericDevice({ projectId, key, quantity: 1, near: f.fix?.near });
-      added.push({ generic: key, name: template.name, reason: f.title });
-    }
+    for (const [key, f] of fixes) added.push(await addSolution(projectId, scene, key, f.title, f.fix?.near));
   }
 
   // Lo que sobra: genéricos que quedaron sin ninguna conexión (ej. un amplificador cuando la sala usa el rack central).
@@ -101,15 +158,16 @@ async function removeUnused(projectId: string): Promise<ResolvedAddition[]> {
   // Clases que ya cubre el rack central del proyecto (amplificación, red).
   const centralCls = new Set(profile.central ? (profile.centralDevices ?? []).map((c) => c.cls) : []);
   for (const d of scene.devices) {
-    if (!d.generic || !d.slotKey.startsWith("custom_")) continue;
-    const template = genericByKey(d.generic.key);
+    if (!d.slotKey.startsWith("custom_") || (!d.generic && d.addedBy !== "system")) continue;
+    const info = profile.devices[d.id];
+    const template = d.generic ? genericByKey(d.generic.key) : info ? { cls: info.cls } : null;
     // Amplificador genérico en una sala que se amplifica desde el rack central: sobra aunque tenga parlantes asignados.
     const redundant = Boolean(template && (template.cls === "amp" || template.cls === "switch") && centralCls.has(template.cls));
     if (linked.has(d.id) && !redundant) continue;
     // Solo lo que existe para alimentar o distribuir; un motor o un sensor sin cables (inalámbrico/a definir) se deja.
     if (!template || !["amp", "dsp", "streamer", "source", "video-switch", "switch"].includes(template.cls)) continue;
     await removeCustomDevice(projectId, d.slotKey);
-    removed.push({ generic: d.generic.key, name: d.generic.name, reason: "Sin conexiones en el diseño" });
+    removed.push({ generic: d.generic?.key ?? d.productId ?? "", name: d.generic?.name ?? d.productName ?? d.label, reason: "Sin conexiones en el diseño" });
   }
   return removed;
 }

@@ -1940,4 +1940,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "La pestaña Cableado del 3D muestra el resumen de cables y abre el plano técnico; ya no lista problemas." },
     ],
   },
+  {
+    id: "ship-2026-10-10-resolver-con-catalogo",
+    version: "1.72.0",
+    releasedAt: "2026-10-13T14:00:00.000Z",
+    summary: "Resolver usa productos reales del catálogo: los genéricos quedan solo para lo que no vendemos.",
+    items: [
+      { kind: "MEJORA", text: "Cada solución (gateway infiNET, amplificador, matriz, switch PoE, AirMedia, DSP…) se elige del catálogo por las capacidades de su ficha, prefiriendo las marcas del proyecto." },
+      { kind: "MEJORA", text: "Los genéricos que ya estaban se reemplazan por el producto real cuando existe; los lugares vacíos se completan con catálogo." },
+      { kind: "MEJORA", text: "Genérico solo si no hay nada en el catálogo (ej. Apple TV / Chromecast), y queda indicado." },
+      { kind: "FIX", text: "No se duplica amplificación ni switch que ya da el rack central; lo que el sistema sumó y quedó sin uso se quita." },
+    ],
+  },
 ];

@@ -88,7 +88,7 @@ function SummaryPanel(p: Props) {
       </div>
       {p.resolved?.length ? (
         <div className="space-y-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1.5 text-sky-950">
-          <p className="font-semibold">Cambios del sistema (genéricos, editables):</p>
+          <p className="font-semibold">Cambios del sistema (editables):</p>
           <ul className="space-y-0.5 text-[11px]">
             {p.resolved.map((r, k) => (
               <li key={k}>
@@ -96,7 +96,7 @@ function SummaryPanel(p: Props) {
               </li>
             ))}
           </ul>
-          <p className="text-[10.5px] text-sky-800">Cambialos por un producto del catálogo o quitalos desde la Vista 3D.</p>
+          <p className="text-[10.5px] text-sky-800">Podés cambiarlos o quitarlos desde la Vista 3D.</p>
         </div>
       ) : null}
       {p.review.length ? (

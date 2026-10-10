@@ -73,7 +73,7 @@ export async function searchCatalog(query: string): Promise<CatalogHit[]> {
 }
 
 /** Agrega un producto como equipo propio del ambiente, con el montaje elegido. */
-export async function addCustomDevice(input: { projectId: string; productId: string; mount: MountOption; quantity: number }) {
+export async function addCustomDevice(input: { projectId: string; productId: string; mount: MountOption; quantity: number; near?: { x: number; z: number }; addedBy?: "system" }) {
   if (!MOUNT_OPTIONS.includes(input.mount)) throw new Error("Montaje inválido");
   const { assignProductToSlot } = await import("./project-service");
   const project = await getRoomProject(input.projectId);
@@ -89,9 +89,11 @@ export async function addCustomDevice(input: { projectId: string; productId: str
   const role = roleForProduct(product.designProfile?.designRole, product.aiProfile?.productType);
   const key = `${CUSTOM_SLOT_PREFIX}${Date.now().toString(36)}`;
   const qty = Math.max(1, Math.min(48, Math.round(input.quantity)));
-  const pose = poseForMount(input.mount, { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM }, role);
+  const base = poseForMount(input.mount, { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM }, role);
+  const clamp = (v: number, half: number) => Math.max(-half + 0.2, Math.min(half - 0.2, v));
+  const pose = input.near ? { ...base, x: clamp(input.near.x + 0.35, scene.widthM / 2), z: clamp(input.near.z + 0.2, scene.depthM / 2) } : base;
   scene.slots.push({ key, role, label: product.normalizedName, required: false, mount: input.mount, pose, defaultQty: qty });
-  scene.devices.push({ id: `slot-${key}`, slotKey: key, productId: null, designRole: role, label: product.normalizedName, quantity: qty, pose, coverage: null });
+  scene.devices.push({ id: `slot-${key}`, slotKey: key, productId: null, designRole: role, label: product.normalizedName, quantity: qty, pose, coverage: null, ...(input.addedBy ? { addedBy: input.addedBy } : {}) });
   scene.selectedSlotKey = key;
   await updateRoomProjectScene(input.projectId, scene);
   return assignProductToSlot({ projectId: input.projectId, slotKey: key, productId: input.productId, quantity: qty });
@@ -113,7 +115,7 @@ export async function removeCustomDevice(projectId: string, slotKey: string) {
 }
 
 /** Agrega un equipo genérico (no es del catálogo) con las conexiones de su plantilla. */
-export async function addGenericDevice(input: { projectId: string; key: string; mount?: MountOption; quantity: number; name?: string; near?: { x: number; z: number } }) {
+export async function addGenericDevice(input: { projectId: string; key: string; mount?: MountOption; quantity: number; name?: string; near?: { x: number; z: number }; addedBy?: "system" }) {
   const template = genericByKey(input.key);
   if (!template) throw new Error("Plantilla genérica inexistente");
   const mount = input.mount && MOUNT_OPTIONS.includes(input.mount) ? input.mount : template.mount;
@@ -129,7 +131,7 @@ export async function addGenericDevice(input: { projectId: string; key: string; 
   const clamp = (v: number, half: number) => Math.max(-half + 0.2, Math.min(half - 0.2, v));
   const pose = input.near ? { ...base, x: clamp(input.near.x + 0.35, scene.widthM / 2), z: clamp(input.near.z + 0.2, scene.depthM / 2) } : base;
   scene.slots.push({ key, role: template.role, label: name, required: false, mount, pose, defaultQty: qty });
-  scene.devices.push({ id: `slot-${key}`, slotKey: key, productId: null, designRole: template.role, label: name, productName: name, quantity: qty, pose, coverage: null, generic: { key: template.key, name, description: null, priceUsd: null } });
+  scene.devices.push({ id: `slot-${key}`, slotKey: key, productId: null, designRole: template.role, label: name, productName: name, quantity: qty, pose, coverage: null, generic: { key: template.key, name, description: null, priceUsd: null }, ...(input.addedBy ? { addedBy: input.addedBy } : {}) });
   scene.selectedSlotKey = key;
   await updateRoomProjectScene(input.projectId, scene);
   return getRoomProject(input.projectId);

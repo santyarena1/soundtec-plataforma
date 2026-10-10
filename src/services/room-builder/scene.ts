@@ -32,6 +32,8 @@ export type SceneDevice = {
   sizeCm?: ProductSizeCm | null;
   /** Equipo genérico (no es del catálogo): plantilla, nombre, precio y descripción a completar. */
   generic?: GenericInfo | null;
+  /** Lo sumó el sistema al resolver el cableado (se puede quitar solo si queda sin uso). */
+  addedBy?: "system" | null;
 };
 
 export type ProductSizeCm = { w: number | null; h: number | null; d: number | null };
