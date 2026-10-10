@@ -24,6 +24,8 @@ export type DeviceCablingProfile = {
   /** datasheet | specs | page | secondary: de dónde salieron los puertos. */
   sourceKind: string | null;
   sources: string[];
+  /** Puertos de la ficha tal cual (validada), para separarlos en puertos individuales en el plano técnico. */
+  ioPorts?: IoProfileData["ports"] | null;
 };
 
 export type CablingProfile = {
@@ -93,6 +95,7 @@ async function deviceProfiles(list: RoomScene["devices"]): Promise<Record<string
       sourceKind: io?.source ?? null,
       datasheet: none ? "none" : ports ? "ok" : io && io.status === "needs_review" ? "review" : "missing",
       sources: io?.sourceUrls ?? [],
+      ioPorts: valid ? (io.ports as unknown as IoProfileData["ports"]) : null,
     };
   }
 

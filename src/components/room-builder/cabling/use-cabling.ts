@@ -27,6 +27,8 @@ export type CablingState = {
   /** Suma los equipos que faltan (amplificador, fuente de video, streaming, switch). */
   completeEquipment: () => Promise<{ applied: Array<{ label: string; scope: "central" | "room" }>; pending: string[] } | null>;
   completing: boolean;
+  /** Cables del catálogo (para elegir el de cada tramo en el plano técnico). */
+  catalog: CableProduct[] | null;
 };
 
 export function useCabling(projectId: string, scene: RoomScene, category: string): CablingState {
@@ -115,5 +117,5 @@ export function useCabling(projectId: string, scene: RoomScene, category: string
   const plan = useMemo(() => (profile ? cablingForScene(scene, category, profile) : null), [profile, scene, category]);
   const picks = useMemo(() => (plan && catalog ? pickCables(plan, catalog) : null), [plan, catalog]);
 
-  return { plan, profile, picks, loading, reading, error, readDatasheets, reload, completeEquipment, completing };
+  return { plan, profile, picks, loading, reading, error, readDatasheets, reload, completeEquipment, completing, catalog };
 }

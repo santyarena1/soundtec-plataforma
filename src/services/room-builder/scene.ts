@@ -1,3 +1,4 @@
+import type { SceneWiring } from "./wiring/types";
 import type {
   CameraPreset,
   CoverageViewMode,
@@ -65,6 +66,8 @@ export type RoomScene = {
   planUnderlay?: PlanUnderlay | null;
   /** Muebles reconocidos en el plano (reemplazan al amoblamiento de la tipología). */
   planFurniture?: FurnitureItem[] | null;
+  /** Plano técnico: cables de puerto a puerto, con recorrido, tipo y etiqueta (editables a mano). */
+  wiring?: SceneWiring | null;
 };
 
 /**

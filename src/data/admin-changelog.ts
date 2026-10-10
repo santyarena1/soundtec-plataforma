@@ -1835,4 +1835,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "El selector manual de productos muestra lo mismo que el autocompletado para cada lugar (teclados, subwoofer, exterior, dimmers).",
     items: [{ kind: "FIX", text: "Al elegir a mano un teclado, subwoofer o parlante de exterior, la lista ya viene filtrada por ese tipo de equipo." }],
   },
+  {
+    id: "ship-2026-10-10-plano-tecnico",
+    version: "1.66.0",
+    releasedAt: "2026-10-13T05:00:00.000Z",
+    summary: "Plano técnico (modo manual): cada cable de puerto a puerto dibujado en la planta, con su recorrido, tipo, cable del catálogo, etiqueta y largo, todo editable.",
+    items: [
+      { kind: "NUEVO", text: "Vista \"Plano técnico\" junto al 3D: planta con paredes, puertas, ventanas, cotas, muebles y equipos." },
+      { kind: "NUEVO", text: "Herramienta Cable: tocás un equipo, elegís el puerto real de su ficha, tocás el otro y elegís el puerto compatible." },
+      { kind: "NUEVO", text: "Ficha de cable: puertos de origen y destino, cable del catálogo, etiqueta, largo calculado o a mano, recto, otro cable entre los mismos equipos, invertir y eliminar. Quiebres editables sobre el plano." },
+      { kind: "NUEVO", text: "Trazar cables automáticamente: el sistema propone el conexionado como cables editables; lo que tocaste a mano queda fijo." },
+      { kind: "NUEVO", text: "Ficha de equipo con sus puertos individuales (HDMI IN 1…4, COM 1…) y a qué están conectados; carga de señales a mano para equipos sin ficha." },
+      { kind: "MEJORA", text: "Validación de cada cable: señal compatible, sentido, puerto ocupado y largo máximo por señal." },
+    ],
+  },
 ];
