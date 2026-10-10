@@ -41,6 +41,22 @@ export function inchesFromName(name: string | null | undefined): number | null {
   return n && n >= 20 && n <= 120 ? n : null;
 }
 
+/** Medidas comerciales de pantallas: solo estas se aceptan al leerlas del modelo. */
+const COMMERCIAL_INCHES = new Set([22, 24, 27, 32, 40, 42, 43, 48, 49, 50, 55, 58, 60, 65, 70, 75, 77, 82, 83, 85, 86, 98, 100, 110, 115, 120]);
+
+/**
+ * Pulgadas a partir del código de modelo ("HT-HV75-Q" → 75, "HT-HVM27-2K" → 27):
+ * el primer número de 2-3 cifras que sea una medida comercial.
+ */
+export function inchesFromModel(model: string | null | undefined): number | null {
+  if (!model) return null;
+  for (const m of model.matchAll(/(?<!\d)(\d{2,3})(?!\d)/g)) {
+    const n = Number(m[1]);
+    if (COMMERCIAL_INCHES.has(n)) return n;
+  }
+  return null;
+}
+
 /** Pulgadas a partir del ancho real del equipo (cm). */
 export function inchesFromWidthCm(widthCm: number | null | undefined): number | null {
   if (!widthCm || widthCm < 40 || widthCm > 300) return null;
@@ -69,8 +85,15 @@ export function pickForTier<T extends PickRow>(rows: T[], tier: BriefTier, opts?
   // Pantallas: del tamaño que corresponde al ambiente, si hay.
   const target = opts?.targetInches;
   if (target) {
-    const sized = pool.filter((r) => r.diagonalIn != null && r.diagonalIn >= target - DISPLAY_SLACK_IN.below && r.diagonalIn <= target + DISPLAY_SLACK_IN.above);
+    const withSize = pool.filter((r) => r.diagonalIn != null);
+    const sized = withSize.filter((r) => r.diagonalIn! >= target - DISPLAY_SLACK_IN.below && r.diagonalIn! <= target + DISPLAY_SLACK_IN.above);
     if (sized.length) pool = [...sized].sort((a, b) => Math.abs((a.diagonalIn ?? 0) - target) - Math.abs((b.diagonalIn ?? 0) - target));
+    else if (withSize.length) {
+      // Nada en el rango: la más cercana (la más chica que alcance, o si no hay, la más grande), nunca una cualquiera.
+      const bigger = withSize.filter((r) => r.diagonalIn! >= target).sort((a, b) => a.diagonalIn! - b.diagonalIn!);
+      const closest = bigger[0] ?? [...withSize].sort((a, b) => b.diagonalIn! - a.diagonalIn!)[0]!;
+      return closest;
+    }
   }
   const priced = pool.filter((r) => r.priceUsd != null && r.priceUsd > 0);
   if (tier === "esencial" && priced.length) return priced.reduce((a, b) => ((b.priceUsd ?? 0) < (a.priceUsd ?? 0) ? b : a));

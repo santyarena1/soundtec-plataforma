@@ -38,8 +38,10 @@ export async function autoFillProjectSlots(
       roomWidthM: scene.widthM,
       // Siempre por calidad: el nivel decide después entre los buenos (ver pickForTier).
       mode: "recommended",
-      limit: 30,
+      // Pantallas: todas, para poder elegir por tamaño (no solo las 30 mejor puntuadas).
+      limit: slot.role === "display" ? 100 : 30,
       processorKind: processorKindForSlot(slot.key, slot.role),
+      slotKey: slot.key,
       preferredBrands: preferredBrandsForSlot(scene.brief, slot.role, slot.key),
     });
     const best = pickForTier(ranked, tier, {

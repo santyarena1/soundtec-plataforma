@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { displayProxyKey, inchesFromName, inchesFromWidthCm, pickForTier, targetDisplayInches } from "./sizing";
+import { displayProxyKey, inchesFromModel, inchesFromName, inchesFromWidthCm, pickForTier, targetDisplayInches } from "./sizing";
 
 test("pantalla según la distancia: sala chica, sala grande, living", () => {
   assert.equal(targetDisplayInches({ depthM: 5 }, "videoconference"), 65);
@@ -48,4 +48,25 @@ test("modelo 3D de la pantalla con sus pulgadas reales", () => {
   assert.equal(displayProxyKey({ name: 'TV 43" FHD' }), "tv_43");
   assert.equal(displayProxyKey({ widthCm: 167 }), "tv_75");
   assert.equal(displayProxyKey({}), null);
+});
+
+test("pulgadas del código de modelo: solo medidas comerciales", () => {
+  assert.equal(inchesFromModel("HT-HV75-Q"), 75);
+  assert.equal(inchesFromModel("HT-HVM27-2K"), 27);
+  assert.equal(inchesFromModel("HT-HV32-4K"), 32);
+  assert.equal(inchesFromModel("HT-HV24-HD"), 24);
+  assert.equal(inchesFromModel("DM-NAX-AMP-X300"), null);
+  assert.equal(inchesFromModel(null), null);
+});
+
+test("pantalla: sin una del tamaño pedido se elige la más cercana, nunca la más barata", () => {
+  const rows = [
+    { productId: "24", compatible: true, score: 44, priceUsd: 275, diagonalIn: 24 },
+    { productId: "55", compatible: true, score: 40, priceUsd: 1025, diagonalIn: 55 },
+    { productId: "75", compatible: true, score: 38, priceUsd: 1925, diagonalIn: 75 },
+  ];
+  assert.equal(pickForTier(rows, "recomendado", { targetInches: 75 })?.productId, "75");
+  assert.equal(pickForTier(rows, "esencial", { targetInches: 65 })?.productId, "55");
+  // Un cine de 120": la más grande que hay.
+  assert.equal(pickForTier(rows, "recomendado", { targetInches: 120 })?.productId, "75");
 });

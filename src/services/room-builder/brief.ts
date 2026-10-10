@@ -87,6 +87,10 @@ export type RoomBrief = {
 };
 
 export const MAX_SPEAKERS = 48;
+/** Superficie por circuito de iluminación con dimmer. */
+const M2_PER_LIGHTING_CIRCUIT = 15;
+/** Superficie por cortina motorizada. */
+const M2_PER_SHADE = 20;
 /** Superficie que cubre un micrófono de techo (array tipo MXA / Sennheiser TCC). */
 const M2_PER_CEILING_MIC = 35;
 export const MAX_ZONES = 24;
@@ -257,6 +261,32 @@ export function applyBriefToSlots(slots: RoomSlot[], brief: RoomBrief, dims: Roo
     });
   }
 
+  if (wantsControl && has("lighting") && !next.some((s) => s.key === "lighting_dimmer")) {
+    next.push({
+      key: "lighting_dimmer",
+      role: "other",
+      label: "Dimmers / módulos de iluminación",
+      required: true,
+      mount: "wall",
+      pose: { ...poseForMount("wall", dims, "touch"), z: poseForMount("wall", dims, "touch").z + 0.9 },
+      // Un circuito cada ~15 m² (mínimo 2: general y ambiente).
+      defaultQty: Math.max(2, Math.ceil(areaM2 / M2_PER_LIGHTING_CIRCUIT)),
+    });
+  }
+
+  if (wantsControl && has("shades") && !next.some((s) => s.key === "shade_motor")) {
+    next.push({
+      key: "shade_motor",
+      role: "other",
+      label: "Motores de cortina",
+      required: true,
+      mount: "wall",
+      pose: { ...poseForMount("wall", dims, "touch"), y: Math.max(1.8, dims.heightM - 0.25) },
+      // Una cortina cada ~20 m² de ambiente (ventanales típicos).
+      defaultQty: Math.max(1, Math.ceil(areaM2 / M2_PER_SHADE)),
+    });
+  }
+
   if (wantsControl && has("lighting") && !next.some((s) => s.key === "lighting_keypad")) {
     next.push({
       key: "lighting_keypad",
@@ -335,6 +365,8 @@ export function normalizeBrief(raw: unknown): RoomBrief | null {
 /** Marcas preferidas que aplican a un equipo (vacío = sin preferencia). */
 export function preferredBrandsForSlot(brief: RoomBrief | null | undefined, role: string, slotKey: string): string[] {
   if (!brief) return [];
+  // Dimmers y motores de cortina son del ecosistema de control.
+  if (slotKey === "lighting_dimmer" || slotKey === "shade_motor") return brief.brands.control ?? [];
   const group = brandGroupForRole(role, slotKey);
   return group ? (brief.brands[group] ?? []) : [];
 }

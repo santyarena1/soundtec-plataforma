@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { inchesFromModel, inchesFromName } from "./sizing";
 import {
   cameraCoverageFit,
   displayViewingFit,
@@ -48,6 +49,8 @@ export type RankFromDbOptions = {
   processorKind?: ProcessorKind;
   /** Marcas elegidas en el relevamiento: van primero (si no hay, se muestran las demás). */
   preferredBrands?: string[];
+  /** Lugar de la sala: algunos piden un tipo de equipo puntual (subwoofer, dimmer, motor de cortina). */
+  slotKey?: string;
 };
 
 export type ProcessorKind = "amplifier" | "control";
@@ -75,10 +78,42 @@ const NOT_A_DISPLAY_ACCESSORY: Prisma.ProductWhereInput = {
   NOT: { OR: ["MNT", "mount", "bracket", "soporte", "cart"].map((t) => ({ normalizedName: { contains: t, mode: "insensitive" as const } })) },
 };
 
+/**
+ * Repuestos y piezas sueltas que no son un equipo: tapas y botones ciegos o
+ * grabados, marcos, frentes, bases, cajas de empotrar.
+ */
+const SPARE_PART_TERMS = ["BLANK", "ENGRAVED", "-BTN", "_BTN", "BTNS", "FACEPLATE", "BEZEL", "PNLCVR", "CRADLE", "BACKBOX", "TRIM KIT", "REPLACEMENT"];
+const NOT_A_SPARE_PART: Prisma.ProductWhereInput = {
+  NOT: { OR: SPARE_PART_TERMS.map((t) => ({ normalizedName: { contains: t, mode: "insensitive" as const } })) },
+};
+/** Lo que su ficha confirmó que no tiene ninguna conexión (accesorio) no se elige como equipo. */
+const HAS_CONNECTIONS: Prisma.ProductWhereInput = { NOT: { ioProfile: { status: "not_applicable" } } };
+
+const nameHas = (terms: string[]): Prisma.ProductWhereInput[] => terms.map((t) => ({ normalizedName: { contains: t, mode: "insensitive" as const } }));
+
+/**
+ * Lugares que piden un equipo puntual dentro de su rol (o de cualquier rol):
+ * subwoofer, parlantes que no sean subwoofer, dimmers y motores de cortina.
+ */
+export function slotProductFilter(slotKey: string | undefined, role: string): { where: Prisma.ProductWhereInput; anyRole: boolean } | null {
+  if (!slotKey) return null;
+  if (role === "speaker" && /sub/i.test(slotKey)) return { where: { OR: [{ aiProfile: { productType: "subwoofer" } }, ...nameHas(["subwoofer", " SUB", "-SUB"])] }, anyRole: false };
+  if (role === "speaker") return { where: { NOT: { aiProfile: { productType: "subwoofer" } } }, anyRole: false };
+  if (slotKey === "lighting_dimmer") return { where: { OR: [{ aiProfile: { productType: "lighting" } }, ...nameHas(["dimmer", "DIM", "lighting module"])] }, anyRole: true };
+  if (slotKey === "shade_motor") return { where: { OR: nameHas(["shade", "QMT", "CSM-", "motor", "cortina", "persiana", "drape"]) }, anyRole: true };
+  return null;
+}
+
 function processorFilter(kind: ProcessorKind | undefined): Prisma.ProductWhereInput {
   if (kind === "amplifier") return { OR: AMPLIFIER_MATCH };
   if (kind === "control") return { NOT: AMPLIFIER_MATCH };
   return {};
+}
+
+/** Pulgadas de una pantalla: su ficha o, si no está cargada, el código de modelo (HT-HV75-Q → 75). */
+function displayInches(profile: { diagonalIn: unknown; product: { normalizedName: string; supplierSku: string | null; modelNumber: string | null } }): number | null {
+  if (profile.diagonalIn != null && Number(profile.diagonalIn) > 0) return Number(profile.diagonalIn);
+  return inchesFromName(profile.product.normalizedName) ?? inchesFromModel(profile.product.modelNumber ?? profile.product.supplierSku ?? profile.product.normalizedName);
 }
 
 export async function rankProductsForSlot(options: RankFromDbOptions) {
@@ -91,17 +126,22 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
   };
 
   const preferred = (options.preferredBrands ?? []).filter(Boolean);
+  const special = slotProductFilter(options.slotKey, options.role);
   const findProfiles = (brandSlugs: string[] | null) =>
     prisma.productDesignProfile.findMany({
     where: {
-      designRole: options.role,
+      ...(special?.anyRole ? {} : { designRole: options.role }),
       product: {
         isActive: true,
         isDiscontinued: false,
         AND: [
-          processorFilter(options.processorKind),
+          special?.anyRole ? {} : processorFilter(options.processorKind),
           NOT_A_DEVICE,
           options.role === "display" ? NOT_A_DISPLAY_ACCESSORY : {},
+          // Buscando a mano se ve todo; elegido solo, nunca un repuesto o accesorio.
+          options.q ? {} : NOT_A_SPARE_PART,
+          options.q ? {} : HAS_CONNECTIONS,
+          special?.where ?? {},
           brandSlugs ? { brand: { slug: { in: brandSlugs } } } : {},
         ],
         ...(options.q
@@ -176,6 +216,7 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
         zoneRadiusM: Math.max(1, zoneRadiusM),
       });
     } else if (options.role === "display") {
+      const diag = displayInches(profile);
       let viewMin =
         profile.viewingDistanceMinM == null
           ? null
@@ -184,11 +225,8 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
         profile.viewingDistanceMaxM == null
           ? null
           : Number(profile.viewingDistanceMaxM);
-      if (
-        (viewMin == null || viewMax == null) &&
-        profile.diagonalIn != null
-      ) {
-        const derived = viewingDistanceFromDiagonalIn(Number(profile.diagonalIn));
+      if ((viewMin == null || viewMax == null) && diag != null) {
+        const derived = viewingDistanceFromDiagonalIn(diag);
         viewMin = viewMin ?? derived.viewMinM;
         viewMax = viewMax ?? derived.viewMaxM;
       }
@@ -201,8 +239,9 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
 
     return {
       productId: profile.productId,
-      designRole: (profile.designRole as DesignRole) ?? null,
-      mountOptions: mounts,
+      // Dimmer o motor de cortina: cuenta para el lugar aunque su ficha tenga otro rol.
+      designRole: special?.anyRole ? options.role : ((profile.designRole as DesignRole) ?? null),
+      mountOptions: special?.anyRole ? [] : mounts,
       priceUsd: Number(profile.product.baseCostUsd),
       stockScore: stockScore(profile.product.stockStatus),
       coverageFit,
@@ -242,7 +281,7 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
         profile.coverageRadiusM == null
           ? null
           : Number(profile.coverageRadiusM),
-      diagonalIn: profile.diagonalIn == null ? null : Number(profile.diagonalIn),
+      diagonalIn: options.role === "display" ? displayInches(profile) : profile.diagonalIn == null ? null : Number(profile.diagonalIn),
       completenessScore: profile.completenessScore,
       mountOptions: profile.mountOptions,
     };

@@ -1805,4 +1805,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Lectura de fichas: se limpian caracteres rotos de los PDF antes de mandarlos a la IA (algunas fichas fallaban con error de JSON).",
     items: [{ kind: "FIX", text: "Fichas con caracteres rotos (PDF mal extraído) ya no fallan al leerse." }],
   },
+  {
+    id: "ship-2026-10-10-autocompletado-integrador",
+    version: "1.65.2",
+    releasedAt: "2026-10-13T02:30:00.000Z",
+    summary: "Autocompletado de integrador: pantallas del tamaño pedido, sin tapas ni repuestos como equipos, subwoofer real, dimmers y motores de cortina.",
+    items: [
+      { kind: "FIX", text: "Pantallas: el tamaño sale de la ficha o del modelo (HT-HV75 = 75\") y se elige la más cercana al pedido; nunca la más barata por default." },
+      { kind: "FIX", text: "Teclados y paneles: no se eligen tapas, botones ciegos, marcos ni accesorios (lo que la ficha confirmó sin conexiones)." },
+      { kind: "FIX", text: "Subwoofer: solo subwoofers; los parlantes comunes no toman subwoofers." },
+      { kind: "NUEVO", text: "Iluminación suma dimmers / módulos de iluminación y cortinas suma motores, de la marca de control elegida." },
+    ],
+  },
 ];
