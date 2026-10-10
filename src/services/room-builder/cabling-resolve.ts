@@ -9,7 +9,7 @@
 import { cablingProfile } from "./cabling-db";
 import { cablingForScene } from "./cabling-scene";
 import type { CableFinding } from "./cabling";
-import { addGenericDevice } from "./custom-devices";
+import { addGenericDevice, removeCustomDevice } from "./custom-devices";
 import { genericByKey, genericForSlot } from "./generic/library";
 import { getRoomProject, updateRoomProjectScene } from "./project-service";
 import { parseScene } from "./scene";
@@ -21,7 +21,7 @@ const MAX_ROUNDS = 4;
 const MAX_SAME = 3;
 
 export type ResolvedAddition = { generic: string; name: string; reason: string };
-export type ResolveResult = { added: ResolvedAddition[]; remaining: CableFinding[]; wires: number };
+export type ResolveResult = { added: ResolvedAddition[]; removed: ResolvedAddition[]; remaining: CableFinding[]; wires: number };
 
 /** Lugares de la plantilla sin producto: se cubren con el genérico que corresponde (precio y descripción a completar). */
 async function fillEmptySlots(projectId: string): Promise<ResolvedAddition[]> {
@@ -56,7 +56,13 @@ export async function resolveAndWire(projectId: string): Promise<ResolveResult> 
     // Una solución por tipo de equipo en cada ronda; la siguiente ronda ve si hace falta otro.
     const fixes = new Map<string, CableFinding>();
     const count = (key: string) => added.filter((a) => a.generic === key).length;
-    for (const f of remaining) if (f.fix && genericByKey(f.fix.generic) && !fixes.has(f.fix.generic) && count(f.fix.generic) < MAX_SAME) fixes.set(f.fix.generic, f);
+    // Con amplificación en el rack central no se suman amplificadores en la sala.
+    const centralAudio = Boolean(profile.central && profile.centralDevices?.some((c) => c.cls === "amp"));
+    for (const f of remaining) {
+      if (!f.fix || !genericByKey(f.fix.generic) || fixes.has(f.fix.generic) || count(f.fix.generic) >= MAX_SAME) continue;
+      if (centralAudio && genericByKey(f.fix.generic)!.cls === "amp") continue;
+      fixes.set(f.fix.generic, f);
+    }
     if (!fixes.size) break;
     for (const [key, f] of fixes) {
       const template = genericByKey(key)!;
@@ -64,6 +70,9 @@ export async function resolveAndWire(projectId: string): Promise<ResolveResult> 
       added.push({ generic: key, name: template.name, reason: f.title });
     }
   }
+
+  // Lo que sobra: genéricos que quedaron sin ninguna conexión (ej. un amplificador cuando la sala usa el rack central).
+  const removed = await removeUnused(projectId);
 
   // Con el diseño resuelto: el conexionado completo como cables editables (lo manual queda).
   const project = await getRoomProject(projectId);
@@ -75,5 +84,30 @@ export async function resolveAndWire(projectId: string): Promise<ResolveResult> 
   const wiring = autoWires(plan, model, wiringOf(scene));
   await updateRoomProjectScene(projectId, { ...scene, wiring });
   remaining = plan.findings.filter((f) => f.level !== "info");
-  return { added, remaining, wires: wiring.wires.length };
+  const removedKeys = new Set(removed.map((r) => r.generic));
+  return { added: added.filter((a) => !removedKeys.has(a.generic)), removed, remaining, wires: wiring.wires.length };
+}
+
+/** Quita los genéricos agregados a mano o por el sistema que no tienen ninguna conexión en el plan. */
+async function removeUnused(projectId: string): Promise<ResolvedAddition[]> {
+  const project = await getRoomProject(projectId);
+  const scene = project ? parseScene(project.sceneJson) : null;
+  const profile = scene ? await cablingProfile(projectId) : null;
+  if (!project || !scene || !profile) return [];
+  const plan = cablingForScene(scene, project.category, profile);
+  const linked = new Set(plan.links.flatMap((l) => [l.from.replace(/#\d+$/, ""), l.to.replace(/#\d+$/, "")]));
+  const removed: ResolvedAddition[] = [];
+  const centralAudio = Boolean(profile.central && profile.centralDevices?.some((c) => c.cls === "amp"));
+  for (const d of scene.devices) {
+    if (!d.generic || !d.slotKey.startsWith("custom_")) continue;
+    const template = genericByKey(d.generic.key);
+    // Amplificador genérico en una sala que se amplifica desde el rack central: sobra aunque tenga parlantes asignados.
+    const redundantAmp = centralAudio && template?.cls === "amp";
+    if (linked.has(d.id) && !redundantAmp) continue;
+    // Solo lo que existe para alimentar o distribuir; un motor o un sensor sin cables (inalámbrico/a definir) se deja.
+    if (!template || !["amp", "dsp", "streamer", "source", "video-switch", "switch"].includes(template.cls)) continue;
+    await removeCustomDevice(projectId, d.slotKey);
+    removed.push({ generic: d.generic.key, name: d.generic.name, reason: "Sin conexiones en el diseño" });
+  }
+  return removed;
 }

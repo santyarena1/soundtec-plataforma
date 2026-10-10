@@ -145,7 +145,11 @@ export function RoomBuilderEditor({
   const cabling = useCabling(project.id, scene, project.category);
   const [showCables, setShowCables] = useState(false);
   /** Vista principal: el modelo 3D o el plano técnico (planta, diagrama de señal y cableado), en la misma pantalla. */
-  const [view, setView] = useState<"3d" | "tecnico">(() => (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("view") === "tecnico" ? "tecnico" : "3d"));
+  const [view, setView] = useState<"3d" | "tecnico">("3d");
+  // ?view=tecnico abre directo en el plano técnico (se lee en el navegador, después de hidratar).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("view") === "tecnico") setView("tecnico");
+  }, []);
   const [proposalBusy, setProposalBusy] = useState(false);
   const snapshotRef = useRef<SnapshotFn | null>(null);
 
@@ -667,7 +671,7 @@ export function RoomBuilderEditor({
                 setProject(json.project);
                 const parsed = parseScene(json.project.sceneJson);
                 if (parsed) setScene(hydrateRoomScene(parsed, { templateKey: json.project.templateKey || project.templateKey, heightM: Number(json.project.heightM) || undefined }).scene);
-                return { added: json.added ?? [], remaining: json.remaining ?? [], wires: json.wires ?? 0 };
+                return { added: json.added ?? [], removed: json.removed ?? [], remaining: json.remaining ?? [], wires: json.wires ?? 0 };
               }}
             />
           ) : (

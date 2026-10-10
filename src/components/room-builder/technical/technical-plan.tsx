@@ -37,7 +37,7 @@ export function TechnicalPlan({
   onSceneChange: (next: RoomScene) => void;
   onUnitsChange: (slotKey: string, units: DeviceUnit[]) => void;
   /** Resolver y trazar en el servidor: devuelve la escena nueva (con lo agregado y los cables). */
-  onResolve?: () => Promise<{ added: Array<{ name: string; reason: string }>; remaining: Array<{ title: string; detail: string; fix?: unknown }>; wires: number } | null>;
+  onResolve?: () => Promise<{ added: Array<{ name: string; reason: string }>; removed?: Array<{ name: string; reason: string }>; remaining: Array<{ title: string; detail: string; fix?: unknown }>; wires: number } | null>;
 }) {
   const [tool, setTool] = useState<TechTool>("select");
   const [resolving, setResolving] = useState(false);
@@ -106,8 +106,9 @@ export function TechnicalPlan({
     try {
       const r = await onResolve();
       if (r) {
-        setResolved(r.added);
-        toast.success(r.added.length ? `El sistema agregó ${r.added.length} equipo(s) y trazó ${r.wires} cables` : `${r.wires} cables trazados con los puertos de cada ficha`);
+        setResolved([...r.added, ...(r.removed ?? []).map((x) => ({ name: `Quitado: ${x.name}`, reason: x.reason }))]);
+        const parts = [r.added.length ? `agregó ${r.added.length}` : "", r.removed?.length ? `quitó ${r.removed.length}` : ""].filter(Boolean).join(" y ");
+        toast.success(parts ? `El sistema ${parts} equipo(s) y trazó ${r.wires} cables` : `${r.wires} cables trazados con los puertos de cada ficha`);
       }
     } finally {
       setResolving(false);

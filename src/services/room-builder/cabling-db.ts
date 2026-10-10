@@ -55,7 +55,9 @@ export async function cablingProfile(projectId: string): Promise<CablingProfile 
     if (raw) {
       const system = normalizeProjectSystem(raw, defaultProjectSystem("", "none"));
       const c = centralizedFor(system, project.id);
-      const hasLocal = Object.values(devices).some((d) => d.cls === "amp" || d.cls === "dsp" || d.cls === "control");
+      // Solo un equipo real de la sala (no un genérico ni un gateway) reemplaza al rack central.
+      const real = Object.values(devices).filter((d) => d.sourceKind !== "generic" && d.productId);
+      const hasLocal = real.some((d) => d.cls === "amp" || d.cls === "dsp" || (d.cls === "control" && !/gateway|gw|bridge|antena|antenna/i.test(d.label)));
       if ((c.audio || c.control) && !hasLocal) {
         central = { label: system.location === "closet" ? "Closet técnico (equipamiento central)" : "Rack central del proyecto" };
         // Lo que ya está elegido en el rack central entra al diagrama como equipo real.

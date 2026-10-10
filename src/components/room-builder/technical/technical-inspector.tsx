@@ -88,7 +88,7 @@ function SummaryPanel(p: Props) {
       </div>
       {p.resolved?.length ? (
         <div className="space-y-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1.5 text-sky-950">
-          <p className="font-semibold">El sistema agregó (genéricos, editables):</p>
+          <p className="font-semibold">Cambios del sistema (genéricos, editables):</p>
           <ul className="space-y-0.5 text-[11px]">
             {p.resolved.map((r, k) => (
               <li key={k}>
