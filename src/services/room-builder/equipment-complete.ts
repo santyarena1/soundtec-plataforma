@@ -16,6 +16,7 @@ import { prisma } from "@/lib/prisma";
 import { analyzeHubSystem, setCentralDevice } from "./project-system-db";
 import { getRoomProject } from "./project-service";
 import { parseScene } from "./scene";
+import { centralizedFor, defaultProjectSystem, normalizeProjectSystem } from "./project-system";
 import { addProductToProject, analyzeProjectSystem } from "./system-check-db";
 
 export type AppliedEquipment = { label: string; scope: "central" | "room" };
@@ -47,14 +48,18 @@ async function completeCentral(hubId: string): Promise<AppliedEquipment[]> {
   return applied;
 }
 
+/** Lo que resuelve el rack central cuando el audio del ambiente va centralizado. */
+const CENTRAL_AUDIO_FINDINGS = new Set(["amp-missing", "amp-channels", "stream-missing"]);
+
 /** Ambiente: amplificador / canales / streaming / switch que falten. */
-async function completeRoom(spaceId: string): Promise<AppliedEquipment[]> {
+async function completeRoom(spaceId: string, centralAudio: boolean): Promise<AppliedEquipment[]> {
   const check = await analyzeProjectSystem(spaceId);
   if (!check) return [];
   const { assignProductToSlot } = await import("./project-service");
   const applied: AppliedEquipment[] = [];
   for (const f of check.findings) {
     if ((f.level !== "error" && f.level !== "warn") || !AUTO_ROOM_FINDINGS.has(f.id)) continue;
+    if (centralAudio && CENTRAL_AUDIO_FINDINGS.has(f.id)) continue;
     const action = f.actions[0];
     if (!action) continue;
     if (action.type === "assign") await assignProductToSlot({ projectId: spaceId, slotKey: action.slotKey, productId: action.productId, quantity: action.quantity });
@@ -89,13 +94,22 @@ async function completeVideoSource(spaceId: string): Promise<{ applied: AppliedE
   return { applied: [{ label: `${player.brand?.name ? `${player.brand.name} ` : ""}${player.normalizedName} (fuente de video)`, scope: "room" }], pending: [] };
 }
 
+async function audioIsCentral(spaceId: string, hubId: string | null): Promise<boolean> {
+  if (!hubId) return false;
+  const hub = await prisma.roomProject.findUnique({ where: { id: hubId }, select: { sceneJson: true } });
+  const raw = hub?.sceneJson && typeof hub.sceneJson === "object" ? (hub.sceneJson as Record<string, unknown>).system : null;
+  if (!raw) return false;
+  return centralizedFor(normalizeProjectSystem(raw, defaultProjectSystem("", "none")), spaceId).audio;
+}
+
 /** Completa el ambiente y, si resuelve en el rack central, el equipamiento del proyecto. */
 export async function completeSpaceEquipment(spaceId: string): Promise<CompleteResult> {
   const project = await getRoomProject(spaceId);
   if (!project || project.kind === "hub") throw new Error("Ambiente no encontrado");
   const applied: AppliedEquipment[] = [];
   if (project.parentId) applied.push(...(await completeCentral(project.parentId)));
-  applied.push(...(await completeRoom(spaceId)));
+  // Audio central (según el sistema del proyecto): amplificación y streaming van en el rack, no en la sala.
+  applied.push(...(await completeRoom(spaceId, await audioIsCentral(spaceId, project.parentId))));
   const video = await completeVideoSource(spaceId);
   applied.push(...video.applied);
   return { applied, pending: video.pending };

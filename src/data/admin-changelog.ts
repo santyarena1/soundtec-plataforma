@@ -1781,4 +1781,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Puertas del plano dentro del muro con marco: una hoja o puerta doble según el ancho, apenas entreabiertas. Se unen las aberturas detectadas dos veces." },
     ],
   },
+  {
+    id: "ship-2026-10-10-completar-sin-duplicar",
+    version: "1.64.1",
+    releasedAt: "2026-10-13T00:00:00.000Z",
+    summary: "Completar equipos no duplica: si el audio va en el rack central, la sala no suma amplificador ni streaming propios.",
+    items: [{ kind: "FIX", text: "Con audio centralizado, amplificación y streaming se resuelven solo en el rack del proyecto." }],
+  },
 ];
