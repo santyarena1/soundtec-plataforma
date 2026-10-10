@@ -16,6 +16,9 @@ const BLOCK_PAD = 8;
 const COL_GAP = 170;
 const ROW_GAP = 34;
 const MARGIN = 40;
+/** Alto máximo de una columna antes de repartirla en sub-columnas. */
+const WRAP_H = 1100;
+const SUB_GAP = 40;
 /** Separación entre carriles verticales de cables dentro de un hueco entre columnas. */
 const LANE_STEP = 7;
 /** Iteraciones de ordenamiento por baricentro. */
@@ -73,7 +76,9 @@ function columnsOf(devices: PlacedDevice[], wires: Wire[]): Map<string, number> 
   const connected = new Set(wires.flatMap((w) => [blockKey(w.from.deviceId, w.from.unit), blockKey(w.to.deviceId, w.to.unit)]));
   // Kahn con relajación del camino más largo (los ciclos se cortan por tope de iteraciones).
   const queue = keys.filter((k) => (indeg.get(k) ?? 0) === 0);
-  for (const k of keys) col.set(k, 0);
+  // Los equipos del rack central arrancan en la columna de proceso; sus destinos se corren detrás.
+  const remote = new Set(devices.filter((d) => d.remote).map((d) => blockKey(d.deviceId, d.unit)));
+  for (const k of keys) col.set(k, remote.has(k) ? 1 : 0);
   const seen = new Map<string, number>();
   while (queue.length) {
     const k = queue.shift()!;
@@ -88,9 +93,7 @@ function columnsOf(devices: PlacedDevice[], wires: Wire[]): Map<string, number> 
   }
   for (const d of devices) {
     const k = blockKey(d.deviceId, d.unit);
-    if (!connected.has(k)) col.set(k, ROLE_RANK[d.role] ?? 1);
-    // Los equipos del rack central van al medio aunque solo reciban.
-    if (d.remote) col.set(k, Math.max(1, col.get(k) ?? 1));
+    if (!connected.has(k)) col.set(k, d.remote ? 1 : (ROLE_RANK[d.role] ?? 1));
   }
   return col;
 }
@@ -169,15 +172,22 @@ export function layoutDiagram(model: WiringModel, positions: DiagramPositions = 
     }
   }
 
-  // Posición: columnas compactadas de izquierda a derecha; dentro, apilado.
-  colIdx.forEach((c, ci) => {
+  // Posición: columnas de izquierda a derecha; las muy altas se reparten en sub-columnas.
+  let x = MARGIN;
+  for (const c of colIdx) {
     let y = MARGIN + 24;
+    let sub = 0;
     for (const b of byCol.get(c)!) {
-      b.x = MARGIN + ci * (BLOCK_W + COL_GAP);
+      if (y > MARGIN + 24 && y + b.h > WRAP_H) {
+        sub++;
+        y = MARGIN + 24;
+      }
+      b.x = x + sub * (BLOCK_W + SUB_GAP);
       b.y = y;
       y += b.h + ROW_GAP;
     }
-  });
+    x += (sub + 1) * (BLOCK_W + SUB_GAP) - SUB_GAP + COL_GAP;
+  }
   for (const b of blocks) {
     const saved = positions[b.key];
     if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {

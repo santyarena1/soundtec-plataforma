@@ -58,3 +58,20 @@ test("diagrama: respeta la posición movida a mano y los equipos sin cables van 
   assert.equal(d.blocks.find((b) => b.key === "cam#0")!.column, 0);
   assert.equal(d.blocks.find((b) => b.key === "cam#0")!.noPorts, true);
 });
+
+test("diagrama: el rack central va a proceso y sus parlantes a la columna siguiente; columnas altas se reparten", () => {
+  const amp = { ...dev("central:amp", "processor"), remote: true };
+  const speakers = Array.from({ length: 14 }, (_, i) => dev(`spk${i}`, "speaker"));
+  const m = {
+    devices: [amp, ...speakers],
+    ports: { "central:amp": expandIoPorts([io("speaker", "out", 4, "CH1-CH4")]), ...Object.fromEntries(speakers.map((s) => [s.deviceId, expandIoPorts([io("speaker", "in", 1, "IN")])])) },
+    wires: speakers.map((s, i) => ({ ...wire(`w${i}`, "central:amp", `out:speaker:${(i % 4) + 1}`, s.deviceId, "in:speaker:1"), signal: "speaker" as const })),
+    issues: [],
+  };
+  const d = layoutDiagram(m as never);
+  const ampB = d.blocks.find((b) => b.deviceId === "central:amp")!;
+  const spk = d.blocks.filter((b) => b.deviceId.startsWith("spk"));
+  assert.ok(spk.every((b) => b.column > ampB.column && b.x > ampB.x));
+  assert.ok(new Set(spk.map((b) => b.x)).size > 1, "columna repartida en sub-columnas");
+  assert.ok(Math.max(...spk.map((b) => b.y + b.h)) <= 1100 + 100);
+});
