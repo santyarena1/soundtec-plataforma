@@ -1850,6 +1850,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     ],
   },
   {
+    id: "ship-2026-10-10-plano-tecnico-cableado",
     version: "1.66.1",
     releasedAt: "2026-10-13T06:00:00.000Z",
     summary: "Plano técnico: el trazado automático cablea todos los parlantes y los equipos sin ficha validada.",
