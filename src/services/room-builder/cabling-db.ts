@@ -9,7 +9,7 @@ import { devicePorts, deviceClass, type DeviceClass, type DevicePorts } from "./
 import type { IoProfileData } from "./io-profile/types";
 import { getRoomProject } from "./project-service";
 import { centralizedFor, defaultProjectSystem, normalizeProjectSystem } from "./project-system";
-import { parseScene } from "./scene";
+import { parseScene, type RoomScene } from "./scene";
 import { effectiveSpec, SPEC_PRODUCT_SELECT, type SpecProduct } from "./system-check-db";
 
 /** Estado de la ficha del equipo: lista para cablear, a revisar o sin leer. */
@@ -31,6 +31,8 @@ export type CablingProfile = {
   devices: Record<string, DeviceCablingProfile>;
   /** Equipamiento central del proyecto (fuera de la sala), si corresponde. */
   central: { label: string } | null;
+  /** Equipos reales del rack central (amplificador, procesador, streaming…) con sus puertos de ficha. */
+  centralDevices?: Array<DeviceCablingProfile & { key: string; quantity: number }>;
 };
 
 export async function cablingProfile(projectId: string): Promise<CablingProfile | null> {
@@ -39,14 +41,41 @@ export async function cablingProfile(projectId: string): Promise<CablingProfile 
   const scene = parseScene(project.sceneJson);
   if (!scene) return null;
 
-  const productIds = [...new Set(scene.devices.map((d) => d.productId).filter((id): id is string => Boolean(id)))];
+  const devices: Record<string, DeviceCablingProfile> = {};
+  for (const [id, info] of Object.entries(await deviceProfiles(scene.devices))) devices[id] = info;
+
+  let central: CablingProfile["central"] = null;
+  let centralDevices: CablingProfile["centralDevices"] = [];
+  if (project.parentId) {
+    const hub = await prisma.roomProject.findUnique({ where: { id: project.parentId }, select: { sceneJson: true, category: true } });
+    const raw = hub?.sceneJson && typeof hub.sceneJson === "object" ? (hub.sceneJson as Record<string, unknown>).system : null;
+    if (raw) {
+      const system = normalizeProjectSystem(raw, defaultProjectSystem("", "none"));
+      const c = centralizedFor(system, project.id);
+      const hasLocal = Object.values(devices).some((d) => d.cls === "amp" || d.cls === "dsp" || d.cls === "control");
+      if ((c.audio || c.control) && !hasLocal) {
+        central = { label: system.location === "closet" ? "Closet técnico (equipamiento central)" : "Rack central del proyecto" };
+        // Lo que ya está elegido en el rack central entra al diagrama como equipo real.
+        const hubScene = parseScene(hub?.sceneJson);
+        const hubDevices = (hubScene?.devices ?? []).filter((d) => d.productId && ((c.audio && /amp|streamer/.test(d.slotKey)) || (c.control && /processor|switch/.test(d.slotKey)) || /switch/.test(d.slotKey)));
+        const profiles = await deviceProfiles(hubDevices);
+        centralDevices = hubDevices.map((d) => ({ ...profiles[d.id]!, key: d.slotKey, quantity: Math.max(1, d.quantity || 1) }));
+      }
+    }
+  }
+  return { devices, central, centralDevices };
+}
+
+/** Perfil de cableado de cada equipo según su producto y su ficha validada. */
+async function deviceProfiles(list: RoomScene["devices"]): Promise<Record<string, DeviceCablingProfile>> {
+  const productIds = [...new Set(list.map((d) => d.productId).filter((id): id is string => Boolean(id)))];
   const products = (await prisma.product.findMany({ where: { id: { in: productIds } }, select: SPEC_PRODUCT_SELECT })) as unknown as SpecProduct[];
   const byId = new Map(products.map((p) => [p.id, p]));
   const ioRows = await prisma.productIoProfile.findMany({ where: { productId: { in: productIds } }, select: { productId: true, ports: true, capabilities: true, status: true, sourceUrls: true, source: true } });
   const ioById = new Map(ioRows.map((r) => [r.productId, r]));
 
   const devices: Record<string, DeviceCablingProfile> = {};
-  for (const d of scene.devices) {
+  for (const d of list) {
     const p = d.productId ? byId.get(d.productId) : undefined;
     const spec = p ? effectiveSpec(p) : null;
     const input = { role: d.designRole, slotKey: d.slotKey, name: p?.normalizedName ?? d.productName ?? d.label, spec };
@@ -67,16 +96,5 @@ export async function cablingProfile(projectId: string): Promise<CablingProfile 
     };
   }
 
-  let central: CablingProfile["central"] = null;
-  if (project.parentId) {
-    const hub = await prisma.roomProject.findUnique({ where: { id: project.parentId }, select: { sceneJson: true, category: true } });
-    const raw = hub?.sceneJson && typeof hub.sceneJson === "object" ? (hub.sceneJson as Record<string, unknown>).system : null;
-    if (raw) {
-      const system = normalizeProjectSystem(raw, defaultProjectSystem("", "none"));
-      const c = centralizedFor(system, project.id);
-      const hasLocal = Object.values(devices).some((d) => d.cls === "amp" || d.cls === "dsp" || d.cls === "control");
-      if ((c.audio || c.control) && !hasLocal) central = { label: system.location === "closet" ? "Closet técnico (equipamiento central)" : "Rack central del proyecto" };
-    }
-  }
-  return { devices, central };
+  return devices;
 }

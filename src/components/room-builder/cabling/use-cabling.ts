@@ -24,6 +24,9 @@ export type CablingState = {
   error: string | null;
   readDatasheets: (productIds: string[]) => Promise<void>;
   reload: () => Promise<void>;
+  /** Suma los equipos que faltan (amplificador, fuente de video, streaming, switch). */
+  completeEquipment: () => Promise<{ applied: Array<{ label: string; scope: "central" | "room" }>; pending: string[] } | null>;
+  completing: boolean;
 };
 
 export function useCabling(projectId: string, scene: RoomScene, category: string): CablingState {
@@ -31,6 +34,7 @@ export function useCabling(projectId: string, scene: RoomScene, category: string
   const [catalog, setCatalog] = useState<CableProduct[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [reading, setReading] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const devicesKey = scene.devices.map((d) => `${d.id}:${d.productId ?? ""}:${d.quantity}`).join("|");
 
@@ -92,8 +96,24 @@ export function useCabling(projectId: string, scene: RoomScene, category: string
     [reload],
   );
 
+  const completeEquipment = useCallback(async () => {
+    setCompleting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/room-builder/projects/${projectId}/complete-equipment`, { method: "POST" });
+      const json = await res.json().catch(() => null);
+      if (!json?.ok) throw new Error(json?.error || "No se pudieron completar los equipos");
+      return { applied: json.applied ?? [], pending: json.pending ?? [] };
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudieron completar los equipos");
+      return null;
+    } finally {
+      setCompleting(false);
+    }
+  }, [projectId]);
+
   const plan = useMemo(() => (profile ? cablingForScene(scene, category, profile) : null), [profile, scene, category]);
   const picks = useMemo(() => (plan && catalog ? pickCables(plan, catalog) : null), [plan, catalog]);
 
-  return { plan, profile, picks, loading, reading, error, readDatasheets, reload };
+  return { plan, profile, picks, loading, reading, error, readDatasheets, reload, completeEquipment, completing };
 }

@@ -1769,4 +1769,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "El resumen del plano avisa siempre qué va centralizado (amplificación, procesador), también con un solo ambiente.",
     items: [{ kind: "FIX", text: "Con un solo ambiente, el resumen aclara que la amplificación va en el Sistema del proyecto." }],
   },
+  {
+    id: "ship-2026-10-10-completar-equipos",
+    version: "1.64.0",
+    releasedAt: "2026-10-12T23:30:00.000Z",
+    summary: "Cableado que completa el sistema: suma los equipos que faltan (amplificador real con sus canales, fuente de video, streaming, switch) y el diagrama usa los equipos reales del rack central.",
+    items: [
+      { kind: "NUEVO", text: "Botón \"Completar equipos que faltan\" en Cableado: elige del catálogo, con tus marcas, el amplificador por canales, el streaming, el switch y un reproductor para pantallas sin fuente." },
+      { kind: "NUEVO", text: "Al generar desde un plano con equipos, el rack central (amplificación, procesador, streaming) queda elegido solo." },
+      { kind: "MEJORA", text: "El diagrama muestra el amplificador real del rack central con sus canales y reparte los parlantes por canal según impedancia, en vez de una caja \"Amplificación central\"." },
+      { kind: "FIX", text: "Puertas del plano dentro del muro con marco: una hoja o puerta doble según el ancho, apenas entreabiertas. Se unen las aberturas detectadas dos veces." },
+    ],
+  },
 ];

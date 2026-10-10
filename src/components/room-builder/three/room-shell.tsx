@@ -344,14 +344,38 @@ const DOOR_H = 2.1;
 const SILL_H = 0.9;
 const LEAF_T = 0.04;
 /** Hoja de puerta entreabierta (radianes). */
-const LEAF_OPEN = 1.1;
+/** Hoja apenas entreabierta (rad): se lee como puerta sin cruzar la sala. */
+const LEAF_OPEN = 0.32;
+/** Desde este ancho el vano lleva dos hojas (puerta doble). */
+const DOUBLE_DOOR_M = 1.15;
+const FRAME_W = 0.05;
 
 type WallPiece = { z0: number; z1: number; y0: number; y1: number; kind: "solid" | "glass" | "leaf" };
 
 /** Tramos de una pared con sus puertas y ventanas (z a lo largo de la pared, desde su inicio). */
+/**
+ * Une las aberturas superpuestas de una pared (el plano a veces detecta dos
+ * veces la misma puerta, o cada hoja de una puerta doble por separado).
+ * Si se pisan una puerta y una ventana, manda la puerta.
+ */
+export function mergeOpenings(openings: Array<{ kind: "door" | "window"; from: number; to: number }>) {
+  const sorted = [...openings].filter((o) => o.to > o.from).sort((p, q) => p.from - q.from);
+  const out: Array<{ kind: "door" | "window"; from: number; to: number }> = [];
+  for (const o of sorted) {
+    const last = out[out.length - 1];
+    if (last && o.from <= last.to + 0.02) {
+      last.to = Math.max(last.to, o.to);
+      if (o.kind === "door") last.kind = "door";
+      continue;
+    }
+    out.push({ ...o });
+  }
+  return out;
+}
+
 function wallPieces(len: number, h: number, openings: Array<{ kind: "door" | "window"; from: number; to: number }>): WallPiece[] {
   const pieces: WallPiece[] = [];
-  const ops = [...openings].filter((o) => o.to > o.from).sort((p, q) => p.from - q.from);
+  const ops = mergeOpenings(openings);
   let cursor = -WALL_T / 2;
   const top = Math.min(DOOR_H, h - 0.05);
   for (const o of ops) {
@@ -440,23 +464,54 @@ function PlanWall({
             </mesh>
           );
         }
-        if (p.kind === "leaf") {
-          // Hoja entreabierta hacia adentro, con bisagra en el inicio del vano.
-          return (
-            <group key={i} position={[0, 0, p.z0]} rotation={[0, geo.inward * LEAF_OPEN, 0]}>
-              <mesh position={[0, p.y0 + hh / 2, len / 2]} castShadow>
-                <boxGeometry args={[LEAF_T, hh, len]} />
-                <meshStandardMaterial color="#8b6b4f" roughness={0.6} />
-              </mesh>
-            </group>
-          );
-        }
+        if (p.kind === "leaf") return <DoorLeaves key={i} z0={p.z0} len={len} height={hh} inward={geo.inward} />;
         return (
           <mesh key={i} position={[0, p.y0 + hh / 2, p.z0 + len / 2]} receiveShadow castShadow material={material}>
             <boxGeometry args={[WALL_T, hh, len]} />
           </mesh>
         );
       })}
+    </group>
+  );
+}
+
+/**
+ * Puerta en su vano: marco y una hoja (o dos si es ancha), apenas entreabiertas
+ * hacia el ambiente desde sus bisagras en los lados del vano.
+ */
+function DoorLeaves({ z0, len, height, inward }: { z0: number; len: number; height: number; inward: number }) {
+  const leaf = useSurface("#e9e2d6", 0.45, 0);
+  const frame = useSurface("#f4f2ee", 0.4, 0);
+  const handle = useSurface("#2a2c30", 0.3, 0.8);
+  const double = len >= DOUBLE_DOOR_M;
+  const leafW = (double ? len / 2 : len) - 0.01;
+  const leaves = double
+    ? [
+        { hinge: z0, dir: 1 },
+        { hinge: z0 + len, dir: -1 },
+      ]
+    : [{ hinge: z0, dir: 1 }];
+  return (
+    <group>
+      {/* Marco: dos parantes y dintel, al ras del muro. */}
+      {[z0 + FRAME_W / 2, z0 + len - FRAME_W / 2].map((z) => (
+        <mesh key={z} position={[0, height / 2, z]} material={frame}>
+          <boxGeometry args={[WALL_T + 0.02, height, FRAME_W]} />
+        </mesh>
+      ))}
+      <mesh position={[0, height - FRAME_W / 2, z0 + len / 2]} material={frame}>
+        <boxGeometry args={[WALL_T + 0.02, FRAME_W, len]} />
+      </mesh>
+      {leaves.map(({ hinge, dir }) => (
+        <group key={hinge} position={[0, 0, hinge]} rotation={[0, inward * dir * LEAF_OPEN, 0]}>
+          <mesh position={[0, height / 2, (dir * leafW) / 2]} material={leaf} castShadow>
+            <boxGeometry args={[LEAF_T, height - FRAME_W, leafW - FRAME_W]} />
+          </mesh>
+          <mesh position={[inward * 0.04, height * 0.47, dir * (leafW - 0.12)]} material={handle}>
+            <boxGeometry args={[0.02, 0.02, 0.14]} />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }

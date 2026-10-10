@@ -7,7 +7,8 @@
  */
 
 import { useState } from "react";
-import { AlertTriangle, Cable, CircleAlert, FileSearch, Info, Loader2, Eye, EyeOff, Workflow } from "lucide-react";
+import { AlertTriangle, Cable, CircleAlert, FileSearch, Info, Loader2, Eye, EyeOff, PackagePlus, Workflow } from "lucide-react";
+import { toast } from "sonner";
 import { ConnectionDiagram } from "./connection-diagram";
 import { SIGNAL_INFO, type Signal } from "@/services/room-builder/device-ports";
 import type { CableFinding, CableLink } from "@/services/room-builder/cabling";
@@ -24,6 +25,9 @@ const SOURCE_LABEL: Record<string, string> = { datasheet: "Ficha del fabricante"
 function Dot({ signal }: { signal: Signal }) {
   return <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: SIGNAL_INFO[signal].color }} />;
 }
+
+/** Espera para que el aviso se lea antes de recargar la sala (ms). */
+const RELOAD_AFTER_MS = 1500;
 
 export function CablingPanel({ state, show3d, onShow3d, title = "Sala" }: { state: CablingState; show3d: boolean; onShow3d: (v: boolean) => void; title?: string }) {
   const { plan, profile } = state;
@@ -69,6 +73,28 @@ export function CablingPanel({ state, show3d, onShow3d, title = "Sala" }: { stat
         </button>
       ) : null}
       {diagram ? <ConnectionDiagram plan={plan} title={title} onClose={() => setDiagram(false)} /> : null}
+
+      {/* Como un integrador: lo que el sistema necesita y todavía no está (amplificador, fuente de video, streaming, switch). */}
+      <button
+        type="button"
+        disabled={state.completing}
+        onClick={async () => {
+          const r = await state.completeEquipment();
+          if (!r) return;
+          for (const p of r.pending) toast.warning(p);
+          if (!r.applied.length) {
+            toast.success("No falta ningún equipo para conectar el sistema");
+            return;
+          }
+          toast.success(`Sumados: ${r.applied.map((a) => (a.scope === "central" ? `${a.label} (rack central)` : a.label)).join(", ")}`);
+          // La sala cambió en el servidor: se recarga con los equipos nuevos.
+          window.setTimeout(() => window.location.reload(), RELOAD_AFTER_MS);
+        }}
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#1e3553] px-3 py-2 text-xs font-semibold text-white hover:bg-[#162a44] disabled:opacity-60"
+      >
+        {state.completing ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackagePlus className="h-4 w-4" />}
+        {state.completing ? "Buscando los equipos que faltan…" : "Completar equipos que faltan"}
+      </button>
 
       {missing || review.length ? (
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-rose-900">

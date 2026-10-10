@@ -51,8 +51,28 @@ export function buildCableNodes(scene: RoomScene, profile: CablingProfile): Cabl
       });
     });
   }
+  // Equipos reales del rack central: fuera de la sala, en la salida hacia la sala técnica.
+  if (profile.central && profile.centralDevices?.length) {
+    const exit = centralExit(scene);
+    for (const c of profile.centralDevices) {
+      for (let k = 0; k < c.quantity; k++) {
+        nodes.push({
+          id: `central:${c.key}#${k}`,
+          label: `${c.label}${c.quantity > 1 ? ` (${k + 1})` : ""} · rack central`,
+          cls: c.cls,
+          ports: c.ports,
+          pos: { x: exit.x, y: CENTRAL_RACK_Y, z: exit.z },
+          mount: "rack",
+          productId: c.productId,
+        });
+      }
+    }
+  }
   return nodes;
 }
+
+/** Altura del equipo central en el punto de salida (m). */
+const CENTRAL_RACK_Y = 0.45;
 
 export function cablingForScene(scene: RoomScene, category: string, profile: CablingProfile): CablingPlan {
   const nodes = buildCableNodes(scene, profile);

@@ -8,6 +8,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { BrandGroup, BriefControl, BriefSystem, BriefTier, BriefVcPlatform } from "./brief";
 import { briefForPlanRoom } from "./plan-brief";
+import { completeHubEquipment } from "./equipment-complete";
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { PLAN_KIND_CATEGORY, type PlanBox, type PlanKind } from "./plan-analysis";
 import { boundsFromPolygon, wallsFromPolygon, type PlanModeState } from "./plan-mode";
@@ -130,6 +131,14 @@ export async function createProjectFromPlan(input: PlanProjectInput) {
       } as unknown as Prisma.InputJsonValue,
     },
   });
+  if (input.equip !== false) {
+    try {
+      await completeHubEquipment(hub.id);
+    } catch (error) {
+      // El proyecto ya está creado: el equipamiento central se completa después desde Cableado.
+      console.error("[room-builder/plan-project] equipamiento central", error);
+    }
+  }
   return getRoomProject(hub.id);
 }
 
