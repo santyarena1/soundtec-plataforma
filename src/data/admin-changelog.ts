@@ -1873,4 +1873,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Carga de fichas leídas fuera del sistema (sin depender de la API de OpenAI), con la misma validación de citas textuales." },
     ],
   },
+  {
+    id: "ship-2026-10-10-token-integracion",
+    version: "1.67.1",
+    releasedAt: "2026-10-13T08:00:00.000Z",
+    summary: "Tokens de integración temporales para cargar fichas técnicas desde procesos externos.",
+    items: [
+      { kind: "NUEVO", text: "Un admin puede generar un token temporal (hasta 14 días) para la carga de fichas técnicas; se guarda solo su hash y se puede revocar." },
+    ],
+  },
 ];
