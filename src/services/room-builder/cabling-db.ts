@@ -55,14 +55,18 @@ export async function cablingProfile(projectId: string): Promise<CablingProfile 
     if (raw) {
       const system = normalizeProjectSystem(raw, defaultProjectSystem("", "none"));
       const c = centralizedFor(system, project.id);
-      // Solo un equipo real de la sala (no un genérico ni un gateway) reemplaza al rack central.
+      // Audio y control se centralizan por separado: un equipo real de la sala reemplaza solo lo suyo
+      // (un amplificador local no le saca el control central, ni un procesador local la amplificación).
       const real = Object.values(devices).filter((d) => d.sourceKind !== "generic" && d.productId);
-      const hasLocal = real.some((d) => d.cls === "amp" || d.cls === "dsp" || (d.cls === "control" && !/gateway|gw|bridge|antena|antenna/i.test(d.label)));
-      if ((c.audio || c.control) && !hasLocal) {
+      const localAudio = real.some((d) => d.cls === "amp" || d.cls === "dsp");
+      const localControl = real.some((d) => d.cls === "control" && !/gateway|gw\b|bridge|antena|antenna/i.test(d.label));
+      const audioCentral = c.audio && !localAudio;
+      const controlCentral = c.control && !localControl;
+      if (audioCentral || controlCentral) {
         central = { label: system.location === "closet" ? "Closet técnico (equipamiento central)" : "Rack central del proyecto" };
         // Lo que ya está elegido en el rack central entra al diagrama como equipo real.
         const hubScene = parseScene(hub?.sceneJson);
-        const hubDevices = (hubScene?.devices ?? []).filter((d) => d.productId && ((c.audio && /amp|streamer/.test(d.slotKey)) || (c.control && /processor|switch/.test(d.slotKey)) || /switch/.test(d.slotKey)));
+        const hubDevices = (hubScene?.devices ?? []).filter((d) => d.productId && ((audioCentral && /amp|streamer/.test(d.slotKey)) || (controlCentral && /processor/.test(d.slotKey)) || /switch/.test(d.slotKey)));
         const profiles = await deviceProfiles(hubDevices);
         centralDevices = hubDevices.map((d) => ({ ...profiles[d.id]!, key: d.slotKey, quantity: Math.max(1, d.quantity || 1) }));
       }

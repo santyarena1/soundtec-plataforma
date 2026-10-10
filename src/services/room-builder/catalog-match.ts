@@ -57,7 +57,8 @@ const SPARE = /kit de montaje|bracket|mount|repuesto|cable|license|licencia|soft
 
 /** Qué necesita cada solución: puntaje > 0 = sirve (más alto = mejor) y el grupo de marcas del proyecto que aplica. */
 const NEEDS: Record<string, { group: BrandGroup; score: (c: Candidate) => number }> = {
-  "infinet-gateway": { group: "control", score: (c) => (radio(c, "infinet", "gateway") ? 10 + (radio(c, "infinet", "gateway")!.capacity ?? 0) / 100 : 0) },
+  // Gateway dedicado antes que un procesador con radio (un procesador cambia el diseño del control).
+  "infinet-gateway": { group: "control", score: (c) => (radio(c, "infinet", "gateway") ? 10 + (/\bGW|gateway/i.test(c.name) ? 6 : 0) - Math.min(c.ports.reduce((a, p) => a + p.count, 0), 30) / 10 : 0) },
   "zum-bridge": { group: "control", score: (c) => (radio(c, "zum-mesh", "gateway") ? 10 : 0) },
   "zigbee-gateway": { group: "control", score: (c) => (radio(c, "zigbee", "gateway") ? 10 : 0) },
   "wireless-mic": { group: "audio", score: (c) => (radio(c, "rf-mic", "receiver") ? 10 : 0) },
@@ -82,8 +83,9 @@ const NEEDS: Record<string, { group: BrandGroup; score: (c: Candidate) => number
   "audio-streamer": {
     group: "streaming",
     score: (c) => {
-      if (count(c, ["speaker"], "out") > 0) return 0;
-      const streams = radio(c, "airplay", "base") || radio(c, "chromecast", "base") || /stream|NAX-AP|STR\b/i.test(c.name);
+      // Un streamer de música: sin parlantes, sin video y sin presentación inalámbrica.
+      if (count(c, ["speaker"], "out") > 0 || count(c, ["hdmi", "displayport", "hdbaset"], "out") > 0 || radio(c, "wireless-presentation", "base")) return 0;
+      const streams = radio(c, "airplay", "base") || radio(c, "chromecast", "base") || /\bstream|NAX-AP|\bSTR\b/i.test(c.name);
       return streams && count(c, ["analog-audio", "digital-audio", "dante"], "out") > 0 ? 8 : 0;
     },
   },
@@ -96,7 +98,7 @@ const NEEDS: Record<string, { group: BrandGroup; score: (c: Candidate) => number
     score: (c) => (count(c, ["speaker"], "out") === 0 && count(c, ["mic", "analog-audio", "dante"], "in") >= 4 && count(c, ["analog-audio", "dante"], "out") >= 2 && /dsp|processor|procesador|tesira|q-sys|core/i.test(`${c.name} ${c.productType}`) ? 8 : 0),
   },
   "control-processor": { group: "control", score: (c) => (count(c, ["rs232"], "out") + count(c, ["ir"], "out") >= 2 && count(c, ["lan"], "in") > 0 && /processor|control|MC4|CP4|PRO4|RMC/i.test(`${c.name} ${c.productType}`) ? 8 : 0) },
-  "shade-motor": { group: "control", score: (c) => (/shade|cortina|persiana|roller|drape|motor/i.test(c.name) && (c.ports.length > 0 || c.caps.wireless) ? 8 : 0) },
+  "shade-motor": { group: "control", score: (c) => (/\b(shade|shades|cortina|cortinas|persiana|drape|roller shade)\b|motor de cortina/i.test(c.name) && !/controller|hvac|thermostat/i.test(c.name) && (c.ports.length > 0 || c.caps.wireless) ? 8 : 0) },
   "touch-panel": { group: "control", score: (c) => (/TSW|TS-|touch|táctil/i.test(c.name) && count(c, ["lan"], "in") > 0 ? 6 : 0) },
 };
 

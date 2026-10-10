@@ -126,7 +126,11 @@ export async function resolveAndWire(projectId: string): Promise<ResolveResult> 
       fixes.set(f.fix.generic, f);
     }
     if (!fixes.size) break;
-    for (const [key, f] of fixes) added.push(await addSolution(projectId, scene, key, f.title, f.fix?.near));
+    for (const [key, f] of fixes) {
+      // Si esa misma falta ya se intentó resolver y sigue, no se insiste (es una decisión de diseño).
+      if (added.some((a) => a.generic === key && a.reason === f.title)) continue;
+      added.push(await addSolution(projectId, scene, key, f.title, f.fix?.near));
+    }
   }
 
   // Lo que sobra: genéricos que quedaron sin ninguna conexión (ej. un amplificador cuando la sala usa el rack central).
