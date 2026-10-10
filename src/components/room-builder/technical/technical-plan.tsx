@@ -17,6 +17,7 @@ import { floorOf, planFurniture, planWalls } from "@/services/room-builder/wirin
 import { signalsCompatible } from "@/services/room-builder/wiring/ports";
 import { WIRE_SIGNAL_STYLE, type SceneWiring, type Wire, type WirePort } from "@/services/room-builder/wiring/types";
 import { TechnicalCanvas, type TechSelection, type TechTool } from "./technical-canvas";
+import { TechnicalDiagram } from "./technical-diagram";
 import { TechnicalInspector } from "./technical-inspector";
 
 type Picker = { device: PlacedDevice; x: number; y: number; stage: "from" | "to" };
@@ -36,6 +37,8 @@ export function TechnicalPlan({
   onUnitsChange: (slotKey: string, units: DeviceUnit[]) => void;
 }) {
   const [tool, setTool] = useState<TechTool>("select");
+  /** Vista del cableado: planta (recorridos reales) o diagrama de señal (esquema de puertos). */
+  const [view, setView] = useState<"planta" | "diagrama">("planta");
   const [selection, setSelection] = useState<TechSelection>(null);
   const [from, setFrom] = useState<End | null>(null);
   const [picker, setPicker] = useState<Picker | null>(null);
@@ -101,12 +104,33 @@ export function TechnicalPlan({
   return (
     <div className="flex h-full min-h-0">
       <div className="relative min-w-0 flex-1">
+        <div className="absolute left-1/2 top-2 z-20 flex -translate-x-1/2 rounded-lg border border-slate-300 bg-white p-0.5 shadow-sm" role="tablist" aria-label="Vista del cableado">
+          {(["planta", "diagrama"] as const).map((v) => (
+            <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => { setView(v); setPicker(null); setFrom(null); }} className={`rounded-md px-3 py-1 text-xs font-semibold ${view === v ? "bg-[#1e3553] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+              {v === "planta" ? "Planta" : "Diagrama de señal"}
+            </button>
+          ))}
+        </div>
+        {view === "diagrama" ? (
+          <TechnicalDiagram
+            model={model}
+            positions={wiringOf(scene).diagram ?? {}}
+            selection={selection}
+            wiresWithIssues={withIssues}
+            wireless={(cabling.plan?.links ?? []).filter((l) => l.signal === "wireless")}
+            onSelect={setSelection}
+            onConnect={addWire}
+            onMoveBlock={(key, x, y) => setWiring((w) => ({ ...w, diagram: { ...(w.diagram ?? {}), [key]: { x, y } } }))}
+            onResetLayout={() => setWiring((w) => ({ ...w, diagram: {} }))}
+          />
+        ) : (
+        <>
         <div className="absolute left-2 top-2 z-10 flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
           <ToolButton active={tool === "select"} onClick={() => { setTool("select"); setFrom(null); }} icon={<MousePointer2 className="h-4 w-4" />} label="Elegir" />
           <ToolButton active={tool === "cable"} onClick={() => { setTool("cable"); setSelection(null); }} icon={<Cable className="h-4 w-4" />} label="Cable" />
         </div>
         {tool === "cable" ? (
-          <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-full bg-[#1e3553] px-3 py-1.5 text-xs font-semibold text-white shadow">
+          <div className="absolute left-1/2 top-12 z-10 -translate-x-1/2 rounded-full bg-[#1e3553] px-3 py-1.5 text-xs font-semibold text-white shadow">
             {from && fromPort ? `Desde ${fromPort.label}: tocá el equipo de destino` : "Tocá el equipo de origen y elegí el puerto"}
             {from ? (
               <button type="button" className="ml-2 underline" onClick={() => setFrom(null)}>
@@ -140,6 +164,8 @@ export function TechnicalPlan({
           />
         ) : null}
         <Legend />
+        </>
+        )}
       </div>
       <aside className="w-80 shrink-0 overflow-y-auto border-l border-slate-200 bg-white">
         <TechnicalInspector

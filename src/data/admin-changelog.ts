@@ -1892,4 +1892,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Catálogo revisado: protocolos inalámbricos cargados en dimmers, teclados, sensores, controles remotos y AirMedia; bornes de carga y salidas 0-10 V ya no figuran como señales de audio." },
     ],
   },
+  {
+    id: "ship-2026-10-10-diagrama-senal",
+    version: "1.68.0",
+    releasedAt: "2026-10-13T10:00:00.000Z",
+    summary: "Diagrama de señal en el módulo técnico: bloques con los puertos reales y cables de puerto a puerto, editable.",
+    items: [
+      { kind: "NUEVO", text: "Pestaña \"Diagrama de señal\": cada equipo como bloque con sus puertos de ficha (entradas a la izquierda, salidas a la derecha), ordenado por flujo de señal y con los cables en tramos rectos." },
+      { kind: "NUEVO", text: "Cablear en el diagrama: tocás un puerto y el sistema resalta solo los compatibles; el cable queda también en la planta." },
+      { kind: "NUEVO", text: "Bloques movibles (se recuerdan), ordenar automático, filtro por señal, enlaces inalámbricos punteados y exportación SVG." },
+    ],
+  },
 ];

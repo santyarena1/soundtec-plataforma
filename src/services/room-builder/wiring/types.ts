@@ -48,6 +48,8 @@ export type SceneWiring = {
   wires: Wire[];
   /** Puertos cargados a mano (equipos genéricos o sin ficha), por id de equipo. */
   ports: Record<string, WirePort[]>;
+  /** Posiciones de los bloques en el diagrama de señal movidos a mano ("deviceId#unidad"). */
+  diagram?: Record<string, { x: number; y: number }>;
 };
 
 export const EMPTY_WIRING: SceneWiring = { version: 1, wires: [], ports: {} };
