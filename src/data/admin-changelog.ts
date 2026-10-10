@@ -1862,4 +1862,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "El botón \"Trazar cables automáticamente\" no se veía." },
     ],
   },
+  {
+    id: "ship-2026-10-10-modulo-tecnico",
+    version: "1.67.0",
+    releasedAt: "2026-10-13T07:00:00.000Z",
+    summary: "El plano técnico pasa a ser un módulo propio del Room Builder, separado del render 3D.",
+    items: [
+      { kind: "NUEVO", text: "Módulo \"Plano técnico\" con su propia página por ambiente: conexionado de puerto a puerto, cables y recorridos. Comparte el proyecto con la vista 3D pero funciona por separado." },
+      { kind: "NUEVO", text: "En proyectos con varios ambientes, el módulo técnico lista los ambientes para cablear uno por uno." },
+      { kind: "NUEVO", text: "Carga de fichas leídas fuera del sistema (sin depender de la API de OpenAI), con la misma validación de citas textuales." },
+    ],
+  },
 ];

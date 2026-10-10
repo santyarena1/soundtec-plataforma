@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  Cable,
   FileSpreadsheet,
   FileText,
   Loader2,
@@ -27,7 +28,6 @@ import { HubPlan, readHubPlan } from "@/components/room-builder/plan/hub-plan";
 import { HubSpaces } from "@/components/room-builder/plan/hub-spaces";
 import { ProjectSystemPanel } from "@/components/room-builder/plan/project-system-panel";
 import { useCabling } from "@/components/room-builder/cabling/use-cabling";
-import { TechnicalPlan } from "@/components/room-builder/technical/technical-plan";
 import type { SnapshotFn } from "@/components/room-builder/three/snapshot-bridge";
 
 /** Tiempo para que la cámara llegue a la vista antes de capturarla (ms). */
@@ -143,8 +143,6 @@ export function RoomBuilderEditor({
   const [staged, setStaged] = useState<StagedProduct | null>(null);
   const cabling = useCabling(project.id, scene, project.category);
   const [showCables, setShowCables] = useState(false);
-  /** Vista principal: 3D o plano técnico (cables de puerto a puerto, editables). */
-  const [view, setView] = useState<"3d" | "tecnico">("3d");
   const [proposalBusy, setProposalBusy] = useState(false);
   const snapshotRef = useRef<SnapshotFn | null>(null);
 
@@ -570,20 +568,14 @@ export function RoomBuilderEditor({
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-1.5">
-            <div className="flex rounded-md border border-slate-300 bg-slate-50 p-0.5" role="tablist" aria-label="Vista">
-              {(["3d", "tecnico"] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  role="tab"
-                  aria-selected={view === v}
-                  onClick={() => setView(v)}
-                  className={`rounded px-2.5 py-1 text-xs font-semibold ${view === v ? "bg-[#1e3553] text-white" : "text-slate-700 hover:bg-white"}`}
-                >
-                  {v === "3d" ? "3D" : "Plano técnico"}
-                </button>
-              ))}
-            </div>
+            <Link
+              href={`/admin/room-builder/${project.id}/tecnico`}
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#1e3553] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#162a44]"
+              title="Módulo técnico: conexionado de puerto a puerto y plano de cables"
+            >
+              <Cable className="h-3.5 w-3.5" />
+              Plano técnico
+            </Link>
             <button
               type="button"
               onClick={repairLayout}
@@ -634,18 +626,6 @@ export function RoomBuilderEditor({
         </header>
 
         <div className="min-h-0 flex-1">
-          {view === "tecnico" ? (
-            <TechnicalPlan
-              scene={scene}
-              category={project.category}
-              cabling={cabling}
-              onSceneChange={(next) => {
-                setScene(next);
-                void persistScene(next);
-              }}
-              onUnitsChange={onUnitsChange}
-            />
-          ) : (
           <RoomViewport
             scene={scene}
             category={project.category}
@@ -665,7 +645,6 @@ export function RoomBuilderEditor({
             cables={showCables ? (cabling.plan?.links ?? null) : null}
             snapshotRef={snapshotRef}
           />
-          )}
         </div>
       </div>
 
