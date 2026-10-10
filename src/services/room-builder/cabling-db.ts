@@ -35,7 +35,7 @@ export type CablingProfile = {
   /** Equipamiento central del proyecto (fuera de la sala), si corresponde. */
   central: { label: string } | null;
   /** Equipos reales del rack central (amplificador, procesador, streaming…) con sus puertos de ficha. */
-  centralDevices?: Array<DeviceCablingProfile & { key: string; quantity: number }>;
+  centralDevices?: Array<DeviceCablingProfile & { key: string; quantity: number; /** Canales de parlante que le tocan a esta sala, por unidad. */ grants?: Array<{ unit: number; channels: number[] }> }>;
 };
 
 export async function cablingProfile(projectId: string): Promise<CablingProfile | null> {
@@ -69,10 +69,95 @@ export async function cablingProfile(projectId: string): Promise<CablingProfile 
         const hubDevices = (hubScene?.devices ?? []).filter((d) => d.productId && ((audioCentral && /amp|streamer/.test(d.slotKey)) || (controlCentral && /processor/.test(d.slotKey)) || /switch/.test(d.slotKey)));
         const profiles = await deviceProfiles(hubDevices);
         centralDevices = hubDevices.map((d) => ({ ...profiles[d.id]!, key: d.slotKey, quantity: Math.max(1, d.quantity || 1) }));
+        // Los amplificadores del rack se comparten: cada ambiente recibe sus propios canales.
+        if (audioCentral && project.parentId) {
+          const grants = await centralChannelGrants(project.parentId, centralDevices);
+          const mine = grants.get(project.id) ?? [];
+          centralDevices = centralDevices.map((c) => (c.cls === "amp" ? { ...c, grants: mine.filter((g) => g.key === c.key).map((g) => ({ unit: g.unit, channels: g.channels })) } : c));
+        }
       }
     }
   }
   return { devices, central, centralDevices };
+}
+
+/**
+ * Capacidad del rack central: si los canales de los amplificadores centrales no alcanzan para
+ * los parlantes de todos los ambientes, suma unidades del mismo amplificador al rack.
+ * Devuelve cuántas unidades agregó.
+ */
+export async function ensureCentralAmpCapacity(hubId: string): Promise<{ added: number; label: string | null }> {
+  const hub = await getRoomProject(hubId);
+  const hubScene = hub ? parseScene(hub.sceneJson) : null;
+  if (!hub || !hubScene) return { added: 0, label: null };
+  const amps = hubScene.devices.filter((d) => d.productId && /amp|streamer/.test(d.slotKey));
+  if (!amps.length) return { added: 0, label: null };
+  const profiles = await deviceProfiles(amps);
+  const ampDevs = amps.filter((d) => profiles[d.id]?.cls === "amp");
+  if (!ampDevs.length) return { added: 0, label: null };
+  const outsOf = (id: string) => (profiles[id]?.ioPorts ?? []).filter((p) => p.signal === "speaker" && p.direction !== "in").reduce((a, p) => a + p.count, 0);
+  const have = ampDevs.reduce((a, d) => a + outsOf(d.id) * Math.max(1, d.quantity || 1), 0);
+  let need = 0;
+  for (const child of hub.children) {
+    const space = await getRoomProject(child.id);
+    const scene = space ? parseScene(space.sceneJson) : null;
+    if (!scene) continue;
+    const p = await deviceProfiles(scene.devices.filter((d) => d.productId || d.generic));
+    if (Object.values(p).some((x) => x.cls === "amp" && x.productId && x.sourceKind !== "generic")) continue;
+    const passive = scene.devices.filter((d) => {
+      const x = p[d.id];
+      return x && (x.cls === "speaker" || x.cls === "subwoofer") && (x.ports?.inputs ?? []).some((g) => g.signal === "speaker");
+    });
+    need += Math.ceil(passive.reduce((a, d) => a + Math.max(1, d.quantity || 1), 0) / SPEAKERS_PER_CHANNEL);
+  }
+  if (need <= have) return { added: 0, label: null };
+  // Se suman unidades del amplificador central principal (el de más canales).
+  const main = [...ampDevs].sort((a, b) => outsOf(b.id) - outsOf(a.id))[0]!;
+  const per = Math.max(1, outsOf(main.id));
+  const units = Math.ceil((need - have) / per);
+  const { setCentralDevice } = await import("./project-system-db");
+  await setCentralDevice(hubId, main.slotKey, main.productId!, Math.max(1, main.quantity || 1) + units);
+  return { added: units, label: profiles[main.id]?.label ?? null };
+}
+
+/** Canales de parlante que pide un ambiente: los pasivos de a 2 por canal (baja impedancia). */
+const SPEAKERS_PER_CHANNEL = 2;
+
+/**
+ * Reparto de los canales de los amplificadores del rack central entre los ambientes del
+ * proyecto, en el orden de los ambientes: cada uno recibe canales propios (unidad + canal).
+ */
+async function centralChannelGrants(hubId: string, central: Array<DeviceCablingProfile & { key: string; quantity: number }>): Promise<Map<string, Array<{ key: string; unit: number; channels: number[] }>>> {
+  const hub = await getRoomProject(hubId);
+  const pool: Array<{ key: string; unit: number; free: number[] }> = [];
+  for (const c of central.filter((x) => x.cls === "amp")) {
+    const outs = (c.ioPorts ?? []).filter((p) => p.signal === "speaker" && (p.direction === "out" || p.direction === "bidir")).reduce((a, p) => a + p.count, 0);
+    for (let u = 0; u < c.quantity; u++) pool.push({ key: c.key, unit: u, free: Array.from({ length: outs }, (_, k) => k + 1) });
+  }
+  const grants = new Map<string, Array<{ key: string; unit: number; channels: number[] }>>();
+  for (const child of hub?.children ?? []) {
+    const space = await getRoomProject(child.id);
+    const scene = space ? parseScene(space.sceneJson) : null;
+    if (!scene) continue;
+    const profiles = await deviceProfiles(scene.devices.filter((d) => d.productId || d.generic));
+    // Un ambiente con amplificación propia no toma canales del rack.
+    if (Object.values(profiles).some((p) => p.cls === "amp" && p.productId && p.sourceKind !== "generic")) continue;
+    const passive = scene.devices.filter((d) => {
+      const p = profiles[d.id];
+      return p && (p.cls === "speaker" || p.cls === "subwoofer") && (p.ports?.inputs ?? []).some((g) => g.signal === "speaker");
+    });
+    let need = Math.ceil(passive.reduce((a, d) => a + Math.max(1, d.quantity || 1), 0) / SPEAKERS_PER_CHANNEL);
+    const mine: Array<{ key: string; unit: number; channels: number[] }> = [];
+    for (const slot of pool) {
+      if (need <= 0) break;
+      const take = slot.free.splice(0, need);
+      if (!take.length) continue;
+      need -= take.length;
+      mine.push({ key: slot.key, unit: slot.unit, channels: take });
+    }
+    grants.set(child.id, mine);
+  }
+  return grants;
 }
 
 /** Perfil de cableado de cada equipo según su producto y su ficha validada. */

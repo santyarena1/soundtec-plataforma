@@ -1987,4 +1987,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Tocar un equipo en la planta o el diagrama lo abre en el panel para cambiarlo." },
     ],
   },
+  {
+    id: "ship-2026-10-10-rack-compartido",
+    version: "1.76.0",
+    releasedAt: "2026-10-13T18:00:00.000Z",
+    summary: "El rack central se reparte entre los ambientes: cada uno con sus propios canales de amplificación.",
+    items: [
+      { kind: "FIX", text: "Antes cada ambiente usaba los mismos canales del mismo amplificador del rack; ahora los canales se asignan por ambiente (unidad y canal reales) y se usan todos los amplificadores del rack." },
+      { kind: "NUEVO", text: "Si los canales del rack no alcanzan para todos los ambientes, el sistema suma unidades del amplificador central." },
+      { kind: "MEJORA", text: "El diagrama del proyecto muestra los enlaces inalámbricos (teclados y dimmers infiNET con su gateway)." },
+    ],
+  },
 ];

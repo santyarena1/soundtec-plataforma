@@ -56,6 +56,9 @@ export function buildCableNodes(scene: RoomScene, profile: CablingProfile): Cabl
     const exit = centralExit(scene);
     for (const c of profile.centralDevices) {
       for (let k = 0; k < c.quantity; k++) {
+        // Amplificador compartido: solo las unidades y canales asignados a esta sala.
+        const grant = c.grants ? c.grants.find((g) => g.unit === k) : undefined;
+        if (c.grants && !grant) continue;
         nodes.push({
           id: `central:${c.key}#${k}`,
           label: `${c.label}${c.quantity > 1 ? ` (${k + 1})` : ""} · rack central`,
@@ -64,6 +67,7 @@ export function buildCableNodes(scene: RoomScene, profile: CablingProfile): Cabl
           pos: { x: exit.x, y: CENTRAL_RACK_Y, z: exit.z },
           mount: "rack",
           productId: c.productId,
+          ...(grant ? { channelMap: grant.channels } : {}),
         });
       }
     }

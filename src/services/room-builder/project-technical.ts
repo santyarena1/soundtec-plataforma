@@ -6,6 +6,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { cablingProfile } from "./cabling-db";
+import type { CableLink } from "./cabling";
+import { cablingForScene } from "./cabling-scene";
 import { getRoomProject } from "./project-service";
 import { parseScene } from "./scene";
 import { buildWiringModel, type PlacedDevice, type WiringModel } from "./wiring/model";
@@ -28,6 +30,8 @@ export type EquipmentRow = { room: string; name: string; brand: string | null; q
 export type MaterialRow = { signal: string; cables: number; meters: number };
 export type ProjectTechnical = {
   model: WiringModel;
+  /** Enlaces inalámbricos (cliente → gateway/receptor) de todos los ambientes. */
+  wireless: CableLink[];
   rooms: Array<{ id: string; name: string; wires: number; devices: number }>;
   schedule: ScheduleRow[];
   equipment: EquipmentRow[];
@@ -53,6 +57,7 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
   const rooms: ProjectTechnical["rooms"] = [];
   const seenCentral = new Set<string>();
   const cableIds = new Set<string>();
+  const wireless: CableLink[] = [];
 
   for (const child of hub.children) {
     const space = await getRoomProject(child.id);
@@ -60,6 +65,10 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
     if (!space || !scene) continue;
     const profile = await cablingProfile(space.id);
     const m = buildWiringModel(scene, profile);
+    if (profile) {
+      const nodeKey = (id: string) => (id.startsWith(CENTRAL_PREFIX) ? id : `${space.id}:${id}`);
+      for (const l of cablingForScene(scene, space.category, profile).links.filter((x) => x.signal === "wireless")) wireless.push({ ...l, id: `${space.id}:${l.id}`, from: nodeKey(l.from), to: nodeKey(l.to) });
+    }
     const key = (deviceId: string) => (deviceId.startsWith(CENTRAL_PREFIX) ? deviceId : `${space.id}:${deviceId}`);
     const code = roomCode(space.name);
 
@@ -127,6 +136,7 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
 
   return {
     model: { devices, ports, wires, issues: [] },
+    wireless,
     rooms,
     schedule,
     equipment,

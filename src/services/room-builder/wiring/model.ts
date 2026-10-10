@@ -153,7 +153,9 @@ export function autoWires(plan: CablingPlan, model: WiringModel, current: SceneW
     const b = nodeEnd(link.to);
     if (!a || !b) continue;
     const wanted = ENGINE_TO_IO[link.signal];
-    const fromPort = pick(a, wanted, "out", link.signal === "speaker");
+    const channel = link.signal === "speaker" ? /Canal (\d+)/.exec(link.fromPort)?.[1] : undefined;
+    const channelPort = channel ? (model.ports[a.deviceId] ?? []).find((p) => p.signal === "speaker" && p.direction !== "in" && p.id.endsWith(`:${channel}`)) : undefined;
+    const fromPort = channelPort?.id ?? pick(a, wanted, "out", link.signal === "speaker");
     const toPort = pick(b, wanted, "in", false);
     if (!fromPort || !toPort) continue;
     // Ya hay un cable manual entre esos mismos puertos: manda el manual.

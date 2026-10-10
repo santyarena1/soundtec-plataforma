@@ -117,7 +117,7 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
             positions={positions}
             selection={selection}
             wiresWithIssues={new Set()}
-            wireless={[]}
+            wireless={data.wireless ?? []}
             onSelect={setSelection}
             onConnect={() => toast.message("Para conectar cables entrá al plano técnico del ambiente.")}
             onMoveBlocks={setPositions}

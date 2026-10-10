@@ -22,6 +22,8 @@ export type CableNode = {
   productId?: string | null;
   /** Punto que no es un producto de la sala (rack central, conexión de mesa, switch a definir). */
   virtual?: boolean;
+  /** Amplificador compartido: números reales de los canales que puede usar esta sala. */
+  channelMap?: number[];
 };
 
 export type CableLink = {
@@ -399,7 +401,7 @@ export function planCabling(input: CablingInput): CablingPlan {
   // Cada canal trabaja en baja impedancia o en tensión constante (70/100 V); los amplificadores que
   // admiten los dos modos toman el de los parlantes que les tocan.
   type Channel = { amp: Ready; ch: number; load: number; mode: "low" | "high" | null };
-  const channels: Channel[] = amps.flatMap((a) => Array.from({ length: portCount(a.ports, "outputs", "speaker") }, (_, k) => ({ amp: a, ch: k + 1, load: 0, mode: null })));
+  const channels: Channel[] = amps.flatMap((a) => (a.channelMap ?? Array.from({ length: portCount(a.ports, "outputs", "speaker") }, (_, k) => k + 1)).map((ch) => ({ amp: a, ch, load: 0, mode: null })));
   const ampModes = (a: Ready): Array<"low" | "high"> => (a.ports.lineVoltage === "both" ? ["low", "high"] : isHighZ(a.ports.lineVoltage) ? ["high"] : ["low"]);
   const passive = of("speaker", "subwoofer").filter((s) => portCount(s.ports, "inputs", "speaker") > 0);
   let shortChannels = 0;

@@ -6,7 +6,7 @@
  * agrega queda a la vista para que el usuario lo cambie si quiere.
  */
 
-import { cablingProfile } from "./cabling-db";
+import { cablingProfile, ensureCentralAmpCapacity } from "./cabling-db";
 import { cablingForScene } from "./cabling-scene";
 import type { CableFinding } from "./cabling";
 import { addCustomDevice, addGenericDevice, removeCustomDevice } from "./custom-devices";
@@ -124,6 +124,12 @@ async function fillEmptySlots(projectId: string): Promise<ResolvedAddition[]> {
 
 export async function resolveAndWire(projectId: string): Promise<ResolveResult> {
   const added: ResolvedAddition[] = [...(await upgradeGenerics(projectId)), ...(await fillEmptySlots(projectId))];
+  // Ambiente de un proyecto con rack central: que los amplificadores del rack alcancen para todos.
+  const parent = (await getRoomProject(projectId))?.parent?.id;
+  if (parent) {
+    const cap = await ensureCentralAmpCapacity(parent);
+    if (cap.added) added.push({ generic: "amp-4ch", name: `${cap.added} × ${cap.label ?? "amplificador"} (rack central)`, reason: "Canales del rack central insuficientes para todos los ambientes", catalog: true });
+  }
   let remaining: CableFinding[] = [];
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const project = await getRoomProject(projectId);
