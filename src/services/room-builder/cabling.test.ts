@@ -105,7 +105,22 @@ test("parlante de baja impedancia en un amplificador de 70 V: error", () => {
     nodes: [node("amp", "other", "AMP 70V", [-2, 0.45, 1], "rack", amp70, "amplifier"), node("s", "speaker", "Parlante 8 ohm", [0, 2.7, 0], "ceiling", lowz)],
     dims,
   });
-  assert.ok(plan.findings.some((f) => f.title.includes("70/100 V")));
+  const f = plan.findings.find((x) => x.title === "Parlante y amplificador incompatibles");
+  assert.ok(f, "error de compatibilidad");
+  assert.equal(f!.fix?.generic, "amp-4ch", "propone un amplificador de baja impedancia");
+});
+
+test("amplificador de doble modo: los parlantes de baja impedancia van en modo baja impedancia, 2 por canal", () => {
+  const ampBoth = io([["speaker", "out", 2]], { lineVoltage: "both" });
+  const lowz = io([["speaker", "in", 1]], { lineVoltage: "low-z" });
+  const plan = planCabling({
+    nodes: [node("amp", "other", "AMP", [-2, 0.45, 1], "rack", ampBoth, "amplifier"), ...[0, 1, 2, 3, 4].map((i) => node(`s${i}`, "speaker", `Parlante ${i}`, [i, 2.7, 0], "ceiling", lowz))],
+    dims,
+  });
+  assert.equal(plan.links.filter((l) => l.signal === "speaker").length, 4, "2 canales × 2 parlantes");
+  assert.ok(!plan.findings.some((x) => x.title === "Parlante y amplificador incompatibles"));
+  const short = plan.findings.find((x) => x.id === "amp-load");
+  assert.ok(short && short.fix?.generic === "amp-4ch", "el quinto parlante pide otro amplificador");
 });
 
 test("inalámbrico: teclado infiNET sin gateway es error; con gateway se enlaza y se controla la capacidad", () => {

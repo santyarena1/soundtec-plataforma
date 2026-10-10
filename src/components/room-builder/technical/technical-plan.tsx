@@ -29,14 +29,19 @@ export function TechnicalPlan({
   cabling,
   onSceneChange,
   onUnitsChange,
+  onResolve,
 }: {
   scene: RoomScene;
   category: string;
   cabling: CablingState;
   onSceneChange: (next: RoomScene) => void;
   onUnitsChange: (slotKey: string, units: DeviceUnit[]) => void;
+  /** Resolver y trazar en el servidor: devuelve la escena nueva (con lo agregado y los cables). */
+  onResolve?: () => Promise<{ added: Array<{ name: string; reason: string }>; remaining: Array<{ title: string; detail: string; fix?: unknown }>; wires: number } | null>;
 }) {
   const [tool, setTool] = useState<TechTool>("select");
+  const [resolving, setResolving] = useState(false);
+  const [resolved, setResolved] = useState<Array<{ name: string; reason: string }> | null>(null);
   /** Vista del cableado: planta (recorridos reales) o diagrama de señal (esquema de puertos). */
   const [view, setView] = useState<"planta" | "diagrama">("planta");
   const [selection, setSelection] = useState<TechSelection>(null);
@@ -173,7 +178,9 @@ export function TechnicalPlan({
           selection={selection}
           catalog={cabling.catalog}
           autoAvailable={Boolean(cabling.plan)}
-          systemNotes={(cabling.plan?.findings ?? []).filter((f) => f.level === "error" || f.level === "warn").map((f) => ({ level: f.level, title: f.title, detail: f.detail }))}
+          resolved={resolved}
+          resolving={resolving}
+          review={(cabling.plan?.findings ?? []).filter((f) => (f.level === "error" || f.level === "warn") && !f.fix).map((f) => ({ title: f.title, detail: f.detail }))}
           onSelect={setSelection}
           onUpdateWire={(id, patch) => setWiring((w) => ({ ...w, wires: w.wires.map((x) => (x.id === id ? { ...x, ...patch } : x)) }))}
           onDeleteWire={(id) => {
@@ -195,7 +202,20 @@ export function TechnicalPlan({
               return { ...w, ports: next };
             })
           }
-          onAutoWire={() => {
+          onAutoWire={async () => {
+            if (onResolve) {
+              setResolving(true);
+              try {
+                const r = await onResolve();
+                if (r) {
+                  setResolved(r.added);
+                  toast.success(r.added.length ? `Se agregaron ${r.added.length} equipo(s) y se trazaron ${r.wires} cables` : `${r.wires} cables trazados con los puertos de cada ficha`);
+                }
+              } finally {
+                setResolving(false);
+              }
+              return;
+            }
             if (!cabling.plan) return;
             const next = autoWires(cabling.plan, model, wiringOf(scene));
             onSceneChange({ ...scene, wiring: next });

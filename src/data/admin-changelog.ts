@@ -1914,4 +1914,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Los genéricos no se agregan al catálogo de productos: viven solo en el proyecto y su cotización." },
     ],
   },
+  {
+    id: "ship-2026-10-10-resolver-y-trazar",
+    version: "1.70.0",
+    releasedAt: "2026-10-13T12:00:00.000Z",
+    summary: "Resolver y trazar: el sistema detecta lo que falta para cablear la sala, lo resuelve solo y traza todo el conexionado.",
+    items: [
+      { kind: "NUEVO", text: "Un botón resuelve el diseño: suma amplificadores, fuentes de audio y video, gateways inalámbricos, switch PoE o matriz como genéricos editables, y traza todos los cables." },
+      { kind: "NUEVO", text: "Soluciones inalámbricas cuando conviene: en salas con mesa, la pantalla sin fuente se resuelve con presentación inalámbrica; teclados infiNET, Zūm o Zigbee reciben su gateway." },
+      { kind: "MEJORA", text: "Amplificadores de doble modo (baja impedancia y 70/100 V): cada canal se configura según sus parlantes (hasta 2 por canal en baja impedancia)." },
+      { kind: "MEJORA", text: "Las pantallas sin señal se alimentan solas desde un reproductor o streamer de la sala." },
+      { kind: "MEJORA", text: "En lugar de la lista de faltantes, el panel muestra qué agregó el sistema; lo que no se puede resolver solo queda plegado para revisar." },
+    ],
+  },
 ];

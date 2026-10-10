@@ -29,8 +29,11 @@ type Props = {
   selection: TechSelection;
   catalog: CableProduct[] | null;
   autoAvailable: boolean;
-  /** Avisos del sistema (canales que no alcanzan, equipos sin ficha, equipos sin conectar). */
-  systemNotes: Array<{ level: string; title: string; detail: string }>;
+  /** Lo que el sistema resolvió solo en la última pasada (equipos genéricos agregados). */
+  resolved: Array<{ name: string; reason: string }> | null;
+  /** Lo que no se pudo resolver solo (queda para revisar a mano). */
+  review: Array<{ title: string; detail: string }>;
+  resolving: boolean;
   onSelect: (s: TechSelection) => void;
   onUpdateWire: (id: string, patch: Partial<Wire>) => void;
   onDeleteWire: (id: string) => void;
@@ -73,26 +76,40 @@ function SummaryPanel(p: Props) {
         <Stat label="Cables" value={p.model.wires.length} />
       </div>
       <div className="space-y-1.5">
-        <button type="button" className={`${primary} w-full justify-center`} disabled={!p.autoAvailable} onClick={p.onAutoWire}>
-          <Wand2 className="h-3.5 w-3.5" /> Trazar cables automáticamente
+        <button type="button" className={`${primary} w-full justify-center`} disabled={!p.autoAvailable || p.resolving} onClick={p.onAutoWire}>
+          <Wand2 className="h-3.5 w-3.5" /> {p.resolving ? "Resolviendo…" : "Resolver y trazar todo"}
         </button>
-        <p className="text-[11px] leading-snug text-slate-500">Propone todo el conexionado con los puertos reales de cada ficha. Lo que tocaste a mano queda fijo; los cables automáticos anteriores se rehacen.</p>
+        <p className="text-[11px] leading-snug text-slate-500">Detecta lo que falta (amplificación, fuentes, gateways, red), lo suma solo y traza todo el conexionado con los puertos reales. Lo que tocaste a mano queda fijo.</p>
         {p.model.wires.some((w) => w.origin === "auto") ? (
           <button type="button" className={`${btn} w-full justify-center`} onClick={p.onClearAuto}>
             Borrar cables automáticos
           </button>
         ) : null}
       </div>
-      {p.systemNotes.length ? (
-        <div className="space-y-1">
-          <p className="font-semibold text-slate-700">Lo que falta para cablear todo</p>
-          {p.systemNotes.map((n, k) => (
-            <div key={k} className={`rounded-md px-2 py-1.5 ${n.level === "error" ? "bg-rose-50 text-rose-900" : "bg-amber-50 text-amber-900"}`}>
-              <p className="font-semibold">{n.title}</p>
-              <p className="text-[11px] leading-snug">{n.detail}</p>
-            </div>
-          ))}
+      {p.resolved?.length ? (
+        <div className="space-y-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-1.5 text-sky-950">
+          <p className="font-semibold">El sistema agregó (genéricos, editables):</p>
+          <ul className="space-y-0.5 text-[11px]">
+            {p.resolved.map((r, k) => (
+              <li key={k}>
+                <b>{r.name}</b> — por: {r.reason.toLowerCase()}
+              </li>
+            ))}
+          </ul>
+          <p className="text-[10.5px] text-sky-800">Cambialos por un producto del catálogo o quitalos desde la Vista 3D.</p>
         </div>
+      ) : null}
+      {p.review.length ? (
+        <details className="rounded-md border border-slate-200 px-2 py-1.5 text-slate-700">
+          <summary className="cursor-pointer font-semibold">Para revisar a mano ({p.review.length})</summary>
+          <ul className="mt-1 space-y-1 text-[11px]">
+            {p.review.map((n, k) => (
+              <li key={k}>
+                <b>{n.title}</b>: {n.detail}
+              </li>
+            ))}
+          </ul>
+        </details>
       ) : null}
       {errors.length || warns.length ? (
         <div className="space-y-1">

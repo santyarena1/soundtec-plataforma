@@ -118,7 +118,25 @@ function RoomWiring({ initialProject, initialScene }: { initialProject: Project;
     <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col">
       <Header project={project} />
       <div className="min-h-0 flex-1">
-        <TechnicalPlan scene={scene} category={project.category} cabling={cabling} onSceneChange={change} onUnitsChange={onUnitsChange} />
+        <TechnicalPlan
+          scene={scene}
+          category={project.category}
+          cabling={cabling}
+          onSceneChange={change}
+          onUnitsChange={onUnitsChange}
+          onResolve={async () => {
+            const res = await fetch(`/api/admin/room-builder/projects/${project.id}/cabling`, { method: "POST" });
+            const json = await res.json().catch(() => null);
+            if (!json?.ok) {
+              toast.error(json?.error || "No se pudo resolver el cableado");
+              return null;
+            }
+            setProject(json.project);
+            const next = sceneOf(json.project);
+            if (next) setScene(next);
+            return { added: json.added ?? [], remaining: json.remaining ?? [], wires: json.wires ?? 0 };
+          }}
+        />
       </div>
     </div>
   );

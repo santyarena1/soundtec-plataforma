@@ -41,7 +41,9 @@ export type CableLink = {
   protocol?: string;
 };
 
-export type CableFinding = { id: string; level: "info" | "warn" | "error"; title: string; detail: string; linkId?: string; productIds?: string[] };
+/** Solución que el sistema puede aplicar solo: sumar un equipo genérico (que después se cablea solo). */
+export type FindingFix = { generic: string; label: string };
+export type CableFinding = { id: string; level: "info" | "warn" | "error"; title: string; detail: string; linkId?: string; productIds?: string[]; fix?: FindingFix };
 
 export type CablingInput = {
   nodes: CableNode[];
@@ -124,6 +126,14 @@ export function cableMeters(runM: number, signal: Signal): number {
   return STANDARD_LENGTHS.find((l) => l >= need) ?? Math.ceil(need / 10) * 10;
 }
 
+/** Genérico que resuelve la falta de la contraparte inalámbrica de cada protocolo. */
+const WIRELESS_FIX: Record<string, { generic: string; label: string }> = {
+  infinet: { generic: "infinet-gateway", label: "Sumar gateway infiNET EX" },
+  "zum-mesh": { generic: "zum-bridge", label: "Sumar bridge Zūm Mesh" },
+  zigbee: { generic: "zigbee-gateway", label: "Sumar gateway Zigbee" },
+  "rf-mic": { generic: "wireless-mic", label: "Sumar receptor de micrófono" },
+};
+
 /** Contraparte que necesita un cliente de cada protocolo (y cómo se llama). */
 const WIRELESS_PEER: Record<string, { roles: string[]; name: string; required: boolean }> = {
   infinet: { roles: ["gateway"], name: "gateway infiNET EX", required: true },
@@ -163,7 +173,7 @@ function wirelessLinks(nodes: Array<CableNode & { ports: DevicePorts }>, links: 
       if (!hosts.length) {
         findings.push(
           peer.required
-            ? { id: `wl-${w.protocol}-${client.id}`, level: "error", title: `Falta ${peer.name}`, detail: `${client.label} se conecta por ${name} y no hay ${peer.name} en la sala.` }
+            ? { id: `wl-${w.protocol}-${client.id}`, level: "error", title: `Falta ${peer.name}`, detail: `${client.label} se conecta por ${name} y no hay ${peer.name} en la sala.`, fix: WIRELESS_FIX[w.protocol] }
             : { id: `wl-${w.protocol}-${client.id}`, level: "info", title: `${name} del edificio`, detail: `${client.label} usa ${name}: necesita cobertura de la red inalámbrica en la sala.` },
         );
         continue;
@@ -174,7 +184,7 @@ function wirelessLinks(nodes: Array<CableNode & { ports: DevicePorts }>, links: 
       const used = (load.get(host.id) ?? 0) + 1;
       load.set(host.id, used);
       if (cap != null && used > cap) {
-        findings.push({ id: `wl-cap-${host.id}-${w.protocol}`, level: "error", title: `${peer.name} sin capacidad`, detail: `${host.label} admite ${cap} dispositivo(s) ${name} y el diseño usa ${used}.` });
+        findings.push({ id: `wl-cap-${host.id}-${w.protocol}`, level: "error", title: `${peer.name} sin capacidad`, detail: `${host.label} admite ${cap} dispositivo(s) ${name} y el diseño usa ${used}.`, fix: WIRELESS_FIX[w.protocol] });
       }
       links.push({
         id: `${client.id}~${host.id}~${w.protocol}${links.length}`,
@@ -298,6 +308,7 @@ export function planCabling(input: CablingInput): CablingPlan {
         id: "net-switch-new",
         level: "error",
         title: "Falta el switch de red",
+        fix: { generic: netDevices.length > 7 ? "poe-switch-24" : "poe-switch-8", label: "Sumar switch PoE" },
         detail: `${netDevices.length} equipo(s) van a la red (${netDevices.map((n) => n.label).join(", ")}).${poe.length ? ` ${poe.length} se alimentan por PoE (${Math.round(poe.reduce((s, n) => s + (n.ports.poeWatts ?? 0), 0))} W en total).` : ""} Sumá un switch con al menos ${netDevices.length + 1} puertos.`,
       });
     }
@@ -333,7 +344,7 @@ export function planCabling(input: CablingInput): CablingPlan {
     });
     if (displays.length > outs) findings.push({ id: "video-outs", level: "error", title: "Salidas de video insuficientes", detail: `${codec.label} tiene ${outs} salida(s) HDMI y hay ${displays.length} pantallas: sumá un splitter o una matriz HDMI.` });
   } else if (displays.length > 1) {
-    findings.push({ id: "video-split", level: "error", title: "Pantallas sin distribución de video", detail: `Hay ${displays.length} pantallas y ningún codec o matriz que las alimente: sumá un splitter/matriz HDMI.` });
+    findings.push({ id: "video-split", level: "error", title: "Pantallas sin distribución de video", detail: `Hay ${displays.length} pantallas y ningún codec o matriz que las alimente: sumá un splitter/matriz HDMI.`, fix: { generic: "matrix-4x4", label: "Sumar matriz HDMI 4x4" } });
   }
 
   // 3) Cámaras al codec (o al USB de la mesa en salas BYOD).
@@ -362,9 +373,9 @@ export function planCabling(input: CablingInput): CablingPlan {
     } else if (portCount(mic.ports, "outputs", "line") > 0) {
       const target = [dsp, codec, central].find((t): t is Ready => Boolean(t && (t.virtual || portCount(t.ports, "inputs", "line") > 0))) ?? null;
       if (target) add(mic, target, "line", "Salida de audio", "Entrada de micrófono/línea");
-      else findings.push({ id: `mic-${mic.id}`, level: "error", title: "Micrófono sin entrada que lo reciba", detail: `${mic.label} sale en audio analógico y ningún equipo de la sala declara entradas de audio.` });
+      else findings.push({ id: `mic-${mic.id}`, level: "error", title: "Micrófono sin entrada que lo reciba", detail: `${mic.label} sale en audio analógico y ningún equipo de la sala declara entradas de audio.`, fix: { generic: "dsp", label: "Sumar procesador de audio (DSP)" } });
     } else if (mic.ports.network > 0 && !dsp && !codec && !central) {
-      findings.push({ id: `mic-net-${mic.id}`, level: "error", title: "Micrófono de red sin procesador", detail: `${mic.label} entrega audio por red: sumá un DSP o codec que lo reciba.` });
+      findings.push({ id: `mic-net-${mic.id}`, level: "error", title: "Micrófono de red sin procesador", detail: `${mic.label} entrega audio por red: sumá un DSP o codec que lo reciba.`, fix: { generic: "dsp", label: "Sumar procesador de audio (DSP)" } });
     }
   }
   const rx = (dsp ?? codec)?.ports.danteRx;
@@ -372,31 +383,57 @@ export function planCabling(input: CablingInput): CablingPlan {
 
   // 5) Parlantes pasivos a los canales de los amplificadores.
   const amps = of("amp");
-  const channels = amps.flatMap((a) => Array.from({ length: portCount(a.ports, "outputs", "speaker") }, (_, k) => ({ amp: a, ch: k + 1, load: 0 })));
+  // Cada canal trabaja en baja impedancia o en tensión constante (70/100 V); los amplificadores que
+  // admiten los dos modos toman el de los parlantes que les tocan.
+  type Channel = { amp: Ready; ch: number; load: number; mode: "low" | "high" | null };
+  const channels: Channel[] = amps.flatMap((a) => Array.from({ length: portCount(a.ports, "outputs", "speaker") }, (_, k) => ({ amp: a, ch: k + 1, load: 0, mode: null })));
+  const ampModes = (a: Ready): Array<"low" | "high"> => (a.ports.lineVoltage === "both" ? ["low", "high"] : isHighZ(a.ports.lineVoltage) ? ["high"] : ["low"]);
   const passive = of("speaker", "subwoofer").filter((s) => portCount(s.ports, "inputs", "speaker") > 0);
+  let shortChannels = 0;
   for (const spk of passive) {
     if (!channels.length) {
       if (central) add(central, spk, "speaker", "Amplificación central", "Entrada", "Tramo hasta la sala técnica aparte");
       continue;
     }
-    const slot = [...channels].sort((a, b) => a.load - b.load)[0]!;
-    const highZ = isHighZ(slot.amp.ports.lineVoltage);
-    if (highZ && spk.ports.lineVoltage === "low-z") findings.push({ id: `line-${spk.id}`, level: "error", title: "Parlante de baja impedancia en línea de 70/100 V", detail: `${spk.label} no tiene transformador declarado y ${slot.amp.label} trabaja en tensión constante.` });
-    if (!highZ && slot.load >= LOWZ_PER_CHANNEL) {
-      findings.push({ id: `amp-load-${spk.id}`, level: "error", title: "Canales de amplificación insuficientes", detail: `${spk.label} no tiene canal libre: cada canal en baja impedancia admite hasta ${LOWZ_PER_CHANNEL} parlantes.` });
+    // Con transformador acepta línea; si además tiene bypass, también baja impedancia.
+    const lv = spk.ports.lineVoltage;
+    const spkModes: Array<"low" | "high"> = lv === "both" ? ["high", "low"] : isHighZ(lv) ? ["high"] : ["low"];
+    const fits = (c: Channel, m: "low" | "high") => ampModes(c.amp).includes(m) && (c.mode == null || c.mode === m) && (m === "high" || c.load < LOWZ_PER_CHANNEL);
+    let pick: { c: Channel; m: "low" | "high" } | null = null;
+    for (const m of spkModes) {
+      const c = channels.filter((x) => fits(x, m)).sort((a, b) => Number(b.mode === m) - Number(a.mode === m) || a.load - b.load)[0];
+      if (c) {
+        pick = { c, m };
+        break;
+      }
+    }
+    if (!pick) {
+      const anyMode = channels.some((c) => spkModes.some((m) => ampModes(c.amp).includes(m)));
+      if (!anyMode) {
+        const lowZ = !isHighZ(lv);
+        findings.push({
+          id: `line-${spk.id}`,
+          level: "error",
+          title: "Parlante y amplificador incompatibles",
+          detail: `${spk.label} ${lowZ ? "es de baja impedancia (sin transformador)" : "trabaja en línea de 70/100 V"} y ningún amplificador de la sala tiene ese modo.`,
+          fix: lowZ ? { generic: "amp-4ch", label: "Sumar amplificador de baja impedancia" } : { generic: "amp-70v", label: "Sumar amplificador 70/100 V" },
+        });
+      } else shortChannels++;
       continue;
     }
-    slot.load++;
-    const l = add(slot.amp, spk, "speaker", `Canal ${slot.ch}`, "Entrada");
-    l.note = speakerGauge(l.runM, highZ);
+    pick.c.mode = pick.m;
+    pick.c.load++;
+    const l = add(pick.c.amp, spk, "speaker", `Canal ${pick.c.ch}`, "Entrada");
+    l.note = speakerGauge(l.runM, pick.m === "high");
   }
-  if (passive.length && !channels.length && !central) findings.push({ id: "spk-no-amp", level: "error", title: "Parlantes pasivos sin amplificador", detail: `${passive.length} parlante(s) pasivo(s) necesitan amplificación: ${passive.map((p) => p.label).join(", ")}.` });
+  if (shortChannels) findings.push({ id: "amp-load", level: "error", title: "Canales de amplificación insuficientes", detail: `${shortChannels} parlante(s) sin canal libre: cada canal en baja impedancia admite hasta ${LOWZ_PER_CHANNEL} parlantes.`, fix: { generic: "amp-4ch", label: "Sumar amplificador de 4 canales" } });
+  if (passive.length && !channels.length && !central) findings.push({ id: "spk-no-amp", level: "error", title: "Parlantes pasivos sin amplificador", detail: `${passive.length} parlante(s) pasivo(s) necesitan amplificación: ${passive.map((p) => p.label).join(", ")}.`, fix: { generic: "amp-4ch", label: "Sumar amplificador de 4 canales" } });
   // Parlantes activos con entrada de línea.
   for (const spk of of("speaker", "subwoofer").filter((s) => portCount(s.ports, "inputs", "line") > 0 && portCount(s.ports, "inputs", "speaker") === 0)) {
     const src = [dsp, codec, ...of("streamer")].find((t): t is Ready => Boolean(t && portCount(t.ports, "outputs", "line") > 0)) ?? null;
     if (src) add(src, spk, "line", "Salida de audio", "Entrada de línea");
     else if (central) add(central, spk, "line", "Audio central", "Entrada de línea", "Tramo hasta la sala técnica aparte");
-    else findings.push({ id: `spk-line-${spk.id}`, level: "error", title: "Parlante activo sin fuente de audio", detail: `${spk.label}: ningún DSP, codec o streamer de la sala declara salida de línea para alimentarlo.` });
+    else findings.push({ id: `spk-line-${spk.id}`, level: "error", title: "Parlante activo sin fuente de audio", detail: `${spk.label}: ningún DSP, codec o streamer de la sala declara salida de línea para alimentarlo.`, fix: { generic: "audio-streamer", label: "Sumar streamer de audio" } });
   }
 
   // 6) Entrada de los amplificadores: por Dante si ambos están en red; si no, línea.
@@ -404,7 +441,7 @@ export function planCabling(input: CablingInput): CablingPlan {
     if (dsp && amp.ports.danteRx && dsp.ports.danteTx) continue;
     const src = [dsp, ...of("streamer"), codec].find((t): t is Ready => Boolean(t && portCount(t.ports, "outputs", "line") > 0)) ?? null;
     if (src && portCount(amp.ports, "inputs", "line") > 0) add(src, amp, "line", "Salida de audio", "Entrada de línea");
-    else if (!src) findings.push({ id: `amp-src-${amp.id}`, level: "warn", title: "Amplificador sin fuente de audio", detail: `${amp.label}: ningún DSP, streamer ni codec de la sala declara salida de audio para alimentarlo.` });
+    else if (!src) findings.push({ id: `amp-src-${amp.id}`, level: "warn", title: "Amplificador sin fuente de audio", detail: `${amp.label}: ningún DSP, streamer ni codec de la sala declara salida de audio para alimentarlo.`, fix: { generic: "audio-streamer", label: "Sumar streamer de audio" } });
   }
 
   // 7) Control de pantallas: RS-232 si las dos puntas lo declaran; si no IR; si no, por red.
@@ -416,11 +453,18 @@ export function planCabling(input: CablingInput): CablingPlan {
     }
   }
 
-  // Pantallas sin señal de video: les falta una fuente (reproductor, codec, matriz o conexión de mesa).
+  // Pantallas que siguen sin video: las alimenta un reproductor/streamer de la sala con salida HDMI libre.
+  const videoSources = of("source", "streamer").filter((s) => portCount(s.ports, "outputs", "hdmi") > 0);
+  const usedOuts = new Map<string, number>();
   for (const d of displays) {
-    if (!links.some((l) => l.to === d.id && (l.signal === "hdmi" || l.signal === "hdbaset"))) {
-      findings.push({ id: `display-src-${d.id}`, level: "warn", title: "Pantalla sin fuente de video", detail: `${d.label} no recibe señal: sumá la fuente que corresponda (reproductor de cartelería, codec, matriz o conexión de mesa).` });
+    if (links.some((l) => l.to === d.id && (l.signal === "hdmi" || l.signal === "hdbaset"))) continue;
+    const src = videoSources.find((s) => (usedOuts.get(s.id) ?? 0) < portCount(s.ports, "outputs", "hdmi"));
+    if (src && portCount(d.ports, "inputs", "hdmi") > 0) {
+      usedOuts.set(src.id, (usedOuts.get(src.id) ?? 0) + 1);
+      add(src, d, "hdmi", "Salida HDMI", "Entrada HDMI");
+      continue;
     }
+    findings.push({ id: `display-src-${d.id}`, level: "warn", title: "Pantalla sin fuente de video", detail: `${d.label} no recibe señal: sumá la fuente que corresponda (reproductor de cartelería, codec, matriz o conexión de mesa).`, fix: table ? { generic: "wireless-presentation", label: "Sumar presentación inalámbrica (sin cables a la mesa)" } : { generic: "media-player", label: "Sumar reproductor / streaming" } });
   }
 
   // 8) Conexiones inalámbricas: cada cliente con su gateway / receptor / base, y su capacidad.
