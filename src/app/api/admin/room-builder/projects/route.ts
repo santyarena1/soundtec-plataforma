@@ -7,8 +7,18 @@ import {
   listRoomProjects,
   normalizeBrief,
 } from "@/services/room-builder";
+import { BRIEF_CONTROLS } from "@/services/room-builder/brief";
+import { completeHubEquipment, completeSpaceEquipment } from "@/services/room-builder/equipment-complete";
+import { getHubPreset } from "@/services/room-builder/hub-presets";
+import { getRoomProject } from "@/services/room-builder/project-service";
+import { defaultProjectSystem } from "@/services/room-builder/project-system";
 
 export const dynamic = "force-dynamic";
+/** Crear una obra completa elige productos para cada ambiente: puede tardar. */
+export const maxDuration = 300;
+
+/** Tipo de obra (para el equipamiento recomendado) según la categoría del preset. */
+const KIND_BY_CATEGORY: Record<string, string> = { residential: "residencial", hotel: "hoteleria", videoconference: "corporativo", classroom: "educacion" };
 
 const createSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -41,6 +51,12 @@ const createSchema = z.discriminatedUnion("kind", [
         }),
       )
       .optional(),
+    /** Respuestas del asistente por ambiente del preset (se validan con normalizeBrief). */
+    briefs: z.array(z.unknown()).max(40).optional(),
+    /** Control de la obra: con Crestron Home el equipamiento queda central. */
+    control: z.enum(BRIEF_CONTROLS).optional(),
+    /** Elegir del catálogo el equipamiento central y lo que falte en cada ambiente. */
+    complete: z.boolean().optional(),
   }),
 ]);
 
@@ -63,14 +79,26 @@ export async function POST(req: NextRequest) {
 
   try {
     if (parsed.data.kind === "hub") {
+      const preset = getHubPreset(parsed.data.hubPresetKey);
+      const control = parsed.data.control ?? "none";
       const project = await createHubProject({
         ownerId: user.id,
         name: parsed.data.name,
         hubPresetKey: parsed.data.hubPresetKey,
         clientId: parsed.data.clientId,
         spaceOverrides: parsed.data.spaceOverrides,
+        briefs: parsed.data.briefs?.map((b) => normalizeBrief(b)),
+        system: parsed.data.briefs?.length ? defaultProjectSystem(KIND_BY_CATEGORY[preset?.category ?? ""] ?? "otro", control) : null,
       });
-      return NextResponse.json({ ok: true, project });
+      if (parsed.data.complete && project) {
+        try {
+          await completeHubEquipment(project.id);
+          for (const child of project.children ?? []) await completeSpaceEquipment(child.id);
+        } catch (error) {
+          console.error("[room-builder/projects] completar equipos", error);
+        }
+      }
+      return NextResponse.json({ ok: true, project: project ? await getRoomProject(project.id) : project });
     }
 
     const project = await createSpaceProject({

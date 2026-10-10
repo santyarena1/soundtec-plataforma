@@ -1788,4 +1788,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Completar equipos no duplica: si el audio va en el rack central, la sala no suma amplificador ni streaming propios.",
     items: [{ kind: "FIX", text: "Con audio centralizado, amplificación y streaming se resuelven solo en el rack del proyecto." }],
   },
+  {
+    id: "ship-2026-10-10-casa-completa",
+    version: "1.65.0",
+    releasedAt: "2026-10-13T01:00:00.000Z",
+    summary: "Obra \"Casa con integración completa\": living, comedor, dormitorios, home cinema, galería y escritorio con audio, video, iluminación, cortinas y control, con el rack central elegido solo.",
+    items: [
+      { kind: "NUEVO", text: "Preset de casa completa con siete ambientes." },
+      { kind: "MEJORA", text: "Las obras de varios ambientes aceptan las respuestas del asistente por ambiente y completan el equipamiento central y lo que falte." },
+    ],
+  },
 ];

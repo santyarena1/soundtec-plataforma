@@ -17,6 +17,21 @@ export type HubPreset = {
 /** Proyectos multi-espacio prediseñados (día 1). */
 export const HUB_PRESETS: HubPreset[] = [
   {
+    key: "residential-home",
+    name: "Casa con integración completa",
+    category: "residential",
+    description: "Living, comedor, dormitorios, home cinema, galería y escritorio con audio, video, iluminación, cortinas y control.",
+    spaces: [
+      { templateKey: "residential-living-m", name: "Living", unitCount: 1 },
+      { templateKey: "residential-dining-m", name: "Comedor y cocina", unitCount: 1 },
+      { templateKey: "residential-bedroom-m", name: "Dormitorio principal", unitCount: 1 },
+      { templateKey: "residential-bedroom-m", name: "Dormitorio 2", unitCount: 1 },
+      { templateKey: "residential-cinema-m", name: "Home cinema", unitCount: 1 },
+      { templateKey: "residential-outdoor-m", name: "Galería", unitCount: 1 },
+      { templateKey: "office-private-m", name: "Escritorio", unitCount: 1 },
+    ],
+  },
+  {
     key: "hotel-full",
     name: "Proyecto Hotel",
     category: "hotel",

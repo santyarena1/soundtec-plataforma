@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { autoFillProjectSlots } from "./auto-fill";
 import { resizeSceneMeters } from "./dimensions";
 import { platformFromBrief, type RoomBrief } from "./brief";
+import { centralizedFor, type ProjectSystem } from "./project-system";
 import { layoutSlotsForScene } from "./slot-layout";
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { getHubPreset } from "./hub-presets";
@@ -215,6 +216,10 @@ export async function createHubProject(input: {
     unitCount?: number;
     areaM2?: number;
   }>;
+  /** Respuestas del asistente por ambiente (mismo orden que los ambientes del preset). */
+  briefs?: Array<RoomBrief | null>;
+  /** Equipamiento común de la obra (central o por ambiente); sin él, el recomendado para el tipo. */
+  system?: ProjectSystem | null;
 }) {
   const preset = getHubPreset(input.hubPresetKey);
   if (!preset) throw new Error(`Hub preset desconocido: ${input.hubPresetKey}`);
@@ -232,6 +237,7 @@ export async function createHubProject(input: {
     slots: [],
     devices: [],
     hubPresetKey: preset.key,
+    ...(input.system ? { system: input.system } : {}),
   };
 
   const hub = await prisma.roomProject.create({
@@ -257,8 +263,9 @@ export async function createHubProject(input: {
     (input.spaceOverrides ?? []).map((o) => [o.templateKey, o]),
   );
 
-  for (const space of preset.spaces) {
+  for (const [i, space] of preset.spaces.entries()) {
     const ov = overrides.get(space.templateKey);
+    const brief = input.briefs?.[i] ?? null;
     await createSpaceProject({
       ownerId: input.ownerId,
       name: ov?.name ?? space.name,
@@ -267,6 +274,8 @@ export async function createHubProject(input: {
       areaM2: ov?.areaM2,
       clientId: input.clientId,
       parentId: hub.id,
+      // Con el sistema central, cada ambiente sabe qué le resuelve el rack del proyecto.
+      brief: brief && input.system ? { ...brief, centralized: centralizedFor(input.system, null) } : brief,
     });
   }
 
