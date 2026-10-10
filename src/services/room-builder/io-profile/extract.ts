@@ -55,7 +55,7 @@ CAPACIDADES en "capabilities" (cada una { "value": ..., "evidence": "cita textua
 - "lineVoltage": "low-z" | "70v" | "100v" | "both" (amplificadores y parlantes).
 - "controlProtocols": lista entre ["RS-232", "IP", "IR", "CEC", "Cresnet", "USB", "Relay"] según cómo se lo controla.
 - "wireless": lista de { "protocol", "role", "capacity" } con TODA conexión inalámbrica que declare la ficha:
-  · protocol: "wifi" | "bluetooth" | "infinet" (Crestron infiNET EX) | "zigbee" | "zwave" | "rf-mic" (micrófono inalámbrico UHF/VHF/2.4 GHz) | "dect" | "airplay" | "chromecast" | "wireless-presentation" (ClickShare, AirMedia, Solstice: botón/app a base) | "ir-remote" (control remoto IR).
+  · protocol: "wifi" | "bluetooth" | "infinet" (Crestron infiNET EX) | "zum-mesh" (Crestron Zūm Mesh: teclados y sensores Zūm a su bridge) | "zigbee" | "zwave" | "rf-mic" (micrófono inalámbrico UHF/VHF/2.4 GHz) | "dect" | "airplay" | "chromecast" | "wireless-presentation" (ClickShare, AirMedia, Solstice: botón/app a base) | "ir-remote" (control remoto IR).
   · role: "client" (se conecta a otro equipo), "gateway" (puente: infiNET EX / Zigbee gateway, procesador con radio integrada), "receiver" (receptor de micrófonos), "transmitter" (petaca / mano / emisor), "base" (base de presentación inalámbrica), "access-point" (da Wi-Fi).
   · capacity: cuántos dispositivos admite un gateway/receptor/base si la ficha lo dice; si no null.
   La cita va en "evidence" de "wireless" (una frase que mencione lo inalámbrico).

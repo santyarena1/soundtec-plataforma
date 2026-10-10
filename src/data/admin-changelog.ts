@@ -1882,4 +1882,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Un admin puede generar un token temporal (hasta 14 días) para la carga de fichas técnicas; se guarda solo su hash y se puede revocar." },
     ],
   },
+  {
+    id: "ship-2026-10-10-zum-mesh",
+    version: "1.67.2",
+    releasedAt: "2026-10-13T09:00:00.000Z",
+    summary: "El conexionado reconoce Zūm Mesh: los teclados y sensores Zūm piden su bridge.",
+    items: [
+      { kind: "MEJORA", text: "Nuevo protocolo inalámbrico Zūm Mesh (Crestron) en las fichas y en el cableado: cada teclado o sensor Zūm requiere un bridge Zūm Mesh en el proyecto." },
+      { kind: "MEJORA", text: "Catálogo revisado: protocolos inalámbricos cargados en dimmers, teclados, sensores, controles remotos y AirMedia; bornes de carga y salidas 0-10 V ya no figuran como señales de audio." },
+    ],
+  },
 ];

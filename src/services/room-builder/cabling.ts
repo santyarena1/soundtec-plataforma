@@ -127,6 +127,7 @@ export function cableMeters(runM: number, signal: Signal): number {
 /** Contraparte que necesita un cliente de cada protocolo (y cómo se llama). */
 const WIRELESS_PEER: Record<string, { roles: string[]; name: string; required: boolean }> = {
   infinet: { roles: ["gateway"], name: "gateway infiNET EX", required: true },
+  "zum-mesh": { roles: ["gateway"], name: "bridge Zūm Mesh", required: true },
   zigbee: { roles: ["gateway"], name: "gateway Zigbee", required: true },
   zwave: { roles: ["gateway"], name: "gateway Z-Wave", required: true },
   "rf-mic": { roles: ["receiver"], name: "receptor de micrófonos", required: true },
@@ -136,6 +137,7 @@ const WIRELESS_PEER: Record<string, { roles: string[]; name: string; required: b
 };
 export const WIRELESS_LABEL: Record<string, string> = {
   infinet: "infiNET EX",
+  "zum-mesh": "Zūm Mesh",
   zigbee: "Zigbee",
   zwave: "Z-Wave",
   "rf-mic": "RF",
