@@ -10,6 +10,7 @@ import { pickCables, type CableProduct } from "./cable-picks";
 import { cablingProfile } from "./cabling-db";
 import { cablingForScene } from "./cabling-scene";
 import { parseScene } from "./scene";
+import { genericMissing, type GenericInfo } from "./generic/library";
 
 type BomLine = {
   productId: string;
@@ -78,6 +79,27 @@ export async function buildProjectBom(projectId: string): Promise<BomLine[]> {
   return lines;
 }
 
+/** Equipo genérico a cotizar: no es del catálogo, lleva su precio y descripción cargados a mano. */
+export type GenericBomLine = { generic: GenericInfo; quantity: number; note: string };
+
+/** Genéricos del proyecto (de cada ambiente, por su cantidad de unidades). */
+export async function buildGenericBom(projectId: string): Promise<GenericBomLine[]> {
+  const project = await getRoomProject(projectId);
+  if (!project) throw new Error("Proyecto no encontrado");
+  const spaces = project.kind === "hub" ? await Promise.all(project.children.map((c) => getRoomProject(c.id))) : [project];
+  const out: GenericBomLine[] = [];
+  for (const space of [...spaces, ...(project.kind === "hub" ? [project] : [])]) {
+    if (!space) continue;
+    const scene = parseScene(space.sceneJson);
+    const mult = space.kind === "hub" ? 1 : Math.max(1, space.unitCount);
+    for (const d of scene?.devices ?? []) {
+      if (!d.generic) continue;
+      out.push({ generic: d.generic, quantity: Math.max(1, d.quantity || 1) * mult, note: `${space.name} · genérico` });
+    }
+  }
+  return out;
+}
+
 export async function createQuoteFromRoomProject(input: {
   projectId: string;
   ownerId: string;
@@ -88,7 +110,8 @@ export async function createQuoteFromRoomProject(input: {
   if (!project) throw new Error("Proyecto no encontrado");
 
   const bom = await buildProjectBom(input.projectId);
-  if (bom.length === 0) {
+  const generics = await buildGenericBom(input.projectId);
+  if (bom.length === 0 && generics.length === 0) {
     throw new Error("No hay productos asignados para cotizar");
   }
 
@@ -176,10 +199,36 @@ export async function createQuoteFromRoomProject(input: {
     }),
   });
 
+  // Genéricos: ítems sin producto del catálogo; lo que falte queda marcado para completar.
+  if (generics.length) {
+    await prisma.quoteItem.createMany({
+      data: generics.map((g, i) => {
+        const unit = g.generic.priceUsd ?? 0;
+        const missing = genericMissing(g.generic);
+        return {
+          quoteId: quote.id,
+          alternativeId: alternative?.id,
+          productId: null,
+          kind: "PRODUCT" as const,
+          quantity: new Prisma.Decimal(g.quantity),
+          unit: "u",
+          description: [g.generic.name, g.generic.description?.trim() || "A COMPLETAR: descripción"].join(" — "),
+          unitPriceUsd: new Prisma.Decimal(unit),
+          lineTotalUsd: new Prisma.Decimal(unit * g.quantity),
+          priceOverridden: g.generic.priceUsd != null,
+          ivaRate: new Prisma.Decimal(defaultIva),
+          source: "MANUAL" as const,
+          sortOrder: bom.length + i,
+          notes: missing.length ? `${g.note} · A COMPLETAR: ${missing.join(", ")}` : g.note,
+        };
+      }),
+    });
+  }
+
   await prisma.roomProject.update({
     where: { id: project.id },
     data: { quoteId: quote.id, status: "quoted" },
   });
 
-  return { quoteId: quote.id, number: quote.number, lines: bom.length };
+  return { quoteId: quote.id, number: quote.number, lines: bom.length + generics.length };
 }

@@ -35,7 +35,7 @@ export function buildCableNodes(scene: RoomScene, profile: CablingProfile): Cabl
   const laid = layoutSceneDevices(scene.devices, slots, dims);
   for (const [i, d] of scene.devices.entries()) {
     const info = profile.devices[d.id];
-    if (!info || !d.productId) continue;
+    if (!info || (!d.productId && !d.generic)) continue;
     const slot = slots.get(d.slotKey);
     const units = laid[i]!.device.units ?? [];
     const mount = slot?.mount ?? MOUNT_BY_ROLE[d.designRole] ?? "rack";

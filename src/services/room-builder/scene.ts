@@ -1,4 +1,5 @@
 import type { SceneWiring } from "./wiring/types";
+import type { GenericInfo } from "./generic/library";
 import type {
   CameraPreset,
   CoverageViewMode,
@@ -29,6 +30,8 @@ export type SceneDevice = {
   units?: DeviceUnit[];
   /** Medidas reales del producto (cm), para dibujarlo a escala. */
   sizeCm?: ProductSizeCm | null;
+  /** Equipo genérico (no es del catálogo): plantilla, nombre, precio y descripción a completar. */
+  generic?: GenericInfo | null;
 };
 
 export type ProductSizeCm = { w: number | null; h: number | null; d: number | null };

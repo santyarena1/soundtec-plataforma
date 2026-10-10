@@ -331,6 +331,17 @@ export function RoomBuilderEditor({
     );
   }
 
+  function onAddGeneric(key: string, mount: MountOption, quantity: number, name: string) {
+    changeCustomDevice(
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ generic: key, mount, quantity, name }) },
+      "Genérico agregado: completá precio y descripción para cotizarlo",
+    );
+  }
+
+  function onUpdateGeneric(slotKey: string, patch: { name: string; description: string | null; priceUsd: number | null }) {
+    changeCustomDevice({ method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slotKey, ...patch }) }, "Genérico guardado");
+  }
+
   function onRemoveDevice(slotKey: string) {
     changeCustomDevice({ method: "DELETE", query: `?slotKey=${encodeURIComponent(slotKey)}` }, "Equipo quitado");
   }
@@ -669,6 +680,8 @@ export function RoomBuilderEditor({
         onFurnitureChange={onFurnitureChange}
         onPickAny={(slotKey: string, productId: string) => assignToSlot(slotKey, productId)}
         onAddDevice={onAddDevice}
+        onAddGeneric={onAddGeneric}
+        onUpdateGeneric={onUpdateGeneric}
         onRemoveDevice={onRemoveDevice}
         onReload={() => void reloadProject()}
         cabling={cabling}

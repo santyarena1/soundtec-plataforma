@@ -184,7 +184,8 @@ export async function analyzeProjectSystem(projectId: string): Promise<{ finding
       role: d.designRole,
       label: d.label,
       quantity: Math.max(1, d.quantity || 1),
-      product: p ? { id: p.id, name: p.normalizedName, brandSlug: p.brand?.slug ?? null, brandName: p.brand?.name ?? null } : null,
+      // Un genérico cuenta como equipo elegido (no es un lugar vacío), aunque no sea del catálogo.
+      product: p ? { id: p.id, name: p.normalizedName, brandSlug: p.brand?.slug ?? null, brandName: p.brand?.name ?? null } : d.generic ? { id: `generic:${d.generic.key}`, name: d.generic.name, brandSlug: null, brandName: null } : null,
       spec: p ? effectiveSpec(p) : null,
     };
   });

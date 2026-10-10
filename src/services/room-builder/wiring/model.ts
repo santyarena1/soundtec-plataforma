@@ -62,7 +62,8 @@ export function buildWiringModel(scene: RoomScene, profile: CablingProfile | nul
     for (const [k, u] of (device.units ?? []).entries()) {
       devices.push({ deviceId: device.id, unit: k, label: info?.label ?? device.label, short, x: u.pose.x, y: u.pose.y, z: u.pose.z, rotY: u.pose.rotY, mount: slots.get(device.slotKey)?.mount ?? "wall", remote: false, role: device.designRole });
     }
-    ports[device.id] = wiring.ports[device.id] ?? (info?.ioPorts?.length ? expandIoPorts(info.ioPorts) : []);
+    const fromSheet = info?.ioPorts?.length ? expandIoPorts(info.ioPorts) : [];
+    ports[device.id] = wiring.ports[device.id] ?? (info?.sourceKind === "generic" ? fromSheet.map((q) => ({ ...q, source: "generic" as const })) : fromSheet);
   }
   if (profile?.central && profile.centralDevices?.length) {
     const exit = centralExit(scene);

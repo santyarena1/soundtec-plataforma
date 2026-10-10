@@ -10,6 +10,7 @@ import { getRoomProject, updateRoomProjectScene } from "./project-service";
 import { parseScene } from "./scene";
 import { defaultMountForRole, roleForProduct } from "./product-roles";
 import { MOUNT_OPTIONS, type DesignRole, type MountOption } from "./types";
+import { genericByKey } from "./generic/library";
 
 /** Prefijo de los lugares creados a mano (la plantilla nunca los rearma). */
 export const CUSTOM_SLOT_PREFIX = "custom_";
@@ -107,6 +108,47 @@ export async function removeCustomDevice(projectId: string, slotKey: string) {
   scene.devices = scene.devices.filter((d) => d.slotKey !== slotKey);
   if (scene.selectedSlotKey === slotKey) scene.selectedSlotKey = scene.slots[0]?.key ?? null;
   await prisma.roomProjectDevice.deleteMany({ where: { roomProjectId: projectId, slotKey } });
+  await updateRoomProjectScene(projectId, scene);
+  return getRoomProject(projectId);
+}
+
+/** Agrega un equipo genérico (no es del catálogo) con las conexiones de su plantilla. */
+export async function addGenericDevice(input: { projectId: string; key: string; mount?: MountOption; quantity: number; name?: string }) {
+  const template = genericByKey(input.key);
+  if (!template) throw new Error("Plantilla genérica inexistente");
+  const mount = input.mount && MOUNT_OPTIONS.includes(input.mount) ? input.mount : template.mount;
+  const project = await getRoomProject(input.projectId);
+  if (!project || project.kind === "hub") throw new Error("Ambiente no encontrado");
+  const scene = parseScene(project.sceneJson);
+  if (!scene) throw new Error("Escena inválida");
+  const key = `${CUSTOM_SLOT_PREFIX}${Date.now().toString(36)}`;
+  const qty = Math.max(1, Math.min(48, Math.round(input.quantity)));
+  const name = input.name?.trim().slice(0, 120) || template.name;
+  const pose = poseForMount(mount, { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM }, template.role);
+  scene.slots.push({ key, role: template.role, label: name, required: false, mount, pose, defaultQty: qty });
+  scene.devices.push({ id: `slot-${key}`, slotKey: key, productId: null, designRole: template.role, label: name, productName: name, quantity: qty, pose, coverage: null, generic: { key: template.key, name, description: null, priceUsd: null } });
+  scene.selectedSlotKey = key;
+  await updateRoomProjectScene(input.projectId, scene);
+  return getRoomProject(input.projectId);
+}
+
+/** Edita nombre, descripción y precio de un genérico (lo que va a la cotización). */
+export async function updateGenericDevice(projectId: string, slotKey: string, patch: { name?: string; description?: string | null; priceUsd?: number | null }) {
+  const project = await getRoomProject(projectId);
+  if (!project) throw new Error("Ambiente no encontrado");
+  const scene = parseScene(project.sceneJson);
+  if (!scene) throw new Error("Escena inválida");
+  const device = scene.devices.find((d) => d.slotKey === slotKey);
+  if (!device?.generic) throw new Error("No es un equipo genérico");
+  const name = patch.name?.trim().slice(0, 120);
+  const generic = {
+    ...device.generic,
+    ...(name ? { name } : {}),
+    ...(patch.description !== undefined ? { description: patch.description?.trim().slice(0, 2000) || null } : {}),
+    ...(patch.priceUsd !== undefined ? { priceUsd: patch.priceUsd == null || !Number.isFinite(patch.priceUsd) ? null : Math.max(0, Math.round(patch.priceUsd * 100) / 100) } : {}),
+  };
+  scene.devices = scene.devices.map((d) => (d.slotKey === slotKey ? { ...d, generic, label: generic.name, productName: generic.name } : d));
+  scene.slots = scene.slots.map((s) => (s.key === slotKey ? { ...s, label: generic.name } : s));
   await updateRoomProjectScene(projectId, scene);
   return getRoomProject(projectId);
 }

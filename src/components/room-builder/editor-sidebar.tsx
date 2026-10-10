@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { furnitureGroups, resolveSceneFurniture, type FurnitureOverrides } from "@/services/room-builder/furnishing";
 import { Check, ChevronDown, Loader2, Minus, Plus, Search, Trash2, X } from "lucide-react";
 import { CatalogSearch } from "./catalog-search";
+import { GenericEditor, GenericPicker } from "./generic-device-panel";
 import { MAX_UNITS } from "@/services/room-builder/units";
 import type { MountOption, RankSortMode } from "@/services/room-builder/types";
 import type { CatalogHit } from "@/services/room-builder/custom-devices";
@@ -334,12 +335,15 @@ const MOUNT_CHOICES: Array<[MountOption, string]> = [
 function AddDevicePanel({
   pending,
   onAdd,
+  onAddGeneric,
   onClose,
 }: {
   pending: boolean;
   onAdd: (productId: string, mount: MountOption, quantity: number) => void;
+  onAddGeneric: (key: string, mount: MountOption, quantity: number, name: string) => void;
   onClose: () => void;
 }) {
+  const [source, setSource] = useState<"catalogo" | "generico">("catalogo");
   const [picked, setPicked] = useState<CatalogHit | null>(null);
   const [mount, setMount] = useState<MountOption>("ceiling");
   const [quantity, setQuantity] = useState(1);
@@ -351,7 +355,16 @@ function AddDevicePanel({
           <X className="h-4 w-4" />
         </button>
       </div>
-      {!picked ? (
+      <div className="flex rounded-lg border border-slate-200 bg-white p-0.5" role="tablist">
+        {([["catalogo", "Del catálogo"], ["generico", "Genérico (no está en catálogo)"]] as const).map(([k, label]) => (
+          <button key={k} type="button" role="tab" aria-selected={source === k} onClick={() => setSource(k)} className={`flex-1 rounded-md px-2 py-1 text-[11px] font-semibold ${source === k ? "bg-[#1e3553] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {source === "generico" ? (
+        <GenericPicker pending={pending} mountChoices={MOUNT_CHOICES} maxUnits={MAX_UNITS} onAdd={onAddGeneric} />
+      ) : !picked ? (
         <CatalogSearch
           autoFocus
           disabled={pending}
@@ -489,6 +502,8 @@ export function EditorSidebar({
   onReload,
   onPickAny,
   onAddDevice,
+  onAddGeneric = () => {},
+  onUpdateGeneric = () => {},
   onRemoveDevice,
   cabling,
   showCables = false,
@@ -517,6 +532,10 @@ export function EditorSidebar({
   onPickAny: (slotKey: string, productId: string) => void;
   /** Equipo nuevo, de cualquier producto y con cualquier montaje. */
   onAddDevice: (productId: string, mount: MountOption, quantity: number) => void;
+  /** Equipo genérico (no está en el catálogo): plantilla con sus conexiones. */
+  onAddGeneric?: (key: string, mount: MountOption, quantity: number, name: string) => void;
+  /** Completar nombre, descripción y precio de un genérico. */
+  onUpdateGeneric?: (slotKey: string, patch: { name: string; description: string | null; priceUsd: number | null }) => void;
   onRemoveDevice: (slotKey: string) => void;
   /** Cableado del ambiente (pestaña Cableado). */
   cabling?: CablingState;
@@ -602,6 +621,10 @@ export function EditorSidebar({
                   onAddDevice(productId, mount, quantity);
                   setAdding(false);
                 }}
+                onAddGeneric={(key, mount, quantity, name) => {
+                  onAddGeneric(key, mount, quantity, name);
+                  setAdding(false);
+                }}
               />
             ) : null}
 
@@ -625,7 +648,8 @@ export function EditorSidebar({
                 const device = scene.devices.find((d) => d.slotKey === slot.key);
                 const open = scene.selectedSlotKey === slot.key && !staged && collapsedKey !== slot.key;
                 const canPlace = staged != null && slot.role === staged.role;
-                const chosen = Boolean(device?.productId);
+                const generic = device?.generic ?? null;
+                const chosen = Boolean(device?.productId) || Boolean(generic);
                 return (
                   <li
                     key={slot.key}
@@ -659,6 +683,8 @@ export function EditorSidebar({
                         <p className={`truncate text-[11px] ${chosen ? "text-slate-600" : "text-amber-700"}`}>
                           {canPlace
                             ? "Tocá para ponerlo acá"
+                            : generic
+                              ? `${(device?.quantity ?? 1) > 1 ? `${device?.quantity} × ` : ""}Genérico${generic.priceUsd == null || !generic.description ? " · a completar" : ` · USD ${generic.priceUsd}`}`
                             : chosen
                               ? `${(device?.quantity ?? 1) > 1 ? `${device?.quantity} × ` : ""}${device?.brandName ? `${device.brandName} · ` : ""}${device?.productName ?? ""}`
                               : `Falta elegir · ${roleLabel(slot.role).toLowerCase()} ${MOUNT_LABELS[slot.mount] ?? ""}`}
@@ -667,7 +693,9 @@ export function EditorSidebar({
                       {chosen ? <Check className="h-4 w-4 shrink-0 text-emerald-600" /> : null}
                       <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} />
                     </button>
-                    {open ? (
+                    {open && generic ? (
+                      <GenericEditor key={`${slot.key}-${generic.name}-${generic.priceUsd}`} generic={generic} pending={pending} onSave={(patch) => onUpdateGeneric(slot.key, patch)} onRemove={() => onRemoveDevice(slot.key)} />
+                    ) : open ? (
                       <ProductPicker
                         device={device}
                         ranked={ranked}

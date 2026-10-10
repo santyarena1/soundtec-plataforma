@@ -5,6 +5,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { genericByKey } from "./generic/library";
 import { devicePorts, deviceClass, type DeviceClass, type DevicePorts } from "./device-ports";
 import type { IoProfileData } from "./io-profile/types";
 import { getRoomProject } from "./project-service";
@@ -78,6 +79,21 @@ async function deviceProfiles(list: RoomScene["devices"]): Promise<Record<string
 
   const devices: Record<string, DeviceCablingProfile> = {};
   for (const d of list) {
+    // Equipo genérico: sus conexiones salen de la plantilla, no de una ficha.
+    const template = d.generic ? genericByKey(d.generic.key) : null;
+    if (d.generic && template) {
+      devices[d.id] = {
+        cls: template.cls,
+        ports: devicePorts({ ports: template.ports, capabilities: template.capabilities }) ?? { inputs: [], outputs: [], network: 0 },
+        productId: null,
+        label: d.generic.name,
+        sourceKind: "generic",
+        datasheet: "ok",
+        sources: [],
+        ioPorts: template.ports,
+      };
+      continue;
+    }
     const p = d.productId ? byId.get(d.productId) : undefined;
     const spec = p ? effectiveSpec(p) : null;
     const input = { role: d.designRole, slotKey: d.slotKey, name: p?.normalizedName ?? d.productName ?? d.label, spec };

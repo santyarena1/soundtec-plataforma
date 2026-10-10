@@ -1903,4 +1903,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Bloques movibles (se recuerdan), ordenar automático, filtro por señal, enlaces inalámbricos punteados y exportación SVG." },
     ],
   },
+  {
+    id: "ship-2026-10-10-genericos",
+    version: "1.69.0",
+    releasedAt: "2026-10-13T11:00:00.000Z",
+    summary: "Equipos genéricos en el Room Builder: lo que no está en el catálogo se agrega con sus conexiones y se cotiza con precio y descripción a completar.",
+    items: [
+      { kind: "NUEVO", text: "Librería de genéricos (motor de cortina, TV, proyector, matrices, extensores HDBaseT, amplificadores, receiver, parlantes, DSP, procesador de control, teclados y dimmers, gateway Zigbee, switch PoE, access point y más), con sus conexiones típicas." },
+      { kind: "NUEVO", text: "Los genéricos se cablean como cualquier equipo (planta, diagrama de señal, gateways inalámbricos) y van a la cotización como ítems marcados A COMPLETAR si les falta precio o descripción." },
+      { kind: "MEJORA", text: "Los genéricos no se agregan al catálogo de productos: viven solo en el proyecto y su cotización." },
+    ],
+  },
 ];

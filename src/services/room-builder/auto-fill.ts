@@ -27,7 +27,7 @@ export async function autoFillProjectSlots(
   for (const slot of scene.slots) {
     if (!slot.required && !options?.includeOptional) continue;
     const existing = scene.devices.find((d) => d.slotKey === slot.key);
-    if (existing?.productId) continue;
+    if (existing?.productId || existing?.generic) continue;
 
     attempted += 1;
     const ranked = await rankProductsForSlot({
