@@ -114,6 +114,23 @@ function cellNumber(value: unknown): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+/**
+ * Hojas donde la columna del MUP quedó sin título (ej. «SoundTube Accessories
+ * Comm»: SPRDIS US, «», «» = MUP y PRECIO). Se toma la primera columna sin
+ * título a la derecha del costo cuyos valores son todos markups razonables.
+ */
+function inferMupColumn(grid: unknown[][], headerRow: number, cells: string[], costCol: number): number {
+  for (let c = costCol + 1; c < Math.min(cells.length, costCol + 4); c++) {
+    if (cells[c]) continue;
+    const values = grid
+      .slice(headerRow + 1)
+      .map((row) => cellNumber((row ?? [])[c]))
+      .filter((v): v is number => v !== undefined);
+    if (values.length >= 3 && values.every((v) => v > 0 && v <= MAX_MUP)) return c;
+  }
+  return -1;
+}
+
 function findHeader(grid: unknown[][]): { index: number; columns: Record<ColumnKey, number> } {
   for (let r = 0; r < Math.min(grid.length, HEADER_SCAN_ROWS); r++) {
     const cells = (grid[r] ?? []).map(headerText);
@@ -122,6 +139,7 @@ function findHeader(grid: unknown[][]): { index: number; columns: Record<ColumnK
       const accepted: readonly string[] = COLUMNS[key];
       columns[key] = cells.findIndex((c) => accepted.includes(c));
     }
+    if (columns.sku >= 0 && columns.cost >= 0 && columns.mup < 0) columns.mup = inferMupColumn(grid, r, cells, columns.cost);
     if (columns.sku >= 0 && columns.cost >= 0 && columns.mup >= 0) return { index: r, columns };
   }
   throw new Error(

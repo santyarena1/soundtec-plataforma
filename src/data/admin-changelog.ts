@@ -2082,4 +2082,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "SoundTube: los duplicados ya unidos no vuelven a aparecer al subir otra lista." },
     ],
   },
+  {
+    id: "ship-2026-10-17-soundtube-accesorios",
+    version: "2.2.1",
+    releasedAt: "2026-10-17T16:00:00.000Z",
+    summary: "La lista SoundTube carga también la hoja de accesorios (260 productos) aunque su columna MUP no tenga título.",
+    items: [{ kind: "FIX", text: "Lista SoundTube: se detecta la columna MUP sin título de la hoja «SoundTube Accessories Comm»; antes esa hoja se descartaba entera." }],
+  },
 ];

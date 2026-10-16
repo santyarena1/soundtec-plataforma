@@ -128,6 +128,15 @@ describe("parsePriceListSheets", () => {
     assert.equal(new Set(refs).size, 2, "misma fila en distinta hoja no choca");
   });
 
+  it("detecta la columna MUP sin título (hoja de accesorios)", () => {
+    const head = ["Item Number/SKU", "Item Description", "MSRP/MAP", "SPRDIS CH", "SPRDIS EU", "SPRDIS US", "", "", "Product Line"];
+    const parsed = parsePriceListSheets([
+      { name: "Products", grid: grid(["CB5", "Cherry Bomb", "", "", "", 401.1, 3.05]) },
+      { name: "Accessories", grid: [head, ["AC-BC1", "BEAM CLAMP", 13, "", 7, 6, 2.75, 16.5, "SoundTube"], ["AC-CM31-TB", "Tile bridge", 32, 14, 16, 15, 2.75, 41.25, "SoundTube"], ["AC-X", "x", 1, 1, 1, 2, 2.75, 5.5, "SoundTube"]] },
+    ]);
+    assert.deepEqual(parsed.rows.map((r) => [r.sku, r.costUsd, r.mup]), [["CB5", 401.1, 3.05], ["AC-BC1", 6, 2.75], ["AC-CM31-TB", 15, 2.75], ["AC-X", 2, 2.75]]);
+  });
+
   it("falla si ninguna hoja tiene encabezados", () => {
     assert.throws(() => parsePriceListSheets([{ name: "X", grid: [["SKU", "Precio"]] }]), /ninguna hoja/);
   });
