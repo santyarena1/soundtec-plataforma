@@ -2058,4 +2058,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "El rol Vendedor se crea solo si todavía no existía." },
     ],
   },
+  {
+    id: "ship-2026-10-17-tutorial-por-rol",
+    version: "2.1.1",
+    releasedAt: "2026-10-17T02:00:00.000Z",
+    summary: "El tutorial del panel se adapta al rol: el equipo ya no queda trabado en pantallas que no puede abrir.",
+    items: [
+      { kind: "FIX", text: "Tutorial del panel según permisos: un vendedor recorre solo lo que usa (clientes, pedidos, cotizaciones, catálogo) y no queda bloqueado en Productos, Márgenes o Usuarios." },
+      { kind: "NUEVO", text: "Pasos propios del equipo: su inicio, el botón «Catálogo sin precios», el catálogo de venta y cómo pedir el alta de una empresa." },
+      { kind: "MEJORA", text: "Textos del tutorial actualizados: alta completa de clientes, usuarios y roles, invitaciones y «Ver portal»." },
+    ],
+  },
 ];

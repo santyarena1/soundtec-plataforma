@@ -132,7 +132,16 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
         <Suspense fallback={null}>
           <HelpDock />
         </Suspense>
-        <OnboardingHost surface="admin" initialState={onboardingState} />
+        <OnboardingHost
+          surface="admin"
+          initialState={onboardingState}
+          access={{
+            isAdmin: user.role === "ADMIN" || user.role === "SUPER_ADMIN",
+            scopes: permissions.scopes,
+            seesCosts: canSeeCosts(permissions),
+            seesSalePrices: canSeeSalePrices(permissions),
+          }}
+        />
         <ChangelogPopup entries={changelogs} onboardingState={onboardingState} />
       </div>
     </div>

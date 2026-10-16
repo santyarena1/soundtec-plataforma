@@ -75,7 +75,7 @@ const groups: NavGroup[] = [
     title: "Catálogo",
     tourId: "nav-catalogo",
     items: [
-      { href: "/portal/products", label: "Catálogo de venta", icon: Package, salePrices: true },
+      { href: "/portal/products", label: "Catálogo de venta", icon: Package, salePrices: true, tourId: "nav-link-sales-catalog" },
       { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view", tourId: "nav-link-products" },
       { href: "/admin/assistant", label: "Asistente de productos", icon: Sparkles, scope: "products.view", costs: true },
       { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage", tourId: "nav-link-brands" },
@@ -109,7 +109,7 @@ const groups: NavGroup[] = [
     tourId: "nav-crm",
     items: [
       { href: "/admin/clients", label: "Clientes", icon: Users, anyScope: ["clients.view", "clients.view_all"], tourId: "nav-link-clients" },
-      { href: "/admin/account-requests", label: "Solicitudes de alta", icon: UserPlus, anyScope: ["account_requests.create", "account_requests.review"], badgeKey: "accountRequests" },
+      { href: "/admin/account-requests", label: "Solicitudes de alta", icon: UserPlus, anyScope: ["account_requests.create", "account_requests.review"], badgeKey: "accountRequests", tourId: "nav-link-account-requests" },
       { href: "/admin/leads", label: "Leads del catálogo", icon: QrCode, scope: "leads.view" },
       { href: "/admin/assistant/leads", label: "Leads del asistente", icon: MessageSquare, scope: "leads.view" },
       { href: "/admin/users", label: "Usuarios y roles", icon: ShieldCheck, scope: "users.view", tourId: "nav-link-users" },

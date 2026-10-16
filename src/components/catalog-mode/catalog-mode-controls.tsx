@@ -37,7 +37,7 @@ export function CatalogModeButton({ compact = false }: { compact?: boolean }) {
     );
   }
   return (
-    <div>
+    <div data-tour="catalog-mode">
       <button
         type="button"
         onClick={go}

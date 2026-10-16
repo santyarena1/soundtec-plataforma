@@ -29,7 +29,7 @@ import {
   ONBOARDING_START_EVENT,
 } from "@/lib/onboarding/events";
 import { readHandoffLocal, writeHandoffLocal } from "@/lib/onboarding/handoff";
-import { tourForSurface } from "@/lib/onboarding/tours";
+import { tourForUser, type OnboardingAccess } from "@/lib/onboarding/tours";
 import type {
   OnboardingHandoff,
   OnboardingState,
@@ -202,11 +202,16 @@ function tooltipStyle(
 export function OnboardingHost({
   surface,
   initialState,
+  access,
 }: {
   surface: OnboardingSurface;
   initialState: OnboardingState;
+  /** Permisos del usuario: el tutorial del panel muestra solo lo que puede usar. */
+  access?: OnboardingAccess;
 }) {
-  const tour = useMemo(() => tourForSurface(surface), [surface]);
+  const accessKey = access ? JSON.stringify(access) : "";
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const tour = useMemo(() => tourForUser(surface, access), [surface, accessKey]);
   const pathname = usePathname();
   const [pending, start] = useTransition();
   const [phase, setPhase] = useState<Phase>("idle");

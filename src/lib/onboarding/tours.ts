@@ -1,4 +1,5 @@
-import type { OnboardingTour } from "./types";
+import type { PermissionScope } from "@/lib/permissions";
+import type { OnboardingStep, OnboardingTour } from "./types";
 
 /**
  * Tutorial guiado del admin.
@@ -70,15 +71,15 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       route: "/admin/clients",
       target: "clients-new-btn",
       title: "Cómo crear un cliente",
-      body: "Tocá «Nuevo cliente». Se abre un asistente en 2 pasos. No hace falta que lo completes ahora: mirá qué hace cada campo cuando lo uses.",
+      body: "Tocá «Nuevo cliente». Se abre una pantalla para cargar la empresa completa de una vez. No hace falta que lo completes ahora.",
       bullets: [
-        "Paso 1 — Empresa: Razón social (obligatorio), Nombre de fantasía, CUIT, Segmento (Integrador, Corporativo, Educación, Residencial, Gobierno, Rental) y Responsable interno.",
-        "Paso 2 — Contacto: nombre, cargo, email, teléfono y WhatsApp.",
-        "Checkbox «Crear también un usuario del portal para este contacto»: si lo tildás, además de la empresa se crea un login para que esa persona entre al portal B2B.",
-        "Si tildás el checkbox, pedí nombre + email del contacto. La contraseña inicial es opcional: si la dejás vacía, el sistema genera una temporal y te la muestra una sola vez.",
-        "Si NO tildás el checkbox, el cliente queda cargado sin acceso al portal (útil para cuentas solo comerciales).",
+        "Empresa: razón social (obligatorio), fantasía, CUIT, condición de IVA, rubro y responsable.",
+        "Dirección: calle, ciudad, código postal y provincia.",
+        "Contactos: los que quieras; a cada uno le podés dar acceso al portal (necesita email).",
+        "Acceso: invitación por mail (crea su clave con un link) o clave temporal que cambia al entrar.",
+        "Condiciones comerciales (si tu rol lo permite): forma de pago, crédito y descuentos generales o por marca.",
       ],
-      tip: "Después del alta podés sumar más contactos y usuarios desde la ficha del cliente.",
+      tip: "Al cotizar también hay un alta rápida de cliente; el resto se completa en la ficha.",
       affects: "El cliente define precios, visibilidad de catálogo y a quién le llegan los pedidos del portal.",
     },
     {
@@ -98,8 +99,8 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       id: "goto-users",
       route: "/admin/clients",
       target: "nav-link-users",
-      title: "Abrí Usuarios",
-      body: "Siguiente parada: CRM → Usuarios. Hacé click en «Usuarios» en el menú.",
+      title: "Abrí Usuarios y roles",
+      body: "Siguiente parada: CRM → «Usuarios y roles».",
       requirePath: "/admin/users",
       autoAdvanceOnRoute: true,
     },
@@ -107,21 +108,25 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       id: "users-list",
       route: "/admin/users",
       target: "page-header",
-      title: "Usuarios del sistema",
-      body: "Acá están quienes entran al panel o al portal. Un usuario de portal siempre pertenece a un cliente; un administrador opera el panel.",
+      title: "Usuarios y roles",
+      body: "Tres pestañas: el equipo interno (cada uno con su rol), las personas de cada empresa cliente que entran al portal, y los roles con sus permisos.",
+      bullets: [
+        "Equipo interno: administradores y usuarios con rol (por ejemplo, Vendedor).",
+        "Clientes del portal: siempre vinculados a una empresa.",
+        "Roles y permisos: qué pantallas y acciones usa cada rol y qué precios ve.",
+      ],
     },
     {
       id: "users-new",
       route: "/admin/users",
       target: "users-new-btn",
       title: "Cómo crear un usuario",
-      body: "Tocá «Nuevo usuario». Elegí el tipo con cuidado: eso define qué interfaz ve.",
+      body: "Hay dos botones: «Nuevo usuario del equipo» (entra al panel con un rol) y «Nuevo acceso de cliente» (entra al portal de su empresa).",
       bullets: [
-        "Cliente del portal: ve catálogo y precios de su empresa; debe estar vinculado a un Cliente.",
-        "Administrador: gestiona la operación del panel.",
-        "Super admin: acceso completo (solo si quien crea también es super admin).",
-        "Contraseña: podés generar una temporal (se muestra una vez) o escribirla vos.",
-        "Permisos avanzados: un rol personalizado puede limitar menús y acciones dentro del admin.",
+        "Equipo: elegí el rol (Vendedor, etc.) o Administrador si necesita todo.",
+        "Cliente: elegí la empresa; ve sus precios y condiciones.",
+        "Acceso: invitación por mail o clave temporal; nunca se escribe una clave a mano.",
+        "Desactivar o resetear la clave cierra sus sesiones al instante.",
       ],
       affects: "Sin usuario de portal, el cliente no puede pedir solo; sin admin, no hay quien responda.",
     },
@@ -709,15 +714,15 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       id: "mode-client",
       route: "/admin",
       target: "mode-client",
-      title: "Probar el portal (Modo cliente)",
-      body: "Tocá «Modo cliente» (resaltado) para abrir el portal. Ahí vas a poder seguir con una guía corta del catálogo y los pedidos. Cuando vuelvas con «Modo admin», el tutorial del panel retoma.",
+      title: "Probar el portal",
+      body: "Tocá «Ver portal» (resaltado) para abrir el portal como lo ve un cliente. Ahí vas a poder seguir con una guía corta del catálogo y los pedidos. Cuando vuelvas con «Modo admin», el tutorial del panel retoma.",
       bullets: [
         "No cambia de usuario: es la misma sesión en otra interfaz.",
         "En el portal vas a ver un aviso para continuar la guía o volver al admin.",
         "Si preferís no salir ahora, podés pulsar Siguiente y terminar el tutorial del panel acá.",
       ],
-      tip: "Recomendado: abrí Modo cliente, mirá el portal un rato y volvé con Modo admin.",
-      turnHint: "hacé click en «Modo cliente» (resaltado) para continuar en el portal.",
+      tip: "Recomendado: abrí el portal, miralo un rato y volvé con Modo admin.",
+      turnHint: "hacé click en «Ver portal» (resaltado) para continuar en el portal.",
     },
     {
       id: "help-dock",
@@ -847,4 +852,128 @@ export const PORTAL_ONBOARDING: OnboardingTour = {
 
 export function tourForSurface(surface: "admin" | "portal"): OnboardingTour {
   return surface === "admin" ? ADMIN_ONBOARDING : PORTAL_ONBOARDING;
+}
+
+/** Qué necesita un paso para tener sentido: alguno de estos permisos, acceso a costos, o ser admin. */
+type StepRequirement = { any?: PermissionScope[]; costs?: boolean; admin?: boolean };
+
+/** Lo que el usuario puede ver en el panel (lo arma el servidor). */
+export type OnboardingAccess = { isAdmin: boolean; scopes: PermissionScope[]; seesCosts: boolean; seesSalePrices: boolean };
+
+const prefix = (ids: string[], req: StepRequirement) => Object.fromEntries(ids.map((id) => [id, req]));
+
+/**
+ * Pasos que dependen de permisos. Sin esto, alguien del equipo (ej. un
+ * vendedor) quedaba trabado en un paso que le pide abrir una pantalla que no
+ * tiene en el menú.
+ */
+const STEP_REQUIREMENTS: Record<string, StepRequirement> = {
+  "admin-dashboard": { admin: true },
+  "admin-dash-crm": { admin: true },
+  ...prefix(["goto-clients", "clients-list", "clients-after"], { any: ["clients.view", "clients.view_all"] }),
+  "clients-new": { any: ["clients.create"] },
+  ...prefix(["goto-users", "users-list"], { any: ["users.view"] }),
+  "users-new": { any: ["users.manage"] },
+  ...prefix(
+    ["goto-products", "products-list", "products-tabs", "products-open", "product-nav", "product-data", "product-labels", "product-ai", "product-images", "product-options", "product-accessories", "product-supplier", "products-back-list"],
+    { any: ["products.view"], costs: true }
+  ),
+  ...prefix(["products-new", "products-new-form"], { any: ["products.edit"], costs: true }),
+  ...prefix(["goto-brands", "brands"], { any: ["brands.manage"] }),
+  ...prefix(["goto-margins", "margins"], { any: ["margins.manage"], costs: true }),
+  ...prefix(["goto-discounts", "discounts"], { any: ["discounts.manage"], costs: true }),
+  ...prefix(["goto-visibility", "visibility"], { any: ["visibility.manage"] }),
+  ...prefix(["goto-share-lists", "share-lists"], { any: ["share_lists.manage"] }),
+  ...prefix(["goto-requests", "requests-list", "requests-open", "request-status", "request-items", "requests-create-note"], { any: ["requests.view"] }),
+  ...prefix(["request-reply", "request-status-actions"], { any: ["requests.respond"] }),
+  "request-quote": { any: ["quotes.create"] },
+  ...prefix(["goto-quotes", "quotes-list", "quotes-open", "quote-wizard", "quote-header", "quote-brief", "quote-modules", "quote-bom", "quote-texts", "quotes-back-list"], { any: ["quotes.view_own", "quotes.view_all"] }),
+  "quote-issue": { any: ["quotes.issue", "quotes.submit_review"] },
+  ...prefix(["quotes-new", "quotes-new-form", "quotes-new-brief", "quotes-new-type", "quotes-back-for-quick", "quotes-quick", "quotes-quick-form"], { any: ["quotes.create"] }),
+  "goto-mode": { any: ["dashboard"] },
+};
+
+/** Pasos propios del equipo interno (no admins): lo que cambia para ellos. */
+const STAFF_STEPS: Array<{ after: string; step: OnboardingStep; req?: StepRequirement & { sale?: boolean } }> = [
+  {
+    after: "admin-menu",
+    step: {
+      id: "staff-home",
+      route: "/admin",
+      target: "page-header",
+      title: "Tu inicio",
+      body: "Este inicio es tuyo: tus atajos y tus números (cotizaciones, clientes a cargo, pedidos y altas que pediste). Ves lo que tu rol permite; si te falta algo, pedíselo a un administrador.",
+    },
+  },
+  {
+    after: "staff-home",
+    req: { any: ["catalog_mode.use"] },
+    step: {
+      id: "staff-catalog-mode",
+      route: "/admin",
+      target: "catalog-mode",
+      title: "Catálogo sin precios",
+      body: "Si estás con un cliente, este botón abre el catálogo sin ningún precio para mostrarle productos desde tu celular o notebook. Para salir te pide tu clave, así nadie más puede ver precios.",
+      tip: "En el celular está arriba, al lado de «Salir».",
+    },
+  },
+  {
+    after: "staff-catalog-mode",
+    req: { sale: true },
+    step: {
+      id: "staff-sales-catalog",
+      route: "/admin",
+      target: "nav-link-sales-catalog",
+      title: "Catálogo de venta",
+      body: "En el menú, «Catálogo de venta» abre los productos con su precio de venta. Es el que cotizás.",
+    },
+  },
+  {
+    after: "clients-after",
+    req: { any: ["account_requests.create"] },
+    step: {
+      id: "staff-account-requests",
+      route: "/admin/clients",
+      target: "nav-link-account-requests",
+      title: "Pedir el alta de una empresa",
+      body: "Para un cliente nuevo que necesita entrar al portal, pedí el alta en «Solicitudes de alta»: cargás la empresa, la persona y el descuento que propongás. Un administrador la aprueba y queda a tu cargo.",
+    },
+  },
+];
+
+function allowed(req: (StepRequirement & { sale?: boolean }) | undefined, access: OnboardingAccess): boolean {
+  if (!req) return true;
+  if (req.admin && !access.isAdmin) return false;
+  if (req.costs && !access.seesCosts) return false;
+  if (req.sale && !access.seesSalePrices) return false;
+  if (req.any && !access.isAdmin && !req.any.some((s) => access.scopes.includes(s))) return false;
+  return true;
+}
+
+/** Tutorial a la medida de lo que el usuario puede ver. */
+export function tourForUser(surface: "admin" | "portal", access?: OnboardingAccess): OnboardingTour {
+  const base = tourForSurface(surface);
+  if (surface !== "admin" || !access || access.isAdmin) return base;
+  const steps = base.steps
+    .filter((s) => allowed(STEP_REQUIREMENTS[s.id], access))
+    .map((s) =>
+      s.id === "admin-menu"
+        ? {
+            ...s,
+            body: "A la izquierda está todo lo que usa tu rol, agrupado por temas. Durante el tutorial te vamos a pedir que abras cada módulo desde acá.",
+            bullets: ["Operación: inicio, pedidos, cotizaciones y Room Builder.", "Catálogo: el catálogo de venta.", "CRM: tus clientes y las altas que pedís."],
+          }
+        : s
+    );
+  for (const extra of STAFF_STEPS) {
+    if (!allowed(extra.req, access)) continue;
+    const at = steps.findIndex((s) => s.id === extra.after);
+    steps.splice(at >= 0 ? at + 1 : 1, 0, extra.step);
+  }
+  return {
+    ...base,
+    welcomeBody:
+      "Este tutorial te muestra las pantallas que usa tu rol: clientes, pedidos, cotizaciones y el catálogo. En cada paso te mostramos qué clickear; el salto entre pantallas lo hacés vos. Es solo un paseo: no uses Guardar, Enviar, Emitir ni Crear.",
+    steps,
+  };
 }
