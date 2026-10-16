@@ -237,6 +237,7 @@ export const PRESET_SELLER: Permissions = {
     "clients.create",
     "clients.edit",
     "clients.contacts",
+    "clients.portal_users",
     "account_requests.create",
     "leads.view",
   ],

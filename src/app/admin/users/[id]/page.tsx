@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PERMISSION_GROUPS, PRICE_ACCESS_OPTIONS, parsePermissions, permissionsHave, resolveEffectivePermissions } from "@/lib/permissions";
@@ -14,7 +14,8 @@ import { USER_TYPE_LABEL, loadUserFormOptions } from "@/server/users-ui";
 export const metadata = { title: "Admin · Usuario" };
 
 export default async function Page({ params }: { params: { id: string } }) {
-  const { user: actor, permissions: actorPerms } = await requireStaff("users.view");
+  const { user: actor, permissions: actorPerms, isAdmin } = await requireStaff(["users.view", "clients.portal_users"]);
+  const seesTeam = permissionsHave(actorPerms, "users.view");
   const [user, options, pendingInvite] = await Promise.all([
     prisma.user.findUnique({
       where: { id: params.id },
@@ -28,10 +29,14 @@ export default async function Page({ params }: { params: { id: string } }) {
     prisma.accountActivationToken.findFirst({ where: { userId: params.id, usedAt: null, expiresAt: { gt: new Date() } }, select: { expiresAt: true } }),
   ]);
   if (!user) notFound();
+  // Sin «Ver usuarios» (ej. vendedor): solo accesos al portal de empresas a su cargo.
+  const ownsClient = isAdmin || permissionsHave(actorPerms, "clients.view_all") || (user.clientId ? (await prisma.client.findUnique({ where: { id: user.clientId }, select: { ownerId: true } }))?.ownerId === actor.id : false);
+  if (!seesTeam && (user.role !== "CLIENT" || !ownsClient)) redirect("/admin/users");
 
   const canManageThis =
-    permissionsHave(actorPerms, "users.manage") &&
-    (actor.role === "SUPER_ADMIN" || (actor.role === "ADMIN" ? user.role !== "SUPER_ADMIN" : user.role === "STAFF" || user.role === "CLIENT"));
+    (permissionsHave(actorPerms, "users.manage") &&
+      (actor.role === "SUPER_ADMIN" || (actor.role === "ADMIN" ? user.role !== "SUPER_ADMIN" : user.role === "STAFF" || user.role === "CLIENT"))) ||
+    (permissionsHave(actorPerms, "clients.portal_users") && user.role === "CLIENT" && ownsClient);
   const canDelete = canManageThis && !user._count.requests && !user._count.ownedQuotes && !user._count.ownedClients && user.id !== actor.id;
   const effective = resolveEffectivePermissions({
     baseRole: user.role,

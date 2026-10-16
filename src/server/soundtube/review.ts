@@ -180,3 +180,89 @@ export function rowsWithChosenClassification(state: ReviewState): PriceListRow[]
       : row;
   });
 }
+
+// ─── Memoria de decisiones ──────────────────────────────────────────────────
+//
+// Lo que el usuario ya resolvió no se vuelve a preguntar cuando sube otra
+// lista: «no es el mismo producto», «no cargar», qué clasificación vale en
+// un SKU repetido, qué queda visible y qué productos desactivar. Las
+// equivalencias «es el mismo» ya viven en soundtube.sku_aliases.
+
+const MEMORY_KEY = "soundtube.review.memory";
+
+type Classification = { categoria?: string; segmento?: string; familia?: string; tipo?: string };
+
+export interface ReviewMemory {
+  /** skuKey → id del producto o "NONE" (no es ninguno de los parecidos). */
+  pairs: Record<string, PairDecision>;
+  pairKeep: Record<string, "excel" | "portal">;
+  creates: Record<string, { create: boolean; brand?: string }>;
+  /** skuKey → clasificación elegida (por valores: las filas cambian entre listas). */
+  classification: Record<string, Classification>;
+  /** id de producto → desactivar. */
+  missing: Record<string, MissingAction>;
+}
+
+const emptyMemory = (): ReviewMemory => ({ pairs: {}, pairKeep: {}, creates: {}, classification: {}, missing: {} });
+
+export async function loadReviewMemory(): Promise<ReviewMemory> {
+  try {
+    return { ...emptyMemory(), ...(JSON.parse(await getSetting(MEMORY_KEY, "{}")) as Partial<ReviewMemory>) };
+  } catch {
+    return emptyMemory();
+  }
+}
+
+/** Decisiones de una revisión, en formato que sirve para cualquier lista. */
+export function memoryFromState(state: ReviewState): ReviewMemory {
+  const classification: Record<string, Classification> = {};
+  for (const [key, ref] of Object.entries(state.classification)) {
+    const option = state.classificationConflicts.find((c) => skuKey(c.sku) === key)?.options.find((o) => rowRef(o) === ref);
+    if (option) classification[key] = { categoria: option.categoria, segmento: option.segmento, familia: option.familia, tipo: option.tipo };
+  }
+  return {
+    pairs: { ...state.pairs },
+    pairKeep: { ...(state.pairKeep ?? {}) },
+    creates: { ...state.creates },
+    classification,
+    missing: Object.fromEntries(Object.entries(state.missing).filter(([, a]) => a === "deactivate")),
+  };
+}
+
+/** Suma decisiones nuevas a la memoria (las nuevas pisan a las viejas del mismo SKU). */
+export async function rememberDecisions(state: ReviewState): Promise<void> {
+  const current = await loadReviewMemory();
+  const next = memoryFromState(state);
+  const merged: ReviewMemory = {
+    pairs: { ...current.pairs, ...next.pairs },
+    pairKeep: { ...current.pairKeep, ...next.pairKeep },
+    creates: { ...current.creates, ...next.creates },
+    classification: { ...current.classification, ...next.classification },
+    missing: { ...current.missing, ...next.missing },
+  };
+  await setSetting(MEMORY_KEY, JSON.stringify(merged), { description: "Decisiones de las revisiones SoundTube que no se vuelven a preguntar." });
+}
+
+const sameClass = (a: Classification, b: Classification) =>
+  (a.categoria ?? "") === (b.categoria ?? "") && (a.segmento ?? "") === (b.segmento ?? "") && (a.familia ?? "") === (b.familia ?? "") && (a.tipo ?? "") === (b.tipo ?? "");
+
+/** Aplica la memoria a una revisión nueva: lo ya resuelto llega resuelto. */
+export function applyMemory(state: ReviewState, memory: ReviewMemory): ReviewState {
+  const keys = new Set(state.rows.map((r) => skuKey(r.sku)));
+  const pick = <T>(rec: Record<string, T>) => Object.fromEntries(Object.entries(rec).filter(([k]) => keys.has(k)));
+  const classification: Record<string, number> = {};
+  for (const conflict of state.classificationConflicts) {
+    const key = skuKey(conflict.sku);
+    const remembered = memory.classification[key];
+    const option = remembered ? conflict.options.find((o) => sameClass(o, remembered)) : undefined;
+    if (option) classification[key] = rowRef(option);
+  }
+  return {
+    ...state,
+    pairs: { ...pick(memory.pairs), ...state.pairs },
+    pairKeep: { ...pick(memory.pairKeep), ...(state.pairKeep ?? {}) },
+    creates: { ...pick(memory.creates), ...state.creates },
+    classification: { ...classification, ...state.classification },
+    missing: { ...memory.missing, ...state.missing },
+  };
+}

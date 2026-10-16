@@ -29,7 +29,7 @@ export function MissingTable({ rows, choices, onChange, onBulk }: MissingTablePr
           Desactivar
         </button>
         <button type="button" className="font-medium hover:underline" onClick={() => onBulk("keep")}>
-          Dejar sin precio
+          Dejar como están
         </button>
       </div>
       <Table>
@@ -62,7 +62,7 @@ export function MissingTable({ rows, choices, onChange, onBulk }: MissingTablePr
                         value={choice.action}
                         onChange={(e) => onChange(row.productId, { ...choice, action: e.target.value as MissingAction })}
                       >
-                        <option value="keep">Dejar sin precio (a consultar)</option>
+                        <option value="keep">Dejar como está</option>
                         <option value="deactivate">Desactivar</option>
                         <option value="price">Ponerle precio</option>
                       </select>

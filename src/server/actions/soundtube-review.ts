@@ -15,8 +15,11 @@ import {
 } from "@/server/soundtube/price-list-core";
 import { dismissDuplicate, mergeDuplicate, setVisibleIdentity } from "@/server/soundtube/identity";
 import {
+  applyMemory,
   buildReviewView,
+  loadReviewMemory,
   loadReviewState,
+  rememberDecisions,
   rowsWithChosenClassification,
   saveReviewState,
   type ReviewState,
@@ -35,6 +38,8 @@ async function mutate(change: (state: ReviewState) => string | void): Promise<Re
   if (error) return { ok: false, error };
   const view = await buildReviewView(state);
   await saveReviewState(state, view.pending);
+  // Cada decisión queda en la memoria: si se sube otra lista, no se vuelve a preguntar.
+  await rememberDecisions(state);
   revalidatePath(PATH);
   revalidatePath("/admin", "layout");
   return { ok: true };
@@ -55,7 +60,11 @@ export async function startSoundTubeReview(formData: FormData): Promise<Result> 
   }
   if (parsed.rows.length === 0) return { ok: false, error: "El Excel no tiene filas con costo y MUP." };
 
-  const state: ReviewState = {
+  // Lo resuelto en la revisión anterior (aplicada o no) se conserva.
+  const previous = await loadReviewState();
+  if (previous) await rememberDecisions(previous);
+
+  const fresh: ReviewState = {
     active: true,
     fileName: file.name,
     uploadedAt: new Date().toISOString(),
@@ -68,8 +77,9 @@ export async function startSoundTubeReview(formData: FormData): Promise<Result> 
     creates: {},
     classification: {},
     missing: {},
-    applyTaxonomy: true,
+    applyTaxonomy: previous?.applyTaxonomy ?? true,
   };
+  const state = applyMemory(fresh, await loadReviewMemory());
   const view = await buildReviewView(state);
   await saveReviewState(state, view.pending);
   revalidatePath(PATH);

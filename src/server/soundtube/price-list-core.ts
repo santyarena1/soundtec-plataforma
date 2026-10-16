@@ -53,6 +53,8 @@ export async function addSkuAliases(entries: Array<{ excelSku: string; productId
   });
 }
 
+const isMerged = (meta: unknown) => Boolean(meta && typeof meta === "object" && "mergedInto" in (meta as Record<string, unknown>));
+
 export async function loadSoundTubeProducts(): Promise<CatalogProduct[]> {
   const fromSource = await prisma.$queryRaw<Array<{ id: string }>>`
     SELECT id FROM "Product" WHERE ("sourceMetadata"->'soundtube') IS NOT NULL
@@ -71,10 +73,12 @@ export async function loadSoundTubeProducts(): Promise<CatalogProduct[]> {
       originalName: true,
       baseCostUsd: true,
       isActive: true,
+      sourceMetadata: true,
       brand: { select: { name: true } },
     },
   });
-  return rows.map((r) => ({
+  // Los unidos a otro (duplicados resueltos) no cuentan: la lista actualiza al que quedó visible.
+  return rows.filter((r) => !isMerged(r.sourceMetadata)).map((r) => ({
     id: r.id,
     sku: r.supplierSku,
     name: r.normalizedName,
@@ -171,6 +175,15 @@ export async function applySoundTubeRows(input: ApplySoundTubeInput): Promise<Ap
     const fieldTimes = new Map(timestamps.map((t) => [t.id, t.fieldUpdatedAt]));
     const nowIso = new Date().toISOString();
 
+    // Los que quedan afuera pero ya tenían precio de una lista anterior o cargado a mano lo conservan
+    // (cost + MUP): lo que ya se resolvió no se rompe al subir otra lista.
+    const repriced = new Set(validDecisions.filter((d) => d.action === "price").map((d) => d.productId));
+    const previousRules = await prisma.marginRule.findMany({
+      where: { groupId: MUP_GROUP_ID, productId: { in: [...missingIds].filter((id) => !repriced.has(id)) } },
+      select: { productId: true, markupMultiplier: true },
+    });
+    const previouslyPriced = new Set(previousRules.flatMap((r) => (r.productId ? [r.productId] : [])));
+
     const productUpdates = [
       ...plan.matched.map(({ product, row }) => {
         const taxonomy = applyTaxonomy
@@ -208,11 +221,11 @@ export async function applySoundTubeRows(input: ApplySoundTubeInput): Promise<Ap
         }
         return [];
       }),
-      // Los que no están en la lista y no tienen precio cargado a mano quedan SIN precio
-      // (costo 0, "a consultar"): el único precio válido de SoundTube es el de la lista.
+      // Los que no están en esta lista y nunca tuvieron precio de una lista (ni cargado a mano)
+      // quedan SIN precio (costo 0, "a consultar"): son los que trajo el portal.
       ...(() => {
         const handled = new Set(validDecisions.filter((d) => d.action !== "keep").map((d) => d.productId));
-        const unpriced = [...missingIds].filter((id) => !handled.has(id));
+        const unpriced = [...missingIds].filter((id) => !handled.has(id) && !previouslyPriced.has(id));
         return unpriced.length
           ? [prisma.product.updateMany({ where: { id: { in: unpriced } }, data: { baseCostUsd: 0, requiresQuote: true } })]
           : [];
@@ -223,6 +236,11 @@ export async function applySoundTubeRows(input: ApplySoundTubeInput): Promise<Ap
       ...plan.matched.map(({ product, row }) => mupRule(product.id, product.sku ?? row.sku, row.mup)),
       ...validDecisions.flatMap((d) =>
         d.action === "price" ? [mupRule(d.productId, skuById.get(d.productId) ?? d.productId, d.mup)] : []
+      ),
+      ...previousRules.flatMap((r) =>
+        r.productId && r.markupMultiplier
+          ? [mupRule(r.productId, skuById.get(r.productId) ?? r.productId, Number(r.markupMultiplier))]
+          : []
       ),
     ];
 

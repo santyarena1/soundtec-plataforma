@@ -2069,4 +2069,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Textos del tutorial actualizados: alta completa de clientes, usuarios y roles, invitaciones y «Ver portal»." },
     ],
   },
+  {
+    id: "ship-2026-10-17-vendedor-y-memoria-soundtube",
+    version: "2.2.0",
+    releasedAt: "2026-10-17T15:00:00.000Z",
+    summary: "El vendedor ve leads y da accesos al portal a sus clientes; SoundTube recuerda lo que ya resolviste.",
+    items: [
+      { kind: "MEJORA", text: "Vendedor: ve los leads, crea clientes y les da acceso al portal (solo a las empresas a su cargo). El rol Vendedor existente recibe estos permisos una vez, sin perder lo que hayas editado." },
+      { kind: "NUEVO", text: "Accesos de clientes desde Usuarios para quien tiene «Dar acceso al portal»: ve y gestiona solo los usuarios de sus empresas." },
+      { kind: "FIX", text: "SoundTube: al subir una lista nueva se conservan las decisiones ya tomadas («no es el mismo», «no cargar», clasificación de repetidos, qué queda visible y desactivaciones)." },
+      { kind: "FIX", text: "SoundTube: los productos que no vienen en la lista nueva pero ya tenían precio (de una lista anterior o cargado a mano) lo conservan; solo quedan «a consultar» los que nunca tuvieron precio de lista." },
+      { kind: "FIX", text: "SoundTube: los duplicados ya unidos no vuelven a aparecer al subir otra lista." },
+    ],
+  },
 ];

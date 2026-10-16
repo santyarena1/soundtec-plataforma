@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { UserRole } from "@prisma/client";
 import { requireStaff, type CurrentUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
-import { canSeeCosts, canSeeSalePrices, isAdminRole, parsePermissions, type Permissions } from "@/lib/permissions";
+import { canSeeCosts, canSeeSalePrices, isAdminRole, parsePermissions, permissionsHave, type Permissions } from "@/lib/permissions";
 import { issueAccess, parseAccessMode, unusablePasswordHash, type AccessResult } from "@/server/user-access";
 
 export type UserActionResult = { ok: boolean; error?: string; id?: string; access?: AccessResult };
@@ -57,10 +57,20 @@ function input(f: FormData) {
  * - un admin, a todos menos a los super admin (y no puede crear super admins);
  * - el equipo con "Crear y editar usuarios", solo a equipo y clientes.
  */
-function canManageRole(actor: CurrentUser, role: UserRole): boolean {
+function canManageRole(actor: CurrentUser, role: UserRole, actorPerms: Permissions): boolean {
   if (actor.role === "SUPER_ADMIN") return true;
   if (actor.role === "ADMIN") return role !== "SUPER_ADMIN";
+  // Sin «Crear y editar usuarios» (ej. un vendedor con «Dar acceso al portal»): solo accesos de clientes.
+  if (!permissionsHave(actorPerms, "users.manage")) return role === "CLIENT";
   return role === "STAFF" || role === "CLIENT";
+}
+
+/** Quien no ve todos los clientes solo da accesos a empresas que tiene a cargo. */
+async function canTouchClient(actor: CurrentUser, actorPerms: Permissions, clientId: string | null): Promise<boolean> {
+  if (isAdminRole(actor.role) || permissionsHave(actorPerms, "clients.view_all")) return true;
+  if (!clientId) return false;
+  const client = await prisma.client.findUnique({ where: { id: clientId }, select: { ownerId: true } });
+  return client?.ownerId === actor.id;
 }
 
 async function assertCanManageUser(
@@ -73,7 +83,7 @@ async function assertCanManageUser(
     select: { role: true, email: true, name: true, clientId: true, customRole: { select: { permissionsJson: true } } },
   });
   if (!target) return "El usuario no existe.";
-  if (!canManageRole(actor, target.role)) {
+  if (!canManageRole(actor, target.role, actorPerms)) {
     return target.role === "SUPER_ADMIN" ? "Solo un super administrador puede modificar a otro super administrador." : "No tenés permiso para modificar a este usuario.";
   }
   // Alguien del equipo no puede tocar (ni resetearle la clave) a otro con más permisos que los suyos.
@@ -85,6 +95,7 @@ async function assertCanManageUser(
       (perms.priceAccess === "sale" && !canSeeSalePrices(actorPerms));
     if (higher) return "Este usuario tiene más permisos que vos: lo modifica un administrador.";
   }
+  if (target.role === "CLIENT" && !(await canTouchClient(actor, actorPerms, target.clientId))) return "Este usuario es de una empresa a cargo de otra persona.";
   return { role: target.role, email: target.email, name: target.name, clientId: target.clientId };
 }
 
@@ -92,8 +103,18 @@ async function validate(f: FormData, actor: CurrentUser, actorPerms: Permissions
   const parsed = schema.safeParse(input(f));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Revisá los datos." };
   const data = parsed.data;
-  if (!canManageRole(actor, data.role)) {
-    return { error: data.role === "SUPER_ADMIN" ? "Solo un super administrador puede asignar ese tipo." : "Solo un administrador puede crear administradores." };
+  if (!canManageRole(actor, data.role, actorPerms)) {
+    return {
+      error:
+        data.role === "SUPER_ADMIN"
+          ? "Solo un super administrador puede asignar ese tipo."
+          : !permissionsHave(actorPerms, "users.manage")
+            ? "Tu rol solo permite dar accesos al portal a clientes."
+            : "Solo un administrador puede crear administradores.",
+    };
+  }
+  if (data.role === "CLIENT" && !(await canTouchClient(actor, actorPerms, data.clientId))) {
+    return { error: "Esa empresa está a cargo de otra persona." };
   }
   const [client, role] = await Promise.all([
     data.role === "CLIENT" && data.clientId ? prisma.client.findUnique({ where: { id: data.clientId }, select: { companyName: true } }) : null,
@@ -123,7 +144,7 @@ async function validate(f: FormData, actor: CurrentUser, actorPerms: Permissions
 }
 
 export async function createUser(f: FormData): Promise<UserActionResult> {
-  const { user: actor, permissions: actorPerms } = await requireStaff("users.manage");
+  const { user: actor, permissions: actorPerms } = await requireStaff(["users.manage", "clients.portal_users"]);
   const checked = await validate(f, actor, actorPerms);
   if (!checked.data) return { ok: false, error: checked.error };
   const { id: _id, ...data } = checked.data;
@@ -145,7 +166,7 @@ export async function createUser(f: FormData): Promise<UserActionResult> {
 }
 
 export async function updateUser(f: FormData): Promise<UserActionResult> {
-  const { user: actor, permissions: actorPerms } = await requireStaff("users.manage");
+  const { user: actor, permissions: actorPerms } = await requireStaff(["users.manage", "clients.portal_users"]);
   const id = val(f, "id");
   if (!id) return { ok: false, error: "Falta el usuario." };
   const target = await assertCanManageUser(actor, actorPerms, id);
@@ -175,7 +196,7 @@ export async function updateUser(f: FormData): Promise<UserActionResult> {
 
 /** Nuevo acceso: invitación por mail o clave temporal. Cierra sus sesiones abiertas. */
 export async function resetUserPassword(f: FormData): Promise<UserActionResult> {
-  const { user: actor, permissions: actorPerms } = await requireStaff("users.manage");
+  const { user: actor, permissions: actorPerms } = await requireStaff(["users.manage", "clients.portal_users"]);
   const id = val(f, "id");
   if (!id) return { ok: false, error: "Falta el usuario." };
   if (id === actor.id) return { ok: false, error: "Tu propia clave la cambiás desde «Cambiar mi clave»." };
@@ -187,7 +208,7 @@ export async function resetUserPassword(f: FormData): Promise<UserActionResult> 
 }
 
 export async function toggleUserActive(f: FormData): Promise<UserActionResult> {
-  const { user: actor, permissions: actorPerms } = await requireStaff("users.manage");
+  const { user: actor, permissions: actorPerms } = await requireStaff(["users.manage", "clients.portal_users"]);
   const id = val(f, "id");
   if (!id) return { ok: false, error: "Falta el usuario." };
   if (id === actor.id) return { ok: false, error: "No podés desactivar tu propio usuario." };
@@ -205,7 +226,7 @@ export async function toggleUserActive(f: FormData): Promise<UserActionResult> {
 }
 
 export async function deleteUser(f: FormData): Promise<UserActionResult> {
-  const { user: actor, permissions: actorPerms } = await requireStaff("users.manage");
+  const { user: actor, permissions: actorPerms } = await requireStaff(["users.manage", "clients.portal_users"]);
   const id = val(f, "id");
   if (!id) return { ok: false, error: "Falta el usuario." };
   if (id === actor.id) return { ok: false, error: "No podés eliminar tu propio usuario." };

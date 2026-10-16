@@ -31,10 +31,15 @@ function initials(name: string) {
 }
 
 export default async function Page({ searchParams }: { searchParams: { q?: string; vista?: string; status?: string; rol?: string } }) {
-  const { user: actor, permissions } = await requireStaff("users.view");
+  const { user: actor, permissions, isAdmin } = await requireStaff(["users.view", "clients.portal_users"]);
   const canManage = permissionsHave(permissions, "users.manage");
+  const canPortal = canManage || permissionsHave(permissions, "clients.portal_users");
   const canRoles = permissionsHave(permissions, "roles.manage");
-  const view: View = searchParams.vista === "portal" ? "portal" : searchParams.vista === "roles" && canRoles ? "roles" : "equipo";
+  // Sin «Ver usuarios» (ej. vendedor): solo los accesos al portal de sus propias empresas.
+  const seesTeam = permissionsHave(permissions, "users.view");
+  const ownClientsOnly = !isAdmin && !permissionsHave(permissions, "clients.view_all");
+  const view: View =
+    !seesTeam || searchParams.vista === "portal" ? "portal" : searchParams.vista === "roles" && canRoles ? "roles" : "equipo";
   // Si el deploy no llegó a crear el rol Vendedor, se crea acá (idempotente).
   await ensureSystemRoles().catch((e) => console.error("[roles] ensure", e));
 
@@ -51,6 +56,7 @@ export default async function Page({ searchParams }: { searchParams: { q?: strin
   const where: Prisma.UserWhereInput = {
     ...search,
     role: view === "portal" ? "CLIENT" : { in: TEAM },
+    ...(view === "portal" && ownClientsOnly ? { client: { ownerId: actor.id } } : {}),
     ...(searchParams.rol ? { customRoleId: searchParams.rol } : {}),
     ...(searchParams.status ? { isActive: searchParams.status === "active" } : {}),
   };
@@ -89,7 +95,10 @@ export default async function Page({ searchParams }: { searchParams: { q?: strin
   });
   const sellerRole = roleRows.find((r) => r.key === "vendedor");
 
-  const common = { clients: options.clients, roles: options.roles, isSuper: actor.role === "SUPER_ADMIN", isAdmin: actor.role === "ADMIN" || actor.role === "SUPER_ADMIN" };
+  const ownClientIds = ownClientsOnly
+    ? new Set((await prisma.client.findMany({ where: { ownerId: actor.id }, select: { id: true } })).map((c) => c.id))
+    : null;
+  const common = { clients: ownClientIds ? options.clients.filter((c) => ownClientIds.has(c.id)) : options.clients, roles: options.roles, isSuper: actor.role === "SUPER_ADMIN", isAdmin: actor.role === "ADMIN" || actor.role === "SUPER_ADMIN" };
   const tabHref = (v: View) => `/admin/users?vista=${v}`;
 
   const stats = [
@@ -106,15 +115,16 @@ export default async function Page({ searchParams }: { searchParams: { q?: strin
         title="Usuarios y roles"
         description="Quién entra a la plataforma: el equipo interno (cada uno con su rol) y las personas de cada empresa cliente."
         actions={
-          canManage ? (
+          canManage || canPortal ? (
             <div className="flex flex-wrap gap-2">
-              <UserFormModal {...common} kind="staff" triggerLabel="Nuevo usuario del equipo" />
-              <UserFormModal {...common} kind="portal" triggerLabel="Nuevo acceso de cliente" triggerVariant="outline" />
+              {canManage ? <UserFormModal {...common} kind="staff" triggerLabel="Nuevo usuario del equipo" /> : null}
+              {canPortal ? <UserFormModal {...common} kind="portal" triggerLabel="Nuevo acceso de cliente" triggerVariant={canManage ? "outline" : "primary"} /> : null}
             </div>
           ) : null
         }
       />
 
+      {seesTeam ? (
       <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
         {stats.map((s) => (
           <Link key={s.label} href={s.href}>
@@ -132,7 +142,9 @@ export default async function Page({ searchParams }: { searchParams: { q?: strin
           </Link>
         ))}
       </div>
+      ) : null}
 
+      {seesTeam ? (
       <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1">
         {(
           [
@@ -150,6 +162,7 @@ export default async function Page({ searchParams }: { searchParams: { q?: strin
           </Link>
         ))}
       </div>
+      ) : null}
 
       {view === "roles" ? (
         <Card>
