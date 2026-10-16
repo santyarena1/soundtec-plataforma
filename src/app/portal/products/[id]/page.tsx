@@ -276,7 +276,6 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StockBadge status={product.stockStatus} qty={product.stockQuantity} />
               {product.isCustomizable ? <Badge tone="accent">Configurable</Badge> : null}
-              {product.isDiscontinued ? <Badge tone="warning">Discontinuado por el fabricante</Badge> : null}
               {product.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : <Badge tone="primary">Producto principal</Badge>}
               {pricing.discountPercent > 0 ? (
                 <Badge tone="success">Descuento {formatPercent(pricing.discountPercent)}</Badge>

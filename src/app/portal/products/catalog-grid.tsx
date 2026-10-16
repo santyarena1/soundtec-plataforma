@@ -65,11 +65,6 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                   -{p.pricing.discountPercent.toFixed(0)}%
                 </span>
               ) : null}
-              {p.isDiscontinued ? (
-                <span className="absolute bottom-2 left-2 rounded-md bg-amber-500/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                  Discontinuado
-                </span>
-              ) : null}
             </div>
 
             <div className="flex flex-1 flex-col p-3.5">

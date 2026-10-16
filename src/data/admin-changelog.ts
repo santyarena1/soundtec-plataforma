@@ -2040,4 +2040,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "El Room Builder muestra precio de venta (antes mostraba el costo) y no manda costos a la pantalla." },
     ],
   },
+  {
+    id: "ship-2026-10-16-sin-discontinuado",
+    version: "2.0.1",
+    releasedAt: "2026-10-16T23:30:00.000Z",
+    summary: "Los productos ya no muestran la etiqueta «Discontinuado».",
+    items: [{ kind: "MEJORA", text: "Sin la etiqueta «Discontinuado» en las cards del catálogo ni en las fichas (portal y catálogo público)." }],
+  },
 ];

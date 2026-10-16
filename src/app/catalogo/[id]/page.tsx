@@ -107,7 +107,6 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
               {product.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : null}
               {product.isCustomizable ? <Badge tone="accent">Configurable</Badge> : null}
               {product.isCrestronHomeCompatible ? <Badge tone="primary">Crestron Home</Badge> : null}
-              {product.isDiscontinued ? <Badge tone="muted">Discontinuado por el fabricante</Badge> : null}
               {product.modelNumber ? (
                 <span className="text-xs text-muted-foreground">Modelo: {product.modelNumber}</span>
               ) : null}
