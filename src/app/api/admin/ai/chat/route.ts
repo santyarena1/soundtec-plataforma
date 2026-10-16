@@ -4,6 +4,8 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
+import { getCurrentPermissions, getSessionUser } from "@/lib/auth-helpers";
+import { canSeeCosts, isPanelRole, permissionsHave } from "@/lib/permissions";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { askAssistant } from "@/services/ai-assistant/answer";
@@ -21,8 +23,13 @@ const bodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  const role = session?.user?.role;
-  if (!session?.user || (role !== "ADMIN" && role !== "SUPER_ADMIN")) {
+  // Asistente del panel: ve costos, así que solo con acceso a productos y a costos.
+  const viewer = await getSessionUser();
+  if (!session?.user || !viewer || !isPanelRole(viewer.role)) {
+    return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  }
+  const { permissions } = await getCurrentPermissions();
+  if (!permissionsHave(permissions, "products.view") || !canSeeCosts(permissions)) {
     return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
   }
 

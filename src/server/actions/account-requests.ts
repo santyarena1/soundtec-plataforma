@@ -9,14 +9,16 @@ import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/app-url";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { clientIp, hashIp } from "@/services/ai-assistant/rate-limit";
-import { accountRequestSchema } from "@/lib/expo/account-request-schema";
+import { z } from "zod";
+import { ACTIVITY_OPTIONS, accountRequestSchema } from "@/lib/expo/account-request-schema";
 import { ACTIVATION_TTL_MS, createActivationToken } from "@/lib/expo/activation-token";
-import { cuitVariants, formatCuit } from "@/lib/expo/cuit";
+import { cuitVariants, formatCuit, isValidCuit, normalizeCuit } from "@/lib/expo/cuit";
 import { textToHtml } from "@/lib/expo/html";
 import { LEAD_COOKIE, QR_COOKIE, VISITOR_COOKIE } from "@/lib/expo/visitor-cookies";
 import { findLiveQr, recordVisit } from "@/server/expo/visits";
 import { accountRequestRecipients, sendMail } from "@/server/mailer";
-import { requirePermission } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
+import { replaceClientDiscounts } from "@/server/clients/conditions";
 
 export type FieldErrors = Partial<Record<string, string>>;
 export type SubmitResult = { ok: true } | { ok: false; error: string; fieldErrors?: FieldErrors };
@@ -85,7 +87,8 @@ async function createAccountFor(
   req: AccountRequest,
   reviewerId: string,
   tokenHash: string,
-  passwordHash: string
+  passwordHash: string,
+  options: ApproveOptions
 ): Promise<{ clientName: string; linkedExistingClient: boolean }> {
   const marked = await tx.accountRequest.updateMany({
     where: { id: req.id, status: "PENDING" },
@@ -108,11 +111,20 @@ async function createAccountFor(
         city: city || null,
         province: rest.join(", ") || null,
         segment: req.activity === "Otra" ? req.activityOther : req.activity,
-        source: "Solicitud web",
-        notes: req.comment,
+        source: req.origin === "staff" ? "Alta pedida por el equipo" : "Solicitud web",
+        notes: [req.comment, req.staffNote ? `Nota del vendedor: ${req.staffNote}` : null].filter(Boolean).join("\n\n") || null,
+        // El vendedor que pidió el alta queda como responsable del cliente.
+        ownerId: req.requestedById ?? null,
+        lastActivityAt: new Date(),
       },
       select: { id: true, companyName: true },
     }));
+  if (options.discountPercent && options.discountPercent > 0 && !existing) {
+    await replaceClientDiscounts(tx, client.id, client.companyName, [{ target: "ALL", targetId: null, percent: options.discountPercent }], {
+      brands: new Map(),
+      categories: new Map(),
+    });
+  }
   await tx.clientContact.create({
     data: { clientId: client.id, name: req.fullName, email: req.email, phone: req.phone, isPrimary: !existing },
   });
@@ -151,9 +163,12 @@ function friendlyApproveError(error: unknown): string {
   return "No se pudo aprobar la solicitud. Probá de nuevo.";
 }
 
+export type ApproveOptions = { discountPercent?: number | null };
+
 /** Aprobar: crea Client (o vincula el existente por CUIT) + contacto + User + token de activación. */
-export async function approveAccountRequest(id: string): Promise<ApproveResult> {
-  const { user: reviewer } = await requirePermission("clients.manage");
+export async function approveAccountRequest(id: string, options: ApproveOptions = {}): Promise<ApproveResult> {
+  const { user: reviewer } = await requireStaff("account_requests.review");
+  const discount = options.discountPercent != null && Number.isFinite(options.discountPercent) ? Math.min(90, Math.max(0, options.discountPercent)) : null;
   let result: { clientName: string; linkedExistingClient: boolean };
   let req: AccountRequest | null = null;
   let token: string;
@@ -166,7 +181,7 @@ export async function approveAccountRequest(id: string): Promise<ApproveResult> 
     token = activation.token;
     const unusablePassword = await bcrypt.hash(randomBytes(32).toString("hex"), 12);
     const current = req;
-    result = await prisma.$transaction((tx) => createAccountFor(tx, current, reviewer.id, activation.tokenHash, unusablePassword));
+    result = await prisma.$transaction((tx) => createAccountFor(tx, current, reviewer.id, activation.tokenHash, unusablePassword, { discountPercent: discount }));
   } catch (error) {
     return { ok: false, error: friendlyApproveError(error) };
   }
@@ -183,7 +198,7 @@ export async function approveAccountRequest(id: string): Promise<ApproveResult> 
  * anterior o venció). Invalida los links sin usar de ese usuario.
  */
 export async function regenerateActivationLink(requestId: string): Promise<LinkResult> {
-  await requirePermission("clients.manage");
+  await requireStaff("account_requests.review");
   try {
     const req = await prisma.accountRequest.findUnique({ where: { id: requestId }, select: { status: true, createdUserId: true } });
     if (!req || req.status !== "APPROVED" || !req.createdUserId) return { ok: false, error: "La solicitud no está aprobada." };
@@ -203,7 +218,7 @@ export async function regenerateActivationLink(requestId: string): Promise<LinkR
 }
 
 export async function rejectAccountRequest(id: string, reason: string): Promise<{ ok: boolean; error?: string }> {
-  const { user: reviewer } = await requirePermission("clients.manage");
+  const { user: reviewer } = await requireStaff("account_requests.review");
   const clean = reason.trim();
   if (clean.length < 3) return { ok: false, error: "Indicá el motivo." };
   try {
@@ -216,6 +231,67 @@ export async function rejectAccountRequest(id: string, reason: string): Promise<
     console.error("[cuentas] no se pudo rechazar la solicitud", error);
     return { ok: false, error: "No se pudo rechazar la solicitud. Probá de nuevo." };
   }
+  revalidatePath("/admin/account-requests");
+  return { ok: true };
+}
+
+const staffRequestSchema = z.object({
+  company: z.string().trim().min(2, "Ingresá la empresa").max(200),
+  cuit: z.string().trim().refine(isValidCuit, "CUIT inválido").transform(normalizeCuit),
+  fullName: z.string().trim().min(3, "Ingresá nombre y apellido del contacto").max(160),
+  email: z.string().trim().toLowerCase().email("Mail inválido").max(200),
+  phone: z.string().trim().min(6, "Ingresá un teléfono").max(60),
+  activity: z.enum(ACTIVITY_OPTIONS, { errorMap: () => ({ message: "Elegí la actividad" }) }),
+  activityOther: z.string().trim().max(120).optional().nullable(),
+  location: z.string().trim().max(160).optional().nullable(),
+  website: z.string().trim().max(200).optional().nullable(),
+  comment: z.string().trim().max(2000).optional().nullable(),
+  proposedDiscountPercent: z.number().min(0).max(90).nullable().optional(),
+  staffNote: z.string().trim().max(2000).optional().nullable(),
+});
+
+export type StaffAccountRequestInput = z.input<typeof staffRequestSchema>;
+
+/**
+ * Un vendedor pide el alta de una empresa nueva para un cliente suyo. Queda
+ * pendiente hasta que un admin la aprueba (ahí se crea el cliente, a cargo
+ * del vendedor, y la persona recibe su acceso al portal).
+ */
+export async function submitStaffAccountRequest(input: StaffAccountRequestInput): Promise<SubmitResult> {
+  const { user } = await requireStaff("account_requests.create");
+  const parsed = staffRequestSchema.safeParse(input);
+  if (!parsed.success) {
+    const fieldErrors: FieldErrors = {};
+    for (const issue of parsed.error.issues) fieldErrors[String(issue.path[0])] ??= issue.message;
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Revisá los campos", fieldErrors };
+  }
+  const data = parsed.data;
+  if (data.activity === "Otra" && !data.activityOther) return { ok: false, error: "Contanos a qué se dedica la empresa", fieldErrors: { activityOther: "Requerido" } };
+  if (await prisma.user.findUnique({ where: { email: data.email }, select: { id: true } })) {
+    return { ok: false, error: "Ya existe un usuario con ese mail.", fieldErrors: { email: "Ya existe" } };
+  }
+  const pending = await prisma.accountRequest.findFirst({ where: { status: "PENDING", OR: [{ email: data.email }, { cuit: data.cuit }] }, select: { id: true } });
+  if (pending) return { ok: false, error: "Ya hay una solicitud pendiente para esa empresa o ese mail." };
+
+  await prisma.accountRequest.create({
+    data: {
+      company: data.company,
+      cuit: data.cuit,
+      fullName: data.fullName,
+      email: data.email,
+      phone: data.phone,
+      activity: data.activity,
+      activityOther: data.activityOther || null,
+      location: data.location || null,
+      website: data.website || null,
+      comment: data.comment || null,
+      origin: "staff",
+      requestedById: user.id,
+      proposedDiscountPercent: data.proposedDiscountPercent ?? null,
+      staffNote: data.staffNote || null,
+    },
+  });
+  await notifyAdmins({ ...data, activityOther: data.activityOther ?? null }).catch((error) => console.error("[cuentas] no se pudo avisar la solicitud", error));
   revalidatePath("/admin/account-requests");
   return { ok: true };
 }

@@ -1,5 +1,5 @@
-import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { notFound, redirect } from "next/navigation";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -74,7 +74,9 @@ function SectionHeader({
 
 export default async function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireAdmin();
+  // La ficha del panel muestra costos, proveedores e importación: sin acceso a costos se ve la ficha comercial.
+  const access = await requireStaff("products.view");
+  if (!access.seesCosts) redirect(`/portal/products/${id}`);
   const product = await prisma.product.findUnique({
     where: { id },
     include: {

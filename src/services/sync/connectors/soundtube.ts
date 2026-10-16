@@ -16,6 +16,7 @@ import {
   type SoundTubeCategoryConfig,
   type SoundTubePriceField,
 } from "@/services/soundtube/normalize";
+import { loadIdentityOverrides } from "@/services/soundtube/identity-overrides";
 import type { NormalizedProduct, ProductSourceConnector } from "../types";
 
 export const SOUNDTUBE_SETTING_KEYS = {
@@ -27,6 +28,9 @@ export const SOUNDTUBE_SETTING_KEYS = {
   /** "excel" = rubro/subrubro/familia/tipo salen del Excel; el sync no los pisa. */
   taxonomySource: "soundtube.taxonomy_source",
 } as const;
+
+/** groupId de las reglas de MUP que crea la lista Excel (una por producto con precio). */
+export const SOUNDTUBE_MUP_GROUP_ID = "soundtube-excel-mup";
 
 interface ExcelOverrides {
   price: boolean;
@@ -42,23 +46,25 @@ async function loadExcelOverrides(): Promise<ExcelOverrides> {
 }
 
 /**
- * Saca del item lo que hoy manda el Excel, para que el sync no lo pise.
- * Solo en productos que ya existen: uno nuevo se crea con el costo y la
- * clasificación de la API (si no quedaría con costo 0) hasta la próxima lista.
+ * Precio y clasificación según la lista Excel. El precio del portal de
+ * SoundTube nunca se usa:
+ * - producto con precio de la lista (o cargado a mano en la revisión): el sync no toca el costo;
+ * - producto que no está en la lista (nuevo o existente): queda sin precio (costo 0, "a consultar").
+ * La clasificación del Excel, si se eligió, solo se respeta en productos que ya existen.
  */
 export function withoutExcelFields(
   item: NormalizedProduct,
   excel: ExcelOverrides,
-  existingSkus: ReadonlySet<string>
+  existingSkus: ReadonlySet<string>,
+  excelPricedSkus: ReadonlySet<string>
 ): NormalizedProduct {
-  if (!excel.price && !excel.taxonomy) return item;
-  if (!existingSkus.has(item.matchValue)) return item;
+  const priced = excelPricedSkus.has(item.matchValue);
+  const price = priced ? { baseCostUsd: undefined, requiresQuote: undefined } : { baseCostUsd: 0, requiresQuote: true };
+  const keepTaxonomy = excel.taxonomy && existingSkus.has(item.matchValue);
   return {
     ...item,
-    ...(excel.price ? { baseCostUsd: undefined } : {}),
-    ...(excel.taxonomy
-      ? { categoryName: undefined, familyName: undefined, familia: undefined, tipo: undefined }
-      : {}),
+    ...price,
+    ...(keepTaxonomy ? { categoryName: undefined, familyName: undefined, familia: undefined, tipo: undefined } : {}),
   };
 }
 
@@ -157,15 +163,36 @@ export const soundtubeConnector: ProductSourceConnector = {
     const normalized = page.items
       .filter((item) => item.itemid?.trim())
       .map((item) => toNormalizedProduct(item, priceField, category));
-    const existingSkus = new Set<string>();
-    if (excel.price || excel.taxonomy) {
-      const existing = await prisma.product.findMany({
-        where: { supplierSku: { in: normalized.map((item) => item.matchValue) } },
-        select: { supplierSku: true },
-      });
-      for (const row of existing) if (row.supplierSku) existingSkus.add(row.supplierSku);
-    }
-    const items = normalized.map((item) => withoutExcelFields(item, excel, existingSkus));
+    const existing = await prisma.product.findMany({
+      where: { supplierSku: { in: normalized.map((item) => item.matchValue) } },
+      select: { id: true, supplierSku: true },
+    });
+    const existingSkus = new Set(existing.flatMap((row) => (row.supplierSku ? [row.supplierSku] : [])));
+    // Con precio de la lista = tiene la regla de MUP de la lista (o un precio cargado a mano en la revisión).
+    const pricedIds = new Set(
+      (
+        await prisma.marginRule.findMany({
+          where: { groupId: SOUNDTUBE_MUP_GROUP_ID, productId: { in: existing.map((row) => row.id) } },
+          select: { productId: true },
+        })
+      ).flatMap((rule) => (rule.productId ? [rule.productId] : []))
+    );
+    const excelPricedSkus = new Set(existing.flatMap((row) => (row.supplierSku && pricedIds.has(row.id) ? [row.supplierSku] : [])));
+    // Productos que muestran el SKU/descripción de la lista: el sync no los pisa.
+    const identities = await loadIdentityOverrides();
+    const identityBySku = new Map(
+      existing.flatMap((row) => {
+        const identity = identities.get(row.id);
+        return row.supplierSku && identity ? [[row.supplierSku, identity] as const] : [];
+      })
+    );
+    const items = normalized.map((item) => {
+      const priced = withoutExcelFields(item, excel, existingSkus, excelPricedSkus);
+      const identity = identityBySku.get(item.matchValue);
+      return identity
+        ? { ...priced, name: identity.name, originalName: identity.originalName, modelNumber: identity.modelNumber, preserveName: true }
+        : priced;
+    });
 
     const esNames = Array.from(
       new Set(items.flatMap((item) => [item.categoryName, item.familyName]).filter((n): n is string => !!n))

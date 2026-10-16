@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { PageHeader } from "@/components/ui/page-header";
 import { AdminAssistantChat } from "@/components/expo/admin-assistant-chat";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Asistente de productos" };
 
 export default async function AdminAssistantPage() {
-  await requireAdmin();
+  await requireStaff("products.view", { costs: true });
 
   return (
     <div className="space-y-5">

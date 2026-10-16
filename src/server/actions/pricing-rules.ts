@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { familyScopeProductWhere } from "@/lib/pricing";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { RuleScopeType } from "@prisma/client";
 import { badgeLabel, isManufacturerPromoLabel } from "@/lib/manufacturer-promo";
 import {
@@ -446,7 +446,7 @@ function rethrowIfRedirect(err: unknown) {
 }
 
 export async function upsertMarginRule(formData: FormData): Promise<{ ok: boolean; error?: string; count?: number }> {
-  await requireAdmin();
+  await requireStaff("margins.manage", { costs: true });
   const parsed = parseRule(formData, "margin");
   if (!parsed.ok) return parsed;
   try {
@@ -471,7 +471,7 @@ export async function upsertMarginRule(formData: FormData): Promise<{ ok: boolea
 }
 
 export async function deleteMarginRule(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("margins.manage", { costs: true });
   const id = String(formData.get("id") || "");
   if (!id) return;
   await prisma.marginRule.delete({ where: { id } });
@@ -479,7 +479,7 @@ export async function deleteMarginRule(formData: FormData): Promise<void> {
 }
 
 export async function deleteMarginRuleGroup(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("margins.manage", { costs: true });
   const groupId = String(formData.get("groupId") || "");
   if (!groupId) return;
   await prisma.marginRule.deleteMany({ where: { groupId } });
@@ -487,7 +487,7 @@ export async function deleteMarginRuleGroup(formData: FormData): Promise<void> {
 }
 
 export async function upsertDiscountRule(formData: FormData): Promise<{ ok: boolean; error?: string; count?: number }> {
-  await requireAdmin();
+  await requireStaff("discounts.manage", { costs: true });
   const parsed = parseRule(formData, "discount");
   if (!parsed.ok) return parsed;
   try {
@@ -512,7 +512,7 @@ export async function upsertDiscountRule(formData: FormData): Promise<{ ok: bool
 }
 
 export async function deleteDiscountRule(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("discounts.manage", { costs: true });
   const id = String(formData.get("id") || "");
   if (!id) return;
   await prisma.discountRule.delete({ where: { id } });
@@ -520,7 +520,7 @@ export async function deleteDiscountRule(formData: FormData): Promise<void> {
 }
 
 export async function deleteDiscountRuleGroup(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("discounts.manage", { costs: true });
   const groupId = String(formData.get("groupId") || "");
   if (!groupId) return;
   await prisma.discountRule.deleteMany({ where: { groupId } });
@@ -561,7 +561,7 @@ export async function searchRulePreviewProducts(input: {
   | { ok: true; items: RulePreviewProduct[]; total: number; hydrated: RulePreviewProduct[] }
   | { ok: false; error: string }
 > {
-  await requireAdmin();
+  await requireStaff(["margins.manage", "discounts.manage", "visibility.manage"]);
   const target = input.target;
   const scopeIds = [...new Set((input.scopeIds || []).filter(Boolean))];
   if (target !== "ALL" && scopeIds.length === 0) {
@@ -631,7 +631,7 @@ export async function searchRulePreviewProducts(input: {
 }
 
 export async function clearProductDiscount(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("discounts.manage", { costs: true });
   const id = String(formData.get("productId") || "");
   if (!id) return;
   await prisma.product.update({
@@ -644,7 +644,7 @@ export async function clearProductDiscount(formData: FormData): Promise<void> {
 }
 
 export async function clearAllProductDiscounts(): Promise<{ ok: boolean; count: number }> {
-  await requireAdmin();
+  await requireStaff("discounts.manage", { costs: true });
   const result = await prisma.product.updateMany({
     where: { discountPercent: { gt: 0 } },
     data: { discountPercent: null },
@@ -654,7 +654,7 @@ export async function clearAllProductDiscounts(): Promise<{ ok: boolean; count: 
 }
 
 export async function clearManufacturerPromo(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("discounts.manage", { costs: true });
   const id = String(formData.get("productId") || "");
   if (!id) return;
   const product = await prisma.product.findUnique({
@@ -680,7 +680,7 @@ export async function clearManufacturerPromo(formData: FormData): Promise<void> 
 }
 
 export async function clearAllManufacturerPromos(): Promise<{ ok: boolean; count: number }> {
-  await requireAdmin();
+  await requireStaff("discounts.manage", { costs: true });
   const products = await prisma.product.findMany({
     where: {
       OR: [{ salePriceLabel: { not: null } }, { salePriceUsd: { gt: 0 } }],
@@ -720,7 +720,7 @@ const visibilitySchema = z.object({
  * marcas, categorías, etc., en una sola operación.
  */
 export async function upsertVisibility(formData: FormData): Promise<{ ok: boolean; error?: string }> {
-  await requireAdmin();
+  await requireStaff("visibility.manage");
   const id = formData.get("id")?.toString() || undefined;
   const rawIds = formData.getAll("scopeIds").map((v) => String(v)).filter(Boolean);
   // Compat con el campo viejo `scopeId` (single-select).
@@ -784,7 +784,7 @@ export async function upsertVisibility(formData: FormData): Promise<{ ok: boolea
 }
 
 export async function toggleVisibilityCanView(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("visibility.manage");
   const id = String(formData.get("id") || "");
   if (!id) return;
   const rule = await prisma.visibilityRule.findUnique({ where: { id }, select: { canView: true } });
@@ -799,7 +799,7 @@ export async function toggleVisibilityCanView(formData: FormData): Promise<void>
 }
 
 export async function deleteVisibility(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("visibility.manage");
   const id = String(formData.get("id") || "");
   if (!id) return;
   await prisma.visibilityRule.delete({ where: { id } });

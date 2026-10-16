@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getCurrentPermissions, requireAdmin } from "@/lib/auth-helpers";
+import { getCurrentPermissions, requireStaff } from "@/lib/auth-helpers";
 
 const createSchema = z.object({
   title: z.string().min(3).max(160),
@@ -36,7 +36,7 @@ async function requireAnyAdminStaff() {
 }
 
 export async function createTicket(formData: FormData): Promise<void> {
-  const admin = await requireAdmin();
+  const { user: admin } = await requireStaff("tickets.manage");
   const parsed = createSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description"),
@@ -93,7 +93,7 @@ const updateSchema = z.object({
 });
 
 export async function updateTicket(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("tickets.manage");
   const parsed = updateSchema.safeParse({
     id: formData.get("id"),
     status: formData.get("status"),

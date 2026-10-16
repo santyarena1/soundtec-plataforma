@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ export const metadata = { title: "Admin · Editar lista compartible" };
 
 export default async function EditShareListPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireAdmin();
+  await requireStaff("share_lists.manage");
 
   const list = await prisma.shareablePriceList.findUnique({ where: { id }, include: { views: { orderBy: { viewedAt: "desc" }, take: 10 } } });
   if (!list) notFound();

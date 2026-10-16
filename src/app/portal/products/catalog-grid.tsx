@@ -26,8 +26,10 @@ interface GridProps {
  *  ├──────────────────────┤
  *  │ MARCA · SKU          │  ← 1 línea
  *  │ Nombre del producto  │  ← 2 líneas reservadas
- *  │ [stock] [tag]        │  ← 1 fila, sin wrap
- *  │ USD 1.234,00   [ + ] │  ← siempre abajo
+ *  │ Descripción corta    │  ← 2 líneas reservadas
+ *  │ [categoría] [tag]    │  ← 1 fila, sin wrap
+ *  │ USD 1.234,00         │  ← siempre abajo (o "Precio a consultar")
+ *  │ [ Agregar ]          │
  *  └──────────────────────┘
  */
 export function CatalogGrid({ items, publicMode = false, basePath = "/portal/products" }: GridProps) {
@@ -58,9 +60,14 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                   <FavoriteButton productId={p.id} isFavorite={p.isFavorite} />
                 </div>
               ) : null}
-              {p.pricing && p.pricing.discountPercent > 0 ? (
+              {p.pricing && p.pricing.discountPercent > 0 && !priceOnRequest(p) ? (
                 <span className="absolute left-2 top-2 rounded-md bg-success px-2 py-0.5 text-[11px] font-semibold text-success-foreground">
                   -{p.pricing.discountPercent.toFixed(0)}%
+                </span>
+              ) : null}
+              {p.isDiscontinued ? (
+                <span className="absolute bottom-2 left-2 rounded-md bg-amber-500/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                  Discontinuado
                 </span>
               ) : null}
             </div>
@@ -80,15 +87,22 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
               {/* Nombre — 2 líneas reservadas */}
               <Link
                 href={href}
-                title={p.normalizedName}
+                title={cardTitle(p)}
                 className="mt-1 block h-10 text-sm font-semibold leading-5 line-clamp-2 hover:text-accent"
               >
-                {p.normalizedName}
+                {cardTitle(p)}
               </Link>
+
+              {/* Descripción corta — 2 líneas reservadas */}
+              <p className="mt-1 h-8 text-xs leading-4 text-muted-foreground line-clamp-2" title={cardDescription(p) ?? undefined}>
+                {cardDescription(p) ?? ""}
+              </p>
 
               {/* Etiquetas — 1 fila fija, sin wrap */}
               <div className="mt-2 flex h-6 items-center gap-1 overflow-hidden whitespace-nowrap">
                 {!publicMode ? <StockBadge status={p.stockStatus} qty={p.stockQuantity} /> : null}
+                {p.categoryName ? <Badge tone="muted">{p.categoryName}</Badge> : null}
+                {p.familyName && p.familyName !== p.categoryName ? <Badge tone="muted">{p.familyName}</Badge> : null}
                 {p.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : null}
                 {p.isCustomizable ? (
                   <Badge tone="accent">
@@ -96,7 +110,6 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                   </Badge>
                 ) : null}
                 {p.isCrestronHomeCompatible ? <Badge tone="primary">Crestron Home</Badge> : null}
-                {publicMode && p.categoryName ? <Badge tone="muted">{p.categoryName}</Badge> : null}
               </div>
 
               {/* Precio + acción — siempre al pie, cada uno en su fila */}
@@ -111,15 +124,19 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                 ) : (
                   <>
                     <div className="flex h-10 items-end justify-between gap-2">
-                      <p className="text-lg font-semibold leading-none tabular-nums">
-                        {formatUsd(p.pricing.finalPriceUsd)}
-                      </p>
-                      {p.pricing.priceBeforeDiscountUsd && p.pricing.discountPercent > 0 ? (
-                        <p className="text-[11px] leading-none text-muted-foreground line-through">
-                          {formatUsd(p.pricing.priceBeforeDiscountUsd)}
-                        </p>
+                      {priceOnRequest(p) ? (
+                        <p className="text-sm font-semibold leading-none text-muted-foreground">Precio a consultar</p>
                       ) : (
-                        <p className="text-[11px] leading-none text-muted-foreground">USD final</p>
+                        <>
+                          <p className="text-lg font-semibold leading-none tabular-nums">
+                            {formatUsd(p.pricing.finalPriceUsd)}
+                          </p>
+                          {p.pricing.priceBeforeDiscountUsd && p.pricing.discountPercent > 0 ? (
+                            <p className="text-[11px] leading-none text-muted-foreground line-through">
+                              {formatUsd(p.pricing.priceBeforeDiscountUsd)}
+                            </p>
+                          ) : null}
+                        </>
                       )}
                     </div>
                     <AddToDraftButton productId={p.id} productName={p.normalizedName} />
@@ -139,6 +156,30 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
       })}
     </div>
   );
+}
+
+/** Sin precio cargado: costo 0 o marcado "a consultar". */
+export function priceOnRequest(p: Pick<CatalogProduct, "requiresQuote" | "pricing">): boolean {
+  return p.requiresQuote || !p.pricing || p.pricing.finalPriceUsd <= 0;
+}
+
+/**
+ * Título de la card: el nombre del producto, salvo que sea solo el código
+ * (pasa con SoundTube y otros catálogos que nombran por SKU); ahí va el título
+ * descriptivo del fabricante, porque el código ya está arriba.
+ */
+function cardTitle(p: CatalogProduct): string {
+  const name = p.normalizedName.trim();
+  const original = p.originalName?.trim();
+  const codeOnly = name === displaySku(p) || !/\s/.test(name);
+  return codeOnly && original && original !== name ? original : name;
+}
+
+/** Descripción corta (sin repetir el título). */
+function cardDescription(p: CatalogProduct): string | null {
+  const text = p.shortDescription?.replace(/\s+/g, " ").trim();
+  if (!text || text === cardTitle(p)) return null;
+  return text;
 }
 
 const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

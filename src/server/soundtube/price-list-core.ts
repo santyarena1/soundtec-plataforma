@@ -12,7 +12,7 @@ import { getSetting, setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import { mergeFieldTimestamps } from "@/lib/field-timestamps";
 import { autoPriority, markupToMarginPercent } from "@/lib/pricing-scope";
-import { SOUNDTUBE_SETTING_KEYS } from "@/services/sync/connectors/soundtube";
+import { SOUNDTUBE_MUP_GROUP_ID, SOUNDTUBE_SETTING_KEYS } from "@/services/sync/connectors/soundtube";
 import { skuKey, type PriceListRow } from "@/services/soundtube/price-list";
 import { buildPriceListPlan, type CatalogProduct, type SkuAliases } from "@/services/soundtube/price-list-plan";
 
@@ -27,7 +27,7 @@ export const SOUNDTUBE_BRANDS = [
   "SolidDrive",
 ];
 /** Todas las reglas de MUP creadas por la lista comparten este groupId; cada subida las reemplaza. */
-const MUP_GROUP_ID = "soundtube-excel-mup";
+const MUP_GROUP_ID = SOUNDTUBE_MUP_GROUP_ID;
 export const LAST_IMPORT_KEY = "soundtube.price_list_last_import";
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -68,6 +68,7 @@ export async function loadSoundTubeProducts(): Promise<CatalogProduct[]> {
       id: true,
       supplierSku: true,
       normalizedName: true,
+      originalName: true,
       baseCostUsd: true,
       isActive: true,
       brand: { select: { name: true } },
@@ -77,6 +78,7 @@ export async function loadSoundTubeProducts(): Promise<CatalogProduct[]> {
     id: r.id,
     sku: r.supplierSku,
     name: r.normalizedName,
+    title: r.originalName || undefined,
     brand: r.brand?.name ?? "—",
     costUsd: Number(r.baseCostUsd),
     isActive: r.isActive,
@@ -184,6 +186,7 @@ export async function applySoundTubeRows(input: ApplySoundTubeInput): Promise<Ap
           where: { id: product.id },
           data: {
             baseCostUsd: row.costUsd,
+            requiresQuote: false,
             currency: "USD",
             ...taxonomy,
             fieldUpdatedAt: mergeFieldTimestamps(fieldTimes.get(product.id), changed, nowIso),
@@ -200,28 +203,26 @@ export async function applySoundTubeRows(input: ApplySoundTubeInput): Promise<Ap
         if (d.action === "price") {
           return [prisma.product.update({
             where: { id: d.productId },
-            data: { baseCostUsd: d.costUsd, fieldUpdatedAt: mergeFieldTimestamps(fieldTimes.get(d.productId), ["baseCostUsd"], nowIso) },
+            data: { baseCostUsd: d.costUsd, requiresQuote: false, fieldUpdatedAt: mergeFieldTimestamps(fieldTimes.get(d.productId), ["baseCostUsd"], nowIso) },
           })];
         }
         return [];
       }),
+      // Los que no están en la lista y no tienen precio cargado a mano quedan SIN precio
+      // (costo 0, "a consultar"): el único precio válido de SoundTube es el de la lista.
+      ...(() => {
+        const handled = new Set(validDecisions.filter((d) => d.action !== "keep").map((d) => d.productId));
+        const unpriced = [...missingIds].filter((id) => !handled.has(id));
+        return unpriced.length
+          ? [prisma.product.updateMany({ where: { id: { in: unpriced } }, data: { baseCostUsd: 0, requiresQuote: true } })]
+          : [];
+      })(),
     ];
 
-    // Los que quedan afuera sin precio nuevo conservan el MUP de la lista anterior.
-    const repriced = new Set(validDecisions.filter((d) => d.action === "price").map((d) => d.productId));
-    const previousRules = await prisma.marginRule.findMany({
-      where: { groupId: MUP_GROUP_ID, productId: { in: [...missingIds].filter((id) => !repriced.has(id)) } },
-      select: { productId: true, markupMultiplier: true },
-    });
     const rules = [
       ...plan.matched.map(({ product, row }) => mupRule(product.id, product.sku ?? row.sku, row.mup)),
       ...validDecisions.flatMap((d) =>
         d.action === "price" ? [mupRule(d.productId, skuById.get(d.productId) ?? d.productId, d.mup)] : []
-      ),
-      ...previousRules.flatMap((r) =>
-        r.productId && r.markupMultiplier
-          ? [mupRule(r.productId, skuById.get(r.productId) ?? r.productId, Number(r.markupMultiplier))]
-          : []
       ),
     ];
 
@@ -266,4 +267,28 @@ export async function applySoundTubeRows(input: ApplySoundTubeInput): Promise<Ap
     console.error("[soundtube-price-list] apply failed", error);
     return { ok: false, error: "No se pudo aplicar la lista y no se cambió nada. Probá de nuevo." };
   }
+}
+
+/**
+ * Deja sin precio (costo 0, "a consultar") los productos de SoundTube que no
+ * tienen precio de la lista Excel (ni uno cargado a mano en la revisión): son
+ * los que trajo el portal. Lo mismo hace el sync en cada corrida; esto lo
+ * aplica ya. Devuelve cuántos productos cambió.
+ */
+export async function clearPortalPrices(): Promise<number> {
+  const products = await loadSoundTubeProducts();
+  const priced = new Set(
+    (
+      await prisma.marginRule.findMany({ where: { groupId: MUP_GROUP_ID }, select: { productId: true } })
+    ).flatMap((r) => (r.productId ? [r.productId] : []))
+  );
+  const ids = products.filter((p) => !priced.has(p.id)).map((p) => p.id);
+  if (!ids.length) return 0;
+  const result = await prisma.product.updateMany({
+    where: { id: { in: ids }, OR: [{ baseCostUsd: { not: 0 } }, { requiresQuote: false }] },
+    data: { baseCostUsd: 0, requiresQuote: true },
+  });
+  revalidatePath("/admin/products");
+  revalidatePath("/portal/products");
+  return result.count;
 }

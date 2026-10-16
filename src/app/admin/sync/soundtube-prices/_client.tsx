@@ -11,6 +11,8 @@ import {
   type MissingDecision,
   type PriceListPreview,
 } from "@/server/actions/soundtube-price-list";
+import { rowLabel } from "@/services/soundtube/price-list";
+import { PriceListSheets } from "@/components/admin/price-list-sheets";
 import { MissingTable, type MissingAction, type MissingChoice } from "./_missing-table";
 
 type Tab = "missing" | "matched" | "new" | "warnings";
@@ -151,6 +153,7 @@ export function SoundTubePriceListPanel() {
 
       {preview && (
         <>
+          <PriceListSheets sheets={preview.sheets} />
           <div className="flex flex-wrap gap-2">
             {tabs.map((t) => (
               <button
@@ -242,7 +245,7 @@ export function SoundTubePriceListPanel() {
                 ) : (
                   preview.notInSystem.map((r) => (
                     <TR key={r.sku}>
-                      <TD className="text-xs text-muted-foreground">{r.excelRow}</TD>
+                      <TD className="text-xs text-muted-foreground">{r.sheet ? `${r.sheet} · ${r.excelRow}` : r.excelRow}</TD>
                       <TD className="font-mono text-xs font-semibold">{r.sku}</TD>
                       <TD className="text-xs">{r.description}</TD>
                       <TD className="whitespace-nowrap text-xs">{usd(r.costUsd)}</TD>
@@ -264,7 +267,7 @@ export function SoundTubePriceListPanel() {
               ))}
               {preview.invalid.map((i) => (
                 <li key={`${i.excelRow}-${i.sku}`} className="text-destructive">
-                  Fila {i.excelRow} <span className="font-mono">{i.sku}</span>: {i.reason} (no se carga)
+                  {rowLabel(i)} <span className="font-mono">{i.sku}</span>: {i.reason} (no se carga)
                 </li>
               ))}
             </ul>

@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { withSalePrices } from "./sale-prices";
 import { prisma } from "@/lib/prisma";
 import { inchesFromModel, inchesFromName } from "./sizing";
 import {
@@ -266,7 +267,8 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
     .slice(0, limit);
 
 
-  return ranked.map((row) => {
+  // Lo que ve la pantalla es el precio de venta, no el costo (que se usó solo para ordenar).
+  return withSalePrices(ranked.map((row) => {
     const profile = byId.get(row.productId)!;
     return {
       ...row,
@@ -275,10 +277,8 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
       sku: profile.product.supplierSku ?? profile.product.modelNumber,
       brand: profile.product.brand?.name ?? null,
       imageUrl: profile.product.images[0]?.url ?? null,
-      listPriceUsd:
-        profile.product.listPriceUsd == null
-          ? null
-          : Number(profile.product.listPriceUsd),
+      // MSRP del fabricante: no se manda a la pantalla (se ve solo el precio de venta).
+      listPriceUsd: null,
       hfovDeg: profile.hfovDeg == null ? null : Number(profile.hfovDeg),
       maxRangeM: profile.maxRangeM == null ? null : Number(profile.maxRangeM),
       coverageRadiusM:
@@ -289,5 +289,5 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
       completenessScore: profile.completenessScore,
       mountOptions: profile.mountOptions,
     };
-  });
+  }), (r) => r.productId);
 }

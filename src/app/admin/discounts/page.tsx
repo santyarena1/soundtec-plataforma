@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { toFiniteNumber, toPricingRuleRow, attachRuleExemptions } from "@/lib/pr
 export const metadata = { title: "Admin · Descuentos" };
 
 export default async function AdminDiscountsPage() {
-  await requireAdmin();
+  await requireStaff("discounts.manage", { costs: true });
   const [rules, clients, brands, distributors, categories, families, products, productDiscounts, manufacturerPromos] =
     await Promise.all([
       prisma.discountRule.findMany({ orderBy: [{ priority: "asc" }, { createdAt: "desc" }] }),

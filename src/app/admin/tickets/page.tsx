@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +25,7 @@ const statusTone = {
 } as const;
 
 export default async function AdminTicketsPage() {
-  const admin = await requireAdmin();
+  const { user: admin } = await requireStaff("tickets.manage");
   const tickets = await prisma.developerTicket.findMany({
     orderBy: [{ status: "asc" }, { priority: "desc" }, { createdAt: "desc" }],
     include: { createdBy: { select: { name: true, email: true } } },

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { LOGO_MIME_TYPES, MAX_LOGO_BYTES, isDataUrl, parseLogoDataUrl } from "@/lib/brand-logo";
 import { normalizeLogo } from "@/server/brand-logo-normalize";
 
@@ -47,7 +47,7 @@ export async function checkImageUrl(raw: string): Promise<LogoResult> {
 }
 
 export async function saveBrandLogoUrl(brandId: string, rawUrl: string): Promise<LogoResult> {
-  await requireAdmin();
+  await requireStaff("brands.manage");
   const check = await checkImageUrl(rawUrl);
   if (!check.ok) return check;
   await prisma.brand.update({ where: { id: brandId }, data: { logoUrl: rawUrl.trim() } });
@@ -57,7 +57,7 @@ export async function saveBrandLogoUrl(brandId: string, rawUrl: string): Promise
 
 /** Sube el archivo del logo (PNG, JPG, SVG, WEBP, GIF o AVIF, hasta 1 MB). */
 export async function uploadBrandLogoFile(brandId: string, formData: FormData): Promise<LogoResult> {
-  await requireAdmin();
+  await requireStaff("brands.manage");
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Elegí un archivo." };
   if (file.size > MAX_LOGO_BYTES) return { ok: false, error: "El logo pesa más de 1 MB." };
@@ -87,7 +87,7 @@ export async function uploadBrandLogoFile(brandId: string, formData: FormData): 
 
 /** Muestra u oculta la marca (y sus productos) en el catálogo público, el portal y el stand. */
 export async function toggleBrandCatalogVisibility(brandId: string, _formData?: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("brands.manage");
   const brand = await prisma.brand.findUnique({ where: { id: brandId }, select: { hiddenFromCatalog: true } });
   if (!brand) return;
   await prisma.brand.update({ where: { id: brandId }, data: { hiddenFromCatalog: !brand.hiddenFromCatalog } });
@@ -95,7 +95,7 @@ export async function toggleBrandCatalogVisibility(brandId: string, _formData?: 
 }
 
 export async function removeBrandLogo(brandId: string): Promise<LogoResult> {
-  await requireAdmin();
+  await requireStaff("brands.manage");
   await prisma.brand.update({ where: { id: brandId }, data: { logoUrl: null } });
   revalidateBrandViews();
   return { ok: true };
@@ -106,7 +106,7 @@ export async function removeBrandLogo(brandId: string): Promise<LogoResult> {
  * los lleva al mismo tamaño. Los de URL se descargan y quedan guardados.
  */
 export async function normalizeAllBrandLogos(): Promise<{ ok: true; updated: number; failed: string[] }> {
-  await requireAdmin();
+  await requireStaff("brands.manage");
   const brands = await prisma.brand.findMany({ where: { logoUrl: { not: null } }, select: { id: true, name: true, logoUrl: true } });
   let updated = 0;
   const failed: string[] = [];

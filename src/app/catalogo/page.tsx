@@ -1,3 +1,4 @@
+import { isCatalogModeOn } from "@/lib/catalog-mode";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -34,7 +35,8 @@ export default async function PublicCatalogPage({
   const rawParams = await searchParams;
   const urlState = parseCatalogSearchParams(rawParams);
   const session = await auth().catch(() => null);
-  const isLogged = !!session?.user;
+  // En modo catálogo (vendedor mostrándolo) se ve como un visitante: sin atajos al portal.
+  const isLogged = !!session?.user && !isCatalogModeOn();
 
   const showAll = rawParams.all === "1";
   const brands = await getCatalogBrands();

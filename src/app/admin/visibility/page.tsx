@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { PriceLogicHint } from "@/components/admin/price-logic-hint";
@@ -8,7 +8,7 @@ import { VisibilityRulesWorkspace } from "./visibility-rules-workspace";
 export const metadata = { title: "Admin · Visibilidad" };
 
 export default async function AdminVisibilityPage() {
-  await requireAdmin();
+  await requireStaff("visibility.manage");
   const [clients, brands, distributors, categories, families, products, rules] = await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },

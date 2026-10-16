@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireAdmin } from "@/lib/auth-helpers";
+import { requireUser, requireStaff } from "@/lib/auth-helpers";
 import { calculatePricesForProducts, isProductVisibleToClient } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { requireCommercialClientId, resolveCommercialClientId } from "@/lib/client-context";
@@ -689,7 +689,7 @@ export async function adminRespondRequest(input: {
   status: string;
   adminResponse?: string | null;
 }): Promise<ActionResult> {
-  const admin = await requireAdmin();
+  const { user: admin } = await requireStaff("requests.respond");
   const parsed = adminRespondSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Revisá el estado y la respuesta antes de guardar." };
 
@@ -721,7 +721,7 @@ export async function adminRespondRequest(input: {
 
 /** Cambio de estado suelto, sin escribir respuesta (botones de acción rápida). */
 export async function adminSetRequestStatus(input: { requestId: string; status: string }): Promise<ActionResult> {
-  await requireAdmin();
+  await requireStaff("requests.respond");
   const parsed = z
     .object({ requestId: z.string().min(1), status: z.enum(ADMIN_STATUSES) })
     .safeParse(input);
@@ -747,7 +747,7 @@ export async function adminSendRequestMessage(input: {
   requestId: string;
   message: string;
 }): Promise<ActionResult> {
-  const admin = await requireAdmin();
+  const { user: admin } = await requireStaff("requests.respond");
   const parsed = messageSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "El mensaje no puede estar vacío." };
 
@@ -777,7 +777,7 @@ export async function adminSearchProductsForRequest(input: {
   error?: string;
   products: Array<{ id: string; name: string; sku: string | null; brand: string | null; priceUsd: number | null }>;
 }> {
-  await requireAdmin();
+  await requireStaff("requests.respond");
   const query = (input.query || "").trim();
   if (query.length < 2) return { ok: true, products: [] };
 
@@ -875,7 +875,7 @@ export async function addAdminSuggestion(input: {
   replacesItemId?: string | null;
   announce?: boolean;
 }): Promise<ActionResult> {
-  const admin = await requireAdmin();
+  const { user: admin } = await requireStaff("requests.respond");
   const parsed = adminSuggestionSchema.safeParse({
     ...input,
     quantity: input.quantity ?? 1,
@@ -931,7 +931,7 @@ export async function adminUpdateRequestItem(input: {
   itemId: string;
   quantity: number | string;
 }): Promise<ActionResult> {
-  await requireAdmin();
+  await requireStaff("requests.respond");
   const parsed = z
     .object({ itemId: z.string().min(1), quantity: z.coerce.number().int().min(1).max(9999) })
     .safeParse(input);
@@ -953,7 +953,7 @@ export async function adminUpdateRequestItem(input: {
 }
 
 export async function adminRemoveRequestItem(input: { itemId: string }): Promise<ActionResult> {
-  await requireAdmin();
+  await requireStaff("requests.respond");
   const item = await prisma.customerRequestItem.findUnique({
     where: { id: input.itemId },
     select: { id: true, requestId: true },
@@ -990,7 +990,7 @@ export async function attachQuoteAsRequestResponse(input: {
   requestId: string;
   quoteId: string;
 }): Promise<ActionResult> {
-  const admin = await requireAdmin();
+  const { user: admin } = await requireStaff("requests.respond");
   const request = await prisma.customerRequest.findUnique({
     where: { id: input.requestId },
     select: { id: true, status: true, adminResponse: true, userId: true },

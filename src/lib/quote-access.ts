@@ -1,17 +1,19 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPermissions } from "@/lib/auth-helpers";
-import { permissionsHave, type PermissionScope } from "@/lib/permissions";
+import { isPanelRole, permissionsHave, type PermissionScope } from "@/lib/permissions";
 
 export async function requireQuotePermission(scope: PermissionScope) {
   const { user, permissions } = await getCurrentPermissions();
+  // Cotizaciones: solo panel (admins y equipo con el permiso), nunca usuarios del portal.
   const ok =
-    permissions.fullAccess ||
-    permissionsHave(permissions, scope) ||
-    (scope === "quotes.view_own" && permissionsHave(permissions, "quotes.view_all"));
+    isPanelRole(user.role) &&
+    (permissions.fullAccess ||
+      permissionsHave(permissions, scope) ||
+      (scope === "quotes.view_own" && permissionsHave(permissions, "quotes.view_all")));
   if (!ok) {
     if (user.role === "CLIENT") redirect("/portal");
-    redirect("/admin");
+    redirect("/admin?sinPermiso=1");
   }
   return { user, permissions };
 }

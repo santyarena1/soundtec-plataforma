@@ -5,6 +5,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { salePricesFor } from "./sale-prices";
 import { poseForMount } from "./brief";
 import { getRoomProject, updateRoomProjectScene } from "./project-service";
 import { parseScene } from "./scene";
@@ -48,7 +49,6 @@ export async function searchCatalog(query: string): Promise<CatalogHit[]> {
       normalizedName: true,
       supplierSku: true,
       modelNumber: true,
-      baseCostUsd: true,
       brand: { select: { name: true } },
       images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], select: { url: true }, take: 1 },
       designProfile: { select: { designRole: true } },
@@ -57,6 +57,7 @@ export async function searchCatalog(query: string): Promise<CatalogHit[]> {
     orderBy: [{ normalizedName: "asc" }],
     take: SEARCH_LIMIT,
   });
+  const sale = await salePricesFor(rows.map((p) => p.id));
   return rows.map((p) => {
     const role = roleForProduct(p.designProfile?.designRole, p.aiProfile?.productType);
     return {
@@ -65,7 +66,7 @@ export async function searchCatalog(query: string): Promise<CatalogHit[]> {
       sku: p.supplierSku ?? p.modelNumber ?? null,
       brand: p.brand?.name ?? null,
       imageUrl: p.images[0]?.url ?? null,
-      priceUsd: p.baseCostUsd == null ? null : Number(p.baseCostUsd),
+      priceUsd: sale.get(p.id) ?? null,
       role,
       mount: defaultMountForRole(role),
     };

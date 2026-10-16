@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { getSetting } from "@/lib/settings";
 export const metadata = { title: "Admin · Nuevo producto" };
 
 export default async function NewProductPage() {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const [brands, distributors, categories, families, tcVentaStr, globalCoefStr] = await Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),

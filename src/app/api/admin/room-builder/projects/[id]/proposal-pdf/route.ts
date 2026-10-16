@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { buildProposalPdf } from "@/server/room-builder/proposal-pdf";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ const schema = z.object({
 
 /** Propuesta técnica del ambiente en PDF. */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const parsed = schema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Vistas inválidas" }, { status: 400 });
   try {

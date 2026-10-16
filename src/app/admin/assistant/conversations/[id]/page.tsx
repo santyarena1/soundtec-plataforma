@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +34,7 @@ function statusTone(status: string | null): "success" | "warning" | "destructive
 }
 
 export default async function Page({ params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("products.view", { costs: true });
   const { id } = params;
 
   const session = await prisma.aiChatSession.findUnique({

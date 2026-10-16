@@ -62,8 +62,7 @@ export async function getRoomProject(id: string) {
             select: {
               id: true,
               normalizedName: true,
-              supplierSku: true,
-              baseCostUsd: true,
+              // Sin costo ni SKU de proveedor: el proyecto viaja entero a la pantalla.
               widthCm: true,
               heightCm: true,
               depthCm: true,

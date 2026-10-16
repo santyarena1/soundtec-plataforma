@@ -36,8 +36,8 @@ export function ActivateForm({ token, email }: { token: string; email: string })
       }}
     >
       <input type="hidden" name="token" value={token} />
-      <div><Label htmlFor="pw">Contraseña</Label><PasswordInput id="pw" name="password" required minLength={8} autoComplete="new-password" /></div>
-      <div><Label htmlFor="pw2">Repetir contraseña</Label><PasswordInput id="pw2" name="confirm" required minLength={8} autoComplete="new-password" /></div>
+      <div><Label htmlFor="pw">Contraseña</Label><PasswordInput id="pw" name="password" required minLength={10} autoComplete="new-password" /><p className="mt-1 text-xs text-muted-foreground">Mínimo 10 caracteres, con letras y números.</p></div>
+      <div><Label htmlFor="pw2">Repetir contraseña</Label><PasswordInput id="pw2" name="confirm" required minLength={10} autoComplete="new-password" /></div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Button type="submit" className="h-12 w-full" disabled={pending}>{pending ? "Guardando…" : "Crear contraseña"}</Button>
     </form>

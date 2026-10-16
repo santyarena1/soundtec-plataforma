@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProfilesPanel } from "@/components/expo/profiles-panel";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin · Perfiles del asistente" };
 
 export default async function Page() {
-  await requireAdmin();
+  await requireStaff("products.view", { costs: true });
 
   return (
     <div className="space-y-5">

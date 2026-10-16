@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import {
   deleteRoomProject,
   getRoomProject,
@@ -25,7 +25,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const project = await getRoomProject(params.id);
   if (!project) {
     return NextResponse.json({ ok: false, error: "No encontrado" }, { status: 404 });
@@ -37,7 +37,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const body = await req.json().catch(() => null);
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
@@ -76,7 +76,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   try {
     await deleteRoomProject(params.id);
     return NextResponse.json({ ok: true });

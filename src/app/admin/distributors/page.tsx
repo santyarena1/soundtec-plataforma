@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { upsertDistributor } from "@/server/actions/admin-catalog";
 export const metadata = { title: "Admin · Proveedores" };
 
 export default async function AdminDistributorsPage() {
-  await requireAdmin();
+  await requireStaff("distributors.manage", { costs: true });
   const list = await prisma.distributor.findMany({
     orderBy: { name: "asc" },
     include: { _count: { select: { products: true, priceLists: true } } },

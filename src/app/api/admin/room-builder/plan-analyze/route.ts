@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { analyzePlanImage, analyzePlanRegions } from "@/server/room-builder/plan-ai";
 import { mergeSameNamedNeighbors, type PlanAnalysis, type PlanBox } from "@/services/room-builder/plan-analysis";
 import { regionPolygon } from "@/services/room-builder/plan-contour";
@@ -100,7 +100,7 @@ async function readPlan(webp: Buffer, dataUrl: string, gray: GrayImage): Promise
 
 /** Lee un plano: tipo de proyecto y ambientes. Devuelve también la imagen comprimida. */
 export async function POST(req: NextRequest) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) return NextResponse.json({ ok: false, error: "No llegó el plano" }, { status: 400 });

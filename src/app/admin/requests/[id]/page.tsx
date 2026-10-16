@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Building2, MessagesSquare, PenLine, ShoppingCart } from "lucide-react";
-import { getCurrentPermissions, requireAdmin } from "@/lib/auth-helpers";
+import { getCurrentPermissions, requireStaff } from "@/lib/auth-helpers";
 import { permissionsHave } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
@@ -28,7 +28,7 @@ import { parseQuoteAttachments } from "@/lib/request-quote-link";
 
 export default async function AdminRequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireAdmin();
+  await requireStaff("requests.view");
   const { permissions } = await getCurrentPermissions();
   const canCreateQuote = permissions.fullAccess || permissionsHave(permissions, "quotes.create");
 

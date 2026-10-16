@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +30,7 @@ function parseDays(raw: string | undefined): number {
  * /admin/assistant/conversations, porque responde otra pregunta.
  */
 export default async function Page({ searchParams }: { searchParams: Promise<Search> }) {
-  await requireAdmin();
+  await requireStaff("leads.view");
   const params = await searchParams;
   const q = params.q?.trim();
   const days = parseDays(params.days);

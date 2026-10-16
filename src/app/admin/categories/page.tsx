@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,7 @@ export const maxDuration = 300;
 export const metadata = { title: "Admin · Categorías" };
 
 export default async function AdminCategoriesPage() {
-  await requireAdmin();
+  await requireStaff("categories.manage");
   const [cats, suggestions, unassignedCount] = await Promise.all([
     prisma.category.findMany({
       orderBy: [{ parentId: "asc" }, { name: "asc" }],

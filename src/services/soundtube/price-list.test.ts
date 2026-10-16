@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { parsePriceListGrid, skuKey } from "./price-list";
+import { parsePriceListGrid, parsePriceListSheets, rowLabel, rowRef, skuKey } from "./price-list";
 
 const HEADER = [
   "Item Number/SKU", "Item Description", "MSRP/MAP", "SPRDIS CH", "SPRDIS EU", "SPRDIS US",
@@ -86,6 +86,50 @@ describe("parsePriceListGrid", () => {
 
   it("falla con mensaje claro si faltan columnas", () => {
     assert.throws(() => parsePriceListGrid([["SKU", "Precio"]]), /Item Number\/SKU/);
+  });
+});
+
+describe("parsePriceListSheets", () => {
+  it("lee todas las hojas con encabezados y saltea las que no los tienen", () => {
+    const parsed = parsePriceListSheets([
+      { name: "Portada", grid: [["Lista confidencial"], ["Condiciones de venta"]] },
+      { name: "SoundTube", grid: grid(["CM31-EZ-BK", "Ceiling", "", "", "", 56.7, 2.75]) },
+      { name: "Rockustics", grid: grid(["BlockRock-ML", "Rock", "", "", "", 361.2, 3.05], ["X-1", "sin costo", "", "", "", "", 3]) },
+    ]);
+    assert.deepEqual(parsed.rows.map((r) => r.sku), ["CM31-EZ-BK", "BlockRock-ML"]);
+    assert.equal(parsed.rows[1].sheet, "Rockustics");
+    assert.equal(rowLabel(parsed.rows[1]), "Hoja Rockustics · fila 3");
+    assert.equal(parsed.invalid[0].sheet, "Rockustics");
+    assert.deepEqual(parsed.sheets?.map((s) => [s.name, s.rows, Boolean(s.skipped)]), [
+      ["Portada", 0, true],
+      ["SoundTube", 1, false],
+      ["Rockustics", 1, false],
+    ]);
+  });
+
+  it("con una sola hoja de precios las filas se ven como siempre", () => {
+    const parsed = parsePriceListSheets([
+      { name: "Notas", grid: [["nada"]] },
+      { name: "Lista", grid: grid(["CB5", "Cherry Bomb", "", "", "", 401.1, 3.05]) },
+    ]);
+    assert.equal(parsed.rows[0].sheet, undefined);
+    assert.equal(rowLabel(parsed.rows[0]), "Fila 3");
+  });
+
+  it("un SKU repetido en dos hojas usa la última y los distingue por hoja", () => {
+    const parsed = parsePriceListSheets([
+      { name: "A", grid: grid(["MSK-1", "Actuator", "", "", "", 176.4, 2.75, "", "Bafle"]) },
+      { name: "B", grid: grid(["MSK-1", "Actuator", "", "", "", 180, 2.75, "", "Accesorio"]) },
+    ]);
+    assert.equal(parsed.rows.length, 1);
+    assert.equal(parsed.rows[0].costUsd, 180);
+    assert.match(parsed.warnings[0].message, /hoja b · fila 3/);
+    const refs = parsed.classificationConflicts[0].options.map(rowRef);
+    assert.equal(new Set(refs).size, 2, "misma fila en distinta hoja no choca");
+  });
+
+  it("falla si ninguna hoja tiene encabezados", () => {
+    assert.throws(() => parsePriceListSheets([{ name: "X", grid: [["SKU", "Precio"]] }]), /ninguna hoja/);
   });
 });
 

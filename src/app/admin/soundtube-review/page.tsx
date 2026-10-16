@@ -3,6 +3,8 @@ import { requireAdmin } from "@/lib/auth-helpers";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { buildReviewView, loadReviewState } from "@/server/soundtube/review";
+import { findDuplicates } from "@/server/soundtube/identity";
+import { DuplicatesSection } from "./_duplicates";
 import { StartReviewForm } from "./_start-form";
 import { ReviewPanel } from "./_review";
 
@@ -20,7 +22,7 @@ const formatArt = (iso: string) =>
  */
 export default async function SoundTubeReviewPage() {
   await requireAdmin();
-  const state = await loadReviewState();
+  const [state, duplicates] = await Promise.all([loadReviewState(), findDuplicates()]);
 
   if (!state?.active) {
     return (
@@ -48,6 +50,7 @@ export default async function SoundTubeReviewPage() {
             </p>
           </CardContent>
         </Card>
+        <DuplicatesSection items={duplicates} />
       </div>
     );
   }
@@ -65,6 +68,7 @@ export default async function SoundTubeReviewPage() {
         rowsCount={state.rows.length}
         warnings={state.warnings}
         invalid={state.invalid}
+        sheets={state.sheets}
         matchedCount={view.matchedCount}
         pending={view.pending}
         pairs={view.pairs}
@@ -76,6 +80,7 @@ export default async function SoundTubeReviewPage() {
         appliedAt={state.appliedAt ? formatArt(state.appliedAt) : null}
         applyResult={state.applyResult ?? null}
       />
+      <DuplicatesSection items={duplicates} />
     </div>
   );
 }

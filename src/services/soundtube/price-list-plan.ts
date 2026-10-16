@@ -10,6 +10,8 @@ export interface CatalogProduct {
   id: string;
   sku: string | null;
   name: string;
+  /** Título descriptivo (nombre original del portal). */
+  title?: string;
   brand: string;
   costUsd: number;
   isActive: boolean;

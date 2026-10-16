@@ -1,4 +1,5 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
+import { StaffHome } from "./staff-home";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
@@ -12,8 +13,22 @@ import {
 
 export const metadata = { title: "Admin · Dashboard" };
 
-export default async function AdminDashboardPage() {
-  const user = await requireAdmin();
+export default async function AdminDashboardPage({ searchParams }: { searchParams?: { sinPermiso?: string } }) {
+  const { user, isAdmin, permissions } = await requireStaff();
+  const denied = searchParams?.sinPermiso ? (
+    <p className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
+      No tenés permiso para entrar a esa pantalla. Si lo necesitás, pedíselo a un administrador.
+    </p>
+  ) : null;
+  // El equipo interno tiene su propio inicio (sin costos ni datos de toda la empresa).
+  if (!isAdmin) {
+    return (
+      <div className="space-y-4">
+        {denied}
+        <StaffHome user={user} permissions={permissions} />
+      </div>
+    );
+  }
   const now = new Date();
 
   const [
@@ -92,6 +107,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
+      {denied}
       <PageHeader title={`Hola, ${(user.name || "Admin").split(" ")[0]}`} description="Vista general del sistema."
         actions={
           <div className="flex flex-wrap items-center gap-2">

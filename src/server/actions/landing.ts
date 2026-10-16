@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { slugify } from "@/lib/utils";
 
 const heroSchema = z.object({
@@ -16,7 +16,7 @@ const heroSchema = z.object({
 });
 
 export async function upsertHero(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("landing.manage");
   const id = formData.get("id")?.toString() || undefined;
   const parsed = heroSchema.safeParse({
     title: formData.get("title"),
@@ -54,7 +54,7 @@ const postSchema = z.object({
 });
 
 export async function upsertPost(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("landing.manage");
   const id = formData.get("id")?.toString() || undefined;
   const parsed = postSchema.safeParse({
     title: formData.get("title"),
@@ -85,7 +85,7 @@ export async function upsertPost(formData: FormData): Promise<void> {
 }
 
 export async function deletePost(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("landing.manage");
   const id = String(formData.get("id") || "");
   if (!id) return;
   await prisma.landingPost.delete({ where: { id } });

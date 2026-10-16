@@ -5,7 +5,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { slugify } from "@/lib/utils";
 import {
   SCALAR_PRODUCT_FIELDS,
@@ -34,7 +34,7 @@ const brandSchema = z.object({
 });
 
 export async function upsertBrand(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("brands.manage");
   const id = formData.get("id")?.toString() || undefined;
   const parsed = brandSchema.safeParse({
     name: formData.get("name"),
@@ -77,7 +77,7 @@ export async function upsertBrand(formData: FormData): Promise<void> {
 }
 
 export async function deleteBrand(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("brands.manage");
   const id = String(formData.get("id") || "");
   if (!id) return;
   await prisma.brand.delete({ where: { id } });
@@ -91,7 +91,7 @@ const distSchema = z.object({
 });
 
 export async function upsertDistributor(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("distributors.manage", { costs: true });
   const id = formData.get("id")?.toString() || undefined;
   const parsed = distSchema.safeParse({
     name: formData.get("name"),
@@ -124,7 +124,7 @@ const familySchema = z.object({
 });
 
 export async function upsertFamily(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("families.manage");
   const id = formData.get("id")?.toString() || undefined;
   const parsed = familySchema.safeParse({
     name: formData.get("name"),
@@ -145,7 +145,7 @@ export async function upsertFamily(formData: FormData): Promise<void> {
 }
 
 export async function upsertCategory(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("categories.manage");
   const id = formData.get("id")?.toString() || undefined;
   const parsed = catSchema.safeParse({
     name: formData.get("name"),
@@ -204,7 +204,7 @@ const productSchema = z.object({
 });
 
 export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; id?: string; error?: string }> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const id = formData.get("id")?.toString() || undefined;
   const parsed = productSchema.safeParse({
     internalSku: formData.get("internalSku"),
@@ -363,7 +363,7 @@ const bulkSchema = z.object({
 });
 
 export async function bulkUpdateProducts(input: z.infer<typeof bulkSchema>): Promise<{ ok: boolean; error?: string }> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const parsed = bulkSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
 
@@ -427,7 +427,7 @@ const bulkByFilterSchema = z.object({
 export async function bulkSetActiveByFilter(
   input: z.infer<typeof bulkByFilterSchema>
 ): Promise<{ ok: boolean; affected: number; error?: string }> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const parsed = bulkByFilterSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, affected: 0, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
@@ -461,72 +461,3 @@ export async function bulkSetActiveByFilter(
   return { ok: true, affected: result.count };
 }
 
-const userSchema = z.object({
-  name: z.string().min(2).max(120),
-  email: z.string().email(),
-  password: z.string().min(8).max(120).optional().nullable(),
-  role: z.enum(["SUPER_ADMIN", "ADMIN", "CLIENT"]).default("CLIENT"),
-  customRoleId: z.string().optional().nullable(),
-  clientId: z.string().optional().nullable(),
-  companyName: z.string().max(160).optional().nullable(),
-  phone: z.string().max(60).optional().nullable(),
-  isActive: z.coerce.boolean().optional(),
-});
-
-export async function upsertUser(formData: FormData): Promise<void> {
-  const admin = await requireAdmin();
-  const id = formData.get("id")?.toString() || undefined;
-  const parsed = userSchema.safeParse({
-    name: formData.get("name"),
-    email: String(formData.get("email") || "").toLowerCase(),
-    password: formData.get("password") || null,
-    role: formData.get("role") || "CLIENT",
-    customRoleId: formData.get("customRoleId") || null,
-    clientId: formData.get("clientId") || null,
-    companyName: formData.get("companyName") || null,
-    phone: formData.get("phone") || null,
-    isActive: formData.get("isActive") === "on" || formData.get("isActive") === "true",
-  });
-  if (!parsed.success) return;
-
-  if (parsed.data.role === "SUPER_ADMIN" && admin.role !== "SUPER_ADMIN") return;
-
-  const baseData = {
-    name: parsed.data.name,
-    email: parsed.data.email,
-    role: parsed.data.role,
-    customRoleId: parsed.data.customRoleId || null,
-    clientId: parsed.data.role === "CLIENT" ? parsed.data.clientId || null : null,
-    companyName: parsed.data.companyName ?? null,
-    phone: parsed.data.phone ?? null,
-    isActive: parsed.data.isActive ?? true,
-  };
-
-  if (id) {
-    const updateData: typeof baseData & { passwordHash?: string } = { ...baseData };
-    if (parsed.data.password) {
-      updateData.passwordHash = await bcrypt.hash(parsed.data.password, 12);
-    }
-    await prisma.user.update({ where: { id }, data: updateData });
-  } else {
-    const pwd = parsed.data.password || `Tmp!${Math.random().toString(36).slice(2, 10)}`;
-    const hash = await bcrypt.hash(pwd, 12);
-    await prisma.user.create({
-      data: {
-        ...baseData,
-        passwordHash: hash,
-      },
-    });
-  }
-  revalidatePath("/admin/users");
-}
-
-export async function toggleUserActive(formData: FormData): Promise<void> {
-  await requireAdmin();
-  const id = String(formData.get("id") || "");
-  if (!id) return;
-  const u = await prisma.user.findUnique({ where: { id } });
-  if (!u) return;
-  await prisma.user.update({ where: { id }, data: { isActive: !u.isActive } });
-  revalidatePath("/admin/users");
-}

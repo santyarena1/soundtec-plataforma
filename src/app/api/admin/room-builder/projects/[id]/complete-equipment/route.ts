@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { completeSpaceEquipment } from "@/services/room-builder/equipment-complete";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,7 @@ export const maxDuration = 120;
 
 /** Completa los equipos que faltan en el ambiente (y en el rack central del proyecto). */
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   try {
     const result = await completeSpaceEquipment(params.id);
     return NextResponse.json({ ok: true, ...result });

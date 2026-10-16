@@ -4,10 +4,15 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashActivationToken } from "@/lib/expo/activation-token";
+import { passwordProblem } from "@/lib/passwords";
 
 const schema = z
-  .object({ token: z.string().min(20), password: z.string().min(8, "Mínimo 8 caracteres").max(200), confirm: z.string() })
-  .refine((v) => v.password === v.confirm, { message: "Las contraseñas no coinciden", path: ["confirm"] });
+  .object({ token: z.string().min(20), password: z.string().max(200), confirm: z.string() })
+  .refine((v) => v.password === v.confirm, { message: "Las contraseñas no coinciden", path: ["confirm"] })
+  .superRefine((v, ctx) => {
+    const problem = passwordProblem(v.password);
+    if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem, path: ["password"] });
+  });
 
 const INVALID_LINK = "El link venció o ya se usó. Pedinos uno nuevo.";
 
@@ -28,7 +33,10 @@ export async function activateAccount(formData: FormData): Promise<{ ok: true } 
       });
       if (claimed.count === 0) throw new TokenUnavailableError();
       const row = await tx.accountActivationToken.findUniqueOrThrow({ where: { tokenHash }, select: { userId: true } });
-      await tx.user.update({ where: { id: row.userId }, data: { passwordHash, isActive: true } });
+      await tx.user.update({
+        where: { id: row.userId },
+        data: { passwordHash, isActive: true, mustChangePassword: false, passwordChangedAt: now, sessionVersion: { increment: 1 } },
+      });
     });
   } catch (error) {
     if (error instanceof TokenUnavailableError) return { ok: false, error: INVALID_LINK };

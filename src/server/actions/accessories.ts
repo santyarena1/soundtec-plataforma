@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 
 const accessorySchema = z.object({
   productId: z.string().min(1),
@@ -12,7 +12,7 @@ const accessorySchema = z.object({
 });
 
 export async function upsertAccessoryRelation(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const parsed = accessorySchema.safeParse({
     productId: formData.get("productId"),
     accessoryProductId: formData.get("accessoryProductId"),
@@ -55,7 +55,7 @@ export async function upsertAccessoryRelation(formData: FormData): Promise<void>
 }
 
 export async function deleteAccessoryRelation(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const id = String(formData.get("id") || "");
   const productId = String(formData.get("productId") || "");
   if (!id) return;

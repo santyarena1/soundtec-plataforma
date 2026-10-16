@@ -1,150 +1,225 @@
 "use server";
-import bcrypt from "bcryptjs";
+
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-helpers";
+import type { UserRole } from "@prisma/client";
+import { requireStaff, type CurrentUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
-export type UserActionResult = { ok: boolean; error?: string; id?: string; password?: string };
-const val = (f: FormData, k: string) => String(f.get(k) || "").trim() || null;
-const generated = () => `ST!${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
-const refresh = (id?: string) => {
+import { canSeeCosts, canSeeSalePrices, isAdminRole, parsePermissions, type Permissions } from "@/lib/permissions";
+import { issueAccess, parseAccessMode, unusablePasswordHash, type AccessResult } from "@/server/user-access";
+
+export type UserActionResult = { ok: boolean; error?: string; id?: string; access?: AccessResult };
+
+const ROLES = ["CLIENT", "STAFF", "ADMIN", "SUPER_ADMIN"] as const;
+
+const val = (f: FormData, k: string) => String(f.get(k) ?? "").trim() || null;
+
+const refresh = (id?: string, clientId?: string | null) => {
   revalidatePath("/admin/users");
   if (id) revalidatePath(`/admin/users/${id}`);
+  if (clientId) revalidatePath(`/admin/clients/${clientId}`);
 };
-const schema = z.object({
-  id: z.string().optional(),
-  name: z.string().trim().min(2, "Ingresá el nombre."),
-  email: z.string().trim().email("Ingresá un email válido."),
-  role: z.enum(["CLIENT", "ADMIN", "SUPER_ADMIN"]),
-  clientId: z.string().optional().nullable(),
-  customRoleId: z.string().optional().nullable(),
-  phone: z.string().max(60).optional().nullable(),
-  quoteSignName: z.string().max(160).optional().nullable(),
-  quoteSignTitle: z.string().max(160).optional().nullable(),
-  isActive: z.boolean(),
-});
+
+const schema = z
+  .object({
+    id: z.string().optional(),
+    name: z.string().trim().min(2, "Ingresá el nombre y apellido.").max(120),
+    email: z.string().trim().toLowerCase().email("Ingresá un email válido."),
+    role: z.enum(ROLES, { errorMap: () => ({ message: "Elegí el tipo de usuario." }) }),
+    clientId: z.string().nullable(),
+    customRoleId: z.string().nullable(),
+    phone: z.string().max(60).nullable(),
+    quoteSignName: z.string().max(160).nullable(),
+    quoteSignTitle: z.string().max(160).nullable(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.role === "CLIENT" && !v.clientId) ctx.addIssue({ code: "custom", message: "Elegí la empresa (cliente) a la que pertenece.", path: ["clientId"] });
+    if (v.role === "STAFF" && !v.customRoleId) ctx.addIssue({ code: "custom", message: "Elegí el rol del usuario del equipo (ej. Vendedor).", path: ["customRoleId"] });
+  });
+
 function input(f: FormData) {
   return {
-    id: val(f, "id") || undefined,
-    name: f.get("name"),
-    email: String(f.get("email") || "")
-      .toLowerCase()
-      .trim(),
+    id: val(f, "id") ?? undefined,
+    name: String(f.get("name") ?? ""),
+    email: String(f.get("email") ?? ""),
     role: f.get("role"),
     clientId: val(f, "clientId"),
     customRoleId: val(f, "customRoleId"),
     phone: val(f, "phone"),
     quoteSignName: val(f, "quoteSignName"),
     quoteSignTitle: val(f, "quoteSignTitle"),
-    isActive: f.get("isActive") !== "false" && f.get("isActive") !== null,
   };
 }
-async function validate(f: FormData) {
-  const admin = await requireAdmin();
-  const parsed = schema.safeParse(input(f));
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
-  if (parsed.data.role === "SUPER_ADMIN" && admin.role !== "SUPER_ADMIN")
-    return { error: "Solo un super administrador puede asignar ese rol." };
-  if (parsed.data.role === "CLIENT" && !parsed.data.clientId)
-    return { error: "Elegí el cliente al que pertenece este usuario." };
-  const client = parsed.data.clientId
-    ? await prisma.client.findUnique({
-        where: { id: parsed.data.clientId },
-        select: { companyName: true },
-      })
-    : null;
-  if (parsed.data.role === "CLIENT" && !client)
-    return { error: "El cliente seleccionado no existe." };
-  return { data: parsed.data, companyName: client?.companyName || null };
+
+/**
+ * Quién puede tocar a quién:
+ * - un super admin, a cualquiera;
+ * - un admin, a todos menos a los super admin (y no puede crear super admins);
+ * - el equipo con "Crear y editar usuarios", solo a equipo y clientes.
+ */
+function canManageRole(actor: CurrentUser, role: UserRole): boolean {
+  if (actor.role === "SUPER_ADMIN") return true;
+  if (actor.role === "ADMIN") return role !== "SUPER_ADMIN";
+  return role === "STAFF" || role === "CLIENT";
 }
+
+async function assertCanManageUser(
+  actor: CurrentUser,
+  actorPerms: Permissions,
+  targetId: string
+): Promise<{ role: UserRole; email: string; name: string; clientId: string | null } | string> {
+  const target = await prisma.user.findUnique({
+    where: { id: targetId },
+    select: { role: true, email: true, name: true, clientId: true, customRole: { select: { permissionsJson: true } } },
+  });
+  if (!target) return "El usuario no existe.";
+  if (!canManageRole(actor, target.role)) {
+    return target.role === "SUPER_ADMIN" ? "Solo un super administrador puede modificar a otro super administrador." : "No tenés permiso para modificar a este usuario.";
+  }
+  // Alguien del equipo no puede tocar (ni resetearle la clave) a otro con más permisos que los suyos.
+  if (!isAdminRole(actor.role) && target.role === "STAFF" && target.customRole) {
+    const perms = parsePermissions(target.customRole.permissionsJson);
+    const higher =
+      perms.scopes.some((s) => !actorPerms.scopes.includes(s)) ||
+      (perms.priceAccess === "full" && !canSeeCosts(actorPerms)) ||
+      (perms.priceAccess === "sale" && !canSeeSalePrices(actorPerms));
+    if (higher) return "Este usuario tiene más permisos que vos: lo modifica un administrador.";
+  }
+  return { role: target.role, email: target.email, name: target.name, clientId: target.clientId };
+}
+
+async function validate(f: FormData, actor: CurrentUser, actorPerms: Permissions) {
+  const parsed = schema.safeParse(input(f));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Revisá los datos." };
+  const data = parsed.data;
+  if (!canManageRole(actor, data.role)) {
+    return { error: data.role === "SUPER_ADMIN" ? "Solo un super administrador puede asignar ese tipo." : "Solo un administrador puede crear administradores." };
+  }
+  const [client, role] = await Promise.all([
+    data.role === "CLIENT" && data.clientId ? prisma.client.findUnique({ where: { id: data.clientId }, select: { companyName: true } }) : null,
+    data.customRoleId ? prisma.customRole.findUnique({ where: { id: data.customRoleId }, select: { baseSystemRole: true, isActive: true, permissionsJson: true } }) : null,
+  ]);
+  if (data.role === "CLIENT" && !client) return { error: "La empresa seleccionada no existe." };
+  if (data.customRoleId && (!role || !role.isActive)) return { error: "El rol seleccionado no existe o está desactivado." };
+  // Un rol del equipo no se puede dar a un cliente ni al revés.
+  if (role && data.role === "CLIENT" && role.baseSystemRole !== "CLIENT") return { error: "Ese rol es para el equipo interno, no para clientes del portal." };
+  if (role && data.role === "STAFF" && role.baseSystemRole === "CLIENT") return { error: "Ese rol es para clientes del portal, no para el equipo." };
+  // Quien no es admin no puede asignar un rol con más permisos (o más acceso a precios) que los suyos.
+  if (role && data.role === "STAFF" && !isAdminRole(actor.role)) {
+    const target = parsePermissions(role.permissionsJson);
+    if (target.scopes.some((s) => !actorPerms.scopes.includes(s))) return { error: "No podés asignar un rol con permisos que vos no tenés." };
+    if (target.priceAccess === "full" && !canSeeCosts(actorPerms)) return { error: "No podés asignar un rol con acceso a costos." };
+    if (target.priceAccess === "sale" && !canSeeSalePrices(actorPerms)) return { error: "No podés asignar un rol que ve precios." };
+  }
+  return {
+    data: {
+      ...data,
+      clientId: data.role === "CLIENT" ? data.clientId : null,
+      companyName: data.role === "CLIENT" ? client?.companyName ?? null : null,
+      // Los administradores tienen acceso total: un rol no los limita.
+      customRoleId: isAdminRole(data.role) ? null : data.customRoleId,
+    },
+  };
+}
+
 export async function createUser(f: FormData): Promise<UserActionResult> {
-  const checked = await validate(f);
+  const { user: actor, permissions: actorPerms } = await requireStaff("users.manage");
+  const checked = await validate(f, actor, actorPerms);
   if (!checked.data) return { ok: false, error: checked.error };
-  const mode = val(f, "passwordMode") || "generate",
-    pwd = mode === "write" ? val(f, "password") : generated();
-  if (!pwd || pwd.length < 8)
-    return { ok: false, error: "La contraseña debe tener al menos 8 caracteres." };
-  if (await prisma.user.findUnique({ where: { email: checked.data.email } }))
+  const { id: _id, ...data } = checked.data;
+  if (await prisma.user.findUnique({ where: { email: data.email }, select: { id: true } })) {
     return { ok: false, error: "Ya existe un usuario con ese email." };
+  }
   try {
-    const { id: _, ...data } = checked.data;
     const user = await prisma.user.create({
-      data: {
-        ...data,
-        clientId: data.role === "CLIENT" ? data.clientId : null,
-        companyName: data.role === "CLIENT" ? checked.companyName : null,
-        passwordHash: await bcrypt.hash(pwd, 12),
-      },
+      data: { ...data, passwordHash: await unusablePasswordHash(), createdById: actor.id },
+      select: { id: true, email: true, name: true, clientId: true, role: true },
     });
-    refresh(user.id);
-    if (user.clientId) revalidatePath(`/admin/clients/${user.clientId}`);
-    return { ok: true, id: user.id, ...(mode === "generate" ? { password: pwd } : {}) };
+    const access = await issueAccess(user, parseAccessMode(f.get("accessMode")), user.role === "CLIENT" ? "portal" : "staff");
+    refresh(user.id, user.clientId);
+    return { ok: true, id: user.id, access };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "No pudimos crear el usuario." };
+    console.error("[usuarios] no se pudo crear", e);
+    return { ok: false, error: "No pudimos crear el usuario. Probá de nuevo." };
   }
 }
+
 export async function updateUser(f: FormData): Promise<UserActionResult> {
-  const checked = await validate(f);
-  if (!checked.data?.id) return { ok: false, error: checked.error || "Falta el usuario." };
+  const { user: actor, permissions: actorPerms } = await requireStaff("users.manage");
+  const id = val(f, "id");
+  if (!id) return { ok: false, error: "Falta el usuario." };
+  const target = await assertCanManageUser(actor, actorPerms, id);
+  if (typeof target === "string") return { ok: false, error: target };
+  const checked = await validate(f, actor, actorPerms);
+  if (!checked.data) return { ok: false, error: checked.error };
+  const { id: _id, ...data } = checked.data;
+  if (id === actor.id && data.role !== actor.role) return { ok: false, error: "No podés cambiar tu propio tipo de usuario." };
+  if (data.email !== target.email && (await prisma.user.findUnique({ where: { email: data.email }, select: { id: true } }))) {
+    return { ok: false, error: "Ya existe otro usuario con ese email." };
+  }
   try {
-    const { id, ...data } = checked.data;
+    const current = await prisma.user.findUnique({ where: { id }, select: { role: true, customRoleId: true, email: true } });
+    // Cambiar tipo, rol o email cierra sus sesiones abiertas (entra de nuevo con los permisos nuevos).
+    const accessChanged = current?.role !== data.role || current?.customRoleId !== data.customRoleId || current?.email !== data.email;
     await prisma.user.update({
       where: { id },
-      data: {
-        ...data,
-        clientId: data.role === "CLIENT" ? data.clientId : null,
-        companyName: data.role === "CLIENT" ? checked.companyName : null,
-      },
+      data: { ...data, ...(accessChanged ? { sessionVersion: { increment: 1 } } : {}) },
     });
-    refresh(id);
-    if (data.clientId) revalidatePath(`/admin/clients/${data.clientId}`);
+    refresh(id, data.clientId ?? target.clientId);
     return { ok: true, id };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "No pudimos guardar el usuario." };
+    console.error("[usuarios] no se pudo guardar", e);
+    return { ok: false, error: "No pudimos guardar el usuario." };
   }
 }
+
+/** Nuevo acceso: invitación por mail o clave temporal. Cierra sus sesiones abiertas. */
 export async function resetUserPassword(f: FormData): Promise<UserActionResult> {
-  await requireAdmin();
+  const { user: actor, permissions: actorPerms } = await requireStaff("users.manage");
   const id = val(f, "id");
   if (!id) return { ok: false, error: "Falta el usuario." };
-  const pwd = generated();
-  try {
-    await prisma.user.update({ where: { id }, data: { passwordHash: await bcrypt.hash(pwd, 12) } });
-    refresh(id);
-    return { ok: true, id, password: pwd };
-  } catch {
-    return { ok: false, error: "El usuario no existe." };
-  }
+  if (id === actor.id) return { ok: false, error: "Tu propia clave la cambiás desde «Cambiar mi clave»." };
+  const target = await assertCanManageUser(actor, actorPerms, id);
+  if (typeof target === "string") return { ok: false, error: target };
+  const access = await issueAccess({ id, email: target.email, name: target.name }, parseAccessMode(f.get("accessMode")), target.role === "CLIENT" ? "portal" : "staff");
+  refresh(id);
+  return { ok: true, id, access };
 }
+
 export async function toggleUserActive(f: FormData): Promise<UserActionResult> {
-  await requireAdmin();
+  const { user: actor, permissions: actorPerms } = await requireStaff("users.manage");
   const id = val(f, "id");
   if (!id) return { ok: false, error: "Falta el usuario." };
+  if (id === actor.id) return { ok: false, error: "No podés desactivar tu propio usuario." };
+  const target = await assertCanManageUser(actor, actorPerms, id);
+  if (typeof target === "string") return { ok: false, error: target };
   const row = await prisma.user.findUnique({ where: { id }, select: { isActive: true } });
   if (!row) return { ok: false, error: "El usuario no existe." };
-  await prisma.user.update({ where: { id }, data: { isActive: !row.isActive } });
-  refresh(id);
+  await prisma.$transaction([
+    // Al desactivar: se cierran sus sesiones y se anulan los links de activación pendientes.
+    prisma.user.update({ where: { id }, data: { isActive: !row.isActive, sessionVersion: { increment: 1 } } }),
+    ...(row.isActive ? [prisma.accountActivationToken.deleteMany({ where: { userId: id, usedAt: null } })] : []),
+  ]);
+  refresh(id, target.clientId);
   return { ok: true, id };
 }
+
 export async function deleteUser(f: FormData): Promise<UserActionResult> {
-  const admin = await requireAdmin();
+  const { user: actor, permissions: actorPerms } = await requireStaff("users.manage");
   const id = val(f, "id");
   if (!id) return { ok: false, error: "Falta el usuario." };
-  if (id === admin.id) return { ok: false, error: "No podés eliminar tu propio usuario." };
+  if (id === actor.id) return { ok: false, error: "No podés eliminar tu propio usuario." };
+  const target = await assertCanManageUser(actor, actorPerms, id);
+  if (typeof target === "string") return { ok: false, error: target };
   const row = await prisma.user.findUnique({
     where: { id },
-    select: { role: true, _count: { select: { requests: true, ownedQuotes: true } } },
+    select: { _count: { select: { requests: true, ownedQuotes: true, ownedClients: true } } },
   });
   if (!row) return { ok: false, error: "El usuario no existe." };
-  if (row.role === "SUPER_ADMIN" && admin.role !== "SUPER_ADMIN")
-    return { ok: false, error: "Solo un super administrador puede eliminar este usuario." };
-  if (row._count.requests || row._count.ownedQuotes)
-    return {
-      ok: false,
-      error:
-        "Este usuario tiene pedidos o cotizaciones. Podés desactivarlo para conservar el historial.",
-    };
+  if (row._count.requests || row._count.ownedQuotes || row._count.ownedClients) {
+    return { ok: false, error: "Tiene pedidos, cotizaciones o clientes a cargo. Desactivalo para conservar el historial." };
+  }
   await prisma.user.delete({ where: { id } });
-  refresh();
+  refresh(undefined, target.clientId);
   return { ok: true, id };
 }

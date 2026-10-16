@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { applySoundTubeReview, closeSoundTubeReview, setReviewTaxonomy } from "@/server/actions/soundtube-review";
 import type { ClassificationQuestion, MissingItem, NewProductQuestion, PairQuestion } from "@/server/soundtube/review";
-import type { ParsedPriceList } from "@/services/soundtube/price-list";
+import { rowLabel, type ParsedPriceList } from "@/services/soundtube/price-list";
 import { ClassificationSection, NewProductsSection, PairsSection } from "./_decisions";
 import { MissingSection } from "./_missing";
+import { PriceListSheets } from "@/components/admin/price-list-sheets";
 import { StartReviewForm } from "./_start-form";
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
   rowsCount: number;
   warnings: ParsedPriceList["warnings"];
   invalid: ParsedPriceList["invalid"];
+  sheets?: ParsedPriceList["sheets"];
   matchedCount: number;
   pending: number;
   pairs: PairQuestion[];
@@ -117,6 +119,8 @@ export function ReviewPanel(props: Props) {
         </CardContent>
       </Card>
 
+      <PriceListSheets sheets={props.sheets} />
+
       {props.warnings.length + props.invalid.length > 0 ? (
         <Card>
           <CardContent className="space-y-1 p-5 text-xs">
@@ -126,7 +130,7 @@ export function ReviewPanel(props: Props) {
             ))}
             {props.invalid.map((i) => (
               <p key={`${i.excelRow}-${i.sku}`} className="text-destructive">
-                Fila {i.excelRow} <span className="font-mono">{i.sku}</span>: {i.reason} (no se carga)
+                {rowLabel(i)} <span className="font-mono">{i.sku}</span>: {i.reason} (no se carga)
               </p>
             ))}
           </CardContent>

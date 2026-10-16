@@ -184,7 +184,9 @@ export function toNormalizedProduct(
   const displayName = cleaned.name;
   const html = text(item.storedetaileddescription);
   const short = text(item.storedescription) ?? text(item.featureddescription);
-  const price = finite(item[priceField]) ?? finite(item.onlinecustomerprice);
+  // El precio del portal NO se usa: el costo de SoundTube sale solo de la lista Excel
+  // (ver services/sync/connectors/soundtube.ts). Queda guardado en el raw como referencia.
+  void priceField;
   const stockStatus = toStockStatus(item);
   const qty = finite(item.quantityavailable);
   const rawCategory = categoryNameOf(item);
@@ -200,7 +202,6 @@ export function toNormalizedProduct(
     name: codeNameFor({ source: "soundtube", supplierSku: sku }) ?? displayName,
     originalName: displayName,
     brandName: brandNameOf(item),
-    baseCostUsd: price,
     currency: "USD",
     stockStatus,
     stockQuantity: qty !== undefined ? Math.trunc(qty) : undefined,
@@ -209,7 +210,6 @@ export function toNormalizedProduct(
       qty !== undefined
         ? `SoundTube: ${Math.trunc(qty)} disponibles${item.isbackorderable ? " · se puede pedir sin stock" : ""}`
         : undefined,
-    requiresQuote: price === undefined ? true : undefined,
     shortDescription: short ?? (html ? htmlToText(html).split("\n")[0] : undefined),
     htmlContent: html,
     longDescription: html ? htmlToText(html) : undefined,

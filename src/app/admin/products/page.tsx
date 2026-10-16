@@ -1,4 +1,4 @@
-import { requireAdmin, canSeePrices } from "@/lib/auth-helpers";
+import { canSeePrices, requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { ButtonLink } from "@/components/ui/button";
@@ -59,7 +59,7 @@ const SORT_MAP: Record<string, Prisma.ProductOrderByWithRelationInput> = {
 };
 
 export default async function AdminProductsPage({ searchParams }: { searchParams: Promise<SP> }) {
-  await requireAdmin();
+  await requireStaff("products.view");
   const showPrices = await canSeePrices();
   const params = await searchParams;
   const tab = params.tab === "crestron" ? "crestron" : "catalog";
@@ -263,6 +263,23 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       labels: p.labels.map((pl) => pl.label),
     };
   });
+  // Sin acceso a costos: no viajan a la pantalla costos, proveedores ni datos de importación.
+  const safeRows = showPrices
+    ? rows
+    : rows.map((r) => ({
+        ...r,
+        cost: 0,
+        priceUsdFinal: 0,
+        priceFobUsd: 0,
+        priceNacFinalArs: 0,
+        salePriceUsd: null,
+        discountPercent: null,
+        tariffPosition: null,
+        tariffDutyPercent: null,
+        supplierSku: "",
+        distributor: null,
+        distributorId: null,
+      }));
 
   return (
     <div className="space-y-4">
@@ -271,8 +288,8 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         title="Productos"
         description={`${total} productos · página ${page} de ${totalPages}`}
         actions={
-          <ButtonLink href="/admin/products/new" data-tour="products-new-btn">
-            <Plus className="h-4 w-4" /> Nuevo producto
+          <ButtonLink href={showPrices ? "/admin/products/new" : "/portal/products"} data-tour="products-new-btn">
+            <Plus className="h-4 w-4" /> {showPrices ? "Nuevo producto" : "Ver catálogo de venta"}
           </ButtonLink>
         }
       />
@@ -323,7 +340,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
           />
           <Suspense fallback={null}>
             <ProductsCatalogAdmin
-              rows={rows}
+              rows={safeRows}
               page={page}
               pageSize={pageSize}
               total={total}
@@ -346,7 +363,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
               brands={brands.map((b) => ({ id: b.id, name: b.name }))}
               categories={categories}
               families={families}
-              distributors={distributors}
+              distributors={showPrices ? distributors : []}
               allLabels={allLabels}
             />
           </Suspense>

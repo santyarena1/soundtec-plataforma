@@ -1,3 +1,4 @@
+import { isPanelRole } from "@/lib/permissions";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-helpers";
 import { resolveCommercialClientId } from "@/lib/client-context";
@@ -28,9 +29,11 @@ export default async function ProductsPage({
   const urlState = parseCatalogSearchParams(rawParams);
   const user = await requireUser();
   const isAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
-  const commercialClientId = isAdmin ? null : await resolveCommercialClientId(user.id);
+  // El equipo interno ve el catálogo completo con los precios de venta generales (sin condiciones de un cliente).
+  const internal = isPanelRole(user.role);
+  const commercialClientId = internal ? null : await resolveCommercialClientId(user.id);
 
-  const ctx = { commercialClientId, userId: user.id, isAdmin };
+  const ctx = { commercialClientId, userId: user.id, isAdmin: internal };
   const filters = {
     search: urlState.search,
     brandIds: urlState.brandIds,

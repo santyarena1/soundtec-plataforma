@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import {
   createHubProject,
   createSpaceProject,
@@ -61,13 +61,13 @@ const createSchema = z.discriminatedUnion("kind", [
 ]);
 
 export async function GET() {
-  const user = await requireAdmin();
+  const { user: user } = await requireStaff("room_builder.use");
   const projects = await listRoomProjects(user.id);
   return NextResponse.json({ ok: true, projects });
 }
 
 export async function POST(req: NextRequest) {
-  const user = await requireAdmin();
+  const { user: user } = await requireStaff("room_builder.use");
   const body = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {

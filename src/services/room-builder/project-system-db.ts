@@ -5,6 +5,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { withSalePrices } from "./sale-prices";
 import type { BriefControl } from "./brief";
 import { autoFillProjectSlots } from "./auto-fill";
 import { rebuildSceneKeepingProducts } from "./hydrate-scene";
@@ -199,7 +200,7 @@ export async function analyzeHubSystem(hubId: string): Promise<HubSystemView | n
     findings.map(async (f): Promise<ResolvedProjectFinding> => {
       if (!f.requirement) return { ...f, actions: [] };
       const preferred = f.requirement.kind === "amplifier" ? (brands.amplification ?? []) : f.requirement.kind === "streamer" ? (brands.streaming ?? []) : ["crestron"];
-      return { ...f, actions: await actionsFor(f.requirement, preferred) };
+      return { ...f, actions: await withSalePrices(await actionsFor(f.requirement, preferred), (a) => a.productId) };
     }),
   );
   return {

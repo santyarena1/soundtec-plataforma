@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { loadCableCatalog } from "@/services/room-builder/cable-catalog";
 
 export const dynamic = "force-dynamic";
 
 /** Cables del catálogo clasificados (señal, armado o rollo, largo) para el cableado. */
 export async function GET() {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   try {
     return NextResponse.json({ ok: true, cables: await loadCableCatalog() });
   } catch (error) {

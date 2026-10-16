@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { sanitizeSpreadsheetCell } from "@/lib/expo/spreadsheet";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  * Visible siempre (no hace falta elegir un evento).
  */
 export async function GET(req: NextRequest) {
-  await requirePermission("clients.view");
+  await requireStaff("leads.view");
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim() || undefined;
   const eventId = searchParams.get("event") || undefined;

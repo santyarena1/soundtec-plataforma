@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { searchCatalog } from "@/services/room-builder/custom-devices";
 
 export const dynamic = "force-dynamic";
 
 /** Búsqueda libre en todo el catálogo (con foto) para ubicar cualquier producto. */
 export async function GET(req: NextRequest) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const q = (req.nextUrl.searchParams.get("q") ?? "").slice(0, 80);
   try {
     return NextResponse.json({ ok: true, results: await searchCatalog(q) });

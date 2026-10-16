@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 
 const labelSchema = z.object({
   name: z.string().min(1).max(60),
@@ -11,7 +11,7 @@ const labelSchema = z.object({
 });
 
 export async function upsertLabel(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("brands.manage");
   const id = formData.get("id")?.toString() || undefined;
   const parsed = labelSchema.safeParse({
     name: formData.get("name"),
@@ -29,7 +29,7 @@ export async function upsertLabel(formData: FormData): Promise<void> {
 }
 
 export async function deleteLabel(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("brands.manage");
   const id = formData.get("id")?.toString();
   if (!id) return;
   await prisma.label.delete({ where: { id } });
@@ -41,7 +41,7 @@ export async function setProductLabels(
   productId: string,
   labelIds: string[]
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireAdmin();
+  await requireStaff("products.edit");
   if (!productId) return { ok: false, error: "Producto no encontrado." };
 
   await prisma.productLabel.deleteMany({ where: { productId } });
@@ -62,7 +62,7 @@ export async function bulkSetLabel(
   labelId: string,
   remove = false
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireAdmin();
+  await requireStaff("products.edit");
   if (!productIds.length || !labelId) return { ok: false, error: "Datos inválidos." };
 
   if (remove) {

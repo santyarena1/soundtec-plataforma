@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { buildProductSearchKey } from "@/lib/search-key";
-import { parsePriceListFile, skuKey } from "@/services/soundtube/price-list";
+import { parsePriceListFile, rowRef, skuKey } from "@/services/soundtube/price-list";
 import {
   MAX_FILE_BYTES,
   SOUNDTUBE_BRANDS,
@@ -13,6 +13,7 @@ import {
   applySoundTubeRows,
   loadSkuAliases,
 } from "@/server/soundtube/price-list-core";
+import { dismissDuplicate, mergeDuplicate, setVisibleIdentity } from "@/server/soundtube/identity";
 import {
   buildReviewView,
   loadReviewState,
@@ -61,6 +62,7 @@ export async function startSoundTubeReview(formData: FormData): Promise<Result> 
     rows: parsed.rows,
     warnings: parsed.warnings,
     invalid: parsed.invalid,
+    sheets: parsed.sheets,
     classificationConflicts: parsed.classificationConflicts,
     pairs: {},
     creates: {},
@@ -91,6 +93,16 @@ export async function decidePair(excelSku: string, value: string | null): Promis
   });
 }
 
+/** Par confirmado: qué datos se muestran en el catálogo (lista Excel o portal). */
+export async function decidePairKeep(excelSku: string, keep: "excel" | "portal"): Promise<Result> {
+  const key = skuKey(excelSku);
+  if (keep !== "excel" && keep !== "portal") return { ok: false, error: "Opción inválida." };
+  return mutate((state) => {
+    if (!state.pairs[key] || state.pairs[key] === "NONE") return "Primero confirmá que es el mismo producto.";
+    state.pairKeep = { ...(state.pairKeep ?? {}), [key]: keep };
+  });
+}
+
 export async function decideNewProduct(excelSku: string, create: boolean | null, brand?: string): Promise<Result> {
   const key = skuKey(excelSku);
   if (brand && !(SOUNDTUBE_BRANDS as readonly string[]).includes(brand)) return { ok: false, error: "Marca inválida." };
@@ -106,7 +118,7 @@ export async function decideClassification(excelSku: string, excelRow: number | 
     const conflict = state.classificationConflicts.find((c) => skuKey(c.sku) === key);
     if (!conflict) return "Ese SKU no tiene clasificación repetida.";
     if (excelRow === null) delete state.classification[key];
-    else if (conflict.options.some((o) => o.excelRow === excelRow)) state.classification[key] = excelRow;
+    else if (conflict.options.some((o) => rowRef(o) === excelRow)) state.classification[key] = excelRow;
     else return "Opción inválida.";
   });
 }
@@ -168,11 +180,17 @@ export async function applySoundTubeReview(): Promise<Result & { summary?: strin
       )
     );
 
-    // 2) Equivalencias confirmadas (sirven también para las próximas listas).
+    // 2) Equivalencias confirmadas (sirven también para las próximas listas) y qué datos quedan visibles.
     const pairs = Object.entries(state.pairs)
       .filter(([, v]) => v !== "NONE")
-      .map(([key, productId]) => ({ excelSku: state.rows.find((r) => skuKey(r.sku) === key)?.sku ?? key, productId }));
+      .map(([key, productId]) => {
+        const row = state.rows.find((r) => skuKey(r.sku) === key);
+        return { key, excelSku: row?.sku ?? key, description: row?.description ?? "", productId };
+      });
     await addSkuAliases(pairs);
+    for (const p of pairs) {
+      await setVisibleIdentity(p.productId, state.pairKeep?.[p.key] ?? "excel", { sku: p.excelSku, description: p.description });
+    }
 
     // 3) Precios, MUP, clasificación y bajas.
     const result = await applySoundTubeRows({
@@ -197,6 +215,34 @@ export async function applySoundTubeReview(): Promise<Result & { summary?: strin
     console.error("[soundtube-review] apply failed", error);
     return { ok: false, error: "No se pudo aplicar. Revisá y probá de nuevo." };
   }
+}
+
+const duplicateSchema = z.object({ excelId: z.string().min(1).max(64), portalId: z.string().min(1).max(64) });
+
+/** Duplicado del catálogo: son el mismo producto, queda visible la versión elegida. */
+export async function mergeSoundTubeDuplicate(excelId: string, portalId: string, show: "excel" | "portal"): Promise<Result> {
+  await requireAdmin();
+  const parsed = duplicateSchema.safeParse({ excelId, portalId });
+  if (!parsed.success || (show !== "excel" && show !== "portal")) return { ok: false, error: "Datos inválidos." };
+  try {
+    await mergeDuplicate(parsed.data.excelId, parsed.data.portalId, show);
+  } catch (error) {
+    console.error("[soundtube-review] merge failed", error);
+    return { ok: false, error: "No se pudieron unir. Probá de nuevo." };
+  }
+  revalidatePath(PATH);
+  revalidatePath("/admin/products");
+  return { ok: true };
+}
+
+/** Duplicado del catálogo: son productos distintos (no se vuelve a preguntar). */
+export async function dismissSoundTubeDuplicate(excelId: string, portalId: string): Promise<Result> {
+  await requireAdmin();
+  const parsed = duplicateSchema.safeParse({ excelId, portalId });
+  if (!parsed.success) return { ok: false, error: "Datos inválidos." };
+  await dismissDuplicate(parsed.data.excelId, parsed.data.portalId);
+  revalidatePath(PATH);
+  return { ok: true };
 }
 
 /** Cierra la revisión: el módulo desaparece del menú. */

@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { formatDate } from "@/lib/utils";
 export const metadata = { title: "Admin · Landing" };
 
 export default async function AdminLandingPage() {
-  await requireAdmin();
+  await requireStaff("landing.manage");
   const [hero, posts] = await Promise.all([
     prisma.landingHero.findFirst({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.landingPost.findMany({ orderBy: { createdAt: "desc" }, take: 30 }),

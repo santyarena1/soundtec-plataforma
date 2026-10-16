@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { cablingProfile } from "@/services/room-builder/cabling-db";
 import { resolveAndWire } from "@/services/room-builder/cabling-resolve";
 import { getRoomProject } from "@/services/room-builder/project-service";
@@ -9,7 +9,7 @@ export const maxDuration = 120;
 
 /** Puertos de cada equipo del ambiente y si va a un rack central (el cableado se arma en el navegador). */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   try {
     const profile = await cablingProfile(params.id);
     if (!profile) return NextResponse.json({ ok: false, error: "Proyecto no encontrado" }, { status: 404 });
@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 /** Resolver y trazar: suma lo que falta (genéricos), recalcula y traza todos los cables. */
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   try {
     const result = await resolveAndWire(params.id);
     const project = await getRoomProject(params.id);

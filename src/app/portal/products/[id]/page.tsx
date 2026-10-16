@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth-helpers";
+import { getCurrentPermissions, requireUser } from "@/lib/auth-helpers";
+import { canSeeCosts, isPanelRole } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { calculateCustomerPrice, calculatePricesForProducts, isProductVisibleToClient } from "@/lib/pricing";
 import { resolveCommercialClientId } from "@/lib/client-context";
@@ -76,7 +77,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   });
   if (!product) notFound();
 
-  const isAdminViewer = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
+  // Admins y equipo interno ven todo el catálogo con precio de venta general; solo los admins ven costos.
+  const isAdminViewer = isPanelRole(user.role);
   const commercialClientId = !isAdminViewer ? await resolveCommercialClientId(user.id) : null;
   if (!isAdminViewer) {
     if (!commercialClientId) notFound();
@@ -110,7 +112,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     getGlobalMarginPercent(),
   ]);
 
-  const isAdmin = isAdminViewer;
+  const isAdmin = (await getCurrentPermissions().then(({ permissions }) => canSeeCosts(permissions))) && isAdminViewer;
   const pricing = await calculateCustomerPrice({
     product: {
       productId: product.id,
@@ -285,13 +287,22 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
           <Card className="border-primary/10 bg-gradient-to-br from-card to-primary/5">
             <CardContent className="p-5 space-y-3">
-              {pricing.discountPercent > 0 ? (
-                <p className="text-sm text-muted-foreground line-through">
-                  {formatUsd(pricing.priceBeforeDiscountUsd)}
-                </p>
-              ) : null}
-              <p className="text-3xl font-semibold tracking-tight">{formatUsd(pricing.finalPriceUsd)}</p>
-              <p className="muted-text text-sm">Precio final en USD · tu lista de precios</p>
+              {product.requiresQuote || pricing.finalPriceUsd <= 0 ? (
+                <>
+                  <p className="text-2xl font-semibold tracking-tight">Precio a consultar</p>
+                  <p className="muted-text text-sm">Agregalo a un pedido y te pasamos el precio.</p>
+                </>
+              ) : (
+                <>
+                  {pricing.discountPercent > 0 ? (
+                    <p className="text-sm text-muted-foreground line-through">
+                      {formatUsd(pricing.priceBeforeDiscountUsd)}
+                    </p>
+                  ) : null}
+                  <p className="text-3xl font-semibold tracking-tight">{formatUsd(pricing.finalPriceUsd)}</p>
+                  <p className="muted-text text-sm">Precio en USD según tus condiciones comerciales</p>
+                </>
+              )}
 
               {isAdmin ? (
                 <div className="rounded-md border border-dashed border-border bg-secondary/40 p-3 text-xs text-muted-foreground">

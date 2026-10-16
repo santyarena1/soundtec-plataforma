@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { ShareListForm } from "@/components/admin/share-list-form";
 export const metadata = { title: "Admin · Nueva lista compartible" };
 
 export default async function NewShareListPage({ searchParams }: { searchParams: Promise<{ productIds?: string }> }) {
-  await requireAdmin();
+  await requireStaff("share_lists.manage");
   const requestedIds = (await searchParams).productIds?.split(",").filter(Boolean).slice(0, 200) || [];
   const [clients, brands, categories, families, distributors, products] = await Promise.all([
     prisma.client.findMany({ where: { isActive: true }, orderBy: { companyName: "asc" }, select: { id: true, companyName: true } }),

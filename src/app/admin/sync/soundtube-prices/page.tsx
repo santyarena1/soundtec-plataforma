@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth-helpers";
 import { getSetting } from "@/lib/settings";
 import { PageHeader } from "@/components/ui/page-header";
 import { SoundTubePriceListPanel } from "./_client";
+import { ClearPortalPrices } from "./_clear-portal-prices";
 
 export const metadata = { title: "Admin · Lista de precios SoundTube" };
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export default async function SoundTubePricesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Lista de precios SoundTube"
-        description="Subí el Excel de SoundTube: SPRDIS US es el costo y MUP el markup de cada producto (se carga como regla). Se ignoran los precios grises y la columna PRECIO."
+        description="Subí el Excel de SoundTube: SPRDIS US es el costo y MUP el markup de cada producto (se carga como regla). Se leen todas las hojas del libro. Se ignoran los precios grises y la columna PRECIO."
       />
       {last && (
         <p className="text-xs text-muted-foreground">
@@ -47,6 +48,7 @@ export default async function SoundTubePricesPage() {
         ¿La lista tiene SKUs que no coinciden, productos nuevos o repetidos? Resolvelos en{" "}
         <Link href="/admin/soundtube-review" className="font-medium text-foreground underline">Revisión SoundTube</Link>.
       </p>
+      <ClearPortalPrices />
       <SoundTubePriceListPanel />
     </div>
   );

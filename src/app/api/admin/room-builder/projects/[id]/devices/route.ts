@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { MOUNT_OPTIONS } from "@/services/room-builder/types";
 import { addCustomDevice, addGenericDevice, removeCustomDevice, updateGenericDevice } from "@/services/room-builder/custom-devices";
 
@@ -23,7 +23,7 @@ const genericSchema = z.object({
 
 /** Agrega un producto del catálogo o un equipo genérico (plantilla) al ambiente. */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const body = await req.json().catch(() => null);
   try {
     const generic = genericSchema.safeParse(body);
@@ -50,7 +50,7 @@ const patchSchema = z.object({
 
 /** Completa nombre, descripción y precio de un equipo genérico. */
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Datos inválidos" }, { status: 400 });
   try {
@@ -65,7 +65,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 /** Quita un equipo agregado a mano. */
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const slotKey = req.nextUrl.searchParams.get("slotKey") ?? "";
   if (!slotKey || slotKey.length > 80) return NextResponse.json({ ok: false, error: "Equipo inválido" }, { status: 400 });
   try {

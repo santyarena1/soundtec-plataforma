@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth-helpers";
 import {
   MAX_FILE_BYTES,
   applySoundTubeRows,
+  clearPortalPrices,
   decisionsSchema,
   loadSkuAliases,
   loadSoundTubeProducts,
@@ -19,6 +20,8 @@ export interface PreviewMatched {
   name: string;
   brand: string;
   excelRow: number;
+  /** Hoja del Excel, si la lista viene en varias hojas. */
+  sheet?: string;
   oldCost: number;
   newCost: number;
   mup: number;
@@ -48,6 +51,7 @@ export interface PriceListPreview {
   missing: PreviewMissing[];
   warnings: ParsedPriceList["warnings"];
   invalid: ParsedPriceList["invalid"];
+  sheets: ParsedPriceList["sheets"];
 }
 
 type Failure = { ok: false; error: string };
@@ -81,6 +85,7 @@ export async function previewSoundTubePriceList(formData: FormData): Promise<Pri
       name: product.name,
       brand: product.brand,
       excelRow: row.excelRow,
+      sheet: row.sheet,
       oldCost: product.costUsd,
       newCost: row.costUsd,
       mup: row.mup,
@@ -102,6 +107,7 @@ export async function previewSoundTubePriceList(formData: FormData): Promise<Pri
     })),
     warnings: upload.parsed.warnings,
     invalid: upload.parsed.invalid,
+    sheets: upload.parsed.sheets,
   };
 }
 
@@ -121,4 +127,15 @@ export async function applySoundTubePriceList(
   const applyTaxonomy = formData.get("applyTaxonomy") === "true";
 
   return applySoundTubeRows({ rows: upload.parsed.rows, fileName: upload.fileName, decisions, applyTaxonomy });
+}
+
+/** Quita ya los precios que SoundTube trajo del portal (los que no están en la lista Excel). */
+export async function clearSoundTubePortalPrices(): Promise<{ ok: true; cleared: number } | Failure> {
+  await requireAdmin();
+  try {
+    return { ok: true, cleared: await clearPortalPrices() };
+  } catch (error) {
+    console.error("[soundtube] no se pudieron limpiar los precios del portal", error);
+    return { ok: false, error: "No se pudieron limpiar los precios. Probá de nuevo." };
+  }
 }

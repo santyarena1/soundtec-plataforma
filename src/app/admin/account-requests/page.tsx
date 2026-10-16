@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { AccountRequestStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
+import { permissionsHave } from "@/lib/permissions";
+import { StaffRequestForm } from "./staff-request-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +13,7 @@ import { formatDate } from "@/lib/utils";
 import { RegenerateLinkAction, RequestActions } from "./request-actions";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Admin · Solicitudes de cuenta" };
+export const metadata = { title: "Admin · Solicitudes de alta" };
 
 const TABS: Array<{ key: AccountRequestStatus; label: string }> = [
   { key: "PENDING", label: "Pendientes" },
@@ -19,14 +21,23 @@ const TABS: Array<{ key: AccountRequestStatus; label: string }> = [
   { key: "REJECTED", label: "Rechazadas" },
 ];
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  await requirePermission("clients.view");
+export default async function Page({ searchParams }: { searchParams: Promise<{ status?: string; nueva?: string }> }) {
+  const { user, permissions } = await requireStaff(["account_requests.create", "account_requests.review"]);
+  const canReview = permissionsHave(permissions, "account_requests.review");
+  const canCreate = permissionsHave(permissions, "account_requests.create");
   const params = await searchParams;
   const status = (TABS.find((t) => t.key === params.status)?.key ?? "PENDING") as AccountRequestStatus;
+  // Quien no aprueba ve solo las solicitudes que pidió.
+  const mine = canReview ? {} : { requestedById: user.id };
   const [rows, counts] = await Promise.all([
-    prisma.accountRequest.findMany({ where: { status }, orderBy: { createdAt: "desc" }, take: 200 }),
-    prisma.accountRequest.groupBy({ by: ["status"], _count: true }),
+    prisma.accountRequest.findMany({ where: { ...mine, status }, orderBy: { createdAt: "desc" }, take: 200 }),
+    prisma.accountRequest.groupBy({ by: ["status"], where: mine, _count: true }),
   ]);
+  const requesters = await prisma.user.findMany({
+    where: { id: { in: [...new Set(rows.flatMap((r) => (r.requestedById ? [r.requestedById] : [])))] } },
+    select: { id: true, name: true },
+  });
+  const requesterName = new Map(requesters.map((u) => [u.id, u.name]));
   const countOf = (s: AccountRequestStatus) => counts.find((c) => c.status === s)?._count ?? 0;
   // Pendientes cuyo CUIT ya es de un cliente: al aprobar se vinculan a ese cliente.
   const pendingCuits = status === "PENDING" ? [...new Set(rows.flatMap((r) => cuitVariants(r.cuit)))] : [];
@@ -37,7 +48,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Solicitudes de cuenta" description="Pedidos de cuenta de cliente desde el catálogo público y la expo." />
+      <PageHeader
+        title="Solicitudes de alta"
+        description={canReview ? "Empresas que piden cuenta: desde el catálogo público, la expo o un vendedor del equipo." : "Altas de empresas que pediste. Las aprueba un administrador."}
+      />
+      {canCreate ? <StaffRequestForm defaultOpen={Boolean(params.nueva)} /> : null}
       <div className="flex gap-2">
         {TABS.map((t) => (
           <Link key={t.key} href={`/admin/account-requests?status=${t.key}`}
@@ -66,11 +81,24 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
                     {r.location ? ` · ${r.location}` : ""}{r.website ? ` · ${r.website}` : ""}
                   </p>
                   {r.comment ? <p className="whitespace-pre-line text-muted-foreground">{r.comment}</p> : null}
-                  <p className="text-xs text-muted-foreground">Recibida {formatDate(r.createdAt)}{r.qrId ? " · vino por QR de expo" : ""}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Recibida {formatDate(r.createdAt)}
+                    {r.qrId ? " · vino por QR de expo" : ""}
+                    {r.origin === "staff" ? ` · pedida por ${requesterName.get(r.requestedById ?? "") ?? "el equipo"}` : ""}
+                  </p>
+                  {r.origin === "staff" && (r.proposedDiscountPercent != null || r.staffNote) ? (
+                    <div className="rounded-md bg-secondary/50 p-2 text-xs">
+                      {r.proposedDiscountPercent != null ? <p>Descuento propuesto: <strong>{Number(r.proposedDiscountPercent)} %</strong></p> : null}
+                      {r.staffNote ? <p className="whitespace-pre-line text-muted-foreground">{r.staffNote}</p> : null}
+                    </div>
+                  ) : null}
                   {r.status === "REJECTED" && r.rejectionReason ? <p className="text-xs text-destructive">Motivo: {r.rejectionReason}</p> : null}
                 </div>
-                {r.status === "PENDING" ? <RequestActions id={r.id} phone={r.phone} name={r.fullName} /> : null}
-                {r.status === "APPROVED" && r.createdUserId ? <RegenerateLinkAction id={r.id} phone={r.phone} name={r.fullName} /> : null}
+                {r.status === "PENDING" && canReview ? (
+                  <RequestActions id={r.id} phone={r.phone} name={r.fullName} proposedDiscount={r.proposedDiscountPercent != null ? Number(r.proposedDiscountPercent) : null} />
+                ) : null}
+                {r.status === "PENDING" && !canReview ? <Badge tone="warning">Esperando aprobación</Badge> : null}
+                {r.status === "APPROVED" && r.createdUserId && canReview ? <RegenerateLinkAction id={r.id} phone={r.phone} name={r.fullName} /> : null}
               </CardContent>
             </Card>
           ))}

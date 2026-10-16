@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireAdmin, requireStaff } from "@/lib/auth-helpers";
 import { generateLongDescription, generateShortDescription, suggestProductClassification, type ClassificationSuggestion } from "@/services/openai";
 import { searchProductImages, type SerperImage } from "@/services/serper";
 import { getSetting, setSetting } from "@/lib/settings";
@@ -80,7 +80,7 @@ export async function saveAiPrompts(input: {
 export async function suggestClassificationAction(
   productId: string
 ): Promise<{ ok: boolean; suggestion?: ClassificationSuggestion; error?: string }> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const [p, brands, categories, families] = await Promise.all([
     prisma.product.findUnique({ where: { id: productId } }),
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
@@ -108,7 +108,7 @@ export async function applyClassificationSuggestion(input: {
   /** Si true, categoría y familia se crean si no existen. */
   createIfMissing?: boolean;
 }): Promise<{ ok: boolean; error?: string; createdCategory?: boolean; createdFamily?: boolean }> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const data: { brandId?: string | null; categoryId?: string | null; familyId?: string | null } = {};
   let createdCategory = false;
   let createdFamily = false;
@@ -166,7 +166,7 @@ export async function generateProductShortDescription(
   productId: string
 ): Promise<{ ok: boolean; description?: string; error?: string }> {
   try {
-    await requireAdmin();
+    await requireStaff("products.edit", { costs: true });
     const p = await prisma.product.findUnique({
       where: { id: productId },
       include: { brand: true, category: true },
@@ -203,7 +203,7 @@ export async function saveProductDescriptions(input: {
   long?: string;
 }): Promise<{ ok: boolean; error?: string }> {
   try {
-    await requireAdmin();
+    await requireStaff("products.edit", { costs: true });
     const data: Record<string, unknown> = {};
     if (typeof input.short === "string") data.shortDescription = input.short || null;
     if (typeof input.long === "string") {
@@ -228,7 +228,7 @@ export async function generateProductDescription(
   productId: string
 ): Promise<{ ok: boolean; description?: string; error?: string }> {
   try {
-    await requireAdmin();
+    await requireStaff("products.edit", { costs: true });
     const p = await prisma.product.findUnique({
       where: { id: productId },
       include: { brand: true, category: true },
@@ -263,7 +263,7 @@ export async function searchProductImagesAction(
   productId: string,
   query?: string
 ): Promise<{ ok: boolean; images: SerperImage[]; error?: string }> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const p = await prisma.product.findUnique({
     where: { id: productId },
     include: { brand: true },
@@ -291,7 +291,7 @@ export async function uploadProductImageFile(
   formData: FormData
 ): Promise<{ ok: boolean; error?: string; url?: string }> {
   try {
-    await requireAdmin();
+    await requireStaff("products.edit", { costs: true });
     const productId = String(formData.get("productId") || "");
     const file = formData.get("file");
     const alt = String(formData.get("alt") || "");
@@ -363,7 +363,7 @@ export async function uploadProductImageFile(
 }
 
 export async function attachProductImage(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const productId = String(formData.get("productId") || "");
   const url = String(formData.get("url") || "");
   const alt = String(formData.get("alt") || "");
@@ -384,7 +384,7 @@ export async function attachProductImage(formData: FormData): Promise<void> {
 }
 
 export async function setPrimaryImage(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const id = String(formData.get("id") || "");
   const productId = String(formData.get("productId") || "");
   if (!id || !productId) return;
@@ -413,7 +413,7 @@ export async function previewBulkDescriptions(
   productIds: string[],
   type: DescriptionType
 ): Promise<{ ok: boolean; results: BulkDescriptionResult[] }> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
     include: { brand: true, category: true },
@@ -444,7 +444,7 @@ export async function previewBulkDescriptions(
 export async function saveBulkDescriptions(
   items: Array<{ id: string; short?: string | null; long?: string | null }>
 ): Promise<{ ok: boolean; saved: number }> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   let saved = 0;
   for (const item of items) {
     const data: Record<string, unknown> = {};
@@ -469,7 +469,7 @@ export async function saveBulkDescriptions(
 export async function bulkGenerateDescriptions(
   productIds: string[]
 ): Promise<{ ok: boolean; processed: number; errors: number }> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   let processed = 0;
   let errors = 0;
   for (const id of productIds) {
@@ -493,7 +493,7 @@ export async function bulkGenerateDescriptions(
 export async function bulkSearchImages(
   productIds: string[]
 ): Promise<{ ok: boolean; processed: number; skipped: number }> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const ids = productIds;
   let processed = 0;
   let skipped = 0;
@@ -533,7 +533,7 @@ export async function bulkSearchImages(
 }
 
 export async function deleteProductImage(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const id = String(formData.get("id") || "");
   const productId = String(formData.get("productId") || "");
   if (!id) return;

@@ -11,6 +11,7 @@
 
 import { getSetting, setSetting } from "@/lib/settings";
 import {
+  rowRef,
   skuKey,
   type ClassificationConflict,
   type ParsedPriceList,
@@ -37,10 +38,14 @@ export interface ReviewState {
   rows: PriceListRow[];
   warnings: ParsedPriceList["warnings"];
   invalid: ParsedPriceList["invalid"];
+  /** Hojas del Excel leídas y salteadas. */
+  sheets?: ParsedPriceList["sheets"];
   classificationConflicts: ClassificationConflict[];
   /** Clave = skuKey del SKU de la lista. */
   pairs: Record<string, PairDecision>;
   creates: Record<string, { create: boolean; brand?: string }>;
+  /** Pares confirmados: qué datos se muestran en el catálogo (por defecto, los de la lista). */
+  pairKeep?: Record<string, "excel" | "portal">;
   /** SKU → fila de Excel cuya clasificación vale. */
   classification: Record<string, number>;
   /** id de producto → qué hacer (por defecto, dejarlo como está). */
@@ -85,6 +90,8 @@ export interface PairQuestion {
   row: PriceListRow;
   candidates: CatalogProduct[];
   decision?: PairDecision;
+  /** Si es el mismo: qué versión queda visible. */
+  keep: "excel" | "portal";
 }
 
 export interface NewProductQuestion {
@@ -128,7 +135,7 @@ export async function buildReviewView(state: ReviewState): Promise<ReviewView> {
     const key = skuKey(row.sku);
     const candidates = suggestCandidates(row, plan.missing);
     const decision = state.pairs[key];
-    if (candidates.length > 0) pairs.push({ key, row, candidates, decision });
+    if (candidates.length > 0) pairs.push({ key, row, candidates, decision, keep: state.pairKeep?.[key] ?? "excel" });
     if (candidates.length === 0 || decision === "NONE") {
       newProducts.push({ key, row, decision: state.creates[key], fromPair: candidates.length > 0 });
     }
@@ -167,7 +174,7 @@ export function rowsWithChosenClassification(state: ReviewState): PriceListRow[]
     const key = skuKey(row.sku);
     const chosenRow = state.classification[key];
     const conflict = state.classificationConflicts.find((c) => skuKey(c.sku) === key);
-    const option = conflict?.options.find((o) => o.excelRow === chosenRow);
+    const option = conflict?.options.find((o) => rowRef(o) === chosenRow);
     return option
       ? { ...row, categoria: option.categoria, segmento: option.segmento, familia: option.familia, tipo: option.tipo }
       : row;

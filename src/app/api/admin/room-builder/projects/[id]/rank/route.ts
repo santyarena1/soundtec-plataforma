@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import {
   DESIGN_ROLES,
   MOUNT_OPTIONS,
@@ -20,7 +20,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const project = await getRoomProject(params.id);
   if (!project) {
     return NextResponse.json({ ok: false, error: "No encontrado" }, { status: 404 });

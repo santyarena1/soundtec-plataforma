@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { interpretRoomText } from "@/server/room-builder/room-from-text";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ const schema = z.object({ text: z.string().trim().min(8).max(1000) });
 
 /** Interpreta una frase ("sala de reuniones 6x4 con Teams…") como ambiente del asistente, para confirmar antes de generar. */
 export async function POST(req: Request) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Contá un poco más: qué ambiente es, medidas y qué tiene que tener." }, { status: 400 });
   try {

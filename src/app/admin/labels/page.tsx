@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { upsertLabel, deleteLabel } from "@/server/actions/labels";
 export const metadata = { title: "Admin · Etiquetas" };
 
 export default async function AdminLabelsPage() {
-  await requireAdmin();
+  await requireStaff("brands.manage");
   const labels = await prisma.label.findMany({
     orderBy: { name: "asc" },
     include: { _count: { select: { products: true } } },

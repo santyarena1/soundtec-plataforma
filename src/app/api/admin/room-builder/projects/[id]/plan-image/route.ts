@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 /** Imagen del plano subido para un ambiente del Room Builder. */
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const plan = await prisma.roomPlanImage.findUnique({
     where: { roomProjectId: params.id },
     select: { data: true, mimeType: true },

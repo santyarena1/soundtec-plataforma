@@ -14,18 +14,46 @@ import * as XLSX from "xlsx";
 export interface ParsedExcel {
   headers: string[];
   rows: Record<string, unknown>[];
+  /** Hojas leídas (separadas por " + " si la lista viene en varias). */
   sheetName: string;
   totalRows: number;
+  /** Hojas salteadas porque sus columnas no son las de la lista. */
+  skippedSheets: string[];
 }
 
+/** Mínimo de columnas en común con la hoja principal para sumar otra hoja. */
+const MIN_SHARED_HEADERS = 0.6;
+
+/**
+ * Lee TODAS las hojas. La hoja con más filas define las columnas; las demás
+ * se suman si comparten la mayoría de esas columnas (una lista partida en
+ * varias hojas). Las que no (portada, condiciones) se informan como salteadas.
+ */
 export function parseExcelBuffer(buffer: ArrayBuffer | Buffer): ParsedExcel {
   const wb = XLSX.read(buffer, { type: "buffer" });
-  const sheetName = wb.SheetNames[0];
-  if (!sheetName) throw new Error("El archivo no contiene hojas.");
-  const ws = wb.Sheets[sheetName]!;
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, raw: false });
-  const headers = Object.keys(rows[0] || {});
-  return { headers, rows, sheetName, totalRows: rows.length };
+  if (!wb.SheetNames.length) throw new Error("El archivo no contiene hojas.");
+  const sheets = wb.SheetNames.map((name) => {
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[name]!, { defval: null, raw: false });
+    return { name, rows, headers: Object.keys(rows[0] || {}) };
+  }).filter((s) => s.rows.length > 0);
+  if (!sheets.length) return { headers: [], rows: [], sheetName: wb.SheetNames[0]!, totalRows: 0, skippedSheets: [] };
+
+  const main = [...sheets].sort((a, b) => b.rows.length - a.rows.length)[0]!;
+  const mainHeaders = new Set(main.headers);
+  const used = sheets.filter((s) => {
+    if (s === main) return true;
+    const shared = s.headers.filter((h) => mainHeaders.has(h)).length;
+    return shared / Math.max(1, mainHeaders.size) >= MIN_SHARED_HEADERS;
+  });
+  const rows = used.flatMap((s) => s.rows);
+  const headers = [...new Set(used.flatMap((s) => s.headers))];
+  return {
+    headers,
+    rows,
+    sheetName: used.map((s) => s.name).join(" + "),
+    totalRows: rows.length,
+    skippedSheets: sheets.filter((s) => !used.includes(s)).map((s) => s.name),
+  };
 }
 
 export interface CanonicalProductDraft {

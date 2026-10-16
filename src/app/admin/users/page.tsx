@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Prisma } from "@prisma/client";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { Prisma, type UserRole } from "@prisma/client";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { permissionsHave } from "@/lib/permissions";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
@@ -9,19 +10,20 @@ import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/tab
 import { Badge } from "@/components/ui/badge";
 import { UserFormModal } from "@/components/admin/user-form-modal";
 import { formatDate } from "@/lib/utils";
+import { USER_TYPE_LABEL, loadUserFormOptions } from "@/server/users-ui";
+
 export const metadata = { title: "Admin · Usuarios" };
-const label: Record<string, string> = {
-  CLIENT: "Cliente del portal",
-  ADMIN: "Administrador",
-  SUPER_ADMIN: "Super admin",
+
+const ROLE_FILTERS: Record<string, UserRole[]> = {
+  staff: ["STAFF", "ADMIN", "SUPER_ADMIN"],
+  portal: ["CLIENT"],
 };
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: { q?: string; role?: string; status?: string };
-}) {
-  const admin = await requireAdmin();
+
+export default async function Page({ searchParams }: { searchParams: { q?: string; tipo?: string; status?: string; rol?: string } }) {
+  const { user: actor, permissions } = await requireStaff("users.view");
+  const canManage = permissionsHave(permissions, "users.manage");
   const q = searchParams.q?.trim();
+  const tipo = searchParams.tipo === "portal" || searchParams.tipo === "staff" ? searchParams.tipo : "";
   const where: Prisma.UserWhereInput = {
     ...(q
       ? {
@@ -32,59 +34,59 @@ export default async function Page({
           ],
         }
       : {}),
-    ...(searchParams.role ? { role: searchParams.role as "CLIENT" | "ADMIN" | "SUPER_ADMIN" } : {}),
+    ...(tipo ? { role: { in: ROLE_FILTERS[tipo] } } : {}),
+    ...(searchParams.rol ? { customRoleId: searchParams.rol } : {}),
     ...(searchParams.status ? { isActive: searchParams.status === "active" } : {}),
   };
-  const [users, clients, roles] = await Promise.all([
+  const [users, options] = await Promise.all([
     prisma.user.findMany({
       where,
       orderBy: [{ role: "asc" }, { name: "asc" }],
-      include: { client: { select: { id: true, companyName: true } } },
+      include: { client: { select: { id: true, companyName: true } }, customRole: { select: { name: true } } },
+      take: 500,
     }),
-    prisma.client.findMany({
-      where: { isActive: true },
-      orderBy: { companyName: "asc" },
-      select: { id: true, companyName: true },
-    }),
-    prisma.customRole.findMany({
-      where: { isActive: true },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
+    loadUserFormOptions(),
   ]);
+  const common = { clients: options.clients, roles: options.roles, isSuper: actor.role === "SUPER_ADMIN", isAdmin: actor.role === "ADMIN" || actor.role === "SUPER_ADMIN" };
   return (
     <div className="space-y-6">
       <PageHeader
         title="Usuarios"
-        description="Personas que ingresan a la plataforma y sus accesos."
+        description="Quién entra a la plataforma: el equipo interno (panel) y las personas de cada cliente (portal)."
         actions={
-          <UserFormModal
-            clients={clients.map((x) => ({ id: x.id, name: x.companyName }))}
-            roles={roles}
-            isSuper={admin.role === "SUPER_ADMIN"}
-          />
+          canManage ? (
+            <div className="flex flex-wrap gap-2">
+              <UserFormModal {...common} kind="staff" triggerLabel="Nuevo usuario del equipo" />
+              <UserFormModal {...common} kind="portal" triggerLabel="Nuevo acceso de cliente" triggerVariant="outline" />
+            </div>
+          ) : null
         }
       />
       <Card>
         <CardContent className="p-4">
-          <form className="grid gap-2 sm:grid-cols-4">
-            <Input name="q" defaultValue={q} placeholder="Buscar por nombre, email o cliente" />
-            <Select name="role" defaultValue={searchParams.role || ""}>
+          <form className="grid gap-2 sm:grid-cols-5">
+            <Input name="q" defaultValue={q} placeholder="Buscar por nombre, email o empresa" className="sm:col-span-2" />
+            <Select name="tipo" defaultValue={tipo}>
+              <option value="">Equipo y clientes</option>
+              <option value="staff">Solo equipo interno</option>
+              <option value="portal">Solo clientes del portal</option>
+            </Select>
+            <Select name="rol" defaultValue={searchParams.rol ?? ""}>
               <option value="">Todos los roles</option>
-              <option value="CLIENT">Clientes del portal</option>
-              <option value="ADMIN">Administradores</option>
-              {admin.role === "SUPER_ADMIN" ? (
-                <option value="SUPER_ADMIN">Super admins</option>
-              ) : null}
+              {options.roles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
             </Select>
-            <Select name="status" defaultValue={searchParams.status || ""}>
-              <option value="">Todos los estados</option>
-              <option value="active">Activos</option>
-              <option value="inactive">Inactivos</option>
-            </Select>
-            <button className="rounded-md bg-primary px-4 text-sm text-primary-foreground">
-              Aplicar filtros
-            </button>
+            <div className="flex gap-2">
+              <Select name="status" defaultValue={searchParams.status ?? ""}>
+                <option value="">Todos</option>
+                <option value="active">Activos</option>
+                <option value="inactive">Inactivos</option>
+              </Select>
+              <button className="rounded-md bg-primary px-4 text-sm text-primary-foreground">Filtrar</button>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -98,8 +100,8 @@ export default async function Page({
                 <TR>
                   <TH>Nombre</TH>
                   <TH>Email</TH>
-                  <TH>Rol</TH>
-                  <TH>Cliente</TH>
+                  <TH>Tipo y rol</TH>
+                  <TH>Empresa</TH>
                   <TH>Último acceso</TH>
                   <TH>Estado</TH>
                 </TR>
@@ -112,31 +114,31 @@ export default async function Page({
                         {u.name}
                       </Link>
                     </TD>
-                    <TD>{u.email}</TD>
+                    <TD className="text-sm">{u.email}</TD>
                     <TD>
-                      <Badge tone={u.role === "CLIENT" ? "muted" : "primary"}>
-                        {label[u.role]}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge tone={u.role === "CLIENT" ? "muted" : u.role === "STAFF" ? "accent" : "primary"}>{USER_TYPE_LABEL[u.role]}</Badge>
+                        {u.customRole && u.role !== "ADMIN" && u.role !== "SUPER_ADMIN" ? <Badge tone="muted">{u.customRole.name}</Badge> : null}
+                        {u.role === "STAFF" && !u.customRole ? <Badge tone="warning">sin rol</Badge> : null}
+                      </div>
                     </TD>
                     <TD>
                       {u.client ? (
-                        <Link
-                          className="text-primary hover:underline"
-                          href={`/admin/clients/${u.client.id}`}
-                        >
+                        <Link className="text-primary hover:underline" href={`/admin/clients/${u.client.id}`}>
                           {u.client.companyName}
                         </Link>
                       ) : u.role === "CLIENT" ? (
-                        <Badge tone="warning">— sin cliente —</Badge>
+                        <Badge tone="warning">sin empresa</Badge>
                       ) : (
                         "—"
                       )}
                     </TD>
-                    <TD>{u.lastLoginAt ? formatDate(u.lastLoginAt) : "Nunca"}</TD>
+                    <TD className="text-sm">{u.lastLoginAt ? formatDate(u.lastLoginAt) : "Nunca"}</TD>
                     <TD>
-                      <Badge tone={u.isActive ? "success" : "muted"}>
-                        {u.isActive ? "Activo" : "Inactivo"}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge tone={u.isActive ? "success" : "muted"}>{u.isActive ? "Activo" : "Inactivo"}</Badge>
+                        {u.mustChangePassword ? <Badge tone="warning">clave temporal</Badge> : null}
+                      </div>
                     </TD>
                   </TR>
                 ))}

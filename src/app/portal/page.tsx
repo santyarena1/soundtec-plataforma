@@ -1,3 +1,4 @@
+import { isPanelRole } from "@/lib/permissions";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
@@ -50,7 +51,7 @@ function greeting(): string {
 
 export default async function PortalDashboardPage() {
   const user = await requireUser();
-  const isAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
+  const isAdmin = isPanelRole(user.role);
   // Todo lo que se cuenta o lista acá es solo lo que este cliente puede ver.
   const visible = await getVisibleProductsWhere({
     commercialClientId: isAdmin ? null : await resolveCommercialClientId(user.id),

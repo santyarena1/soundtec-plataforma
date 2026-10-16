@@ -9,7 +9,7 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { buildProfiles, countPending } from "@/services/ai-assistant/profile/build";
 
@@ -20,7 +20,7 @@ const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 60;
 
 export async function GET() {
-  await requireAdmin();
+  await requireStaff("products.view", { costs: true });
   const [{ total, withProfile, pending }, lastBuilt, environments, sample] = await Promise.all([
     countPending(),
     prisma.productAiProfile.findFirst({
@@ -112,7 +112,7 @@ async function cleanupEvidence(): Promise<number> {
 }
 
 export async function POST(req: NextRequest) {
-  await requireAdmin();
+  await requireStaff("products.view", { costs: true });
   const body = (await req.json().catch(() => ({}))) as {
     limit?: unknown;
     force?: unknown;

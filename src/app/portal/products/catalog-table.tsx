@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { formatUsd } from "@/lib/utils";
 import { FavoriteButton } from "./favorite-button";
-import { StockBadge } from "./catalog-grid";
+import { StockBadge, priceOnRequest } from "./catalog-grid";
 import { Badge } from "@/components/ui/badge";
 import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
@@ -60,7 +60,11 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
                         {formatUsd(p.pricing.priceBeforeDiscountUsd)}
                       </span>
                     ) : null}
-                    <span className="font-semibold">{formatUsd(p.pricing.finalPriceUsd)}</span>
+                    {priceOnRequest(p) ? (
+                      <span className="text-xs font-medium text-muted-foreground">A consultar</span>
+                    ) : (
+                      <span className="font-semibold">{formatUsd(p.pricing.finalPriceUsd)}</span>
+                    )}
                     {p.pricing.discountPercent > 0 ? (
                       <Badge tone="success" className="mt-0.5">
                         -{p.pricing.discountPercent.toFixed(1)}%

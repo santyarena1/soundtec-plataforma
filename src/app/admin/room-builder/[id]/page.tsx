@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { getRoomProject } from "@/services/room-builder";
 import { RoomBuilderEditor } from "./editor-client";
 
@@ -10,7 +10,7 @@ export default async function RoomBuilderEditorPage({
 }: {
   params: { id: string };
 }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const project = await getRoomProject(params.id);
   if (!project) notFound();
 

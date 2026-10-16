@@ -1,11 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { suggestRequestResponse } from "@/services/openai";
 
 export async function generateRequestAiSuggestion(requestId: string) {
-  await requireAdmin();
+  await requireStaff("requests.respond");
   const request = await prisma.customerRequest.findUnique({
     where: { id: requestId },
     include: { items: { include: { product: { select: { normalizedName: true } } } } },

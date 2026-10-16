@@ -73,7 +73,7 @@ export function MissingSection({ items }: { items: MissingItem[] }) {
             Desactivar seleccionados
           </Button>
           <Button size="sm" variant="outline" disabled={pending || selected.size === 0} onClick={() => apply("keep", [...selected])}>
-            Dejar seleccionados
+            Dejar sin precio
           </Button>
         </div>
       </div>
@@ -139,7 +139,7 @@ export function MissingSection({ items }: { items: MissingItem[] }) {
                       onClick={() => apply(i.action === "deactivate" ? "keep" : "deactivate", [i.product.id])}
                       title="Cambiar"
                     >
-                      {i.action === "deactivate" ? <Badge tone="destructive">Desactivar</Badge> : <Badge tone="muted">Dejar como está</Badge>}
+                      {i.action === "deactivate" ? <Badge tone="destructive">Desactivar</Badge> : <Badge tone="muted">Sin precio (a consultar)</Badge>}
                     </button>
                   </TD>
                 </TR>

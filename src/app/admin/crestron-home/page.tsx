@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { ProductCompatList } from "./product-compat-list";
 export const metadata = { title: "Admin · Crestron Home" };
 
 export default async function CrestronHomePage() {
-  await requireAdmin();
+  await requireStaff("products.edit");
 
   const [products, compatibleCount] = await Promise.all([
     prisma.product.findMany({

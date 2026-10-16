@@ -2,7 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { calculatePricesForProducts, findCandidateRules, type AppliedRule, type ProductPricingInput } from "@/lib/pricing";
 import { attachRuleExemptions, toFiniteNumber, toPricingRuleRow } from "@/lib/pricing-scope";
@@ -92,7 +92,7 @@ export async function listProductRuleCoverage(input: {
   distributorIds?: string[]; coverage?: "all" | "with_rule" | "without_rule"; clientId?: string | null; page?: number; pageSize?: number;
 }): Promise<ProductCoverageResult> {
   try {
-    await requireAdmin();
+    await requireStaff("margins.manage", { costs: true });
     const where = productWhere(input); const clientId = input.clientId || null;
     const page = Math.max(1, input.page || 1); const pageSize = [25, 50, 100].includes(input.pageSize || 0) ? input.pageSize! : 25;
     const all = await prisma.product.findMany({ where, orderBy: { normalizedName: "asc" }, select: pricingSelect });
@@ -128,14 +128,14 @@ export async function listProductRuleCoverage(input: {
 }
 
 export async function setPricingRuleActive(input: { kind: "margin" | "discount"; id: string; active: boolean }) {
-  await requireAdmin();
+  await requireStaff("margins.manage", { costs: true });
   if (input.kind === "margin") await prisma.marginRule.update({ where: { id: input.id }, data: { isActive: input.active } });
   else await prisma.discountRule.update({ where: { id: input.id }, data: { isActive: input.active } });
   revalidatePath(input.kind === "margin" ? "/admin/margins" : "/admin/discounts"); return { ok: true as const };
 }
 
 export async function removePricingRule(input: { kind: "margin" | "discount"; id: string }) {
-  await requireAdmin();
+  await requireStaff("margins.manage", { costs: true });
   if (input.kind === "margin") await prisma.marginRule.delete({ where: { id: input.id } });
   else await prisma.discountRule.delete({ where: { id: input.id } });
   revalidatePath(input.kind === "margin" ? "/admin/margins" : "/admin/discounts"); return { ok: true as const };

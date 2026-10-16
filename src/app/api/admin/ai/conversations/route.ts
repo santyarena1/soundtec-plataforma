@@ -10,14 +10,14 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function DELETE(req: NextRequest) {
-  await requireAdmin();
+  await requireStaff("products.view", { costs: true });
   const body = (await req.json().catch(() => ({}))) as {
     ids?: unknown;
     exactQuestion?: unknown;

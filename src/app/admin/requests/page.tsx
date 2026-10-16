@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,7 +41,7 @@ export default async function AdminRequestsPage({
 }: {
   searchParams?: Promise<{ status?: string; q?: string; type?: string; from?: string; to?: string; sort?: string }>;
 }) {
-  await requireAdmin();
+  await requireStaff("requests.view");
   const params = searchParams ? await searchParams : {};
 
   const status = params.status && FILTERABLE.includes(params.status as RequestStatus) ? (params.status as RequestStatus) : null;

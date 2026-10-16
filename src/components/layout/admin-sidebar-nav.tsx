@@ -50,6 +50,10 @@ type NavItem = {
   /** data-tour para el paseo de bienvenida. */
   tourId?: string;
   badgeKey?: "accountRequests" | "soundtubeReview";
+  /** Pantalla con costos, márgenes, proveedores o importación: solo con acceso a costos. */
+  costs?: boolean;
+  /** Pantalla con precios de venta: con acceso «solo venta» o «todo». */
+  salePrices?: boolean;
   /** Solo se muestra mientras el módulo temporal está activo. */
   onlyWhen?: "soundtubeReview";
 };
@@ -63,7 +67,7 @@ const groups: NavGroup[] = [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, scope: "dashboard", tourId: "nav-link-dashboard" },
       { href: "/admin/requests", label: "Pedidos", icon: ListChecks, scope: "requests.view", tourId: "nav-link-requests" },
       { href: "/admin/quotes", label: "Cotizaciones", icon: FileSpreadsheet, scope: "quotes.view_own", tourId: "nav-link-quotes" },
-      { href: "/admin/room-builder", label: "Room Builder", icon: Box, scope: "products.view" },
+      { href: "/admin/room-builder", label: "Room Builder", icon: Box, scope: "room_builder.use" },
       { href: "/admin/feedback", label: "Feedback de IA", icon: MessageSquare, scope: "ai.manage" },
     ],
   },
@@ -71,30 +75,31 @@ const groups: NavGroup[] = [
     title: "Catálogo",
     tourId: "nav-catalogo",
     items: [
+      { href: "/portal/products", label: "Catálogo de venta", icon: Package, salePrices: true },
       { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view", tourId: "nav-link-products" },
-      { href: "/admin/assistant", label: "Asistente de productos", icon: Sparkles, scope: "products.view" },
+      { href: "/admin/assistant", label: "Asistente de productos", icon: Sparkles, scope: "products.view", costs: true },
       { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage", tourId: "nav-link-brands" },
       { href: "/admin/labels", label: "Etiquetas", icon: Tags, scope: "brands.manage" },
-      { href: "/admin/distributors", label: "Proveedores", icon: Truck, scope: "distributors.manage" },
+      { href: "/admin/distributors", label: "Proveedores", icon: Truck, scope: "distributors.manage", costs: true },
       { href: "/admin/categories", label: "Categorías", icon: Building2, scope: "categories.manage" },
       { href: "/admin/families", label: "Familias", icon: Building2, scope: "families.manage" },
-      { href: "/admin/ncm", label: "Posiciones NCM", icon: PackageSearch, scope: "imports.manage" },
-      { href: "/admin/soundtube-review", label: "Revisión SoundTube", icon: ClipboardCheck, scope: "imports.manage", badgeKey: "soundtubeReview", onlyWhen: "soundtubeReview" },
+      { href: "/admin/ncm", label: "Posiciones NCM", icon: PackageSearch, scope: "imports.manage", costs: true },
+      { href: "/admin/soundtube-review", label: "Revisión SoundTube", icon: ClipboardCheck, scope: "imports.manage", badgeKey: "soundtubeReview", costs: true },
     ],
   },
   {
     title: "Listas e importación",
     items: [
-      { href: "/admin/sync", label: "Sincronización", icon: RefreshCw, scope: "imports.manage" },
-      { href: "/admin/imports", label: "Importar Excel", icon: FileSpreadsheet, scope: "imports.manage" },
+      { href: "/admin/sync", label: "Sincronización", icon: RefreshCw, scope: "imports.manage", costs: true },
+      { href: "/admin/imports", label: "Importar Excel", icon: FileSpreadsheet, scope: "imports.manage", costs: true },
     ],
   },
   {
     title: "Precios y visibilidad",
     tourId: "nav-precios",
     items: [
-      { href: "/admin/margins", label: "Márgenes", icon: Percent, scope: "margins.manage", tourId: "nav-link-margins" },
-      { href: "/admin/discounts", label: "Descuentos", icon: Receipt, scope: "discounts.manage", tourId: "nav-link-discounts" },
+      { href: "/admin/margins", label: "Márgenes", icon: Percent, scope: "margins.manage", tourId: "nav-link-margins", costs: true },
+      { href: "/admin/discounts", label: "Descuentos", icon: Receipt, scope: "discounts.manage", tourId: "nav-link-discounts", costs: true },
       { href: "/admin/visibility", label: "Visibilidad por cliente", icon: Eye, scope: "visibility.manage", tourId: "nav-link-visibility" },
       { href: "/admin/share-lists", label: "Listas compartibles", icon: Share2, scope: "share_lists.manage", tourId: "nav-link-share-lists" },
     ],
@@ -103,10 +108,10 @@ const groups: NavGroup[] = [
     title: "CRM",
     tourId: "nav-crm",
     items: [
-      { href: "/admin/clients", label: "Clientes", icon: Users, scope: "clients.view", tourId: "nav-link-clients" },
-      { href: "/admin/account-requests", label: "Solicitudes de cuenta", icon: UserPlus, scope: "clients.view", badgeKey: "accountRequests" },
-      { href: "/admin/leads", label: "Leads del catálogo", icon: QrCode, scope: "clients.view" },
-      { href: "/admin/assistant/leads", label: "Leads del asistente", icon: MessageSquare, scope: "clients.view" },
+      { href: "/admin/clients", label: "Clientes", icon: Users, anyScope: ["clients.view", "clients.view_all"], tourId: "nav-link-clients" },
+      { href: "/admin/account-requests", label: "Solicitudes de alta", icon: UserPlus, anyScope: ["account_requests.create", "account_requests.review"], badgeKey: "accountRequests" },
+      { href: "/admin/leads", label: "Leads del catálogo", icon: QrCode, scope: "leads.view" },
+      { href: "/admin/assistant/leads", label: "Leads del asistente", icon: MessageSquare, scope: "leads.view" },
       { href: "/admin/users", label: "Usuarios", icon: ShieldCheck, scope: "users.view", tourId: "nav-link-users" },
     ],
   },
@@ -137,6 +142,10 @@ interface Props {
   allowedScopes: PermissionScope[];
   /** Si es full access (super admin) ignora allowedScopes. */
   fullAccess?: boolean;
+  /** Ve costos y márgenes. */
+  seesCosts?: boolean;
+  /** Ve precios de venta. */
+  seesSalePrices?: boolean;
   /** En el drawer mobile conviene ver todos los grupos abiertos. */
   expandAll?: boolean;
   counts?: Partial<Record<"accountRequests" | "soundtubeReview", number>>;
@@ -144,7 +153,7 @@ interface Props {
   active?: Partial<Record<"soundtubeReview", boolean>>;
 }
 
-export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll, counts, active }: Props) {
+export function AdminSidebarNav({ allowedScopes, fullAccess, seesCosts, seesSalePrices, expandAll, counts, active }: Props) {
   const pathname = usePathname();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
@@ -168,6 +177,8 @@ export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll, counts, 
   const filteredGroups = useMemo(() => {
     const canSee = (item: NavItem) => {
       if (item.onlyWhen && !active?.[item.onlyWhen]) return false;
+      if (item.costs && !seesCosts) return false;
+      if (item.salePrices && !seesSalePrices) return false;
       if (fullAccess) return true;
       if (item.anyScope) return item.anyScope.some((s) => allowSet.has(s));
       if (!item.scope) return true;
@@ -176,7 +187,7 @@ export function AdminSidebarNav({ allowedScopes, fullAccess, expandAll, counts, 
     return groups
       .map((g) => ({ ...g, items: g.items.filter(canSee) }))
       .filter((g) => g.items.length > 0);
-  }, [allowSet, fullAccess, active]);
+  }, [allowSet, fullAccess, seesCosts, seesSalePrices, active]);
 
   const activeGroupTitle = useMemo(
     () => filteredGroups.find((g) => g.items.some((i) => isActive(pathname, i)))?.title,

@@ -185,11 +185,37 @@ export function parseHallPriceListRows(table: unknown[][]): ParsedHallPriceList 
   return { rows, invalid, duplicates };
 }
 
-/** Lee el Excel (primera hoja). */
+/**
+ * Lee TODAS las hojas con el encabezado de la lista y une sus filas (las
+ * demás se saltean). Un SKU repetido entre hojas usa la primera fila, igual
+ * que dentro de una hoja.
+ */
 export function parseHallPriceListFile(buffer: Buffer): ParsedHallPriceList {
   const wb = XLSX.read(buffer, { type: "buffer" });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  if (!sheet) throw new Error("El Excel no tiene hojas.");
-  const table = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", raw: false });
-  return parseHallPriceListRows(table);
+  if (!wb.SheetNames.length) throw new Error("El Excel no tiene hojas.");
+  const parsed: ParsedHallPriceList[] = [];
+  let firstError: unknown = null;
+  for (const name of wb.SheetNames) {
+    const table = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[name]!, { header: 1, defval: "", raw: false });
+    try {
+      parsed.push(parseHallPriceListRows(table));
+    } catch (error) {
+      firstError ??= error;
+    }
+  }
+  if (!parsed.length) throw firstError instanceof Error ? firstError : new Error("No encontré el encabezado de la lista.");
+  if (parsed.length === 1) return parsed[0]!;
+  const seen = new Set<string>();
+  const duplicates = new Set(parsed.flatMap((p) => p.duplicates));
+  const rows: HallPriceRow[] = [];
+  for (const row of parsed.flatMap((p) => p.rows)) {
+    const key = skuKey(row.sku);
+    if (seen.has(key)) {
+      duplicates.add(row.sku);
+      continue;
+    }
+    seen.add(key);
+    rows.push(row);
+  }
+  return { rows, invalid: parsed.flatMap((p) => p.invalid), duplicates: [...duplicates] };
 }

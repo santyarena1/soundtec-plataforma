@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { BRAND_GROUPS, BRIEF_CONTROLS, BRIEF_SYSTEMS, BRIEF_TIERS, BRIEF_VC_PLATFORMS } from "@/services/room-builder/brief";
 import { PLAN_KINDS } from "@/services/room-builder/plan-analysis";
 import { MAX_POLYGON_POINTS, MIN_POLYGON_POINTS } from "@/services/room-builder/plan-polygon";
@@ -52,7 +52,7 @@ const schema = z.object({
 
 /** Genera el proyecto completo (todos los ambientes) a partir del plano revisado. */
 export async function POST(req: NextRequest) {
-  const user = await requireAdmin();
+  const { user: user } = await requireStaff("room_builder.use");
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, { status: 400 });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { analyzeHubSystem, removeCentralDevice, saveHubSystem, setCentralDevice } from "@/services/room-builder/project-system-db";
 import { SYSTEM_LOCATIONS, SYSTEM_MODES } from "@/services/room-builder/project-system";
 import { BRIEF_CONTROLS } from "@/services/room-builder/brief";
@@ -19,7 +19,7 @@ const fail = (error: unknown, fallback: string, status = 400) => {
 
 /** Sistema del proyecto: totales, equipos centrales y sugerencias. */
 export async function GET(_req: Request, { params }: Ctx) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   try {
     const view = await analyzeHubSystem(params.id);
     if (!view) return NextResponse.json({ ok: false, error: "Proyecto no encontrado" }, { status: 404 });
@@ -38,7 +38,7 @@ const settingsSchema = z.object({
 
 /** Guarda central / por ambiente, dónde va y la plataforma; re-arma los ambientes. */
 export async function PUT(req: Request, { params }: Ctx) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const parsed = settingsSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Configuración inválida" }, { status: 400 });
   try {
@@ -58,7 +58,7 @@ const deviceSchema = z.object({
 
 /** Pone un equipo central (amplificación, procesador, streaming, switch). */
 export async function POST(req: Request, { params }: Ctx) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const parsed = deviceSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Equipo inválido" }, { status: 400 });
   try {
@@ -71,7 +71,7 @@ export async function POST(req: Request, { params }: Ctx) {
 
 /** Saca un equipo central. */
 export async function DELETE(req: Request, { params }: Ctx) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const slotKey = new URL(req.url).searchParams.get("slotKey");
   if (!slotKey) return NextResponse.json({ ok: false, error: "Falta el equipo" }, { status: 400 });
   try {

@@ -551,7 +551,7 @@ export const HELP_MODULES: HelpModule[] = [
     match: (p) => p.startsWith("/admin/settings/roles"),
     simple: "Permisos por rol custom: qué pantallas ve cada empleado.",
     purpose: "Un vendedor no es lo mismo que catálogo o super admin.",
-    fields: ["Scopes: productos, COT, precios, tickets, etc. hidePrices."],
+    fields: ["Permisos por pantalla y acción, y qué precios ve: todo (costos), solo venta o ninguno."],
     editable: "Checkboxes del rol. Se asigna el rol en la ficha de usuario.",
     notEditable: "SUPER_ADMIN siempre tiene full access.",
     config: "Acá + Usuarios.",

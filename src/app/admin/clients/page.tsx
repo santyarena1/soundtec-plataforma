@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
+import { requireStaff } from "@/lib/auth-helpers";
+import { permissionsHave } from "@/lib/permissions";
+import { ButtonLink } from "@/components/ui/button";
+import { clientsWhereFor, seesAllClients } from "@/server/clients/access";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ClientFormModal } from "@/components/admin/client-form-modal";
 import { ClientRowActions } from "@/components/admin/client-row-actions";
 import { formatDate } from "@/lib/utils";
 export const metadata = { title: "Admin · Clientes" };
@@ -20,15 +23,23 @@ type Search = {
   inactive?: string;
   page?: string;
   size?: string;
+  nuevo?: string;
 };
 export default async function Page({ searchParams }: { searchParams: Search }) {
-  await requireAdmin();
+  const ctx = await requireStaff(["clients.view", "clients.view_all"]);
+  if (searchParams.nuevo) redirect("/admin/clients/nuevo");
+  const scope = clientsWhereFor(ctx);
+  const seesAll = seesAllClients(ctx.permissions);
+  const canCreate = permissionsHave(ctx.permissions, "clients.create");
+  const canEdit = permissionsHave(ctx.permissions, "clients.edit");
+  const canDelete = permissionsHave(ctx.permissions, "clients.delete");
   const q = searchParams.q?.trim(),
     size = searchParams.size === "50" ? 50 : 25,
     page = Math.max(1, Number(searchParams.page) || 1),
     days = searchParams.inactive ? Number(searchParams.inactive) : 0,
     cutoff = days ? new Date(Date.now() - days * 86400000) : null;
   const where: Prisma.ClientWhereInput = {
+    ...scope,
     ...(q
       ? {
           OR: [
@@ -52,12 +63,12 @@ export default async function Page({ searchParams }: { searchParams: Search }) {
       : {}),
     ...(searchParams.status ? { isActive: searchParams.status === "active" } : {}),
     ...(searchParams.segment ? { segment: searchParams.segment } : {}),
-    ...(searchParams.owner ? { ownerId: searchParams.owner } : {}),
+    ...(searchParams.owner && seesAll ? { ownerId: searchParams.owner } : {}),
     ...(searchParams.portal === "none" ? { portalUsers: { none: {} } } : {}),
     ...(cutoff ? { OR: [{ lastActivityAt: { lt: cutoff } }, { lastActivityAt: null }] } : {}),
   };
   const openStatuses = ["DRAFT", "SENT", "IN_REVIEW"] as const;
-  const [clients, total, owners, priceLists, segments, totalActive, withPortal, withOpen, old] =
+  const [clients, total, owners, segments, totalActive, withPortal, withOpen, old] =
     await Promise.all([
       prisma.client.findMany({
         where,
@@ -72,22 +83,22 @@ export default async function Page({ searchParams }: { searchParams: Search }) {
       }),
       prisma.client.count({ where }),
       prisma.user.findMany({
-        where: { role: { in: ["ADMIN", "SUPER_ADMIN"] }, isActive: true },
+        where: { role: { in: ["ADMIN", "SUPER_ADMIN", "STAFF"] }, isActive: true },
         orderBy: { name: "asc" },
         select: { id: true, name: true },
       }),
-      prisma.priceList.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
       prisma.client.findMany({
-        where: { segment: { not: null } },
+        where: { ...scope, segment: { not: null } },
         distinct: ["segment"],
         select: { segment: true },
         orderBy: { segment: "asc" },
       }),
-      prisma.client.count({ where: { isActive: true } }),
-      prisma.client.count({ where: { portalUsers: { some: {} } } }),
-      prisma.client.count({ where: { requests: { some: { status: { in: [...openStatuses] } } } } }),
+      prisma.client.count({ where: { ...scope, isActive: true } }),
+      prisma.client.count({ where: { ...scope, portalUsers: { some: {} } } }),
+      prisma.client.count({ where: { ...scope, requests: { some: { status: { in: [...openStatuses] } } } } }),
       prisma.client.count({
         where: {
+          ...scope,
           OR: [
             { lastActivityAt: { lt: new Date(Date.now() - 90 * 86400000) } },
             { lastActivityAt: null },
@@ -101,7 +112,13 @@ export default async function Page({ searchParams }: { searchParams: Search }) {
       <PageHeader
         title="Clientes"
         description="Empresas, contactos y seguimiento comercial en un solo lugar."
-        actions={<ClientFormModal owners={owners} priceLists={priceLists} />}
+        actions={
+          canCreate ? (
+            <ButtonLink href="/admin/clients/nuevo" data-tour="clients-new-btn">
+              Nuevo cliente
+            </ButtonLink>
+          ) : null
+        }
       />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
@@ -136,14 +153,16 @@ export default async function Page({ searchParams }: { searchParams: Search }) {
               <option value="">Todos los segmentos</option>
               {segments.map((x) => x.segment && <option key={x.segment}>{x.segment}</option>)}
             </Select>
-            <Select name="owner" defaultValue={searchParams.owner || ""}>
-              <option value="">Todos los responsables</option>
-              {owners.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.name}
-                </option>
-              ))}
-            </Select>
+            {seesAll ? (
+              <Select name="owner" defaultValue={searchParams.owner || ""}>
+                <option value="">Todos los responsables</option>
+                {owners.map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.name}
+                  </option>
+                ))}
+              </Select>
+            ) : null}
             <Select name="portal" defaultValue={searchParams.portal || ""}>
               <option value="">Con o sin acceso</option>
               <option value="none">Sin usuarios del portal</option>
@@ -214,8 +233,8 @@ export default async function Page({ searchParams }: { searchParams: Search }) {
                       </TD>
                       <TD>
                         <ClientRowActions
-                          owners={owners}
-                          priceLists={priceLists}
+                          canEdit={canEdit}
+                          canDelete={canDelete}
                           client={{
                             id: c.id,
                             companyName: c.companyName,

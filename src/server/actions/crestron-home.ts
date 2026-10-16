@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,7 +21,7 @@ const deviceSchema = z.object({
 });
 
 export async function upsertCrestronDevice(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("products.edit");
   const id = formData.get("id")?.toString() || undefined;
   const parsed = deviceSchema.safeParse({
     modelNumber: formData.get("modelNumber"),
@@ -57,7 +57,7 @@ export async function upsertCrestronDevice(formData: FormData): Promise<void> {
 }
 
 export async function deleteCrestronDevice(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("products.edit");
   const id = formData.get("id")?.toString();
   if (!id) return;
   await db.crestronHomeDevice.delete({ where: { id } });
@@ -65,7 +65,7 @@ export async function deleteCrestronDevice(formData: FormData): Promise<void> {
 }
 
 export async function matchCrestronProducts(): Promise<{ ok: boolean; matched: number; total: number }> {
-  await requireAdmin();
+  await requireStaff("products.edit");
 
   const devices: { modelNumber: string }[] = await db.crestronHomeDevice.findMany({
     where: { isActive: true },
@@ -244,7 +244,7 @@ const CRESTRON_SEED_DATA = [
 ];
 
 export async function toggleProductCrestron(productId: string, value: boolean): Promise<{ ok: boolean }> {
-  await requireAdmin();
+  await requireStaff("products.edit");
   await prisma.product.update({ where: { id: productId }, data: { isCrestronHomeCompatible: value } });
   revalidatePath("/admin/crestron-home");
   revalidatePath("/admin/products");
@@ -252,7 +252,7 @@ export async function toggleProductCrestron(productId: string, value: boolean): 
 }
 
 export async function seedCrestronDevices(): Promise<{ ok: boolean; created: number }> {
-  await requireAdmin();
+  await requireStaff("products.edit");
   let created = 0;
   for (const d of CRESTRON_SEED_DATA) {
     const existing = await db.crestronHomeDevice.findFirst({ where: { modelNumber: d.modelNumber } });

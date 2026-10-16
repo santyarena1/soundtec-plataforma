@@ -64,7 +64,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <PortalOnboardingButton />
-            {(session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") && (
+            {(session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN" || session.user.role === "STAFF") && (
               <ButtonLink
                 href="/admin"
                 size="sm"
@@ -75,7 +75,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
                 Modo admin
               </ButtonLink>
             )}
-            {(session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") && (
+            {(session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN" || session.user.role === "STAFF") && (
               <ButtonLink href="/admin" size="sm" variant="outline" className="h-8 px-2 sm:hidden">
                 Admin
               </ButtonLink>

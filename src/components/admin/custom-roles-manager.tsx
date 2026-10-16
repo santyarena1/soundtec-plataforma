@@ -1,350 +1,286 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Copy, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/input";
+import { Input, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
 import {
   PERMISSION_GROUPS,
-  type PermissionScope,
-  type Permissions,
+  PRICE_ACCESS_OPTIONS,
   PRESET_CATALOG_EMPLOYEE,
   PRESET_COMMERCIAL_SENIOR,
+  PRESET_SELLER,
+  type PermissionScope,
+  type PriceAccess,
 } from "@/lib/permissions";
-import { upsertCustomRoleVisual, toggleCustomRoleActive } from "@/server/actions/user-role-management";
+import { deleteCustomRole, duplicateCustomRole, toggleCustomRoleActive, upsertCustomRoleVisual } from "@/server/actions/user-role-management";
 
-interface RoleSummary {
+type RoleType = "STAFF" | "CLIENT";
+
+export interface RoleSummary {
   id: string;
   name: string;
   description: string | null;
-  baseSystemRole: "SUPER_ADMIN" | "ADMIN" | "CLIENT";
-  permissions: Permissions;
+  /** STAFF / CLIENT; "LEGACY_ADMIN" = rol viejo con base Administrador (no limita a nadie). */
+  type: RoleType | "LEGACY_ADMIN";
+  scopes: PermissionScope[];
+  priceAccess: PriceAccess;
   isActive: boolean;
+  users: number;
+  systemKey: string | null;
 }
 
-interface Props {
-  isSuper: boolean;
-  roles: RoleSummary[];
-}
+type Draft = { name: string; description: string; type: RoleType; scopes: PermissionScope[]; priceAccess: PriceAccess };
 
-const baseRoleLabel: Record<string, string> = {
-  SUPER_ADMIN: "Super administrador",
-  ADMIN: "Administrador",
-  CLIENT: "Cliente",
-};
+const EMPTY: Draft = { name: "", description: "", type: "STAFF", scopes: ["dashboard"], priceAccess: "sale" };
 
-export function CustomRolesManager({ isSuper, roles }: Props) {
+const PRESETS: Array<{ label: string; scopes: PermissionScope[]; priceAccess: PriceAccess }> = [
+  { label: "Vendedor", scopes: PRESET_SELLER.scopes, priceAccess: PRESET_SELLER.priceAccess ?? "sale" },
+  { label: "Comercial senior", scopes: PRESET_COMMERCIAL_SENIOR.scopes, priceAccess: "full" },
+  { label: "Carga de catálogo", scopes: PRESET_CATALOG_EMPLOYEE.scopes, priceAccess: "none" },
+];
+
+const priceLabel = (p: PriceAccess) => PRICE_ACCESS_OPTIONS.find((o) => o.value === p)?.label ?? p;
+
+export function CustomRolesManager({ roles }: { roles: RoleSummary[] }) {
+  const [creating, setCreating] = useState(false);
   return (
     <div className="space-y-4">
-      <CreateRoleCard isSuper={isSuper} />
-
-      {roles.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No hay roles personalizados creados.</p>
-      ) : (
-        <div className="space-y-3">
-          {roles.map((r) => (
-            <RoleEditor key={r.id} role={r} isSuper={isSuper} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CreateRoleCard({ isSuper }: { isSuper: boolean }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [baseRole, setBaseRole] = useState<"CLIENT" | "ADMIN" | "SUPER_ADMIN">("CLIENT");
-  const [permissions, setPermissions] = useState<Permissions>({ scopes: [], hidePrices: false });
-  const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState<string | null>(null);
-
-  function toggleScope(scope: PermissionScope) {
-    setPermissions((prev) => {
-      const has = prev.scopes.includes(scope);
-      return { ...prev, scopes: has ? prev.scopes.filter((s) => s !== scope) : [...prev.scopes, scope] };
-    });
-  }
-
-  function applyPreset(preset: Permissions) {
-    setPermissions(preset);
-  }
-
-  function submit() {
-    setError(null);
-    setOk(null);
-    if (!name.trim()) {
-      setError("El nombre del rol es obligatorio.");
-      return;
-    }
-    start(async () => {
-      try {
-        await upsertCustomRoleVisual({
-          name: name.trim(),
-          description: description.trim() || null,
-          baseSystemRole: baseRole,
-          permissions,
-          isActive: true,
-        });
-        setOk("Rol creado correctamente.");
-        setName("");
-        setDescription("");
-        setPermissions({ scopes: [], hidePrices: false });
-        router.refresh();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo crear el rol.");
-      }
-    });
-  }
-
-  return (
-    <div className="rounded-md border border-border bg-secondary/30 p-4">
-      <h3 className="text-sm font-semibold">Crear rol personalizado</h3>
-      <p className="mb-3 text-xs text-muted-foreground">
-        Marcá visualmente qué pantallas y acciones puede usar este rol. Sin JSON, sin código.
-      </p>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <Label required>Nombre del rol</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Empleado catálogo" />
-        </div>
-        <div>
-          <Label>Rol base del sistema</Label>
-          <Select value={baseRole} onChange={(e) => setBaseRole(e.target.value as typeof baseRole)}>
-            <option value="CLIENT">Cliente (login de portal)</option>
-            <option value="ADMIN">Administrador (entra al admin)</option>
-            {isSuper ? <option value="SUPER_ADMIN">Super administrador</option> : null}
-          </Select>
-        </div>
-        <div className="sm:col-span-2">
-          <Label>Descripción</Label>
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="¿Qué hace este rol?"
-          />
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Cada usuario del equipo tiene un rol: define qué pantallas y acciones usa y qué precios ve. Los administradores
+          tienen acceso total y no llevan rol. Los cambios se aplican en el próximo clic de cada usuario.
+          <span className="mt-1 block text-xs">
+            Quedan siempre para administradores: importar listas y sincronizar proveedores, configuración del sistema,
+            marca, integraciones e IA.
+          </span>
+        </p>
+        {!creating ? (
+          <Button onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" /> Nuevo rol
+          </Button>
+        ) : null}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        <span className="text-muted-foreground">Plantillas rápidas:</span>
-        <button
-          type="button"
-          onClick={() => applyPreset(PRESET_CATALOG_EMPLOYEE)}
-          className="rounded border border-border bg-card px-2 py-1 hover:bg-secondary"
-        >
-          Empleado de catálogo (sin precios)
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset(PRESET_COMMERCIAL_SENIOR)}
-          className="rounded border border-border bg-card px-2 py-1 hover:bg-secondary"
-        >
-          Comercial senior
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset({ scopes: [] })}
-          className="rounded border border-border bg-card px-2 py-1 hover:bg-secondary"
-        >
-          Limpiar
-        </button>
-      </div>
+      {creating ? <RoleForm initial={EMPTY} onDone={() => setCreating(false)} /> : null}
 
-      <PermissionsMatrix permissions={permissions} onToggleScope={toggleScope} onChange={setPermissions} />
-
-      {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
-      {ok ? <p className="mt-2 text-sm text-success">{ok}</p> : null}
-
-      <div className="mt-3 flex justify-end">
-        <Button onClick={submit} disabled={pending}>
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Crear rol
-        </Button>
+      {roles.length === 0 ? <p className="text-sm text-muted-foreground">Todavía no hay roles.</p> : null}
+      <div className="space-y-3">
+        {roles.map((r) => (
+          <RoleRow key={r.id} role={r} />
+        ))}
       </div>
     </div>
   );
 }
 
-function RoleEditor({ role, isSuper }: { role: RoleSummary; isSuper: boolean }) {
+function RoleRow({ role }: { role: RoleSummary }) {
   const router = useRouter();
-  const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(role.name);
-  const [description, setDescription] = useState(role.description || "");
-  const [baseRole, setBaseRole] = useState<"CLIENT" | "ADMIN" | "SUPER_ADMIN">(role.baseSystemRole);
-  const [permissions, setPermissions] = useState<Permissions>(role.permissions);
+  const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState<string | null>(null);
-
-  function toggleScope(scope: PermissionScope) {
-    setPermissions((prev) => {
-      const has = prev.scopes.includes(scope);
-      return { ...prev, scopes: has ? prev.scopes.filter((s) => s !== scope) : [...prev.scopes, scope] };
-    });
-  }
-
-  function save() {
-    setError(null);
-    setOk(null);
+  const run = (fn: () => Promise<{ ok: boolean; error?: string }>) =>
     start(async () => {
-      try {
-        await upsertCustomRoleVisual({
-          id: role.id,
-          name: name.trim(),
-          description: description.trim() || null,
-          baseSystemRole: baseRole,
-          permissions,
-          isActive: role.isActive,
-        });
-        setOk("Cambios guardados.");
-        router.refresh();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo guardar.");
-      }
+      setError(null);
+      const r = await fn();
+      if (!r.ok) setError(r.error ?? "No se pudo.");
+      router.refresh();
     });
-  }
-
-  function toggleActive() {
-    start(async () => {
-      try {
-        const fd = new FormData();
-        fd.set("id", role.id);
-        await toggleCustomRoleActive(fd);
-        router.refresh();
-      } catch {
-        setError("No se pudo cambiar el estado.");
-      }
-    });
-  }
-
+  const legacy = role.type === "LEGACY_ADMIN";
   return (
-    <div className="rounded-md border border-border bg-card">
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
-        <button type="button" onClick={() => setOpen((s) => !s)} className="flex-1 text-left">
-          <p className="text-sm font-semibold">{role.name}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {role.description || "Sin descripción"} · Base: {baseRoleLabel[role.baseSystemRole]} ·{" "}
-            {role.permissions.fullAccess
-              ? "acceso total"
-              : `${role.permissions.scopes.length} permiso(s)`}
-            {role.permissions.hidePrices ? " · sin precios" : ""}
+    <div className={`rounded-lg border bg-card ${role.isActive ? "border-border" : "border-dashed border-border opacity-75"}`}>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <button type="button" onClick={() => setOpen((s) => !s)} className="min-w-0 flex-1 text-left">
+          <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+            {role.name}
+            <Badge tone={role.type === "CLIENT" ? "muted" : "accent"}>{role.type === "CLIENT" ? "Portal de clientes" : legacy ? "Base administrador (heredado)" : "Equipo interno"}</Badge>
+            {role.type === "STAFF" ? <Badge tone={role.priceAccess === "full" ? "warning" : "muted"}>{priceLabel(role.priceAccess)}</Badge> : null}
+            {!role.isActive ? <Badge tone="muted">Desactivado</Badge> : null}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {role.description || "Sin descripción"} · {role.scopes.length} permiso(s)
           </p>
         </button>
-        <div className="flex items-center gap-2">
-          {role.isActive ? <Badge tone="success">Activo</Badge> : <Badge tone="muted">Inactivo</Badge>}
-          <Button onClick={toggleActive} variant="ghost" size="sm" disabled={pending}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={`/admin/users?rol=${role.id}`} className="text-xs text-primary hover:underline">
+            {role.users} usuario(s)
+          </Link>
+          <Button variant="ghost" size="sm" disabled={pending} onClick={() => run(() => duplicateCustomRole(role.id))} title="Duplicar">
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="sm" disabled={pending} onClick={() => run(() => toggleCustomRoleActive(role.id))}>
             {role.isActive ? "Desactivar" : "Activar"}
           </Button>
-          <Button onClick={() => setOpen((s) => !s)} variant="outline" size="sm">
+          {role.users === 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={pending}
+              title="Eliminar"
+              onClick={() => {
+                if (confirm(`¿Eliminar el rol «${role.name}»?`)) run(() => deleteCustomRole(role.id));
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={() => setOpen((s) => !s)}>
             {open ? "Cerrar" : "Editar"}
           </Button>
         </div>
       </div>
-
+      {error ? <p className="px-4 pb-2 text-sm text-destructive">{error}</p> : null}
+      {legacy && open ? (
+        <p className="mx-4 mb-3 rounded-md bg-warning/10 p-3 text-xs">
+          Este rol se creó con base «Administrador»: hoy no limita nada (los administradores ven todo). Guardalo como «Equipo
+          interno» y pasá a sus usuarios a tipo Equipo para que los permisos se apliquen de verdad.
+        </p>
+      ) : null}
       {open ? (
         <div className="border-t border-border p-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label>Nombre</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div>
-              <Label>Rol base</Label>
-              <Select value={baseRole} onChange={(e) => setBaseRole(e.target.value as typeof baseRole)}>
-                <option value="CLIENT">Cliente</option>
-                <option value="ADMIN">Administrador</option>
-                {isSuper ? <option value="SUPER_ADMIN">Super administrador</option> : null}
-              </Select>
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Descripción</Label>
-              <Input value={description} onChange={(e) => setDescription(e.target.value)} />
-            </div>
-          </div>
-
-          <PermissionsMatrix permissions={permissions} onToggleScope={toggleScope} onChange={setPermissions} />
-
-          {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
-          {ok ? <p className="mt-2 text-sm text-success">{ok}</p> : null}
-
-          <div className="mt-3 flex justify-end">
-            <Button onClick={save} disabled={pending}>
-              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Guardar cambios
-            </Button>
-          </div>
+          <RoleForm
+            id={role.id}
+            initial={{ name: role.name, description: role.description ?? "", type: role.type === "CLIENT" ? "CLIENT" : "STAFF", scopes: role.scopes, priceAccess: role.priceAccess }}
+            isActive={role.isActive}
+            onDone={() => setOpen(false)}
+          />
         </div>
       ) : null}
     </div>
   );
 }
 
-function PermissionsMatrix({
-  permissions,
-  onToggleScope,
-  onChange,
-}: {
-  permissions: Permissions;
-  onToggleScope: (scope: PermissionScope) => void;
-  onChange: (next: Permissions) => void;
-}) {
+function RoleForm({ id, initial, isActive, onDone }: { id?: string; initial: Draft; isActive?: boolean; onDone: () => void }) {
+  const router = useRouter();
+  const [draft, setDraft] = useState<Draft>(initial);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
+  const toggle = (scope: PermissionScope, on: boolean) =>
+    set({ scopes: on ? [...new Set([...draft.scopes, scope])] : draft.scopes.filter((s) => s !== scope) });
+  const groups = PERMISSION_GROUPS.filter((g) => (draft.type === "CLIENT" ? g.portal : !g.portal));
+
+  function save() {
+    setError(null);
+    start(async () => {
+      const r = await upsertCustomRoleVisual({
+        id,
+        name: draft.name,
+        description: draft.description || null,
+        baseSystemRole: draft.type,
+        permissions: { scopes: draft.scopes, priceAccess: draft.priceAccess },
+        isActive: isActive ?? true,
+      });
+      if (!r.ok) return setError(r.error);
+      router.refresh();
+      onDone();
+    });
+  }
+
   return (
-    <div className="mt-4 space-y-3">
-      <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card p-3 text-xs">
-        <label className="flex cursor-pointer items-center gap-2">
-          <input
-            type="checkbox"
-            checked={permissions.fullAccess || false}
-            onChange={(e) => onChange({ ...permissions, fullAccess: e.target.checked })}
-          />
-          Acceso total (sin restricciones)
-        </label>
-        <label className="flex cursor-pointer items-center gap-2">
-          <input
-            type="checkbox"
-            checked={permissions.hidePrices || false}
-            onChange={(e) => onChange({ ...permissions, hidePrices: e.target.checked })}
-          />
-          Ocultar TODO precio en la UI
-        </label>
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <Label required>Nombre</Label>
+          <Input value={draft.name} onChange={(e) => set({ name: e.target.value })} placeholder="Ej. Vendedor zona norte" />
+        </div>
+        <div>
+          <Label>Para</Label>
+          <div className="mt-1 flex gap-2">
+            {(["STAFF", "CLIENT"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => set({ type: t, scopes: t === "CLIENT" ? ["portal.catalog", "portal.requests", "portal.cart"] : ["dashboard"] })}
+                className={`flex-1 rounded-md border px-3 py-2 text-sm ${draft.type === t ? "border-primary bg-primary/5 font-medium" : "hover:bg-secondary/50"}`}
+              >
+                {t === "STAFF" ? "Equipo interno" : "Clientes del portal"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="sm:col-span-2">
+          <Label>Descripción</Label>
+          <Input value={draft.description} onChange={(e) => set({ description: e.target.value })} placeholder="Qué hace quien tiene este rol" />
+        </div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        {PERMISSION_GROUPS.map((group) => (
-          <div key={group.title} className="rounded-md border border-border bg-card p-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {group.title}
-            </p>
-            <div className="space-y-1.5">
-              {group.items.map((it) => {
-                const checked = permissions.fullAccess || permissions.scopes.includes(it.scope);
-                return (
-                  <label key={it.scope} className="flex cursor-pointer items-start gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      disabled={permissions.fullAccess}
-                      onChange={() => onToggleScope(it.scope)}
-                      className="mt-0.5"
-                    />
-                    <span>
-                      {it.label}
-                      {it.help ? (
-                        <span className="block text-[11px] text-muted-foreground">{it.help}</span>
-                      ) : null}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
+      {draft.type === "STAFF" ? (
+        <>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Partir de:</span>
+            {PRESETS.map((p) => (
+              <button key={p.label} type="button" onClick={() => set({ scopes: p.scopes, priceAccess: p.priceAccess })} className="rounded border border-border bg-card px-2 py-1 hover:bg-secondary">
+                {p.label}
+              </button>
+            ))}
+            <button type="button" onClick={() => set({ scopes: [] })} className="rounded border border-border bg-card px-2 py-1 hover:bg-secondary">
+              Nada
+            </button>
           </div>
-        ))}
+
+          <fieldset className="rounded-md border border-border p-3">
+            <legend className="px-1 text-sm font-medium">Precios que ve</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {PRICE_ACCESS_OPTIONS.map((o) => (
+                <label key={o.value} className={`cursor-pointer rounded-md border p-2.5 text-sm ${draft.priceAccess === o.value ? "border-primary bg-primary/5" : "hover:bg-secondary/40"}`}>
+                  <input type="radio" className="mr-2" checked={draft.priceAccess === o.value} onChange={() => set({ priceAccess: o.value })} />
+                  <span className="font-medium">{o.label}</span>
+                  <span className="mt-1 block text-[11px] text-muted-foreground">{o.help}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </>
+      ) : null}
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {groups.map((group) => {
+          const all = group.items.every((i) => draft.scopes.includes(i.scope));
+          return (
+            <div key={group.title} className="rounded-md border border-border bg-card p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{group.title}</p>
+                <button
+                  type="button"
+                  className="text-[11px] text-primary hover:underline"
+                  onClick={() => set({ scopes: all ? draft.scopes.filter((s) => !group.items.some((i) => i.scope === s)) : [...new Set([...draft.scopes, ...group.items.map((i) => i.scope)])] })}
+                >
+                  {all ? "Quitar todo" : "Marcar todo"}
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {group.items.map((it) => {
+                  const needsCosts = it.costs && draft.priceAccess !== "full";
+                  return (
+                    <label key={it.scope} className={`flex cursor-pointer items-start gap-2 text-sm ${needsCosts ? "opacity-60" : ""}`}>
+                      <input type="checkbox" checked={draft.scopes.includes(it.scope)} onChange={(e) => toggle(it.scope, e.target.checked)} className="mt-0.5" />
+                      <span>
+                        {it.label}
+                        {needsCosts ? <span className="block text-[11px] text-warning">Necesita «Todo: costos y márgenes» en precios.</span> : null}
+                        {it.help ? <span className="block text-[11px] text-muted-foreground">{it.help}</span> : null}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onDone} disabled={pending}>
+          Cancelar
+        </Button>
+        <Button onClick={save} disabled={pending}>
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {id ? "Guardar cambios" : "Crear rol"}
+        </Button>
       </div>
     </div>
   );

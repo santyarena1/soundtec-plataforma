@@ -131,11 +131,11 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "name", label: "Producto", fixed: true },
   { key: "originalName", label: "Nombre original" },
   { key: "sku", label: "COD. TANGO" },
-  { key: "supplierSku", label: "SKU proveedor" },
+  { key: "supplierSku", label: "SKU proveedor", requiresPrices: true },
   { key: "brand", label: "Marca" },
   { key: "category", label: "Rubro" },
   { key: "family", label: "Subrubro" },
-  { key: "distributor", label: "Proveedor" },
+  { key: "distributor", label: "Proveedor", requiresPrices: true },
   { key: "kind", label: "Tipo" },
   { key: "customizable", label: "Configurable" },
   { key: "cost", label: "Costo USD", requiresPrices: true },
@@ -873,8 +873,8 @@ function ProductPreviewModal({
               <Info label="Marca" value={row.brand} />
               <Info label="Categoría" value={row.category} />
               <Info label="Familia" value={row.family} />
-              <Info label="Proveedor" value={row.distributor} />
-              <Info label="SKU proveedor" value={row.supplierSku || "—"} />
+              {showPrices ? <Info label="Proveedor" value={row.distributor} /> : null}
+              {showPrices ? <Info label="SKU proveedor" value={row.supplierSku || "—"} /> : null}
               <Info label="Tipo" value={row.kind === "ACCESORIO" ? "Accesorio" : "Principal"} />
               <Info label="Stock" value={`${row.stockStatus}${row.stockQuantity != null ? ` (${row.stockQuantity})` : ""}`} />
               <Info label="Activo" value={row.isActive ? "Sí" : "No"} />

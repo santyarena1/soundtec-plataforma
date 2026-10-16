@@ -5,6 +5,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { withSalePrices } from "./sale-prices";
 import type { RoomBrief } from "./brief";
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { INTEGRATION_SEED, type ControlPlatform, type IntegrationMethod, type IntegrationRule } from "./integrations";
@@ -203,7 +204,11 @@ export async function analyzeProjectSystem(projectId: string): Promise<{ finding
       return { ...f, actions: await searchActions(SWITCH_TERMS, brief?.brands.control ?? ["crestron"], "switch") };
     }),
   );
-  return { findings: resolved, brief };
+  // Lo que ve la pantalla es el precio de venta (el costo solo se usó para ordenar).
+  const priced = await Promise.all(
+    resolved.map(async (f) => ({ ...f, actions: await withSalePrices(f.actions, (a) => ("productId" in a ? (a.productId as string) : null)) }))
+  );
+  return { findings: priced, brief };
 }
 
 /** Suma un producto sugerido al proyecto como ítem propio (sin lugar fijo en la sala). */

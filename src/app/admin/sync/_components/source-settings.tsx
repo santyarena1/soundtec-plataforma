@@ -110,14 +110,13 @@ function SoundTubeSettingsCard({ value, onChange }: { value: SoundTubeValue; onC
           Catálogo público sin login: SoundTube, Soundsphere, Phase Technology, dARTS, Rockustics, Induction Dynamics y SolidDrive.
         </p>
       </div>
-      <div>
-        <Label>Nivel de precio usado como costo</Label>
-        <Select value={value.priceField} onChange={(event) => onChange({ priceField: event.target.value as SoundTubeValue["priceField"] })}>
-          <option value="pricelevel1">Nivel 1 (precio dealer, el más bajo)</option>
-          <option value="pricelevel30">Nivel 30 (lista / MSRP)</option>
-          <option value="onlinecustomerprice">Precio online del sitio</option>
-        </Select>
-        <p className="mt-1 text-xs text-muted-foreground">Verificalo contra el precio que ves logueado en soundtube.com para un producto conocido.</p>
+      <div className="rounded-md bg-secondary/50 p-3 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground">Precios: solo de la lista Excel</p>
+        <p className="mt-1">
+          El sync trae fichas, fotos, stock y clasificación del portal, pero nunca el precio. El costo y el MUP salen
+          únicamente de la lista Excel (Listas e importación → Lista SoundTube). Lo que está en el portal y no en la lista
+          queda cargado sin precio, como &quot;a consultar&quot;.
+        </p>
       </div>
       <div>
         <Label>Destino de categoría</Label>

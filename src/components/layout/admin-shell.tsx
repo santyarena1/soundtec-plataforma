@@ -11,6 +11,8 @@ import { DolarTicker } from "@/components/layout/dolar-ticker";
 import { ChangelogSidebarButton } from "@/components/layout/changelog-sidebar-button";
 import { ChangelogPopup } from "@/components/layout/changelog-popup";
 import { getCurrentPermissions } from "@/lib/auth-helpers";
+import { canSeeCosts, canSeeSalePrices, isPanelRole, permissionsHave } from "@/lib/permissions";
+import { CatalogModeButton } from "@/components/catalog-mode/catalog-mode-controls";
 import { listAllChangelogs } from "@/server/changelog-query";
 import { HelpDock } from "@/components/help/help-system";
 import { OnboardingHost } from "@/components/onboarding/onboarding-host";
@@ -21,13 +23,10 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/admin");
 
-  const { permissions } = await getCurrentPermissions();
-  const isBaseAdmin = session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
-  const hasAnyAdminScope =
-    permissions.fullAccess || permissions.scopes.some((s) => !s.startsWith("portal."));
-  if (!isBaseAdmin && !hasAnyAdminScope) {
-    redirect("/portal");
-  }
+  // Valida la sesión contra la base (desactivado, clave reseteada, tipo cambiado).
+  const { user, permissions } = await getCurrentPermissions();
+  if (!isPanelRole(user.role)) redirect("/portal");
+  const showCatalogMode = permissionsHave(permissions, "catalog_mode.use");
 
   const userName = session.user.name;
   const userEmail = session.user.email;
@@ -38,7 +37,9 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       return [];
     }),
     getOnboardingState(),
-    prisma.accountRequest.count({ where: { status: "PENDING" } }).catch(() => 0),
+    permissionsHave(permissions, "account_requests.review")
+      ? prisma.accountRequest.count({ where: { status: "PENDING" } }).catch(() => 0)
+      : Promise.resolve(0),
     loadReviewStatus(),
   ]);
 
@@ -62,10 +63,17 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       <>
         <div className="border-b border-border p-4">
           <BrandMark />
+          {showCatalogMode ? (
+            <div className="mt-3">
+              <CatalogModeButton />
+            </div>
+          ) : null}
         </div>
         <AdminSidebarNav
           allowedScopes={permissions.scopes}
           fullAccess={permissions.fullAccess}
+          seesCosts={canSeeCosts(permissions)}
+          seesSalePrices={canSeeSalePrices(permissions)}
           expandAll={expandAll}
           counts={{ accountRequests: pendingRequests, soundtubeReview: soundtubeReview.pending }}
           active={{ soundtubeReview: soundtubeReview.active }}
@@ -79,7 +87,10 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
           <p className="truncate text-muted-foreground">{userEmail}</p>
           <div className="mt-3 flex gap-1">
             <ButtonLink href="/portal" size="sm" variant="outline" className="flex-1" data-tour="mode-client">
-              Modo cliente
+              Ver portal
+            </ButtonLink>
+            <ButtonLink href="/cuenta/clave" size="sm" variant="outline" title="Cambiar mi clave">
+              Clave
             </ButtonLink>
             <form action={handleSignOut}>
               <button type="submit" className="h-8 rounded-md border border-border px-2 text-xs hover:bg-secondary">
@@ -107,6 +118,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
             <div className="min-w-0 flex-1">
               <BrandMark />
             </div>
+            {showCatalogMode ? <CatalogModeButton compact /> : null}
             <form action={handleSignOut}>
               <button type="submit" className="shrink-0 text-sm text-muted-foreground hover:text-foreground">
                 Salir

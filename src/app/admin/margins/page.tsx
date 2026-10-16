@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { PriceLogicHint } from "@/components/admin/price-logic-hint";
@@ -9,7 +9,7 @@ import { toFiniteNumber, toPricingRuleRow, attachRuleExemptions } from "@/lib/pr
 export const metadata = { title: "Admin · Márgenes" };
 
 export default async function AdminMarginsPage() {
-  await requireAdmin();
+  await requireStaff("margins.manage", { costs: true });
   try {
     const [rules, clients, brands, distributors, categories, families, products] =
       await Promise.all([

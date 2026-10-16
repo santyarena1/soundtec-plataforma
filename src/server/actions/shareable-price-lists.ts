@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import {
   countShareablePriceListProducts,
   parseShareListFilters,
@@ -45,7 +45,7 @@ const upsertSchema = z.object({
 });
 
 export async function upsertShareablePriceList(formData: FormData): Promise<{ ok: boolean; id?: string; error?: string }> {
-  await requireAdmin();
+  await requireStaff("share_lists.manage");
   const parsed = upsertSchema.safeParse({
     id: formData.get("id")?.toString() || undefined,
     name: formData.get("name"),
@@ -110,7 +110,7 @@ export async function upsertShareablePriceList(formData: FormData): Promise<{ ok
 }
 
 export async function deleteShareablePriceList(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("share_lists.manage");
   const id = String(formData.get("id") || "");
   if (!id) return;
   await prisma.shareablePriceList.delete({ where: { id } });
@@ -118,7 +118,7 @@ export async function deleteShareablePriceList(formData: FormData): Promise<void
 }
 
 export async function regenerateShareSlug(formData: FormData): Promise<{ ok: boolean; slug?: string }> {
-  await requireAdmin();
+  await requireStaff("share_lists.manage");
   const id = String(formData.get("id") || "");
   if (!id) return { ok: false };
   const slug = newShareSlug();
@@ -128,7 +128,7 @@ export async function regenerateShareSlug(formData: FormData): Promise<{ ok: boo
 }
 
 export async function previewShareListCount(formData: FormData): Promise<{ count: number }> {
-  await requireAdmin();
+  await requireStaff("share_lists.manage");
   const filters = parseFiltersFromForm(formData);
   const clientId = formData.get("clientId")?.toString() || null;
   const count = await countShareablePriceListProducts(filters, clientId);
@@ -136,7 +136,7 @@ export async function previewShareListCount(formData: FormData): Promise<{ count
 }
 
 export async function getShareListPublicUrl(listId: string): Promise<string | null> {
-  await requireAdmin();
+  await requireStaff("share_lists.manage");
   const list = await prisma.shareablePriceList.findUnique({
     where: { id: listId },
     select: { shareSlug: true },
@@ -153,7 +153,7 @@ const searchSchema = z.object({
 });
 
 export async function searchProductsForShareList(input: z.input<typeof searchSchema>) {
-  await requireAdmin();
+  await requireStaff("share_lists.manage");
   const data = searchSchema.parse(input);
   const q = data.q.trim();
   const { buildProductSearchWhere, sortBySearchRelevance, SEARCH_RANK_SELECT } = await import("@/lib/product-search");
@@ -175,7 +175,7 @@ export async function searchProductsForShareList(input: z.input<typeof searchSch
 }
 
 export async function duplicateShareablePriceList(id: string) {
-  await requireAdmin();
+  await requireStaff("share_lists.manage");
   const source = await prisma.shareablePriceList.findUnique({ where: { id } });
   if (!source) return { ok: false, error: "No encontramos la lista." };
   const copy = await prisma.shareablePriceList.create({ data: {

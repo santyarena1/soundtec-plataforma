@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { resolveAndWire } from "@/services/room-builder/cabling-resolve";
 import { getRoomProject } from "@/services/room-builder/project-service";
 import { projectTechnical } from "@/services/room-builder/project-technical";
@@ -15,7 +15,7 @@ const settingsSchema = z.object({
 
 /** Ubicación del rack en la planta del proyecto y piso de cada ambiente. */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const parsed = settingsSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Datos inválidos" }, { status: 400 });
   const hub = await getRoomProject(params.id);
@@ -37,7 +37,7 @@ export const maxDuration = 300;
 
 /** Plano técnico del proyecto completo: equipos, cables, planilla y materiales de todos los ambientes. */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   try {
     return NextResponse.json({ ok: true, ...(await projectTechnical(params.id)) });
   } catch (error) {
@@ -49,7 +49,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 /** Resolver y trazar todos los ambientes del proyecto (uno por uno). */
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   try {
     const hub = await getRoomProject(params.id);
     if (!hub || hub.kind !== "hub") return NextResponse.json({ ok: false, error: "Proyecto no encontrado" }, { status: 404 });

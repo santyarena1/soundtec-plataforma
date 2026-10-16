@@ -33,18 +33,20 @@ function ActivationLinkPanel({ link, phone, name, onDone }: { link: LinkState; p
   );
 }
 
-export function RequestActions({ id, phone, name }: { id: string; phone: string; name: string }) {
+export function RequestActions({ id, phone, name, proposedDiscount }: { id: string; phone: string; name: string; proposedDiscount?: number | null }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [link, setLink] = useState<LinkState | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
+  const [discount, setDiscount] = useState(proposedDiscount != null ? String(proposedDiscount) : "");
 
   // No se refresca acá: el link tiene que quedar visible hasta que el admin toque "Listo".
   const approve = () =>
     start(async () => {
-      const r = await approveAccountRequest(id);
+      const pct = discount.trim() ? Number(discount.replace(",", ".")) : null;
+      const r = await approveAccountRequest(id, { discountPercent: pct != null && Number.isFinite(pct) ? pct : null });
       if (!r.ok) return setError(r.error);
       setError(null);
       setLink({
@@ -71,7 +73,12 @@ export function RequestActions({ id, phone, name }: { id: string; phone: string;
           <Button size="sm" variant="ghost" onClick={() => setRejecting(false)}>Cancelar</Button>
         </div>
       ) : (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1 text-xs text-muted-foreground" title="Descuento general del cliente (opcional)">
+            Descuento
+            <Input value={discount} onChange={(e) => setDiscount(e.target.value)} inputMode="decimal" placeholder="0" className="h-8 w-16" />
+            %
+          </label>
           <Button size="sm" onClick={approve} disabled={pending}>{pending ? "Aprobando…" : "Aprobar"}</Button>
           <Button size="sm" variant="outline" onClick={() => setRejecting(true)} disabled={pending}>Rechazar</Button>
         </div>

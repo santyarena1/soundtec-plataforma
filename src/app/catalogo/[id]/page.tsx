@@ -1,3 +1,4 @@
+import { isCatalogModeOn } from "@/lib/catalog-mode";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -67,7 +68,8 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
     auth().catch(() => null),
   ]);
   if (!product) notFound();
-  const isLogged = !!session?.user;
+  // En modo catálogo (vendedor mostrándolo) se ve como un visitante: sin atajos al portal.
+  const isLogged = !!session?.user && !isCatalogModeOn();
   const viewerRole = (session?.user as { role?: string } | undefined)?.role;
   // Las visitas del equipo interno no cuentan para "Más relevantes".
   if (viewerRole !== "ADMIN" && viewerRole !== "SUPER_ADMIN") {

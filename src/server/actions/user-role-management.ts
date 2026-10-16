@@ -2,197 +2,130 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import bcrypt from "bcryptjs";
-import { requireAdmin } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import type { Permissions, PermissionScope } from "@/lib/permissions";
+import { requireStaff } from "@/lib/auth-helpers";
+import { prisma } from "@/lib/prisma";
+import { ALL_SCOPES, PERMISSION_GROUPS, canSeeCosts, type PermissionScope, type Permissions } from "@/lib/permissions";
+
+type Result = { ok: true; id: string } | { ok: false; error: string };
+
+const PORTAL_SCOPES = new Set<string>(PERMISSION_GROUPS.filter((g) => g.portal).flatMap((g) => g.items.map((i) => i.scope)));
 
 const roleSchema = z.object({
-  name: z.string().min(2).max(80),
-  description: z.string().max(2000).optional().nullable(),
-  baseSystemRole: z.enum(["SUPER_ADMIN", "ADMIN", "CLIENT"]).default("CLIENT"),
-  permissionsJson: z.string().max(10000).optional().nullable(),
-  isActive: z.coerce.boolean().optional(),
-});
-
-export async function upsertCustomRole(formData: FormData): Promise<void> {
-  const admin = await requireAdmin();
-  const id = formData.get("id")?.toString() || undefined;
-  const parsed = roleSchema.safeParse({
-    name: formData.get("name"),
-    description: formData.get("description") || null,
-    baseSystemRole: formData.get("baseSystemRole") || "CLIENT",
-    permissionsJson: formData.get("permissionsJson") || null,
-    isActive: formData.get("isActive") === "on" || formData.get("isActive") === "true",
-  });
-  if (!parsed.success) return;
-
-  if (parsed.data.baseSystemRole === "SUPER_ADMIN" && admin.role !== "SUPER_ADMIN") return;
-
-  let permissions: Prisma.InputJsonValue | typeof Prisma.JsonNull = Prisma.JsonNull;
-  if (parsed.data.permissionsJson) {
-    try {
-      permissions = JSON.parse(parsed.data.permissionsJson) as Prisma.InputJsonValue;
-    } catch {
-      permissions = { raw: parsed.data.permissionsJson } as Prisma.InputJsonValue;
-    }
-  }
-
-  const data = {
-    name: parsed.data.name,
-    description: parsed.data.description || null,
-    baseSystemRole: parsed.data.baseSystemRole,
-    permissionsJson: permissions,
-    isActive: parsed.data.isActive ?? true,
-  };
-
-  if (id) {
-    await prisma.customRole.update({ where: { id }, data });
-  } else {
-    await prisma.customRole.create({ data });
-  }
-  revalidatePath("/admin/users");
-}
-
-const permissionsObjectSchema = z.object({
-  scopes: z.array(z.string()).default([]),
-  fullAccess: z.boolean().optional(),
-  hidePrices: z.boolean().optional(),
-});
-
-const visualRoleSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(2).max(80),
-  description: z.string().max(2000).optional().nullable(),
-  baseSystemRole: z.enum(["SUPER_ADMIN", "ADMIN", "CLIENT"]),
-  permissions: permissionsObjectSchema,
+  name: z.string().trim().min(2, "Poné un nombre de al menos 2 letras.").max(80),
+  description: z.string().trim().max(2000).optional().nullable(),
+  /** STAFF = equipo interno (panel); CLIENT = usuarios del portal de un cliente. */
+  baseSystemRole: z.enum(["STAFF", "CLIENT"]),
+  permissions: z.object({
+    scopes: z.array(z.string()).max(200),
+    priceAccess: z.enum(["full", "sale", "none"]),
+  }),
   isActive: z.boolean().optional(),
 });
 
+const refresh = () => {
+  revalidatePath("/admin/settings/roles");
+  revalidatePath("/admin/users");
+};
+
 /**
- * Versión "visual" del upsert: recibe el objeto Permissions ya estructurado
- * desde la UI con checkboxes (sin JSON crudo). El cliente nunca tipea JSON.
+ * Crea o edita un rol. Los permisos llegan como checkboxes (nunca JSON crudo).
+ * Seguridad: nadie puede crear un rol con más permisos de los que tiene, y
+ * solo quien ve costos puede dar acceso a costos.
  */
 export async function upsertCustomRoleVisual(input: {
   id?: string;
   name: string;
   description?: string | null;
-  baseSystemRole: "SUPER_ADMIN" | "ADMIN" | "CLIENT";
-  permissions: Permissions;
+  baseSystemRole: "STAFF" | "CLIENT";
+  permissions: { scopes: string[]; priceAccess: "full" | "sale" | "none" };
   isActive?: boolean;
-}): Promise<{ ok: boolean; id?: string }> {
-  const admin = await requireAdmin();
-  const parsed = visualRoleSchema.safeParse(input);
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Datos inválidos");
-  if (parsed.data.baseSystemRole === "SUPER_ADMIN" && admin.role !== "SUPER_ADMIN") {
-    throw new Error("No tenés permisos para asignar rol Super administrador.");
-  }
+}): Promise<Result> {
+  const { permissions: actorPerms, isAdmin } = await requireStaff("roles.manage");
+  const parsed = roleSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+  const data = parsed.data;
 
-  const permissions = {
-    scopes: parsed.data.permissions.scopes as PermissionScope[],
-    fullAccess: parsed.data.permissions.fullAccess ?? false,
-    hidePrices: parsed.data.permissions.hidePrices ?? false,
+  const valid = new Set<string>(ALL_SCOPES);
+  const scopes = [...new Set(data.permissions.scopes)].filter((s) => valid.has(s)) as PermissionScope[];
+  // Un rol de cliente solo lleva permisos del portal; uno del equipo, solo del panel.
+  const cleanScopes = scopes.filter((s) => (data.baseSystemRole === "CLIENT" ? PORTAL_SCOPES.has(s) : !PORTAL_SCOPES.has(s)));
+  if (!isAdmin) {
+    const extra = cleanScopes.filter((s) => !actorPerms.scopes.includes(s));
+    if (extra.length) return { ok: false, error: "No podés dar permisos que vos no tenés." };
+    if (data.permissions.priceAccess === "full" && !canSeeCosts(actorPerms)) return { ok: false, error: "No podés dar acceso a costos." };
+  }
+  const permissions: Permissions = {
+    scopes: cleanScopes,
+    priceAccess: data.baseSystemRole === "CLIENT" ? "sale" : data.permissions.priceAccess,
   };
 
-  const data = {
-    name: parsed.data.name,
-    description: parsed.data.description || null,
-    baseSystemRole: parsed.data.baseSystemRole,
+  const existingName = await prisma.customRole.findFirst({
+    where: { name: { equals: data.name, mode: "insensitive" }, ...(data.id ? { NOT: { id: data.id } } : {}) },
+    select: { id: true },
+  });
+  if (existingName) return { ok: false, error: "Ya hay un rol con ese nombre." };
+
+  const row = {
+    name: data.name,
+    description: data.description || null,
+    baseSystemRole: data.baseSystemRole,
     permissionsJson: permissions as unknown as Prisma.InputJsonValue,
-    isActive: parsed.data.isActive ?? true,
+    isActive: data.isActive ?? true,
   };
-
-  if (parsed.data.id) {
-    await prisma.customRole.update({ where: { id: parsed.data.id }, data });
-  } else {
-    await prisma.customRole.create({ data });
+  try {
+    const saved = data.id
+      ? await prisma.customRole.update({ where: { id: data.id }, data: row, select: { id: true } })
+      : await prisma.customRole.create({ data: row, select: { id: true } });
+    refresh();
+    return { ok: true, id: saved.id };
+  } catch (error) {
+    console.error("[roles] no se pudo guardar", error);
+    return { ok: false, error: "No se pudo guardar el rol." };
   }
-  revalidatePath("/admin/users");
-  return { ok: true };
 }
 
-export async function toggleCustomRoleActive(formData: FormData): Promise<void> {
-  await requireAdmin();
-  const id = String(formData.get("id") || "");
-  if (!id) return;
+/** Duplicar un rol para armar uno parecido. */
+export async function duplicateCustomRole(id: string): Promise<Result> {
+  await requireStaff("roles.manage");
   const role = await prisma.customRole.findUnique({ where: { id } });
-  if (!role) return;
-  await prisma.customRole.update({
-    where: { id },
-    data: { isActive: !role.isActive },
+  if (!role) return { ok: false, error: "El rol no existe." };
+  let name = `${role.name} (copia)`;
+  for (let i = 2; await prisma.customRole.findFirst({ where: { name }, select: { id: true } }); i++) name = `${role.name} (copia ${i})`;
+  const copy = await prisma.customRole.create({
+    data: {
+      name,
+      description: role.description,
+      baseSystemRole: role.baseSystemRole,
+      permissionsJson: (role.permissionsJson ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+    },
+    select: { id: true },
   });
-  revalidatePath("/admin/users");
+  refresh();
+  return { ok: true, id: copy.id };
 }
 
-const updateUserFullSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(2).max(120),
-  email: z.string().email(),
-  password: z.string().min(8).max(120).optional().nullable(),
-  role: z.enum(["SUPER_ADMIN", "ADMIN", "CLIENT"]),
-  customRoleId: z.string().optional().nullable(),
-  clientId: z.string().optional().nullable(),
-  companyName: z.string().max(160).optional().nullable(),
-  phone: z.string().max(60).optional().nullable(),
-  quoteSignName: z.string().max(160).optional().nullable(),
-  quoteSignTitle: z.string().max(160).optional().nullable(),
-  isActive: z.coerce.boolean().optional(),
-});
+/**
+ * Activar / desactivar. Un rol desactivado deja a sus usuarios del equipo
+ * solo con el inicio del panel (no se borran permisos ni usuarios).
+ */
+export async function toggleCustomRoleActive(id: string): Promise<Result> {
+  await requireStaff("roles.manage");
+  const role = await prisma.customRole.findUnique({ where: { id }, select: { isActive: true } });
+  if (!role) return { ok: false, error: "El rol no existe." };
+  await prisma.customRole.update({ where: { id }, data: { isActive: !role.isActive } });
+  refresh();
+  return { ok: true, id };
+}
 
-export async function updateUserFull(formData: FormData): Promise<void> {
-  const admin = await requireAdmin();
-  const parsed = updateUserFullSchema.safeParse({
-    id: formData.get("id"),
-    name: formData.get("name"),
-    email: String(formData.get("email") || "").toLowerCase(),
-    password: formData.get("password") || null,
-    role: formData.get("role"),
-    customRoleId: formData.get("customRoleId") || null,
-    clientId: formData.get("clientId") || null,
-    companyName: formData.get("companyName") || null,
-    phone: formData.get("phone") || null,
-    quoteSignName: formData.get("quoteSignName") || null,
-    quoteSignTitle: formData.get("quoteSignTitle") || null,
-    isActive: formData.get("isActive") === "on" || formData.get("isActive") === "true",
-  });
-  if (!parsed.success) return;
-  if (parsed.data.role === "SUPER_ADMIN" && admin.role !== "SUPER_ADMIN") return;
-
-  const data: {
-    name: string;
-    email: string;
-    role: "SUPER_ADMIN" | "ADMIN" | "CLIENT";
-    customRoleId: string | null;
-    clientId: string | null;
-    companyName: string | null;
-    phone: string | null;
-    quoteSignName: string | null;
-    quoteSignTitle: string | null;
-    isActive: boolean;
-    passwordHash?: string;
-  } = {
-    name: parsed.data.name,
-    email: parsed.data.email,
-    role: parsed.data.role,
-    customRoleId: parsed.data.customRoleId || null,
-    clientId: parsed.data.role === "CLIENT" ? parsed.data.clientId || null : null,
-    companyName: parsed.data.companyName || null,
-    phone: parsed.data.phone || null,
-    quoteSignName: parsed.data.quoteSignName || null,
-    quoteSignTitle: parsed.data.quoteSignTitle || null,
-    isActive: parsed.data.isActive ?? true,
-  };
-
-  if (parsed.data.password) {
-    data.passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  }
-
-  await prisma.user.update({
-    where: { id: parsed.data.id },
-    data,
-  });
-
-  revalidatePath("/admin/users");
-  revalidatePath(`/admin/users/${parsed.data.id}`);
+/** Eliminar: solo si nadie lo usa. */
+export async function deleteCustomRole(id: string): Promise<Result> {
+  await requireStaff("roles.manage");
+  const role = await prisma.customRole.findUnique({ where: { id }, select: { _count: { select: { users: true } } } });
+  if (!role) return { ok: false, error: "El rol no existe." };
+  if (role._count.users) return { ok: false, error: `Lo usan ${role._count.users} usuario(s). Asignales otro rol o desactivalo.` };
+  await prisma.customRole.delete({ where: { id } });
+  refresh();
+  return { ok: true, id };
 }

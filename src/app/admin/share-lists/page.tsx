@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { ButtonLink } from "@/components/ui/button";
@@ -25,7 +25,7 @@ const statusLabel: Record<string, string> = {
 };
 
 export default async function AdminShareListsPage() {
-  await requireAdmin();
+  await requireStaff("share_lists.manage");
   const lists = await prisma.shareablePriceList.findMany({
     orderBy: { updatedAt: "desc" },
     include: { client: { select: { companyName: true } }, views: { orderBy: { viewedAt: "desc" }, take: 1 } },

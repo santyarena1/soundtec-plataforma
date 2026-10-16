@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { z } from "zod";
 import { addProductToProject, analyzeProjectSystem } from "@/services/room-builder/system-check-db";
 
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 /** Chequeo de sistema del ambiente: amplificación, control, red y streaming. */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   try {
     const result = await analyzeProjectSystem(params.id);
     if (!result) return NextResponse.json({ ok: false, error: "Proyecto no encontrado" }, { status: 404 });
@@ -22,7 +22,7 @@ const addSchema = z.object({ productId: z.string().min(1).max(64), quantity: z.n
 
 /** Agrega al proyecto un producto sugerido por el chequeo (switch, streamer…). */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const parsed = addSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Producto inválido" }, { status: 400 });
   try {

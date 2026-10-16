@@ -1,270 +1,150 @@
 "use client";
+
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createClient, updateClient } from "@/server/actions/clients";
+import { createClient } from "@/server/actions/clients";
 import { Modal } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select, FieldError, FieldHint, Textarea } from "@/components/ui/input";
-import { SearchablePick } from "@/components/admin/searchable-pick";
-import { PasswordReveal } from "@/components/admin/password-reveal";
-type ClientData = {
-  id: string;
-  companyName: string;
-  tradeName?: string | null;
-  taxId?: string | null;
-  segment?: string | null;
-  ownerId?: string | null;
-  website?: string | null;
-  address?: string | null;
-  city?: string | null;
-  province?: string | null;
-  country?: string | null;
-  source?: string | null;
-  notes?: string | null;
-  assignedPriceListId?: string | null;
-  tags?: string[];
-  isActive?: boolean;
-};
+import { Input, Label, Select, FieldError } from "@/components/ui/input";
+import { AccessModePicker, AccessReveal } from "@/components/admin/access-reveal";
+import { CLIENT_SEGMENTS, TAX_CONDITIONS } from "@/lib/clients/fields";
+import type { AccessMode, AccessResult } from "@/server/user-access";
+
+/**
+ * Alta rápida de un cliente sin salir de donde estás (ej. al armar una
+ * cotización): empresa, un contacto y, si querés, su acceso al portal. Para
+ * cargarlo completo (dirección, varios contactos, condiciones y descuentos)
+ * está la pantalla «Nuevo cliente».
+ */
 export function ClientFormModal({
-  owners,
-  priceLists,
-  client,
   triggerLabel = "Nuevo cliente",
   onCreated,
 }: {
-  owners: { id: string; name: string }[];
-  priceLists: { id: string; name: string }[];
-  client?: ClientData;
+  /** Compatibilidad: ya no se usan (el responsable es quien lo crea; se cambia en la ficha). */
+  owners?: { id: string; name: string }[];
+  priceLists?: { id: string; name: string }[];
   triggerLabel?: string;
   onCreated?: (id: string) => void;
 }) {
-  const [open, setOpen] = useState(false),
-    [step, setStep] = useState(1),
-    [error, setError] = useState<string>(),
-    [pwd, setPwd] = useState<string>(),
-    [createdId, setCreatedId] = useState<string>(),
-    [owner, setOwner] = useState(client?.ownerId || ""),
-    [pending, start] = useTransition();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string>();
+  const [withAccess, setWithAccess] = useState(false);
+  const [accessMode, setAccessMode] = useState<AccessMode>("invite");
+  const [result, setResult] = useState<{ id: string; access?: AccessResult; email: string; name: string }>();
+  const [pending, start] = useTransition();
   const router = useRouter();
-  function submit(form: HTMLFormElement) {
-    start(async () => {
-      const data = new FormData(form);
-      data.set("ownerId", owner);
-      const result = client ? await updateClient(data) : await createClient(data);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      if (result.password) {
-        setCreatedId(result.id);
-        setPwd(result.password);
-        // El cliente ya existe: avisar igual (ej. para seleccionarlo en la cotización).
-        if (onCreated && result.id) onCreated(result.id);
-        return;
-      }
-      setOpen(false);
-      if (result.id) {
-        if (onCreated) {
-          // Quien abre el modal decide qué hacer (ej. seleccionar el cliente en una cotización).
-          onCreated(result.id);
-          return;
-        }
-        router.push(`/admin/clients/${result.id}`);
-      }
-      router.refresh();
-    });
+
+  function done(id: string) {
+    setOpen(false);
+    setResult(undefined);
+    if (onCreated) return onCreated(id);
+    router.push(`/admin/clients/${id}`);
   }
+
   return (
     <>
       <Button type="button" onClick={() => setOpen(true)} data-tour="clients-new-btn">
         {triggerLabel}
       </Button>
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title={client ? "Editar empresa" : "Nuevo cliente"}
-        description={client ? "Actualizá los datos comerciales." : `Paso ${step} de 2`}
-        size="lg"
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit(e.currentTarget);
-          }}
-          className="space-y-4"
-        >
-          {client ? <input type="hidden" name="id" value={client.id} /> : null}
-          {pwd ? (
-            <>
-              <PasswordReveal password={pwd} />
-              <Button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  if (onCreated) return;
-                  router.push(`/admin/clients/${client?.id || createdId || ""}`);
-                }}
-              >
-                {onCreated ? "Listo" : "Ir a la ficha"}
-              </Button>
-            </>
-          ) : (
-            <>
-            <div className={step === 1 ? "space-y-4" : "hidden"}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <Label required>Razón social</Label>
-                  <Input name="companyName" defaultValue={client?.companyName} required />
-                </div>
-                <div>
-                  <Label>Nombre de fantasía</Label>
-                  <Input name="tradeName" defaultValue={client?.tradeName || ""} />
-                </div>
-                <div>
-                  <Label>CUIT</Label>
-                  <Input name="taxId" defaultValue={client?.taxId || ""} />
-                </div>
-                <div>
-                  <Label>Segmento</Label>
-                  <Select name="segment" defaultValue={client?.segment || ""}>
-                    <option value="">Sin definir</option>
-                    {[
-                      "Integrador",
-                      "Corporativo",
-                      "Educación",
-                      "Residencial",
-                      "Gobierno",
-                      "Rental",
-                    ].map((x) => (
-                      <option key={x}>{x}</option>
-                    ))}
-                  </Select>
-                </div>
-                <SearchablePick
-                  label="Responsable"
-                  options={owners}
-                  value={owner}
-                  onChange={setOwner}
-                />
+      <Modal open={open} onClose={() => setOpen(false)} title="Nuevo cliente (alta rápida)" size="lg">
+        {result?.access ? (
+          <div className="space-y-4">
+            <AccessReveal access={result.access} email={result.email} name={result.name} />
+            <Button onClick={() => done(result.id)}>{onCreated ? "Listo" : "Ir a la ficha"}</Button>
+          </div>
+        ) : (
+          <form
+            className="space-y-4"
+            autoComplete="off"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              start(async () => {
+                const data = new FormData(form);
+                data.set("createPortalUser", String(withAccess));
+                data.set("accessMode", accessMode);
+                const r = await createClient(data);
+                if (!r.ok || !r.id) return setError(r.error);
+                if (r.access) {
+                  setResult({ id: r.id, access: r.access, email: String(data.get("contactEmail") ?? ""), name: String(data.get("contactName") ?? "") });
+                  return;
+                }
+                done(r.id);
+                router.refresh();
+              });
+            }}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label required>Razón social</Label>
+                <Input name="companyName" required autoComplete="off" />
               </div>
-              {client ? <CompanyExtra client={client} priceLists={priceLists} /> : null}
-              <div className="flex justify-end">
-                <Button
-                  type={client ? "submit" : "button"}
-                  onClick={(e) => {
-                    if (client) return;
-                    const form = e.currentTarget.closest("form");
-                    const company = form?.querySelector<HTMLInputElement>('input[name="companyName"]');
-                    if (company && !company.value.trim()) {
-                      company.reportValidity();
-                      return;
-                    }
-                    setStep(2);
-                  }}
-                  disabled={pending}
-                >
-                  {client ? "Guardar cambios" : "Continuar"}
-                </Button>
+              <div>
+                <Label>Nombre de fantasía</Label>
+                <Input name="tradeName" autoComplete="off" />
+              </div>
+              <div>
+                <Label>CUIT</Label>
+                <Input name="taxId" placeholder="30-12345678-9" inputMode="numeric" autoComplete="off" />
+              </div>
+              <div>
+                <Label>Condición frente al IVA</Label>
+                <Select name="taxCondition" defaultValue="">
+                  <option value="">Sin definir</option>
+                  {TAX_CONDITIONS.map((t) => (
+                    <option key={t}>{t}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Label>Rubro</Label>
+                <Select name="segment" defaultValue="">
+                  <option value="">Sin definir</option>
+                  {CLIENT_SEGMENTS.map((s) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </Select>
               </div>
             </div>
-            <div className={step === 2 && !client ? "space-y-4" : "hidden"}>
+            <fieldset className="space-y-3 rounded-md border border-border p-3">
+              <legend className="px-1 text-sm font-medium">Contacto principal</legend>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label>Nombre del contacto</Label>
-                  <Input name="contactName" />
+                  <Label>Nombre y apellido</Label>
+                  <Input name="contactName" autoComplete="off" />
                 </div>
                 <div>
                   <Label>Cargo</Label>
-                  <Input name="contactRole" />
+                  <Input name="contactRole" autoComplete="off" />
                 </div>
                 <div>
                   <Label>Email</Label>
-                  <Input name="contactEmail" type="email" />
+                  <Input name="contactEmail" type="email" autoComplete="off" data-1p-ignore data-lpignore="true" />
                 </div>
                 <div>
-                  <Label>Teléfono</Label>
-                  <Input name="contactPhone" />
-                </div>
-                <div>
-                  <Label>WhatsApp</Label>
-                  <Input name="contactWhatsapp" />
+                  <Label>Teléfono / WhatsApp</Label>
+                  <Input name="contactPhone" inputMode="tel" autoComplete="off" />
                 </div>
               </div>
-              <label className="flex gap-2 text-sm">
-                <input type="checkbox" name="createPortalUser" />
-                Crear también un usuario del portal para este contacto
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={withAccess} onChange={(e) => setWithAccess(e.target.checked)} />
+                Darle acceso al portal a este contacto
               </label>
-              <div>
-                <Label>Contraseña inicial (opcional)</Label>
-                <Input
-                  name="password"
-                  type="password"
-                  placeholder="Vacío para generar automáticamente"
-                />
-                <FieldHint>Si la dejás vacía, te mostraremos una temporal una sola vez.</FieldHint>
-              </div>
-              <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep(1)}>
-                  Volver
-                </Button>
-                <Button type="submit" disabled={pending}>
-                  {pending ? "Guardando…" : "Crear cliente"}
-                </Button>
-              </div>
+              {withAccess ? <AccessModePicker value={accessMode} onChange={setAccessMode} /> : null}
+            </fieldset>
+            <FieldError message={error} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Link href="/admin/clients/nuevo" className="text-xs text-primary hover:underline">
+                Cargar completo (dirección, varios contactos, condiciones y descuentos)
+              </Link>
+              <Button type="submit" disabled={pending}>
+                {pending ? "Creando…" : "Crear cliente"}
+              </Button>
             </div>
-            </>
-          )}
-          <FieldError message={error} />
-        </form>
+          </form>
+        )}
       </Modal>
     </>
-  );
-}
-function CompanyExtra({
-  client,
-  priceLists,
-}: {
-  client: ClientData;
-  priceLists: { id: string; name: string }[];
-}) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <div>
-        <Label>Lista de precios de referencia</Label>
-        <Select name="assignedPriceListId" defaultValue={client.assignedPriceListId || ""}>
-          <option value="">Predeterminada</option>
-          {priceLists.map((x) => (
-            <option key={x.id} value={x.id}>
-              {x.name}
-            </option>
-          ))}
-        </Select>
-        <FieldHint>El precio real sale de las reglas comerciales.</FieldHint>
-      </div>
-      <div>
-        <Label>Origen</Label>
-        <Input name="source" defaultValue={client.source || ""} />
-      </div>
-      <div>
-        <Label>Sitio web</Label>
-        <Input name="website" defaultValue={client.website || ""} />
-      </div>
-      <div>
-        <Label>Etiquetas</Label>
-        <Input name="tags" defaultValue={client.tags?.join(", ")} />
-      </div>
-      <div className="sm:col-span-2">
-        <Label>Dirección</Label>
-        <Input name="address" defaultValue={client.address || ""} />
-      </div>
-      <Input name="city" defaultValue={client.city || ""} placeholder="Ciudad" />
-      <Input name="province" defaultValue={client.province || ""} placeholder="Provincia" />
-      <input type="hidden" name="country" value={client.country || "Argentina"} />
-      <div className="sm:col-span-2">
-        <Label>Notas internas</Label>
-        <Textarea name="notes" defaultValue={client.notes || ""} />
-      </div>
-      <input type="hidden" name="isActive" value={String(client.isActive !== false)} />
-    </div>
   );
 }

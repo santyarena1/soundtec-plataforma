@@ -18,6 +18,8 @@ datasource db {
 enum UserRole {
   SUPER_ADMIN
   ADMIN
+  /// Equipo interno (vendedores, catálogo, etc.): entra al panel con lo que permite su rol.
+  STAFF
   CLIENT
 }
 
@@ -41,6 +43,11 @@ model User {
   twoFactorSecret String?
   /// Sube en cada reset de clave, baja o cambio de rol. Invalida JWT viejos.
   sessionVersion  Int      @default(0)
+  /// Clave temporal (puesta por un admin): tiene que elegir una propia al entrar.
+  mustChangePassword Boolean @default(false)
+  passwordChangedAt  DateTime?
+  /// Quién creó el acceso (auditoría).
+  createdById     String?
   lastLoginAt     DateTime?
   /// Progreso de onboarding por superficie: { admin?: Progress, portal?: Progress }.
   onboardingJson  Json?
@@ -78,6 +85,8 @@ model User {
 model CustomRole {
   id             String   @id @default(cuid())
   name           String   @unique
+  /// Identificador estable de los roles que crea el sistema (ej. "vendedor"). Se pueden editar igual.
+  key            String?  @unique
   description    String?
   baseSystemRole UserRole @default(CLIENT)
   permissionsJson Json?
@@ -111,6 +120,13 @@ model Client {
   lastActivityAt       DateTime?
   assignedPriceListId String?
   assignedPriceList   PriceList? @relation(fields: [assignedPriceListId], references: [id], onDelete: SetNull)
+  /// Condición frente al IVA (Responsable inscripto, Monotributo, Exento, Consumidor final).
+  taxCondition        String?
+  /// Forma y plazo de pago acordados (ej. "Transferencia 30 días").
+  paymentTerms        String?
+  /// Límite de crédito en cuenta corriente (USD). Vacío = sin límite definido.
+  creditLimitUsd      Decimal? @db.Decimal(14, 2)
+  postalCode          String?
   isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -2138,11 +2154,20 @@ model AccountRequest {
   reviewedAt      DateTime?
   createdClientId String?
   createdUserId   String?
+  /// "web" (formulario público) o "staff" (lo cargó un vendedor para un cliente suyo).
+  origin          String               @default("web")
+  /// Vendedor que pidió el alta (origen "staff"); queda como responsable del cliente.
+  requestedById   String?
+  /// Descuento general que propone el vendedor (el admin lo confirma al aprobar).
+  proposedDiscountPercent Decimal?     @db.Decimal(6, 3)
+  /// Nota interna del vendedor para el admin.
+  staffNote       String?              @db.Text
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
   @@index([status, createdAt])
   @@index([email])
+  @@index([requestedById])
 }
 
 /// Link de un solo uso para que el cliente aprobado cree su contraseña.

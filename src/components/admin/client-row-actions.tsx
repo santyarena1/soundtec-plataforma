@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
-import { ClientFormModal } from "@/components/admin/client-form-modal";
+import { ButtonLink } from "@/components/ui/button";
 import { deleteClient, toggleClientActive } from "@/server/actions/clients";
 
 export interface ClientRowData {
@@ -31,18 +31,18 @@ export interface ClientRowData {
 
 interface Props {
   client: ClientRowData;
-  owners: { id: string; name: string }[];
-  priceLists: { id: string; name: string }[];
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
 /** Acciones por fila en la lista de clientes: editar, activar/desactivar, eliminar. */
-export function ClientRowActions({ client, owners, priceLists }: Props) {
+export function ClientRowActions({ client, canEdit, canDelete: mayDelete }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const canDelete = client.historyCount === 0;
+  const canDelete = mayDelete && client.historyCount === 0;
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
@@ -60,7 +60,12 @@ export function ClientRowActions({ client, owners, priceLists }: Props) {
 
   return (
     <div className="relative flex items-center justify-end gap-1">
-      <ClientFormModal owners={owners} priceLists={priceLists} client={client} triggerLabel="Editar" />
+      {canEdit ? (
+        <ButtonLink href={`/admin/clients/${client.id}/editar`} size="sm" variant="outline">
+          Editar
+        </ButtonLink>
+      ) : null}
+      {canEdit || mayDelete ? (
       <Button
         type="button"
         size="sm"
@@ -71,21 +76,24 @@ export function ClientRowActions({ client, owners, priceLists }: Props) {
       >
         <MoreHorizontal className="h-4 w-4" />
       </Button>
+      ) : null}
       {open ? (
         <>
           <button type="button" className="fixed inset-0 z-10 cursor-default" aria-label="Cerrar" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-9 z-20 w-56 rounded-md border border-border bg-card p-1 text-sm shadow-elevated">
-            <button
-              type="button"
-              className="block w-full rounded px-3 py-2 text-left hover:bg-secondary"
-              onClick={() => {
-                const fd = new FormData();
-                fd.set("id", client.id);
-                run(() => toggleClientActive(fd));
-              }}
-            >
-              {client.isActive ? "Desactivar cliente" : "Activar cliente"}
-            </button>
+            {canEdit ? (
+              <button
+                type="button"
+                className="block w-full rounded px-3 py-2 text-left hover:bg-secondary"
+                onClick={() => {
+                  const fd = new FormData();
+                  fd.set("id", client.id);
+                  run(() => toggleClientActive(fd));
+                }}
+              >
+                {client.isActive ? "Desactivar cliente" : "Activar cliente"}
+              </button>
+            ) : null}
             <button
               type="button"
               className="block w-full rounded px-3 py-2 text-left text-destructive hover:bg-destructive/10 disabled:opacity-50"

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { slugify } from "@/lib/utils";
 import { suggestTaxonomyAssignment, suggestTaxonomyAssignmentBatch } from "@/services/openai";
 import { TaxonomySuggestionKind, TaxonomySuggestionStatus } from "@prisma/client";
@@ -94,7 +94,7 @@ async function ensureTaxonomyAndAssign(
 export async function clearAllTaxonomyData(
   kind: TaxonomySuggestionKind
 ): Promise<{ ok: boolean; deleted: number }> {
-  await requireAdmin();
+  await requireStaff(["categories.manage", "families.manage"]);
 
   // Primero romper la FK en productos
   if (kind === "CATEGORY") {
@@ -118,7 +118,7 @@ export async function clearAllTaxonomyData(
 export async function generateTaxonomySuggestions(
   kind: TaxonomySuggestionKind
 ): Promise<{ ok: boolean; created: number; skipped: number; error?: string }> {
-  await requireAdmin();
+  await requireStaff(["categories.manage", "families.manage"]);
 
   const field = kind === "CATEGORY" ? "categoryId" : "familyId";
   const products = await prisma.product.findMany({
@@ -177,7 +177,7 @@ export async function acceptTaxonomySuggestion(
   suggestionId: string,
   options?: { createIfMissing?: boolean }
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireAdmin();
+  await requireStaff(["categories.manage", "families.manage"]);
 
   const row = await prisma.taxonomySuggestion.findUnique({
     where: { id: suggestionId },
@@ -207,7 +207,7 @@ export async function acceptTaxonomySuggestion(
 }
 
 export async function rejectTaxonomySuggestion(suggestionId: string): Promise<{ ok: boolean }> {
-  await requireAdmin();
+  await requireStaff(["categories.manage", "families.manage"]);
   const row = await prisma.taxonomySuggestion.findUnique({ where: { id: suggestionId } });
   if (!row || row.status !== TaxonomySuggestionStatus.PENDING) return { ok: false };
 
@@ -224,7 +224,7 @@ export async function acceptAllTaxonomySuggestions(
   kind: TaxonomySuggestionKind,
   options?: { createMissing?: boolean }
 ): Promise<{ ok: boolean; accepted: number; failed: number; created: number; assigned: number }> {
-  await requireAdmin();
+  await requireStaff(["categories.manage", "families.manage"]);
   const createMissing = options?.createMissing ?? true;
 
   const pending = await prisma.taxonomySuggestion.findMany({
@@ -270,7 +270,7 @@ export async function generateAndApplyTaxonomySuggestions(
   failed: number;
   error?: string;
 }> {
-  await requireAdmin();
+  await requireStaff(["categories.manage", "families.manage"]);
 
   const field = kind === "CATEGORY" ? "categoryId" : "familyId";
   let totalApplied = 0;

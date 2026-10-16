@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { ButtonLink } from "@/components/ui/button";
 import { getSetting } from "@/lib/settings";
 import { PublicMobileMenu } from "@/components/layout/public-mobile-menu";
+import { isCatalogModeOn } from "@/lib/catalog-mode";
+import { CatalogModeExit } from "@/components/catalog-mode/catalog-mode-controls";
 
 export async function PublicNavbar() {
   let session: { user?: { role?: string } } | null = null;
@@ -12,7 +14,9 @@ export async function PublicNavbar() {
   } catch {
     session = null;
   }
-  const target = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN" ? "/admin" : "/portal";
+  const role = session?.user?.role;
+  const target = role === "ADMIN" || role === "SUPER_ADMIN" || role === "STAFF" ? "/admin" : "/portal";
+  const catalogMode = Boolean(role) && isCatalogModeOn();
   let appName = "Soundtec";
   try {
     appName = (await getSetting("app.name", "Soundtec")) || "Soundtec";
@@ -50,7 +54,12 @@ export async function PublicNavbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {session?.user?.role ? (
+          {catalogMode ? (
+            <span className="flex items-center gap-2">
+              <span className="hidden rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground sm:inline">Catálogo</span>
+              <CatalogModeExit />
+            </span>
+          ) : session?.user?.role ? (
             <ButtonLink href={target} size="sm">
               Ir al portal
             </ButtonLink>

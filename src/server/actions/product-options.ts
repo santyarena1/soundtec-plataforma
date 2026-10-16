@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 
 const upsertSchema = z.object({
   productId: z.string().min(1),
@@ -15,7 +15,7 @@ const upsertSchema = z.object({
 });
 
 export async function upsertProductOption(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const id = formData.get("id")?.toString() || undefined;
   const parsed = upsertSchema.safeParse({
     productId: formData.get("productId"),
@@ -54,7 +54,7 @@ export async function upsertProductOption(formData: FormData): Promise<void> {
 }
 
 export async function deleteProductOption(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireStaff("products.edit", { costs: true });
   const id = String(formData.get("id") || "");
   const productId = String(formData.get("productId") || "");
   if (!id) return;

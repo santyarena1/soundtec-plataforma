@@ -74,6 +74,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role: user.role,
           companyName: user.companyName,
           perms,
+          sv: user.sessionVersion,
         };
       },
     }),
@@ -86,8 +87,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role?: UserRole;
           companyName?: string | null;
           perms?: Permissions | null;
+          sv?: number;
         };
         if (u.id) (token as Record<string, unknown>).id = u.id;
+        // Versión de sesión: si en la base sube (reset de clave, baja, cambio de tipo), esta sesión deja de valer.
+        (token as Record<string, unknown>).sv = u.sv ?? 0;
         if (u.role) (token as Record<string, unknown>).role = u.role;
         (token as Record<string, unknown>).companyName = u.companyName ?? null;
         (token as Record<string, unknown>).perms = u.perms ?? null;
@@ -101,8 +105,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role?: UserRole;
           companyName?: string | null;
           perms?: Permissions | null;
+          sv?: number;
         };
         if (t.id) session.user.id = t.id;
+        (session.user as { sv?: number }).sv = t.sv ?? 0;
         if (t.role) session.user.role = t.role;
         session.user.companyName = t.companyName ?? null;
         session.user.perms = t.perms ?? null;
@@ -115,7 +121,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const role = auth?.user?.role;
       const perms = auth?.user?.perms;
 
-      const isAdminBase = role === "ADMIN" || role === "SUPER_ADMIN";
+      const isAdminBase = role === "ADMIN" || role === "SUPER_ADMIN" || role === "STAFF";
       const hasAdminScope =
         perms?.fullAccess === true ||
         (Array.isArray(perms?.scopes) && perms.scopes.some((s) => !s.startsWith("portal.")));

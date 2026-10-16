@@ -227,9 +227,11 @@ export function ProjectFloorPlan({
                     <text x={r.rect.x + 10} y={r.rect.y + 17} fontSize={13} fontWeight={700} fill={planMode ? "#1e3553" : "#fff"}>
                       {r.name}
                     </text>
-                    <text x={r.rect.x + r.rect.w - 10} y={r.rect.y + 17} fontSize={10} fill={planMode ? "#475569" : "#cbd5e1"} textAnchor="end">
-                      {r.widthM.toFixed(1)} × {r.depthM.toFixed(1)} m · {r.devices.length} eq.
-                    </text>
+                    {r.rect.w >= r.name.length * 7.5 + 150 ? (
+                      <text x={r.rect.x + r.rect.w - 10} y={r.rect.y + 17} fontSize={10} fill={planMode ? "#475569" : "#cbd5e1"} textAnchor="end">
+                        {r.widthM.toFixed(1)} × {r.depthM.toFixed(1)} m · {r.devices.length} eq.
+                      </text>
+                    ) : null}
                   </g>
                   {showWires
                     ? r.wires.map((w, k) => <polyline key={k} points={w.pts.map((p) => r.map(p.x, p.z)).map((p) => `${p.x},${p.y}`).join(" ")} fill="none" stroke={w.color} strokeWidth={1.2} strokeOpacity={0.7} pointerEvents="none" />)

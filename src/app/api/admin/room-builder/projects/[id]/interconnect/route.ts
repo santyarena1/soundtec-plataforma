@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import {
   analyzeInterconnect,
   applyInterconnectSuggestions,
@@ -13,7 +13,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   try {
     const analysis = await analyzeInterconnect(params.id);
     return NextResponse.json({ ok: true, ...analysis });
@@ -31,7 +31,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   const body = await req.json().catch(() => null);
   const parsed = postSchema.safeParse(body);
   if (!parsed.success) {

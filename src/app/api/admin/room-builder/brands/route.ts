@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { brandLogoSrc } from "@/lib/brand-logo";
 import { BRAND_GROUPS, brandGroupForRole, ensureRoomBuilderSchema, type BrandGroup } from "@/services/room-builder";
@@ -16,7 +16,7 @@ type BrandOption = { slug: string; name: string; logo: string | null; products: 
  * el asistente. Ordenadas por cantidad de productos.
  */
 export async function GET() {
-  await requireAdmin();
+  await requireStaff("room_builder.use");
   await ensureRoomBuilderSchema();
   const profiles = await prisma.productDesignProfile.findMany({
     where: { designRole: { not: null }, product: { isActive: true, isDiscontinued: false, brand: { isActive: true } } },

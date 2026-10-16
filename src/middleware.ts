@@ -10,10 +10,21 @@ export default auth((req) => {
 
   const { pathname } = req.nextUrl;
   const isLogged = !!req.auth?.user;
+
+  // Modo "Catálogo sin precios" (un vendedor le muestra el catálogo a un cliente):
+  // el portal y el panel quedan cerrados en este navegador; se ve el catálogo público.
+  // Para salir hay que confirmar la clave desde la cinta del catálogo.
+  if (req.cookies.get("st_catalogo")?.value === "1" && (pathname.startsWith("/portal") || pathname.startsWith("/admin"))) {
+    const product = pathname.match(/^\/portal\/products\/([^/]+)\/?$/);
+    const target = new URL(product ? `/catalogo/${product[1]}` : "/catalogo", req.nextUrl);
+    if (pathname.startsWith("/portal/products")) target.search = req.nextUrl.search;
+    return NextResponse.redirect(target);
+  }
   const role = req.auth?.user?.role;
   const perms = req.auth?.user?.perms;
 
-  const isAdminBase = role === "ADMIN" || role === "SUPER_ADMIN";
+  // Panel: admins y equipo interno (cada pantalla verifica además el permiso puntual).
+  const isAdminBase = role === "ADMIN" || role === "SUPER_ADMIN" || role === "STAFF";
   const hasAdminScope =
     perms?.fullAccess === true ||
     (Array.isArray(perms?.scopes) && perms.scopes.some((s) => !s.startsWith("portal.")));
@@ -47,7 +58,8 @@ export default auth((req) => {
     }
   }
 
-  if (pathname === "/login" && isLogged) {
+  // "/login?sesion=..." llega desde /salir: no rebotar al panel con una sesión que se está cerrando.
+  if (pathname === "/login" && isLogged && !req.nextUrl.searchParams.has("sesion")) {
     const target = isAdminBase || hasAdminScope ? "/admin" : "/portal";
     return NextResponse.redirect(new URL(target, req.nextUrl));
   }

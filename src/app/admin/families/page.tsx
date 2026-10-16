@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +14,7 @@ export const maxDuration = 300;
 export const metadata = { title: "Admin · Familias" };
 
 export default async function AdminFamiliesPage() {
-  await requireAdmin();
+  await requireStaff("families.manage");
   const [families, suggestions, unassignedCount] = await Promise.all([
     prisma.productFamily.findMany({
       orderBy: { name: "asc" },

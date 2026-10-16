@@ -77,7 +77,11 @@ export interface CatalogProduct {
   shortDescription: string | null;
   brandName: string | null;
   categoryName: string | null;
+  familyName: string | null;
   primaryImage: string | null;
+  /** Sin precio cargado (o marcado "a consultar"): se muestra "Precio a consultar". */
+  requiresQuote: boolean;
+  isDiscontinued: boolean;
   stockStatus: string;
   stockQuantity: number | null;
   isCustomizable: boolean;
@@ -117,6 +121,7 @@ type ProductRow = Prisma.ProductGetPayload<{
   include: {
     brand: { select: { id: true; name: true } };
     category: { select: { id: true; name: true } };
+    family: { select: { id: true; name: true } };
     images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }]; take: 1 };
   };
 }>;
@@ -340,7 +345,10 @@ async function mapProductsToCatalogItems(
     shortDescription: p.shortDescription,
     brandName: p.brand?.name ?? null,
     categoryName: p.category?.name ?? null,
+    familyName: p.family?.name ?? null,
     primaryImage: p.images[0]?.url ?? null,
+    requiresQuote: p.requiresQuote,
+    isDiscontinued: p.isDiscontinued,
     stockStatus: p.stockStatus,
     stockQuantity: p.stockQuantity,
     isCustomizable: p.isCustomizable,
@@ -437,6 +445,7 @@ function sortCatalogItems(
 const productInclude = {
   brand: { select: { id: true, name: true } },
   category: { select: { id: true, name: true } },
+  family: { select: { id: true, name: true } },
   images: productCoverImageInclude,
 } as const;
 

@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import { toggleBrandCatalogVisibility } from "@/server/actions/brand-logos";
 export const metadata = { title: "Admin · Marcas" };
 
 export default async function AdminBrandsPage() {
-  await requireAdmin();
+  await requireStaff("brands.manage");
   const brands = await prisma.brand.findMany({
     orderBy: { name: "asc" },
     include: {
