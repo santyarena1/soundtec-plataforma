@@ -2047,4 +2047,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Los productos ya no muestran la etiqueta «Discontinuado».",
     items: [{ kind: "MEJORA", text: "Sin la etiqueta «Discontinuado» en las cards del catálogo ni en las fichas (portal y catálogo público)." }],
   },
+  {
+    id: "ship-2026-10-17-usuarios-y-roles",
+    version: "2.1.0",
+    releasedAt: "2026-10-17T01:00:00.000Z",
+    summary: "Usuarios y roles en una sola pantalla: equipo, clientes del portal y roles con sus permisos.",
+    items: [
+      { kind: "MEJORA", text: "Usuarios y roles: pestañas Equipo interno, Clientes del portal y Roles y permisos, con tarjetas por persona (rol, qué precios ve, último acceso, clave temporal)." },
+      { kind: "NUEVO", text: "Indicadores: equipo activo, vendedores, clientes con acceso, invitaciones sin usar y claves temporales." },
+      { kind: "FIX", text: "El rol Vendedor se crea solo si todavía no existía." },
+    ],
+  },
 ];

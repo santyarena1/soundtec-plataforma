@@ -1,5 +1,6 @@
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { ensureSystemRoles } from "@/server/system-roles";
 import { parsePermissions } from "@/lib/permissions";
 import { SettingsSectionHeader } from "@/components/admin/settings-section-header";
 import { CustomRolesManager, type RoleSummary } from "@/components/admin/custom-roles-manager";
@@ -10,6 +11,7 @@ export const metadata = { title: "Admin · Roles y permisos" };
 
 export default async function SettingsRolesPage() {
   await requireStaff("roles.manage");
+  await ensureSystemRoles().catch((e) => console.error("[roles] ensure", e));
   const customRoles = await prisma.customRole.findMany({
     orderBy: [{ isActive: "desc" }, { name: "asc" }],
     include: { _count: { select: { users: true } } },

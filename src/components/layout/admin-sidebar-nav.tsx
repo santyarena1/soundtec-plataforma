@@ -112,7 +112,7 @@ const groups: NavGroup[] = [
       { href: "/admin/account-requests", label: "Solicitudes de alta", icon: UserPlus, anyScope: ["account_requests.create", "account_requests.review"], badgeKey: "accountRequests" },
       { href: "/admin/leads", label: "Leads del catálogo", icon: QrCode, scope: "leads.view" },
       { href: "/admin/assistant/leads", label: "Leads del asistente", icon: MessageSquare, scope: "leads.view" },
-      { href: "/admin/users", label: "Usuarios", icon: ShieldCheck, scope: "users.view", tourId: "nav-link-users" },
+      { href: "/admin/users", label: "Usuarios y roles", icon: ShieldCheck, scope: "users.view", tourId: "nav-link-users" },
     ],
   },
   {
