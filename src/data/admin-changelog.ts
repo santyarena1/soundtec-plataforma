@@ -2089,4 +2089,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "La lista SoundTube carga también la hoja de accesorios (260 productos) aunque su columna MUP no tenga título.",
     items: [{ kind: "FIX", text: "Lista SoundTube: se detecta la columna MUP sin título de la hoja «SoundTube Accessories Comm»; antes esa hoja se descartaba entera." }],
   },
+  {
+    id: "ship-2026-10-20-precios-sin-impuestos",
+    version: "2.2.2",
+    releasedAt: "2026-10-20T15:00:00.000Z",
+    summary: "El catálogo del portal aclara que los precios no incluyen impuestos.",
+    items: [{ kind: "MEJORA", text: "Leyenda «Los precios no incluyen impuestos» en el catálogo del portal y en la ficha de cada producto." }],
+  },
 ];

@@ -299,7 +299,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                     </p>
                   ) : null}
                   <p className="text-3xl font-semibold tracking-tight">{formatUsd(pricing.finalPriceUsd)}</p>
-                  <p className="muted-text text-sm">Precio en USD según tus condiciones comerciales</p>
+                  <p className="muted-text text-sm">Precio en USD según tus condiciones comerciales. No incluye impuestos.</p>
                 </>
               )}
 

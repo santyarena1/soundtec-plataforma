@@ -92,6 +92,9 @@ export default async function ProductsPage({
         <div>
           <h1 className="heading-2">Catálogo</h1>
           <p className="muted-text mt-1">Explorá productos con precios en USD para tu cuenta comercial.</p>
+          <p className="mt-2 inline-flex rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900">
+            Los precios no incluyen impuestos.
+          </p>
         </div>
         {draft ? (
           <Link
