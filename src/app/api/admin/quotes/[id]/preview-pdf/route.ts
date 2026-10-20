@@ -31,7 +31,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       issuedAt: quote.issuedAt,
       showDeliveryColumn: quote.showDeliveryColumn,
       taxMode: quote.taxMode,
-      client: quote.client,
+      client: quote.client ?? (quote.clientName ? { companyName: quote.clientName, tradeName: null } : null),
       owner: {
         quoteSignName: quote.owner.quoteSignName,
         quoteSignTitle: quote.owner.quoteSignTitle,

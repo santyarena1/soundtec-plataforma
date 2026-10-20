@@ -1247,6 +1247,8 @@ model Quote {
   status                 QuoteStatus       @default(DRAFT)
   reference              String?
   contactName            String?
+  /// Cliente escrito a mano (sin alta en Clientes). Si hay clientId, manda el cliente dado de alta.
+  clientName             String?
   clientId               String?
   client                 Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
   ownerId                String

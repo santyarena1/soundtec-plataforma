@@ -66,8 +66,13 @@ export default async function NewQuotePage() {
                     }))}
                     owners={owners}
                     priceLists={priceLists}
-                    placeholder="Asignar después (no podés emitir sin cliente)"
+                    placeholder="Elegí un cliente dado de alta…"
                   />
+                  <div className="mt-2">
+                    <Label htmlFor="clientName">o escribí el cliente (sin darlo de alta)</Label>
+                    <Input id="clientName" name="clientName" placeholder="Ej. Hotel Alvear" />
+                    <FieldHint>Sale así en el encabezado. Si elegís uno de la lista, manda ese.</FieldHint>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="contactName">Contacto</Label>

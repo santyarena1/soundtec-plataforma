@@ -32,6 +32,8 @@ const PROFILE_BY_LAYOUT = {
 
 const schema = z.object({
   clientId: z.string().nullable(),
+  /** Cliente escrito a mano, sin alta. */
+  clientName: z.string().max(200).default(""),
   contactName: z.string().max(160).default(""),
   reference: z.string().min(1).max(200),
   layoutKey: z.enum(["COMPACT", "STANDARD", "EDITORIAL"]).default("COMPACT"),
@@ -47,8 +49,8 @@ export async function createQuickQuote(input: QuickQuoteInput) {
   const { user } = await requireQuotePermission("quotes.create");
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, errors: parsed.error.issues.map((i) => i.message) };
-  if (parsed.data.issue && !parsed.data.clientId)
-    return { ok: false, errors: ["Sin cliente no se puede emitir."] };
+  if (parsed.data.issue && !parsed.data.clientId && !parsed.data.clientName.trim())
+    return { ok: false, errors: ["Elegí un cliente o escribí su nombre para emitir."] };
   const products = await prisma.product.findMany({
     where: { id: { in: parsed.data.items.map((i) => i.productId) } },
     select: { id: true, normalizedName: true, brand: { select: { name: true } }, ivaPercent: true },
@@ -59,6 +61,7 @@ export async function createQuickQuote(input: QuickQuoteInput) {
   const quote = await createQuoteShell({
     ownerId: user.id,
     clientId: parsed.data.clientId,
+    clientName: parsed.data.clientName.trim() || null,
     reference: parsed.data.reference,
     contactName: parsed.data.contactName || null,
     layoutKey: parsed.data.layoutKey,

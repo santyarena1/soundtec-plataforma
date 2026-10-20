@@ -229,7 +229,7 @@ export default async function AdminQuotesPage({
                       </p>
                     ) : null}
                   </TD>
-                  <TD>{row.client?.companyName || "—"}</TD>
+                  <TD>{row.client?.companyName || row.clientName || "—"}</TD>
                   <TD className="max-w-[220px] truncate">{row.reference || "—"}</TD>
                   <TD>
                     <Badge tone={statusTone[row.status] || "muted"}>{statusLabel[row.status] || row.status}</Badge>

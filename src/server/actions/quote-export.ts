@@ -24,7 +24,7 @@ export async function issueQuote(formData: FormData): Promise<{ ok: boolean; err
 
   const snapshot = {
     number: loaded.quote.number,
-    client: loaded.quote.client?.companyName,
+    client: loaded.quote.client?.companyName ?? loaded.quote.clientName ?? undefined,
     items: loaded.quote.items.map((i) => ({
       quantity: Number(i.quantity),
       description: i.description,
@@ -103,7 +103,7 @@ export async function buildQuoteWorkbook(quoteId: string): Promise<{ bytes: Uint
   if (!loaded.quote) throw new Error("Sin acceso");
   const rows = [
     ["Número", loaded.quote.number],
-    ["Cliente", loaded.quote.client?.companyName || ""],
+    ["Cliente", loaded.quote.client?.companyName || loaded.quote.clientName || ""],
     ["Referencia", loaded.quote.reference || ""],
     [],
     ["Ambiente", "Cant", "U", "Detalle", "Unitario USD", "Total USD", "IVA %", "Entrega"],

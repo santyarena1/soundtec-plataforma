@@ -50,6 +50,8 @@ async function defaultTerms() {
 type QuoteShellInput = {
   ownerId: string;
   clientId?: string | null;
+  /** Cliente escrito a mano (sin alta). */
+  clientName?: string | null;
   reference?: string | null;
   contactName?: string | null;
   brief?: string | null;
@@ -94,6 +96,7 @@ export async function createQuoteShell(input: QuoteShellInput) {
       number,
       ownerId: input.ownerId,
       clientId: input.clientId || null,
+      clientName: input.clientId ? null : input.clientName?.trim() || null,
       reference: input.reference || input.projectType || null,
       contactName: input.contactName || null,
       layoutKey,
@@ -156,6 +159,7 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
   const parsed = z
     .object({
       clientId: z.string().optional(),
+      clientName: z.string().max(200).optional(),
       reference: z.string().max(200).optional(),
       contactName: z.string().max(160).optional(),
       brief: z.string().max(20000).optional(),
@@ -172,6 +176,7 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
     })
     .safeParse({
       clientId: String(formData.get("clientId") || "") || undefined,
+      clientName: String(formData.get("clientName") || "").trim() || undefined,
       reference: String(formData.get("reference") || "") || undefined,
       contactName: String(formData.get("contactName") || "") || undefined,
       brief: String(formData.get("brief") || "") || undefined,
@@ -192,6 +197,7 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
   const quote = await createQuoteShell({
     ownerId: user.id,
     clientId: parsed.data.clientId || null,
+    clientName: parsed.data.clientName || null,
     reference: parsed.data.reference || parsed.data.projectType || null,
     contactName: parsed.data.contactName || null,
     brief: parsed.data.brief || null,
@@ -810,6 +816,7 @@ export async function saveQuoteMeta(formData: FormData): Promise<void> {
       ...(formData.has("reference") ? { reference: String(formData.get("reference") || "") || null } : {}),
       ...(formData.has("contactName") ? { contactName: String(formData.get("contactName") || "") || null } : {}),
       ...(formData.has("clientId") ? { clientId: String(formData.get("clientId") || "") || null } : {}),
+      ...(formData.has("clientName") ? { clientName: String(formData.get("clientName") || "").trim().slice(0, 200) || null } : {}),
       ...(formData.has("brief") ? { brief: String(formData.get("brief") || "") || null } : {}),
       layoutKey,
       taxMode,
@@ -932,7 +939,9 @@ export async function setQuoteStatus(formData: FormData): Promise<{ ok: boolean;
     if (!permissionsHave(loaded.permissions, "quotes.issue") && !loaded.permissions.fullAccess) {
       return { ok: false, error: "Sin permiso para emitir." };
     }
-    if (!loaded.quote.clientId) return { ok: false, error: "Asigná un cliente antes de emitir." };
+    if (!loaded.quote.clientId && !loaded.quote.clientName?.trim()) {
+      return { ok: false, error: "Elegí un cliente o escribí su nombre antes de emitir." };
+    }
     if (loaded.quote.items.length === 0) return { ok: false, error: "Agregá al menos un ítem." };
     if (loaded.quote.showDeliveryColumn && loaded.quote.items.some((i) => !i.deliveryKey && !i.excluded)) {
       return { ok: false, error: "Completá la entrega en todas las filas (o desactivá la columna)." };
@@ -1009,6 +1018,7 @@ export async function duplicateQuote(formData: FormData): Promise<void> {
       number,
       ownerId: loaded.user.id,
       clientId: src.clientId,
+      clientName: src.clientName,
       reference: src.reference ? `${src.reference} (copia)` : src.number,
       contactName: src.contactName,
       layoutKey: src.layoutKey,

@@ -31,6 +31,7 @@ export function QuickQuoteForm({
 }) {
   const [pending, start] = useTransition();
   const [clientId, setClientId] = useState("");
+  const [clientName, setClientName] = useState("");
   const [contact, setContact] = useState("");
   const [reference, setReference] = useState(
     `Cotización rápida ${new Date().toLocaleDateString("es-AR")}`,
@@ -121,6 +122,7 @@ export function QuickQuoteForm({
     start(async () => {
       const result = await createQuickQuote({
         clientId: clientId || null,
+        clientName: clientId ? "" : clientName,
         contactName: contact,
         reference,
         layoutKey: layoutKey as "COMPACT",
@@ -186,14 +188,22 @@ export function QuickQuoteForm({
   return (
     <div className="space-y-6" data-tour="quote-quick-form">
       <div className="grid gap-4 md:grid-cols-2">
-        <ClientSelectWithCreate
-          clients={clients}
-          owners={owners}
-          priceLists={priceLists}
-          value={clientId}
-          onChange={setClientId}
-          placeholder="Buscá un cliente activo…"
-        />
+        <div className="space-y-2">
+          <ClientSelectWithCreate
+            clients={clients}
+            owners={owners}
+            priceLists={priceLists}
+            value={clientId}
+            onChange={setClientId}
+            placeholder="Buscá un cliente activo…"
+          />
+          {!clientId ? (
+            <div>
+              <Label>o escribí el cliente (sin darlo de alta)</Label>
+              <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Ej. Hotel Alvear" />
+            </div>
+          ) : null}
+        </div>
         <div>
           <Label>Contacto</Label>
           <Input value={contact} onChange={(e) => setContact(e.target.value)} />
@@ -242,9 +252,9 @@ export function QuickQuoteForm({
           </div>
         </div>
       </div>
-      {!clientId ? (
+      {!clientId && !clientName.trim() ? (
         <p className="text-sm text-warning">
-          Podés guardar el borrador, pero sin cliente no se puede emitir.
+          Podés guardar el borrador, pero para emitir elegí un cliente o escribí su nombre.
         </p>
       ) : null}
       <div className="relative">
@@ -307,7 +317,7 @@ export function QuickQuoteForm({
         <Button variant="outline" disabled={pending || !items.length} onClick={() => create(false)}>
           Guardar como borrador y abrir el editor
         </Button>
-        <Button disabled={pending || !items.length || !clientId} onClick={() => create(true)}>
+        <Button disabled={pending || !items.length || (!clientId && !clientName.trim())} onClick={() => create(true)}>
           Crear y emitir PDF
         </Button>
       </div>

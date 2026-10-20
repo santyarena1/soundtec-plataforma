@@ -234,7 +234,7 @@ export default async function QuoteEditorPage({
           month: "long",
           year: "numeric",
         })}`,
-        clientName: quote.client?.companyName || "[Cliente a confirmar]",
+        clientName: quote.client?.companyName || quote.clientName || "[Cliente a confirmar]",
         contactName: quote.contactName,
         reference: quote.reference || "[Referencia a confirmar]",
         number: quote.number,
@@ -405,7 +405,7 @@ export default async function QuoteEditorPage({
               <div>
                 <Label htmlFor="clientId">Cliente</Label>
                 <Select id="clientId" name="clientId" defaultValue={quote.clientId || ""}>
-                  <option value="">Sin cliente</option>
+                  <option value="">Sin alta (escribirlo abajo)</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.companyName}
@@ -416,6 +416,10 @@ export default async function QuoteEditorPage({
               <div>
                 <Label htmlFor="contactName">Contacto</Label>
                 <Input id="contactName" name="contactName" defaultValue={quote.contactName || ""} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="clientName">Cliente escrito a mano (si no está dado de alta)</Label>
+                <Input id="clientName" name="clientName" defaultValue={quote.clientName || ""} placeholder="Ej. Hotel Alvear" />
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="reference">Referencia</Label>

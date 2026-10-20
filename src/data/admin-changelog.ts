@@ -2096,4 +2096,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "El catálogo del portal aclara que los precios no incluyen impuestos.",
     items: [{ kind: "MEJORA", text: "Leyenda «Los precios no incluyen impuestos» en el catálogo del portal y en la ficha de cada producto." }],
   },
+  {
+    id: "ship-2026-10-20-cot-cliente-texto",
+    version: "2.3.0",
+    releasedAt: "2026-10-20T18:00:00.000Z",
+    summary: "Cotizaciones: el cliente del encabezado se puede escribir a mano, sin darlo de alta.",
+    items: [
+      { kind: "NUEVO", text: "En cotización nueva, rápida y en el encabezado de una existente: «o escribí el cliente (sin darlo de alta)». Sale así en el PDF, Word y Excel." },
+      { kind: "MEJORA", text: "Se puede emitir con el cliente escrito a mano; si elegís uno dado de alta, manda ese." },
+    ],
+  },
 ];
