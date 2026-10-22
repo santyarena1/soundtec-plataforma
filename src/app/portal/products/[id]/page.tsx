@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getCurrentPermissions, requireUser } from "@/lib/auth-helpers";
-import { canSeeCosts, isPanelRole } from "@/lib/permissions";
+import { canSeeCosts, isPanelRole, permissionsHave } from "@/lib/permissions";
+import { EditPriceButton } from "@/components/pricing/edit-price-button";
 import { prisma } from "@/lib/prisma";
 import { calculateCustomerPrice, calculatePricesForProducts, isProductVisibleToClient } from "@/lib/pricing";
 import { resolveCommercialClientId } from "@/lib/client-context";
@@ -112,7 +113,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     getGlobalMarginPercent(),
   ]);
 
-  const isAdmin = (await getCurrentPermissions().then(({ permissions }) => canSeeCosts(permissions))) && isAdminViewer;
+  const viewerPermissions = isAdminViewer ? (await getCurrentPermissions()).permissions : null;
+  const isAdmin = !!viewerPermissions && canSeeCosts(viewerPermissions);
+  const canEditPrices = isAdmin && permissionsHave(viewerPermissions!, "margins.manage");
   const pricing = await calculateCustomerPrice({
     product: {
       productId: product.id,
@@ -305,7 +308,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
               {isAdmin ? (
                 <div className="rounded-md border border-dashed border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
-                  <p className="font-semibold text-foreground">Vista administrativa</p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold text-foreground">Vista administrativa</p>
+                    {canEditPrices ? <EditPriceButton productId={product.id} /> : null}
+                  </div>
                   <ul className="mt-2 space-y-1">
                     <li>Costo base: {formatUsd(pricing.baseCostUsd)}</li>
                     <li>Margen aplicado: {formatPercent(pricing.marginPercent)}{pricing.appliedMarginRule ? ` · ${pricing.appliedMarginRule.name}` : ""}</li>

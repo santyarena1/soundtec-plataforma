@@ -1,5 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth-helpers";
+import { permissionsHave } from "@/lib/permissions";
+import { EditPriceButton } from "@/components/pricing/edit-price-button";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -152,6 +154,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
             {product.aiGeneratedDescription ? <Badge tone="accent">Desc. IA</Badge> : null}
             {product.isCustomizable ? <Badge tone="warning">Personalizable</Badge> : null}
             {product.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : <Badge tone="primary">Principal</Badge>}
+            {permissionsHave(access.permissions, "margins.manage") ? <EditPriceButton productId={product.id} /> : null}
           </>
         }
       />

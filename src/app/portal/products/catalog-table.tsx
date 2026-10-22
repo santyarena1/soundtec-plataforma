@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
+import { SelectableRowControls } from "./catalog-multi-select";
 
 interface TableProps {
   items: CatalogProduct[];
@@ -19,6 +20,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
     <Table>
       <THead>
         <TR>
+          {!publicMode ? <TH className="w-14" /> : null}
           <TH>Producto</TH>
           <TH>Marca</TH>
           <TH>Categoría</TH>
@@ -30,6 +32,11 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
       <TBody>
         {items.map((p) => (
           <TR key={p.id}>
+            {!publicMode ? (
+              <TD>
+                <SelectableRowControls productId={p.id} />
+              </TD>
+            ) : null}
             <TD>
               <Link href={`${basePath}/${p.id}`} className="flex items-center gap-3 hover:text-accent">
                 <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white">

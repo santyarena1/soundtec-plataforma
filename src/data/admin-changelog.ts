@@ -2129,4 +2129,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Opciones: markup o margen propio para los elegidos, precio final buscado (calcula el markup), editar la regla que aplica (avisa a cuántos afecta) o volver a la regla general." },
     ],
   },
+  {
+    id: "ship-2026-10-23-editor-precios-ficha-y-seleccion",
+    version: "2.5.1",
+    releasedAt: "2026-10-23T03:00:00.000Z",
+    summary: "Editor de precios también en la ficha del producto, selección múltiple que se ve y markup propio como regla de cada producto.",
+    items: [
+      { kind: "NUEVO", text: "«Editar precio» en la ficha del producto (portal, en la vista administrativa) y en la ficha del panel." },
+      { kind: "MEJORA", text: "Selección múltiple: las casillas se ven siempre para quien edita precios y en celular; la vista tabla también tiene casilla y botón de precio." },
+      { kind: "FIX", text: "Markup propio crea una regla específica de cada producto (no un grupo compartido) y ya no pisa el MUP de la lista SoundTube: lo reemplaza con prioridad y la lista no lo vuelve a tocar." },
+      { kind: "MEJORA", text: "Precio final: muestra el markup y margen que se guardan y explica qué pisa, qué no y cómo se mueve el precio si cambia el costo." },
+    ],
+  },
 ];

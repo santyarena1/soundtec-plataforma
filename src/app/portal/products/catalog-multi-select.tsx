@@ -122,6 +122,34 @@ export function useMultiSelect() {
   return useContext(MultiSelectContext);
 }
 
+/** Casilla de selección y botón de precio para la vista tabla. */
+export function SelectableRowControls({ productId }: { productId: string }) {
+  const { selected, toggle, editPrices } = useMultiSelect();
+  const isSelected = selected.has(productId);
+  return (
+    <span className="inline-flex items-center gap-2">
+      <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={() => toggle(productId)}
+        aria-label={isSelected ? "Deseleccionar" : "Seleccionar"}
+        className="h-4 w-4 cursor-pointer accent-primary"
+      />
+      {editPrices ? (
+        <button
+          type="button"
+          onClick={() => editPrices([productId])}
+          aria-label="Editar precio"
+          title="Editar precio"
+          className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+        >
+          <Tag className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+    </span>
+  );
+}
+
 export function SelectableCard({
   productId,
   children,
@@ -145,7 +173,7 @@ export function SelectableCard({
         className={`absolute left-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-md border-2 transition-all ${
           isSelected
             ? "border-primary bg-primary text-primary-foreground opacity-100"
-            : "border-border/60 bg-card/80 text-transparent opacity-0 group-hover/selectable:opacity-100"
+            : `border-border/60 bg-card/80 text-transparent group-hover/selectable:opacity-100 [@media(hover:none)]:opacity-100 ${editPrices || selected.size ? "opacity-100" : "opacity-0"}`
         }`}
       >
         {isSelected ? "✓" : ""}
@@ -160,7 +188,7 @@ export function SelectableCard({
           }}
           aria-label="Editar precio"
           title="Editar precio"
-          className="absolute right-2 top-12 z-10 inline-flex items-center gap-1 rounded-md border border-border bg-card/95 px-2 py-1 text-[11px] font-medium text-foreground opacity-0 shadow-sm transition-opacity hover:bg-secondary group-hover/selectable:opacity-100 focus:opacity-100"
+          className="absolute right-2 top-12 z-10 inline-flex items-center gap-1 rounded-md border border-border bg-card/95 px-2 py-1 text-[11px] font-medium text-foreground opacity-0 shadow-sm transition-opacity hover:bg-secondary group-hover/selectable:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100"
         >
           <Tag className="h-3 w-3" /> Editar precio
         </button>

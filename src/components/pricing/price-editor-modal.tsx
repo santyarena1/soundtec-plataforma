@@ -22,6 +22,80 @@ type Mode = "markup" | "price" | "rule" | "clear";
 const parse = (v: string) => Number(v.replace(",", "."));
 const SOURCE_LABEL: Record<EditorProduct["source"], string> = { RULE: "Regla", COEF_VTA: "COEF VTA de la ficha", DEFAULT: "Markup por defecto" };
 
+function sourceLabel(p: EditorProduct, rule: EditorRule | undefined): string {
+  if (p.ownRule) return "Markup propio";
+  if (rule?.fromSoundTubeList) return "Lista SoundTube (MUP)";
+  if (rule) return `${rule.scope}${rule.scopeName ? `: ${rule.scopeName}` : ""}`;
+  return SOURCE_LABEL[p.source];
+}
+
+const fmtX = (v: number) => `×${v.toFixed(4).replace(/0+$/, "").replace(/\.$/, "")}`;
+
+/**
+ * Precio final escrito a mano: muestra el markup que se va a guardar y todo lo
+ * que ese precio pisa o no pisa, y cómo se mueve después.
+ */
+function TargetPricePanel({
+  product: p,
+  rule,
+  value,
+  onChange,
+  pending,
+  onApply,
+}: {
+  product: EditorProduct;
+  rule: EditorRule | undefined;
+  value: string;
+  onChange: (v: string) => void;
+  pending: boolean;
+  onApply: () => void;
+}) {
+  const target = parse(value);
+  const base = p.costoNacUsd * (1 - p.discountPercent / 100);
+  const markup = Number.isFinite(target) && target > 0 && base > 0 ? target / base : null;
+  const tooLow = markup != null && markup <= 1;
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="w-40">
+          <Label>Precio final (USD)</Label>
+          <Input value={value} onChange={(e) => onChange(e.target.value)} inputMode="decimal" />
+        </div>
+        <Button disabled={pending || markup == null || tooLow} onClick={onApply}>
+          Aplicar
+        </Button>
+        {markup != null ? (
+          <span className={`text-xs ${tooLow ? "text-destructive" : "text-muted-foreground"}`}>
+            Se guarda markup propio <b className="font-mono text-foreground">{fmtX(markup)}</b> (margen {((markup - 1) * 100).toFixed(1)}%)
+            {tooLow ? " · queda al costo o por debajo: no se puede." : ""}
+          </span>
+        ) : null}
+      </div>
+      {base <= 0 ? <p className="text-xs text-destructive">El producto no tiene costo cargado: no se puede calcular el markup.</p> : null}
+      <div className="rounded-md border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
+        <p className="font-semibold text-foreground">Qué hace y cómo se actualiza después</p>
+        <ul className="mt-1.5 list-disc space-y-1 pl-4">
+          <li>
+            No se guarda un precio fijo: se guarda el markup que da ese precio con el costo de hoy (costo nacionalizado {formatUsd(p.costoNacUsd)}
+            {p.discountPercent > 0 ? `, con el descuento del ${p.discountPercent.toFixed(1)}%` : ""}).
+          </li>
+          <li>
+            Pisa lo que hoy define el markup de este producto ({sourceLabel(p, rule)} {fmtX(p.markup)})
+            {p.listMarkup != null ? `, incluido el MUP ${fmtX(p.listMarkup)} de la lista SoundTube: aunque subas otra lista, sigue mandando este markup` : ""}.
+          </li>
+          <li>
+            Si cambia el costo (otra lista SPRDIS US, sincronización del proveedor o el costo de la ficha), el precio se recalcula con este markup y deja de
+            ser exactamente el que escribiste. Ejemplo: si el costo sube 10%, el precio sube 10%.
+          </li>
+          <li>Los descuentos y condiciones de cada cliente se siguen aplicando encima de este precio. El precio en pesos se calcula con el tipo de cambio del día.</li>
+          <li>Afecta catálogo, ficha, cotizaciones y pedidos nuevos. Las cotizaciones ya emitidas no cambian.</li>
+          <li>Para volver a la regla anterior: «Volver a la regla general» en este mismo editor.</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Editor de precios del catálogo: muestra de dónde sale el precio de cada
  * producto elegido y permite cambiarlo, con el precio nuevo a la vista antes
@@ -137,7 +211,7 @@ export function PriceEditorModal({ productIds, open, onClose }: { productIds: st
                       <td className="px-2 py-1.5">
                         <span className="font-mono">×{p.markup.toFixed(2)}</span>
                         <span className="block text-muted-foreground" title={rule?.name}>
-                          {p.ownRule ? "Propio" : rule ? `${rule.scope}${rule.scopeName ? `: ${rule.scopeName}` : ""}` : SOURCE_LABEL[p.source]}
+                          {sourceLabel(p, rule)}
                         </span>
                       </td>
                       <td className="px-2 py-1.5 text-right tabular-nums">{formatUsd(p.finalPriceUsd)}</td>
@@ -174,8 +248,8 @@ export function PriceEditorModal({ productIds, open, onClose }: { productIds: st
           {mode === "markup" ? (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                Le pone a {single ? "este producto" : `estos ${productIds.length} productos`} un markup propio, que manda sobre la regla de marca o categoría.
-                {withOwnRule ? ` ${withOwnRule} ya tienen uno: se actualiza.` : ""}
+                Crea una regla específica para {single ? "este producto" : `cada uno de estos ${productIds.length} productos`} (una por producto, no se mezclan). Manda sobre la regla de marca, categoría y el MUP de la lista SoundTube.
+                {withOwnRule ? ` ${withOwnRule} ya tienen markup propio: se actualiza.` : ""}
               </p>
               <div className="flex flex-wrap items-end gap-2">
                 <div className="flex rounded-md border border-border p-0.5 text-xs">
@@ -196,20 +270,7 @@ export function PriceEditorModal({ productIds, open, onClose }: { productIds: st
             </div>
           ) : null}
 
-          {mode === "price" && single ? (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Escribí el precio de venta que querés: calculamos el markup que lo da y queda como markup propio del producto.</p>
-              <div className="flex flex-wrap items-end gap-2">
-                <div className="w-40">
-                  <Label>Precio final (USD)</Label>
-                  <Input value={priceInput} onChange={(e) => setPriceInput(e.target.value)} inputMode="decimal" />
-                </div>
-                <Button disabled={pending || !(parse(priceInput) > 0)} onClick={() => run(() => setProductTargetPrice(productIds[0]!, parse(priceInput)), () => "Listo: precio actualizado.")}>
-                  Aplicar
-                </Button>
-              </div>
-            </div>
-          ) : null}
+          {mode === "price" && single && products[0] ? <TargetPricePanel product={products[0]} rule={rules.find((r) => r.id === products[0]!.ruleId)} value={priceInput} onChange={setPriceInput} pending={pending} onApply={() => run(() => setProductTargetPrice(productIds[0]!, parse(priceInput)), () => "Listo: precio actualizado.")} /> : null}
 
           {mode === "rule" && rules.length ? (
             <div className="space-y-2">
@@ -254,7 +315,7 @@ export function PriceEditorModal({ productIds, open, onClose }: { productIds: st
           {mode === "clear" ? (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                Saca el markup propio de {withOwnRule} producto(s): vuelven a tomar la regla general (marca, categoría o por defecto). El MUP de la lista SoundTube no se toca.
+                Saca el markup propio de {withOwnRule} producto(s): vuelven a tomar la regla que les toque (MUP de la lista SoundTube, marca, categoría o por defecto). Las reglas de Márgenes no se tocan.
               </p>
               <Button variant="outline" disabled={pending} onClick={() => run(() => clearProductsMarkup(productIds), (n) => `Listo: ${n} markup(s) propio(s) quitado(s).`)}>
                 Volver a la regla general

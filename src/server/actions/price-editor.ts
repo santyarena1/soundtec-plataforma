@@ -14,6 +14,12 @@ import { getGlobalMarginPercent } from "@/lib/settings";
  */
 
 const SOUNDTUBE_GROUP = "soundtube-excel-mup";
+/** Markup propio cargado desde el catálogo: una regla por producto, con su propio grupo. */
+const CATALOG_GROUP_PREFIX = "catalogo";
+const catalogGroup = (productId: string) => `${CATALOG_GROUP_PREFIX}:${productId}`;
+/** Gana sobre las otras reglas de producto (incluido el MUP de la lista SoundTube). */
+const CATALOG_PRIORITY = autoPriority("PRODUCT", false) - 5;
+const isSingleRuleGroup = (groupId: string | null) => !groupId || groupId === SOUNDTUBE_GROUP || groupId.startsWith(CATALOG_GROUP_PREFIX);
 const MAX_PRODUCTS = 300;
 const MAX_MARKUP = 20;
 
@@ -51,8 +57,10 @@ export type EditorProduct = {
   /** De dónde sale el markup. */
   source: "RULE" | "COEF_VTA" | "DEFAULT";
   ruleId: string | null;
-  /** Tiene un markup propio (regla de producto). */
+  /** Tiene un markup propio cargado desde el catálogo. */
   ownRule: boolean;
+  /** MUP de la lista SoundTube, si tiene (el markup propio manda sobre él). */
+  listMarkup: number | null;
   discountPercent: number;
   finalPriceUsd: number;
 };
@@ -130,14 +138,12 @@ export async function loadPriceEditor(productIds: string[]): Promise<EditorData>
     null,
     globalMargin
   );
-  const ownRules = new Set(
-    (
-      await prisma.marginRule.findMany({
-        where: { scopeType: "PRODUCT", clientId: null, isExemption: false, productId: { in: ids.data } },
-        select: { productId: true },
-      })
-    ).flatMap((r) => (r.productId ? [r.productId] : []))
-  );
+  const productRules = await prisma.marginRule.findMany({
+    where: { scopeType: "PRODUCT", clientId: null, isExemption: false, isActive: true, productId: { in: ids.data } },
+    select: { productId: true, groupId: true, markupMultiplier: true },
+  });
+  const ownRules = new Set(productRules.filter((r) => r.groupId?.startsWith(CATALOG_GROUP_PREFIX)).map((r) => r.productId));
+  const listMarkups = new Map(productRules.filter((r) => r.groupId === SOUNDTUBE_GROUP).map((r) => [r.productId, num(r.markupMultiplier)]));
   const products: EditorProduct[] = rows.map((p) => {
     const b = prices.get(p.id);
     return {
@@ -151,6 +157,7 @@ export async function loadPriceEditor(productIds: string[]): Promise<EditorData>
       source: (b?.markupSource ?? "DEFAULT") as EditorProduct["source"],
       ruleId: b?.appliedMarginRule?.id ?? null,
       ownRule: ownRules.has(p.id),
+      listMarkup: listMarkups.get(p.id) ?? null,
       discountPercent: b?.discountPercent ?? 0,
       finalPriceUsd: b?.finalPriceUsd ?? 0,
     };
@@ -181,7 +188,10 @@ export async function loadPriceEditor(productIds: string[]): Promise<EditorData>
   return { ok: true, products, rules, defaultMarkup };
 }
 
-/** Markup propio (regla de producto) para cada producto elegido. Actualiza la que ya tenga. */
+/**
+ * Markup propio para cada producto elegido: una regla específica de ese producto
+ * (grupo propio, no se mezcla con otros). Si ya tiene una del catálogo, se actualiza.
+ */
 export async function setProductsMarkup(productIds: string[], markup: number): Promise<Result> {
   await guard();
   const ids = idsSchema.safeParse([...new Set(productIds)]);
@@ -191,27 +201,30 @@ export async function setProductsMarkup(productIds: string[], markup: number): P
   const marginPercent = Math.min(999.999, markupToMarginPercent(m.data));
   const [products, existing] = await Promise.all([
     prisma.product.findMany({ where: { id: { in: ids.data } }, select: { id: true, supplierSku: true, normalizedName: true } }),
-    prisma.marginRule.findMany({ where: { scopeType: "PRODUCT", clientId: null, isExemption: false, productId: { in: ids.data } }, select: { id: true, productId: true } }),
+    prisma.marginRule.findMany({
+      where: { scopeType: "PRODUCT", clientId: null, isExemption: false, productId: { in: ids.data }, groupId: { startsWith: CATALOG_GROUP_PREFIX } },
+      select: { id: true, productId: true },
+    }),
   ]);
   const ruleByProduct = new Map(existing.map((r) => [r.productId!, r.id]));
-  const groupId = `catalogo-${Date.now().toString(36)}`;
   await prisma.$transaction(
     products.map((p) => {
       const rule = ruleByProduct.get(p.id);
-      const name = `${p.supplierSku ?? p.normalizedName} · markup ×${m.data}`;
+      const name = `${p.supplierSku ?? p.normalizedName} · markup propio ×${m.data}`;
+      const groupId = catalogGroup(p.id);
       return rule
-        ? prisma.marginRule.update({ where: { id: rule }, data: { markupMultiplier: m.data, marginPercent, name, isActive: true } })
+        ? prisma.marginRule.update({ where: { id: rule }, data: { markupMultiplier: m.data, marginPercent, name, groupId, priority: CATALOG_PRIORITY, isActive: true } })
         : prisma.marginRule.create({
             data: {
               name,
-              priority: autoPriority("PRODUCT", false),
+              priority: CATALOG_PRIORITY,
               scopeType: "PRODUCT",
               scopeId: p.id,
               productId: p.id,
               markupMultiplier: m.data,
               marginPercent,
               groupId,
-              notes: "Cargada desde el catálogo (editor de precios).",
+              notes: "Markup propio cargado desde el catálogo (editor de precios). Manda sobre las reglas de marca/categoría y el MUP de la lista SoundTube.",
             },
           });
     })
@@ -241,21 +254,21 @@ export async function updateRuleMarkup(ruleId: string, markup: number): Promise<
   const rule = await prisma.marginRule.findUnique({ where: { id: ruleId }, select: { id: true, groupId: true } });
   if (!rule) return { ok: false, error: "La regla no existe." };
   const marginPercent = Math.min(999.999, markupToMarginPercent(m.data));
-  // Las reglas de la lista SoundTube son una por producto: se cambia solo esa.
-  const where = rule.groupId && rule.groupId !== SOUNDTUBE_GROUP ? { groupId: rule.groupId, isExemption: false } : { id: rule.id };
+  // Lista SoundTube y markups propios son una regla por producto: se cambia solo esa.
+  const where = isSingleRuleGroup(rule.groupId) ? { id: rule.id } : { groupId: rule.groupId!, isExemption: false };
   const updated = await prisma.marginRule.updateMany({ where, data: { markupMultiplier: m.data, marginPercent } });
   refresh();
   return { ok: true, changed: updated.count };
 }
 
-/** Saca el markup propio: los productos vuelven a la regla general (marca, categoría…). */
+/** Saca el markup propio del catálogo: vuelven a la regla que les toque (lista SoundTube, marca, categoría…). */
 export async function clearProductsMarkup(productIds: string[]): Promise<Result> {
   await guard();
   const ids = idsSchema.safeParse([...new Set(productIds)]);
   if (!ids.success) return { ok: false, error: ids.error.issues[0]?.message ?? "Selección inválida." };
-  // El MUP de la lista SoundTube no se toca: lo maneja la lista.
+  // Solo los markups propios del catálogo: el MUP de la lista y las reglas de Márgenes no se tocan.
   const removed = await prisma.marginRule.deleteMany({
-    where: { scopeType: "PRODUCT", clientId: null, isExemption: false, productId: { in: ids.data }, NOT: { groupId: SOUNDTUBE_GROUP } },
+    where: { scopeType: "PRODUCT", clientId: null, isExemption: false, productId: { in: ids.data }, groupId: { startsWith: CATALOG_GROUP_PREFIX } },
   });
   refresh();
   return { ok: true, changed: removed.count };
