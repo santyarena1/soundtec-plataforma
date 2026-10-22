@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { applySoundTubeReview, closeSoundTubeReview, setReviewTaxonomy } from "@/server/actions/soundtube-review";
 import type { ClassificationQuestion, MissingItem, NewProductQuestion, PairQuestion } from "@/server/soundtube/review";
 import { rowLabel, type ParsedPriceList } from "@/services/soundtube/price-list";
+import type { CorrectionsReport } from "@/services/soundtube/corrections";
 import { ClassificationSection, NewProductsSection, PairsSection } from "./_decisions";
 import { MissingSection } from "./_missing";
 import { PriceListSheets } from "@/components/admin/price-list-sheets";
@@ -21,6 +22,7 @@ interface Props {
   warnings: ParsedPriceList["warnings"];
   invalid: ParsedPriceList["invalid"];
   sheets?: ParsedPriceList["sheets"];
+  corrections?: CorrectionsReport;
   matchedCount: number;
   pending: number;
   pairs: PairQuestion[];
@@ -120,6 +122,30 @@ export function ReviewPanel(props: Props) {
       </Card>
 
       <PriceListSheets sheets={props.sheets} />
+      {props.corrections ? (
+        <Card>
+          <CardContent className="space-y-1 p-5 text-xs">
+            <h2 className="mb-1 text-base font-semibold">Correcciones aplicadas de la planilla «Para revisar»</h2>
+            <p>
+              {props.corrections.applied} filas corregidas · {props.corrections.deleted.length} eliminadas · {props.corrections.brands} con marca ·{" "}
+              {props.corrections.renamed.length} SKU corregidos
+            </p>
+            {props.corrections.deleted.length ? (
+              <p className="text-muted-foreground">Eliminadas: {props.corrections.deleted.map((d) => `${d.sku} (fila ${d.row})`).join(", ")}</p>
+            ) : null}
+            {props.corrections.renamed.map((r) => (
+              <p key={r.from} className="text-muted-foreground">
+                SKU: <span className="font-mono">{r.from}</span> → <span className="font-mono">{r.to}</span>
+              </p>
+            ))}
+            {props.corrections.skipped.map((s) => (
+              <p key={s.row} className="text-destructive">
+                Fila {s.row} sin aplicar: {s.reason}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {props.warnings.length + props.invalid.length > 0 ? (
         <Card>

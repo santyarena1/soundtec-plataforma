@@ -55,6 +55,60 @@ export async function addSkuAliases(entries: Array<{ excelSku: string; productId
 
 const isMerged = (meta: unknown) => Boolean(meta && typeof meta === "object" && "mergedInto" in (meta as Record<string, unknown>));
 
+const MANUAL_PRICES_KEY = "soundtube.manual_prices";
+
+/** Precios cargados a mano en Revisión SoundTube (productos que no están en la lista). */
+export async function loadManualPrices(): Promise<Map<string, { costUsd: number; mup: number }>> {
+  try {
+    const raw = JSON.parse(await getSetting(MANUAL_PRICES_KEY, "{}")) as Record<string, { costUsd: number; mup: number }>;
+    return new Map(Object.entries(raw).filter(([, v]) => v && Number(v.costUsd) > 0 && Number(v.mup) > 0));
+  } catch {
+    return new Map();
+  }
+}
+
+async function saveManualPrices(map: Map<string, { costUsd: number; mup: number }>): Promise<void> {
+  await setSetting(MANUAL_PRICES_KEY, JSON.stringify(Object.fromEntries(map)), {
+    description: "Precios de SoundTube cargados a mano (productos que no vienen en la lista Excel).",
+  });
+}
+
+/** Carga a mano el costo y el MUP de un producto que no viene en la lista. */
+export async function setManualPrice(productId: string, costUsd: number, mup: number): Promise<void> {
+  const product = await prisma.product.findUnique({ where: { id: productId }, select: { supplierSku: true, normalizedName: true, fieldUpdatedAt: true } });
+  if (!product) throw new Error("El producto no existe.");
+  const nowIso = new Date().toISOString();
+  await prisma.$transaction([
+    prisma.product.update({
+      where: { id: productId },
+      data: { baseCostUsd: costUsd, requiresQuote: false, fieldUpdatedAt: mergeFieldTimestamps(product.fieldUpdatedAt, ["baseCostUsd"], nowIso) },
+    }),
+    prisma.marginRule.deleteMany({ where: { groupId: MUP_GROUP_ID, productId } }),
+    prisma.marginRule.create({ data: { ...mupRule(productId, product.supplierSku ?? product.normalizedName, mup), notes: "Precio cargado a mano en Revisión SoundTube (no está en la lista)." } }),
+  ]);
+  const manual = await loadManualPrices();
+  manual.set(productId, { costUsd, mup });
+  await saveManualPrices(manual);
+  revalidatePath("/admin/products");
+  revalidatePath("/portal/products");
+}
+
+/** Productos de SoundTube activos sin precio (los que trajo el portal y no están en la lista). */
+export async function listUnpricedProducts(): Promise<Array<{ id: string; sku: string; title: string; brand: string; hasImage: boolean }>> {
+  const products = (await loadSoundTubeProducts()).filter((p) => p.isActive);
+  const priced = new Set(
+    (await prisma.marginRule.findMany({ where: { groupId: MUP_GROUP_ID }, select: { productId: true } })).flatMap((r) => (r.productId ? [r.productId] : []))
+  );
+  const candidates = products.filter((p) => !priced.has(p.id) || p.costUsd <= 0).map((p) => p.id);
+  if (!candidates.length) return [];
+  const rows = await prisma.product.findMany({
+    where: { id: { in: candidates } },
+    select: { id: true, supplierSku: true, normalizedName: true, originalName: true, brand: { select: { name: true } }, images: { select: { id: true }, take: 1 } },
+    orderBy: { normalizedName: "asc" },
+  });
+  return rows.map((r) => ({ id: r.id, sku: r.supplierSku ?? r.normalizedName, title: r.originalName || r.normalizedName, brand: r.brand?.name ?? "—", hasImage: r.images.length > 0 }));
+}
+
 export async function loadSoundTubeProducts(): Promise<CatalogProduct[]> {
   const fromSource = await prisma.$queryRaw<Array<{ id: string }>>`
     SELECT id FROM "Product" WHERE ("sourceMetadata"->'soundtube') IS NOT NULL
@@ -175,14 +229,15 @@ export async function applySoundTubeRows(input: ApplySoundTubeInput): Promise<Ap
     const fieldTimes = new Map(timestamps.map((t) => [t.id, t.fieldUpdatedAt]));
     const nowIso = new Date().toISOString();
 
-    // Los que quedan afuera pero ya tenían precio de una lista anterior o cargado a mano lo conservan
-    // (cost + MUP): lo que ya se resolvió no se rompe al subir otra lista.
+    // Única fuente de precio: SPRDIS US de la lista. Lo que no viene en la lista queda SIN precio,
+    // salvo que se le haya cargado un precio a mano en Revisión SoundTube (se conserva entre listas).
     const repriced = new Set(validDecisions.filter((d) => d.action === "price").map((d) => d.productId));
-    const previousRules = await prisma.marginRule.findMany({
-      where: { groupId: MUP_GROUP_ID, productId: { in: [...missingIds].filter((id) => !repriced.has(id)) } },
-      select: { productId: true, markupMultiplier: true },
-    });
-    const previouslyPriced = new Set(previousRules.flatMap((r) => (r.productId ? [r.productId] : [])));
+    const manual = await loadManualPrices();
+    for (const { product } of plan.matched) manual.delete(product.id); // la lista manda
+    const keptManual = [...missingIds].filter((id) => !repriced.has(id) && manual.has(id));
+    const previouslyPriced = new Set(keptManual);
+    const previousRules = keptManual.map((id) => ({ productId: id, markupMultiplier: manual.get(id)!.mup }));
+    for (const d of validDecisions) if (d.action === "price") manual.set(d.productId, { costUsd: d.costUsd, mup: d.mup });
 
     const productUpdates = [
       ...plan.matched.map(({ product, row }) => {
@@ -278,6 +333,7 @@ export async function applySoundTubeRows(input: ApplySoundTubeInput): Promise<Ap
       ),
     ]);
 
+    await saveManualPrices(manual);
     revalidatePath("/admin/products");
     revalidatePath("/admin/margins");
     return { ok: true, updated: plan.matched.length, deactivated, priced };

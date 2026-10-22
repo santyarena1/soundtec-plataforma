@@ -27,6 +27,8 @@ export interface PriceListRow {
   segmento?: string;
   familia?: string;
   tipo?: string;
+  /** Marca (columna MARCA, opcional): con ella los productos nuevos se crean sin preguntar. */
+  brand?: string;
 }
 
 export interface PriceListWarning {
@@ -76,6 +78,7 @@ const COLUMNS = {
   segmento: ["segmento"],
   familia: ["familia"],
   tipo: ["tipo"],
+  brand: ["marca", "brand"],
 } as const;
 
 type ColumnKey = keyof typeof COLUMNS;
@@ -183,6 +186,7 @@ function extractRows(grid: unknown[][], sheet: SheetInfo): { rows: PriceListRow[
       segmento: cellText(pick(row, "segmento")),
       familia: cellText(pick(row, "familia")),
       tipo: cellText(pick(row, "tipo")),
+      ...(cellText(pick(row, "brand")) ? { brand: cellText(pick(row, "brand")) } : {}),
     });
   }
   return { rows, invalid };
@@ -270,13 +274,20 @@ export function parsePriceListSheets(sheets: Array<{ name: string; grid: unknown
   return { ...dedupeRows(rows, invalid), sheets: info };
 }
 
-export function parsePriceListFile(buffer: ArrayBuffer | Buffer): ParsedPriceList {
+/**
+ * `transformFirstSheet`: ajusta la primera hoja (la de productos) antes de
+ * leerla; lo usa la planilla de correcciones «Para revisar».
+ */
+export function parsePriceListFile(
+  buffer: ArrayBuffer | Buffer,
+  options?: { transformFirstSheet?: (grid: unknown[][]) => unknown[][] }
+): ParsedPriceList {
   const workbook = XLSX.read(buffer, { type: "buffer" });
   if (!workbook.SheetNames.length) throw new Error("El Excel no tiene hojas.");
   return parsePriceListSheets(
-    workbook.SheetNames.map((name) => ({
-      name,
-      grid: XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[name]!, { header: 1, defval: "", raw: true }),
-    }))
+    workbook.SheetNames.map((name, index) => {
+      const grid = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[name]!, { header: 1, defval: "", raw: true });
+      return { name, grid: index === 0 && options?.transformFirstSheet ? options.transformFirstSheet(grid) : grid };
+    })
   );
 }

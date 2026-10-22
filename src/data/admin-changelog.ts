@@ -2106,4 +2106,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Se puede emitir con el cliente escrito a mano; si elegís uno dado de alta, manda ese." },
     ],
   },
+  {
+    id: "ship-2026-10-22-soundtube-correcciones-sin-precio",
+    version: "2.4.0",
+    releasedAt: "2026-10-22T23:00:00.000Z",
+    summary: "Revisión SoundTube: aplica la planilla «Para revisar», carga marcas solas y muestra los productos sin precio para cargarlos.",
+    items: [
+      { kind: "NUEVO", text: "Al empezar la revisión podés subir, junto con la lista, la planilla «Para revisar»: se aplican los MUP corregidos, las filas a ELIMINAR, las marcas y los SKU corregidos." },
+      { kind: "NUEVO", text: "Columna MARCA en la lista: los productos nuevos se crean con esa marca sin preguntar." },
+      { kind: "NUEVO", text: "Sección «Productos sin precio»: los del portal que no están en la lista, para cargarles costo (SPRDIS US) y MUP o desactivarlos. Ese precio se conserva entre listas." },
+      { kind: "FIX", text: "Única fuente de precio: SPRDIS US de la lista. Lo que no viene en la lista queda sin precio (salvo precio cargado a mano)." },
+    ],
+  },
 ];

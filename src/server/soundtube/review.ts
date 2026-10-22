@@ -40,6 +40,8 @@ export interface ReviewState {
   invalid: ParsedPriceList["invalid"];
   /** Hojas del Excel leídas y salteadas. */
   sheets?: ParsedPriceList["sheets"];
+  /** Lo que se aplicó de la planilla «Para revisar», si se subió. */
+  corrections?: import("@/services/soundtube/corrections").CorrectionsReport;
   classificationConflicts: ClassificationConflict[];
   /** Clave = skuKey del SKU de la lista. */
   pairs: Record<string, PairDecision>;

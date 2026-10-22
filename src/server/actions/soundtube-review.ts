@@ -6,12 +6,14 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { buildProductSearchKey } from "@/lib/search-key";
 import { parsePriceListFile, rowRef, skuKey } from "@/services/soundtube/price-list";
+import { applyCorrections, parseCorrections, type Correction, type CorrectionsReport } from "@/services/soundtube/corrections";
 import {
   MAX_FILE_BYTES,
   SOUNDTUBE_BRANDS,
   addSkuAliases,
   applySoundTubeRows,
   loadSkuAliases,
+  setManualPrice,
 } from "@/server/soundtube/price-list-core";
 import { dismissDuplicate, mergeDuplicate, setVisibleIdentity } from "@/server/soundtube/identity";
 import {
@@ -45,6 +47,14 @@ async function mutate(change: (state: ReviewState) => string | void): Promise<Re
   return { ok: true };
 }
 
+/** "PHASE TECH", "Rockustics", "SOUNDTUBE"… → nombre de marca del sistema (o null). */
+function matchSoundTubeBrand(raw: string | undefined): string | null {
+  const key = (raw ?? "").toLowerCase().replace(/[^a-z]/g, "");
+  if (!key) return null;
+  if (key.startsWith("phasetech")) return "Phase Technology";
+  return SOUNDTUBE_BRANDS.find((b) => b.toLowerCase().replace(/[^a-z]/g, "") === key) ?? null;
+}
+
 /** Sube la lista (corregida) y empieza una revisión nueva. */
 export async function startSoundTubeReview(formData: FormData): Promise<Result> {
   await requireAdmin();
@@ -52,9 +62,30 @@ export async function startSoundTubeReview(formData: FormData): Promise<Result> 
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Elegí el Excel de la lista." };
   if (file.size > MAX_FILE_BYTES) return { ok: false, error: "El archivo es demasiado grande (máx. 10 MB)." };
   if (!/\.(xlsx|xls)$/i.test(file.name)) return { ok: false, error: "Tiene que ser un archivo .xlsx o .xls." };
+  // Opcional: la planilla «Para revisar» con las respuestas (se aplican sobre la lista).
+  const correctionsFile = formData.get("corrections");
+  let corrections: Correction[] = [];
+  if (correctionsFile instanceof File && correctionsFile.size > 0) {
+    if (correctionsFile.size > MAX_FILE_BYTES) return { ok: false, error: "La planilla de correcciones es demasiado grande (máx. 10 MB)." };
+    try {
+      corrections = parseCorrections(Buffer.from(await correctionsFile.arrayBuffer()));
+    } catch {
+      return { ok: false, error: "No se pudo leer la planilla de correcciones." };
+    }
+    if (!corrections.length) return { ok: false, error: "La planilla de correcciones no tiene la columna «Fila en tu Excel»." };
+  }
   let parsed;
+  let correctionsReport: CorrectionsReport | undefined;
   try {
-    parsed = parsePriceListFile(Buffer.from(await file.arrayBuffer()));
+    parsed = parsePriceListFile(Buffer.from(await file.arrayBuffer()), {
+      transformFirstSheet: corrections.length
+        ? (grid) => {
+            const result = applyCorrections(grid, corrections);
+            correctionsReport = result.report;
+            return result.grid;
+          }
+        : undefined,
+    });
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "No se pudo leer el Excel." };
   }
@@ -72,6 +103,7 @@ export async function startSoundTubeReview(formData: FormData): Promise<Result> 
     warnings: parsed.warnings,
     invalid: parsed.invalid,
     sheets: parsed.sheets,
+    corrections: correctionsReport,
     classificationConflicts: parsed.classificationConflicts,
     pairs: {},
     creates: {},
@@ -79,7 +111,15 @@ export async function startSoundTubeReview(formData: FormData): Promise<Result> 
     missing: {},
     applyTaxonomy: previous?.applyTaxonomy ?? true,
   };
-  const state = applyMemory(fresh, await loadReviewMemory());
+  const remembered = applyMemory(fresh, await loadReviewMemory());
+  // Si la lista trae la columna MARCA, los productos nuevos ya llegan decididos (crear, con esa marca).
+  const byBrandColumn = Object.fromEntries(
+    parsed.rows.flatMap((row) => {
+      const brand = matchSoundTubeBrand(row.brand);
+      return brand ? [[skuKey(row.sku), { create: true, brand }]] : [];
+    })
+  );
+  const state: ReviewState = { ...remembered, creates: { ...byBrandColumn, ...remembered.creates } };
   const view = await buildReviewView(state);
   await saveReviewState(state, view.pending);
   revalidatePath(PATH);
@@ -264,5 +304,36 @@ export async function closeSoundTubeReview(): Promise<Result> {
   await saveReviewState(state, 0);
   revalidatePath(PATH);
   revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+const manualPriceSchema = z.object({
+  productId: z.string().min(1).max(64),
+  costUsd: z.number().positive("Poné el costo (SPRDIS US).").max(1_000_000),
+  mup: z.number().positive("Poné el MUP.").max(20, "El MUP no puede ser mayor a 20."),
+});
+
+/** Carga el precio (costo SPRDIS US + MUP) de un producto del portal que no está en la lista. */
+export async function setSoundTubeManualPrice(productId: string, costUsd: number, mup: number): Promise<Result> {
+  await requireAdmin();
+  const parsed = manualPriceSchema.safeParse({ productId, costUsd, mup });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+  try {
+    await setManualPrice(parsed.data.productId, parsed.data.costUsd, parsed.data.mup);
+  } catch (error) {
+    console.error("[soundtube-review] precio manual", error);
+    return { ok: false, error: "No se pudo guardar el precio." };
+  }
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+/** Desactiva un producto del portal sin precio (no se vende). */
+export async function deactivateSoundTubeProduct(productId: string): Promise<Result> {
+  await requireAdmin();
+  if (!productId) return { ok: false, error: "Falta el producto." };
+  await prisma.product.update({ where: { id: productId }, data: { isActive: false } });
+  revalidatePath(PATH);
+  revalidatePath("/admin/products");
   return { ok: true };
 }

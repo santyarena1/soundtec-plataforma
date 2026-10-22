@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { buildReviewView, loadReviewState } from "@/server/soundtube/review";
 import { findDuplicates } from "@/server/soundtube/identity";
 import { DuplicatesSection } from "./_duplicates";
+import { UnpricedSection } from "./_unpriced";
+import { listUnpricedProducts } from "@/server/soundtube/price-list-core";
 import { StartReviewForm } from "./_start-form";
 import { ReviewPanel } from "./_review";
 
@@ -22,7 +24,7 @@ const formatArt = (iso: string) =>
  */
 export default async function SoundTubeReviewPage() {
   await requireAdmin();
-  const [state, duplicates] = await Promise.all([loadReviewState(), findDuplicates()]);
+  const [state, duplicates, unpriced] = await Promise.all([loadReviewState(), findDuplicates(), listUnpricedProducts()]);
 
   if (!state?.active) {
     return (
@@ -51,6 +53,7 @@ export default async function SoundTubeReviewPage() {
           </CardContent>
         </Card>
         <DuplicatesSection items={duplicates} />
+        <UnpricedSection items={unpriced} />
       </div>
     );
   }
@@ -69,6 +72,7 @@ export default async function SoundTubeReviewPage() {
         warnings={state.warnings}
         invalid={state.invalid}
         sheets={state.sheets}
+        corrections={state.corrections}
         matchedCount={view.matchedCount}
         pending={view.pending}
         pairs={view.pairs}
@@ -81,6 +85,7 @@ export default async function SoundTubeReviewPage() {
         applyResult={state.applyResult ?? null}
       />
       <DuplicatesSection items={duplicates} />
+      <UnpricedSection items={unpriced} />
     </div>
   );
 }

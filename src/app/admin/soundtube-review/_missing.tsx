@@ -46,7 +46,7 @@ export function MissingSection({ items }: { items: MissingItem[] }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        {items.length} productos no están en la lista. Por defecto se dejan como están; {toDeactivate} marcados para desactivar.
+        {items.length} productos no están en la lista. Por defecto quedan sin precio (salvo los que tengan precio cargado a mano); {toDeactivate} marcados para desactivar.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <input
@@ -73,7 +73,7 @@ export function MissingSection({ items }: { items: MissingItem[] }) {
             Desactivar seleccionados
           </Button>
           <Button size="sm" variant="outline" disabled={pending || selected.size === 0} onClick={() => apply("keep", [...selected])}>
-            Dejar como están
+            Dejar sin precio
           </Button>
         </div>
       </div>
@@ -139,7 +139,7 @@ export function MissingSection({ items }: { items: MissingItem[] }) {
                       onClick={() => apply(i.action === "deactivate" ? "keep" : "deactivate", [i.product.id])}
                       title="Cambiar"
                     >
-                      {i.action === "deactivate" ? <Badge tone="destructive">Desactivar</Badge> : <Badge tone="muted">Dejar como está</Badge>}
+                      {i.action === "deactivate" ? <Badge tone="destructive">Desactivar</Badge> : <Badge tone="muted">Sin precio (cargalo abajo)</Badge>}
                     </button>
                   </TD>
                 </TR>
