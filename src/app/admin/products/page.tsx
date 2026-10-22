@@ -1,4 +1,5 @@
 import { canSeePrices, requireStaff } from "@/lib/auth-helpers";
+import { permissionsHave } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { ButtonLink } from "@/components/ui/button";
@@ -59,7 +60,7 @@ const SORT_MAP: Record<string, Prisma.ProductOrderByWithRelationInput> = {
 };
 
 export default async function AdminProductsPage({ searchParams }: { searchParams: Promise<SP> }) {
-  await requireStaff("products.view");
+  const access = await requireStaff("products.view");
   const showPrices = await canSeePrices();
   const params = await searchParams;
   const tab = params.tab === "crestron" ? "crestron" : "catalog";
@@ -346,6 +347,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
               total={total}
               totalPages={totalPages}
               showPrices={showPrices}
+              canEditPrices={showPrices && permissionsHave(access.permissions, "margins.manage")}
               filters={{
                 q: params.q || "",
                 brandIds,

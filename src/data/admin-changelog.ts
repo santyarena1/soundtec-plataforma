@@ -2118,4 +2118,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Única fuente de precio: SPRDIS US de la lista. Lo que no viene en la lista queda sin precio (salvo precio cargado a mano)." },
     ],
   },
+  {
+    id: "ship-2026-10-22-editor-precios-catalogo",
+    version: "2.5.0",
+    releasedAt: "2026-10-23T01:00:00.000Z",
+    summary: "Editor de precios desde el catálogo: uno o varios productos, con el precio nuevo a la vista antes de guardar.",
+    items: [
+      { kind: "NUEVO", text: "En el catálogo, «Editar precio» en cada card y «Editar precios» al seleccionar varios. También en Productos (acción sobre los seleccionados)." },
+      { kind: "NUEVO", text: "Muestra costo, markup, la regla que aplica y precio actual → nuevo de cada producto antes de guardar." },
+      { kind: "NUEVO", text: "Opciones: markup o margen propio para los elegidos, precio final buscado (calcula el markup), editar la regla que aplica (avisa a cuántos afecta) o volver a la regla general." },
+    ],
+  },
 ];

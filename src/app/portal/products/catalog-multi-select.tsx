@@ -1,16 +1,20 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ShoppingCart, X, Loader2, CheckSquare } from "lucide-react";
+import { ShoppingCart, X, Loader2, CheckSquare, Tag } from "lucide-react";
+import { PriceEditorModal } from "@/components/pricing/price-editor-modal";
 import { bulkAddToDraftSimple } from "@/server/actions/requests";
 import { useRouter } from "next/navigation";
 
 interface Props {
   children: React.ReactNode;
   productIds: string[];
+  /** Admin con márgenes y costos: puede editar precios desde el catálogo. */
+  canEditPrices?: boolean;
 }
 
-export function CatalogMultiSelectProvider({ children, productIds }: Props) {
+export function CatalogMultiSelectProvider({ children, productIds, canEditPrices = false }: Props) {
+  const [editIds, setEditIds] = useState<string[] | null>(null);
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, start] = useTransition();
@@ -51,8 +55,9 @@ export function CatalogMultiSelectProvider({ children, productIds }: Props) {
   }
 
   return (
-    <MultiSelectContext.Provider value={{ selected, toggle }}>
+    <MultiSelectContext.Provider value={{ selected, toggle, editPrices: canEditPrices ? (ids) => setEditIds(ids) : undefined }}>
       {children}
+      {editIds ? <PriceEditorModal productIds={editIds} open onClose={() => setEditIds(null)} /> : null}
       {selected.size > 0 && (
         <div className="fixed bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5rem))] left-1/2 z-50 w-[calc(100vw-1.5rem)] max-w-lg -translate-x-1/2 md:bottom-6">
           <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-primary/30 bg-card px-3 py-3 shadow-2xl ring-1 ring-primary/10 sm:gap-3 sm:px-5">
@@ -75,6 +80,15 @@ export function CatalogMultiSelectProvider({ children, productIds }: Props) {
             >
               <X className="h-3.5 w-3.5" />
             </button>
+            {canEditPrices ? (
+              <button
+                onClick={() => setEditIds([...selected])}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+              >
+                <Tag className="h-4 w-4" />
+                Editar precios
+              </button>
+            ) : null}
             <button
               onClick={addAll}
               disabled={pending}
@@ -95,6 +109,8 @@ import { createContext, useContext } from "react";
 interface MultiSelectCtx {
   selected: Set<string>;
   toggle: (id: string) => void;
+  /** Solo para quien puede editar precios. */
+  editPrices?: (ids: string[]) => void;
 }
 
 const MultiSelectContext = createContext<MultiSelectCtx>({
@@ -113,7 +129,7 @@ export function SelectableCard({
   productId: string;
   children: React.ReactNode;
 }) {
-  const { selected, toggle } = useMultiSelect();
+  const { selected, toggle, editPrices } = useMultiSelect();
   const isSelected = selected.has(productId);
 
   return (
@@ -134,6 +150,21 @@ export function SelectableCard({
       >
         {isSelected ? "✓" : ""}
       </button>
+      {editPrices ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            editPrices([productId]);
+          }}
+          aria-label="Editar precio"
+          title="Editar precio"
+          className="absolute right-2 top-12 z-10 inline-flex items-center gap-1 rounded-md border border-border bg-card/95 px-2 py-1 text-[11px] font-medium text-foreground opacity-0 shadow-sm transition-opacity hover:bg-secondary group-hover/selectable:opacity-100 focus:opacity-100"
+        >
+          <Tag className="h-3 w-3" /> Editar precio
+        </button>
+      ) : null}
       <div
         className={`h-full transition-all ${isSelected ? "rounded-xl ring-2 ring-primary ring-offset-1" : ""}`}
       >

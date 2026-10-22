@@ -1,4 +1,5 @@
 "use client";
+import { PriceEditorModal } from "@/components/pricing/price-editor-modal";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
@@ -87,6 +88,8 @@ interface Props {
   total: number;
   totalPages: number;
   showPrices: boolean;
+  /** Puede editar precios (márgenes + costos). */
+  canEditPrices?: boolean;
   filters: Filters;
   brands: Option[];
   categories: Option[];
@@ -172,6 +175,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const pathname = usePathname();
   const search = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [priceEditorOpen, setPriceEditorOpen] = useState(false);
   const [bulkAction, setBulkAction] = useState<string>("activate");
   const [bulkBrandId, setBulkBrandId] = useState("");
   const [bulkCategoryId, setBulkCategoryId] = useState("");
@@ -499,6 +503,17 @@ export function ProductsCatalogAdmin(props: Props) {
         <div className="text-sm">
           <span className="font-medium">{selected.size}</span> seleccionado(s)
         </div>
+        {props.canEditPrices ? (
+          <button
+            type="button"
+            disabled={!selected.size}
+            onClick={() => setPriceEditorOpen(true)}
+            className="h-9 rounded-md border border-primary/40 px-3 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
+          >
+            Editar precios
+          </button>
+        ) : null}
+        {priceEditorOpen ? <PriceEditorModal productIds={[...selected]} open onClose={() => setPriceEditorOpen(false)} /> : null}
         <Select value={bulkAction} onChange={(e) => setBulkAction(e.target.value)} className="h-9 w-44 text-xs">
           <option value="activate">Activar</option>
           <option value="deactivate">Desactivar</option>

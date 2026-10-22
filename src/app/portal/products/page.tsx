@@ -1,6 +1,6 @@
-import { isPanelRole } from "@/lib/permissions";
+import { canSeeCosts, isPanelRole, permissionsHave } from "@/lib/permissions";
+import { getCurrentPermissions, requireUser } from "@/lib/auth-helpers";
 import Link from "next/link";
-import { requireUser } from "@/lib/auth-helpers";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { catalogFilterMeta, getCatalog, listVisibleCatalogBrands } from "@/lib/catalog";
 import { countActiveCatalogFilters, parseCatalogSearchParams } from "@/lib/catalog-url";
@@ -34,6 +34,8 @@ export default async function ProductsPage({
   const commercialClientId = internal ? null : await resolveCommercialClientId(user.id);
 
   const ctx = { commercialClientId, userId: user.id, isAdmin: internal };
+  // Editar precios desde el catálogo: quien gestiona márgenes y ve costos.
+  const canEditPrices = internal ? await getCurrentPermissions().then(({ permissions }) => permissionsHave(permissions, "margins.manage") && canSeeCosts(permissions)) : false;
   const filters = {
     search: urlState.search,
     brandIds: urlState.brandIds,
@@ -111,7 +113,7 @@ export default async function ProductsPage({
 
       <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} basePath="/portal/products" />
 
-      <CatalogMultiSelectProvider productIds={items.map((i) => i.id)}>
+      <CatalogMultiSelectProvider productIds={items.map((i) => i.id)} canEditPrices={canEditPrices}>
       <CatalogLayout state={urlState} meta={meta} total={total} toolbar={<CatalogToolbar state={urlState} />}>
         {items.length === 0 ? (
           <EmptyState
