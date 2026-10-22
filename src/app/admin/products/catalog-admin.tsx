@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Tag,
 } from "lucide-react";
 import { bulkUpdateProducts } from "@/server/actions/admin-catalog";
 import { bulkSearchImages } from "@/server/actions/product-enrichment";
@@ -175,7 +176,8 @@ export function ProductsCatalogAdmin(props: Props) {
   const pathname = usePathname();
   const search = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [priceEditorOpen, setPriceEditorOpen] = useState(false);
+  const [priceEditorIds, setPriceEditorIds] = useState<string[] | null>(null);
+  const editPrice = props.canEditPrices ? (id: string) => setPriceEditorIds([id]) : undefined;
   const [bulkAction, setBulkAction] = useState<string>("activate");
   const [bulkBrandId, setBulkBrandId] = useState("");
   const [bulkCategoryId, setBulkCategoryId] = useState("");
@@ -507,13 +509,13 @@ export function ProductsCatalogAdmin(props: Props) {
           <button
             type="button"
             disabled={!selected.size}
-            onClick={() => setPriceEditorOpen(true)}
+            onClick={() => setPriceEditorIds([...selected])}
             className="h-9 rounded-md border border-primary/40 px-3 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
           >
             Editar precios
           </button>
         ) : null}
-        {priceEditorOpen ? <PriceEditorModal productIds={[...selected]} open onClose={() => setPriceEditorOpen(false)} /> : null}
+        {priceEditorIds ? <PriceEditorModal productIds={priceEditorIds} open onClose={() => setPriceEditorIds(null)} /> : null}
         <Select value={bulkAction} onChange={(e) => setBulkAction(e.target.value)} className="h-9 w-44 text-xs">
           <option value="activate">Activar</option>
           <option value="deactivate">Desactivar</option>
@@ -648,7 +650,7 @@ export function ProductsCatalogAdmin(props: Props) {
                   <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} />
                 </TD>
                 {visibleColumns.map((c) => (
-                  <TD key={c.key}>{renderCell(c.key, r, props.showPrices, priceView, setPreviewId)}</TD>
+                  <TD key={c.key}>{renderCell(c.key, r, props.showPrices, priceView, setPreviewId, editPrice)}</TD>
                 ))}
               </TR>
             ))}
@@ -710,7 +712,8 @@ function renderCell(
   r: Row,
   showPrices: boolean,
   priceView: "usdFinal" | "usdFob" | "arsNacional",
-  setPreviewId: (id: string | null) => void
+  setPreviewId: (id: string | null) => void,
+  editPrice?: (id: string) => void
 ) {
   switch (key) {
     case "image":
@@ -831,6 +834,11 @@ function renderCell(
           >
             <Eye className="h-3.5 w-3.5" />
           </Button>
+          {editPrice ? (
+            <Button variant="ghost" size="sm" type="button" onClick={() => editPrice(r.id)} className="h-7 gap-1 px-2 text-xs" title="Editar precio">
+              <Tag className="h-3.5 w-3.5" /> Precio
+            </Button>
+          ) : null}
           <Link href={`/admin/products/${r.id}`} data-tour="products-open-row" className="text-xs text-accent hover:underline">
             Editar
           </Link>

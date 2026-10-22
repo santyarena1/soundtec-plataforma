@@ -2141,4 +2141,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Precio final: muestra el markup y margen que se guardan y explica qué pisa, qué no y cómo se mueve el precio si cambia el costo." },
     ],
   },
+  {
+    id: "ship-2026-10-23-precio-por-fila-productos",
+    version: "2.5.2",
+    releasedAt: "2026-10-23T05:00:00.000Z",
+    summary: "Botón «Precio» en cada fila de Productos para editar el precio de ese producto.",
+    items: [{ kind: "MEJORA", text: "En Productos, cada fila tiene «Precio»: abre el editor de precios de ese producto sin tener que seleccionarlo." }],
+  },
 ];
