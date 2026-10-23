@@ -13,7 +13,7 @@ import { buildProductSearchWhere, sortBySearchRelevance } from "@/lib/product-se
 
 const itemSchema = z.object({
   productId: z.string(),
-  quantity: z.number().positive(),
+  quantity: z.number().int("La cantidad tiene que ser un número entero.").positive(),
   unitPriceUsd: z.number().min(0),
   discountPercent: z.number().min(0).max(100).default(0),
   note: z.string().max(1000).default(""),
@@ -90,7 +90,13 @@ export async function createQuickQuote(input: QuickQuoteInput) {
           kind: "PRODUCT",
           quantity: new Prisma.Decimal(item.quantity),
           unit: "u",
-          description: [product.brand?.name, product.normalizedName].filter(Boolean).join(" — "),
+          // La segunda línea de la descripción sale en el editor y en el PDF: así el «sin cargo» se ve.
+          description: [
+            [product.brand?.name, product.normalizedName].filter(Boolean).join(" — "),
+            item.included ? `Incluido sin cargo${item.note ? ` (${item.note.replace(/^Incluido\s*/i, "")})` : ""}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n"),
           unitPriceUsd: new Prisma.Decimal(price),
           lineTotalUsd: new Prisma.Decimal(price * item.quantity),
           priceOverridden: true,
@@ -140,7 +146,7 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
       accessories: {
         where: { kind: { in: ["INCLUDED", "ACCESSORY"] } },
         include: {
-          accessoryProduct: { select: { id: true, normalizedName: true, internalSku: true } },
+          accessoryProduct: { select: { id: true, normalizedName: true, internalSku: true, ivaPercent: true } },
         },
       },
     },
@@ -162,6 +168,7 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
       distributorId: p.distributorId,
       categoryId: p.categoryId,
       familyId: p.familyId,
+      familia: p.familia ?? null,
       productDiscountPercent: p.discountPercent == null ? null : Number(p.discountPercent),
       tariffDutyPercent: p.tariffDutyPercent == null ? null : Number(p.tariffDutyPercent),
       coefNac: p.coefNac == null ? null : Number(p.coefNac),
@@ -180,11 +187,15 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
     brand: p.brand?.name || null,
     stock: p.stockStatus,
     price: prices.get(p.id)?.finalPriceUsd ?? 0,
+    ivaPercent: p.ivaPercent == null ? null : Number(p.ivaPercent),
     accessories: p.accessories.map((a) => ({
       id: a.accessoryProduct.id,
       name: a.accessoryProduct.normalizedName,
       sku: a.accessoryProduct.internalSku,
       kind: a.kind,
+      ivaPercent: a.accessoryProduct.ivaPercent == null ? null : Number(a.accessoryProduct.ivaPercent),
+      /** Unidades incluidas por cada unidad del producto (ficha); 1 si no está cargado. */
+      quantity: a.quantity && a.quantity > 0 ? a.quantity : 1,
     })),
   }));
 }
@@ -197,7 +208,7 @@ export async function resolveQuickQuoteSkus(lines: string, clientId?: string | n
     .filter(Boolean)
     .map((line) => {
       const parts = line.split(/[\t, ]+/);
-      return { sku: parts[0], quantity: Math.max(1, Number(parts[1]) || 1) };
+      return { sku: parts[0], quantity: Math.max(1, Math.round(Number(parts[1]) || 1)) };
     });
   const found = await Promise.all(
     parsed.map(async (entry) => ({

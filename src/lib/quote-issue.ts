@@ -5,9 +5,9 @@ export type QuoteForIssue = NonNullable<Awaited<ReturnType<typeof loadQuoteForUs
 export function quoteIssueCheck(quote: QuoteForIssue) {
   const errors: string[] = [];
   const warnings: string[] = [];
-  if (!quote.clientId) errors.push("Falta asignar cliente.");
+  if (!quote.clientId && !quote.clientName?.trim()) errors.push("Falta el cliente: elegilo o escribí su nombre.");
   if (quote.items.length === 0) errors.push("No hay ítems en la planilla.");
-  if (quote.items.some((i) => Number(i.quantity) <= 0)) errors.push("Hay cantidades en cero o negativas.");
+  if (quote.items.some((i) => !i.excluded && !(Number(i.quantity) > 0))) errors.push("Hay cantidades en cero o negativas.");
   if (quote.showDeliveryColumn && quote.items.some((i) => !i.deliveryKey && !i.excluded && !i.optional)) {
     errors.push("Falta completar entrega en filas no opcionales.");
   }

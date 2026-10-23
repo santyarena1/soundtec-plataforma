@@ -10,6 +10,7 @@ import { RegenerateShortDescription } from "@/components/quotes/regenerate-short
 import { addServiceToQuote } from "@/server/actions/quote-export";
 import {
   deleteQuoteItem,
+  moveQuoteItem,
   toggleQuoteItemLock,
   toggleQuoteItemOptional,
   toggleQuoteItemExcluded,
@@ -79,7 +80,7 @@ function ZoneTable({
   total: number;
 }) {
   const router = useRouter();
-  const [, start] = useTransition();
+  const [pending, start] = useTransition();
   const cols = showDelivery ? 9 : 8;
 
   return (
@@ -229,6 +230,29 @@ function ZoneTable({
                     {!readOnly ? (
                       <div className="flex flex-col items-stretch gap-1">
                         {item.optional ? <Badge tone="accent">Opcional</Badge> : null}
+                        <div className="flex gap-1">
+                          {(["up", "down"] as const).map((direction) => (
+                            <Button
+                              key={direction}
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="flex-1 px-0"
+                              title={direction === "up" ? "Subir" : "Bajar"}
+                              aria-label={direction === "up" ? "Subir ítem" : "Bajar ítem"}
+                              disabled={pending}
+                              onClick={() =>
+                                start(async () => {
+                                  const result = await moveQuoteItem({ itemId: item.id, direction });
+                                  if (!result.ok) toast.error(result.error || "No se pudo mover.");
+                                  else router.refresh();
+                                })
+                              }
+                            >
+                              {direction === "up" ? "↑" : "↓"}
+                            </Button>
+                          ))}
+                        </div>
                         {groups.length > 0 ? (
                           <Select
                             defaultValue={item.groupId || ""}
@@ -354,7 +378,8 @@ export function QuoteBomTable({
   const activeCount = items.filter((item) => !item.optional).length;
   // Una fila a cero o sin entrega no se distingue de una correcta hasta que
   // se intenta emitir. Mejor decirlo acá.
-  const zeroPriced = items.filter((item) => !item.excluded && item.unitPriceUsd <= 0).length;
+  // Lo que viene incluido sin cargo con otro producto está bien en cero.
+  const zeroPriced = items.filter((item) => !item.excluded && item.unitPriceUsd <= 0 && !/\nIncluido sin cargo/i.test(item.description)).length;
   const missingDelivery = showDelivery
     ? items.filter((item) => !item.excluded && !item.optional && !item.deliveryKey).length
     : 0;

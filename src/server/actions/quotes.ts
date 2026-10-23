@@ -559,9 +559,10 @@ export async function addProductToQuote(formData: FormData): Promise<{ ok: boole
   }
   const quoteId = String(formData.get("quoteId") || "");
   const productId = String(formData.get("productId") || "");
-  const qty = Number(formData.get("quantity") || "1") || 1;
+  const qty = Math.max(1, Math.round(Number(formData.get("quantity") || "1") || 1));
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote) return { ok: false, error: "Cotización no encontrada." };
+  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida: duplicala para cambiarla." };
 
   const product = await prisma.product.findUnique({
     where: { id: productId },
@@ -575,11 +576,22 @@ export async function addProductToQuote(formData: FormData): Promise<{ ok: boole
 
   const maxSort = loaded.quote.items.reduce((m, i) => Math.max(m, i.sortOrder), -1);
   const desc = [product.brand?.name, product.normalizedName].filter(Boolean).join(" — ");
-  const groupId = String(formData.get("groupId") || "").trim() || null;
+  // Un accesorio sugerido entra justo debajo de su producto (mismo ambiente).
+  const afterProductId = String(formData.get("afterProductId") || "").trim();
+  const parent = afterProductId ? [...loaded.quote.items].reverse().find((i) => i.productId === afterProductId) : undefined;
+  const requestedGroup = String(formData.get("groupId") || "").trim() || null;
+  const groupId = parent ? parent.groupId : requestedGroup && loaded.quote.itemGroups.some((g) => g.id === requestedGroup) ? requestedGroup : null;
+  let sortOrder = maxSort + 1;
+  if (parent) {
+    sortOrder = parent.sortOrder + 1;
+    await prisma.quoteItem.updateMany({ where: { quoteId, sortOrder: { gt: parent.sortOrder } }, data: { sortOrder: { increment: 1 } } });
+  }
+  const defaultDelivery = (await getSetting(QUOTE_SETTING_KEYS.defaultDelivery, "")).trim() || null;
   await prisma.quoteItem.create({
     data: {
       quoteId,
       groupId,
+      deliveryKey: defaultDelivery,
       alternativeId: loaded.quote.alternatives.find((a) => a.isDefault)?.id ?? loaded.quote.alternatives[0]?.id,
       kind: "PRODUCT",
       productId: product.id,
@@ -590,7 +602,7 @@ export async function addProductToQuote(formData: FormData): Promise<{ ok: boole
       lineTotalUsd: new Prisma.Decimal(unit * qty),
       ivaRate: new Prisma.Decimal(iva),
       source: QuoteNodeSource.CATALOG_SEARCH,
-      sortOrder: maxSort + 1,
+      sortOrder,
     },
   });
   await ensureQuoteCatalogImage({ quoteId, productId: product.id, caption: desc });
@@ -605,6 +617,18 @@ export async function addProductToQuote(formData: FormData): Promise<{ ok: boole
 
 export async function addQuoteAccessory(formData: FormData): Promise<void> {
   await addProductToQuote(formData);
+}
+
+/**
+ * Número escrito a mano: acepta «1,5», «1.234,56» o «1234.56». Vacío o inválido
+ * devuelve el valor anterior (nunca NaN ni 0 silencioso).
+ */
+function parseTypedNumber(raw: FormDataEntryValue | null, fallback: number): number {
+  const text = String(raw ?? "").trim().replace(/\s/g, "");
+  if (!text) return fallback;
+  const normalized = text.includes(",") ? text.replace(/\./g, "").replace(",", ".") : text;
+  const value = Number(normalized);
+  return Number.isFinite(value) ? value : fallback;
 }
 
 /** Edición humana de un ítem. El candado sólo le dice a la IA que no lo pise. */
@@ -623,13 +647,17 @@ export async function updateQuoteItem(formData: FormData): Promise<void> {
     summary: `Antes de editar ítem de producto`,
   });
 
-  const quantity = Number(formData.get("quantity") ?? item.quantity);
   const description = String(formData.get("description") ?? item.description);
   const unit = String(formData.get("unit") ?? item.unit).trim() || item.unit;
-  const deliveryKey = String(formData.get("deliveryKey") || "") || null;
-  const ivaRate = Number(formData.get("ivaRate") ?? item.ivaRate);
-  const unitPrice = Number(formData.get("unitPriceUsd") ?? item.unitPriceUsd);
-  const overridden = formData.has("unitPriceUsd");
+  // Por unidad («u») la cantidad es entera; metros u horas pueden llevar decimales.
+  const typedQuantity = parseTypedNumber(formData.get("quantity"), Number(item.quantity));
+  const quantity = unit === "u" ? Math.max(1, Math.round(typedQuantity)) : typedQuantity > 0 ? typedQuantity : Number(item.quantity);
+  // Con la columna Entrega oculta el select no viaja: se conserva la que tenía.
+  const deliveryKey = formData.has("deliveryKey") ? String(formData.get("deliveryKey") || "") || null : item.deliveryKey;
+  const ivaRate = parseTypedNumber(formData.get("ivaRate"), Number(item.ivaRate));
+  const unitPrice = Math.max(0, parseTypedNumber(formData.get("unitPriceUsd"), Number(item.unitPriceUsd)));
+  // «Manual» solo si el precio cambió de verdad (cambiar la cantidad no lo fija).
+  const overridden = Math.abs(unitPrice - Number(item.unitPriceUsd)) > 0.0001;
 
   await prisma.quoteItem.update({
     where: { id },
@@ -693,9 +721,31 @@ export async function deleteQuoteItem(formData: FormData): Promise<void> {
   const item = await prisma.quoteItem.findUnique({ where: { id } });
   if (!item) return;
   const loaded = await loadQuoteForUser(item.quoteId);
-  if (!loaded.quote) return;
+  if (!loaded.quote || loaded.quote.status === "ISSUED") return;
   await prisma.quoteItem.delete({ where: { id } });
   revalidatePath(`/admin/quotes/${item.quoteId}`);
+}
+
+/** Sube o baja un ítem dentro de su ambiente (intercambia el orden con el vecino). */
+export async function moveQuoteItem(input: { itemId: string; direction: "up" | "down" }): Promise<{ ok: boolean; error?: string }> {
+  await requireQuotePermission("quotes.edit");
+  const item = await prisma.quoteItem.findUnique({ where: { id: input.itemId } });
+  if (!item) return { ok: false, error: "El ítem ya no existe." };
+  const loaded = await loadQuoteForUser(item.quoteId);
+  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  if (loaded.quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida." };
+  const siblings = loaded.quote.items.filter((i) => (i.groupId ?? null) === (item.groupId ?? null));
+  const index = siblings.findIndex((i) => i.id === item.id);
+  const other = siblings[input.direction === "up" ? index - 1 : index + 1];
+  if (!other) return { ok: true };
+  // Se renumera todo: si dos ítems tenían el mismo orden, el cambio igual se nota.
+  const ordered = [...loaded.quote.items];
+  const a = ordered.findIndex((i) => i.id === item.id);
+  const b = ordered.findIndex((i) => i.id === other.id);
+  [ordered[a], ordered[b]] = [ordered[b]!, ordered[a]!];
+  await prisma.$transaction(ordered.map((i, sortOrder) => prisma.quoteItem.update({ where: { id: i.id }, data: { sortOrder } })));
+  revalidatePath(`/admin/quotes/${item.quoteId}`);
+  return { ok: true };
 }
 
 /** Edición humana de un módulo. El candado sólo le dice a la IA que no lo reescriba. */
@@ -838,21 +888,33 @@ export async function saveQuoteTerms(formData: FormData): Promise<void> {
   const loaded = await loadQuoteForUser(id);
   if (!loaded.quote) return;
   const sourceRaw = String(formData.get("termsSource") || "SYSTEM");
-  const termsSource = sourceRaw === "CLIENT_PREVIOUS" || sourceRaw === "CUSTOM" ? sourceRaw : "SYSTEM";
-
+  let termsSource: "SYSTEM" | "CLIENT_PREVIOUS" | "CUSTOM" = sourceRaw === "CLIENT_PREVIOUS" || sourceRaw === "CUSTOM" ? sourceRaw : "SYSTEM";
+  const current = loaded.quote.terms;
+  const text = (key: string, fallback: string | null | undefined) => (formData.has(key) ? String(formData.get(key) || "").trim() || null : fallback ?? null);
   const fromForm = {
-    paymentTerms: String(formData.get("paymentTerms") || "") || null,
-    paymentReference: String(formData.get("paymentReference") || "") || null,
-    deliveryText: String(formData.get("deliveryText") || "") || null,
-    validityDays: Number(formData.get("validityDays") || "5") || 5,
-    productWarranty: String(formData.get("productWarranty") || "") || null,
+    paymentTerms: text("paymentTerms", current?.paymentTerms),
+    paymentReference: text("paymentReference", current?.paymentReference),
+    deliveryText: text("deliveryText", current?.deliveryText),
+    validityDays: Math.min(365, Math.max(1, Math.round(Number(formData.get("validityDays")) || current?.validityDays || 5))),
+    productWarranty: text("productWarranty", current?.productWarranty),
   };
+  // Si se escribió algo distinto de lo guardado, manda lo escrito: elegir «Del
+  // sistema» o «Las del cliente» y editar un campo ya no borra lo editado.
+  const edited =
+    !!current &&
+    (fromForm.paymentTerms !== (current.paymentTerms ?? null) ||
+      fromForm.paymentReference !== (current.paymentReference ?? null) ||
+      fromForm.deliveryText !== (current.deliveryText ?? null) ||
+      fromForm.productWarranty !== (current.productWarranty ?? null) ||
+      fromForm.validityDays !== current.validityDays);
+  const sourceChanged = termsSource !== loaded.quote.termsSource;
+  if (edited) termsSource = "CUSTOM";
 
   // El origen elegido decide de dónde salen las condiciones. Antes se
   // guardaba el enum y se escribía igual lo del formulario, así que elegir
   // "las que este cliente usó antes" no traía nada.
   let values = fromForm;
-  if (termsSource === "SYSTEM") {
+  if (termsSource === "SYSTEM" && !edited && (sourceChanged || !current)) {
     const defaults = await defaultTerms();
     values = {
       paymentTerms: defaults.paymentTerms,
@@ -861,7 +923,7 @@ export async function saveQuoteTerms(formData: FormData): Promise<void> {
       validityDays: defaults.validityDays,
       productWarranty: defaults.productWarranty,
     };
-  } else if (termsSource === "CLIENT_PREVIOUS" && loaded.quote.clientId) {
+  } else if (termsSource === "CLIENT_PREVIOUS" && !edited && sourceChanged && loaded.quote.clientId) {
     const previous = await prisma.quote.findFirst({
       where: {
         clientId: loaded.quote.clientId,
@@ -974,6 +1036,10 @@ export async function deleteQuote(formData: FormData): Promise<{ ok: boolean; er
   const id = String(formData.get("quoteId") || "");
   const loaded = await loadQuoteForUser(id);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  // Una emitida ya la tiene el cliente: solo la borra quien puede emitir.
+  if (loaded.quote.status === "ISSUED" && !loaded.permissions.fullAccess && !permissionsHave(loaded.permissions, "quotes.issue")) {
+    return { ok: false, error: "Está emitida: solo la puede borrar quien emite cotizaciones." };
+  }
   await prisma.quote.delete({ where: { id } });
   revalidatePath("/admin/quotes");
   return { ok: true };

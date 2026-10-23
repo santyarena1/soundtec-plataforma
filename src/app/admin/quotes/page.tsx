@@ -90,6 +90,7 @@ export default async function AdminQuotesPage({
             { reference: { contains: q, mode: "insensitive" } },
             { contactName: { contains: q, mode: "insensitive" } },
             { client: { companyName: { contains: q, mode: "insensitive" } } },
+            { clientName: { contains: q, mode: "insensitive" } },
             { owner: { name: { contains: q, mode: "insensitive" } } },
           ],
         }

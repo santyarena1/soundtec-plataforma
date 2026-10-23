@@ -32,6 +32,7 @@ export async function generateAndStoreQuotePdf(quoteId: string, actorId: string)
       alternatives: { orderBy: { sortOrder: "asc" } },
       sections: { orderBy: { sortOrder: "asc" } },
       assets: { orderBy: { sortOrder: "asc" } },
+      terms: true,
     },
   });
   if (!quote) throw new Error("La cotización ya no existe.");
@@ -49,12 +50,16 @@ export async function generateAndStoreQuotePdf(quoteId: string, actorId: string)
       items: quote.items,
       itemGroups: quote.itemGroups,
       alternatives: quote.alternatives,
+      // Igual que la vista previa: condiciones comerciales y fotos de producto.
+      terms: quote.terms,
       sections: quote.sections,
       assets: quote.assets.map((asset) => ({
         id: asset.id,
         url: asset.url,
         sectionId: asset.sectionId,
         sortOrder: asset.sortOrder,
+        productId: asset.productId,
+        kind: asset.kind,
       })),
     },
     appOrigin()

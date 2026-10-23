@@ -280,8 +280,8 @@ export async function buildQuoteDocumentHtml(
 ${photoCell}<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.quantity)}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.unit)}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt">${detail}</td>
-<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${formatUsd(Number(item.unitPriceUsd))}</td>
-<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right;font-weight:bold">${formatUsd(Number(item.lineTotalUsd))}</td>
+<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.unitPriceUsd) > 0 ? formatUsd(Number(item.unitPriceUsd)) : "Sin cargo"}</td>
+<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right;font-weight:bold">${Number(item.lineTotalUsd) > 0 ? formatUsd(Number(item.lineTotalUsd)) : "—"}</td>
 ${showTax ? `<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.ivaRate ?? 0)}%</td>` : ""}
 ${showDelivery ? `<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.deliveryKey || "")}</td>` : ""}
 </tr>`;

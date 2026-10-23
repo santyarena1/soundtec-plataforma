@@ -52,6 +52,11 @@ export function QuoteRowActions({
           });
         }}
       >
+        {status === "ISSUED" ? (
+          <option value="ISSUED" disabled>
+            Emitida
+          </option>
+        ) : null}
         {STATUSES.map((s) => (
           <option key={s.value} value={s.value}>
             {s.label}

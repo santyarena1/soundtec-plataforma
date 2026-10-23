@@ -56,6 +56,15 @@ import { saveQuoteClassifierPicks } from "@/server/actions/quote-classifiers";
 
 export const metadata = { title: "Admin · Cotización" };
 
+const QUOTE_STATUS_LABEL: Record<string, string> = {
+  DRAFT: "Borrador",
+  IN_REVIEW: "En revisión",
+  READY: "Lista",
+  ISSUED: "Emitida",
+  SUPERSEDED: "Reemplazada",
+  ARCHIVED: "Archivada",
+};
+
 function texts(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -178,8 +187,9 @@ export default async function QuoteEditorPage({
   for (const img of catalogImages) {
     if (!catalogByProduct.has(img.productId)) catalogByProduct.set(img.productId, img.url);
   }
+  // Una foto por producto: el mismo producto puede ir en varias líneas.
   const productPhotoRows = quote.items
-    .filter((i) => i.productId)
+    .filter((i, index, all) => i.productId && all.findIndex((other) => other.productId === i.productId) === index)
     .map((i) => {
       const asset = quote.assets.find((a) => a.productId === i.productId && a.kind === "PRODUCT");
       return {
@@ -335,7 +345,7 @@ export default async function QuoteEditorPage({
               <Badge tone="accent">Importada del pedido #{requestShortId(quote.sourceRequestId)}</Badge>
             ) : null}
             <Badge tone={issued ? "success" : quote.status === "IN_REVIEW" ? "warning" : "muted"}>
-              {issued ? "Emitida" : quote.status === "IN_REVIEW" ? "En revisión" : "Borrador"}
+              {QUOTE_STATUS_LABEL[quote.status] ?? quote.status}
             </Badge>
             <ButtonLink href={`/api/admin/quotes/${quote.id}/preview-pdf`} target="_blank" size="sm" variant="outline">
               Vista PDF
@@ -666,6 +676,7 @@ export default async function QuoteEditorPage({
                         <form action={addQuoteAccessory}>
                           <input type="hidden" name="quoteId" value={quote.id} />
                           <input type="hidden" name="productId" value={a.accessoryProductId} />
+                          <input type="hidden" name="afterProductId" value={a.productId} />
                           <input type="hidden" name="quantity" value="1" />
                           <Button type="submit" size="sm" variant="outline">
                             Agregar
@@ -763,9 +774,21 @@ export default async function QuoteEditorPage({
                       <Textarea id="paymentReference" name="paymentReference" rows={3} defaultValue={quote.terms?.paymentReference || ""} />
                     </div>
                     <div>
-                      <Label htmlFor="validityDays">Vigencia (días)</Label>
-                      <Input id="validityDays" name="validityDays" defaultValue={quote.terms?.validityDays ?? 5} />
+                      <Label htmlFor="deliveryText">Plazo de entrega</Label>
+                      <Textarea id="deliveryText" name="deliveryText" rows={2} defaultValue={quote.terms?.deliveryText || ""} />
                     </div>
+                    <div>
+                      <Label htmlFor="productWarranty">Garantía</Label>
+                      <Textarea id="productWarranty" name="productWarranty" rows={2} defaultValue={quote.terms?.productWarranty || ""} />
+                    </div>
+                    <div>
+                      <Label htmlFor="validityDays">Vigencia (días)</Label>
+                      <Input id="validityDays" name="validityDays" type="number" min={1} max={365} step={1} defaultValue={quote.terms?.validityDays ?? 5} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Si cambiás un texto, se guarda lo que escribiste (queda como «Nuevas para esta COT»). Para volver a las del sistema o a las del
+                      cliente, elegí el origen y guardá sin tocar los textos.
+                    </p>
                     {canEdit ? (
                       <Button type="submit" size="sm" variant="outline">
                         Guardar condiciones

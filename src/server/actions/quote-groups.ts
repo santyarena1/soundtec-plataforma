@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { loadQuoteForUser } from "@/lib/quote-access";
+import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
 import { sanitizeQuoteHtml } from "@/lib/quote-richtext";
 
 function revalidate(quoteId: string) {
@@ -13,6 +13,7 @@ export async function createQuoteItemGroup(input: {
   quoteId: string;
   title?: string;
 }): Promise<{ ok: boolean; error?: string; groupId?: string }> {
+  await requireQuotePermission("quotes.edit");
   const loaded = await loadQuoteForUser(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
 
@@ -35,6 +36,7 @@ export async function updateQuoteItemGroup(input: {
   title?: string;
   body?: string;
 }): Promise<{ ok: boolean; error?: string }> {
+  await requireQuotePermission("quotes.edit");
   const group = await prisma.quoteItemGroup.findUnique({ where: { id: input.groupId } });
   if (!group) return { ok: false, error: "Ese ambiente ya no existe." };
   const loaded = await loadQuoteForUser(group.quoteId);
@@ -55,6 +57,7 @@ export async function updateQuoteItemGroup(input: {
 export async function deleteQuoteItemGroup(input: {
   groupId: string;
 }): Promise<{ ok: boolean; error?: string }> {
+  await requireQuotePermission("quotes.edit");
   const group = await prisma.quoteItemGroup.findUnique({ where: { id: input.groupId } });
   if (!group) return { ok: false, error: "Ese ambiente ya no existe." };
   const loaded = await loadQuoteForUser(group.quoteId);
@@ -70,6 +73,7 @@ export async function moveQuoteItemToGroup(input: {
   itemId: string;
   groupId: string | null;
 }): Promise<{ ok: boolean; error?: string }> {
+  await requireQuotePermission("quotes.edit");
   const item = await prisma.quoteItem.findUnique({ where: { id: input.itemId } });
   if (!item) return { ok: false, error: "El ítem ya no existe." };
   const loaded = await loadQuoteForUser(item.quoteId);

@@ -16,6 +16,8 @@ import { getSetting, setSetting } from "@/lib/settings";
  */
 const ROLE_UPGRADES: Array<{ id: string; key: string; add: PermissionScope[] }> = [
   { id: "2026-10-17-vendedor-leads-clientes-accesos", key: "vendedor", add: ["leads.view", "clients.view", "clients.create", "clients.edit", "clients.contacts", "clients.portal_users", "account_requests.create"] },
+  // No hay circuito de revisión: sin «emitir», el vendedor no podía sacar ninguna cotización.
+  { id: "2026-10-23-vendedor-emite-cotizaciones", key: "vendedor", add: ["quotes.issue"] },
 ];
 const UPGRADES_KEY = "roles.upgrades_applied";
 

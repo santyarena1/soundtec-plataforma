@@ -57,5 +57,6 @@ export async function quoteListUnitUsd(
   if (typeof unit === "number" && Number.isFinite(unit) && unit > 0) return unit;
   const sale = num(product.salePriceUsd);
   if (sale != null && sale > 0) return sale;
-  return num(product.baseCostUsd) ?? 0;
+  // Nunca el costo como precio de venta: en cero, la planilla avisa «sin precio».
+  return 0;
 }

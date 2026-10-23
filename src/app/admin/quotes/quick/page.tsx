@@ -4,12 +4,13 @@ import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { PageHeader } from "@/components/ui/page-header";
 import { QuickQuoteForm } from "./quick-quote-form";
+import { permissionsHave } from "@/lib/permissions";
 
 export const metadata = { title: "Admin · Cotización rápida" };
 
 export default async function QuickQuotePage() {
-  await requireQuotePermission("quotes.create");
-  const [clients, requests, validity, owners, priceLists] = await Promise.all([
+  const { permissions } = await requireQuotePermission("quotes.create");
+  const [clients, requests, validity, owners, priceLists, defaultIva] = await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
       orderBy: { companyName: "asc" },
@@ -28,6 +29,7 @@ export default async function QuickQuotePage() {
       select: { id: true, name: true },
     }),
     prisma.priceList.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    getSetting(QUOTE_SETTING_KEYS.defaultIva, "21"),
   ]);
   return (
     <div className="space-y-6">
@@ -40,6 +42,8 @@ export default async function QuickQuotePage() {
         owners={owners}
         priceLists={priceLists}
         validityDays={Number(validity) || 5}
+        canIssue={permissions.fullAccess || permissionsHave(permissions, "quotes.issue")}
+        defaultIva={Number(defaultIva) || 21}
         requests={requests.map((r) => ({
           id: r.id,
           clientId: r.clientId,

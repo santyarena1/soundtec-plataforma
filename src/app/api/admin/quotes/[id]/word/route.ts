@@ -26,12 +26,15 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       items: quote.items,
       itemGroups: quote.itemGroups,
       alternatives: quote.alternatives,
+      terms: quote.terms,
       sections: quote.sections,
       assets: quote.assets.map((asset) => ({
         id: asset.id,
         url: asset.url,
         sectionId: asset.sectionId,
         sortOrder: asset.sortOrder,
+        productId: asset.productId,
+        kind: asset.kind,
       })),
     },
     { origin: new URL(req.url).origin, forWord: true }

@@ -229,7 +229,7 @@ export const PRESET_SELLER: Permissions = {
     "quotes.view_own",
     "quotes.create",
     "quotes.edit",
-    "quotes.submit_review",
+    "quotes.issue",
     "requests.view",
     "requests.respond",
     "room_builder.use",

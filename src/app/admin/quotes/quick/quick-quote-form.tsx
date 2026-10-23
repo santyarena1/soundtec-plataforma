@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { ClientSelectWithCreate } from "@/components/admin/client-select-with-create";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { QuickQuoteItems, type QuickItem } from "./quick-quote-items";
+import { QuickQuoteItems, type QuickItem, type TaxMode } from "./quick-quote-items";
 import {
   createQuickQuote,
   resolveQuickQuoteSkus,
@@ -16,18 +16,26 @@ import { formatUsd } from "@/lib/utils";
 
 type Product = Awaited<ReturnType<typeof searchQuickQuoteProducts>>[number];
 
+let uidSeq = 0;
+const newUid = () => `l${Date.now().toString(36)}${(uidSeq++).toString(36)}`;
+
 export function QuickQuoteForm({
   clients,
   owners,
   priceLists,
   validityDays,
   requests,
+  canIssue,
+  defaultIva,
 }: {
   clients: { id: string; name: string }[];
   owners: { id: string; name: string }[];
   priceLists: { id: string; name: string }[];
   validityDays: number;
   requests: { id: string; clientId: string | null; label: string }[];
+  /** Puede emitir el PDF oficial (permiso «Emitir»). */
+  canIssue: boolean;
+  defaultIva: number;
 }) {
   const [pending, start] = useTransition();
   const [clientId, setClientId] = useState("");
@@ -37,7 +45,7 @@ export function QuickQuoteForm({
     `Cotización rápida ${new Date().toLocaleDateString("es-AR")}`,
   );
   const [layoutKey, setLayoutKey] = useState("COMPACT");
-  const [taxMode, setTaxMode] = useState<"NOTE" | "NONE" | "ADDED">("NOTE");
+  const [taxMode, setTaxMode] = useState<TaxMode>("NOTE");
   const [validity, setValidity] = useState(validityDays);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Product[]>([]);
@@ -58,61 +66,53 @@ export function QuickQuoteForm({
     }, 250);
     return () => clearTimeout(timer);
   }, [query, clientId]);
+  // Al cambiar el cliente, se recalculan los precios de lista con sus condiciones.
   useEffect(() => {
     if (!items.length) return;
-    Promise.all(
-      items.map((item) => searchQuickQuoteProducts(item.sku || item.name, clientId || null)),
-    ).then((sets) =>
-      setItems((old) =>
-        old.map((item, i) => ({
-          ...item,
-          unitPriceUsd: item.included
-            ? 0
-            : (sets[i]?.find((p) => p.id === item.productId)?.price ?? item.unitPriceUsd),
-        })),
-      ),
-    );
+    const lines = items.filter((item) => !item.included);
+    Promise.all(lines.map((item) => searchQuickQuoteProducts(item.sku || item.name, clientId || null))).then((sets) => {
+      const priceByUid = new Map(lines.map((item, i) => [item.uid, sets[i]?.find((p) => p.id === item.productId)?.price]));
+      setItems((old) => old.map((item) => (item.included ? item : { ...item, unitPriceUsd: priceByUid.get(item.uid) ?? item.unitPriceUsd })));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
-  function add(product: Product, included = false) {
-    setItems((old) =>
-      old.some((i) => i.productId === product.id)
-        ? old
-        : [
-            ...old,
-            {
-              productId: product.id,
-              name: product.name,
-              sku: product.sku,
-              quantity: 1,
-              unitPriceUsd: included ? 0 : product.price,
-              discountPercent: 0,
-              note: "",
-              included,
-            },
-          ],
-    );
-    product.accessories
+  /**
+   * Agrega el producto como línea nueva (se puede repetir: ej. el soporte que viene sin
+   * cargo y otro soporte cobrado). Lo que la ficha marca «incluido» va abajo, sin cargo,
+   * y sigue la cantidad del producto.
+   */
+  function add(product: Product, quantity = 1) {
+    const uid = newUid();
+    const line: QuickItem = {
+      uid,
+      productId: product.id,
+      name: product.name,
+      sku: product.sku,
+      quantity,
+      unitPriceUsd: product.price,
+      discountPercent: 0,
+      note: "",
+      included: false,
+      ivaPercent: product.ivaPercent,
+    };
+    const included: QuickItem[] = product.accessories
       .filter((a) => a.kind === "INCLUDED")
-      .forEach((a) =>
-        setItems((old) =>
-          old.some((i) => i.productId === a.id)
-            ? old
-            : [
-                ...old,
-                {
-                  productId: a.id,
-                  name: a.name,
-                  sku: a.sku,
-                  quantity: 1,
-                  unitPriceUsd: 0,
-                  discountPercent: 0,
-                  note: "Incluido con " + product.name,
-                  included: true,
-                },
-              ],
-        ),
-      );
+      .map((a) => ({
+        uid: newUid(),
+        productId: a.id,
+        name: a.name,
+        sku: a.sku,
+        quantity: quantity * a.quantity,
+        unitPriceUsd: 0,
+        discountPercent: 0,
+        note: "Incluido con " + (product.sku || product.name),
+        included: true,
+        ivaPercent: a.ivaPercent,
+        parentUid: uid,
+        perParent: a.quantity,
+      }));
+    setItems((old) => [...old, line, ...included]);
     setQuery("");
     setResults([]);
   }
@@ -157,7 +157,7 @@ export function QuickQuoteForm({
         </div>
         <div className="flex max-w-lg gap-2">
           <Select value={requestId} onChange={(e) => setRequestId(e.target.value)}>
-            <option value="">Adjuntar a una pedido abierto…</option>
+            <option value="">Adjuntar a un pedido abierto…</option>
             {requests
               .filter((r) => r.clientId === clientId)
               .map((r) => (
@@ -212,45 +212,6 @@ export function QuickQuoteForm({
           <Label required>Referencia</Label>
           <Input required value={reference} onChange={(e) => setReference(e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label>Plantilla</Label>
-            <Select value={layoutKey} onChange={(e) => setLayoutKey(e.target.value)}>
-              <option value="COMPACT">Compacta · solo la tabla y las condiciones</option>
-              <option value="STANDARD">Estándar · propuesta, marcas y condiciones</option>
-              <option value="EDITORIAL">Editorial · el documento completo</option>
-            </Select>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {layoutKey === "COMPACT"
-                ? "Una carilla: encabezado, productos y condiciones comerciales."
-                : layoutKey === "STANDARD"
-                  ? "Varias páginas, igual que una cotización común: nuestra propuesta, marcas, instalación y garantías."
-                  : "Todo el documento, con criterios de diseño, productos clave y funcionalidad."}
-            </p>
-          </div>
-          <div>
-            <Label>Impuestos</Label>
-            <Select value={taxMode} onChange={(e) => setTaxMode(e.target.value as "NOTE")}>
-              {TAX_MODES.map((mode) => (
-                <option key={mode.key} value={mode.key}>
-                  {mode.label}
-                </option>
-              ))}
-            </Select>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {TAX_MODES.find((mode) => mode.key === taxMode)?.hint}
-            </p>
-          </div>
-          <div>
-            <Label>Validez (días)</Label>
-            <Input
-              type="number"
-              min="1"
-              value={validity}
-              onChange={(e) => setValidity(Number(e.target.value))}
-            />
-          </div>
-        </div>
       </div>
       {!clientId && !clientName.trim() ? (
         <p className="text-sm text-warning">
@@ -297,7 +258,7 @@ export function QuickQuoteForm({
           onClick={() =>
             start(async () => {
               const r = await resolveQuickQuoteSkus(bulk, clientId || null);
-              r.items.forEach((p) => add(p));
+              r.items.forEach((p) => add(p, p.quantity));
               setErrors(r.missing.length ? ["No encontramos: " + r.missing.join(", ")] : []);
             })
           }
@@ -305,7 +266,46 @@ export function QuickQuoteForm({
           Agregar varios
         </Button>
       </div>
-      <QuickQuoteItems items={items} onChange={setItems} />
+      <QuickQuoteItems items={items} onChange={setItems} taxMode={taxMode} defaultIva={defaultIva} />
+      <div className="grid gap-3 rounded-md border border-border p-3 sm:grid-cols-3">
+        <div>
+          <Label>Plantilla</Label>
+          <Select value={layoutKey} onChange={(e) => setLayoutKey(e.target.value)}>
+            <option value="COMPACT">Compacta · solo la tabla y las condiciones</option>
+            <option value="STANDARD">Estándar · propuesta, marcas y condiciones</option>
+            <option value="EDITORIAL">Editorial · el documento completo</option>
+          </Select>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {layoutKey === "COMPACT"
+              ? "Una carilla: encabezado, productos y condiciones comerciales."
+              : layoutKey === "STANDARD"
+                ? "Varias páginas, igual que una cotización común: nuestra propuesta, marcas, instalación y garantías."
+                : "Todo el documento, con criterios de diseño, productos clave y funcionalidad."}
+          </p>
+        </div>
+        <div>
+          <Label>Impuestos</Label>
+          <Select value={taxMode} onChange={(e) => setTaxMode(e.target.value as "NOTE")}>
+            {TAX_MODES.map((mode) => (
+              <option key={mode.key} value={mode.key}>
+                {mode.label}
+              </option>
+            ))}
+          </Select>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {TAX_MODES.find((mode) => mode.key === taxMode)?.hint}
+          </p>
+        </div>
+        <div>
+          <Label>Validez (días)</Label>
+          <Input
+            type="number"
+            min="1"
+            value={validity}
+            onChange={(e) => setValidity(Number(e.target.value))}
+          />
+        </div>
+      </div>
       {errors.length ? (
         <ul className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {errors.map((e) => (
@@ -317,9 +317,11 @@ export function QuickQuoteForm({
         <Button variant="outline" disabled={pending || !items.length} onClick={() => create(false)}>
           Guardar como borrador y abrir el editor
         </Button>
-        <Button disabled={pending || !items.length || (!clientId && !clientName.trim())} onClick={() => create(true)}>
-          Crear y emitir PDF
-        </Button>
+        {canIssue ? (
+          <Button disabled={pending || !items.length || (!clientId && !clientName.trim())} onClick={() => create(true)}>
+            Crear y emitir PDF
+          </Button>
+        ) : null}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { loadQuoteForUser } from "@/lib/quote-access";
+import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { quoteIssueCheck } from "@/lib/quote-issue";
 import { revalidatePath } from "next/cache";
@@ -11,6 +11,7 @@ import * as XLSX from "xlsx";
 import { generateAndStoreQuotePdf } from "@/lib/quote-pdf-store";
 import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
+import { payableLines } from "@/lib/quote-totals";
 
 export async function issueQuote(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const id = String(formData.get("quoteId") || "");
@@ -52,12 +53,8 @@ export async function issueQuote(formData: FormData): Promise<{ ok: boolean; err
     /* snapshot sigue valiendo */
   }
 
-  try {
-    await generateAndStoreQuotePdf(id, loaded.user.id);
-  } catch (error) {
-    console.error("issueQuote pdf", error);
-  }
-
+  // La fecha de emisión se guarda antes de armar el PDF: el documento lleva la misma fecha que la base.
+  const previous = { status: loaded.quote.status, issuedAt: loaded.quote.issuedAt, issuedById: loaded.quote.issuedById };
   await prisma.quote.update({
     where: { id },
     data: {
@@ -67,6 +64,14 @@ export async function issueQuote(formData: FormData): Promise<{ ok: boolean; err
       ...(xlsxBlobUrl ? { xlsxBlobUrl } : {}),
     },
   });
+  try {
+    await generateAndStoreQuotePdf(id, loaded.user.id);
+  } catch (error) {
+    // Sin PDF no hay emisión: vuelve al estado anterior para no mandar un documento viejo o vacío.
+    console.error("issueQuote pdf", error);
+    await prisma.quote.update({ where: { id }, data: previous });
+    return { ok: false, error: "No se pudo generar el PDF. La cotización no se emitió: probá de nuevo." };
+  }
   await prisma.quoteRevision.create({
     data: {
       quoteId: id,
@@ -89,6 +94,9 @@ export async function submitQuoteForReview(formData: FormData): Promise<{ ok: bo
   const id = String(formData.get("quoteId") || "");
   const loaded = await loadQuoteForUser(id);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  if (!loaded.permissions.fullAccess && !permissionsHave(loaded.permissions, "quotes.submit_review") && !permissionsHave(loaded.permissions, "quotes.edit")) {
+    return { ok: false, error: "Sin permiso." };
+  }
   if (loaded.quote.status === "ISSUED") return { ok: false, error: "Ya emitida." };
   await prisma.quote.update({ where: { id }, data: { status: "IN_REVIEW" } });
   await prisma.quoteRevision.create({
@@ -107,7 +115,8 @@ export async function buildQuoteWorkbook(quoteId: string): Promise<{ bytes: Uint
     ["Referencia", loaded.quote.reference || ""],
     [],
     ["Ambiente", "Cant", "U", "Detalle", "Unitario USD", "Total USD", "IVA %", "Entrega"],
-    ...loaded.quote.items.map((i) => [
+    // Lo que va al documento: sin las filas «dejar afuera».
+    ...loaded.quote.items.filter((i) => !i.excluded).map((i) => [
       loaded.quote.itemGroups.find((group) => group.id === i.groupId)?.title || "General",
       Number(i.quantity),
       i.unit,
@@ -118,7 +127,7 @@ export async function buildQuoteWorkbook(quoteId: string): Promise<{ bytes: Uint
       i.deliveryKey || "",
     ]),
     [],
-    ["Total neto USD", loaded.quote.items.reduce((s, i) => s + Number(i.lineTotalUsd), 0)],
+    ["Total neto USD", payableLines(loaded.quote.items).reduce((s, i) => s + Number(i.lineTotalUsd), 0)],
   ];
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -130,6 +139,7 @@ export async function buildQuoteWorkbook(quoteId: string): Promise<{ bytes: Uint
 }
 
 export async function addServiceToQuote(formData: FormData): Promise<void> {
+  await requireQuotePermission("quotes.edit");
   const quoteId = String(formData.get("quoteId") || "");
   const description = String(formData.get("description") || "").trim();
   const qty = Number(formData.get("quantity") || "1") || 1;
