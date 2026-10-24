@@ -512,7 +512,7 @@ export function HelpDock() {
   return (
     <>
       <div
-        className="fixed z-[70] print:hidden"
+        className="fixed z-[45] print:hidden"
         data-tour="help-dock"
         style={{
           right: "max(0.75rem, env(safe-area-inset-right))",

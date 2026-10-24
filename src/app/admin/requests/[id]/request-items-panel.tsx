@@ -242,7 +242,7 @@ function ItemRow({
                 onClick={onRemove}
                 className="text-destructive hover:bg-destructive/10"
                 aria-label={`Quitar ${item.productName}`}
-                title="Quitar de el pedido"
+                title="Quitar del pedido"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>

@@ -113,7 +113,7 @@ export default async function Page({ params }: { params: { id: string } }) {
           <CardContent className="space-y-3 p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-semibold">Qué puede hacer</h2>
-              <Link href="/admin/settings/roles" className="text-xs text-primary hover:underline">
+              <Link href="/admin/users?vista=roles" className="text-xs text-primary hover:underline">
                 Editar el rol {user.customRole?.name ?? ""}
               </Link>
             </div>

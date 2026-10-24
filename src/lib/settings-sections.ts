@@ -102,7 +102,7 @@ export const SETTINGS_GROUPS: SettingsSectionGroup[] = [
         scope: "api_keys.manage",
       },
       {
-        href: "/admin/settings/roles",
+        href: "/admin/users?vista=roles",
         label: "Roles y permisos",
         description: "Qué pantallas y acciones puede usar cada rol personalizado.",
         icon: ShieldCheck,

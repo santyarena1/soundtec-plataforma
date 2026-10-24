@@ -170,7 +170,7 @@ export function UserFormModal({
                     <p className="mt-1 text-xs text-muted-foreground">
                       {staffRoles.find((r) => r.id === customRole)?.description ?? "Los permisos de cada rol se editan en "}
                       {" "}
-                      <Link href="/admin/settings/roles" className="text-primary hover:underline">
+                      <Link href="/admin/users?vista=roles" className="text-primary hover:underline">
                         Configuración → Roles
                       </Link>
                       .

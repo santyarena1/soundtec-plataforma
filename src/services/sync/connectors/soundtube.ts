@@ -23,7 +23,7 @@ export const SOUNDTUBE_SETTING_KEYS = {
   priceField: "soundtube.price_field",
   categoryTarget: "soundtube.category_target",
   translations: "soundtube.category_translations",
-  /** "excel" = el costo sale de la lista Excel (admin/sync/soundtube-prices); el sync no lo pisa. */
+  /** "excel" = el costo sale de la lista Excel (Revisión SoundTube); el sync no lo pisa. */
   priceSource: "soundtube.price_source",
   /** "excel" = rubro/subrubro/familia/tipo salen del Excel; el sync no los pisa. */
   taxonomySource: "soundtube.taxonomy_source",

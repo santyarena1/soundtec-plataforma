@@ -2271,4 +2271,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Las herramientas clásicas de Crestron y Sonance siguen la misma regla que la sincronización: solo actualizan precio y stock; lo demás lo completan si está vacío." },
     ],
   },
+  {
+    id: "ship-2026-10-25-unificado-roles-soundtube-etiquetas",
+    version: "2.14.0",
+    releasedAt: "2026-10-25T03:00:00.000Z",
+    summary: "Menos pantallas repetidas (roles y lista SoundTube en un solo lugar) y textos más claros en la ficha de producto.",
+    items: [
+      { kind: "MEJORA", text: "Los roles se editan en un solo lugar: Sistema → Usuarios y permisos → Roles (el acceso desde Configuración lleva ahí)." },
+      { kind: "MEJORA", text: "La lista de SoundTube se carga en una sola pantalla: Revisión SoundTube (la pantalla aparte redirige ahí). «Quitar precios del portal» también quedó ahí." },
+      { kind: "MEJORA", text: "Ficha de producto con etiquetas claras: «Categoría (rubro)», «Familia (subrubro)», «Descripción del fabricante», «Costo base (USD)»… en lugar de todo en mayúsculas." },
+      { kind: "FIX", text: "El botón de Ayuda ya no queda por encima de las ventanas, y la barra de Guardar no tapa los diálogos." },
+      { kind: "FIX", text: "«Quitar de el pedido» → «Quitar del pedido»." },
+    ],
+  },
 ];

@@ -307,7 +307,7 @@ function ItemList({
                     size="sm"
                     variant="ghost"
                     className="h-8 text-destructive hover:bg-destructive/10"
-                    title="Quitar de el pedido"
+                    title="Quitar del pedido"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

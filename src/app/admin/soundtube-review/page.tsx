@@ -1,3 +1,4 @@
+import { ClearPortalPrices } from "./_clear-portal-prices";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { PageHeader } from "@/components/ui/page-header";
@@ -47,13 +48,13 @@ export default async function SoundTubeReviewPage() {
             <p className="text-sm">Empezar una revisión nueva con un Excel de SoundTube:</p>
             <StartReviewForm />
             <p className="text-xs text-muted-foreground">
-              Para una lista que ya está limpia podés usar directamente{" "}
-              <Link href="/admin/sync/soundtube-prices" className="underline">Lista de precios SoundTube</Link>.
+              Si la lista está limpia y no hay nada para decidir, la revisión queda lista para aplicar enseguida.
             </p>
           </CardContent>
         </Card>
         <DuplicatesSection items={duplicates} />
         <UnpricedSection items={unpriced} />
+        <ClearPortalPrices />
       </div>
     );
   }

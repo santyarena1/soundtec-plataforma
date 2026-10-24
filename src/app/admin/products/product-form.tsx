@@ -169,7 +169,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
   const saveBar =
     saveBarReady && typeof document !== "undefined"
       ? createPortal(
-          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] print:hidden xl:left-64">
+          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 print:hidden xl:left-64">
             <div className="pointer-events-auto border-t border-border bg-card/95 px-3 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-card/90 sm:px-6">
               <div className="flex items-center justify-end gap-3 pr-48 sm:pr-56">
                 {error ? <p className="mr-auto max-w-md text-sm text-destructive">{error}</p> : null}
@@ -210,17 +210,17 @@ export function ProductForm({ product, brands, distributors, categories, familie
             <FieldStamp at={fieldUpdatedAt?.internalSku} />
           </div>
           <div>
-            <Label htmlFor="supplierSku">SKU PROVEEDOR</Label>
+            <Label htmlFor="supplierSku">SKU del proveedor</Label>
             <Input id="supplierSku" name="supplierSku" defaultValue={product?.supplierSku || ""} />
             <FieldStamp at={fieldUpdatedAt?.supplierSku} />
           </div>
           <div className="sm:col-span-2">
-            <Label htmlFor="normalizedName" required>MODELO</Label>
+            <Label htmlFor="normalizedName" required>Modelo (nombre que se ve en todos lados)</Label>
             <Input id="normalizedName" name="normalizedName" required defaultValue={product?.normalizedName || ""} />
             <FieldStamp at={fieldUpdatedAt?.normalizedName} />
           </div>
           <div className="sm:col-span-2">
-            <Label htmlFor="originalName">MODELO PROVEEDOR</Label>
+            <Label htmlFor="originalName">Descripción del fabricante</Label>
             <Input id="originalName" name="originalName" defaultValue={product?.originalName || ""} />
             <FieldStamp at={fieldUpdatedAt?.originalName} />
           </div>
@@ -232,7 +232,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
         <SectionTitle>Clasificación</SectionTitle>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <Label htmlFor="brandId">MARCA</Label>
+            <Label htmlFor="brandId">Marca</Label>
             <Select id="brandId" name="brandId" defaultValue={product?.brandId || ""}>
               <option value="">—</option>
               {brands.map((b) => (<option key={b.id} value={b.id}>{b.name}</option>))}
@@ -240,7 +240,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
             <FieldStamp at={fieldUpdatedAt?.brandId} />
           </div>
           <div>
-            <Label htmlFor="distributorId">PROVEEDOR</Label>
+            <Label htmlFor="distributorId">Proveedor</Label>
             <Select id="distributorId" name="distributorId" defaultValue={product?.distributorId || ""}>
               <option value="">—</option>
               {distributors.map((d) => (<option key={d.id} value={d.id}>{d.name}</option>))}
@@ -248,7 +248,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
             <FieldStamp at={fieldUpdatedAt?.distributorId} />
           </div>
           <div>
-            <Label htmlFor="categoryId">RUBRO</Label>
+            <Label htmlFor="categoryId">Categoría (rubro)</Label>
             <Select id="categoryId" name="categoryId" defaultValue={product?.categoryId || ""}>
               <option value="">—</option>
               {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
@@ -256,7 +256,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
             <FieldStamp at={fieldUpdatedAt?.categoryId} />
           </div>
           <div>
-            <Label htmlFor="familyId">SUBRUBRO</Label>
+            <Label htmlFor="familyId">Familia (subrubro)</Label>
             <Select id="familyId" name="familyId" defaultValue={product?.familyId || ""}>
               <option value="">—</option>
               {families.map((f) => (<option key={f.id} value={f.id}>{f.name}</option>))}
@@ -264,12 +264,12 @@ export function ProductForm({ product, brands, distributors, categories, familie
             <FieldStamp at={fieldUpdatedAt?.familyId} />
           </div>
           <div>
-            <Label htmlFor="familia">FAMILIA</Label>
+            <Label htmlFor="familia">Familia según la lista (texto)</Label>
             <Input id="familia" name="familia" placeholder="Ej: Amplificadores, Micrófonos…" defaultValue={product?.familia || ""} />
             <FieldStamp at={fieldUpdatedAt?.familia} />
           </div>
           <div>
-            <Label htmlFor="tipo">TIPO</Label>
+            <Label htmlFor="tipo">Tipo</Label>
             <Input id="tipo" name="tipo" placeholder="Ej: Pasivo, Activo, Inalámbrico…" defaultValue={product?.tipo || ""} />
             <FieldStamp at={fieldUpdatedAt?.tipo} />
           </div>
@@ -292,7 +292,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
         <SectionTitle>Posición arancelaria (NCM)</SectionTitle>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="sm:col-span-2 lg:col-span-3">
-            <Label htmlFor="tariffPosition">POSICIÓN ARANCELARIA (NCM)</Label>
+            <Label htmlFor="tariffPosition">Posición arancelaria (NCM)</Label>
             <NcmAutocomplete
               value={tariffPosition}
               onChange={setTariffPosition}
@@ -429,7 +429,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Costo base (FOB)</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="baseCostUsd" required>COSTO BASE USD</Label>
+              <Label htmlFor="baseCostUsd" required>Costo base (USD)</Label>
               <Input
                 id="baseCostUsd"
                 name="baseCostUsd"
@@ -449,7 +449,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               ) : null}
             </div>
             <div>
-              <Label htmlFor="discountPercentDisplay">DESCUENTO ESPECIAL (%)</Label>
+              <Label htmlFor="discountPercentDisplay">Descuento especial (%)</Label>
               <p className="mb-1 text-[11px] text-muted-foreground">
                 Baja el precio para todos los clientes. Se lista en Admin → Descuentos, no hace falta crear una regla.
               </p>
@@ -474,7 +474,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Precio mercado nacional</p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <Label htmlFor="coefNacDisplay">COEF NAC</Label>
+              <Label htmlFor="coefNacDisplay">Coef. de nacionalización</Label>
               <input
                 id="coefNacDisplay"
                 type="number"
@@ -489,13 +489,13 @@ export function ProductForm({ product, brands, distributors, categories, familie
               <p className="mt-1 text-[11px] text-muted-foreground">COSTO NAC USD = COSTO BASE × COEF NAC</p>
             </div>
             <div>
-              <Label>COSTO NAC USD</Label>
+              <Label>Costo nacionalizado (USD)</Label>
               <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm text-muted-foreground">
                 {costoNacUsd != null ? fmtUsd(costoNacUsd) : "—"}
               </div>
             </div>
             <div>
-              <Label htmlFor="coefVtaDisplay">COEF VTA (markup de venta)</Label>
+              <Label htmlFor="coefVtaDisplay">Coef. de venta (markup)</Label>
               <input
                 id="coefVtaDisplay"
                 type="number"
@@ -510,7 +510,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               <p className="mt-1 text-[11px] text-muted-foreground">PRECIO NAC = COSTO NAC × COEF VTA × DESC ESP</p>
             </div>
             <div>
-              <Label>PRECIO NAC</Label>
+              <Label>Precio nacional</Label>
               <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm text-muted-foreground">
                 {precioNac != null ? fmtUsd(precioNac) : "—"}
               </div>
@@ -538,7 +538,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               <FieldStamp at={fieldUpdatedAt?.ivaPercent} />
             </div>
             <div>
-              <Label htmlFor="impIntPercentDisplay">IMP INT (%)</Label>
+              <Label htmlFor="impIntPercentDisplay">Impuestos internos (%)</Label>
               <input
                 id="impIntPercentDisplay"
                 type="number"
@@ -552,7 +552,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               <FieldStamp at={fieldUpdatedAt?.impIntPercent} />
             </div>
             <div>
-              <Label>PRECIO NAC FINAL</Label>
+              <Label>Precio nacional final</Label>
               <div className="flex h-9 items-center rounded-md border border-blue-300 bg-blue-50 px-3 font-mono text-sm font-semibold text-blue-900 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-200">
                 {precioNacFinal != null ? fmtUsd(precioNacFinal) : "—"}
               </div>
@@ -565,7 +565,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-800/60 dark:text-blue-300/60">Precio venta FOB (USD)</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="coefVtaFobDisplay">COEF VTA FOB</Label>
+              <Label htmlFor="coefVtaFobDisplay">Coef. de venta FOB</Label>
               <input
                 id="coefVtaFobDisplay"
                 type="number"
@@ -579,7 +579,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               <FieldStamp at={fieldUpdatedAt?.coefVtaFob} />
             </div>
             <div>
-              <Label>PRECIO VTA FOB</Label>
+              <Label>Precio de venta FOB</Label>
               <div className="flex h-9 items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm text-muted-foreground">
                 {precioVtaFob != null ? fmtUsd(precioVtaFob) : "—"}
               </div>
@@ -596,7 +596,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
         <SectionTitle>Disponibilidad</SectionTitle>
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <Label htmlFor="stockStatus">DISPONIBILIDAD</Label>
+            <Label htmlFor="stockStatus">Disponibilidad</Label>
             <Select id="stockStatus" name="stockStatus" defaultValue={product?.stockStatus || "UNKNOWN"}>
               <option value="IN_STOCK">&gt;5 unidades</option>
               <option value="LOW_STOCK">&lt;5 unidades</option>
