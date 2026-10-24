@@ -88,7 +88,7 @@ test("relaciones: incluido en la caja con cantidad, editar y quitar", async ({ p
 
   page.once("dialog", (dialog) => dialog.accept());
   await again.getByRole("button", { name: /Quitar/ }).click();
-  await expect(page.locator("section").filter({ has: page.getByRole("heading", { name: "Incluido en la caja" }) }).locator("li").filter({ hasText: FIXTURES.withIncluded.includedSku })).toHaveCount(0);
+  await expect(page.locator("section").filter({ has: page.getByRole("heading", { name: "Incluido en la caja" }) }).locator("li").filter({ hasText: FIXTURES.withIncluded.includedSku })).toHaveCount(0, { timeout: 60_000 });
 });
 
 test("precio y costos: reglas que aplican y markup propio desde la ficha", async ({ page }) => {

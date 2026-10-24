@@ -23,6 +23,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  SlidersHorizontal,
   Tag,
 } from "lucide-react";
 import { bulkUpdateProducts } from "@/server/actions/admin-catalog";
@@ -173,6 +174,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const pathname = usePathname();
   const search = useSearchParams();
   const cardsView = search.get("vista") === "tarjetas";
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [priceEditorIds, setPriceEditorIds] = useState<string[] | null>(null);
   const editPrice = props.canEditPrices ? (id: string) => setPriceEditorIds([id]) : undefined;
@@ -367,132 +369,139 @@ export function ProductsCatalogAdmin(props: Props) {
   const nodescActive = search.get("nodesc") === "1";
   const crestronActive = search.get("crestron") === "1";
 
+  const nameOf = (options: Option[], id: string) => options.find((o) => o.id === id)?.name ?? id;
+  const secondaryCount =
+    categoryIdsFromUrl.length + familyIdsFromUrl.length + distributorIdsFromUrl.length + stockFromUrl.length +
+    (activeFromUrl ? 1 : 0) + (nocatActive ? 1 : 0) + (noimgActive ? 1 : 0) + (nodescActive ? 1 : 0) + (crestronActive ? 1 : 0);
+  const without = (list: string[], id: string) => list.filter((x) => x !== id);
+  const activeChips: Array<{ key: string; label: string; clear: () => void }> = [
+    ...(qFromUrl ? [{ key: "q", label: `«${qFromUrl}»`, clear: () => { setQInput(""); pushFilters({ q: "" }); } }] : []),
+    ...brandIdsFromUrl.map((id) => ({ key: `b-${id}`, label: nameOf(props.brands, id), clear: () => pushFilters({ brand: without(brandIdsFromUrl, id) }) })),
+    ...categoryIdsFromUrl.map((id) => ({ key: `c-${id}`, label: nameOf(props.categories, id), clear: () => pushFilters({ category: without(categoryIdsFromUrl, id) }) })),
+    ...familyIdsFromUrl.map((id) => ({ key: `f-${id}`, label: nameOf(props.families, id), clear: () => pushFilters({ family: without(familyIdsFromUrl, id) }) })),
+    ...distributorIdsFromUrl.map((id) => ({ key: `d-${id}`, label: nameOf(props.distributors, id), clear: () => pushFilters({ distributor: without(distributorIdsFromUrl, id) }) })),
+    ...stockFromUrl.map((id) => ({ key: `s-${id}`, label: nameOf(STOCK_OPTIONS, id), clear: () => pushFilters({ stock: without(stockFromUrl, id) }) })),
+    ...(activeFromUrl ? [{ key: "active", label: activeFromUrl === "yes" ? "Solo activos" : "Solo inactivos", clear: () => pushFilters({ active: "" }) }] : []),
+    ...(nocatActive ? [{ key: "nocat", label: "Sin categoría", clear: () => pushFilters({ nocat: "" }) }] : []),
+    ...(noimgActive ? [{ key: "noimg", label: "Sin foto", clear: () => pushFilters({ noimg: "" }) }] : []),
+    ...(nodescActive ? [{ key: "nodesc", label: "Sin descripción", clear: () => pushFilters({ nodesc: "" }) }] : []),
+    ...(crestronActive ? [{ key: "crestron", label: "Crestron Home", clear: () => pushFilters({ crestron: "" }) }] : []),
+  ];
+
   return (
     <>
     <div className="space-y-3">
-      {/* Fila 1: búsqueda + orden */}
-      <div className="flex flex-wrap gap-2 rounded-md border border-border bg-card p-3">
-        <div className="relative min-w-0 flex-1 basis-full sm:min-w-[200px] sm:basis-auto">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={qInput}
-            onChange={(e) => setQInput(e.target.value)}
-            placeholder="Buscar por SKU, nombre o SKU proveedor"
-            className="pl-9"
-            aria-label="Buscar productos"
-          />
-        </div>
-        <Select
-          value={sortFromUrl}
-          onChange={(e) => pushFilters({ sort: e.target.value })}
-          className="h-10 w-full text-sm sm:w-44"
-          aria-label="Ordenar por"
-        >
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </Select>
-        {props.showPrices ? (
-          <label className="flex h-10 items-center gap-2 rounded-md border border-border bg-background px-2 text-xs text-muted-foreground">
-            <span className="whitespace-nowrap">Ver precio:</span>
-            <select
-              value={priceView}
-              onChange={(e) => setPriceView(e.target.value as typeof priceView)}
-              className="bg-transparent text-sm text-foreground outline-none"
-            >
-              <option value="usdFinal">USD final</option>
-              <option value="usdFob">USD FOB</option>
-              <option value="arsNacional">ARS nacional</option>
-            </select>
-          </label>
-        ) : null}
-        {pending ? <Loader2 className="h-5 w-5 animate-spin self-center text-muted-foreground" /> : null}
-      </div>
-
-      {/* Fila 2: filtros multi-select */}
-      <div className="grid gap-2 rounded-md border border-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MultiSelectFilter
-          label="Marcas"
-          options={props.brands}
-          values={brandIdsFromUrl}
-          onChange={(ids) => pushFilters({ brand: ids })}
-        />
-        <MultiSelectFilter
-          label="Categorías"
-          options={props.categories}
-          values={categoryIdsFromUrl}
-          onChange={(ids) => pushFilters({ category: ids })}
-        />
-        <MultiSelectFilter
-          label="Familias"
-          options={props.families}
-          values={familyIdsFromUrl}
-          onChange={(ids) => pushFilters({ family: ids })}
-        />
-        <MultiSelectFilter
-          label="Proveedores"
-          options={props.distributors}
-          values={distributorIdsFromUrl}
-          onChange={(ids) => pushFilters({ distributor: ids })}
-        />
-      </div>
-
-      {/* Fila 3: filtros rápidos */}
-      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-card px-3 py-2">
-        <span className="text-xs font-medium text-muted-foreground">Filtros rápidos:</span>
-        <MultiSelectFilter
-          label="Stock"
-          options={STOCK_OPTIONS}
-          values={stockFromUrl}
-          onChange={(ids) => pushFilters({ stock: ids })}
-          compact
-        />
-        <Select
-          value={activeFromUrl}
-          onChange={(e) => pushFilters({ active: e.target.value })}
-          className="h-8 w-36 text-xs"
-          aria-label="Estado activo"
-        >
-          <option value="">Activo: todos</option>
-          <option value="yes">Solo activos</option>
-          <option value="no">Solo inactivos</option>
-        </Select>
-        <button
-          onClick={() => pushFilters({ nocat: nocatActive ? "" : "1" })}
-          className={`rounded-full border px-3 py-1 text-xs transition-colors ${nocatActive ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-secondary"}`}
-        >
-          Sin categoría
-        </button>
-        <button
-          onClick={() => pushFilters({ noimg: noimgActive ? "" : "1" })}
-          className={`rounded-full border px-3 py-1 text-xs transition-colors ${noimgActive ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-secondary"}`}
-        >
-          Sin imagen
-        </button>
-        <button
-          onClick={() => pushFilters({ nodesc: nodescActive ? "" : "1" })}
-          className={`rounded-full border px-3 py-1 text-xs transition-colors ${nodescActive ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-secondary"}`}
-        >
-          Sin descripción
-        </button>
-        <button
-          onClick={() => pushFilters({ crestron: crestronActive ? "" : "1" })}
-          className={`rounded-full border px-3 py-1 text-xs transition-colors ${crestronActive ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-secondary"}`}
-        >
-          Crestron Home
-        </button>
-        {(brandIdsFromUrl.length || categoryIdsFromUrl.length || familyIdsFromUrl.length ||
-          distributorIdsFromUrl.length || stockFromUrl.length || activeFromUrl ||
-          nocatActive || noimgActive || nodescActive || crestronActive || qFromUrl) ? (
-          <button
-            onClick={() => {
-              setQInput("");
-              pushFilters({ q: "", brand: [], category: [], family: [], distributor: [], stock: [], active: "", nocat: "", noimg: "", nodesc: "", crestron: "" });
-            }}
-            className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+      {/* Barra principal: lo que más se usa, a la vista. El resto, en «Más filtros». */}
+      <div className="space-y-2 rounded-lg border border-border bg-card p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-0 flex-1 basis-full sm:min-w-[240px] sm:basis-auto">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={qInput}
+              onChange={(e) => setQInput(e.target.value)}
+              placeholder="Buscar por modelo, código o descripción"
+              className="h-11 pl-9 text-base"
+              aria-label="Buscar productos"
+            />
+          </div>
+          <div className="w-full sm:w-52">
+            <MultiSelectFilter label="Marca" options={props.brands} values={brandIdsFromUrl} onChange={(ids) => pushFilters({ brand: ids })} />
+          </div>
+          <Select value={sortFromUrl} onChange={(e) => pushFilters({ sort: e.target.value })} className="h-11 w-full text-sm sm:w-44" aria-label="Ordenar por">
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                Orden: {o.label}
+              </option>
+            ))}
+          </Select>
+          <Button
+            type="button"
+            variant={moreFiltersOpen ? "primary" : "outline"}
+            onClick={() => setMoreFiltersOpen((open) => !open)}
+            aria-expanded={moreFiltersOpen}
+            className="h-11"
           >
-            <X className="h-3.5 w-3.5" /> Limpiar filtros
-          </button>
+            <SlidersHorizontal className="h-4 w-4" /> Más filtros{secondaryCount ? ` (${secondaryCount})` : ""}
+          </Button>
+          {pending ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : null}
+        </div>
+
+        {moreFiltersOpen ? (
+          <div className="grid gap-3 border-t border-border pt-3 sm:grid-cols-2 lg:grid-cols-4">
+            <MultiSelectFilter label="Categorías" options={props.categories} values={categoryIdsFromUrl} onChange={(ids) => pushFilters({ category: ids })} />
+            <MultiSelectFilter label="Familias" options={props.families} values={familyIdsFromUrl} onChange={(ids) => pushFilters({ family: ids })} />
+            {props.distributors.length ? (
+              <MultiSelectFilter label="Proveedores" options={props.distributors} values={distributorIdsFromUrl} onChange={(ids) => pushFilters({ distributor: ids })} />
+            ) : null}
+            <MultiSelectFilter label="Disponibilidad" options={STOCK_OPTIONS} values={stockFromUrl} onChange={(ids) => pushFilters({ stock: ids })} />
+            <Select value={activeFromUrl} onChange={(e) => pushFilters({ active: e.target.value })} className="h-10 text-sm" aria-label="Activos o inactivos">
+              <option value="">Activos e inactivos</option>
+              <option value="yes">Solo activos</option>
+              <option value="no">Solo inactivos</option>
+            </Select>
+            {props.showPrices ? (
+              <Select value={priceView} onChange={(e) => setPriceView(e.target.value as typeof priceView)} className="h-10 text-sm" aria-label="Qué precio mostrar">
+                <option value="usdFinal">Precio: USD final</option>
+                <option value="usdFob">Precio: USD FOB</option>
+                <option value="arsNacional">Precio: ARS nacional</option>
+              </Select>
+            ) : null}
+            <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+              <span className="text-xs font-medium text-muted-foreground">Les falta:</span>
+              {(
+                [
+                  ["nocat", "Categoría", nocatActive],
+                  ["noimg", "Foto", noimgActive],
+                  ["nodesc", "Descripción", nodescActive],
+                ] as const
+              ).map(([key, label, on]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => pushFilters({ [key]: on ? "" : "1" })}
+                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${on ? "border-primary bg-primary/10 font-medium text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                type="button"
+                aria-pressed={crestronActive}
+                onClick={() => pushFilters({ crestron: crestronActive ? "" : "1" })}
+                className={`rounded-full border px-3 py-1 text-xs transition-colors ${crestronActive ? "border-primary bg-primary/10 font-medium text-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}
+              >
+                Compatibles con Crestron Home
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {activeChips.length ? (
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
+            <span className="text-xs text-muted-foreground">Filtrando por:</span>
+            {activeChips.map((chip) => (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={chip.clear}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/15"
+                aria-label={`Quitar filtro ${chip.label}`}
+              >
+                {chip.label} <X className="h-3 w-3" />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setQInput("");
+                pushFilters({ q: "", brand: [], category: [], family: [], distributor: [], stock: [], active: "", nocat: "", noimg: "", nodesc: "", crestron: "" });
+              }}
+              className="ml-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              Borrar todo
+            </button>
+          </div>
         ) : null}
       </div>
 

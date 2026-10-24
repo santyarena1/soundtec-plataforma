@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/admin/section-tabs";
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { requireStaff } from "@/lib/auth-helpers";
@@ -93,8 +94,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
 
   return (
     <div className="space-y-6">
+      <SectionTabs tabs={[{ href: "/admin/leads", label: "Del catálogo y eventos" }, { href: "/admin/assistant/leads", label: "Del asistente IA" }]} />
       <PageHeader
-        title="Leads del asistente"
+        title="Interesados"
         description="Visitantes que dejaron sus datos mientras consultaban el catálogo, del más reciente al más viejo."
         actions={
           <Link

@@ -86,7 +86,7 @@ export const TUTORIAL_SIMPLE: TutorialArticle[] = [
       {
         title: "Operación",
         body: [
-          "Dashboard: números del día.",
+          "Inicio: números del día.",
           "Pedidos: el cliente pide; vos respondés y podés adjuntar PDF de COT.",
           "Cotizaciones: el editor interno. El cliente no entra.",
           "Feedback de IA: errores reportados sobre textos generados.",
@@ -397,7 +397,7 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
       {
         title: "Operación",
         body: [
-          "Dashboard: atajos. No se edita.",
+          "Inicio: atajos. No se edita.",
           "Pedidos: bandeja del portal. Adentro: responder, crear COT, adjuntar PDF (el cliente solo descarga PDF).",
           "Cotizaciones: 7 pasos + documento. Clasificadores internos, IA, ambientes, módulos extra.",
           "Memoria histórica: Excel 5.0 sin precios. Sugiere qué se cotizó junto.",

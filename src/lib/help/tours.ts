@@ -252,7 +252,7 @@ export const TOURS: TourDef[] = [
   },
   {
     id: "dashboard",
-    title: "Dashboard",
+    title: "Inicio",
     steps: [
       {
         target: "page-header",

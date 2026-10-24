@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/admin/section-tabs";
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 import { Download, Eye, Mail, Phone, QrCode, ScanLine, UserPlus } from "lucide-react";
@@ -139,8 +140,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
 
   return (
     <div className="space-y-6">
+      <SectionTabs tabs={[{ href: "/admin/leads", label: "Del catálogo y eventos" }, { href: "/admin/assistant/leads", label: "Del asistente IA" }]} />
       <PageHeader
-        title="Leads del catálogo"
+        title="Interesados"
         description="Quienes dejaron sus datos al entrar al catálogo, por el QR de un evento o por la web. Del más reciente al más viejo."
         actions={
           <a

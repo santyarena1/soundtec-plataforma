@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/admin/section-tabs";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
@@ -33,6 +34,7 @@ export default async function AdminFamiliesPage() {
 
   return (
     <div className="space-y-6">
+      <SectionTabs tabs={[{ href: "/admin/categories", label: "Categorías" }, { href: "/admin/families", label: "Familias" }]} />
       <PageHeader
         title="Familias de producto"
         description="Agrupaciones lógicas del catálogo. La IA puede asignar familias existentes o crear las que falten."

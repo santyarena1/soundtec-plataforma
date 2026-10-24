@@ -56,85 +56,89 @@ type NavItem = {
   salePrices?: boolean;
   /** Solo se muestra mientras el módulo temporal está activo. */
   onlyWhen?: "soundtubeReview";
+  /** Otras pantallas que cuentan como esta (ej. Familias dentro de «Categorías y familias»). */
+  alsoActive?: string[];
+  /** Subpantallas que NO cuentan como esta. */
+  notUnder?: string[];
 };
 type NavGroup = { title: string; items: NavItem[]; tourId?: string };
 
+/**
+ * Menú agrupado por tarea, con nombres simples (lo usan personas que no viven
+ * en un sistema). Cada pantalla existe una sola vez; «ver como cliente» está
+ * abajo, junto al usuario.
+ */
 const groups: NavGroup[] = [
   {
-    title: "Operación",
+    title: "Ventas",
     tourId: "nav-operacion",
     items: [
-      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true, scope: "dashboard", tourId: "nav-link-dashboard" },
+      { href: "/admin", label: "Inicio", icon: LayoutDashboard, exact: true, scope: "dashboard", tourId: "nav-link-dashboard" },
       { href: "/admin/requests", label: "Pedidos", icon: ListChecks, scope: "requests.view", tourId: "nav-link-requests" },
       { href: "/admin/quotes", label: "Cotizaciones", icon: FileSpreadsheet, scope: "quotes.view_own", tourId: "nav-link-quotes" },
       { href: "/admin/room-builder", label: "Room Builder", icon: Box, scope: "room_builder.use" },
-      { href: "/admin/feedback", label: "Feedback de IA", icon: MessageSquare, scope: "ai.manage" },
+      { href: "/admin/clients", label: "Clientes", icon: Users, anyScope: ["clients.view", "clients.view_all"], tourId: "nav-link-clients" },
+      { href: "/admin/account-requests", label: "Solicitudes de cuenta", icon: UserPlus, anyScope: ["account_requests.create", "account_requests.review"], badgeKey: "accountRequests", tourId: "nav-link-account-requests" },
+      { href: "/admin/leads", label: "Interesados", icon: QrCode, scope: "leads.view", alsoActive: ["/admin/assistant/leads"] },
     ],
   },
   {
-    title: "Catálogo",
+    title: "Productos",
     tourId: "nav-catalogo",
     items: [
-      { href: "/portal/products", label: "Catálogo de venta", icon: Package, salePrices: true, tourId: "nav-link-sales-catalog" },
       { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view", tourId: "nav-link-products" },
-      { href: "/admin/assistant", label: "Asistente de productos", icon: Sparkles, scope: "products.view", costs: true },
       { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage", tourId: "nav-link-brands" },
+      { href: "/admin/categories", label: "Categorías y familias", icon: Building2, anyScope: ["categories.manage", "families.manage"], alsoActive: ["/admin/families"] },
       { href: "/admin/labels", label: "Etiquetas", icon: Tags, scope: "brands.manage" },
       { href: "/admin/distributors", label: "Proveedores", icon: Truck, scope: "distributors.manage", costs: true },
-      { href: "/admin/categories", label: "Categorías", icon: Building2, scope: "categories.manage" },
-      { href: "/admin/families", label: "Familias", icon: Building2, scope: "families.manage" },
-      { href: "/admin/ncm", label: "Posiciones NCM", icon: PackageSearch, scope: "imports.manage", costs: true },
-      { href: "/admin/soundtube-review", label: "Revisión SoundTube", icon: ClipboardCheck, scope: "imports.manage", badgeKey: "soundtubeReview", costs: true },
+      { href: "/admin/assistant", label: "Asistente de productos", icon: Sparkles, scope: "products.view", costs: true, notUnder: ["/admin/assistant/leads"] },
     ],
   },
   {
-    title: "Listas e importación",
-    items: [
-      { href: "/admin/sync", label: "Sincronización", icon: RefreshCw, scope: "imports.manage", costs: true },
-      { href: "/admin/imports", label: "Importar Excel", icon: FileSpreadsheet, scope: "imports.manage", costs: true },
-    ],
-  },
-  {
-    title: "Precios y visibilidad",
+    title: "Precios",
     tourId: "nav-precios",
     items: [
       { href: "/admin/margins", label: "Márgenes", icon: Percent, scope: "margins.manage", tourId: "nav-link-margins", costs: true },
       { href: "/admin/discounts", label: "Descuentos", icon: Receipt, scope: "discounts.manage", tourId: "nav-link-discounts", costs: true },
-      { href: "/admin/visibility", label: "Visibilidad por cliente", icon: Eye, scope: "visibility.manage", tourId: "nav-link-visibility" },
-      { href: "/admin/share-lists", label: "Listas compartibles", icon: Share2, scope: "share_lists.manage", tourId: "nav-link-share-lists" },
+      { href: "/admin/visibility", label: "Qué ve cada cliente", icon: Eye, scope: "visibility.manage", tourId: "nav-link-visibility" },
+      { href: "/admin/share-lists", label: "Listas para compartir", icon: Share2, scope: "share_lists.manage", tourId: "nav-link-share-lists" },
     ],
   },
   {
-    title: "CRM",
+    title: "Actualizar productos",
+    items: [
+      { href: "/admin/sync", label: "Sincronización", icon: RefreshCw, scope: "imports.manage", costs: true },
+      { href: "/admin/imports", label: "Importar Excel", icon: FileSpreadsheet, scope: "imports.manage", costs: true },
+      { href: "/admin/soundtube-review", label: "Revisión SoundTube", icon: ClipboardCheck, scope: "imports.manage", badgeKey: "soundtubeReview", costs: true },
+      { href: "/admin/ncm", label: "Posiciones NCM", icon: PackageSearch, scope: "imports.manage", costs: true },
+    ],
+  },
+  {
+    title: "Sistema",
     tourId: "nav-crm",
     items: [
-      { href: "/admin/clients", label: "Clientes", icon: Users, anyScope: ["clients.view", "clients.view_all"], tourId: "nav-link-clients" },
-      { href: "/admin/account-requests", label: "Solicitudes de alta", icon: UserPlus, anyScope: ["account_requests.create", "account_requests.review"], badgeKey: "accountRequests", tourId: "nav-link-account-requests" },
-      { href: "/admin/leads", label: "Leads del catálogo", icon: QrCode, scope: "leads.view" },
-      { href: "/admin/assistant/leads", label: "Leads del asistente", icon: MessageSquare, scope: "leads.view" },
-      { href: "/admin/users", label: "Usuarios y roles", icon: ShieldCheck, scope: "users.view", tourId: "nav-link-users" },
-    ],
-  },
-  {
-    title: "Sitio y sistema",
-    items: [
-      { href: "/admin/landing", label: "Landing pública", icon: Globe2, scope: "landing.manage" },
+      { href: "/admin/users", label: "Usuarios y permisos", icon: ShieldCheck, scope: "users.view", tourId: "nav-link-users" },
       {
         href: "/admin/settings",
         label: "Configuración",
         icon: Settings2,
         anyScope: SETTINGS_SECTIONS.map((s) => s.scope),
       },
+      { href: "/admin/landing", label: "Página pública", icon: Globe2, scope: "landing.manage" },
+      { href: "/admin/feedback", label: "Revisión de textos IA", icon: MessageSquare, scope: "ai.manage" },
       { href: "/admin/ayuda", label: "Ayuda y tutorial", icon: BookOpen },
-      { href: "/admin/changelog", label: "Changelog", icon: ScrollText },
-      { href: "/admin/tickets", label: "Tickets al dev", icon: LifeBuoy, scope: "tickets.manage" },
+      { href: "/admin/changelog", label: "Novedades", icon: ScrollText },
+      { href: "/admin/tickets", label: "Pedir ayuda al desarrollo", icon: LifeBuoy, scope: "tickets.manage" },
     ],
   },
 ];
 
 function isActive(pathname: string, item: NavItem) {
+  const under = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  if (item.notUnder?.some(under)) return false;
+  if (item.alsoActive?.some(under)) return true;
   if (item.exact) return pathname === item.href;
-  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  return under(item.href);
 }
 
 interface Props {

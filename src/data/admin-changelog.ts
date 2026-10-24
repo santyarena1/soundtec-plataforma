@@ -2245,4 +2245,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "La sincronización automática y una manual ya no procesan el mismo lote dos veces; una vista previa manual no reemplaza la corrida programada." },
     ],
   },
+  {
+    id: "ship-2026-10-24-menu-claro-filtros-simples",
+    version: "2.12.0",
+    releasedAt: "2026-10-24T21:00:00.000Z",
+    summary: "Menú más simple con nombres claros y catálogo de productos con filtros fáciles de usar.",
+    items: [
+      { kind: "MEJORA", text: "Menú en 5 grupos: Ventas, Productos, Precios, Actualizar productos y Sistema. Ninguna pantalla se perdió: cambiaron de lugar y de nombre (Inicio, Interesados, Qué ve cada cliente, Listas para compartir, Novedades…)." },
+      { kind: "MEJORA", text: "Un solo botón «Ver como cliente» abajo, junto a tu usuario (antes estaba repetido como «Catálogo de venta» y «Ver portal»). «Clave» ahora dice «Cambiar contraseña»." },
+      { kind: "MEJORA", text: "«Categorías y familias» e «Interesados» son una sola entrada, con solapas para pasar de una a otra." },
+      { kind: "MEJORA", text: "Productos: arriba solo búsqueda, marca, orden y «Más filtros». Los filtros aplicados se ven como etiquetas con ✕ y «Borrar todo»." },
+      { kind: "MEJORA", text: "«Activar o desactivar muchos productos de una vez» pasó al final de la página." },
+    ],
+  },
 ];

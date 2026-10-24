@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/admin/section-tabs";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
@@ -32,6 +33,7 @@ export default async function AdminCategoriesPage() {
 
   return (
     <div className="space-y-6">
+      <SectionTabs tabs={[{ href: "/admin/categories", label: "Categorías" }, { href: "/admin/families", label: "Familias" }]} />
       <PageHeader
         title="Categorías"
         description="Organizá el catálogo. La IA puede clasificar productos sin categoría: asignarlos a una existente o proponer categorías nuevas."

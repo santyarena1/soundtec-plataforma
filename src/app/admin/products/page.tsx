@@ -320,11 +320,6 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         <TableEmpty message="Todavía no hay productos. Creá uno o importá un Excel desde Importaciones." />
       ) : (
         <>
-          <BulkActiveBar
-            matchingCount={total}
-            filters={filters}
-            brands={brands.map((b) => ({ id: b.id, name: b.name, productCount: b._count.products }))}
-          />
           <Suspense fallback={null}>
             <ProductsCatalogAdmin
               rows={safeRows}
@@ -355,6 +350,11 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
               allLabels={allLabels}
             />
           </Suspense>
+          <BulkActiveBar
+            matchingCount={total}
+            filters={filters}
+            brands={brands.map((b) => ({ id: b.id, name: b.name, productCount: b._count.products }))}
+          />
         </>
       )}
     </div>

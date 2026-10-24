@@ -81,7 +81,7 @@ export function BulkActiveBar({ matchingCount, filters, brands }: Props) {
               Acción masiva
             </Badge>
             <span className="text-sm font-medium">
-              Activar / desactivar productos sin seleccionarlos uno a uno
+              Activar o desactivar muchos productos de una vez (por marca o por los filtros de arriba)
             </span>
             {!open && msg ? (
               <span className="text-[11px] text-success ml-2 flex items-center gap-1">

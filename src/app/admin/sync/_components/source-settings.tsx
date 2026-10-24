@@ -114,7 +114,7 @@ function SoundTubeSettingsCard({ value, onChange }: { value: SoundTubeValue; onC
         <p className="font-medium text-foreground">Precios: solo de la lista Excel</p>
         <p className="mt-1">
           El sync trae fichas, fotos, stock y clasificación del portal, pero nunca el precio. El costo y el MUP salen
-          únicamente de la lista Excel (Listas e importación → Lista SoundTube). Lo que está en el portal y no en la lista
+          únicamente de la lista Excel (Actualizar productos → Revisión SoundTube). Lo que está en el portal y no en la lista
           queda cargado sin precio, como &quot;a consultar&quot;.
         </p>
       </div>

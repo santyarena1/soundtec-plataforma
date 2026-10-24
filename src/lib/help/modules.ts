@@ -14,7 +14,7 @@ export type HelpModule = {
 export const HELP_MODULES: HelpModule[] = [
   {
     id: "dashboard",
-    title: "Dashboard",
+    title: "Inicio",
     match: (p) => p === "/admin",
     simple: "Resumen: productos, pedidos pendientes, importaciones, feedback de IA y tickets abiertos.",
     purpose: "Ver de un vistazo qué hay que atender hoy.",

@@ -85,18 +85,20 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
         <div className="border-t border-border p-3 text-xs">
           <p className="font-semibold">{userName}</p>
           <p className="truncate text-muted-foreground">{userEmail}</p>
-          <div className="mt-3 flex gap-1">
-            <ButtonLink href="/portal" size="sm" variant="outline" className="flex-1" data-tour="mode-client">
-              Ver portal
+          <div className="mt-3 space-y-1">
+            <ButtonLink href="/portal/products" size="sm" variant="outline" className="w-full" data-tour="mode-client" title="Abre el catálogo con los precios de venta, tal como lo ve un cliente">
+              Ver como cliente
             </ButtonLink>
-            <ButtonLink href="/cuenta/clave" size="sm" variant="outline" title="Cambiar mi clave">
-              Clave
-            </ButtonLink>
-            <form action={handleSignOut}>
-              <button type="submit" className="h-8 rounded-md border border-border px-2 text-xs hover:bg-secondary">
-                Salir
-              </button>
-            </form>
+            <div className="flex gap-1">
+              <ButtonLink href="/cuenta/clave" size="sm" variant="ghost" className="flex-1">
+                Cambiar contraseña
+              </ButtonLink>
+              <form action={handleSignOut}>
+                <button type="submit" className="h-8 rounded-md border border-border px-3 text-xs hover:bg-secondary">
+                  Salir
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </>
