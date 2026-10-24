@@ -2191,4 +2191,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Tests de punta a punta (ficha, catálogo, cotización rápida, editor) contra una copia de la base." },
     ],
   },
+  {
+    id: "ship-2026-10-24-ficha-solapas-sync-solo-precio",
+    version: "2.8.0",
+    releasedAt: "2026-10-24T06:00:00.000Z",
+    summary: "Ficha de producto en solapas, incluidos en la caja editables y sincronizaciones que solo actualizan precio y disponibilidad.",
+    items: [
+      { kind: "NUEVO", text: "Ficha de producto en solapas: General · Precio y costos · Comercio exterior · Contenido · Imágenes · Relaciones · Proveedor. Un solo «Guardar» y aviso de cambios sin guardar." },
+      { kind: "NUEVO", text: "Relaciones: «Incluido en la caja» con cantidad por unidad (lo que usa la cotización rápida) y accesorios compatibles, con buscador (antes la lista cortaba en 400)." },
+      { kind: "MEJORA", text: "Sincronizaciones: solo actualizan precio (costo, descuento, oferta) y disponibilidad. Nombre, descripciones, rubro, familia y demás se completan si están vacíos: lo cargado a mano ya no se pisa." },
+      { kind: "MEJORA", text: "Etiquetas más claras: «COEF VTA (markup de venta)» y COEF NAC vacío = ×1. El botón Guardar ya no queda tapado por «Ayuda»." },
+    ],
+  },
 ];

@@ -1,5 +1,6 @@
 "use client";
 
+import { REVEAL_PRODUCT_TAB_EVENT } from "@/lib/product-tab-events";
 import {
   useCallback,
   useEffect,
@@ -127,6 +128,11 @@ function useTargetRect(target: string | null, active: boolean, pathname: string)
       if (cancelled) return;
       const found = document.querySelector(`[data-tour="${escapeTourAttr(target!)}"]`);
       if (found) {
+        // Si el paso apunta a algo dentro de una solapa oculta (ficha de producto), se abre esa solapa.
+        const pane = found.closest("[data-product-tab]");
+        if (pane?.hasAttribute("hidden")) {
+          window.dispatchEvent(new CustomEvent(REVEAL_PRODUCT_TAB_EVENT, { detail: pane.getAttribute("data-product-tab") }));
+        }
         setMissing(false);
         attach(found);
         return;

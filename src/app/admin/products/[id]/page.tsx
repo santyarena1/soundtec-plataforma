@@ -7,16 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductForm } from "../product-form";
 import { Badge } from "@/components/ui/badge";
-import {
-  ArrowLeft,
-  FileText,
-  Sparkles,
-  Tags,
-  ImageIcon,
-  Sliders,
-  Package,
-  Database,
-} from "lucide-react";
+import { ArrowLeft, Tags } from "lucide-react";
 import { ProductImagesPanel } from "./images-panel";
 import { ProductOptionsPanel } from "./options-panel";
 import { AccessoriesPanel } from "./accessories-panel";
@@ -26,22 +17,7 @@ import { getSetting } from "@/lib/settings";
 import { PortalDataPanel } from "./portal-data-panel";
 import { calculateCustomerPrice } from "@/lib/pricing";
 import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
-
-interface SectionRef {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-const SECTIONS: SectionRef[] = [
-  { id: "datos", label: "Datos generales", icon: FileText },
-  { id: "etiquetas", label: "Etiquetas", icon: Tags },
-  { id: "ia", label: "Asistente IA", icon: Sparkles },
-  { id: "imagenes", label: "Imágenes", icon: ImageIcon },
-  { id: "opciones", label: "Opciones configurables", icon: Sliders },
-  { id: "accesorios", label: "Accesorios compatibles", icon: Package },
-  { id: "proveedor", label: "Datos del proveedor", icon: Database },
-];
+import { ProductTabsProvider, TabPane } from "../product-tabs";
 
 function SectionHeader({
   id,
@@ -86,7 +62,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
       images: true,
       options: true,
       accessories: {
-        where: { kind: "ACCESSORY" },
+        where: { kind: { in: ["ACCESSORY", "INCLUDED"] } },
         include: {
           accessoryProduct: {
             select: { id: true, normalizedName: true, internalSku: true, kind: true },
@@ -99,17 +75,11 @@ export default async function AdminProductEditPage({ params }: { params: Promise
   });
   if (!product) notFound();
 
-  const [brands, distributors, categories, families, accessoryCandidates, tcVentaStr, globalCoefStr, allLabels, priceBreakdown] = await Promise.all([
+  const [brands, distributors, categories, families, tcVentaStr, globalCoefStr, allLabels, priceBreakdown] = await Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.product.findMany({
-      where: { id: { not: id }, isActive: true },
-      orderBy: { normalizedName: "asc" },
-      select: { id: true, normalizedName: true, internalSku: true, kind: true },
-      take: 400,
-    }),
     getSetting("pricing.tc_venta", "0"),
     getSetting("app.global_margin_percent", "35"),
     prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
@@ -159,33 +129,14 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         }
       />
 
-      {/* ── Navegación rápida por sección ── */}
-      <Card data-tour="product-nav">
-        <CardContent className="p-3">
-          <div className="flex flex-wrap gap-1.5">
-            {SECTIONS.map((s) => (
-              <a
-                key={s.id}
-                href={`#${s.id}`}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/50 px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent/10 hover:text-foreground transition-colors"
-              >
-                <s.icon className="h-3 w-3" />
-                {s.label}
-              </a>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── 1. Datos generales (form principal) ── */}
-      <Card data-tour="product-data">
-        <CardContent className="p-6">
-          <SectionHeader
-            id="datos"
-            icon={FileText}
-            title="Datos generales"
-            description="Identificación, clasificación, descripciones, precios, NCM y disponibilidad. Se guardan con el botón fijo abajo."
-          />
+      <ProductTabsProvider
+        counts={{
+          imagenes: product.images.length,
+          relaciones: product.options.length + product.accessories.length,
+        }}
+      >
+      {/* ── Formulario: sus partes van en General, Precio, Comercio exterior y Contenido. Un solo «Guardar». ── */}
+      <div data-tour="product-data">
           <ProductForm
             // Se rearma cuando el producto cambia en otro panel (IA, opciones, accesorios):
             // así guardar el formulario no vuelve a los valores viejos.
@@ -267,10 +218,10 @@ export default async function AdminProductEditPage({ params }: { params: Promise
             tcVenta={parseFloat(tcVentaStr) || 0}
             globalCoefNac={parseFloat(globalCoefStr) || 35}
           />
-        </CardContent>
-      </Card>
+      </div>
 
-      {/* ── 2. Etiquetas ── */}
+      <TabPane tab="general" className="space-y-4">
+      {/* ── Etiquetas ── */}
       <Card data-tour="product-labels">
         <CardContent className="p-6">
           <SectionHeader
@@ -287,16 +238,15 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         </CardContent>
       </Card>
 
-      {/* ── 3. Asistente IA ── */}
-      <div id="ia" className="-mt-20 pt-20 sr-only" aria-hidden="true" />
+      {/* ── Asistente IA (clasificación) ── */}
       <ProductAiAssist
         productId={product.id}
         productName={product.normalizedName}
         brandName={product.brand?.name ?? null}
       />
+      </TabPane>
 
-      {/* ── 4. Imágenes ── */}
-      <div id="imagenes" className="-mt-20 pt-20 sr-only" aria-hidden="true" />
+      <TabPane tab="imagenes">
       <ProductImagesPanel
         productId={product.id}
         productName={product.normalizedName}
@@ -309,8 +259,9 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         }))}
       />
 
-      {/* ── 5. Opciones configurables ── */}
-      <div id="opciones" className="-mt-20 pt-20 sr-only" aria-hidden="true" />
+      </TabPane>
+
+      <TabPane tab="relaciones" className="space-y-4">
       <ProductOptionsPanel
         productId={product.id}
         options={product.options.map((o) => ({
@@ -323,20 +274,20 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         }))}
       />
 
-      {/* ── 6. Accesorios compatibles ── */}
-      <div id="accesorios" className="-mt-20 pt-20 sr-only" aria-hidden="true" />
       <AccessoriesPanel
         productId={product.id}
         relations={product.accessories.map((r) => ({
           id: r.id,
+          kind: r.kind as "ACCESSORY" | "INCLUDED",
           isRequired: r.isRequired,
+          quantity: r.quantity,
           accessoryProduct: r.accessoryProduct,
         }))}
-        candidates={accessoryCandidates}
       />
 
-      {/* ── 7. Datos del proveedor (Sonance / portal) ── */}
-      <div id="proveedor" className="-mt-20 pt-20 sr-only" aria-hidden="true" />
+      </TabPane>
+
+      <TabPane tab="proveedor">
       <PortalDataPanel
         /* eslint-disable @typescript-eslint/no-explicit-any */
         modelNumber={(product as any).modelNumber ?? null}
@@ -367,6 +318,8 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         translatedAt={(product as any).translatedAt ?? null}
         /* eslint-enable @typescript-eslint/no-explicit-any */
       />
+      </TabPane>
+      </ProductTabsProvider>
     </div>
   );
 }

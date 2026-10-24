@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { upsertProduct } from "@/server/actions/admin-catalog";
+import { TabPane, useProductTabsDirty } from "./product-tabs";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { NcmAutocomplete } from "@/components/admin/ncm-autocomplete";
@@ -86,6 +87,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const setDirty = useProductTabsDirty();
   const [saveBarReady, setSaveBarReady] = useState(false);
   const fieldUpdatedAt = product?.fieldUpdatedAt ?? undefined;
 
@@ -118,6 +120,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
         setError(result?.error || "No se pudo guardar.");
         return;
       }
+      setDirty(false);
       if (result.id) router.push(`/admin/products/${result.id}`);
       else router.push("/admin/products");
       router.refresh();
@@ -168,7 +171,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
       ? createPortal(
           <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] print:hidden xl:left-64">
             <div className="pointer-events-auto border-t border-border bg-card/95 px-3 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-card/90 sm:px-6">
-              <div className="flex items-center justify-end gap-3 pr-[7.5rem] sm:pr-32">
+              <div className="flex items-center justify-end gap-3 pr-48 sm:pr-56">
                 {error ? <p className="mr-auto max-w-md text-sm text-destructive">{error}</p> : null}
                 <Button type="submit" form={PRODUCT_FORM_ID} disabled={pending}>
                   {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -182,7 +185,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
       : null;
 
   return (
-    <form id={PRODUCT_FORM_ID} onSubmit={handleSubmit} className="space-y-6">
+    <form id={PRODUCT_FORM_ID} onSubmit={handleSubmit} onInput={() => setDirty(true)} onChange={() => setDirty(true)} className="space-y-4">
       {product?.id ? <input type="hidden" name="id" value={product.id} /> : null}
 
       {/* Hidden controlled inputs for FormData */}
@@ -196,6 +199,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
       <input type="hidden" name="impIntPercent" value={impIntPercent ?? ""} />
       <input type="hidden" name="coefVtaFob" value={coefVtaFob ?? ""} />
 
+      <TabPane tab="general" className="space-y-6 rounded-xl border border-border bg-card p-5 sm:p-6">
       {/* ── Identificación ── */}
       <div>
         <SectionTitle>Identificación</SectionTitle>
@@ -280,6 +284,9 @@ export function ProductForm({ product, brands, distributors, categories, familie
         </div>
       </div>
 
+      </TabPane>
+
+      <TabPane tab="comex" className="space-y-6 rounded-xl border border-border bg-card p-5 sm:p-6">
       {/* ── Posición arancelaria (NCM) ── */}
       <div className="rounded-xl border border-border bg-muted/30 p-5">
         <SectionTitle>Posición arancelaria (NCM)</SectionTitle>
@@ -358,6 +365,9 @@ export function ProductForm({ product, brands, distributors, categories, familie
         </div>
       </div>
 
+      </TabPane>
+
+      <TabPane tab="precio" className="space-y-6 rounded-xl border border-border bg-card p-5 sm:p-6">
       {/* ── Cadena de precios ── */}
       <div className="rounded-xl border-2 border-blue-200 bg-blue-50/60 p-5 dark:border-blue-900/50 dark:bg-blue-950/20">
         <div className="mb-4 flex items-center gap-2">
@@ -470,7 +480,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 type="number"
                 min={0}
                 step="0.0001"
-                placeholder="Vacío = usa global"
+                placeholder="Vacío = ×1 (sin nacionalizar)"
                 value={coefNac ?? ""}
                 onChange={(e) => setCoefNac(e.target.value ? Number(e.target.value) : null)}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
@@ -485,7 +495,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
               </div>
             </div>
             <div>
-              <Label htmlFor="coefVtaDisplay">COEF VTA (Derecho arancelario)</Label>
+              <Label htmlFor="coefVtaDisplay">COEF VTA (markup de venta)</Label>
               <input
                 id="coefVtaDisplay"
                 type="number"
@@ -578,6 +588,9 @@ export function ProductForm({ product, brands, distributors, categories, familie
         </div>
       </div>
 
+      </TabPane>
+
+      <TabPane tab="general" className="space-y-6 rounded-xl border border-border bg-card p-5 sm:p-6">
       {/* ── DISPONIBILIDAD ── */}
       <div>
         <SectionTitle>Disponibilidad</SectionTitle>
@@ -607,6 +620,9 @@ export function ProductForm({ product, brands, distributors, categories, familie
         </div>
       </div>
 
+      </TabPane>
+
+      <TabPane tab="contenido" className="space-y-6 rounded-xl border border-border bg-card p-5 sm:p-6">
       {/* ── Descripciones (con generación IA inline) ── */}
       <div>
         <SectionTitle>Descripciones</SectionTitle>
@@ -620,6 +636,9 @@ export function ProductForm({ product, brands, distributors, categories, familie
         />
       </div>
 
+      </TabPane>
+
+      <TabPane tab="general" className="space-y-6 rounded-xl border border-border bg-card p-5 sm:p-6">
       {/* ── Opciones ── */}
       <div className="flex flex-wrap gap-4">
         <label className="flex items-center gap-2 text-sm">
@@ -642,6 +661,8 @@ export function ProductForm({ product, brands, distributors, categories, familie
           </span>
         </label>
       </div>
+
+      </TabPane>
 
       {error && !saveBarReady ? <p className="text-sm text-destructive">{error}</p> : null}
       {saveBar}

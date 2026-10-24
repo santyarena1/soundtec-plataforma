@@ -1,3 +1,4 @@
+import { applySyncFieldPolicy } from "./field-policy";
 import { Prisma, type ProductRelationKind } from "@prisma/client";
 import { slugify } from "@/lib/utils";
 import {
@@ -335,18 +336,19 @@ export async function applyNormalizedProduct(
   if (existing) {
     const before = snapshotProductScalars(existing as unknown as Record<string, unknown>);
     const existingRecord = existing as unknown as Record<string, unknown>;
-    data.normalizedName =
-      n.preserveName && existing.normalizedName.trim() ? existing.normalizedName : name;
+    // Solo precio y disponibilidad se pisan; el resto se completa si está vacío (ver field-policy).
+    const allowed = applySyncFieldPolicy(existingRecord, sharedData) as Record<string, unknown>;
+    for (const key of Object.keys(data)) {
+      if (!(key in allowed)) delete (data as Record<string, unknown>)[key];
+    }
+    data.normalizedName = existing.normalizedName.trim() ? existing.normalizedName : name;
     const hasJsonChanges =
-      jsonChanged(existingRecord.specifications, sharedData.specifications) ||
-      jsonChanged(existingRecord.documents, sharedData.documents) ||
-      jsonChanged(existingRecord.keyFeatures, sharedData.keyFeatures) ||
-      jsonChanged(existingRecord.badges, sharedData.badges) ||
-      jsonChanged(existingRecord.sourceMetadata, sharedData.sourceMetadata);
-    if (
-      originalName &&
-      (n.matchField === "supplierSku" || !existing.originalName.trim())
-    ) {
+      jsonChanged(existingRecord.specifications, allowed.specifications) ||
+      jsonChanged(existingRecord.documents, allowed.documents) ||
+      jsonChanged(existingRecord.keyFeatures, allowed.keyFeatures) ||
+      jsonChanged(existingRecord.badges, allowed.badges) ||
+      jsonChanged(existingRecord.sourceMetadata, allowed.sourceMetadata);
+    if (originalName && !existing.originalName.trim()) {
       data.originalName = originalName;
     }
     data.searchKey = buildProductSearchKey({
