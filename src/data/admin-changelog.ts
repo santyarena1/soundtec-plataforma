@@ -2345,4 +2345,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Al generar la propuesta, si el brief menciona garantías o plazos, la IA no los repite en los textos: esas condiciones salen solo de su sección." },
     ],
   },
+  {
+    id: "ship-2026-10-25-subida-de-archivos",
+    version: "2.17.2",
+    releasedAt: "2026-10-25T06:00:00.000Z",
+    summary: "Vuelve a andar la subida de imágenes y archivos.",
+    items: [
+      { kind: "FIX", text: "Subir logos e imágenes en Configuración → Cotizaciones, fotos de productos, planos e imágenes de una cotización decía «el almacenamiento de archivos no está configurado». El almacenamiento estaba conectado con el método nuevo de Vercel y el sistema solo reconocía el viejo." },
+      { kind: "MEJORA", text: "Si una subida falla, el mensaje dice qué pasó en vez de un error técnico." },
+    ],
+  },
 ];

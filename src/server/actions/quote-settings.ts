@@ -1,5 +1,6 @@
 "use server";
 
+import { BLOB_NOT_CONFIGURED, isBlobConfigured } from "@/lib/blob-storage";
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import { requireQuotePermission } from "@/lib/quote-access";
@@ -89,13 +90,20 @@ export async function uploadQuoteIdentityImage(key: string, formData: FormData):
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Elegí un archivo." };
   if (!IMAGE_TYPES.has(file.type)) return { ok: false, error: "Tiene que ser PNG, JPG, WEBP, GIF o SVG." };
   if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "La imagen pesa más de 4 MB." };
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return { ok: false, error: "El almacenamiento de archivos no está configurado." };
+  if (!isBlobConfigured()) return { ok: false, error: BLOB_NOT_CONFIGURED };
   const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
-  const blob = await put(`quotes/identity/${key.replace(/\W+/g, "-")}-${Date.now()}.${extension}`, Buffer.from(await file.arrayBuffer()), {
-    access: "public",
-    contentType: file.type,
-  });
-  await setSetting(key, blob.url, { description: "Imagen de identidad del documento de cotización" });
+  let url: string;
+  try {
+    const blob = await put(`quotes/identity/${key.replace(/\W+/g, "-")}-${Date.now()}.${extension}`, Buffer.from(await file.arrayBuffer()), {
+      access: "public",
+      contentType: file.type,
+    });
+    url = blob.url;
+  } catch (error) {
+    console.error("[blob] imagen de identidad de cotización", error);
+    return { ok: false, error: "No se pudo guardar la imagen en el almacenamiento. Probá de nuevo; si sigue, avisame." };
+  }
+  await setSetting(key, url, { description: "Imagen de identidad del documento de cotización" });
   refresh();
   return { ok: true };
 }

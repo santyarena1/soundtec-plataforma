@@ -1,5 +1,6 @@
 "use server";
 
+import { BLOB_NOT_CONFIGURED, isBlobConfigured } from "@/lib/blob-storage";
 import { QuoteAiCapability, QuoteAssetKind, QuoteNodeSource } from "@prisma/client";
 import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
@@ -16,12 +17,14 @@ import {
 } from "@/lib/quote-product-images";
 
 async function storeImage(pathname: string, bytes: ArrayBuffer, contentType: string) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
-  const blob = await put(pathname, Buffer.from(bytes), {
-    access: "public",
-    contentType,
-  });
-  return blob.url;
+  if (!isBlobConfigured()) return null;
+  try {
+    const blob = await put(pathname, Buffer.from(bytes), { access: "public", contentType });
+    return blob.url;
+  } catch (error) {
+    console.error("[blob] no se pudo subir", pathname, error);
+    return null;
+  }
 }
 
 /**
@@ -205,7 +208,7 @@ export async function attachQuotePlan(formData: FormData): Promise<{ ok: boolean
     if (!stored) {
       return {
         ok: false,
-        error: "Para subir planos hace falta BLOB_READ_WRITE_TOKEN en el entorno. Pegá una URL pública mientras tanto.",
+        error: BLOB_NOT_CONFIGURED,
       };
     }
     url = stored;
@@ -279,7 +282,7 @@ export async function uploadQuoteProductImage(formData: FormData): Promise<{ ok:
     file.type || "image/jpeg"
   );
   if (!stored) {
-    return { ok: false, error: "Para subir archivos hace falta BLOB_READ_WRITE_TOKEN. Mientras, usá Serper o una URL." };
+    return { ok: false, error: BLOB_NOT_CONFIGURED };
   }
   const item = loaded.quote.items.find((i) => i.productId === productId);
   await upsertQuoteProductImage({
@@ -306,7 +309,7 @@ export async function uploadQuoteContextImage(formData: FormData): Promise<{ ok:
     file.type || "image/jpeg"
   );
   if (!stored) {
-    return { ok: false, error: "Para subir archivos hace falta BLOB_READ_WRITE_TOKEN." };
+    return { ok: false, error: BLOB_NOT_CONFIGURED };
   }
   const sectionId = String(formData.get("sectionId") || "").trim() || null;
   await prisma.quoteAsset.create({

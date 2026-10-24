@@ -1,5 +1,6 @@
 "use server";
 
+import { isBlobConfigured } from "@/lib/blob-storage";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
@@ -41,7 +42,7 @@ export async function issueQuote(formData: FormData): Promise<{ ok: boolean; err
 
   let xlsxBlobUrl: string | undefined;
   try {
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
+    if (isBlobConfigured()) {
       const { bytes, filename } = await buildQuoteWorkbook(id);
       const blob = await put(`quotes/${id}/${filename}`, Buffer.from(bytes), {
         access: "public",

@@ -1,5 +1,6 @@
 "use server";
 
+import { BLOB_NOT_CONFIGURED, isBlobConfigured } from "@/lib/blob-storage";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireStaff } from "@/lib/auth-helpers";
@@ -319,11 +320,11 @@ export async function uploadProductImageFile(
         error: `Tipo no soportado (${file.type}). Aceptamos PNG, JPEG, WebP, GIF, AVIF.`,
       };
     }
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    if (!isBlobConfigured()) {
       return {
         ok: false,
         error:
-          "Falta configurar Vercel Blob. Vincula el storage en Vercel y agregá BLOB_READ_WRITE_TOKEN al entorno.",
+          BLOB_NOT_CONFIGURED,
       };
     }
 
