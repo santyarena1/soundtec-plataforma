@@ -42,6 +42,11 @@ import {
 } from "@/lib/quote-ai-brief";
 import { productFactsBlock, type ProductFacts } from "@/lib/quote-ai-items";
 import { TONE_RULES, findGenericPhrases } from "@/lib/quote-ai-tone";
+import { COMMERCIAL_BLOCK_MESSAGE, asksForCommercialChange, newCommercialClaims } from "@/lib/quote-ai-commercial-guard";
+
+/** Regla para todos los prompts: las condiciones comerciales salen de otra sección del documento. */
+const NO_COMMERCIAL_RULE =
+  "No escribas condiciones comerciales (garantías, plazos de entrega, formas de pago, vigencia, descuentos, soporte o mantenimiento con plazos): salen de otra sección del documento, aunque el pedido o la instrucción las mencionen.";
 
 /** Ítems con ficha completa en el prompt; el resto va solo con nombre y descripción corta. */
 const DETAILED_ITEMS_LIMIT = 25;
@@ -239,6 +244,7 @@ No pongas precios.`;
 
 const SECTION_RULES = `${SOUNDTEC_VOICE}
 Redactás los módulos de proyecto de una COT Soundtec. Devolvés JSON { sections: [{ type, body }] } con un elemento por cada tipo pedido.
+${NO_COMMERCIAL_RULE}
 Contenido de cada tipo:
 - proposal («Nuestra propuesta»): 2 a 3 párrafos. Qué problema del cliente se resuelve y cómo lo resuelven los equipos cargados.
 - design_criteria («Criterios de diseño»): 3 a 6 viñetas con las decisiones técnicas (cobertura, cantidad de puntos, formato de señal, control, crecimiento) que se desprenden del pedido y de los equipos cargados.
@@ -601,26 +607,33 @@ Tipos a redactar: ${wanted}.`;
     });
     return parseGeneratedSections(raw);
   };
+  // Las condiciones que vengan en las fichas (ej. garantía del fabricante) valen; las del brief, no.
+  const factsText = itemLines.join("\n");
   const problems = (map: Map<WrittenSectionType, string>) => {
     const phrases = new Set<string>();
     const pendingHits = new Set<string>();
+    const commercial = new Set<string>();
     for (const body of map.values()) {
       findGenericPhrases(body).forEach((p) => phrases.add(p));
       mentionedCodes(body, codes).forEach((c) => pendingHits.add(c));
+      newCommercialClaims(factsText, body).forEach((c) => commercial.add(c));
     }
-    return { phrases: [...phrases], pendingHits: [...pendingHits] };
+    return { phrases: [...phrases], pendingHits: [...pendingHits], commercial: [...commercial] };
   };
 
   let generated: Map<WrittenSectionType, string>;
   try {
     generated = await ask("");
     const first = problems(generated);
-    if (first.phrases.length || first.pendingHits.length) {
+    if (first.phrases.length || first.pendingHits.length || first.commercial.length) {
       // Un reintento con la corrección explícita; se queda con el que tenga menos problemas.
       const fixes = [
         first.phrases.length ? `Sacá estas frases genéricas: ${first.phrases.map((p) => `«${p}»`).join(", ")}.` : "",
         first.pendingHits.length
           ? `Nombraste equipos que NO están cargados (${first.pendingHits.join(", ")}): sacalos.`
+          : "",
+        first.commercial.length
+          ? `Escribiste condiciones comerciales (${first.commercial.join(", ")}): sacalas, van en otra sección.`
           : "",
       ]
         .filter(Boolean)
@@ -628,7 +641,8 @@ Tipos a redactar: ${wanted}.`;
       try {
         const retry = await ask(`CORRECCIÓN de la versión anterior: ${fixes}`);
         const second = problems(retry);
-        const score = (p: { phrases: string[]; pendingHits: string[] }) => p.phrases.length + p.pendingHits.length * 10;
+        const score = (p: { phrases: string[]; pendingHits: string[]; commercial: string[] }) =>
+          p.phrases.length + (p.pendingHits.length + p.commercial.length) * 10;
         if (retry.size >= generated.size && score(second) <= score(first)) generated = retry;
       } catch (error) {
         console.error("[quote-orchestrator] reintento de redacción", error);
@@ -644,6 +658,10 @@ Tipos a redactar: ${wanted}.`;
     let body = generated.get(section.type as WrittenSectionType) || "";
     if (body && mentionedCodes(body, codes).length) {
       failed.push({ title: section.title, reason: "nombraba equipos sugeridos que no están cargados" });
+      continue;
+    }
+    if (body && newCommercialClaims(factsText, body).length) {
+      failed.push({ title: section.title, reason: "prometía condiciones comerciales (garantía, plazos o pagos), que se definen en Pago, entrega y garantía" });
       continue;
     }
     if (!body) {
@@ -717,12 +735,14 @@ export async function rewriteSectionBody(input: {
   body: string;
   instruction: string;
 }) {
+  if (asksForCommercialChange(input.instruction)) throw new Error(COMMERCIAL_BLOCK_MESSAGE);
   const html = isRichText(input.body);
   const corporate = FIXED_MODULE_KEYS.includes(input.type);
   const text = await quoteChatText(
     `Escribís módulos de cotización para SOUNDTEC S.R.L. Tono: ingeniero comercial serio, rioplatense formal, frases cortas, sin adjetivos vacíos.
 ${REWRITE_ONLY_RULES}
 ${corporate ? CORPORATE_REVISE_RULES : "Conservá hechos del texto actual. No inventes specs ni precios."}
+${NO_COMMERCIAL_RULE}
 ${TONE_RULES}`,
     `Módulo «${input.title}» (${input.type}).
 ${html ? "El texto está en HTML acotado (p, h3, strong, em, ul, ol, li, br). Devolvé HTML del mismo tipo, sin markdown ni fences." : "Devolvé texto plano, sin markdown."}
@@ -735,6 +755,7 @@ ${input.body}`
   );
   const cleaned = stripCodeFences(text);
   if (!cleaned) throw new Error("La IA no devolvió texto.");
+  if (newCommercialClaims(input.body, cleaned).length) throw new Error(COMMERCIAL_BLOCK_MESSAGE);
   return html || isRichText(cleaned) ? sanitizeQuoteHtml(cleaned) : cleaned;
 }
 
@@ -752,6 +773,7 @@ async function rewriteItemText(
   const facts = product
     ? productFactsBlock({ quantity: Number(item.quantity), facts: toFacts(product) })
     : "(ítem sin producto de catálogo: no agregues specs ni capacidades)";
+  if (asksForCommercialChange(instruction)) throw new Error(COMMERCIAL_BLOCK_MESSAGE);
   const [title, ...rest] = item.description.split("\n");
   const out = await quoteChatJson(
     `${SOUNDTEC_VOICE}
@@ -769,6 +791,7 @@ Ficha del equipo:
 ${facts}`,
     { schema: { name: "quote_item", schema: ITEM_REWRITE_JSON_SCHEMA }, validate: itemRewriteSchema }
   );
+  if (newCommercialClaims(`${item.description}\n${facts}`, out.description).length) throw new Error(COMMERCIAL_BLOCK_MESSAGE);
   return { description: composeItemDescription(item.description, out.description), quantity: out.quantity ?? null };
 }
 

@@ -2335,4 +2335,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Si algo falla al generar, se avisa qué se escribió, qué no y por qué. Sin brief, pide escribirlo antes de generar." },
     ],
   },
+  {
+    id: "ship-2026-10-25-ia-sin-condiciones-comerciales",
+    version: "2.17.1",
+    releasedAt: "2026-10-25T05:00:00.000Z",
+    summary: "La IA ya no puede cambiar ni prometer condiciones comerciales.",
+    items: [
+      { kind: "MEJORA", text: "Si a la IA se le pide algo como «agregá 3 años de garantía y soporte 24/7», un anticipo, un descuento o un plazo, no lo escribe y avisa dónde se cambia: Configuración → Cotizaciones → Pago, entrega y garantía, o el paso «Emitir» de la cotización. Vale para Generar, para reescribir un texto o una fila y para los borradores de Textos del PDF." },
+      { kind: "MEJORA", text: "Al generar la propuesta, si el brief menciona garantías o plazos, la IA no los repite en los textos: esas condiciones salen solo de su sección." },
+    ],
+  },
 ];
