@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import { orderQuoteSections } from "@/lib/quote-section-order";
+import { QUOTE_MODULES } from "@/lib/quote-defaults";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPermissions } from "@/lib/auth-helpers";
 import { isPanelRole, permissionsHave, type PermissionScope } from "@/lib/permissions";
@@ -62,7 +64,9 @@ export async function loadQuoteForUser(id: string) {
   if (!quote) return { quote: null, user, permissions, forbidden: false as const };
   const ok = await canViewQuote({ ownerId: quote.ownerId, userId: user.id, permissions });
   if (!ok) return { quote: null, user, permissions, forbidden: true as const };
-  return { quote, user, permissions, forbidden: false as const };
+  // Mismo orden que el PDF: el de la plantilla (en cotizaciones viejas el guardado quedó mezclado).
+  const sections = orderQuoteSections(quote.sections, QUOTE_MODULES.map((m) => m.key));
+  return { quote: { ...quote, sections }, user, permissions, forbidden: false as const };
 }
 
 /**

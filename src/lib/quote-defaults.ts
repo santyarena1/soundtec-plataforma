@@ -98,6 +98,14 @@ SOUNDTEC, con más de 35 años de trayectoria, es hoy la única compañía argen
     templateVersion: 2,
   },
   {
+    key: "products_table",
+    title: "Productos y servicios",
+    kind: "table",
+    description: "La planilla. Siempre forma parte del documento.",
+    body: "",
+    defaultOn: ["resumido", "tecnico", "premium"],
+  },
+  {
     key: "proposal",
     title: "Nuestra propuesta",
     kind: "ai",
@@ -128,14 +136,6 @@ SOUNDTEC, con más de 35 años de trayectoria, es hoy la única compañía argen
     description: "Cómo se usa el sistema en este proyecto.",
     body: AI_SECTION_STUB,
     defaultOn: ["premium"],
-  },
-  {
-    key: "products_table",
-    title: "Productos y servicios",
-    kind: "table",
-    description: "La planilla. Siempre forma parte del documento.",
-    body: "",
-    defaultOn: ["resumido", "tecnico", "premium"],
   },
   {
     key: "installation",

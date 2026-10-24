@@ -6,9 +6,16 @@ import {
   DEFAULT_BRANDS_PLACEMENT,
   DEFAULT_ISO_PLACEMENT,
   getCompanyIdentity,
+  QUOTE_MODULES,
   resolveImagePlacement,
   type ImagePlacement,
 } from "@/lib/quote-defaults";
+import { orderQuoteSections } from "@/lib/quote-section-order";
+import { optimizedImage } from "@/lib/image-url";
+
+/** Marcas donde van la planilla y la firma dentro del cuerpo (se reemplazan al final). */
+const EQUIPMENT_SLOT = "<!--quote-equipment-->";
+const SIGNATURE_SLOT = "<!--quote-signature-->";
 import { isRichText, sanitizeQuoteHtml, splitParagraphs } from "@/lib/quote-richtext";
 import { formatUsd } from "@/lib/utils";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
@@ -199,10 +206,16 @@ export async function buildQuoteDocumentHtml(
   const assets = quote.assets ?? [];
 
   const sectionChunks: string[] = [];
-  for (const section of [...quote.sections]
-    .filter((section) => section.included !== false)
-    .sort((a, b) => a.sortOrder - b.sortOrder)) {
-    if (section.type === "products_table") continue;
+  const moduleOrder = QUOTE_MODULES.map((m) => m.key);
+  for (const section of orderQuoteSections(
+    // La planilla sale siempre: es lo que el cliente compra.
+    quote.sections.filter((section) => section.included !== false || section.type === "products_table"),
+    moduleOrder
+  )) {
+    if (section.type === "products_table") {
+      if (!sectionChunks.includes(EQUIPMENT_SLOT)) sectionChunks.push(EQUIPMENT_SLOT);
+      continue;
+    }
     const sectionBody = (section.body ?? "").trim();
     const sectionHasBody = sectionBody.length > 0 && sectionBody !== AI_SECTION_STUB;
     if (section.type === "commercial_terms" && quote.terms && sectionHasBody) {
@@ -231,7 +244,12 @@ export async function buildQuoteDocumentHtml(
     const body = (section.body ?? "").trim();
     const hasBody = body.length > 0 && body !== AI_SECTION_STUB;
 
-    if (section.type === "letter_open" || section.type === "closing") {
+    if (section.type === "closing") {
+      // El saludo final, la firma y el pie van juntos: nunca queda la firma sola en una hoja.
+      sectionChunks.push(`<div style="margin-top:12pt;page-break-inside:avoid">${hasBody ? paragraphs(body) : ""}${SIGNATURE_SLOT}</div>`);
+      continue;
+    }
+    if (section.type === "letter_open") {
       if (hasBody) sectionChunks.push(`<div style="margin-top:12pt">${paragraphs(body)}</div>`);
       continue;
     }
@@ -246,12 +264,12 @@ export async function buildQuoteDocumentHtml(
     if (section.type === "brands") {
       const logos = quote.brandLogos?.filter((logo) => logo.url.trim()) ?? [];
       const visual = logos.length ? await brandLogoGrid(logos, origin) : await placedImage(brandsSrc, identity.brands);
-      sectionChunks.push(`${heading(section.title)}${hasBody ? paragraphs(body) : ""}${visual}`);
+      sectionChunks.push(`<div style="page-break-inside:avoid">${heading(section.title)}${hasBody ? paragraphs(body) : ""}${visual}</div>`);
       continue;
     }
     if (section.type === "iso") {
       sectionChunks.push(
-        `${heading(section.title)}${hasBody ? paragraphs(body) : ""}${await placedImage(isoSrc, identity.iso)}`
+        `${heading(section.title)}${hasBody ? paragraphs(body) : ""}<div style="page-break-inside:avoid">${await placedImage(isoSrc, identity.iso)}</div>`
       );
       continue;
     }
@@ -283,7 +301,12 @@ export async function buildQuoteDocumentHtml(
   const photoByProduct = new Map<string, string>();
   for (const asset of assets) {
     if (asset.kind === "PRODUCT" && asset.productId && !photoByProduct.has(asset.productId)) {
-      photoByProduct.set(asset.productId, asset.url);
+      // Las fotos del fabricante pesan hasta 1 MB y algunos sitios no dejan
+      // bajarlas directo: pasan por el optimizador propio, achicadas.
+      // Word no lee WebP: ahí van tal cual.
+      const external = /^https?:\/\//i.test(asset.url) && origin && !options?.forWord;
+      const src = external ? `${origin}${optimizedImage(asset.url, 256)}` : await resolveAssetSrc(asset.url, origin);
+      if (src) photoByProduct.set(asset.productId, src);
     }
   }
   const anyPhoto = visibleItems.some((item) => item.productId && photoByProduct.has(item.productId));
@@ -300,7 +323,7 @@ export async function buildQuoteDocumentHtml(
     const photoCell = anyPhoto
       ? `<td style="border:.5pt solid #c9d0d8;padding:3pt;text-align:center">${
           photo
-            ? `<img src="${escapeHtml(photo)}" style="max-width:52pt;max-height:52pt;object-fit:contain"/>`
+            ? `<img src="${escapeHtml(photo)}" style="max-width:52pt;max-height:52pt;object-fit:contain" onerror="this.remove()"/>`
             : ""
         }</td>`
       : "";
@@ -315,8 +338,9 @@ ${showDelivery ? `<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml
 </tr>`;
   };
 
+  // thead: el encabezado se repite en cada hoja cuando la planilla sigue en la próxima.
   const tableHead = `<table style="width:100%;font-size:9pt;border-collapse:collapse">
-<tr style="background:${color};color:#fff">
+<thead style="display:table-header-group"><tr style="background:${color};color:#fff">
 ${anyPhoto ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:center">Foto</th>` : ""}<th style="border:.5pt solid ${color};padding:4pt;text-align:right">Cant.</th>
 <th style="border:.5pt solid ${color};padding:4pt;text-align:left">Un.</th>
 <th style="border:.5pt solid ${color};padding:4pt;text-align:left">Descripción</th>
@@ -324,7 +348,7 @@ ${anyPhoto ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:cente
 <th style="border:.5pt solid ${color};padding:4pt;text-align:right">Total</th>
 ${showTax ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:right">IVA</th>` : ""}
 ${showDelivery ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:left">Entrega</th>` : ""}
-</tr>`;
+</tr></thead><tbody>`;
 
   // Con una sola opción el documento se arma como siempre. Con más de una,
   // cada opción lleva su tabla y su total: sumarlas daría un precio que
@@ -345,7 +369,7 @@ ${showDelivery ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:l
           .reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
         return `${heading(zone.title)}${zone.body.trim() ? paragraphs(zone.body) : ""}${tableHead}
 ${zone.items.map(itemRow).join("")}
-</table>
+</tbody></table>
 ${multiTables ? `<p style="margin:8pt 0 0;text-align:right;font-size:10.5pt;font-weight:bold">Subtotal ${escapeHtml(zone.title)} ${formatUsd(subtotal)}</p>` : ""}`;
       })
       .join("<br/>");
@@ -365,6 +389,25 @@ ${multiTables ? `<p style="margin:8pt 0 0;text-align:right;font-size:10.5pt;font
         })
         .join('<div style="height:10pt"></div>')
     : renderItems(visibleItems);
+
+  // Planilla + totales en el lugar de «Productos y servicios»; firma y pie con el cierre.
+  const totalsHtml = `<div style="page-break-inside:avoid">${multiAlternative ? "" : totals.mode === "ADDED"
+  ? `<table style="margin:10pt 0 0;margin-left:auto;font-size:10.5pt">
+<tr><td style="padding:1pt 10pt 1pt 0;text-align:right">Neto</td><td style="padding:1pt 0;text-align:right">${formatUsd(totals.net)}</td></tr>
+<tr><td style="padding:1pt 10pt 1pt 0;text-align:right">${escapeHtml(taxLabel(totals))}</td><td style="padding:1pt 0;text-align:right">${formatUsd(totals.tax)}</td></tr>
+<tr><td style="padding:3pt 10pt 1pt 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total</td><td style="padding:3pt 0 1pt;text-align:right;font-size:12pt;font-weight:bold;color:${color}">${formatUsd(totals.total)}</td></tr>
+</table>`
+  : `<p style="margin:10pt 0 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total neto ${formatUsd(totals.net)}</p>`}
+${!multiAlternative && taxNote(totals) ? `<p style="margin:2pt 0 0;text-align:right;font-size:8pt;color:#556">${escapeHtml(taxNote(totals) as string)}</p>` : ""}</div>`;
+  const equipmentBlock = `${equipmentHtml}
+${totalsHtml}`;
+  const signatureBlock = `<p style="margin-top:28pt;font-size:10.5pt"><b>${escapeHtml(signName)}</b><br/>${escapeHtml(signTitle)}<br/>${escapeHtml(identity.name)} S.R.L.</p>
+<p style="margin-top:24pt"><img src="${escapeHtml(headerSrc)}" width="${CONTENT_WIDTH}" style="max-width:100%;height:auto"/></p>`;
+  let body = sectionChunks.join("");
+  body = body.includes(EQUIPMENT_SLOT) ? body.replace(EQUIPMENT_SLOT, () => equipmentBlock) : `${body}${equipmentBlock}`;
+  body = body.includes(SIGNATURE_SLOT)
+    ? body.replace(SIGNATURE_SLOT, () => signatureBlock)
+    : `${body}<div style="page-break-inside:avoid">${signatureBlock}</div>`;
 
   const wordMeta = options?.forWord
     ? `xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"`
@@ -386,6 +429,8 @@ table { border-collapse: collapse; }
 .rt h3 { margin: 0 0 3pt; font-size: 10.5pt; font-weight: bold; page-break-after: avoid; }
 .rt ul, .rt ol { margin: 0 0 8pt 18pt; }
 .rt li { margin-bottom: 2pt; font-size: 10.5pt; line-height: 1.45; }
+tr { page-break-inside: avoid; break-inside: avoid; }
+thead { display: table-header-group; }
 </style>
 </head>
 <body>
@@ -402,22 +447,7 @@ ${quote.contactName ? `<tr><td style="font-weight:bold;color:${color};padding:1p
 <tr><td style="font-weight:bold;color:${color};padding:1pt 0">Cotización</td><td style="font-weight:bold;color:${color};padding:1pt 0">${escapeHtml(quote.number)}</td></tr>
 </table>
 
-${sectionChunks.join("")}
-
-<div style="page-break-before:always"></div>
-${equipmentHtml}
-${multiAlternative ? "" : totals.mode === "ADDED"
-  ? `<table style="margin:10pt 0 0;margin-left:auto;font-size:10.5pt">
-<tr><td style="padding:1pt 10pt 1pt 0;text-align:right">Neto</td><td style="padding:1pt 0;text-align:right">${formatUsd(totals.net)}</td></tr>
-<tr><td style="padding:1pt 10pt 1pt 0;text-align:right">${escapeHtml(taxLabel(totals))}</td><td style="padding:1pt 0;text-align:right">${formatUsd(totals.tax)}</td></tr>
-<tr><td style="padding:3pt 10pt 1pt 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total</td><td style="padding:3pt 0 1pt;text-align:right;font-size:12pt;font-weight:bold;color:${color}">${formatUsd(totals.total)}</td></tr>
-</table>`
-  : `<p style="margin:10pt 0 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total neto ${formatUsd(totals.net)}</p>`}
-${!multiAlternative && taxNote(totals) ? `<p style="margin:2pt 0 0;text-align:right;font-size:8pt;color:#556">${escapeHtml(taxNote(totals) as string)}</p>` : ""}
-
-<p style="margin-top:28pt;font-size:10.5pt"><b>${escapeHtml(signName)}</b><br/>${escapeHtml(signTitle)}<br/>${escapeHtml(identity.name)} S.R.L.</p>
-
-<p style="margin-top:24pt"><img src="${escapeHtml(headerSrc)}" width="${CONTENT_WIDTH}" style="max-width:100%;height:auto"/></p>
+${body}
 
 </div>
 </body></html>`;

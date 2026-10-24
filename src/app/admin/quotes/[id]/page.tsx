@@ -250,9 +250,8 @@ export default async function QuoteEditorPage({
         reference: quote.reference || "[Referencia a confirmar]",
         number: quote.number,
       }}
-      modules={[...quote.sections]
+      modules={quote.sections
         .filter((section) => section.included !== false)
-        .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((section) => ({
           key: isCustomSectionType(section.type) ? `custom:${section.id}` : section.type,
           kind: isCustomSectionType(section.type) ? "custom" : moduleByKey(section.type)?.kind ?? "fixed",

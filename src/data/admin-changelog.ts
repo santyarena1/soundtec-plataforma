@@ -2355,4 +2355,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Si una subida falla, el mensaje dice qué pasó en vez de un error técnico." },
     ],
   },
+  {
+    id: "ship-2026-10-25-pdf-orden-y-saltos",
+    version: "2.18.0",
+    releasedAt: "2026-10-25T08:00:00.000Z",
+    summary: "PDF de cotización mejor armado: la planilla va debajo de Marcas y los saltos de página quedan prolijos.",
+    items: [
+      { kind: "MEJORA", text: "La planilla de equipos sale debajo de Marcas, antes de la propuesta y las condiciones. Antes iba al final de todo, después del saludo de cierre." },
+      { kind: "FIX", text: "Saltos de página: ya no hay una hoja casi vacía antes de la planilla, el encabezado de la tabla se repite en cada hoja, ninguna fila queda cortada entre dos hojas, y el saludo, la firma y el pie salen juntos (antes el pie podía quedar solo en la última hoja)." },
+      { kind: "FIX", text: "En cotizaciones viejas algunas secciones salían en otro orden (por ejemplo la garantía antes de la carta). Ahora siempre siguen el orden de la plantilla, en el PDF y en el editor." },
+      { kind: "FIX", text: "Fotos de productos en el PDF: se achican antes de incluirlas (una cotización de 20 equipos pasó de 18 MB a menos de 1 MB) y las que el fabricante ya no publica no aparecen como imagen rota." },
+    ],
+  },
 ];
