@@ -90,3 +90,18 @@ test("relaciones: incluido en la caja con cantidad, editar y quitar", async ({ p
   await again.getByRole("button", { name: /Quitar/ }).click();
   await expect(page.locator("section").filter({ has: page.getByRole("heading", { name: "Incluido en la caja" }) }).locator("li").filter({ hasText: FIXTURES.withIncluded.includedSku })).toHaveCount(0);
 });
+
+test("precio y costos: reglas que aplican y markup propio desde la ficha", async ({ page }) => {
+  await page.goto(`${productUrl}?solapa=precio`, { waitUntil: "networkidle" });
+  const panel = page.locator('[data-tour="product-pricing-rules"]');
+  await expect(panel).toBeVisible();
+  await expect(panel.getByText("Aplica hoy").first()).toBeVisible();
+  await panel.getByPlaceholder("Ej. 2,75").fill("2,5");
+  await panel.getByRole("button", { name: "Crear regla de este producto" }).click();
+  await expect(panel.getByText("Markup propio creado.")).toBeVisible();
+  const own = panel.locator("li").filter({ hasText: "Markup propio" });
+  await expect(own).toContainText("Aplica hoy");
+  await own.getByRole("button", { name: "Quitar" }).click();
+  await expect(panel.getByText(/Markup propio quitado/)).toBeVisible();
+  await expect(panel.locator("li").filter({ hasText: "Markup propio" })).toHaveCount(0);
+});

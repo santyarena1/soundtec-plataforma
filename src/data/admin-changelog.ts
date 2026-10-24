@@ -2203,4 +2203,19 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Etiquetas más claras: «COEF VTA (markup de venta)» y COEF NAC vacío = ×1. El botón Guardar ya no queda tapado por «Ayuda»." },
     ],
   },
+  {
+    id: "ship-2026-10-24-config-cotizaciones-reglas-en-ficha",
+    version: "2.9.0",
+    releasedAt: "2026-10-24T10:00:00.000Z",
+    summary: "Configuración de cotizaciones en solapas con logos que se suben, valores por defecto que se respetan, listado de COT más útil y reglas de precio editables desde la ficha del producto.",
+    items: [
+      { kind: "NUEVO", text: "Ficha de producto → Precio y costos: ves las reglas de margen y descuento que le aplican (cuál manda hoy), las editás ahí y creás o quitás un markup propio del producto." },
+      { kind: "MEJORA", text: "Configuración → Cotizaciones en solapas (Documento, Condiciones, Logos e imágenes, Numeración, Plantilla). Un solo «Guardar» por tarjeta, con aviso de cambios sin guardar y validación." },
+      { kind: "NUEVO", text: "Logo, pie, collage de marcas y sellos se suben como archivo (antes había que escribir una ruta). Los logos de marcas se cambian ahí mismo." },
+      { kind: "MEJORA", text: "Una sola fuente de logos: las cotizaciones usan el logo de la marca del catálogo y «Actualizar» trae el logo nuevo a las COT existentes." },
+      { kind: "NUEVO", text: "Valores por defecto de impuestos y plazo de entrega. La rápida arranca con el tipo de documento y el modo de impuestos configurados." },
+      { kind: "MEJORA", text: "Se sacó «Diseño del PDF / Layout visual», que no cambiaba nada: el documento lo define el «Tipo de documento»." },
+      { kind: "MEJORA", text: "Listado de cotizaciones: total neto correcto (sin opcionales ni filas afuera), PDF a mano, vencimiento, filtro por responsable, estado editable en la columna y paginación." },
+    ],
+  },
 ];

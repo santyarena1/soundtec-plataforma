@@ -1,5 +1,6 @@
 "use server";
 
+import { brandLogoSrc } from "@/lib/brand-logo";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { loadQuoteForUser } from "@/lib/quote-access";
@@ -150,17 +151,28 @@ export async function syncQuoteBrandSelections(quoteId: string): Promise<{ ok: b
   const existingLabels = new Set(existing.map((e) => e.label.toLowerCase()));
   let sort = existing.reduce((m, row) => Math.max(m, row.sortOrder), -1);
 
+  // Una sola fuente: el logo de la marca (el del catálogo). La biblioteca queda para logos sin marca.
+  const currentLogo = (brandId: string, info: { logoUrl: string | null }) => brandLogoSrc({ id: brandId, logoUrl: info.logoUrl }) || libraryByBrand.get(brandId)?.url || "";
+
+  // Los logos que la COT ya tenía se actualizan si la marca cambió de logo.
+  for (const row of existing) {
+    const match = [...byBrand.entries()].find(([, info]) => info.name.toLowerCase() === row.label.toLowerCase());
+    if (!match) continue;
+    const url = currentLogo(match[0], match[1]);
+    if (url && url !== row.url) await prisma.quoteBrandSelection.update({ where: { id: row.id }, data: { url } });
+  }
+
   for (const [brandId, info] of byBrand) {
     if (existingLabels.has(info.name.toLowerCase())) continue;
     const lib = libraryByBrand.get(brandId);
-    const url = lib?.url || info.logoUrl || "";
+    const url = currentLogo(brandId, info);
     if (!url) continue;
     sort += 1;
     await prisma.quoteBrandSelection.create({
       data: {
         quoteId,
         libraryLogoId: lib?.id || null,
-        label: lib?.label || info.name,
+        label: info.name,
         url,
         visible: true,
         sortOrder: sort,

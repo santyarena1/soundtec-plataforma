@@ -24,10 +24,10 @@ const itemSchema = z.object({
  * armaba siempre una carta corta, así que elegir "Estándar" o "Editorial" no
  * cambiaba nada: salía el mismo documento de una carilla.
  */
-const PROFILE_BY_LAYOUT = {
-  COMPACT: "resumido",
-  STANDARD: "tecnico",
-  EDITORIAL: "premium",
+const LAYOUT_BY_PROFILE = {
+  resumido: "COMPACT",
+  tecnico: "STANDARD",
+  premium: "EDITORIAL",
 } as const;
 
 const schema = z.object({
@@ -36,7 +36,8 @@ const schema = z.object({
   clientName: z.string().max(200).default(""),
   contactName: z.string().max(160).default(""),
   reference: z.string().min(1).max(200),
-  layoutKey: z.enum(["COMPACT", "STANDARD", "EDITORIAL"]).default("COMPACT"),
+  /** Tipo de documento: qué módulos lleva el PDF. */
+  profileKey: z.enum(["resumido", "tecnico", "premium"]).default("resumido"),
   taxMode: z.enum(["NOTE", "NONE", "ADDED"]).default("NOTE"),
   validityDays: z.number().int().min(1).max(365),
   issue: z.boolean(),
@@ -64,8 +65,8 @@ export async function createQuickQuote(input: QuickQuoteInput) {
     clientName: parsed.data.clientName.trim() || null,
     reference: parsed.data.reference,
     contactName: parsed.data.contactName || null,
-    layoutKey: parsed.data.layoutKey,
-    profileKey: PROFILE_BY_LAYOUT[parsed.data.layoutKey],
+    layoutKey: LAYOUT_BY_PROFILE[parsed.data.profileKey],
+    profileKey: parsed.data.profileKey,
     taxMode: parsed.data.taxMode,
   });
   const alternative = quote.alternatives[0];

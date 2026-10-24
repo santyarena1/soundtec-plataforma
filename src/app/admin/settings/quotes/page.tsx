@@ -1,452 +1,280 @@
+import Link from "next/link";
 import { requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { ensureQuoteProfiles, QUOTE_CORPORATE_ASSETS } from "@/lib/quote-defaults";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
+import { TAX_MODES } from "@/lib/quote-totals";
 import { getSetting } from "@/lib/settings";
-import { saveQuoteModuleSetting } from "@/server/actions/quotes";
 import { SettingsSectionHeader } from "@/components/admin/settings-section-header";
-import { withCurrentValueOption, type SettingOption } from "@/components/admin/setting-field";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { Input, Label, Textarea, Select } from "@/components/ui/input";
+import { SimpleTabs } from "@/components/ui/simple-tabs";
+import { ButtonLink } from "@/components/ui/button";
+import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { BrandLogoTile, IdentityImageField, SettingsBatchForm } from "./settings-forms";
+import { brandLogoSrc } from "@/lib/brand-logo";
 
 export const metadata = { title: "Admin · Configuración de cotizaciones" };
 
-function QuoteSettingField({
-  settingKey,
-  label,
-  hint,
-  defaultValue,
-  multiline,
-  options,
-}: {
-  settingKey: string;
-  label: string;
-  hint?: string;
-  defaultValue: string;
-  multiline?: boolean;
-  options?: SettingOption[];
-}) {
+const name = (key: string) => `setting:${key}`;
+
+function Field({ label, hint, wide, children }: { label: string; hint?: string; wide?: boolean; children: React.ReactNode }) {
   return (
-    <form
-      action={saveQuoteModuleSetting}
-      className="grid gap-2 py-4 first:pt-3 last:pb-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-3"
-    >
-      <input type="hidden" name="key" value={settingKey} />
-      <div className="min-w-0">
-        <Label htmlFor={settingKey}>{label}</Label>
-        {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
-        {options ? (
-          <Select id={settingKey} name="value" defaultValue={defaultValue} className="mt-1.5">
-            {withCurrentValueOption(options, defaultValue).map((o) => (
-              <option key={o.value || "__empty"} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        ) : multiline ? (
-          <Textarea id={settingKey} name="value" rows={4} defaultValue={defaultValue} className="mt-1.5" />
-        ) : (
-          <Input id={settingKey} name="value" defaultValue={defaultValue} className="mt-1.5" />
-        )}
-      </div>
-      <Button type="submit" variant="outline" size="sm">
-        Guardar
-      </Button>
-    </form>
+    <div className={wide ? "sm:col-span-2" : undefined}>
+      <Label>{label}</Label>
+      {hint ? <p className="mb-1 text-xs text-muted-foreground">{hint}</p> : null}
+      {children}
+    </div>
   );
 }
 
-function QuoteSettingsCard({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <div>
-          <h3 className="text-sm font-semibold">{title}</h3>
-          {description ? <p className="muted-text mt-0.5">{description}</p> : null}
-        </div>
-        <div className="mt-2 divide-y divide-border/70">{children}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-const BOOLEAN_OPTIONS = [
-  { value: "true", label: "Sí" },
-  { value: "false", label: "No" },
+const PROFILES = [
+  { value: "resumido", label: "Resumido — tabla, condiciones y firma" },
+  { value: "tecnico", label: "Técnico — propuesta, marcas, instalación y garantías" },
+  { value: "premium", label: "Premium — documento completo" },
 ];
+
+function numberPreview(input: { prefix: string; includeDate: string; dateToken: string; separator: string; padding: string; next: string }) {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const date =
+    input.dateToken === "YY"
+      ? String(now.getFullYear()).slice(2)
+      : input.dateToken === "YYYYMM"
+        ? `${now.getFullYear()}${pad(now.getMonth() + 1)}`
+        : input.dateToken === "YYYYMMDD"
+          ? `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`
+          : String(now.getFullYear());
+  const seq = String(Number(input.next) || 1).padStart(Number(input.padding) || 5, "0");
+  return [input.prefix, input.includeDate === "true" ? date : null, seq].filter(Boolean).join(input.separator);
+}
 
 export default async function SettingsQuotesPage() {
   const { permissions } = await requireQuotePermission("quotes.manage_library");
-  if (!permissions.fullAccess && !permissionsHave(permissions, "quotes.manage_library")) {
-    return null;
-  }
+  if (!permissions.fullAccess && !permissionsHave(permissions, "quotes.manage_library")) return null;
   await ensureQuoteProfiles();
 
-  const [
-    prefix,
-    includeDate,
-    dateToken,
-    separator,
-    padding,
-    nextSequence,
-    defaultLayout,
-    defaultProfile,
-    defaultIva,
-    defaultUnit,
-    defaultDelivery,
-    showDelivery,
-    deliveryOptions,
-    validityDays,
-    paymentReference,
-    paymentTerms,
-    productWarranty,
-    tagline,
-    address,
-    phone,
-    email,
-    web,
-    logoUrl,
-    headerUrl,
-    brandsUrl,
-    brandsDisplayMode,
-    isoUrl,
-    blocks,
-  ] = await Promise.all([
-    getSetting(QUOTE_SETTING_KEYS.prefix, "COT"),
-    getSetting(QUOTE_SETTING_KEYS.includeDate, "false"),
-    getSetting(QUOTE_SETTING_KEYS.dateToken, "YYYY"),
-    getSetting(QUOTE_SETTING_KEYS.separator, ""),
-    getSetting(QUOTE_SETTING_KEYS.padding, "5"),
-    getSetting(QUOTE_SETTING_KEYS.nextSequence, "14544"),
-    getSetting(QUOTE_SETTING_KEYS.defaultLayout, "STANDARD"),
-    getSetting(QUOTE_SETTING_KEYS.defaultProfile, "tecnico"),
-    getSetting(QUOTE_SETTING_KEYS.defaultIva, "21"),
-    getSetting(QUOTE_SETTING_KEYS.defaultUnit, "u"),
-    getSetting(QUOTE_SETTING_KEYS.defaultDelivery, ""),
-    getSetting(QUOTE_SETTING_KEYS.showDeliveryDefault, "true"),
-    getSetting(QUOTE_SETTING_KEYS.deliveryOptions, ""),
-    getSetting(QUOTE_SETTING_KEYS.validityDays, "5"),
-    getSetting(
-      QUOTE_SETTING_KEYS.paymentReference,
-      "El pago podrá efectuarse en pesos argentinos, utilizando como referencia la cotización del tipo de cambio billete, tipo vendedor del Banco de la Nación Argentina (BNA) vigente al día de la cancelación efectiva de la factura."
-    ),
-    getSetting(QUOTE_SETTING_KEYS.paymentTerms, "A CONVENIR."),
-    getSetting(
-      QUOTE_SETTING_KEYS.productWarranty,
-      "Salvo indicación en contrario, todos los productos gozan de una garantía de 12 meses a partir de la fecha de facturación, contra vicios de fabricación."
-    ),
-    getSetting(QUOTE_SETTING_KEYS.companyTagline, "integramos tecnología"),
-    getSetting(QUOTE_SETTING_KEYS.companyAddress, "Av. Donato Alvarez 1526 (C1416BTR) C.A.B.A."),
-    getSetting(QUOTE_SETTING_KEYS.companyPhone, "(+ 54 11) 4586 0400"),
-    getSetting(QUOTE_SETTING_KEYS.companyEmail, "info@soundtec.com.ar"),
-    getSetting(QUOTE_SETTING_KEYS.companyWeb, "www.soundtec.com.ar"),
-    getSetting(QUOTE_SETTING_KEYS.companyLogoUrl, QUOTE_CORPORATE_ASSETS.logo),
-    getSetting(QUOTE_SETTING_KEYS.companyHeaderUrl, QUOTE_CORPORATE_ASSETS.header),
-    getSetting(QUOTE_SETTING_KEYS.companyBrandsUrl, QUOTE_CORPORATE_ASSETS.brands),
-    getSetting(QUOTE_SETTING_KEYS.brandsDisplayMode, "collage"),
-    getSetting(QUOTE_SETTING_KEYS.companyIsoUrl, QUOTE_CORPORATE_ASSETS.iso),
-    prisma.quoteBlock.findMany({ where: { isActive: true }, orderBy: { key: "asc" } }),
+  const K = QUOTE_SETTING_KEYS;
+  const keys = [
+    [K.prefix, "COT"],
+    [K.includeDate, "false"],
+    [K.dateToken, "YYYY"],
+    [K.separator, ""],
+    [K.padding, "5"],
+    [K.nextSequence, "14544"],
+    [K.defaultProfile, "tecnico"],
+    [K.defaultTaxMode, "NOTE"],
+    [K.defaultIva, "21"],
+    [K.defaultUnit, "u"],
+    [K.defaultDelivery, ""],
+    [K.showDeliveryDefault, "true"],
+    [K.deliveryOptions, ""],
+    [K.validityDays, "5"],
+    [
+      K.paymentReference,
+      "El pago podrá efectuarse en pesos argentinos, utilizando como referencia la cotización del tipo de cambio billete, tipo vendedor del Banco de la Nación Argentina (BNA) vigente al día de la cancelación efectiva de la factura.",
+    ],
+    [K.paymentTerms, "A CONVENIR."],
+    [K.deliveryText, "El plazo de entrega será confirmado una vez recibida la orden de compra formal."],
+    [
+      K.productWarranty,
+      "Salvo indicación en contrario, todos los productos gozan de una garantía de 12 meses a partir de la fecha de facturación, contra vicios de fabricación.",
+    ],
+    [K.companyLogoUrl, ""],
+    [K.companyHeaderUrl, ""],
+    [K.companyBrandsUrl, ""],
+    [K.companyIsoUrl, ""],
+    [K.brandsDisplayMode, "collage"],
+  ] as const;
+  const values = Object.fromEntries(await Promise.all(keys.map(async ([key, fallback]) => [key, await getSetting(key, fallback)] as const))) as Record<string, string>;
+  const v = (key: string) => values[key] ?? "";
+
+  const [brands, blocksCount] = await Promise.all([
+    prisma.brand.findMany({
+      where: { products: { some: { isActive: true } } },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, logoUrl: true, _count: { select: { products: true } } },
+    }),
+    prisma.quoteBlock.count({ where: { isActive: true } }),
   ]);
+  const withoutLogo = brands.filter((b) => !b.logoUrl);
+
+  const documento = (
+    <SettingsBatchForm title="Cómo nace cada cotización" description="Valores con que arranca cada COT nueva (rápida, completa, desde un pedido o desde Room Builder). Se pueden cambiar en cada cotización.">
+      <Field label="Tipo de documento" hint="Qué módulos lleva el PDF.">
+        <Select name={name(K.defaultProfile)} defaultValue={v(K.defaultProfile)}>
+          {PROFILES.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="Impuestos" hint="Cómo aparece el IVA en el documento.">
+        <Select name={name(K.defaultTaxMode)} defaultValue={v(K.defaultTaxMode)}>
+          {TAX_MODES.map((mode) => (
+            <option key={mode.key} value={mode.key}>
+              {mode.label} — {mode.hint}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="IVA por defecto (%)" hint="Para productos sin IVA en la ficha.">
+        <Input name={name(K.defaultIva)} type="number" min={0} max={100} step="0.5" defaultValue={v(K.defaultIva)} />
+      </Field>
+      <Field label="Unidad por defecto" hint="u, global, ml, hs…">
+        <Input name={name(K.defaultUnit)} defaultValue={v(K.defaultUnit)} />
+      </Field>
+      <Field label="Columna de entrega" hint="Si la planilla muestra la entrega de cada fila.">
+        <Select name={name(K.showDeliveryDefault)} defaultValue={v(K.showDeliveryDefault)}>
+          <option value="true">Mostrar</option>
+          <option value="false">No mostrar</option>
+        </Select>
+      </Field>
+      <Field label="Entrega por defecto de cada fila" hint="Vacío = se carga a mano (sin entrega no se emite si la columna está visible).">
+        <Input name={name(K.defaultDelivery)} defaultValue={v(K.defaultDelivery)} />
+      </Field>
+      <Field label="Opciones de entrega" hint="Una por línea." wide>
+        <Textarea name={name(K.deliveryOptions)} rows={3} defaultValue={v(K.deliveryOptions)} />
+      </Field>
+    </SettingsBatchForm>
+  );
+
+  const condiciones = (
+    <SettingsBatchForm title="Condiciones comerciales" description="Se copian a cada COT nueva y el texto del documento las toma (forma de pago, vigencia, entrega). El vendedor puede ajustarlas en cada cotización.">
+      <Field label="Vigencia de la oferta (días)">
+        <Input name={name(K.validityDays)} type="number" min={1} max={365} defaultValue={v(K.validityDays)} />
+      </Field>
+      <Field label="Forma de pago">
+        <Input name={name(K.paymentTerms)} defaultValue={v(K.paymentTerms)} />
+      </Field>
+      <Field label="Plazo de entrega" wide>
+        <Textarea name={name(K.deliveryText)} rows={2} defaultValue={v(K.deliveryText)} />
+      </Field>
+      <Field label="Referencia de pago" wide>
+        <Textarea name={name(K.paymentReference)} rows={3} defaultValue={v(K.paymentReference)} />
+      </Field>
+      <Field label="Garantía de producto" wide>
+        <Textarea name={name(K.productWarranty)} rows={3} defaultValue={v(K.productWarranty)} />
+      </Field>
+    </SettingsBatchForm>
+  );
+
+  const identidad = (
+    <>
+      <div className="rounded-xl border border-border bg-card p-5">
+        <h3 className="text-sm font-semibold">Imágenes del documento</h3>
+        <p className="mt-0.5 text-xs text-muted-foreground">Subí la imagen nueva y queda para todas las cotizaciones (también las ya creadas, al regenerar el PDF).</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <IdentityImageField settingKey={K.companyLogoUrl} label="Logo del encabezado" hint="Arriba de cada página." currentUrl={v(K.companyLogoUrl)} fallbackUrl={QUOTE_CORPORATE_ASSETS.logo} isCustom={!!v(K.companyLogoUrl)} />
+          <IdentityImageField settingKey={K.companyHeaderUrl} label="Pie de contacto" hint="Franja con dirección, teléfono y web." currentUrl={v(K.companyHeaderUrl)} fallbackUrl={QUOTE_CORPORATE_ASSETS.header} isCustom={!!v(K.companyHeaderUrl)} />
+          <IdentityImageField settingKey={K.companyBrandsUrl} label="Collage de marcas" hint="Se usa con el modo «collage»." currentUrl={v(K.companyBrandsUrl)} fallbackUrl={QUOTE_CORPORATE_ASSETS.brands} isCustom={!!v(K.companyBrandsUrl)} />
+          <IdentityImageField settingKey={K.companyIsoUrl} label="Sellos IRAM / IQNet" hint="Módulo de certificaciones." currentUrl={v(K.companyIsoUrl)} fallbackUrl={QUOTE_CORPORATE_ASSETS.iso} isCustom={!!v(K.companyIsoUrl)} />
+        </div>
+      </div>
+
+      <SettingsBatchForm title="Marcas en el PDF" description="Collage: una imagen con todas las marcas. Logos individuales: cada COT muestra los logos de las marcas que cotiza (se pueden ocultar o agregar en el paso Módulos).">
+        <Field label="Modo" wide>
+          <Select name={name(K.brandsDisplayMode)} defaultValue={v(K.brandsDisplayMode)}>
+            <option value="collage">Collage institucional</option>
+            <option value="individual">Logos individuales de las marcas cotizadas</option>
+          </Select>
+        </Field>
+      </SettingsBatchForm>
+
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold">Logos de las marcas</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Es el mismo logo del catálogo (una sola fuente). Tocá una marca para subir o cambiar su logo.
+              {withoutLogo.length ? ` ${withoutLogo.length} marcas con productos no tienen logo.` : ""}
+            </p>
+          </div>
+          <ButtonLink href="/admin/brands" size="sm" variant="outline">
+            Ir a Marcas
+          </ButtonLink>
+        </div>
+        <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-6">
+          {brands.map((brand) => (
+            <li key={brand.id}>
+              <BrandLogoTile brand={{ id: brand.id, name: brand.name, logoSrc: brandLogoSrc(brand) }} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+
+  const numeracion = (
+    <SettingsBatchForm
+      title="Numeración"
+      description={`Así sale el próximo número: ${numberPreview({ prefix: v(K.prefix), includeDate: v(K.includeDate), dateToken: v(K.dateToken), separator: v(K.separator), padding: v(K.padding), next: v(K.nextSequence) })}`}
+    >
+      <Field label="Prefijo">
+        <Input name={name(K.prefix)} defaultValue={v(K.prefix)} />
+      </Field>
+      <Field label="Separador" hint="Entre prefijo, fecha y número (puede ir vacío).">
+        <Input name={name(K.separator)} defaultValue={v(K.separator)} />
+      </Field>
+      <Field label="Incluir la fecha">
+        <Select name={name(K.includeDate)} defaultValue={v(K.includeDate)}>
+          <option value="false">No</option>
+          <option value="true">Sí</option>
+        </Select>
+      </Field>
+      <Field label="Formato de fecha">
+        <Select name={name(K.dateToken)} defaultValue={v(K.dateToken)}>
+          <option value="YYYY">Año (2026)</option>
+          <option value="YY">Año corto (26)</option>
+          <option value="YYYYMM">Año y mes (202610)</option>
+          <option value="YYYYMMDD">Fecha completa (20261024)</option>
+        </Select>
+      </Field>
+      <Field label="Dígitos del número">
+        <Input name={name(K.padding)} type="number" min={1} max={10} defaultValue={v(K.padding)} />
+      </Field>
+      <Field label="Siguiente número" hint="Cuidado: bajarlo puede repetir números ya usados.">
+        <Input name={name(K.nextSequence)} type="number" min={1} defaultValue={v(K.nextSequence)} />
+      </Field>
+    </SettingsBatchForm>
+  );
+
+  const avanzado = (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {[
+        { href: "/admin/settings/quotes/plantilla", title: "Textos de la plantilla", body: `Editá los ${blocksCount} módulos sobre un presupuesto de muestra. Se copian a las COT nuevas.` },
+        { href: "/admin/settings/quotes/variantes", title: "Variantes de texto", body: "Versiones alternativas de disciplinas, presentación e instalación." },
+        { href: "/admin/settings/quotes/modulos", title: "Módulos extra", body: "Bloques que se insertan a pedido en una cotización." },
+        { href: "/admin/settings/quotes/clasificadores", title: "Clasificadores internos", body: "Tipo de sala y escala, para sugerir equipos de casos parecidos." },
+        { href: "/admin/settings/quotes/marcas", title: "Logos sin marca en el catálogo", body: "Logos que se quieren mostrar y no son de una marca cargada (ej. certificaciones, partners)." },
+      ].map((item) => (
+        <Link key={item.href} href={item.href} className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-secondary/30">
+          <p className="text-sm font-semibold">{item.title}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{item.body}</p>
+        </Link>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-5">
       <SettingsSectionHeader
         href="/admin/settings/quotes"
         actions={
-          <div className="flex flex-wrap gap-2">
-            <ButtonLink href="/admin/settings/quotes/plantilla" size="sm">
-              Editar plantilla visual
-            </ButtonLink>
-            <ButtonLink href="/admin/settings/quotes/modulos" size="sm" variant="outline">
-              Borradores de módulos
-            </ButtonLink>
-            <ButtonLink href="/admin/settings/quotes/clasificadores" size="sm" variant="outline">
-              Clasificadores
-            </ButtonLink>
-            <ButtonLink href="/admin/settings/quotes/variantes" size="sm" variant="outline">
-              Variantes de texto
-            </ButtonLink>
-            <ButtonLink href="/admin/settings/quotes/marcas" size="sm" variant="outline">
-              Biblioteca de marcas
-            </ButtonLink>
-            <ButtonLink href="/admin/quotes" variant="outline" size="sm">
-              Ir a cotizaciones
-            </ButtonLink>
-          </div>
+          <ButtonLink href="/admin/quotes" variant="outline" size="sm">
+            Ir a cotizaciones
+          </ButtonLink>
         }
       />
-
-      <Card data-tour="settings-template">
-        <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-sm font-semibold">Textos e imágenes de la plantilla</h3>
-            <p className="muted-text mt-0.5">
-              Se editan sobre un presupuesto de muestra: clickeá el texto y escribí. Lo que cambies ahí se copia a
-              las cotizaciones nuevas.
-            </p>
-          </div>
-          <ButtonLink href="/admin/settings/quotes/plantilla" size="sm">
-            Abrir editor
-          </ButtonLink>
-        </CardContent>
-      </Card>
-
-      <Card data-tour="settings-classifiers">
-        <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-sm font-semibold">Clasificadores internos</h3>
-            <p className="muted-text mt-0.5">
-              Tipo de sala, escala y lo que agregues. Van al inicio de cada COT para sugerir equipos de casos parecidos.
-            </p>
-          </div>
-          <ButtonLink href="/admin/settings/quotes/clasificadores" size="sm" variant="outline">
-            Editar clasificadores
-          </ButtonLink>
-        </CardContent>
-      </Card>
-
-      <Card data-tour="settings-modules">
-        <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-sm font-semibold">Borradores de módulos extra</h3>
-            <p className="muted-text mt-0.5">
-              Título, texto y fotos que se insertan a pedido. No se agregan solos a cada cotización nueva.
-            </p>
-          </div>
-          <ButtonLink href="/admin/settings/quotes/modulos" size="sm" variant="outline">
-            Ver borradores
-          </ButtonLink>
-        </CardContent>
-      </Card>
-
-      <QuoteSettingsCard
-        title="Numeración"
-        description="Cómo se arma el número de cada cotización nueva."
-      >
-        <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.prefix} label="Prefijo" defaultValue={prefix} />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.includeDate}
-          label="Incluir la fecha en el número"
-          defaultValue={includeDate}
-          options={BOOLEAN_OPTIONS}
-        />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.dateToken}
-          label="Formato de fecha"
-          defaultValue={dateToken}
-          options={[
-            { value: "YYYY", label: "YYYY — año completo" },
-            { value: "YY", label: "YY — año en dos dígitos" },
-            { value: "YYYYMM", label: "YYYYMM — año y mes" },
-            { value: "YYYYMMDD", label: "YYYYMMDD — fecha completa" },
-          ]}
-        />
-        <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.separator} label="Separador" defaultValue={separator} />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.padding}
-          label="Dígitos del correlativo"
-          defaultValue={padding}
-        />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.nextSequence}
-          label="Siguiente número"
-          hint="Cuidado: cambiarlo puede generar números duplicados."
-          defaultValue={nextSequence}
-        />
-      </QuoteSettingsCard>
-
-      <QuoteSettingsCard
-        title="Valores por defecto del documento"
-        description="Con qué opciones arranca cada cotización nueva."
-      >
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.defaultLayout}
-          label="Layout"
-          defaultValue={defaultLayout}
-          options={[
-            { value: "COMPACT", label: "Compacto" },
-            { value: "STANDARD", label: "Estándar" },
-            { value: "EDITORIAL", label: "Editorial" },
-          ]}
-        />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.defaultProfile}
-          label="Perfil de redacción"
-          defaultValue={defaultProfile}
-          options={[
-            { value: "resumido", label: "Resumido" },
-            { value: "tecnico", label: "Técnico estándar" },
-            { value: "premium", label: "Técnico premium" },
-          ]}
-        />
-        <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.defaultIva} label="IVA (%)" defaultValue={defaultIva} />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.defaultUnit}
-          label="Unidad por defecto"
-          hint="Con la que nace cada fila nueva: u, global, ml, hs…"
-          defaultValue={defaultUnit}
-        />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.defaultDelivery}
-          label="Entrega por defecto"
-          hint="Se aplica a cada fila nueva. Vacío significa cargarla a mano, y sin entrega no se puede emitir."
-          defaultValue={defaultDelivery}
-        />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.showDeliveryDefault}
-          label="Mostrar columna de entrega"
-          defaultValue={showDelivery}
-          options={BOOLEAN_OPTIONS}
-        />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.deliveryOptions}
-          label="Opciones de entrega"
-          hint="Una por línea."
-          defaultValue={deliveryOptions}
-          multiline
-        />
-      </QuoteSettingsCard>
-
-      <QuoteSettingsCard
-        title="Condiciones comerciales"
-        description="Textos que se copian a cada cotización y el vendedor puede ajustar."
-      >
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.validityDays}
-          label="Vigencia (días)"
-          defaultValue={validityDays}
-        />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.paymentTerms}
-          label="Forma de pago"
-          defaultValue={paymentTerms}
-          multiline
-        />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.paymentReference}
-          label="Referencia de pago"
-          defaultValue={paymentReference}
-          multiline
-        />
-        <QuoteSettingField
-          settingKey={QUOTE_SETTING_KEYS.productWarranty}
-          label="Garantía de producto"
-          defaultValue={productWarranty}
-          multiline
-        />
-      </QuoteSettingsCard>
-
-      <Card>
-        <CardContent className="p-5">
-          <div>
-            <h3 className="text-sm font-semibold">Identidad del documento</h3>
-            <p className="muted-text mt-0.5">
-              Logo, franja de contacto, collage de marcas y sellos IRAM/IQNet de la plantilla Word. Las fotos de
-              producto no van fijas.
-            </p>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <figure className="rounded-md border border-border bg-white p-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={logoUrl || QUOTE_CORPORATE_ASSETS.logo} alt="Logo" className="h-16 object-contain" />
-              <figcaption className="mt-1 text-xs text-muted-foreground">Encabezado</figcaption>
-            </figure>
-            <figure className="rounded-md border border-border bg-white p-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={headerUrl || QUOTE_CORPORATE_ASSETS.header}
-                alt="Pie de contacto"
-                className="w-full object-contain"
-              />
-              <figcaption className="mt-1 text-xs text-muted-foreground">Pie de página</figcaption>
-            </figure>
-            <figure className="rounded-md border border-border bg-white p-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={brandsUrl || QUOTE_CORPORATE_ASSETS.brands} alt="Marcas" className="w-full object-contain" />
-              <figcaption className="mt-1 text-xs text-muted-foreground">Collage de marcas</figcaption>
-            </figure>
-            <figure className="rounded-md border border-border bg-white p-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={isoUrl || QUOTE_CORPORATE_ASSETS.iso} alt="ISO" className="h-20 object-contain" />
-              <figcaption className="mt-1 text-xs text-muted-foreground">IRAM / IQNet</figcaption>
-            </figure>
-          </div>
-
-          <div className="mt-4 divide-y divide-border/70 border-t border-border/70">
-            <QuoteSettingField
-              settingKey={QUOTE_SETTING_KEYS.brandsDisplayMode}
-              label="Marcas en el PDF"
-              hint="Collage institucional por defecto. Con logos individuales, cada COT elige marcas desde la biblioteca o la planilla."
-              defaultValue={brandsDisplayMode}
-              options={[
-                { value: "collage", label: "Collage institucional (recomendado)" },
-                { value: "individual", label: "Logos individuales por marca" },
-              ]}
-            />
-            <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.companyTagline} label="Tagline" defaultValue={tagline} />
-            <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.companyAddress} label="Dirección" defaultValue={address} />
-            <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.companyPhone} label="Teléfono" defaultValue={phone} />
-            <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.companyEmail} label="Mail" defaultValue={email} />
-            <QuoteSettingField settingKey={QUOTE_SETTING_KEYS.companyWeb} label="Web" defaultValue={web} />
-            <QuoteSettingField
-              settingKey={QUOTE_SETTING_KEYS.companyLogoUrl}
-              label="Ruta del logo"
-              hint="Por defecto /quotes/soundtec-logo.png"
-              defaultValue={logoUrl}
-            />
-            <QuoteSettingField
-              settingKey={QUOTE_SETTING_KEYS.companyHeaderUrl}
-              label="Ruta del pie de contacto"
-              defaultValue={headerUrl}
-            />
-            <QuoteSettingField
-              settingKey={QUOTE_SETTING_KEYS.companyBrandsUrl}
-              label="Ruta del collage de marcas"
-              defaultValue={brandsUrl}
-            />
-            <QuoteSettingField
-              settingKey={QUOTE_SETTING_KEYS.companyIsoUrl}
-              label="Ruta de los sellos ISO"
-              defaultValue={isoUrl}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-5">
-          <div>
-            <h3 className="text-sm font-semibold">Módulos de la plantilla</h3>
-            <p className="muted-text mt-0.5">
-              {blocks.length} bloques activos. El texto se edita en el presupuesto de muestra, no acá.
-            </p>
-          </div>
-          <ul className="mt-3 divide-y divide-border/70 text-sm">
-            {blocks.map((block) => (
-              <li key={block.id} className="flex items-center justify-between gap-3 py-2">
-                <span>
-                  {block.title}
-                  <span className="ml-2 text-xs uppercase tracking-wide text-muted-foreground">{block.category}</span>
-                </span>
-                <ButtonLink href="/admin/settings/quotes/plantilla" variant="ghost" size="sm">
-                  Editar
-                </ButtonLink>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      <SimpleTabs
+        tabs={[
+          { key: "documento", label: "Documento", content: documento },
+          { key: "condiciones", label: "Condiciones", content: condiciones },
+          { key: "identidad", label: "Logos e imágenes", content: identidad },
+          { key: "numeracion", label: "Numeración", content: numeracion },
+          { key: "avanzado", label: "Plantilla y avanzado", content: avanzado },
+        ]}
+      />
     </div>
   );
 }

@@ -18,6 +18,8 @@ import { PortalDataPanel } from "./portal-data-panel";
 import { calculateCustomerPrice } from "@/lib/pricing";
 import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
 import { ProductTabsProvider, TabPane } from "../product-tabs";
+import { PricingRulesPanel } from "./pricing-rules-panel";
+import { loadProductPricingRules } from "@/server/actions/product-pricing-rules";
 
 function SectionHeader({
   id,
@@ -74,6 +76,8 @@ export default async function AdminProductEditPage({ params }: { params: Promise
     },
   });
   if (!product) notFound();
+  const canSeeRules = access.permissions.fullAccess || permissionsHave(access.permissions, "margins.manage") || permissionsHave(access.permissions, "discounts.manage");
+  const pricingRules = canSeeRules ? await loadProductPricingRules(product.id) : null;
 
   const [brands, distributors, categories, families, tcVentaStr, globalCoefStr, allLabels, priceBreakdown] = await Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -219,6 +223,12 @@ export default async function AdminProductEditPage({ params }: { params: Promise
             globalCoefNac={parseFloat(globalCoefStr) || 35}
           />
       </div>
+
+      {pricingRules?.ok ? (
+      <TabPane tab="precio">
+        <PricingRulesPanel productId={product.id} data={pricingRules} />
+      </TabPane>
+      ) : null}
 
       <TabPane tab="general" className="space-y-4">
       {/* ── Etiquetas ── */}

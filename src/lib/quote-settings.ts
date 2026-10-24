@@ -20,6 +20,8 @@ export const QUOTE_SETTING_KEYS = {
   paymentReference: "quotes.terms.payment_reference",
   paymentTerms: "quotes.terms.payment_terms",
   productWarranty: "quotes.terms.product_warranty",
+  deliveryText: "quotes.terms.delivery_text",
+  defaultTaxMode: "quotes.default_tax_mode",
   companyTagline: "quotes.company.tagline",
   companyAddress: "quotes.company.address",
   companyPhone: "quotes.company.phone",

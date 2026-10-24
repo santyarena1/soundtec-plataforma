@@ -37,6 +37,13 @@ export function formatPercent(value: number | string | null | undefined, fractio
  */
 export const APP_TIME_ZONE = "America/Argentina/Buenos_Aires";
 
+/** Fecha corta (dd/mm/aa) en hora de Argentina, para listados. */
+export function formatDateShort(value: Date | string | null | undefined) {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: APP_TIME_ZONE }).format(date);
+}
+
 export function formatDate(value: Date | string | null | undefined) {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;

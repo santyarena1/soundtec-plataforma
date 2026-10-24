@@ -112,9 +112,9 @@ export default async function NewQuotePage() {
                 <h2 className="text-sm font-semibold">3. Tipo de documento</h2>
                 <p className="text-xs text-muted-foreground">Define cuántos módulos de texto trae la cotización nueva.</p>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3">
                 <div>
-                  <Label htmlFor="profileKey">Extensión del texto</Label>
+                  <Label htmlFor="profileKey">Tipo de documento</Label>
                   <Select id="profileKey" name="profileKey" defaultValue={defaultProfile}>
                     {profiles.map((p) => (
                       <option key={p.key} value={p.key}>
@@ -125,14 +125,6 @@ export default async function NewQuotePage() {
                   <p className="mt-1 text-xs text-muted-foreground">
                     {PROFILE_HELP[defaultProfile] || "Podés cambiar módulos después en el paso Módulos."}
                   </p>
-                </div>
-                <div>
-                  <Label htmlFor="layoutKey">Diseño del PDF</Label>
-                  <Select id="layoutKey" name="layoutKey" defaultValue="STANDARD">
-                    <option value="COMPACT">Compacto — menos páginas</option>
-                    <option value="STANDARD">Estándar — el más usado</option>
-                    <option value="EDITORIAL">Editorial — más aire visual</option>
-                  </Select>
                 </div>
               </div>
             </section>

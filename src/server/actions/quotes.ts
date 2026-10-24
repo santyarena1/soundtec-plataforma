@@ -43,8 +43,17 @@ async function defaultTerms() {
       QUOTE_SETTING_KEYS.productWarranty,
       "Salvo indicación en contrario, todos los productos gozan de una garantía de 12 meses a partir de la fecha de facturación, contra vicios de fabricación."
     ),
-    deliveryText: "El plazo de entrega será confirmado una vez recibida la orden de compra formal.",
+    deliveryText: await getSetting(
+      QUOTE_SETTING_KEYS.deliveryText,
+      "El plazo de entrega será confirmado una vez recibida la orden de compra formal."
+    ),
   };
+}
+
+/** Modo de impuestos con que nace una COT (Configuración → Cotizaciones). */
+async function defaultTaxMode(): Promise<QuoteTaxMode> {
+  const raw = await getSetting(QUOTE_SETTING_KEYS.defaultTaxMode, "NOTE");
+  return isTaxMode(raw) ? raw : "NOTE";
 }
 
 type QuoteShellInput = {
@@ -100,7 +109,7 @@ export async function createQuoteShell(input: QuoteShellInput) {
       reference: input.reference || input.projectType || null,
       contactName: input.contactName || null,
       layoutKey,
-      taxMode: input.taxMode ?? "NOTE",
+      taxMode: input.taxMode ?? (await defaultTaxMode()),
       contentProfileId: profile?.id ?? null,
       alternativesEnabled: Boolean(input.alternativesEnabled),
       showDeliveryColumn: showDelivery,

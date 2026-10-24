@@ -76,7 +76,7 @@ export function ProductTabsProvider({ children, counts }: { children: React.Reac
 function ProductTabBar({ counts }: { counts?: Partial<Record<ProductTabKey, number>> }) {
   const ctx = useContext(TabsContext)!;
   return (
-    <div className="sticky top-0 z-30 -mx-1 border-b border-border bg-background/95 px-1 backdrop-blur" data-tour="product-nav">
+    <div className="sticky top-14 z-30 -mx-1 border-b border-border bg-background/95 px-1 backdrop-blur xl:top-0" data-tour="product-nav">
       <div role="tablist" aria-label="Secciones del producto" className="flex gap-1 overflow-x-auto py-2">
         {PRODUCT_TABS.map((tab) => {
           const selected = ctx.active === tab.key;

@@ -436,14 +436,6 @@ export default async function QuoteEditorPage({
                 <Input id="reference" name="reference" defaultValue={quote.reference || ""} />
               </div>
               <div>
-                <Label htmlFor="layoutKey">Layout visual</Label>
-                <Select id="layoutKey" name="layoutKey" defaultValue={quote.layoutKey}>
-                  <option value="COMPACT">Compacto</option>
-                  <option value="STANDARD">Estándar</option>
-                  <option value="EDITORIAL">Editorial</option>
-                </Select>
-              </div>
-              <div>
                 <Label htmlFor="taxMode">Impuestos</Label>
                 <Select id="taxMode" name="taxMode" defaultValue={quote.taxMode}>
                   {TAX_MODES.map((mode) => (

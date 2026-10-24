@@ -1,3 +1,4 @@
+import { payableLines } from "@/lib/quote-totals";
 import Link from "next/link";
 import { Prisma, QuoteStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -8,8 +9,8 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatUsd } from "@/lib/utils";
-import { QuoteRowActions } from "./quote-row-actions";
+import { formatDateShort, formatUsd } from "@/lib/utils";
+import { QuoteRowActions, QuoteStatusSelect } from "./quote-row-actions";
 import { Settings } from "lucide-react";
 import { requestShortId } from "@/lib/request-quote-link";
 
@@ -55,6 +56,8 @@ function parseDateEnd(value: string) {
   return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
+const PAGE_SIZE = 50;
+
 export default async function AdminQuotesPage({
   searchParams,
 }: {
@@ -65,6 +68,8 @@ export default async function AdminQuotesPage({
     to?: string;
     sort?: string;
     dir?: string;
+    owner?: string;
+    page?: string;
   }>;
 }) {
   const { user, permissions } = await requireQuotePermission("quotes.view_own");
@@ -79,8 +84,10 @@ export default async function AdminQuotesPage({
   const sort: SortKey = params.sort && params.sort in SORTS ? (params.sort as SortKey) : "createdAt";
   const dir = params.dir === "asc" ? "asc" : "desc";
 
+  const ownerFilter = seeAll && params.owner ? params.owner : null;
+  const page = Math.max(1, Number(params.page) || 1);
   const where: Prisma.QuoteWhereInput = {
-    ...(seeAll ? {} : { ownerId: user.id }),
+    ...(seeAll ? (ownerFilter ? { ownerId: ownerFilter } : {}) : { ownerId: user.id }),
     ...(status ? { status } : {}),
     ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
     ...(q
@@ -97,16 +104,32 @@ export default async function AdminQuotesPage({
       : {}),
   };
 
-  const quotes = await prisma.quote.findMany({
-    where,
-    orderBy: { [SORTS[sort]]: dir },
-    take: 300,
-    include: {
-      client: { select: { companyName: true } },
-      owner: { select: { name: true } },
-      items: { select: { lineTotalUsd: true } },
-    },
-  });
+  const [quotes, total, owners] = await Promise.all([
+    prisma.quote.findMany({
+      where,
+      orderBy: { [SORTS[sort]]: dir },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      include: {
+        client: { select: { companyName: true } },
+        owner: { select: { name: true } },
+        // El total suma solo lo que va al precio (sin opcionales ni filas «dejar afuera»).
+        items: { select: { lineTotalUsd: true, excluded: true, optional: true, ivaRate: true } },
+        terms: { select: { validityDays: true } },
+      },
+    }),
+    prisma.quote.count({ where }),
+    seeAll
+      ? prisma.user.findMany({ where: { ownedQuotes: { some: {} } }, orderBy: { name: "asc" }, select: { id: true, name: true } })
+      : Promise.resolve([] as Array<{ id: string; name: string | null }>),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageHref = (target: number) => {
+    const sp = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) if (value && key !== "page") sp.set(key, String(value));
+    if (target > 1) sp.set("page", String(target));
+    return `/admin/quotes?${sp.toString()}`;
+  };
 
   const sortHref = (key: SortKey) => {
     const nextDir = sort === key && dir === "desc" ? "asc" : "desc";
@@ -115,6 +138,7 @@ export default async function AdminQuotesPage({
     if (status) sp.set("status", status);
     if (params.from) sp.set("from", params.from);
     if (params.to) sp.set("to", params.to);
+    if (ownerFilter) sp.set("owner", ownerFilter);
     sp.set("sort", key);
     sp.set("dir", nextDir);
     return `/admin/quotes?${sp.toString()}`;
@@ -131,7 +155,7 @@ export default async function AdminQuotesPage({
           <div className="flex flex-wrap gap-2">
             {(permissions.fullAccess || permissionsHave(permissions, "quotes.manage_library")) && (
               <>
-                <ButtonLink href="/admin/settings/quotes/plantilla" variant="outline" size="icon" aria-label="Editor de plantilla de cotizaciones">
+                <ButtonLink href="/admin/settings/quotes" variant="outline" size="icon" aria-label="Configuración de cotizaciones">
                   <Settings className="h-4 w-4" />
                 </ButtonLink>
                 <ButtonLink href="/admin/quotes/history" variant="outline" data-tour="quotes-history">
@@ -151,7 +175,7 @@ export default async function AdminQuotesPage({
         }
       />
 
-      <form method="get" className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">
+      <form method="get" className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-7">
         <div className="lg:col-span-2">
           <Label htmlFor="q">Buscar</Label>
           <Input id="q" name="q" defaultValue={q} placeholder="Número, cliente, referencia…" />
@@ -167,6 +191,19 @@ export default async function AdminQuotesPage({
             ))}
           </Select>
         </div>
+        {seeAll ? (
+          <div>
+            <Label htmlFor="owner">Responsable</Label>
+            <Select id="owner" name="owner" defaultValue={ownerFilter || ""}>
+              <option value="">Todos</option>
+              {owners.map((owner) => (
+                <option key={owner.id} value={owner.id}>
+                  {owner.name || "Sin nombre"}
+                </option>
+              ))}
+            </Select>
+          </div>
+        ) : null}
         <div>
           <Label htmlFor="from">Desde</Label>
           <Input id="from" name="from" type="date" defaultValue={params.from || ""} />
@@ -198,15 +235,14 @@ export default async function AdminQuotesPage({
                   Número{sortMark("number")}
                 </Link>
               </TH>
-              <TH>Cliente</TH>
+              <TH>Cliente · responsable</TH>
               <TH>Referencia</TH>
               <TH>
                 <Link href={sortHref("status")} className="hover:underline">
                   Estado{sortMark("status")}
                 </Link>
               </TH>
-              <TH>Responsable</TH>
-              <TH className="text-right">Total</TH>
+              <TH className="text-right">Total neto</TH>
               <TH>
                 <Link href={sortHref("createdAt")} className="hover:underline">
                   Creada{sortMark("createdAt")}
@@ -217,7 +253,9 @@ export default async function AdminQuotesPage({
           </THead>
           <TBody>
             {quotes.map((row) => {
-              const total = row.items.reduce((s, i) => s + Number(i.lineTotalUsd), 0);
+              const net = payableLines(row.items).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+              const expires = row.status === "ISSUED" && row.issuedAt ? new Date(row.issuedAt.getTime() + (row.terms?.validityDays ?? 5) * 86_400_000) : null;
+              const expired = expires ? expires.getTime() < Date.now() : false;
               return (
                 <TR key={row.id}>
                   <TD>
@@ -230,20 +268,40 @@ export default async function AdminQuotesPage({
                       </p>
                     ) : null}
                   </TD>
-                  <TD>{row.client?.companyName || row.clientName || "—"}</TD>
-                  <TD className="max-w-[220px] truncate">{row.reference || "—"}</TD>
                   <TD>
-                    <Badge tone={statusTone[row.status] || "muted"}>{statusLabel[row.status] || row.status}</Badge>
+                    <span className="block">{row.client?.companyName || row.clientName || "—"}</span>
+                    <span className="block text-xs text-muted-foreground">{row.owner.name}</span>
                   </TD>
-                  <TD>{row.owner.name}</TD>
-                  <TD className="text-right">{formatUsd(total)}</TD>
-                  <TD>{formatDate(row.createdAt)}</TD>
+                  <TD className="max-w-[200px] truncate" title={row.reference || undefined}>{row.reference || "—"}</TD>
                   <TD>
-                    <div className="flex flex-col items-end gap-1">
-                      <ButtonLink href={`/admin/quotes/${row.id}`} size="sm" variant="outline" data-tour="quotes-open-row">
-                        Editar
-                      </ButtonLink>
-                      <QuoteRowActions quoteId={row.id} status={row.status} canEdit={canEdit} />
+                    {canEdit ? (
+                      <QuoteStatusSelect quoteId={row.id} status={row.status} />
+                    ) : (
+                      <Badge tone={statusTone[row.status] || "muted"}>{statusLabel[row.status] || row.status}</Badge>
+                    )}
+                  </TD>
+                  <TD className="text-right tabular-nums">{formatUsd(net)}</TD>
+                  <TD className="whitespace-nowrap">
+                    {formatDateShort(row.createdAt)}
+                    {expires ? (
+                      <p className={`text-xs ${expired ? "text-destructive" : "text-muted-foreground"}`}>
+                        {expired ? "Vencida" : "Vence"} {formatDateShort(expires)}
+                      </p>
+                    ) : null}
+                  </TD>
+                  <TD className="whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1">
+                      <div className="flex gap-1">
+                        {row.status === "ISSUED" && row.pdfBlobUrl ? (
+                          <ButtonLink href={`/api/quotes/${row.id}/pdf`} target="_blank" size="sm" variant="outline">
+                            PDF
+                          </ButtonLink>
+                        ) : null}
+                        <ButtonLink href={`/admin/quotes/${row.id}`} size="sm" variant="outline" data-tour="quotes-open-row">
+                          {row.status === "ISSUED" ? "Ver" : "Editar"}
+                        </ButtonLink>
+                      </div>
+                      <QuoteRowActions quoteId={row.id} canEdit={canEdit} />
                     </div>
                   </TD>
                 </TR>
@@ -252,6 +310,23 @@ export default async function AdminQuotesPage({
           </TBody>
         </Table>
       )}
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-center gap-3 text-sm">
+          {page > 1 ? (
+            <Link href={pageHref(page - 1)} className="rounded-md border border-border px-3 py-1.5 hover:bg-secondary">
+              Anterior
+            </Link>
+          ) : null}
+          <span className="text-muted-foreground">
+            Página {page} de {totalPages} · {total} cotizaciones
+          </span>
+          {page < totalPages ? (
+            <Link href={pageHref(page + 1)} className="rounded-md border border-border px-3 py-1.5 hover:bg-secondary">
+              Siguiente
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

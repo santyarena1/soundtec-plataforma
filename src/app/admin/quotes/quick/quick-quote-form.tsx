@@ -15,6 +15,7 @@ import { attachQuoteAsRequestResponse } from "@/server/actions/requests";
 import { formatUsd } from "@/lib/utils";
 
 type Product = Awaited<ReturnType<typeof searchQuickQuoteProducts>>[number];
+export type ProfileKey = "resumido" | "tecnico" | "premium";
 
 let uidSeq = 0;
 const newUid = () => `l${Date.now().toString(36)}${(uidSeq++).toString(36)}`;
@@ -27,6 +28,7 @@ export function QuickQuoteForm({
   requests,
   canIssue,
   defaultIva,
+  defaults,
 }: {
   clients: { id: string; name: string }[];
   owners: { id: string; name: string }[];
@@ -36,6 +38,8 @@ export function QuickQuoteForm({
   /** Puede emitir el PDF oficial (permiso «Emitir»). */
   canIssue: boolean;
   defaultIva: number;
+  /** Valores de Configuración → Cotizaciones. */
+  defaults: { profileKey: ProfileKey; taxMode: TaxMode };
 }) {
   const [pending, start] = useTransition();
   const [clientId, setClientId] = useState("");
@@ -44,8 +48,8 @@ export function QuickQuoteForm({
   const [reference, setReference] = useState(
     `Cotización rápida ${new Date().toLocaleDateString("es-AR")}`,
   );
-  const [layoutKey, setLayoutKey] = useState("COMPACT");
-  const [taxMode, setTaxMode] = useState<TaxMode>("NOTE");
+  const [profileKey, setProfileKey] = useState<ProfileKey>(defaults.profileKey);
+  const [taxMode, setTaxMode] = useState<TaxMode>(defaults.taxMode);
   const [validity, setValidity] = useState(validityDays);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Product[]>([]);
@@ -125,7 +129,7 @@ export function QuickQuoteForm({
         clientName: clientId ? "" : clientName,
         contactName: contact,
         reference,
-        layoutKey: layoutKey as "COMPACT",
+        profileKey,
         taxMode,
         validityDays: validity,
         issue,
@@ -269,20 +273,14 @@ export function QuickQuoteForm({
       <QuickQuoteItems items={items} onChange={setItems} taxMode={taxMode} defaultIva={defaultIva} />
       <div className="grid gap-3 rounded-md border border-border p-3 sm:grid-cols-3">
         <div>
-          <Label>Plantilla</Label>
-          <Select value={layoutKey} onChange={(e) => setLayoutKey(e.target.value)}>
-            <option value="COMPACT">Compacta · solo la tabla y las condiciones</option>
-            <option value="STANDARD">Estándar · propuesta, marcas y condiciones</option>
-            <option value="EDITORIAL">Editorial · el documento completo</option>
-          </Select>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {layoutKey === "COMPACT"
-              ? "Una carilla: encabezado, productos y condiciones comerciales."
-              : layoutKey === "STANDARD"
-                ? "Varias páginas, igual que una cotización común: nuestra propuesta, marcas, instalación y garantías."
-                : "Todo el documento, con criterios de diseño, productos clave y funcionalidad."}
-          </p>
-        </div>
+            <Label>Tipo de documento</Label>
+            <Select value={profileKey} onChange={(e) => setProfileKey(e.target.value as ProfileKey)}>
+              <option value="resumido">Resumido · tabla, condiciones y firma</option>
+              <option value="tecnico">Técnico · propuesta, marcas, instalación y garantías</option>
+              <option value="premium">Premium · el documento completo</option>
+            </Select>
+            <p className="mt-1 text-xs text-muted-foreground">El predeterminado se elige en Configuración → Cotizaciones.</p>
+          </div>
         <div>
           <Label>Impuestos</Label>
           <Select value={taxMode} onChange={(e) => setTaxMode(e.target.value as "NOTE")}>
