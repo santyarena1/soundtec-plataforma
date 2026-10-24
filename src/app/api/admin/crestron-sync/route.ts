@@ -1,3 +1,4 @@
+import { applySyncFieldPolicy } from "@/services/sync/field-policy";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
@@ -317,10 +318,11 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const changed = changedScalarFields(product as unknown as Record<string, unknown>, data);
-      data.fieldUpdatedAt = mergeFieldTimestamps(product.fieldUpdatedAt, changed, new Date().toISOString());
+      const allowed = applySyncFieldPolicy(product as unknown as Record<string, unknown>, data as Record<string, unknown>);
+      const changed = changedScalarFields(product as unknown as Record<string, unknown>, allowed);
+      const writeData = { ...allowed, fieldUpdatedAt: mergeFieldTimestamps(product.fieldUpdatedAt, changed, new Date().toISOString()) };
 
-      await prisma.product.update({ where: { id: product.id }, data });
+      await prisma.product.update({ where: { id: product.id }, data: writeData as typeof data });
       updated++;
     }
 

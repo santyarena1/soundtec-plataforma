@@ -1,62 +1,28 @@
-import { calculatePricesForProducts } from "@/lib/pricing";
+import { calculatePricesForProducts, toPricingInput } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
 
-type PricedProduct = {
-  id: string;
-  baseCostUsd: unknown;
-  brandId: string | null;
-  distributorId: string | null;
-  categoryId: string | null;
-  familyId: string | null;
-  familia?: string | null;
-  discountPercent?: unknown;
-  tariffDutyPercent?: unknown;
-  coefNac?: unknown;
-  coefVta?: unknown;
-  coefVtaFob?: unknown;
-  ivaPercent?: unknown;
-  impIntPercent?: unknown;
-  salePriceUsd?: unknown;
-};
+type QuotablePricedProduct = Parameters<typeof toPricingInput>[0] & { requiresQuote?: boolean | null };
 
-function num(value: unknown): number | null {
-  if (value == null || value === "") return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
+/**
+ * Precio unitario de venta para una cotización. Es el MISMO para la rápida, la
+ * completa, la que viene de un pedido y la de Room Builder: el del motor de
+ * precios con las condiciones del cliente. Si el producto es «a consultar» o el
+ * motor da 0, queda en 0 y la planilla avisa «sin precio» (nunca el costo ni la
+ * oferta del fabricante como precio de venta).
+ */
+export async function quoteUnitPrices(products: QuotablePricedProduct[], clientId: string | null): Promise<Map<string, number>> {
+  if (!products.length) return new Map();
+  const prices = await calculatePricesForProducts(products.map(toPricingInput), clientId, await getGlobalMarginPercent());
+  return new Map(
+    products.map((product) => {
+      const unit = prices.get(product.id)?.finalPriceUsd;
+      const valid = !product.requiresQuote && typeof unit === "number" && Number.isFinite(unit) && unit > 0;
+      return [product.id, valid ? unit : 0] as const;
+    })
+  );
 }
 
-/** Precio de lista del motor (reglas de márgenes). Con o sin cliente. */
-export async function quoteListUnitUsd(
-  product: PricedProduct,
-  clientId: string | null
-): Promise<number> {
-  const global = await getGlobalMarginPercent();
-  const prices = await calculatePricesForProducts(
-    [
-      {
-        productId: product.id,
-        baseCostUsd: num(product.baseCostUsd) ?? 0,
-        brandId: product.brandId,
-        distributorId: product.distributorId,
-        categoryId: product.categoryId,
-        familyId: product.familyId,
-        familia: product.familia ?? null,
-        productDiscountPercent: num(product.discountPercent),
-        tariffDutyPercent: num(product.tariffDutyPercent),
-        coefNac: num(product.coefNac),
-        coefVta: num(product.coefVta),
-        coefVtaFob: num(product.coefVtaFob),
-        ivaPercent: num(product.ivaPercent),
-        impIntPercent: num(product.impIntPercent),
-      },
-    ],
-    clientId,
-    global
-  );
-  const unit = prices.get(product.id)?.finalPriceUsd;
-  if (typeof unit === "number" && Number.isFinite(unit) && unit > 0) return unit;
-  const sale = num(product.salePriceUsd);
-  if (sale != null && sale > 0) return sale;
-  // Nunca el costo como precio de venta: en cero, la planilla avisa «sin precio».
-  return 0;
+/** Precio de un solo producto (ver quoteUnitPrices). */
+export async function quoteListUnitUsd(product: QuotablePricedProduct, clientId: string | null): Promise<number> {
+  return (await quoteUnitPrices([product], clientId)).get(product.id) ?? 0;
 }

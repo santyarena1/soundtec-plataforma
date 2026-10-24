@@ -1,7 +1,7 @@
+import { quoteUnitPrices } from "@/lib/quote-unit-price";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { calculatePricesForProducts } from "@/lib/pricing";
-import { getGlobalMarginPercent, getSetting } from "@/lib/settings";
+import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { createQuoteShell } from "@/server/actions/quotes";
 import { getRoomProject } from "./project-service";
@@ -124,6 +124,8 @@ export async function createQuoteFromRoomProject(input: {
       distributorId: true,
       categoryId: true,
       familyId: true,
+      familia: true,
+      requiresQuote: true,
       baseCostUsd: true,
       discountPercent: true,
       tariffDutyPercent: true,
@@ -136,27 +138,8 @@ export async function createQuoteFromRoomProject(input: {
     },
   });
   const byId = new Map(products.map((p) => [p.id, p]));
-  const prices = await calculatePricesForProducts(
-    products.map((p) => ({
-      productId: p.id,
-      baseCostUsd: Number(p.baseCostUsd),
-      brandId: p.brandId,
-      distributorId: p.distributorId,
-      categoryId: p.categoryId,
-      familyId: p.familyId,
-      productDiscountPercent:
-        p.discountPercent == null ? null : Number(p.discountPercent),
-      tariffDutyPercent:
-        p.tariffDutyPercent == null ? null : Number(p.tariffDutyPercent),
-      coefNac: p.coefNac == null ? null : Number(p.coefNac),
-      coefVta: p.coefVta == null ? null : Number(p.coefVta),
-      coefVtaFob: p.coefVtaFob == null ? null : Number(p.coefVtaFob),
-      ivaPercent: p.ivaPercent == null ? null : Number(p.ivaPercent),
-      impIntPercent: p.impIntPercent == null ? null : Number(p.impIntPercent),
-    })),
-    input.clientId ?? project.clientId ?? null,
-    await getGlobalMarginPercent(),
-  );
+  // Mismo precio que cualquier otra cotización (lib/quote-unit-price).
+  const unitPrices = await quoteUnitPrices(products, input.clientId ?? project.clientId ?? null);
 
   const quote = await createQuoteShell({
     ownerId: input.ownerId,
@@ -175,7 +158,7 @@ export async function createQuoteFromRoomProject(input: {
   await prisma.quoteItem.createMany({
     data: bom.map((line, index) => {
       const product = byId.get(line.productId)!;
-      const unit = prices.get(line.productId)?.finalPriceUsd ?? 0;
+      const unit = unitPrices.get(line.productId) ?? 0;
       return {
         quoteId: quote.id,
         alternativeId: alternative?.id,

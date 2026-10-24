@@ -1,3 +1,4 @@
+import { getExchangeRate } from "@/lib/exchange-rate";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
@@ -14,7 +15,7 @@ export default async function NewProductPage() {
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    getSetting("pricing.tc_venta", "0"),
+    getExchangeRate().then(String),
     getSetting("app.global_margin_percent", "35"),
   ]);
 

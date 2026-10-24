@@ -1,3 +1,4 @@
+import { applySyncFieldPolicy } from "@/services/sync/field-policy";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
@@ -618,11 +619,12 @@ export async function POST(req: NextRequest) {
       let productId: string;
       if (existing) {
         // Update — keep required fields untouched if not in mapping
-        const changed = changedScalarFields(existing as unknown as Record<string, unknown>, productData);
-        productData.fieldUpdatedAt = mergeFieldTimestamps(existing.fieldUpdatedAt, changed, new Date().toISOString());
+        const allowed = applySyncFieldPolicy(existing as unknown as Record<string, unknown>, productData as Record<string, unknown>);
+        const changed = changedScalarFields(existing as unknown as Record<string, unknown>, allowed);
+        allowed.fieldUpdatedAt = mergeFieldTimestamps(existing.fieldUpdatedAt, changed, new Date().toISOString());
         await prisma.product.update({
           where: { id: existing.id },
-          data: productData,
+          data: allowed as typeof productData,
         });
         productId = existing.id;
         updated++;

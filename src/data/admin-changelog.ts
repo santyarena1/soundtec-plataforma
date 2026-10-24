@@ -2258,4 +2258,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "«Activar o desactivar muchos productos de una vez» pasó al final de la página." },
     ],
   },
+  {
+    id: "ship-2026-10-24-precios-reales-un-solo-calculo",
+    version: "2.13.0",
+    releasedAt: "2026-10-25T00:30:00.000Z",
+    summary: "«Precios y moneda» edita lo que el sistema usa de verdad, un mismo precio en todas las cotizaciones y las herramientas clásicas ya no pisan lo cargado a mano.",
+    items: [
+      { kind: "FIX", text: "Configuración → Precios y moneda: ahora se edita el markup por defecto, qué dólar usar (blue, oficial o MEP) y un dólar de respaldo. Antes había campos que el sistema no usaba." },
+      { kind: "FIX", text: "Si falla la consulta del dólar, se usa el último valor bueno (antes los precios en pesos podían salir 1:1)." },
+      { kind: "MEJORA", text: "La ficha del producto muestra el precio en pesos con el mismo dólar que el resto del sistema." },
+      { kind: "FIX", text: "Un mismo precio para el producto entre por donde entre a la cotización (rápida, completa, desde un pedido o desde Room Builder). Sin precio = queda en 0 y la planilla avisa." },
+      { kind: "MEJORA", text: "Las herramientas clásicas de Crestron y Sonance siguen la misma regla que la sincronización: solo actualizan precio y stock; lo demás lo completan si está vacío." },
+    ],
+  },
 ];

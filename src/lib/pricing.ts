@@ -83,6 +83,71 @@ export interface ProductPricingInput {
   impIntPercent?: number | null;
 }
 
+/** Campos de Product que necesita el motor de precios (para el `select` de Prisma). */
+export const PRICING_PRODUCT_SELECT = {
+  id: true,
+  baseCostUsd: true,
+  brandId: true,
+  distributorId: true,
+  categoryId: true,
+  familyId: true,
+  familia: true,
+  discountPercent: true,
+  tariffDutyPercent: true,
+  coefNac: true,
+  coefVta: true,
+  coefVtaFob: true,
+  ivaPercent: true,
+  impIntPercent: true,
+} as const;
+
+type PricingSource = {
+  id: string;
+  baseCostUsd: unknown;
+  brandId: string | null;
+  distributorId: string | null;
+  categoryId: string | null;
+  familyId: string | null;
+  familia?: string | null;
+  discountPercent?: unknown;
+  tariffDutyPercent?: unknown;
+  coefNac?: unknown;
+  coefVta?: unknown;
+  coefVtaFob?: unknown;
+  ivaPercent?: unknown;
+  impIntPercent?: unknown;
+};
+
+const pricingNum = (value: unknown): number | null => {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+/**
+ * Un producto de Prisma → entrada del motor de precios. Una sola versión para
+ * todo el sistema: antes cada pantalla armaba la suya y algunas se olvidaban
+ * campos (ej. FAMILIA), así el mismo producto podía dar precios distintos.
+ */
+export function toPricingInput(product: PricingSource): ProductPricingInput {
+  return {
+    productId: product.id,
+    baseCostUsd: pricingNum(product.baseCostUsd) ?? 0,
+    brandId: product.brandId,
+    distributorId: product.distributorId,
+    categoryId: product.categoryId,
+    familyId: product.familyId,
+    familia: product.familia ?? null,
+    productDiscountPercent: pricingNum(product.discountPercent),
+    tariffDutyPercent: pricingNum(product.tariffDutyPercent),
+    coefNac: pricingNum(product.coefNac),
+    coefVta: pricingNum(product.coefVta),
+    coefVtaFob: pricingNum(product.coefVtaFob),
+    ivaPercent: pricingNum(product.ivaPercent),
+    impIntPercent: pricingNum(product.impIntPercent),
+  };
+}
+
 export interface AppliedRule {
   id: string;
   name: string;

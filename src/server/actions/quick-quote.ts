@@ -1,13 +1,13 @@
 "use server";
 
+import { quoteUnitPrices } from "@/lib/quote-unit-price";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireQuotePermission } from "@/lib/quote-access";
 import { createQuoteShell } from "@/server/actions/quotes";
 import { issueQuote } from "@/server/actions/quote-export";
-import { calculatePricesForProducts } from "@/lib/pricing";
-import { getGlobalMarginPercent, getSetting } from "@/lib/settings";
+import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { buildProductSearchWhere, sortBySearchRelevance } from "@/lib/product-search";
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
@@ -162,26 +162,8 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
     manufacturerItem: p.manufacturerItem,
     brandName: p.brand?.name ?? null,
   })).slice(0, 20);
-  const prices = await calculatePricesForProducts(
-    products.map((p) => ({
-      productId: p.id,
-      baseCostUsd: Number(p.baseCostUsd),
-      brandId: p.brandId,
-      distributorId: p.distributorId,
-      categoryId: p.categoryId,
-      familyId: p.familyId,
-      familia: p.familia ?? null,
-      productDiscountPercent: p.discountPercent == null ? null : Number(p.discountPercent),
-      tariffDutyPercent: p.tariffDutyPercent == null ? null : Number(p.tariffDutyPercent),
-      coefNac: p.coefNac == null ? null : Number(p.coefNac),
-      coefVta: p.coefVta == null ? null : Number(p.coefVta),
-      coefVtaFob: p.coefVtaFob == null ? null : Number(p.coefVtaFob),
-      ivaPercent: p.ivaPercent == null ? null : Number(p.ivaPercent),
-      impIntPercent: p.impIntPercent == null ? null : Number(p.impIntPercent),
-    })),
-    clientId || null,
-    await getGlobalMarginPercent(),
-  );
+  // Mismo precio que cualquier otra cotización (lib/quote-unit-price).
+  const unitPrices = await quoteUnitPrices(products, clientId || null);
   return products.map((p) => ({
     id: p.id,
     name: productTitle(p),
@@ -191,7 +173,7 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
     tango: tangoCode(p.internalSku),
     brand: p.brand?.name || null,
     stock: p.stockStatus,
-    price: prices.get(p.id)?.finalPriceUsd ?? 0,
+    price: unitPrices.get(p.id) ?? 0,
     ivaPercent: p.ivaPercent == null ? null : Number(p.ivaPercent),
     accessories: p.accessories.map((a) => ({
       id: a.accessoryProduct.id,

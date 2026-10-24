@@ -1,3 +1,4 @@
+import { getExchangeRate } from "@/lib/exchange-rate";
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { notFound, redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth-helpers";
@@ -85,7 +86,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    getSetting("pricing.tc_venta", "0"),
+    getExchangeRate().then(String),
     getSetting("app.global_margin_percent", "35"),
     prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
     calculateCustomerPrice({

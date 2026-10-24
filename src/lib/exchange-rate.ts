@@ -1,4 +1,4 @@
-import { getSetting } from "@/lib/settings";
+import { getSetting, setSetting } from "@/lib/settings";
 
 type ExchangeRateSource = "oficial" | "blue" | "mep";
 
@@ -15,12 +15,32 @@ function validSource(value: string): ExchangeRateSource {
   return value === "oficial" || value === "mep" ? value : "blue";
 }
 
+/**
+ * Si falla la consulta: el dólar de respaldo cargado a mano y, si no hay, el
+ * último valor que funcionó. Antes caía a 1 y los precios en pesos salían 1:1.
+ */
 async function fallbackRate(): Promise<number> {
   try {
-    const parsed = Number(await getSetting("pricing.tc", "1"));
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-  } catch {
-    return 1;
+    for (const key of ["pricing.tc", "pricing.tc_last"]) {
+      const parsed = Number(await getSetting(key, ""));
+      if (Number.isFinite(parsed) && parsed > 1) return parsed;
+    }
+  } catch (error) {
+    console.error("[exchange-rate] no se pudo leer el dólar de respaldo", error);
+  }
+  console.error("[exchange-rate] sin dólar: falló la consulta y no hay respaldo cargado");
+  return 1;
+}
+
+let lastSaved = 0;
+async function rememberRate(rate: number) {
+  // Se guarda como respaldo, a lo sumo una vez por hora.
+  if (Date.now() - lastSaved < 3_600_000) return;
+  lastSaved = Date.now();
+  try {
+    await setSetting("pricing.tc_last", String(rate), { description: "Último dólar que funcionó (respaldo automático)." });
+  } catch (error) {
+    console.error("[exchange-rate] no se pudo guardar el respaldo", error);
   }
 }
 
@@ -49,8 +69,10 @@ export async function getExchangeRate(): Promise<number> {
       const rate = Number(payload[source]?.value_sell);
       if (!Number.isFinite(rate) || rate <= 0) throw new Error("Cotización inválida");
       cache.set(source, { rate, expiresAt: Date.now() + CACHE_TTL_MS });
+      void rememberRate(rate);
       return rate;
-    } catch {
+    } catch (error) {
+      console.error("[exchange-rate] falló la consulta del dólar", error);
       const rate = await fallbackRate();
       cache.set(source, { rate, expiresAt: Date.now() + CACHE_TTL_MS });
       return rate;

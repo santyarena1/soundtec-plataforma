@@ -1,5 +1,6 @@
 "use server";
 
+import { quoteUnitPrices } from "@/lib/quote-unit-price";
 import { isTaxMode, type QuoteTaxMode } from "@/lib/quote-totals";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -22,8 +23,7 @@ import { isVariantBlockKey, resolveBlockVariantBody } from "@/lib/quote-block-va
 import { sanitizeQuoteHtml } from "@/lib/quote-richtext";
 import { recordQuoteSnapshot } from "@/lib/quote-edit-history";
 import { ensureQuoteCatalogImage } from "@/lib/quote-product-images";
-import { getSetting, setSetting, getGlobalMarginPercent } from "@/lib/settings";
-import { calculatePricesForProducts } from "@/lib/pricing";
+import { getSetting, setSetting } from "@/lib/settings";
 import { quoteListUnitUsd } from "@/lib/quote-unit-price";
 import { storeQuoteBlob } from "@/server/actions/quote-images";
 import { resolveCommercialClientId } from "@/lib/client-context";
@@ -450,31 +450,13 @@ export async function createQuoteFromRequest(input: {
   // "u" y sin entrega, y la entrega vacía después bloquea la emisión.
   const defaultUnit = (await getSetting(QUOTE_SETTING_KEYS.defaultUnit, "u")).trim() || "u";
   const defaultDelivery = (await getSetting(QUOTE_SETTING_KEYS.defaultDelivery, "")).trim();
-    const global = await getGlobalMarginPercent();
-    const prices = await calculatePricesForProducts(
-      request.items.map((i) => ({
-        productId: i.product.id,
-        baseCostUsd: Number(i.product.baseCostUsd),
-        brandId: i.product.brandId,
-        distributorId: i.product.distributorId,
-        categoryId: i.product.categoryId,
-        familyId: i.product.familyId,
-        productDiscountPercent: i.product.discountPercent != null ? Number(i.product.discountPercent) : null,
-        tariffDutyPercent: i.product.tariffDutyPercent != null ? Number(i.product.tariffDutyPercent) : null,
-        coefNac: i.product.coefNac != null ? Number(i.product.coefNac) : null,
-        coefVta: i.product.coefVta != null ? Number(i.product.coefVta) : null,
-        coefVtaFob: i.product.coefVtaFob != null ? Number(i.product.coefVtaFob) : null,
-        ivaPercent: i.product.ivaPercent != null ? Number(i.product.ivaPercent) : null,
-        impIntPercent: i.product.impIntPercent != null ? Number(i.product.impIntPercent) : null,
-      })),
-      clientId,
-      global
-    );
+    // Mismo precio que cualquier otra cotización (lib/quote-unit-price).
+    const unitPrices = await quoteUnitPrices(request.items.map((i) => i.product), clientId);
 
     let sort = 0;
     for (const item of request.items) {
       const replaced = !item.isAdminSuggestion && replacedProductIds.has(item.product.id);
-      const unit = prices.get(item.product.id)?.finalPriceUsd ?? Number(item.product.salePriceUsd ?? 0);
+      const unit = unitPrices.get(item.product.id) ?? 0;
       const qty = item.quantity;
       const desc = [item.product.brand?.name, item.product.normalizedName].filter(Boolean).join(" — ");
       const replacesName = item.adminAlternativeProductId

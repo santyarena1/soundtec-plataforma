@@ -1,3 +1,4 @@
+import { applySyncFieldPolicy } from "@/services/sync/field-policy";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
@@ -340,9 +341,10 @@ export async function PUT(req: NextRequest) {
         Object.assign(data, catFields);
         const current = await prisma.product.findUnique({ where: { id: item.productId } });
         if (!current) continue;
-        const changed = changedScalarFields(current as unknown as Record<string, unknown>, data);
-        data.fieldUpdatedAt = mergeFieldTimestamps(current.fieldUpdatedAt, changed, new Date().toISOString());
-        await prisma.product.update({ where: { id: item.productId }, data });
+        const allowed = applySyncFieldPolicy(current as unknown as Record<string, unknown>, data);
+        const changed = changedScalarFields(current as unknown as Record<string, unknown>, allowed);
+        allowed.fieldUpdatedAt = mergeFieldTimestamps(current.fieldUpdatedAt, changed, new Date().toISOString());
+        await prisma.product.update({ where: { id: item.productId }, data: allowed });
         updated++;
         if (willWriteCategory) categoryWrites++;
       } else if (createNew) {
