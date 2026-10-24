@@ -2218,4 +2218,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Listado de cotizaciones: total neto correcto (sin opcionales ni filas afuera), PDF a mano, vencimiento, filtro por responsable, estado editable en la columna y paginación." },
     ],
   },
+  {
+    id: "ship-2026-10-24-catalogo-admin-lista-cot-tango-opcional",
+    version: "2.10.0",
+    releasedAt: "2026-10-24T14:00:00.000Z",
+    summary: "Catálogo admin con vista de tarjetas y markup a la vista, lista de cotizaciones con desplegable y acciones siempre a mano, y Código Tango opcional.",
+    items: [
+      { kind: "NUEVO", text: "Productos: vista «Tarjetas» (como el catálogo de cliente) con costo → precio, markup y regla, stock y qué datos le faltan." },
+      { kind: "MEJORA", text: "Productos en tabla: columna «Markup y regla», avisos de faltante (foto, categoría, descripción), códigos internos ilegibles ocultos y acciones masivas solo cuando hay selección." },
+      { kind: "NUEVO", text: "Cotizaciones: al tocar una fila se despliega un resumen (cliente, productos, precios y totales)." },
+      { kind: "MEJORA", text: "Cotizaciones: Ver, Editar, PDF, Duplicar y Eliminar siempre disponibles. El PDF de un borrador muestra el documento como está, sin emitir." },
+      { kind: "MEJORA", text: "El Código Tango ya no es obligatorio: un producto puede existir aunque no esté en Tango." },
+    ],
+  },
 ];

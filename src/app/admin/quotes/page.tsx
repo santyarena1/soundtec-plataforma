@@ -7,10 +7,10 @@ import { permissionsHave } from "@/lib/permissions";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
-import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
+import { TableEmpty } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatDateShort, formatUsd } from "@/lib/utils";
-import { QuoteRowActions, QuoteStatusSelect } from "./quote-row-actions";
+import { QuotesTable } from "./quotes-table";
 import { Settings } from "lucide-react";
 import { requestShortId } from "@/lib/request-quote-link";
 
@@ -227,88 +227,29 @@ export default async function AdminQuotesPage({
       {quotes.length === 0 ? (
         <TableEmpty message={q || status || from || to ? "Ninguna cotización con esos filtros." : "Todavía no hay cotizaciones."} />
       ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>
-                <Link href={sortHref("number")} className="hover:underline">
-                  Número{sortMark("number")}
-                </Link>
-              </TH>
-              <TH>Cliente · responsable</TH>
-              <TH>Referencia</TH>
-              <TH>
-                <Link href={sortHref("status")} className="hover:underline">
-                  Estado{sortMark("status")}
-                </Link>
-              </TH>
-              <TH className="text-right">Total neto</TH>
-              <TH>
-                <Link href={sortHref("createdAt")} className="hover:underline">
-                  Creada{sortMark("createdAt")}
-                </Link>
-              </TH>
-              <TH className="text-right">Acciones</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {quotes.map((row) => {
-              const net = payableLines(row.items).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
-              const expires = row.status === "ISSUED" && row.issuedAt ? new Date(row.issuedAt.getTime() + (row.terms?.validityDays ?? 5) * 86_400_000) : null;
-              const expired = expires ? expires.getTime() < Date.now() : false;
-              return (
-                <TR key={row.id}>
-                  <TD>
-                    <Link href={`/admin/quotes/${row.id}`} className="font-medium text-primary hover:underline">
-                      {row.number}
-                    </Link>
-                    {row.sourceRequestId ? (
-                      <p className="mt-0.5">
-                        <Badge tone="accent">Importada #{requestShortId(row.sourceRequestId)}</Badge>
-                      </p>
-                    ) : null}
-                  </TD>
-                  <TD>
-                    <span className="block">{row.client?.companyName || row.clientName || "—"}</span>
-                    <span className="block text-xs text-muted-foreground">{row.owner.name}</span>
-                  </TD>
-                  <TD className="max-w-[200px] truncate" title={row.reference || undefined}>{row.reference || "—"}</TD>
-                  <TD>
-                    {canEdit ? (
-                      <QuoteStatusSelect quoteId={row.id} status={row.status} />
-                    ) : (
-                      <Badge tone={statusTone[row.status] || "muted"}>{statusLabel[row.status] || row.status}</Badge>
-                    )}
-                  </TD>
-                  <TD className="text-right tabular-nums">{formatUsd(net)}</TD>
-                  <TD className="whitespace-nowrap">
-                    {formatDateShort(row.createdAt)}
-                    {expires ? (
-                      <p className={`text-xs ${expired ? "text-destructive" : "text-muted-foreground"}`}>
-                        {expired ? "Vencida" : "Vence"} {formatDateShort(expires)}
-                      </p>
-                    ) : null}
-                  </TD>
-                  <TD className="whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1">
-                      <div className="flex gap-1">
-                        {row.status === "ISSUED" && row.pdfBlobUrl ? (
-                          <ButtonLink href={`/api/quotes/${row.id}/pdf`} target="_blank" size="sm" variant="outline">
-                            PDF
-                          </ButtonLink>
-                        ) : null}
-                        <ButtonLink href={`/admin/quotes/${row.id}`} size="sm" variant="outline" data-tour="quotes-open-row">
-                          {row.status === "ISSUED" ? "Ver" : "Editar"}
-                        </ButtonLink>
-                      </div>
-                      <QuoteRowActions quoteId={row.id} canEdit={canEdit} />
-                    </div>
-                  </TD>
-                </TR>
-              );
-            })}
-          </TBody>
-        </Table>
+        <QuotesTable
+          canEdit={canEdit}
+          rows={quotes.map((row) => {
+            const net = payableLines(row.items).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+            const expires = row.status === "ISSUED" && row.issuedAt ? new Date(row.issuedAt.getTime() + (row.terms?.validityDays ?? 5) * 86_400_000) : null;
+            const expired = expires ? expires.getTime() < Date.now() : false;
+            return {
+              id: row.id,
+              number: row.number,
+              requestTag: row.sourceRequestId ? requestShortId(row.sourceRequestId) : null,
+              client: row.client?.companyName || row.clientName || "Sin cliente",
+              owner: row.owner.name || "",
+              reference: row.reference,
+              status: row.status,
+              statusLabel: statusLabel[row.status] || row.status,
+              statusTone: statusTone[row.status] || "muted",
+              net,
+              created: formatDateShort(row.createdAt),
+              expires: expires ? { label: `${expired ? "Vencida" : "Vence"} ${formatDateShort(expires)}`, expired } : null,
+              issued: row.status === "ISSUED" && !!row.pdfBlobUrl,
+            };
+          })}
+        />
       )}
       {totalPages > 1 ? (
         <div className="flex items-center justify-center gap-3 text-sm">

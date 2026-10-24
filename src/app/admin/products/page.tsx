@@ -224,6 +224,9 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       priceUsdFinal: price?.priceUsdFinal ?? 0,
       priceFobUsd: price?.priceFobUsd ?? 0,
       priceNacFinalArs: price?.priceNacFinalArs ?? 0,
+      markup: price?.markupMultiplier ?? 0,
+      marginRule: price?.appliedMarginRule?.name ?? (price?.markupSource === "COEF_VTA" ? "COEF VTA de la ficha" : null),
+      hasDescription: !!(p.shortDescription?.trim() || p.longDescription?.trim()),
       salePriceUsd: p.salePriceUsd != null ? Number(p.salePriceUsd) : null,
       discountPercent: p.discountPercent ? Number(p.discountPercent) : null,
       tariffPosition: p.tariffPosition || null,
@@ -252,6 +255,8 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         priceUsdFinal: 0,
         priceFobUsd: 0,
         priceNacFinalArs: 0,
+        markup: 0,
+        marginRule: null,
         salePriceUsd: null,
         discountPercent: null,
         tariffPosition: null,
@@ -274,6 +279,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         }
       />
 
+      <div className="flex flex-wrap items-center gap-2">
       <div className="flex w-fit gap-1 rounded-lg border border-border bg-card p-1" data-tour="products-tabs">
         <Link
           href="/admin/products"
@@ -297,6 +303,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         title="Productos Crestron que no existen en crestron.com: quedan con los datos de Xtrabone y sin ficha enriquecida.">
         Crestron sin ficha en crestron.com ({crestronMissingCount})
       </Link>
+      </div>
 
       {rows.length === 0 &&
       !params.q &&

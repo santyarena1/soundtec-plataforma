@@ -169,7 +169,8 @@ export async function upsertCategory(formData: FormData): Promise<void> {
 }
 
 const productSchema = z.object({
-  internalSku: z.string().min(1).max(80),
+  /** Opcional: un producto puede existir en el sistema aunque no esté en Tango. */
+  internalSku: z.string().trim().max(80).optional().nullable(),
   supplierSku: z.string().max(80).optional().nullable(),
   normalizedName: z.string().min(2).max(280),
   originalName: z.string().max(280).optional().nullable(),
@@ -224,7 +225,7 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
   await requireStaff("products.edit", { costs: true });
   const id = formData.get("id")?.toString() || undefined;
   const parsed = productSchema.safeParse({
-    internalSku: formData.get("internalSku"),
+    internalSku: formData.get("internalSku")?.toString().trim() || null,
     supplierSku: formData.get("supplierSku") || null,
     normalizedName: formData.get("normalizedName"),
     originalName: formData.get("originalName") || formData.get("normalizedName"),
@@ -262,7 +263,7 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
 
   const data: TimestampedProductCreateInput = {
-    internalSku: parsed.data.internalSku,
+    internalSku: parsed.data.internalSku || null,
     supplierSku: parsed.data.supplierSku || null,
     normalizedName: parsed.data.normalizedName,
     originalName: parsed.data.originalName || parsed.data.normalizedName,

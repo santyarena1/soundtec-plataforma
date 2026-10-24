@@ -205,8 +205,8 @@ export function ProductForm({ product, brands, distributors, categories, familie
         <SectionTitle>Identificación</SectionTitle>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="internalSku" required>COD. TANGO</Label>
-            <Input id="internalSku" name="internalSku" required defaultValue={product?.internalSku || ""} />
+            <Label htmlFor="internalSku">Código Tango (opcional)</Label>
+            <Input id="internalSku" name="internalSku" defaultValue={product?.internalSku || ""} placeholder="Si no está en Tango, dejalo vacío" />
             <FieldStamp at={fieldUpdatedAt?.internalSku} />
           </div>
           <div>

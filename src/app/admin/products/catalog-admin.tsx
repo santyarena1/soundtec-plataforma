@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { formatUsd } from "@/lib/utils";
 import { DEFAULT_SORT } from "@/lib/admin-catalog-sort";
+import { AdminProductCards } from "./admin-product-cards";
 import {
   Eye,
   Loader2,
@@ -49,6 +50,10 @@ interface Row {
   priceUsdFinal: number;
   priceFobUsd: number;
   priceNacFinalArs: number;
+  /** Markup aplicado y la regla que lo da. */
+  markup: number;
+  marginRule: string | null;
+  hasDescription: boolean;
   salePriceUsd: number | null;
   discountPercent: number | null;
   tariffPosition: string | null;
@@ -114,6 +119,7 @@ type ColumnKey =
   | "customizable"
   | "cost"
   | "salePrice"
+  | "margin"
   | "discount"
   | "tariff"
   | "stock"
@@ -135,16 +141,17 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "image", label: "Imagen" },
   { key: "name", label: "Producto", fixed: true },
   { key: "originalName", label: "Nombre original" },
-  { key: "sku", label: "COD. TANGO" },
+  { key: "sku", label: "Código Tango" },
   { key: "supplierSku", label: "SKU proveedor", requiresPrices: true },
   { key: "brand", label: "Marca" },
-  { key: "category", label: "Rubro" },
-  { key: "family", label: "Subrubro" },
+  { key: "category", label: "Categoría" },
+  { key: "family", label: "Familia" },
   { key: "distributor", label: "Proveedor", requiresPrices: true },
   { key: "kind", label: "Tipo" },
   { key: "customizable", label: "Configurable" },
   { key: "cost", label: "Costo USD", requiresPrices: true },
   { key: "salePrice", label: "Precio venta", requiresPrices: true },
+  { key: "margin", label: "Markup y regla", requiresPrices: true },
   { key: "discount", label: "Descuento %", requiresPrices: true },
   { key: "tariff", label: "Pos. arancelaria", requiresPrices: true },
   { key: "stock", label: "Stock" },
@@ -156,19 +163,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "actions", label: "Acciones", fixed: true },
 ];
 
-const DEFAULT_COLUMNS: ColumnKey[] = [
-  "image",
-  "name",
-  "sku",
-  "brand",
-  "category",
-  "cost",
-  "salePrice",
-  "discount",
-  "stock",
-  "active",
-  "actions",
-];
+const DEFAULT_COLUMNS: ColumnKey[] = ["image", "name", "sku", "brand", "category", "cost", "salePrice", "margin", "stock", "actions"];
 
 const STORAGE_KEY = "soundtec.admin.products.columns";
 
@@ -176,6 +171,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
+  const cardsView = search.get("vista") === "tarjetas";
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [priceEditorIds, setPriceEditorIds] = useState<string[] | null>(null);
   const editPrice = props.canEditPrices ? (id: string) => setPriceEditorIds([id]) : undefined;
@@ -499,10 +495,12 @@ export function ProductsCatalogAdmin(props: Props) {
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-end gap-2 rounded-md border border-border bg-card p-3">
-        <div className="text-sm">
+      <div className={`flex flex-wrap items-end gap-2 rounded-md border p-3 ${selected.size ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
+        <div className={`text-sm ${selected.size ? "" : "hidden"}`}>
           <span className="font-medium">{selected.size}</span> seleccionado(s)
         </div>
+        {selected.size ? null : <p className="self-center text-xs text-muted-foreground">Seleccioná productos (casilla) para editar precios o aplicar cambios en masa.</p>}
+        <div className={selected.size ? "contents" : "hidden"}>
         {props.canEditPrices ? (
           <button
             type="button"
@@ -580,9 +578,25 @@ export function ProductsCatalogAdmin(props: Props) {
           Crear lista compartible con los seleccionados
         </Button>
         {bulkMsg ? <span className="text-xs text-muted-foreground">{bulkMsg}</span> : null}
+        </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
+          <div className="flex rounded-md border border-border p-0.5" role="group" aria-label="Vista">
+            {([
+              ["tabla", "Tabla"],
+              ["tarjetas", "Tarjetas"],
+            ] as const).map(([key, label]) => (
+              <Link
+                key={key}
+                href={buildHref({ vista: key === "tabla" ? undefined : key })}
+                aria-pressed={(key === "tarjetas") === cardsView}
+                className={`rounded px-2.5 py-1 text-xs font-medium ${(key === "tarjetas") === cardsView ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+          <div className={`relative ${cardsView ? "hidden" : ""}`}>
             <Button
               onClick={() => setColumnPickerOpen((s) => !s)}
               variant="outline"
@@ -625,6 +639,9 @@ export function ProductsCatalogAdmin(props: Props) {
         </div>
       </div>
 
+      {cardsView ? (
+        <AdminProductCards rows={props.rows} showPrices={props.showPrices} selected={selected} onToggle={toggle} onEditPrice={editPrice} />
+      ) : (
       <div className="overflow-x-auto">
         <Table>
           <THead>
@@ -655,6 +672,7 @@ export function ProductsCatalogAdmin(props: Props) {
           </TBody>
         </Table>
       </div>
+      )}
 
       <div className="flex items-center justify-between">
         <p className="muted-text">
@@ -719,6 +737,13 @@ const STOCK_TONE: Record<string, "success" | "warning" | "muted" | "accent"> = {
   ON_REQUEST: "accent",
 };
 
+const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Datos que le faltan al producto para verse bien en el catálogo. */
+function missingData(r: Row): string[] {
+  return [!r.primaryImage && "foto", !r.category && "categoría", !r.hasDescription && "descripción"].filter(Boolean) as string[];
+}
+
 function renderCell(
   key: ColumnKey,
   r: Row,
@@ -750,6 +775,8 @@ function renderCell(
           <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
             {r.kind === "ACCESORIO" ? "Accesorio" : "Principal"}
             {r.isCustomizable ? " · Configurable" : ""}
+            {!r.isActive ? <Badge tone="muted">Inactivo</Badge> : null}
+            {missingData(r).length ? <Badge tone="warning">Falta {missingData(r).join(", ")}</Badge> : null}
             {r.isCrestronHomeCompatible ? <Badge tone="primary">Crestron Home</Badge> : null}
             {r.aiDescriptionFeedbackStatus === "REJECTED" ? <Badge tone="destructive">Descripción reportada</Badge> : null}
             {r.openFeedbackCount > 0 ? <Link href={`/admin/feedback?q=${encodeURIComponent(r.name)}`}><Badge tone="destructive">Reportes: {r.openFeedbackCount}</Badge></Link> : null}
@@ -757,15 +784,27 @@ function renderCell(
         </div>
       );
     case "sku":
-      return r.sku || "—";
+      // Los ids internos (tipo UUID) no son un código que sirva leer.
+      return r.sku && !UUID_LIKE.test(r.sku) ? r.sku : <span className="text-muted-foreground">—</span>;
+    case "margin":
+      return r.markup > 0 ? (
+        <div className="min-w-[9rem]">
+          <span className="font-mono text-sm">×{Number(r.markup.toFixed(3))}</span>
+          <p className="max-w-[14rem] truncate text-xs text-muted-foreground" title={r.marginRule ?? undefined}>
+            {r.marginRule ?? "Markup por defecto"}
+          </p>
+        </div>
+      ) : (
+        "—"
+      );
     case "supplierSku":
       return r.supplierSku || "—";
     case "brand":
       return r.brand || "—";
     case "category":
-      return r.category || "—";
+      return <span className="block max-w-[12rem] truncate" title={r.category ?? undefined}>{r.category || "—"}</span>;
     case "family":
-      return r.family || "—";
+      return <span className="block max-w-[12rem] truncate" title={r.family ?? undefined}>{r.family || "—"}</span>;
     case "distributor":
       return r.distributor || "—";
     case "kind":
@@ -810,7 +849,7 @@ function renderCell(
       return (
         <div className="whitespace-nowrap">
           <span className="font-medium">{value}</span>
-          {r.salePriceUsd != null ? (
+          {r.salePriceUsd != null && r.salePriceUsd > 0 ? (
             <span className="block text-[10px] text-muted-foreground">
               oferta prov.: {formatUsd(r.salePriceUsd)}
             </span>

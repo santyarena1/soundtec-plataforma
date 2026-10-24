@@ -105,3 +105,18 @@ test("precio y costos: reglas que aplican y markup propio desde la ficha", async
   await expect(panel.getByText(/Markup propio quitado/)).toBeVisible();
   await expect(panel.locator("li").filter({ hasText: "Markup propio" })).toHaveCount(0);
 });
+
+test("el Código Tango es opcional: un producto se guarda sin él", async ({ page }) => {
+  await page.goto(productUrl, { waitUntil: "networkidle" });
+  const sku = page.locator("#internalSku");
+  const original = await sku.inputValue();
+  await expect(sku).not.toHaveAttribute("required", "");
+  await sku.fill("");
+  await save(page);
+  await expect(page.getByText("Cambios sin guardar")).toHaveCount(0, { timeout: 60_000 });
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.locator("#internalSku")).toHaveValue("");
+  await page.locator("#internalSku").fill(original);
+  await save(page);
+  await expect(page.getByText("Cambios sin guardar")).toHaveCount(0, { timeout: 60_000 });
+});
