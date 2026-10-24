@@ -36,6 +36,8 @@ export function ProductSearchPicker({
   autoFocus,
   clearOnPick = true,
   showPrice = false,
+  minChars = 2,
+  pickedIds,
 }: {
   search: (query: string) => Promise<PickerItem[]>;
   onPick: (item: PickerItem) => void | Promise<void>;
@@ -45,6 +47,10 @@ export function ProductSearchPicker({
   autoFocus?: boolean;
   clearOnPick?: boolean;
   showPrice?: boolean;
+  /** 0 = muestra resultados sin escribir (ej. todos los de las marcas elegidas). */
+  minChars?: number;
+  /** Ya elegidos: se ven atenuados con «ya agregado». */
+  pickedIds?: ReadonlySet<string>;
 }) {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<PickerItem[]>([]);
@@ -55,7 +61,7 @@ export function ProductSearchPicker({
 
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 2) {
+    if (q.length < minChars) {
       setItems([]);
       setLoading(false);
       return;
@@ -73,10 +79,12 @@ export function ProductSearchPicker({
         .finally(() => id === requestId.current && setLoading(false));
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [query, search]);
+  }, [query, search, minChars]);
+
+  const isOff = (item: PickerItem) => item.disabled || !!pickedIds?.has(item.id);
 
   async function pick(item: PickerItem) {
-    if (item.disabled || picking) return;
+    if (isOff(item) || picking) return;
     setPicking(item.id);
     try {
       await onPick(item);
@@ -124,7 +132,7 @@ export function ProductSearchPicker({
               key={item.id}
               role="option"
               aria-selected={index === active}
-              className={`flex items-center gap-3 px-3 py-2 ${index === active ? "bg-secondary/60" : ""} ${item.disabled ? "opacity-60" : ""}`}
+              className={`flex items-center gap-3 px-3 py-2 ${index === active ? "bg-secondary/60" : ""} ${isOff(item) ? "opacity-60" : ""}`}
               onMouseEnter={() => setActive(index)}
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white">
@@ -138,7 +146,7 @@ export function ProductSearchPicker({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold">{item.title}</span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  {[item.brand, item.code ? `Cód. ${item.code}` : null, item.note].filter(Boolean).join(" · ")}
+                  {[item.brand, item.code ? `Cód. ${item.code}` : null, item.note, pickedIds?.has(item.id) ? "ya agregado" : null].filter(Boolean).join(" · ")}
                 </span>
                 {item.subtitle ? <span className="block truncate text-xs text-muted-foreground">{item.subtitle}</span> : null}
               </span>
@@ -147,7 +155,7 @@ export function ProductSearchPicker({
               ) : null}
               <button
                 type="button"
-                disabled={item.disabled || !!picking}
+                disabled={isOff(item) || !!picking}
                 onClick={() => void pick(item)}
                 className="inline-flex h-9 shrink-0 items-center gap-1 rounded-md border border-border px-3 text-sm font-medium hover:bg-secondary disabled:opacity-50"
               >
@@ -157,12 +165,12 @@ export function ProductSearchPicker({
             </li>
           ))}
         </ul>
-      ) : query.trim().length >= 2 && !loading ? (
+      ) : query.trim().length >= Math.max(minChars, 1) && !loading ? (
         <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
           No encontramos productos con «{query.trim()}». Probá con el modelo, la marca o una palabra de la descripción.
         </p>
-      ) : query.trim().length === 1 ? (
-        <p className="text-xs text-muted-foreground">Escribí al menos 2 letras.</p>
+      ) : minChars > 1 && query.trim().length > 0 && query.trim().length < minChars ? (
+        <p className="text-xs text-muted-foreground">Escribí al menos {minChars} letras.</p>
       ) : null}
     </div>
   );

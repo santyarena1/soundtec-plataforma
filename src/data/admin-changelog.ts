@@ -2307,4 +2307,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Incluido en la caja: la cantidad se elige antes de buscar («Viene 2 por cada producto»)." },
     ],
   },
+  {
+    id: "ship-2026-10-24-buscador-unico-resto",
+    version: "2.16.1",
+    releasedAt: "2026-10-24T22:00:00.000Z",
+    summary: "El mismo buscador de productos llega a listas compartidas, sugerencias en pedidos y la vidriera de Expo.",
+    items: [
+      { kind: "MEJORA", text: "Listas de precios compartidas: «Productos específicos» y «Excluir productos» usan el buscador único, con foto y descripción. Lo ya elegido queda marcado «ya agregado» y se saca tocando su etiqueta." },
+      { kind: "MEJORA", text: "Pedidos → Sugerir producto: mismo buscador, con foto y el precio que ve ese cliente; «Elegir» pasa a la confirmación." },
+      { kind: "MEJORA", text: "Expo → Vidriera: elegís una marca y aparecen sus productos sin escribir nada, con la misma foto que sale en la pantalla del stand." },
+    ],
+  },
 ];

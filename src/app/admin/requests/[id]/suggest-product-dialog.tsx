@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Loader2, PackageSearch, Search, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Sparkles } from "lucide-react";
 import { Modal } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { formatUsd } from "@/lib/utils";
 import { addAdminSuggestion, adminSearchProductsForRequest } from "@/server/actions/requests";
+import { ProductSearchPicker, type PickerItem } from "@/components/products/product-search-picker";
 
 type Found = { id: string; name: string; sku: string | null; brand: string | null; priceUsd: number | null };
 
@@ -26,62 +27,39 @@ interface Props {
 
 export function SuggestProductDialog({ open, onClose, requestId, originalItems, replaceTarget = null }: Props) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Found[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [searched, setSearched] = useState(false);
+  const found = useRef(new Map<string, Found>());
   const [selected, setSelected] = useState<Found | null>(null);
   const [quantity, setQuantity] = useState("1");
   const [note, setNote] = useState("");
   const [replacesItemId, setReplacesItemId] = useState("");
   const [announce, setAnnounce] = useState(true);
   const [saving, startSaving] = useTransition();
-  const inputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     if (!open) return;
-    setQuery("");
-    setResults([]);
-    setSearched(false);
     setSelected(null);
     setQuantity("1");
     setNote("");
     setAnnounce(true);
     setReplacesItemId(replaceTarget?.id ?? "");
-    const t = setTimeout(() => inputRef.current?.focus(), 60);
-    return () => clearTimeout(t);
   }, [open, replaceTarget]);
 
-  // Búsqueda con debounce: escribís y los resultados llegan solos.
-  useEffect(() => {
-    if (!open || selected) return;
-    const term = query.trim();
-    if (term.length < 2) {
-      setResults([]);
-      setSearched(false);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    let cancelled = false;
-    const timer = setTimeout(async () => {
-      try {
-        const r = await adminSearchProductsForRequest({ requestId, query: term });
-        if (cancelled) return;
-        setResults(r.products);
-        setSearched(true);
-        if (!r.ok && r.error) toast.error(r.error);
-      } catch {
-        if (!cancelled) toast.error("No se pudo buscar productos.");
-      } finally {
-        if (!cancelled) setSearching(false);
-      }
-    }, 300);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [query, open, requestId, selected]);
+  const search = useCallback(
+    async (term: string): Promise<PickerItem[]> => {
+      const r = await adminSearchProductsForRequest({ requestId, query: term });
+      if (!r.ok && r.error) toast.error(r.error);
+      found.current = new Map(r.products.map((p) => [p.id, p]));
+      return r.products.map((p) => ({
+        id: p.id,
+        title: p.name,
+        subtitle: p.subtitle,
+        brand: p.brand,
+        code: p.sku,
+        imageUrl: p.imageUrl,
+        price: p.priceUsd,
+      }));
+    },
+    [requestId],
+  );
 
   function save() {
     if (!selected) return;
@@ -121,7 +99,7 @@ export function SuggestProductDialog({ open, onClose, requestId, originalItems, 
       description={
         selected
           ? "Revisá cantidad y nota. El cliente lo verá destacado como propuesta del equipo."
-          : "Buscá por nombre, SKU o marca. Los precios son los que ve este cliente."
+          : "Buscá por modelo, marca o código. Los precios son los que ve este cliente."
       }
       footer={
         selected ? (
@@ -224,56 +202,17 @@ export function SuggestProductDialog({ open, onClose, requestId, originalItems, 
           </label>
         </div>
       ) : (
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              ref={inputRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ej: amplificador, SON-12345, Sonance…"
-              className="pl-9"
-            />
-            {searching ? (
-              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-            ) : null}
-          </div>
-
-          {query.trim().length < 2 ? (
-            <div className="flex flex-col items-center gap-2 py-12 text-center">
-              <PackageSearch className="h-8 w-8 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">Escribí al menos 2 letras para buscar</p>
-            </div>
-          ) : searched && results.length === 0 && !searching ? (
-            <div className="flex flex-col items-center gap-2 py-12 text-center">
-              <PackageSearch className="h-8 w-8 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">Sin resultados para “{query.trim()}”</p>
-              <p className="text-xs text-muted-foreground/70">Probá con la marca o parte del SKU.</p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-border overflow-hidden rounded-md border border-border">
-              {results.map((p) => (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelected(p)}
-                    className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-secondary"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">{p.name}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {[p.brand, p.sku].filter(Boolean).join(" · ") || "—"}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-sm font-semibold tabular-nums">
-                      {p.priceUsd != null ? formatUsd(p.priceUsd) : "—"}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <ProductSearchPicker
+          autoFocus
+          showPrice
+          actionLabel="Elegir"
+          clearOnPick={false}
+          search={search}
+          onPick={(item) => {
+            const product = found.current.get(item.id);
+            if (product) setSelected(product);
+          }}
+        />
       )}
     </Modal>
   );

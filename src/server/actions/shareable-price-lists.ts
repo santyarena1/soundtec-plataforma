@@ -166,12 +166,27 @@ export async function searchProductsForShareList(input: z.input<typeof searchSch
     },
     orderBy: { normalizedName: "asc" },
     take: q ? data.take * 4 : data.take,
-    select: { id: true, ...SEARCH_RANK_SELECT, brand: { select: { name: true } } },
+    select: {
+      id: true,
+      ...SEARCH_RANK_SELECT,
+      shortDescription: true,
+      brand: { select: { name: true } },
+      images: { select: { url: true }, orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 },
+    },
   });
   const ranked = q
     ? sortBySearchRelevance(rows, q, (row) => ({ ...row, brandName: row.brand?.name ?? null })).slice(0, data.take)
     : rows;
-  return ranked.map((row) => ({ id: row.id, name: row.normalizedName, sku: row.internalSku }));
+  const { productSubtitle, productTitle, tangoCode } = await import("@/lib/product-display");
+  return ranked.map((row) => ({
+    id: row.id,
+    title: productTitle(row),
+    subtitle: productSubtitle(row),
+    brand: row.brand?.name ?? null,
+    code: tangoCode(row.internalSku),
+    imageUrl: row.images[0]?.url ?? null,
+    sku: row.internalSku,
+  }));
 }
 
 export async function duplicateShareablePriceList(id: string) {

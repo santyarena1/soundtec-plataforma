@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { ArrowDown, ArrowUp, Loader2, Plus, X } from "lucide-react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { ProductSearchPicker, type PickerItem } from "@/components/products/product-search-picker";
 import { saveShowcaseProducts, searchShowcaseProducts } from "@/server/actions/expo-events";
 
 export interface PickerProduct {
@@ -37,20 +37,23 @@ export function ShowcasePicker({
   brands: string[];
 }) {
   const [selected, setSelected] = useState<PickerProduct[]>(initial);
-  const [query, setQuery] = useState("");
   const [brand, setBrand] = useState("");
-  const [results, setResults] = useState<PickerProduct[]>([]);
-  const [searching, startSearch] = useTransition();
+  const found = useRef(new Map<string, PickerProduct>());
   const [saving, startSave] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const dirty = JSON.stringify(selected.map((p) => p.id)) !== JSON.stringify(initial.map((p) => p.id));
   const manual = selected.length > 0;
 
-  useEffect(() => {
-    if (query.trim().length < 2 && !brand) return setResults([]);
-    const timer = setTimeout(() => startSearch(async () => setResults(await searchShowcaseProducts(query, brand || undefined))), 300);
-    return () => clearTimeout(timer);
-  }, [query, brand]);
+  const pickedIds = useMemo(() => new Set(selected.map((p) => p.id)), [selected]);
+  const search = useCallback(
+    async (q: string): Promise<PickerItem[]> => {
+      if (!brand && q.length < 2) return [];
+      const rows = await searchShowcaseProducts(q, brand || undefined);
+      found.current = new Map(rows.map((p) => [p.id, p]));
+      return rows.map((p) => ({ id: p.id, title: p.name, brand: p.brand, imageUrl: thumb(p) }));
+    },
+    [brand],
+  );
 
   const move = (index: number, delta: number) =>
     setSelected((list) => {
@@ -138,33 +141,19 @@ export function ShowcasePicker({
               <option key={b} value={b}>{b}</option>
             ))}
           </select>
-          <div className="relative min-w-[16rem] flex-1">
-            <Input placeholder="Buscar por nombre, SKU o modelo…" value={query} onChange={(e) => setQuery(e.target.value)} />
-            {searching ? <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" /> : null}
-          </div>
         </div>
-        <p className="text-xs text-muted-foreground">Elegí una marca para ver todos sus productos con foto, o escribí para buscar.</p>
-        {results.length > 0 ? (
-          <ul className="grid max-h-[28rem] gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
-            {results.map((p) => {
-              const already = selected.some((s) => s.id === p.id);
-              return (
-                <li key={p.id} className="flex items-center gap-3 rounded-md border border-border p-2">
-                  <Thumb p={p} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm">{p.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{p.brand}</p>
-                  </div>
-                  <Button type="button" size="sm" variant="outline" disabled={already} onClick={() => setSelected((l) => [...l, p])}>
-                    {already ? "Agregado" : <><Plus className="h-3.5 w-3.5" /> Agregar</>}
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (query.trim().length >= 2 || brand) && !searching ? (
-          <p className="text-xs text-muted-foreground">Sin resultados.</p>
-        ) : null}
+        <p className="text-xs text-muted-foreground">Elegí una marca para ver todos sus productos, o escribí para buscar.</p>
+        <ProductSearchPicker
+          key={brand}
+          search={search}
+          minChars={brand ? 0 : 2}
+          clearOnPick={false}
+          pickedIds={pickedIds}
+          onPick={(item) => {
+            const product = found.current.get(item.id);
+            if (product) setSelected((l) => [...l, product]);
+          }}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-3">

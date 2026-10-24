@@ -1,5 +1,6 @@
 "use server";
 
+import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -775,7 +776,15 @@ export async function adminSearchProductsForRequest(input: {
 }): Promise<{
   ok: boolean;
   error?: string;
-  products: Array<{ id: string; name: string; sku: string | null; brand: string | null; priceUsd: number | null }>;
+  products: Array<{
+    id: string;
+    name: string;
+    sku: string | null;
+    brand: string | null;
+    priceUsd: number | null;
+    subtitle: string | null;
+    imageUrl: string | null;
+  }>;
 }> {
   await requireStaff("requests.respond");
   const query = (input.query || "").trim();
@@ -798,6 +807,8 @@ export async function adminSearchProductsForRequest(input: {
     select: {
       id: true,
       normalizedName: true,
+      originalName: true,
+      shortDescription: true,
       internalSku: true,
       baseCostUsd: true,
       brandId: true,
@@ -812,6 +823,7 @@ export async function adminSearchProductsForRequest(input: {
       ivaPercent: true,
       impIntPercent: true,
       brand: { select: { name: true } },
+      images: { select: { url: true }, orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 },
     },
   });
 
@@ -846,10 +858,12 @@ export async function adminSearchProductsForRequest(input: {
     ok: true,
     products: found.map((p) => ({
       id: p.id,
-      name: p.normalizedName,
-      sku: p.internalSku,
+      name: productTitle(p),
+      sku: tangoCode(p.internalSku),
       brand: p.brand?.name ?? null,
       priceUsd: prices.get(p.id)?.finalPriceUsd ?? null,
+      subtitle: productSubtitle(p),
+      imageUrl: p.images[0]?.url ?? null,
     })),
   };
 }
