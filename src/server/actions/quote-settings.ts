@@ -1,8 +1,7 @@
 "use server";
 
-import { BLOB_NOT_CONFIGURED, isBlobConfigured } from "@/lib/blob-storage";
+import { BLOB_NOT_CONFIGURED, BLOB_UPLOAD_FAILED, isBlobConfigured, uploadFile } from "@/lib/blob-storage";
 import { revalidatePath } from "next/cache";
-import { put } from "@vercel/blob";
 import { requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { setSetting } from "@/lib/settings";
@@ -94,14 +93,10 @@ export async function uploadQuoteIdentityImage(key: string, formData: FormData):
   const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
   let url: string;
   try {
-    const blob = await put(`quotes/identity/${key.replace(/\W+/g, "-")}-${Date.now()}.${extension}`, Buffer.from(await file.arrayBuffer()), {
-      access: "public",
-      contentType: file.type,
-    });
-    url = blob.url;
+    url = await uploadFile(`quotes/identity/${key.replace(/\W+/g, "-")}.${extension}`, Buffer.from(await file.arrayBuffer()), file.type);
   } catch (error) {
     console.error("[blob] imagen de identidad de cotización", error);
-    return { ok: false, error: "No se pudo guardar la imagen en el almacenamiento. Probá de nuevo; si sigue, avisame." };
+    return { ok: false, error: BLOB_UPLOAD_FAILED };
   }
   await setSetting(key, url, { description: "Imagen de identidad del documento de cotización" });
   refresh();

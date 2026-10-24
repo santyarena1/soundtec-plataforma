@@ -2367,4 +2367,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Fotos de productos en el PDF: se achican antes de incluirlas (una cotización de 20 equipos pasó de 18 MB a menos de 1 MB) y las que el fabricante ya no publica no aparecen como imagen rota." },
     ],
   },
+  {
+    id: "ship-2026-10-25-almacenamiento-privado",
+    version: "2.18.1",
+    releasedAt: "2026-10-25T09:00:00.000Z",
+    summary: "Las imágenes y archivos se guardan en el almacenamiento privado y se muestran desde el propio sitio.",
+    items: [
+      { kind: "FIX", text: "Subir imágenes decía «No se pudo guardar la imagen en el almacenamiento»: el almacenamiento de Vercel es privado y el sistema intentaba guardar los archivos como públicos. Ahora se guardan como privados y se muestran a través de soundtecportal.com.ar. Vale para logos, fotos de productos, planos, imágenes de cotizaciones y el Excel de cada cotización emitida." },
+    ],
+  },
 ];

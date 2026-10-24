@@ -1,13 +1,12 @@
 "use server";
 
-import { isBlobConfigured } from "@/lib/blob-storage";
+import { isBlobConfigured, uploadFile } from "@/lib/blob-storage";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { quoteIssueCheck } from "@/lib/quote-issue";
 import { revalidatePath } from "next/cache";
-import { put } from "@vercel/blob";
 import * as XLSX from "xlsx";
 import { generateAndStoreQuotePdf } from "@/lib/quote-pdf-store";
 import { getSetting } from "@/lib/settings";
@@ -44,11 +43,11 @@ export async function issueQuote(formData: FormData): Promise<{ ok: boolean; err
   try {
     if (isBlobConfigured()) {
       const { bytes, filename } = await buildQuoteWorkbook(id);
-      const blob = await put(`quotes/${id}/${filename}`, Buffer.from(bytes), {
-        access: "public",
-        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      xlsxBlobUrl = blob.url;
+      xlsxBlobUrl = await uploadFile(
+        `quotes/${id}/${filename}`,
+        Buffer.from(bytes),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
     }
   } catch {
     /* snapshot sigue valiendo */

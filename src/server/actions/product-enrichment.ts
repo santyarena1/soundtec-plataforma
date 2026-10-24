@@ -1,6 +1,6 @@
 "use server";
 
-import { BLOB_NOT_CONFIGURED, isBlobConfigured } from "@/lib/blob-storage";
+import { BLOB_NOT_CONFIGURED, BLOB_UPLOAD_FAILED, isBlobConfigured, uploadFile } from "@/lib/blob-storage";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireStaff } from "@/lib/auth-helpers";
@@ -8,7 +8,6 @@ import { generateLongDescription, generateShortDescription, suggestProductClassi
 import { searchProductImages, type SerperImage } from "@/services/serper";
 import { getSetting, setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
-import { put } from "@vercel/blob";
 
 function revalidateProductImages(productId: string) {
   if (productId) {
@@ -339,11 +338,13 @@ export async function uploadProductImageFile(
     const baseName = slugify(file.name.replace(/\.[^.]+$/, "")) || "image";
     const pathname = `products/${productId}/${Date.now()}-${baseName}.${ext}`;
 
-    const blob = await put(pathname, file, {
-      access: "public",
-      addRandomSuffix: false,
-      contentType: file.type,
-    });
+    let fileUrl: string;
+    try {
+      fileUrl = await uploadFile(pathname, Buffer.from(await file.arrayBuffer()), file.type);
+    } catch (error) {
+      console.error("[blob] foto de producto", error);
+      return { ok: false, error: BLOB_UPLOAD_FAILED };
+    }
 
     if (isPrimary) {
       await prisma.productImage.updateMany({
@@ -354,7 +355,7 @@ export async function uploadProductImageFile(
     await prisma.productImage.create({
       data: {
         productId,
-        url: blob.url,
+        url: fileUrl,
         alt: alt || product.normalizedName || null,
         source: "upload",
         isPrimary,
@@ -362,7 +363,7 @@ export async function uploadProductImageFile(
     });
     await ensureProductHasPrimaryImage(productId);
     revalidateProductImages(productId);
-    return { ok: true, url: blob.url };
+    return { ok: true, url: fileUrl };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error desconocido al subir el archivo.";
     return { ok: false, error: msg };

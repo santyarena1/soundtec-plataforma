@@ -1,8 +1,7 @@
 "use server";
 
-import { BLOB_NOT_CONFIGURED, isBlobConfigured } from "@/lib/blob-storage";
+import { BLOB_NOT_CONFIGURED, isBlobConfigured, uploadFile } from "@/lib/blob-storage";
 import { QuoteAiCapability, QuoteAssetKind, QuoteNodeSource } from "@prisma/client";
-import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { loadQuoteForEdit, requireQuotePermission } from "@/lib/quote-access";
 import { searchProductImages } from "@/services/serper";
@@ -19,8 +18,7 @@ import {
 async function storeImage(pathname: string, bytes: ArrayBuffer, contentType: string) {
   if (!isBlobConfigured()) return null;
   try {
-    const blob = await put(pathname, Buffer.from(bytes), { access: "public", contentType });
-    return blob.url;
+    return await uploadFile(pathname, Buffer.from(bytes), contentType);
   } catch (error) {
     console.error("[blob] no se pudo subir", pathname, error);
     return null;
