@@ -2296,4 +2296,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Catálogo más rápido: las fotos se piden achicadas y en caché (antes venían en tamaño completo, hasta 1 MB cada una, desde la página de cada fabricante). Una página de catálogo pasó de ~10 MB de fotos a menos de 1 MB." },
     ],
   },
+  {
+    id: "ship-2026-10-24-confirmaciones-y-buscador-unico",
+    version: "2.16.0",
+    releasedAt: "2026-10-24T20:00:00.000Z",
+    summary: "Las confirmaciones y el buscador de productos ahora se ven y se usan igual en todo el panel.",
+    items: [
+      { kind: "MEJORA", text: "Confirmaciones del sistema: al eliminar, quitar, aplicar o revertir ya no aparece el cuadro gris del navegador. Sale una ventana del panel con letra grande, el botón de la acción nombrado («Eliminar», «Quitar», «Aplicar») y en rojo cuando no se puede deshacer." },
+      { kind: "MEJORA", text: "Buscador de productos único en la cotización (editor y rápida) y en Incluido en la caja / Accesorios de la ficha: foto, modelo, marca, código y descripción en cada resultado. Se busca por modelo, marca o código; Enter o las flechas eligen sin usar el mouse." },
+      { kind: "MEJORA", text: "Incluido en la caja: la cantidad se elige antes de buscar («Viene 2 por cada producto»)." },
+    ],
+  },
 ];

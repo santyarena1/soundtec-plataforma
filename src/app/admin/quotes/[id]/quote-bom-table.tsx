@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
 import { QuoteRevisePanel } from "./revise-panel";
@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { formatUsd } from "@/lib/utils";
 import { buildQuoteZones } from "@/lib/quote-item-groups";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 export type QuoteBomRow = {
   id: string;
@@ -81,6 +82,8 @@ function ZoneTable({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  // Quitar ítem ya confirmado: el reenvío del form no vuelve a preguntar.
+  const removeConfirmed = useRef(false);
   const cols = showDelivery ? 9 : 8;
 
   return (
@@ -315,9 +318,21 @@ function ZoneTable({
                             className="w-full"
                             onClick={(event) => {
                               // Se lleva el precio negociado y la entrega cargada.
-                              if (!window.confirm("¿Quitar este ítem? Se pierde el precio y la entrega cargados.")) {
-                                event.preventDefault();
+                              if (removeConfirmed.current) {
+                                removeConfirmed.current = false;
+                                return;
                               }
+                              event.preventDefault();
+                              const button = event.currentTarget;
+                              void confirmDialog({
+                                message: "¿Quitar este ítem? Se pierde el precio y la entrega cargados.",
+                                tone: "danger",
+                                confirmLabel: "Quitar",
+                              }).then((ok) => {
+                                if (!ok) return;
+                                removeConfirmed.current = true;
+                                button.form?.requestSubmit(button);
+                              });
                             }}
                           >
                             Quitar

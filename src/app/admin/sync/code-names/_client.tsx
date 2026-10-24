@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead, TR, TableEmpty } from "@/components/ui/table";
 import { applyCodeNames, type CodeNameChange } from "@/server/actions/product-code-names";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 const PREVIEW_LIMIT = 300;
 
@@ -26,8 +27,8 @@ export function CodeNamesPanel({ changes }: { changes: CodeNameChange[] }) {
     [changes, brand]
   );
 
-  function apply() {
-    if (!window.confirm(`Se van a renombrar ${changes.length} productos. ¿Continuar?`)) return;
+  async function apply() {
+    if (!(await confirmDialog({ message: `Se van a renombrar ${changes.length} productos. ¿Continuar?`, confirmLabel: "Renombrar" }))) return;
     startTransition(async () => {
       const result = await applyCodeNames();
       setMessage(

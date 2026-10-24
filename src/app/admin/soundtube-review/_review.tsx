@@ -13,6 +13,7 @@ import { ClassificationSection, NewProductsSection, PairsSection } from "./_deci
 import { MissingSection } from "./_missing";
 import { PriceListSheets } from "@/components/admin/price-list-sheets";
 import { StartReviewForm } from "./_start-form";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Props {
   fileName: string;
@@ -199,8 +200,8 @@ export function ReviewPanel(props: Props) {
           </div>
           <Button
             disabled={busy || props.pending > 0}
-            onClick={() => {
-              if (!window.confirm("Se aplica la lista con todas las decisiones. ¿Seguir?")) return;
+            onClick={async () => {
+              if (!(await confirmDialog({ message: "Se aplica la lista con todas las decisiones. ¿Seguir?", confirmLabel: "Aplicar" }))) return;
               setMessage(null);
               start(async () => {
                 const r = await applySoundTubeReview();

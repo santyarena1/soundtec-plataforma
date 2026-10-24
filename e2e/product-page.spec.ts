@@ -68,10 +68,12 @@ test("un COD. TANGO repetido muestra un aviso y no rompe la página", async ({ p
 test("relaciones: incluido en la caja con cantidad, editar y quitar", async ({ page }) => {
   await page.goto(`${productUrl}?solapa=relaciones`, { waitUntil: "networkidle" });
   const included = page.locator("section").filter({ has: page.getByRole("heading", { name: "Incluido en la caja" }) });
-  await included.getByPlaceholder("Buscá por nombre, SKU o marca").fill(FIXTURES.withIncluded.includedSku);
-  await included.locator('input[type="number"]').last().fill("3");
+  await included.getByLabel("Unidades por cada producto").fill("3");
+  await included.getByPlaceholder("Buscá por modelo, marca o código").fill(FIXTURES.withIncluded.includedSku);
+  const option = included.getByRole("option").filter({ hasText: FIXTURES.withIncluded.includedSku }).first();
+  await expect(option).toBeVisible({ timeout: 30_000 });
   const linked = page.waitForResponse((r) => r.request().method() === "POST");
-  await included.getByRole("button", { name: "Agregar" }).first().click();
+  await option.getByRole("button", { name: "Agregar" }).click();
   await linked;
   const row = included.locator("li").filter({ hasText: FIXTURES.withIncluded.includedSku }).first();
   await expect(row).toBeVisible();
@@ -86,8 +88,9 @@ test("relaciones: incluido en la caja con cantidad, editar y quitar", async ({ p
   const again = page.locator("section").filter({ has: page.getByRole("heading", { name: "Incluido en la caja" }) }).locator("li").filter({ hasText: FIXTURES.withIncluded.includedSku }).first();
   await expect(again.locator('input[type="number"]')).toHaveValue("2");
 
-  page.once("dialog", (dialog) => dialog.accept());
   await again.getByRole("button", { name: /Quitar/ }).click();
+  // Confirmación del sistema (no el cuadro gris del navegador).
+  await page.getByRole("dialog").getByRole("button", { name: "Quitar" }).click();
   await expect(page.locator("section").filter({ has: page.getByRole("heading", { name: "Incluido en la caja" }) }).locator("li").filter({ hasText: FIXTURES.withIncluded.includedSku })).toHaveCount(0, { timeout: 60_000 });
 });
 

@@ -12,6 +12,7 @@ import {
   type HallPriceListPreview,
 } from "@/server/actions/hall-research-price-list";
 import { MissingTable, type MissingAction, type MissingChoice } from "./_missing-table";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 type Tab = "missing" | "matched" | "new" | "warnings";
 
@@ -86,7 +87,7 @@ export function HallResearchPriceListPanel() {
     });
   }
 
-  function apply() {
+  async function apply() {
     if (!file || !preview) return;
     const { decisions, error } = buildDecisions(preview, choices);
     if (error) {
@@ -98,7 +99,7 @@ export function HallResearchPriceListPanel() {
       createNew && preview.toCreate.length ? `${preview.toCreate.length} productos nuevos se crean` : "",
       decisions.length ? `${decisions.length} de los que quedan afuera cambian` : "",
     ].filter(Boolean);
-    if (!window.confirm(`${parts.join(", ")}. ¿Aplicar?`)) return;
+    if (!(await confirmDialog({ message: `${parts.join(", ")}. ¿Aplicar?`, confirmLabel: "Aplicar" }))) return;
     startTransition(async () => {
       const form = formFor(file);
       form.set("decisions", JSON.stringify(decisions));

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { bulkSetActiveByFilter } from "@/server/actions/admin-catalog";
 import { hasAdminProductFilters, type AdminProductFilters } from "@/lib/admin-product-filters";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Props {
   /** Cantidad de productos que matchean los filtros actuales (informativo). */
@@ -35,7 +36,7 @@ export function BulkActiveBar({ matchingCount, filters, brands }: Props) {
   // no queremos que estén a un click de distancia accidental.
   const [open, setOpen] = useState(false);
 
-  function doBulk(isActive: boolean, useFilters: boolean) {
+  async function doBulk(isActive: boolean, useFilters: boolean) {
     const label = isActive ? "ACTIVAR" : "DESACTIVAR";
     const targetText = useFilters
       ? `${matchingCount} producto(s) que matchean los filtros actuales`
@@ -43,7 +44,14 @@ export function BulkActiveBar({ matchingCount, filters, brands }: Props) {
       ? `TODOS los productos de la marca «${brands.find((b) => b.id === selectedBrand)?.name ?? "?"}»`
       : "TODOS los productos del catálogo";
 
-    if (!window.confirm(`${label} ${targetText}. ¿Confirmás?`)) return;
+    if (
+      !(await confirmDialog({
+        message: `${label} ${targetText}. ¿Confirmás?`,
+        tone: isActive ? "default" : "danger",
+        confirmLabel: isActive ? "Activar" : "Desactivar",
+      }))
+    )
+      return;
     setMsg(null);
     start(async () => {
       const payload: Parameters<typeof bulkSetActiveByFilter>[0] = {

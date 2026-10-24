@@ -1,15 +1,14 @@
 import { expect, test } from "./test";
 import { AUTH_FILES } from "./global-setup";
 import { FIXTURES } from "./fixtures";
+import { pickProduct } from "./picker";
 
 test.use({ storageState: AUTH_FILES.admin });
 
 test("borrador desde la rápida → condiciones editadas se guardan y la COT se puede emitir con cliente escrito a mano", async ({ page }) => {
   await page.goto("/admin/quotes/quick", { waitUntil: "networkidle" });
   await page.getByPlaceholder("Ej. Hotel Alvear").fill("Cliente E2E sin alta");
-  const search = page.getByPlaceholder("Nombre o SKU; Enter agrega el primero");
-  await search.fill(FIXTURES.withIncluded.sku);
-  await page.locator("button", { hasText: FIXTURES.withIncluded.sku }).first().click();
+  await pickProduct(page, FIXTURES.withIncluded.sku);
   await page.getByRole("button", { name: "Guardar como borrador y abrir el editor" }).click();
   await page.waitForURL(/\/admin\/quotes\/[^/?]+\?paso=4/, { timeout: 120_000 });
   const quoteUrl = page.url().split("?")[0]!;

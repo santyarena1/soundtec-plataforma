@@ -145,6 +145,7 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
     take: 60,
     include: {
       brand: { select: { name: true } },
+      images: { select: { url: true }, orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 },
       accessories: {
         where: { kind: { in: ["INCLUDED", "ACCESSORY"] } },
         include: {
@@ -172,6 +173,7 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
     sku: p.internalSku,
     tango: tangoCode(p.internalSku),
     brand: p.brand?.name || null,
+    imageUrl: p.images[0]?.url ?? null,
     stock: p.stockStatus,
     price: unitPrices.get(p.id) ?? 0,
     ivaPercent: p.ivaPercent == null ? null : Number(p.ivaPercent),

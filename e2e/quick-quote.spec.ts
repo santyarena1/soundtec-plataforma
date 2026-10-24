@@ -1,16 +1,11 @@
 import { expect, test } from "./test";
 import { AUTH_FILES } from "./global-setup";
 import { FIXTURES } from "./fixtures";
+import { pickProduct } from "./picker";
 
 const { sku, includedSku, perUnit } = FIXTURES.withIncluded;
 
-async function addBySku(page: import("@playwright/test").Page, code: string) {
-  const search = page.getByPlaceholder("Nombre o SKU; Enter agrega el primero");
-  await search.fill(code);
-  const result = page.locator("button", { hasText: code }).first();
-  await expect(result).toBeVisible({ timeout: 30_000 });
-  await result.click();
-}
+const addBySku = pickProduct;
 
 const rows = (page: import("@playwright/test").Page) => page.locator("table tbody tr");
 const rowFor = (page: import("@playwright/test").Page, code: string) => rows(page).filter({ hasText: code });

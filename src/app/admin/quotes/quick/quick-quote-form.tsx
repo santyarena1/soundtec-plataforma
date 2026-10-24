@@ -1,7 +1,8 @@
 "use client";
 
 import { TAX_MODES } from "@/lib/quote-totals";
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { ProductSearchPicker, type PickerItem } from "@/components/products/product-search-picker";
 import { ClientSelectWithCreate } from "@/components/admin/client-select-with-create";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -12,7 +13,6 @@ import {
   searchQuickQuoteProducts,
 } from "@/server/actions/quick-quote";
 import { attachQuoteAsRequestResponse } from "@/server/actions/requests";
-import { formatUsd } from "@/lib/utils";
 
 type Product = Awaited<ReturnType<typeof searchQuickQuoteProducts>>[number];
 export type ProfileKey = "resumido" | "tecnico" | "premium";
@@ -51,8 +51,7 @@ export function QuickQuoteForm({
   const [profileKey, setProfileKey] = useState<ProfileKey>(defaults.profileKey);
   const [taxMode, setTaxMode] = useState<TaxMode>(defaults.taxMode);
   const [validity, setValidity] = useState(validityDays);
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Product[]>([]);
+  const found = useRef(new Map<string, Product>());
   const [items, setItems] = useState<QuickItem[]>([]);
   const [bulk, setBulk] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
@@ -63,13 +62,22 @@ export function QuickQuoteForm({
   } | null>(null);
   const [requestId, setRequestId] = useState("");
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (query.trim().length < 2) return setResults([]);
-      searchQuickQuoteProducts(query, clientId || null).then(setResults);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [query, clientId]);
+  const search = useCallback(
+    async (q: string): Promise<PickerItem[]> => {
+      const rows = await searchQuickQuoteProducts(q, clientId || null);
+      found.current = new Map(rows.map((p) => [p.id, p]));
+      return rows.map((p) => ({
+        id: p.id,
+        title: p.name,
+        subtitle: p.subtitle,
+        brand: p.brand,
+        code: p.tango,
+        imageUrl: p.imageUrl,
+        price: p.price,
+      }));
+    },
+    [clientId],
+  );
   // Al cambiar el cliente, se recalculan los precios de lista con sus condiciones.
   useEffect(() => {
     if (!items.length) return;
@@ -118,8 +126,6 @@ export function QuickQuoteForm({
         perParent: a.quantity,
       }));
     setItems((old) => [...old, line, ...included]);
-    setQuery("");
-    setResults([]);
   }
 
   function create(issue: boolean) {
@@ -223,38 +229,15 @@ export function QuickQuoteForm({
           Podés guardar el borrador, pero para emitir elegí un cliente o escribí su nombre.
         </p>
       ) : null}
-      <div className="relative">
-        <Label>Buscar productos</Label>
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && results[0]) {
-              e.preventDefault();
-              add(results[0]);
-            }
-          }}
-          placeholder="Nombre o SKU; Enter agrega el primero"
-        />
-        {results.length ? (
-          <div className="absolute z-20 w-full rounded-md border bg-card shadow">
-            {results.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => add(p)}
-                className="flex w-full justify-between border-b p-2 text-left text-sm"
-              >
-                <span className="min-w-0">
-                  <span className="font-medium">{p.name}</span>
-                  <span className="text-muted-foreground">{p.brand ? ` · ${p.brand}` : ""}{p.tango ? ` · Tango ${p.tango}` : ""}</span>
-                  {p.subtitle ? <span className="block truncate text-xs text-muted-foreground">{p.subtitle}</span> : null}
-                </span>
-                <b>{formatUsd(p.price)}</b>
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      <ProductSearchPicker
+        label="Buscar productos"
+        search={search}
+        showPrice
+        onPick={(item) => {
+          const product = found.current.get(item.id);
+          if (product) add(product);
+        }}
+      />
       <div>
         <Label>Pegar lista (SKU cantidad, una línea por producto)</Label>
         <Textarea value={bulk} onChange={(e) => setBulk(e.target.value)} rows={4} />

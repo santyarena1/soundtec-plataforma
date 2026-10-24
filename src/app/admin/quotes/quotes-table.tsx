@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatUsd } from "@/lib/utils";
 import { deleteQuote, duplicateQuote } from "@/server/actions/quotes";
 import { loadQuoteSummary, type QuoteSummary } from "@/server/actions/quote-summary";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 export type QuoteListRow = {
   id: string;
@@ -197,8 +198,8 @@ export function QuotesTable({ rows, canEdit }: { rows: QuoteListRow[]; canEdit: 
                             title="Eliminar"
                             aria-label={`Eliminar ${row.number}`}
                             disabled={pending}
-                            onClick={() => {
-                              if (!window.confirm(`¿Eliminar ${row.number}? No se puede deshacer.`)) return;
+                            onClick={async () => {
+                              if (!(await confirmDialog({ message: `¿Eliminar ${row.number}? No se puede deshacer.`, tone: "danger", confirmLabel: "Eliminar" }))) return;
                               start(async () => {
                                 const fd = new FormData();
                                 fd.set("quoteId", row.id);

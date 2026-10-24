@@ -19,6 +19,7 @@ import type {
   SonancePreviewItem,
   CategoryTarget,
 } from "@/app/api/admin/sonance-import/route";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 const TARGET_LABELS: Record<CategoryTarget, string> = {
   categoria: "Categoría (FK)",
@@ -342,9 +343,10 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     if (mode === "replace") {
       const customCount = Object.keys(mapping).length;
       if (customCount > 0) {
-        const ok = window.confirm(
-          `Esto va a reemplazar tus ${customCount} mapeos actuales con el preset recomendado. ¿Continuar?`
-        );
+        const ok = await confirmDialog({
+          message: `Esto va a reemplazar tus ${customCount} mapeos actuales con el preset recomendado. ¿Continuar?`,
+          confirmLabel: "Continuar",
+        });
         if (!ok) return;
       }
     }

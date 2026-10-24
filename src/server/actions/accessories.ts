@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/auth-helpers";
 import { buildProductSearchWhere, sortBySearchRelevance } from "@/lib/product-search";
+import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 
 /**
  * Relaciones de la ficha:
@@ -99,9 +100,11 @@ export async function searchRelatableProducts(query: string, excludeId: string) 
       supplierSku: true,
       modelNumber: true,
       manufacturerItem: true,
+      shortDescription: true,
       isActive: true,
       kind: true,
       brand: { select: { name: true } },
+      images: { select: { url: true }, orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 },
     },
   });
   return sortBySearchRelevance(found, q, (p) => ({
@@ -114,5 +117,13 @@ export async function searchRelatableProducts(query: string, excludeId: string) 
     brandName: p.brand?.name ?? null,
   }))
     .slice(0, 12)
-    .map((p) => ({ id: p.id, name: p.normalizedName, sku: p.internalSku ?? p.supplierSku, brand: p.brand?.name ?? null, isActive: p.isActive, kind: p.kind }));
+    .map((p) => ({
+      id: p.id,
+      title: productTitle(p),
+      subtitle: productSubtitle(p),
+      code: tangoCode(p.internalSku) ?? p.supplierSku,
+      brand: p.brand?.name ?? null,
+      imageUrl: p.images[0]?.url ?? null,
+      note: p.isActive ? null : "inactivo",
+    }));
 }

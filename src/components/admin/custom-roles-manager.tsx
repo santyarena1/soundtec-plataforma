@@ -17,6 +17,7 @@ import {
   type PriceAccess,
 } from "@/lib/permissions";
 import { deleteCustomRole, duplicateCustomRole, toggleCustomRoleActive, upsertCustomRoleVisual } from "@/server/actions/user-role-management";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 type RoleType = "STAFF" | "CLIENT";
 
@@ -120,8 +121,8 @@ function RoleRow({ role }: { role: RoleSummary }) {
               size="sm"
               disabled={pending}
               title="Eliminar"
-              onClick={() => {
-                if (confirm(`¿Eliminar el rol «${role.name}»?`)) run(() => deleteCustomRole(role.id));
+              onClick={async () => {
+                if (await confirmDialog({ message: `¿Eliminar el rol «${role.name}»?`, tone: "danger", confirmLabel: "Eliminar" })) run(() => deleteCustomRole(role.id));
               }}
             >
               <Trash2 className="h-3.5 w-3.5" />

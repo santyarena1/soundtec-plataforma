@@ -538,6 +538,7 @@ export async function searchProductsForQuote(query: string) {
       category: { select: { name: true } },
       family: { select: { name: true } },
       ivaPercent: true,
+      images: { select: { url: true }, orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 },
     },
   });
   return sortBySearchRelevance(rows, q, (p) => ({ ...p, brandName: p.brand?.name ?? null })).slice(0, 20);

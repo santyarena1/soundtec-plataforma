@@ -8,6 +8,7 @@ import { FieldError } from "@/components/ui/input";
 import { AccessModePicker, AccessReveal } from "@/components/admin/access-reveal";
 import { deleteUser, resetUserPassword, toggleUserActive } from "@/server/actions/users";
 import type { AccessMode, AccessResult } from "@/server/user-access";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 export function UserActions({
   id,
@@ -60,8 +61,8 @@ export function UserActions({
           <Button
             variant="destructive"
             disabled={pending}
-            onClick={() => {
-              if (confirm("¿Eliminar este usuario? Esta acción no se puede deshacer."))
+            onClick={async () => {
+              if (await confirmDialog({ message: "¿Eliminar este usuario? Esta acción no se puede deshacer.", tone: "danger", confirmLabel: "Eliminar" }))
                 start(async () => {
                   const r = await deleteUser(data());
                   if (!r.ok) setError(r.error);

@@ -1,6 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import { useFormStatus } from "react-dom";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -21,6 +23,7 @@ export function ConfirmSubmit({
   variant = "destructive",
 }: Props) {
   const { pending } = useFormStatus();
+  const confirmed = useRef(false);
 
   const base = "inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors disabled:opacity-50";
   const tone =
@@ -35,9 +38,18 @@ export function ConfirmSubmit({
       type="submit"
       disabled={pending}
       onClick={(e) => {
-        if (typeof window !== "undefined" && !window.confirm(confirmMessage)) {
-          e.preventDefault();
+        // Ya confirmado: sigue el envío normal del formulario.
+        if (confirmed.current) {
+          confirmed.current = false;
+          return;
         }
+        e.preventDefault();
+        const button = e.currentTarget;
+        void confirmDialog(confirmMessage).then((ok) => {
+          if (!ok) return;
+          confirmed.current = true;
+          button.form?.requestSubmit(button);
+        });
       }}
       className={cn(base, tone, className)}
     >

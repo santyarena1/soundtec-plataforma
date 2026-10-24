@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { startSoundTubeReview } from "@/server/actions/soundtube-review";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 /**
  * Sube la lista (y, si hay, la planilla «Para revisar» con las respuestas) y
@@ -35,9 +36,13 @@ export function StartReviewForm({ replace = false }: { replace?: boolean }) {
           variant={replace ? "outline" : "primary"}
           size="sm"
           disabled={!file || pending}
-          onClick={() => {
+          onClick={async () => {
             if (!file) return;
-            if (replace && !window.confirm("Se reemplaza la lista. Las decisiones que ya tomaste se conservan. ¿Seguir?")) return;
+            if (
+              replace &&
+              !(await confirmDialog({ message: "Se reemplaza la lista. Las decisiones que ya tomaste se conservan. ¿Seguir?", confirmLabel: "Continuar" }))
+            )
+              return;
             setError(null);
             start(async () => {
               const form = new FormData();

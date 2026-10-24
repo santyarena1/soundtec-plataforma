@@ -17,6 +17,7 @@ import {
   clearAllTaxonomyData,
 } from "@/server/actions/taxonomy-suggestions";
 import type { TaxonomySuggestionKind } from "@prisma/client";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 export interface TaxonomySuggestionRow {
   id: string;
@@ -74,11 +75,13 @@ export function TaxonomyAiSuggestionsPanel({
     });
   }
 
-  function runClear() {
+  async function runClear() {
     if (
-      !window.confirm(
-        `¿Borrar TODAS las ${labelPlural} y desasignar todos los productos?\n\nEsto no se puede deshacer.`
-      )
+      !(await confirmDialog({
+        message: `¿Borrar TODAS las ${labelPlural} y desasignar todos los productos?\n\nEsto no se puede deshacer.`,
+        tone: "danger",
+        confirmLabel: "Borrar",
+      }))
     )
       return;
     setMessage(null);
@@ -94,15 +97,17 @@ export function TaxonomyAiSuggestionsPanel({
     });
   }
 
-  function runGenerateAndApply() {
+  async function runGenerateAndApply() {
     if (
-      !window.confirm(
-        `¿Analizar TODOS los productos sin ${label} y aplicar automáticamente?\n\n` +
+      !(await confirmDialog({
+        message:
+          `¿Analizar TODOS los productos sin ${label} y aplicar automáticamente?\n\n` +
           `• Agrupa por categorías amplias (máx. ~20 en total).\n` +
           `• Si coincide con una ${label} existente → se asigna.\n` +
           `• Si no hay match → se crea una ${label} nueva y se asigna.\n\n` +
-          `Para catálogos grandes puede tardar varios minutos.`
-      )
+          `Para catálogos grandes puede tardar varios minutos.`,
+        confirmLabel: "Aplicar",
+      }))
     ) {
       return;
     }

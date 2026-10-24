@@ -31,6 +31,7 @@ import { bulkUpdateProducts } from "@/server/actions/admin-catalog";
 import { bulkSearchImages } from "@/server/actions/product-enrichment";
 import { bulkSetLabel } from "@/server/actions/labels";
 import { BulkDescriptionsModal } from "@/components/admin/bulk-descriptions-modal";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 type Option = { id: string; name: string };
 
@@ -306,7 +307,7 @@ export function ProductsCatalogAdmin(props: Props) {
     setSelected((s) => (s.size === props.rows.length ? new Set() : new Set(props.rows.map((r) => r.id))));
   }
 
-  function applyBulk() {
+  async function applyBulk() {
     if (selected.size === 0) return;
     setBulkMsg(null);
     if (bulkAction === "serper_images") {
@@ -328,7 +329,7 @@ export function ProductsCatalogAdmin(props: Props) {
       });
       return;
     }
-    if (!window.confirm(`Aplicar "${bulkAction}" a ${selected.size} producto(s)?`)) return;
+    if (!(await confirmDialog({ message: `Aplicar "${bulkAction}" a ${selected.size} producto(s)?`, confirmLabel: "Aplicar" }))) return;
     start(async () => {
       const r = await bulkUpdateProducts({
         productIds: [...selected],

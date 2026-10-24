@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, Search, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input, Label } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { linkRelatedProduct, searchRelatableProducts, unlinkRelatedProduct, updateIncludedQuantity } from "@/server/actions/accessories";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
+import { ProductSearchPicker, type PickerItem } from "@/components/products/product-search-picker";
 
 type RelationKind = "ACCESSORY" | "INCLUDED";
 
@@ -19,8 +21,6 @@ export interface RelationItem {
   quantity: number | null;
   accessoryProduct: { id: string; normalizedName: string; internalSku: string | null; kind: "PRINCIPAL" | "ACCESORIO" };
 }
-
-type Found = Awaited<ReturnType<typeof searchRelatableProducts>>[number];
 
 const KIND_COPY: Record<RelationKind, { title: string; help: string; empty: string }> = {
   INCLUDED: {
@@ -36,80 +36,39 @@ const KIND_COPY: Record<RelationKind, { title: string; help: string; empty: stri
 };
 
 function AddRelation({ productId, kind, onDone }: { productId: string; kind: RelationKind; onDone: (error?: string) => void }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Found[]>([]);
-  const [searching, setSearching] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [required, setRequired] = useState(false);
-  const [pending, start] = useTransition();
 
-  useEffect(() => {
-    if (query.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-    setSearching(true);
-    const timer = window.setTimeout(() => {
-      searchRelatableProducts(query, productId)
-        .then(setResults)
-        .catch(() => setResults([]))
-        .finally(() => setSearching(false));
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [query, productId]);
+  const search = useCallback((q: string): Promise<PickerItem[]> => searchRelatableProducts(q, productId), [productId]);
 
-  function link(found: Found) {
-    start(async () => {
-      const result = await linkRelatedProduct({ productId, relatedId: found.id, kind, quantity, isRequired: required });
-      onDone(result.ok ? undefined : result.error);
-      if (result.ok) {
-        setQuery("");
-        setResults([]);
-      }
-    });
+  async function link(found: PickerItem) {
+    const result = await linkRelatedProduct({ productId, relatedId: found.id, kind, quantity, isRequired: required });
+    onDone(result.ok ? undefined : result.error);
   }
 
   return (
-    <div className="space-y-2 rounded-md border border-border bg-secondary/40 p-3">
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="relative min-w-[16rem] flex-1">
-          <Label>Agregar</Label>
-          <Search className="pointer-events-none absolute left-2.5 top-[2.15rem] h-4 w-4 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscá por nombre, SKU o marca" className="pl-8" aria-label={`Buscar producto para «${KIND_COPY[kind].title}»`} />
+    <div className="space-y-3 rounded-md border border-border bg-secondary/40 p-3">
+      {kind === "INCLUDED" ? (
+        <div className="flex items-center gap-2 text-sm">
+          <span className="font-medium">Viene</span>
+          <Input
+            type="number"
+            min={1}
+            step={1}
+            value={quantity}
+            onChange={(e) => setQuantity(Math.max(1, Math.round(Number(e.target.value) || 1)))}
+            className="w-20"
+            aria-label="Unidades por cada producto"
+          />
+          <span className="text-muted-foreground">por cada producto</span>
         </div>
-        {kind === "INCLUDED" ? (
-          <div className="w-28">
-            <Label>Por unidad</Label>
-            <Input type="number" min={1} step={1} value={quantity} onChange={(e) => setQuantity(Math.max(1, Math.round(Number(e.target.value) || 1)))} />
-          </div>
-        ) : (
-          <label className="flex h-10 items-center gap-2 text-sm">
-            <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />
-            Obligatorio
-          </label>
-        )}
-      </div>
-      {searching ? <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Buscando…</p> : null}
-      {results.length ? (
-        <ul className="divide-y divide-border rounded-md border border-border bg-card">
-          {results.map((found) => (
-            <li key={found.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-              <span className="min-w-0">
-                <span className="block truncate font-medium">{found.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {[found.brand, found.sku].filter(Boolean).join(" · ")}
-                  {!found.isActive ? " · inactivo" : ""}
-                </span>
-              </span>
-              <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => link(found)}>
-                Agregar
-              </Button>
-            </li>
-          ))}
-        </ul>
-      ) : query.trim().length >= 2 && !searching ? (
-        <p className="text-xs text-muted-foreground">Sin resultados.</p>
-      ) : null}
+      ) : (
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />
+          Obligatorio
+        </label>
+      )}
+      <ProductSearchPicker label={`Agregar a «${KIND_COPY[kind].title}»`} search={search} onPick={link} />
     </div>
   );
 }
@@ -158,8 +117,9 @@ function RelationList({ productId, kind, items, onDone }: { productId: string; k
               variant="ghost"
               disabled={pending}
               aria-label={`Quitar ${relation.accessoryProduct.normalizedName}`}
-              onClick={() => {
-                if (window.confirm(`¿Quitar «${relation.accessoryProduct.normalizedName}»?`)) run(() => unlinkRelatedProduct({ id: relation.id, productId }));
+              onClick={async () => {
+                if (await confirmDialog({ message: `¿Quitar «${relation.accessoryProduct.normalizedName}»?`, tone: "danger", confirmLabel: "Quitar" }))
+                  run(() => unlinkRelatedProduct({ id: relation.id, productId }));
               }}
             >
               <X className="h-4 w-4" />

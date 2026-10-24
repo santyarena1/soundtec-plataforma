@@ -12,6 +12,7 @@ import {
   clearManufacturerPromo,
   clearProductDiscount,
 } from "@/server/actions/pricing-rules";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 export type ProductDiscountRow = {
   id: string;
@@ -53,9 +54,11 @@ export function ProductDiscountsPanel({ rows }: { rows: ProductDiscountRow[] }) 
             onClick={() =>
               start(async () => {
                 if (
-                  !window.confirm(
-                    `¿Quitamos el descuento de ficha en ${rows.length} producto${rows.length === 1 ? "" : "s"}? El precio vuelve a costo + margen.`
-                  )
+                  !(await confirmDialog({
+                    message: `¿Quitamos el descuento de ficha en ${rows.length} producto${rows.length === 1 ? "" : "s"}? El precio vuelve a costo + margen.`,
+                    tone: "danger",
+                    confirmLabel: "Quitar",
+                  }))
                 ) {
                   return;
                 }
@@ -131,7 +134,13 @@ export function ManufacturerPromosPanel({ rows }: { rows: ManufacturerPromoRow[]
             disabled={pending}
             onClick={() =>
               start(async () => {
-                if (!window.confirm(`¿Borramos las etiquetas de oferta del fabricante en ${rows.length} producto${rows.length === 1 ? "" : "s"}?`)) {
+                if (
+                  !(await confirmDialog({
+                    message: `¿Borramos las etiquetas de oferta del fabricante en ${rows.length} producto${rows.length === 1 ? "" : "s"}?`,
+                    tone: "danger",
+                    confirmLabel: "Borrar",
+                  }))
+                ) {
                   return;
                 }
                 const result = await clearAllManufacturerPromos();

@@ -20,6 +20,7 @@ import { SourceSettings } from "./_components/source-settings";
 import { RunPanel } from "./_components/run-panel";
 import { SchedulePanel } from "./_components/schedule-panel";
 import { RunsHistory } from "./_components/runs-history";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 type SyncMode = "preview" | "apply";
 
 const MODE_LABELS: Record<string, string> = {
@@ -405,11 +406,14 @@ export function UnifiedSyncPanel() {
 
   async function handleRollback(id: string) {
     if (
-      !window.confirm(
-        "Esto va a restaurar los productos al estado anterior a esta sync.\n" +
+      !(await confirmDialog({
+        message:
+          "Esto va a restaurar los productos al estado anterior a esta sync.\n" +
           "Los productos creados en esta sync se desactivan (no se borran).\n\n" +
-          "¿Confirmás revertir?"
-      )
+          "¿Confirmás revertir?",
+        tone: "danger",
+        confirmLabel: "Revertir",
+      }))
     ) {
       return;
     }
@@ -508,9 +512,10 @@ export function UnifiedSyncPanel() {
   async function handleRun(mode: SyncMode) {
     if (
       mode === "apply" &&
-      !window.confirm(
-        "Esta acción escribirá cambios en los productos. ¿Querés continuar?"
-      )
+      !(await confirmDialog({
+        message: "Esta acción escribirá cambios en los productos. ¿Querés continuar?",
+        confirmLabel: "Aplicar",
+      }))
     ) {
       return;
     }

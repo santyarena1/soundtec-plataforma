@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { clearProductsMarkup, setProductsMarkup, updateRuleMarkup } from "@/server/actions/price-editor";
 import { updateDiscountRulePercent, type ProductRuleRow, type ProductRulesData } from "@/server/actions/product-pricing-rules";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 type Data = Extract<ProductRulesData, { ok: true }>;
 type ActionResult = { ok: true; changed: number } | { ok: false; error: string };
@@ -73,8 +74,8 @@ function RuleRow({
             size="sm"
             variant={changed ? "primary" : "outline"}
             disabled={!changed || pending || !Number.isFinite(parse(value))}
-            onClick={() => {
-              if (row.scope !== "PRODUCT" && !window.confirm(`${reach} ¿Seguir?`)) return;
+            onClick={async () => {
+              if (row.scope !== "PRODUCT" && !(await confirmDialog({ message: `${reach} ¿Seguir?`, confirmLabel: "Continuar" }))) return;
               onSave(parse(value));
             }}
           >

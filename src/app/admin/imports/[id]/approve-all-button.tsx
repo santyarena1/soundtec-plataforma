@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { approveAllRows } from "@/server/actions/imports";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 export function ApproveAllButton({ batchId, disabled }: { batchId: string; disabled?: boolean }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const router = useRouter();
 
-  function handleClick() {
-    if (!confirm("¿Aprobar e importar todas las filas al catálogo?")) return;
+  async function handleClick() {
+    if (!(await confirmDialog({ message: "¿Aprobar e importar todas las filas al catálogo?", confirmLabel: "Importar" }))) return;
     setMsg(null);
     const fd = new FormData();
     fd.set("batchId", batchId);
