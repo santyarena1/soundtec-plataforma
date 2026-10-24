@@ -1,3 +1,4 @@
+import { optimizedImage } from "@/lib/image-url";
 import Link from "next/link";
 import { productSubtitle, productTitle } from "@/lib/product-display";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
@@ -43,7 +44,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
                 <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white">
                   {p.primaryImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.primaryImage} alt={p.normalizedName} className="h-full w-full object-contain" loading="lazy" />
+                    <img src={optimizedImage(p.primaryImage, 96) ?? undefined} alt={p.normalizedName} className="h-full w-full object-contain" loading="lazy" decoding="async" />
                   ) : null}
                 </span>
                 <span className="min-w-0">

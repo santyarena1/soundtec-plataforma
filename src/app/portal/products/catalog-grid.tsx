@@ -1,3 +1,4 @@
+import { optimizedImage } from "@/lib/image-url";
 import { productSubtitle, productTitle } from "@/lib/product-display";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -46,10 +47,11 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                   {p.primaryImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={p.primaryImage}
+                      src={optimizedImage(p.primaryImage, 384) ?? undefined}
                       alt={p.normalizedName}
                       className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-muted-foreground">Sin imagen</div>

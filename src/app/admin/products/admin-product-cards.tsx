@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/image-url";
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import Link from "next/link";
 import { ImageOff, Tag } from "lucide-react";
@@ -73,7 +74,7 @@ export function AdminProductCards({
             <Link href={`/admin/products/${row.id}`} className="flex h-40 items-center justify-center bg-white p-4">
               {row.primaryImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={row.primaryImage} alt={row.name} className="max-h-full max-w-full object-contain" loading="lazy" />
+                <img src={optimizedImage(row.primaryImage, 384) ?? undefined} alt={row.name} className="max-h-full max-w-full object-contain" loading="lazy" decoding="async" />
               ) : (
                 <ImageOff className="h-8 w-8 text-muted-foreground/50" aria-hidden />
               )}

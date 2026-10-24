@@ -2,9 +2,8 @@ import Link from "next/link";
 import { requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { ensureQuoteProfiles, QUOTE_CORPORATE_ASSETS } from "@/lib/quote-defaults";
+import { ensureQuoteProfiles, QUOTE_CORPORATE_ASSETS, QUOTE_MODULES } from "@/lib/quote-defaults";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
-import { TAX_MODES } from "@/lib/quote-totals";
 import { getSetting } from "@/lib/settings";
 import { SettingsSectionHeader } from "@/components/admin/settings-section-header";
 import { SimpleTabs } from "@/components/ui/simple-tabs";
@@ -28,10 +27,30 @@ function Field({ label, hint, wide, children }: { label: string; hint?: string; 
 }
 
 const PROFILES = [
-  { value: "resumido", label: "Resumido — tabla, condiciones y firma" },
-  { value: "tecnico", label: "Técnico — propuesta, marcas, instalación y garantías" },
-  { value: "premium", label: "Premium — documento completo" },
+  { value: "resumido", title: "Corto", hint: "Una o dos hojas: la tabla de productos, las condiciones y la firma." },
+  { value: "tecnico", title: "Estándar", hint: "Lo más usado: propuesta, marcas, productos, instalación y condiciones." },
+  { value: "premium", title: "Completo", hint: "Todo el documento, para proyectos grandes o licitaciones." },
 ];
+
+const TAX_EXAMPLES = [
+  { value: "NOTE", title: "Precio + IVA aparte", hint: "Los precios van sin IVA y el documento lo aclara.", example: "USD 1.000 + IVA" },
+  { value: "ADDED", title: "Mostrar el IVA sumado", hint: "Muestra el IVA y el total final.", example: "USD 1.000 + IVA 21% = USD 1.210" },
+  { value: "NONE", title: "Sin mencionar el IVA", hint: "No se habla de impuestos en el documento.", example: "USD 1.000" },
+];
+
+/** Opción grande para elegir (más fácil de leer que un desplegable). */
+function ChoiceCard({ name, value, checked, title, hint, children }: { name: string; value: string; checked: boolean; title: string; hint: string; children?: React.ReactNode }) {
+  return (
+    <label className="relative flex cursor-pointer flex-col rounded-lg border border-border p-3 transition-colors hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:checked]:ring-1 has-[:checked]:ring-primary/30">
+      <span className="flex items-center gap-2">
+        <input type="radio" name={name} value={value} defaultChecked={checked} className="h-4 w-4 accent-primary" />
+        <span className="text-sm font-semibold">{title}</span>
+      </span>
+      <span className="mt-1 text-xs text-muted-foreground">{hint}</span>
+      {children}
+    </label>
+  );
+}
 
 function numberPreview(input: { prefix: string; includeDate: string; dateToken: string; separator: string; padding: string; next: string }) {
   const now = new Date();
@@ -98,62 +117,75 @@ export default async function SettingsQuotesPage() {
   ]);
   const withoutLogo = brands.filter((b) => !b.logoUrl);
 
+  const profileModules = (key: string) => QUOTE_MODULES.filter((m) => (m.defaultOn as readonly string[]).includes(key)).map((m) => m.title);
   const documento = (
-    <SettingsBatchForm title="Cómo nace cada cotización" description="Valores con que arranca cada COT nueva (rápida, completa, desde un pedido o desde Room Builder). Se pueden cambiar en cada cotización.">
-      <Field label="Tipo de documento" hint="Qué módulos lleva el PDF.">
-        <Select name={name(K.defaultProfile)} defaultValue={v(K.defaultProfile)}>
-          {PROFILES.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.label}
-            </option>
+    <>
+      <SettingsBatchForm title="¿Qué tan completo sale el PDF?" description="Es lo que trae cada cotización nueva. En cada cotización después podés agregar o sacar secciones.">
+        <div className="grid gap-3 sm:col-span-2 lg:grid-cols-3">
+          {PROFILES.map((profile) => (
+            <ChoiceCard key={profile.value} name={name(K.defaultProfile)} value={profile.value} checked={v(K.defaultProfile) === profile.value} title={profile.title} hint={profile.hint}>
+              <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                {profileModules(profile.value).map((title) => (
+                  <li key={title}>· {title}</li>
+                ))}
+              </ul>
+            </ChoiceCard>
           ))}
-        </Select>
-      </Field>
-      <Field label="Impuestos" hint="Cómo aparece el IVA en el documento.">
-        <Select name={name(K.defaultTaxMode)} defaultValue={v(K.defaultTaxMode)}>
-          {TAX_MODES.map((mode) => (
-            <option key={mode.key} value={mode.key}>
-              {mode.label} — {mode.hint}
-            </option>
+        </div>
+      </SettingsBatchForm>
+
+      <SettingsBatchForm title="¿Cómo se muestra el IVA?" description="Cómo aparecen los precios en el documento que recibe el cliente.">
+        <div className="grid gap-3 sm:col-span-2 lg:grid-cols-3">
+          {TAX_EXAMPLES.map((mode) => (
+            <ChoiceCard key={mode.value} name={name(K.defaultTaxMode)} value={mode.value} checked={v(K.defaultTaxMode) === mode.value} title={mode.title} hint={mode.hint}>
+              <p className="mt-2 rounded-md bg-secondary/60 px-2 py-1.5 font-mono text-xs">{mode.example}</p>
+            </ChoiceCard>
           ))}
-        </Select>
-      </Field>
-      <Field label="IVA por defecto (%)" hint="Para productos sin IVA en la ficha.">
-        <Input name={name(K.defaultIva)} type="number" min={0} max={100} step="0.5" defaultValue={v(K.defaultIva)} />
-      </Field>
-      <Field label="Unidad por defecto" hint="u, global, ml, hs…">
-        <Input name={name(K.defaultUnit)} defaultValue={v(K.defaultUnit)} />
-      </Field>
-      <Field label="Columna de entrega" hint="Si la planilla muestra la entrega de cada fila.">
-        <Select name={name(K.showDeliveryDefault)} defaultValue={v(K.showDeliveryDefault)}>
-          <option value="true">Mostrar</option>
-          <option value="false">No mostrar</option>
-        </Select>
-      </Field>
-      <Field label="Entrega por defecto de cada fila" hint="Vacío = se carga a mano (sin entrega no se emite si la columna está visible).">
-        <Input name={name(K.defaultDelivery)} defaultValue={v(K.defaultDelivery)} />
-      </Field>
-      <Field label="Opciones de entrega" hint="Una por línea." wide>
-        <Textarea name={name(K.deliveryOptions)} rows={3} defaultValue={v(K.deliveryOptions)} />
-      </Field>
-    </SettingsBatchForm>
+        </div>
+        <Field label="IVA que se usa si el producto no tiene uno cargado (%)" hint="Normalmente 21. Cada producto puede tener el suyo en su ficha.">
+          <Input name={name(K.defaultIva)} type="number" min={0} max={100} step="0.5" defaultValue={v(K.defaultIva)} />
+        </Field>
+      </SettingsBatchForm>
+
+      <SettingsBatchForm title="Tabla de productos" description="Cómo nace cada renglón de la tabla de la cotización.">
+        <Field label="¿Mostrar la columna «Entrega» (plazo de cada producto)?" wide>
+          <div className="flex flex-wrap gap-4 pt-1 text-sm">
+            <label className="flex items-center gap-2">
+              <input type="radio" name={name(K.showDeliveryDefault)} value="true" defaultChecked={v(K.showDeliveryDefault) !== "false"} /> Sí, con el plazo de cada producto
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name={name(K.showDeliveryDefault)} value="false" defaultChecked={v(K.showDeliveryDefault) === "false"} /> No mostrarla
+            </label>
+          </div>
+        </Field>
+        <Field label="Plazo que se pone solo en cada producto" hint="Ej.: «Inmediata» o «15 días». Si lo dejás vacío, hay que cargarlo a mano (y con la columna visible no se puede emitir sin completarlo).">
+          <Input name={name(K.defaultDelivery)} defaultValue={v(K.defaultDelivery)} placeholder="Ej. Inmediata" />
+        </Field>
+        <Field label="Unidad que se pone sola" hint="«u» = unidad. Otros ejemplos: «m» (metros), «hs» (horas), «global».">
+          <Input name={name(K.defaultUnit)} defaultValue={v(K.defaultUnit)} />
+        </Field>
+        <Field label="Plazos para elegir de una lista" hint="Uno por renglón. Aparecen como opciones en la columna «Entrega». Ej.: Inmediata / 7 días / 15 días / A confirmar." wide>
+          <Textarea name={name(K.deliveryOptions)} rows={4} defaultValue={v(K.deliveryOptions)} placeholder={"Inmediata\n7 días\n15 días\nA confirmar"} />
+        </Field>
+      </SettingsBatchForm>
+    </>
   );
 
   const condiciones = (
-    <SettingsBatchForm title="Condiciones comerciales" description="Se copian a cada COT nueva y el texto del documento las toma (forma de pago, vigencia, entrega). El vendedor puede ajustarlas en cada cotización.">
-      <Field label="Vigencia de la oferta (días)">
+    <SettingsBatchForm title="Pago, entrega y garantía" description="Lo que sale en el apartado «Condiciones comerciales» del PDF. Cada cotización nueva arranca con esto y se puede cambiar en esa cotización.">
+      <Field label="¿Cuántos días vale la cotización?" hint="Ej.: 5 → «La oferta se mantiene por 5 días corridos».">
         <Input name={name(K.validityDays)} type="number" min={1} max={365} defaultValue={v(K.validityDays)} />
       </Field>
-      <Field label="Forma de pago">
+      <Field label="Forma de pago" hint="Ej.: «50% anticipo, saldo contra entrega» o «A convenir».">
         <Input name={name(K.paymentTerms)} defaultValue={v(K.paymentTerms)} />
       </Field>
-      <Field label="Plazo de entrega" wide>
+      <Field label="Plazo de entrega (texto general)" hint="Va en las condiciones. El plazo de cada producto se maneja en la tabla." wide>
         <Textarea name={name(K.deliveryText)} rows={2} defaultValue={v(K.deliveryText)} />
       </Field>
-      <Field label="Referencia de pago" wide>
+      <Field label="Cómo se paga en pesos" hint="Ej.: a qué dólar se convierte el precio al pagar." wide>
         <Textarea name={name(K.paymentReference)} rows={3} defaultValue={v(K.paymentReference)} />
       </Field>
-      <Field label="Garantía de producto" wide>
+      <Field label="Garantía" wide>
         <Textarea name={name(K.productWarranty)} rows={3} defaultValue={v(K.productWarranty)} />
       </Field>
     </SettingsBatchForm>
@@ -206,11 +238,14 @@ export default async function SettingsQuotesPage() {
   );
 
   const numeracion = (
-    <SettingsBatchForm
-      title="Numeración"
-      description={`Así sale el próximo número: ${numberPreview({ prefix: v(K.prefix), includeDate: v(K.includeDate), dateToken: v(K.dateToken), separator: v(K.separator), padding: v(K.padding), next: v(K.nextSequence) })}`}
-    >
-      <Field label="Prefijo">
+    <SettingsBatchForm title="Número de cotización" description="Cómo se arma el número de cada cotización nueva.">
+      <div className="rounded-lg bg-secondary/60 p-3 sm:col-span-2">
+        <p className="text-xs text-muted-foreground">La próxima cotización va a salir con el número</p>
+        <p className="mt-0.5 font-mono text-2xl font-semibold">
+          {numberPreview({ prefix: v(K.prefix), includeDate: v(K.includeDate), dateToken: v(K.dateToken), separator: v(K.separator), padding: v(K.padding), next: v(K.nextSequence) })}
+        </p>
+      </div>
+      <Field label="Letras del principio" hint="Ej.: COT">
         <Input name={name(K.prefix)} defaultValue={v(K.prefix)} />
       </Field>
       <Field label="Separador" hint="Entre prefijo, fecha y número (puede ir vacío).">
@@ -230,7 +265,7 @@ export default async function SettingsQuotesPage() {
           <option value="YYYYMMDD">Fecha completa (20261024)</option>
         </Select>
       </Field>
-      <Field label="Dígitos del número">
+      <Field label="Cantidad de dígitos" hint="Ej.: 5 → 00123">
         <Input name={name(K.padding)} type="number" min={1} max={10} defaultValue={v(K.padding)} />
       </Field>
       <Field label="Siguiente número" hint="Cuidado: bajarlo puede repetir números ya usados.">
@@ -242,11 +277,11 @@ export default async function SettingsQuotesPage() {
   const avanzado = (
     <div className="grid gap-3 sm:grid-cols-2">
       {[
-        { href: "/admin/settings/quotes/plantilla", title: "Textos de la plantilla", body: `Editá los ${blocksCount} módulos sobre un presupuesto de muestra. Se copian a las COT nuevas.` },
-        { href: "/admin/settings/quotes/variantes", title: "Variantes de texto", body: "Versiones alternativas de disciplinas, presentación e instalación." },
-        { href: "/admin/settings/quotes/modulos", title: "Módulos extra", body: "Bloques que se insertan a pedido en una cotización." },
-        { href: "/admin/settings/quotes/clasificadores", title: "Clasificadores internos", body: "Tipo de sala y escala, para sugerir equipos de casos parecidos." },
-        { href: "/admin/settings/quotes/marcas", title: "Logos sin marca en el catálogo", body: "Logos que se quieren mostrar y no son de una marca cargada (ej. certificaciones, partners)." },
+        { href: "/admin/settings/quotes/plantilla", title: "Editar los textos del PDF", body: `Presentación de la empresa, instalación, garantía, cierre… (${blocksCount} secciones). Los cambiás sobre una cotización de ejemplo y se usan en las nuevas.` },
+        { href: "/admin/settings/quotes/variantes", title: "Versiones alternativas de un texto", body: "Por ejemplo, otra forma de presentar la empresa o la instalación, para elegir en cada cotización." },
+        { href: "/admin/settings/quotes/modulos", title: "Secciones opcionales", body: "Bloques que podés sumar a mano en una cotización (no salen solos)." },
+        { href: "/admin/settings/quotes/clasificadores", title: "Datos internos de cada cotización", body: "Tipo de sala y tamaño. No salen en el PDF: sirven para sugerir equipos de proyectos parecidos." },
+        { href: "/admin/settings/quotes/marcas", title: "Otros logos", body: "Logos que no son de una marca del catálogo (certificaciones, partners)." },
       ].map((item) => (
         <Link key={item.href} href={item.href} className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-secondary/30">
           <p className="text-sm font-semibold">{item.title}</p>
@@ -268,11 +303,11 @@ export default async function SettingsQuotesPage() {
       />
       <SimpleTabs
         tabs={[
-          { key: "documento", label: "Documento", content: documento },
-          { key: "condiciones", label: "Condiciones", content: condiciones },
+          { key: "documento", label: "Cómo sale el PDF", content: documento },
+          { key: "condiciones", label: "Pago, entrega y garantía", content: condiciones },
           { key: "identidad", label: "Logos e imágenes", content: identidad },
-          { key: "numeracion", label: "Numeración", content: numeracion },
-          { key: "avanzado", label: "Plantilla y avanzado", content: avanzado },
+          { key: "numeracion", label: "Número de cotización", content: numeracion },
+          { key: "avanzado", label: "Textos del PDF", content: avanzado },
         ]}
       />
     </div>

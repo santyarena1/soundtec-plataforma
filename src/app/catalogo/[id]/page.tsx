@@ -1,3 +1,4 @@
+import { optimizedImage } from "@/lib/image-url";
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { isCatalogModeOn } from "@/lib/catalog-mode";
 import Link from "next/link";
@@ -196,7 +197,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
                   <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white">
                     {r.accessoryProduct.images[0]?.url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={r.accessoryProduct.images[0].url} alt={r.accessoryProduct.normalizedName} className="h-full w-full object-contain" loading="lazy" />
+                      <img src={optimizedImage(r.accessoryProduct.images[0].url, 256) ?? undefined} alt={r.accessoryProduct.normalizedName} className="h-full w-full object-contain" loading="lazy" />
                     ) : (
                       <Package className="h-5 w-5 text-muted-foreground" />
                     )}

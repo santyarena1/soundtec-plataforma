@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/image-url";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ZoomIn, ZoomOut, X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 
@@ -208,7 +209,7 @@ export function ProductGallery({ images, productName }: Props) {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={active.url}
+          src={optimizedImage(active.url, 1080) ?? active.url}
           alt={active.alt || productName}
           className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]"
           onLoad={(event) => {
@@ -250,8 +251,9 @@ export function ProductGallery({ images, productName }: Props) {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={img.url}
+                  src={optimizedImage(img.url, 256) ?? img.url}
                   alt={img.alt || `${productName} ${i + 1}`}
+                  loading="lazy"
                   className="h-full w-full object-contain"
                 />
               </button>

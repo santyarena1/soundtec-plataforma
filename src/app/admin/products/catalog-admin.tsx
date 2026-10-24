@@ -1,4 +1,5 @@
 "use client";
+import { optimizedImage } from "@/lib/image-url";
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { PriceEditorModal } from "@/components/pricing/price-editor-modal";
 
@@ -765,8 +766,10 @@ function renderCell(
       return r.primaryImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={r.primaryImage}
+          src={optimizedImage(r.primaryImage, 96) ?? undefined}
           alt={r.name}
+          loading="lazy"
+          decoding="async"
           className="h-12 w-12 rounded border border-border object-contain bg-white"
         />
       ) : (
@@ -945,7 +948,7 @@ function ProductPreviewModal({
             {row.primaryImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={row.primaryImage}
+                src={optimizedImage(row.primaryImage, 640) ?? undefined}
                 alt={row.name}
                 className="h-48 w-full rounded border border-border object-contain"
               />

@@ -2284,4 +2284,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "«Quitar de el pedido» → «Quitar del pedido»." },
     ],
   },
+  {
+    id: "ship-2026-10-25-config-cot-clara-imagenes-rapidas",
+    version: "2.15.0",
+    releasedAt: "2026-10-25T06:00:00.000Z",
+    summary: "Configuración de cotizaciones explicada con preguntas y ejemplos, y el catálogo carga las fotos mucho más rápido.",
+    items: [
+      { kind: "MEJORA", text: "Configuración → Cotizaciones con preguntas simples: «¿Qué tan completo sale el PDF?» (Corto, Estándar, Completo, con la lista de lo que incluye cada uno) y «¿Cómo se muestra el IVA?» con un ejemplo de cada forma." },
+      { kind: "MEJORA", text: "Solapas con nombres claros: Cómo sale el PDF · Pago, entrega y garantía · Logos e imágenes · Número de cotización · Textos del PDF. Cada campo explica qué hace con un ejemplo." },
+      { kind: "MEJORA", text: "Número de cotización: se ve en grande cómo va a salir la próxima." },
+      { kind: "FIX", text: "Catálogo más rápido: las fotos se piden achicadas y en caché (antes venían en tamaño completo, hasta 1 MB cada una, desde la página de cada fabricante). Una página de catálogo pasó de ~10 MB de fotos a menos de 1 MB." },
+    ],
+  },
 ];

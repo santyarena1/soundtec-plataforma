@@ -66,7 +66,7 @@ export const SETTINGS_GROUPS: SettingsSectionGroup[] = [
       {
         href: "/admin/settings/quotes",
         label: "Cotizaciones",
-        description: "Numeración, identidad del documento, condiciones y textos de plantilla.",
+        description: "Cómo sale el PDF, pago y garantía, logos, número de cotización y textos del documento.",
         icon: FileSpreadsheet,
         scope: "quotes.manage_library",
       },
