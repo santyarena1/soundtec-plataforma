@@ -211,6 +211,28 @@ export async function processBatch(
     };
   }
 
+  // Reserva: si otro proceso (el cron o una corrida manual) ya está con este lote,
+  // no se procesa dos veces. La reserva vence sola si el proceso se corta.
+  const leaseMs = 4 * 60_000;
+  const claimed = await prisma.syncRun.updateMany({
+    where: { id: run.id, processed: run.processed, OR: [{ leaseUntil: null }, { leaseUntil: { lt: new Date() } }] },
+    data: { leaseUntil: new Date(Date.now() + leaseMs) },
+  });
+  if (claimed.count === 0) {
+    return {
+      done: false,
+      processed: run.processed,
+      total: run.totalItems,
+      nextOffset: run.processed,
+      created: run.created,
+      updated: run.updated,
+      unchanged: run.unchanged,
+      priceChanges: run.priceChanges,
+      stockChanges: run.stockChanges,
+      errors: run.errors,
+    };
+  }
+
   try {
     const connector = listConnectors().find(
       (candidate) => candidate.source === run.source
@@ -390,6 +412,7 @@ export async function processBatch(
             ? "APPLYING"
             : "PREVIEW_READY",
         finishedAt: completed ? new Date() : undefined,
+        leaseUntil: null,
       },
     });
 
@@ -423,8 +446,12 @@ export async function runToCompletion(
   maxBatches = 200
 ): Promise<void> {
   const limit = Math.max(0, Math.trunc(maxBatches));
+  let previous = -1;
   for (let batch = 0; batch < limit; batch++) {
     const result = await processBatch(runId, batchSize);
     if (result.done) return;
+    // Sin avance: otro proceso tiene reservado el lote (o el proveedor no devolvió nada). Se corta acá.
+    if (result.processed === previous) return;
+    previous = result.processed;
   }
 }

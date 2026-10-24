@@ -1595,6 +1595,8 @@ model SyncRun {
   mode         String
   totalItems   Int            @default(0)
   processed    Int            @default(0)
+  /// Reserva del lote en curso: mientras no venza, nadie más procesa esta corrida.
+  leaseUntil   DateTime?
   matched      Int            @default(0)
   created      Int            @default(0)
   updated      Int            @default(0)

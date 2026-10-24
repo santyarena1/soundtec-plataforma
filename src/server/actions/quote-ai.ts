@@ -2,7 +2,7 @@
 
 import { QuoteAiCapability } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
+import { loadQuoteForEdit, requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { getQuoteOpenAI } from "@/lib/quote-llm";
 import { generateQuoteProposal, previewRewriteQuoteNode, rewriteQuoteNode, rewriteQuoteTemplateBlock } from "@/services/quote-orchestrator";
@@ -11,8 +11,8 @@ import { recordQuoteSnapshot } from "@/lib/quote-edit-history";
 import { revalidatePath } from "next/cache";
 
 export async function generateQuoteFromBrief(quoteId: string): Promise<{ ok: boolean; error?: string; message?: string }> {
-  const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   try {
     await recordQuoteSnapshot({
       quoteId,
@@ -38,8 +38,8 @@ export async function previewReviseQuoteNode(input: {
   kind: "item" | "section";
   instruction: string;
 }): Promise<{ ok: boolean; error?: string; body?: string; previousBody?: string }> {
-  const loaded = await loadQuoteForUser(input.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   const instruction = input.instruction.trim();
   if (instruction.length < 3) return { ok: false, error: "Escribí una instrucción." };
   const oa = await getQuoteOpenAI();
@@ -58,8 +58,8 @@ export async function reviseQuoteNode(input: {
   kind: "item" | "section";
   instruction: string;
 }): Promise<{ ok: boolean; error?: string; message?: string; body?: string }> {
-  const loaded = await loadQuoteForUser(input.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   const instruction = input.instruction.trim();
   if (instruction.length < 3) return { ok: false, error: "Escribí una instrucción." };
 
@@ -139,8 +139,8 @@ export async function reviseQuoteTemplateBlock(input: {
 export async function ensureQuoteProductShortDescriptions(
   quoteId: string
 ): Promise<{ ok: boolean; filled?: number; error?: string }> {
-  const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   const productIds = [
     ...new Set(loaded.quote.items.map((item) => item.productId).filter((id): id is string => Boolean(id))),
   ];
@@ -171,8 +171,8 @@ export async function regenerateQuoteProductShortDescription(input: {
   quoteId: string;
   productId: string;
 }): Promise<{ ok: boolean; text?: string; error?: string }> {
-  const loaded = await loadQuoteForUser(input.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   const onQuote = loaded.quote.items.some((item) => item.productId === input.productId);
   if (!onQuote) return { ok: false, error: "Ese producto no está en la planilla." };
   try {

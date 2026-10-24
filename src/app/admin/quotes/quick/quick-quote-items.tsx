@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatUsd } from "@/lib/utils";
+import { tangoCode } from "@/lib/product-display";
 
 export type QuickItem = {
   /** Id de la línea: el mismo producto puede ir en varias líneas (ej. uno sin cargo y otro cobrado). */
@@ -15,6 +16,8 @@ export type QuickItem = {
   discountPercent: number;
   note: string;
   included: boolean;
+  /** Descripción corta debajo del modelo. */
+  subtitle?: string | null;
   /** IVA de la ficha; null = el IVA por defecto de cotizaciones. */
   ivaPercent: number | null;
   /** Línea «incluida sin cargo» que viene con otra: sigue su cantidad. */
@@ -81,8 +84,7 @@ export function QuickQuoteItems({
                 <td className={`p-2 ${item.parentUid ? "pl-6" : ""}`}>
                   <p className="font-medium">{item.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {item.sku || "Sin SKU"}
-                    {item.included ? " · Incluido sin cargo" : ""}
+                    {[tangoCode(item.sku) ? `Tango ${tangoCode(item.sku)}` : null, item.included ? "Incluido sin cargo" : item.subtitle].filter(Boolean).join(" · ")}
                     {item.parentUid ? ` · ${item.perParent ?? 1} por unidad` : ""}
                   </p>
                 </td>

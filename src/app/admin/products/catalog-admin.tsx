@@ -1,4 +1,5 @@
 "use client";
+import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { PriceEditorModal } from "@/components/pricing/price-editor-modal";
 
 import Link from "next/link";
@@ -737,8 +738,6 @@ const STOCK_TONE: Record<string, "success" | "warning" | "muted" | "accent"> = {
   ON_REQUEST: "accent",
 };
 
-const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /** Datos que le faltan al producto para verse bien en el catálogo. */
 function missingData(r: Row): string[] {
   return [!r.primaryImage && "foto", !r.category && "categoría", !r.hasDescription && "descripción"].filter(Boolean) as string[];
@@ -769,9 +768,14 @@ function renderCell(
     case "name":
       return (
         <div className="min-w-[280px] max-w-[420px]">
-          <Link href={`/admin/products/${r.id}`} data-tour="products-open-row" className="break-words font-medium hover:underline">
-            {r.name}
+          <Link href={`/admin/products/${r.id}`} data-tour="products-open-row" className="break-words font-semibold hover:underline">
+            {productTitle({ normalizedName: r.name })}
           </Link>
+          {productSubtitle({ normalizedName: r.name, originalName: r.originalName, shortDescription: r.shortDescription }) ? (
+            <p className="line-clamp-1 text-xs text-muted-foreground">
+              {productSubtitle({ normalizedName: r.name, originalName: r.originalName, shortDescription: r.shortDescription })}
+            </p>
+          ) : null}
           <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
             {r.kind === "ACCESORIO" ? "Accesorio" : "Principal"}
             {r.isCustomizable ? " · Configurable" : ""}
@@ -785,7 +789,7 @@ function renderCell(
       );
     case "sku":
       // Los ids internos (tipo UUID) no son un código que sirva leer.
-      return r.sku && !UUID_LIKE.test(r.sku) ? r.sku : <span className="text-muted-foreground">—</span>;
+      return tangoCode(r.sku) ?? <span className="text-muted-foreground">—</span>;
     case "margin":
       return r.markup > 0 ? (
         <div className="min-w-[9rem]">

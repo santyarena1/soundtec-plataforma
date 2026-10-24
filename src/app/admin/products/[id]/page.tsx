@@ -1,3 +1,4 @@
+import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { notFound, redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth-helpers";
 import { permissionsHave } from "@/lib/permissions";
@@ -120,8 +121,14 @@ export default async function AdminProductEditPage({ params }: { params: Promise
       </BackToCatalogLink>
 
       <PageHeader
-        title={product.normalizedName}
-        description={`SKU: ${product.internalSku || "—"}${product.supplierSku ? ` · Proveedor: ${product.supplierSku}` : ""}`}
+        title={productTitle(product)}
+        description={[
+          productSubtitle(product),
+          tangoCode(product.internalSku) ? `Código Tango: ${tangoCode(product.internalSku)}` : "Sin código Tango",
+          product.supplierSku ? `SKU proveedor: ${product.supplierSku}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
         actions={
           <>
             {product.isActive ? <Badge tone="success">Activo</Badge> : <Badge tone="muted">Inactivo</Badge>}

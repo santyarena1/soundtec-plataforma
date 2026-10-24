@@ -64,3 +64,19 @@ export async function loadQuoteForUser(id: string) {
   if (!ok) return { quote: null, user, permissions, forbidden: true as const };
   return { quote, user, permissions, forbidden: false as const };
 }
+
+/**
+ * Para MODIFICAR una cotización: exige el permiso «Editar cotizaciones», que
+ * pueda verla y que no esté emitida. Devuelve la misma forma que
+ * loadQuoteForUser; si algo falla, `quote` viene en null y `blockedReason`
+ * dice por qué. Antes muchas acciones solo pedían permiso de ver.
+ */
+export async function loadQuoteForEdit(id: string) {
+  await requireQuotePermission("quotes.edit");
+  const loaded = await loadQuoteForUser(id);
+  if (!loaded.quote) return { ...loaded, blockedReason: "Sin acceso a esta cotización." as string | null };
+  if (loaded.quote.status === "ISSUED") {
+    return { ...loaded, quote: null, blockedReason: "La cotización ya está emitida: duplicala para cambiarla." as string | null };
+  }
+  return { ...loaded, blockedReason: null as string | null };
+}

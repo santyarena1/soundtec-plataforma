@@ -227,7 +227,9 @@ export async function approveAllRows(formData: FormData): Promise<{ ok: boolean;
 
       const existing = await prisma.product.findUnique({ where: { internalSku: sku } });
       const alwaysUpdate = {
-        supplierSku,
+        // Si la fila no trae SKU de proveedor, se conserva el que tenía: es la clave con la que
+        // la sincronización reconoce el producto (borrarlo creaba un duplicado en la próxima corrida).
+        supplierSku: supplierSku ?? undefined,
         baseCostUsd: Number(draft.baseCostUsd ?? 0),
         currency: String(draft.currency || "USD"),
         discountPercent: draft.discountPercent != null ? Number(draft.discountPercent) : undefined,

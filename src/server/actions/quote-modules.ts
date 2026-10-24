@@ -3,7 +3,7 @@
 import { QuoteAssetKind, QuoteNodeSource, QuoteSectionOrigin } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
+import { loadQuoteForEdit, requireQuotePermission } from "@/lib/quote-access";
 import {
   CUSTOM_SECTION_TYPE,
   parseQuoteModuleLayout,
@@ -69,8 +69,8 @@ export async function createCustomQuoteModule(input: {
   layout?: string;
   saveToLibrary?: boolean;
 }): Promise<{ ok: boolean; error?: string; sectionId?: string }> {
-  const loaded = await loadQuoteForUser(input.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
 
   const title = input.title.trim();
   if (!title) return { ok: false, error: "Poné un título para el módulo." };
@@ -132,8 +132,8 @@ export async function insertLibraryModule(input: {
   quoteId: string;
   libraryId: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const loaded = await loadQuoteForUser(input.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
 
   const draft = await prisma.quoteModuleLibrary.findUnique({
     where: { id: input.libraryId },
@@ -182,8 +182,8 @@ export async function updateQuoteSectionLayout(input: {
 }): Promise<{ ok: boolean; error?: string }> {
   const section = await prisma.quoteSection.findUnique({ where: { id: input.sectionId } });
   if (!section) return { ok: false, error: "El módulo ya no existe." };
-  const loaded = await loadQuoteForUser(section.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(section.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   await prisma.quoteSection.update({
     where: { id: section.id },
     data: { layout: parseQuoteModuleLayout(input.layout) },
@@ -197,8 +197,8 @@ export async function saveSectionToLibrary(input: {
 }): Promise<{ ok: boolean; error?: string }> {
   const section = await prisma.quoteSection.findUnique({ where: { id: input.sectionId } });
   if (!section) return { ok: false, error: "El módulo ya no existe." };
-  const loaded = await loadQuoteForUser(section.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(section.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
 
   const images = loaded.quote.assets
     .filter((asset) => asset.sectionId === section.id)
@@ -247,8 +247,8 @@ export async function removeCustomQuoteModule(input: {
   const section = await prisma.quoteSection.findUnique({ where: { id: input.sectionId } });
   if (!section) return { ok: false, error: "El módulo ya no existe." };
   if (section.type !== CUSTOM_SECTION_TYPE) return { ok: false, error: "Sólo se pueden quitar módulos extra." };
-  const loaded = await loadQuoteForUser(section.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(section.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   await prisma.quoteAsset.deleteMany({ where: { sectionId: section.id } });
   await prisma.quoteSection.delete({ where: { id: section.id } });
   revalidateQuote(section.quoteId);

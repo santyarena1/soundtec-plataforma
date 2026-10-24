@@ -10,6 +10,7 @@ import { calculatePricesForProducts } from "@/lib/pricing";
 import { getGlobalMarginPercent, getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { buildProductSearchWhere, sortBySearchRelevance } from "@/lib/product-search";
+import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 
 const itemSchema = z.object({
   productId: z.string(),
@@ -183,8 +184,11 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
   );
   return products.map((p) => ({
     id: p.id,
-    name: p.normalizedName,
+    name: productTitle(p),
+    /** Descripción debajo del modelo (misma regla que el catálogo). */
+    subtitle: productSubtitle(p),
     sku: p.internalSku,
+    tango: tangoCode(p.internalSku),
     brand: p.brand?.name || null,
     stock: p.stockStatus,
     price: prices.get(p.id)?.finalPriceUsd ?? 0,

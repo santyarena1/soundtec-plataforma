@@ -1,3 +1,4 @@
+import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { isCatalogModeOn } from "@/lib/catalog-mode";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -101,13 +102,13 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {[product.brand?.name, product.category?.name].filter(Boolean).join(" · ") || "Producto"}
             </p>
-            <h1 className="heading-2 text-2xl leading-tight sm:text-3xl">{product.normalizedName}</h1>
-            {product.shortDescription ? <p className="muted-text">{product.shortDescription}</p> : null}
+            <h1 className="heading-2 text-2xl leading-tight sm:text-3xl">{productTitle(product)}</h1>
+            {productSubtitle(product) ? <p className="muted-text">{productSubtitle(product)}</p> : null}
             <div className="flex flex-wrap items-center gap-2 pt-1">
               {product.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : null}
               {product.isCustomizable ? <Badge tone="accent">Configurable</Badge> : null}
               {product.isCrestronHomeCompatible ? <Badge tone="primary">Crestron Home</Badge> : null}
-              {product.modelNumber ? (
+              {product.modelNumber && product.modelNumber.trim().toLowerCase() !== productTitle(product).toLowerCase() ? (
                 <span className="text-xs text-muted-foreground">Modelo: {product.modelNumber}</span>
               ) : null}
             </div>

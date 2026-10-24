@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { productSubtitle, productTitle } from "@/lib/product-display";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { formatUsd } from "@/lib/utils";
 import { FavoriteButton } from "./favorite-button";
@@ -46,8 +47,8 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
                   ) : null}
                 </span>
                 <span className="min-w-0">
-                  <span className="block break-words text-sm font-medium">{p.normalizedName}</span>
-                  <span className="block text-xs text-muted-foreground">{p.internalSku || "—"}</span>
+                  <span className="block break-words text-sm font-medium">{productTitle(p)}</span>
+                  {productSubtitle(p) ? <span className="block line-clamp-1 text-xs text-muted-foreground">{productSubtitle(p)}</span> : null}
                 </span>
               </Link>
             </TD>

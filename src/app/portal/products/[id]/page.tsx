@@ -1,3 +1,4 @@
+import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { notFound } from "next/navigation";
 import { getCurrentPermissions, requireUser } from "@/lib/auth-helpers";
 import { canSeeCosts, isPanelRole, permissionsHave } from "@/lib/permissions";
@@ -272,10 +273,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               {product.category?.name ? ` · ${product.category.name}` : ""}
               {product.family?.name ? ` · ${product.family.name}` : ""}
             </p>
-            <h1 className="heading-2 text-2xl leading-tight sm:text-3xl">{product.normalizedName}</h1>
-            {product.shortDescription ? (
-              <p className="muted-text mt-2">{product.shortDescription}</p>
-            ) : null}
+            <h1 className="heading-2 text-2xl leading-tight sm:text-3xl">{productTitle(product)}</h1>
+            {productSubtitle(product) ? <p className="muted-text mt-2">{productSubtitle(product)}</p> : null}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StockBadge status={product.stockStatus} qty={product.stockQuantity} />
               {product.isCustomizable ? <Badge tone="accent">Configurable</Badge> : null}
@@ -283,7 +282,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               {pricing.discountPercent > 0 ? (
                 <Badge tone="success">Descuento {formatPercent(pricing.discountPercent)}</Badge>
               ) : null}
-              <span className="text-xs text-muted-foreground">SKU: {product.internalSku || product.modelNumber || product.supplierSku || "—"}</span>
+              {isAdminViewer && tangoCode(product.internalSku) ? (
+                <span className="text-xs text-muted-foreground">Código Tango: {tangoCode(product.internalSku)}</span>
+              ) : null}
             </div>
           </div>
 

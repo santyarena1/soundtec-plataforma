@@ -140,7 +140,8 @@ export async function lastCompletedRunMs(
     soundtube: "SOUNDTUBE",
   };
   const run = await prisma.syncRun.findFirst({
-    where: { source: sourceKind[source], status: "COMPLETED" },
+    // Solo cuenta una aplicación real: una vista previa manual no reemplaza la corrida programada.
+    where: { source: sourceKind[source], status: "COMPLETED", mode: "apply" },
     orderBy: { finishedAt: "desc" },
     select: { finishedAt: true },
   });

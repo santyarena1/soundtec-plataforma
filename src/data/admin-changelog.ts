@@ -2231,4 +2231,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "El Código Tango ya no es obligatorio: un producto puede existir aunque no esté en Tango." },
     ],
   },
+  {
+    id: "ship-2026-10-24-nombres-iguales-seguridad-sync",
+    version: "2.11.0",
+    releasedAt: "2026-10-24T18:00:00.000Z",
+    summary: "El producto se llama igual en todas las pantallas, más seguridad en cotizaciones y la importación/sincronización ya no duplican productos.",
+    items: [
+      { kind: "MEJORA", text: "Nombre igual en todos lados: el modelo como título (ej. PPX15), la descripción debajo y la marca arriba, sin repetir el código. Catálogo del cliente, catálogo público, panel, fichas y cotización rápida." },
+      { kind: "FIX", text: "Ya no aparecen códigos internos ilegibles como «SKU»: en el panel se muestra el Código Tango cuando existe." },
+      { kind: "FIX", text: "Seguridad: todas las acciones que modifican una cotización (IA, marcas, imágenes, módulos) exigen permiso de editar y que no esté emitida." },
+      { kind: "FIX", text: "Las imágenes traídas de internet solo se aceptan de direcciones públicas y si son imágenes." },
+      { kind: "FIX", text: "Importar Excel ya no borra el SKU del proveedor cuando la fila no lo trae (eso hacía que la sincronización duplicara el producto)." },
+      { kind: "FIX", text: "La sincronización automática y una manual ya no procesan el mismo lote dos veces; una vista previa manual no reemplaza la corrida programada." },
+    ],
+  },
 ];

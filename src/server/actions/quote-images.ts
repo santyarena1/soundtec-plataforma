@@ -3,8 +3,7 @@
 import { QuoteAiCapability, QuoteAssetKind, QuoteNodeSource } from "@prisma/client";
 import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
-import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
-import { getCurrentPermissions } from "@/lib/auth-helpers";
+import { loadQuoteForEdit, requireQuotePermission } from "@/lib/quote-access";
 import { searchProductImages } from "@/services/serper";
 import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
@@ -39,6 +38,21 @@ export async function searchQuoteImages(query: string) {
   return searchProductImages(query, 8);
 }
 
+/** Solo http(s) públicos: nada de localhost, redes internas ni metadatos del servidor. */
+function isPublicHttpUrl(raw: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") || host === "0.0.0.0" || host === "::1") return false;
+  if (/^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|fc|fd|fe80)/.test(host)) return false;
+  return true;
+}
+
 export async function attachSerperImage(input: {
   quoteId: string;
   url: string;
@@ -46,12 +60,14 @@ export async function attachSerperImage(input: {
   productId?: string;
   sectionId?: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const loaded = await loadQuoteForUser(input.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
+  if (!isPublicHttpUrl(input.url)) return { ok: false, error: "La dirección de la imagen no es válida." };
   let url = input.url;
   try {
-    const res = await fetch(input.url);
-    if (res.ok) {
+    const res = await fetch(input.url, { signal: AbortSignal.timeout(10_000), redirect: "follow" });
+    const type = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
+    if (res.ok && type.startsWith("image/") && isPublicHttpUrl(res.url)) {
       const buf = await res.arrayBuffer();
       const stored = await storeImage(
         `quotes/${input.quoteId}/${Date.now()}.jpg`,
@@ -106,8 +122,8 @@ export async function generateQuoteConceptImage(input: {
   prompt: string;
   sectionId?: string;
 }): Promise<{ ok: boolean; error?: string; message?: string }> {
-  const loaded = await loadQuoteForUser(input.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
 
   const provider = await getSetting(QUOTE_SETTING_KEYS.imageGenProvider, "openai");
   if (provider === "higgsfield") {
@@ -174,8 +190,8 @@ export async function generateQuoteConceptImage(input: {
 
 export async function attachQuotePlan(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const quoteId = String(formData.get("quoteId") || "");
-  const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   const file = formData.get("file");
   const urlField = String(formData.get("url") || "").trim();
   let url = urlField;
@@ -214,15 +230,15 @@ export async function deleteQuoteAsset(formData: FormData): Promise<void> {
   const id = String(formData.get("assetId") || "");
   const asset = await prisma.quoteAsset.findUnique({ where: { id } });
   if (!asset || asset.locked) return;
-  const loaded = await loadQuoteForUser(asset.quoteId);
+  const loaded = await loadQuoteForEdit(asset.quoteId);
   if (!loaded.quote) return;
   await prisma.quoteAsset.delete({ where: { id } });
   revalidatePath(`/admin/quotes/${asset.quoteId}`);
 }
 
 export async function fillQuoteProductImagesFromCatalog(quoteId: string): Promise<{ ok: boolean; error?: string }> {
-  const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   await fillMissingQuoteProductImages(quoteId);
   revalidatePath(`/admin/quotes/${quoteId}`);
   return { ok: true };
@@ -232,8 +248,8 @@ export async function restoreQuoteProductCatalogImage(input: {
   quoteId: string;
   productId: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const loaded = await loadQuoteForUser(input.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   const img = await catalogPrimaryImage(input.productId);
   if (!img) return { ok: false, error: "Este producto no tiene foto en el catálogo." };
   const item = loaded.quote.items.find((i) => i.productId === input.productId);
@@ -251,8 +267,8 @@ export async function restoreQuoteProductCatalogImage(input: {
 export async function uploadQuoteProductImage(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const quoteId = String(formData.get("quoteId") || "");
   const productId = String(formData.get("productId") || "");
-  const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   if (!productId) return { ok: false, error: "Falta el producto." };
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Elegí un archivo." };
@@ -279,8 +295,8 @@ export async function uploadQuoteProductImage(formData: FormData): Promise<{ ok:
 
 export async function uploadQuoteContextImage(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const quoteId = String(formData.get("quoteId") || "");
-  const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Elegí un archivo." };
   const buf = await file.arrayBuffer();

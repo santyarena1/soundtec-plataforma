@@ -1,5 +1,6 @@
 "use client";
 
+import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import Link from "next/link";
 import { ImageOff, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ export type AdminCardRow = {
   sku: string;
   name: string;
   originalName: string;
+  shortDescription: string | null;
   primaryImage: string | null;
   brand: string | null;
   category: string | null;
@@ -54,7 +56,10 @@ export function AdminProductCards({
         const isSelected = selected.has(row.id);
         const missing = [!row.primaryImage && "foto", !row.category && "categoría", !row.hasDescription && "descripción"].filter(Boolean) as string[];
         const stock = STOCK[row.stockStatus];
-        const title = /^[A-Z0-9][A-Z0-9 ._/-]{1,30}$/.test(row.name) && row.originalName && row.originalName !== row.name ? row.originalName : row.name;
+        const display = { normalizedName: row.name, originalName: row.originalName, shortDescription: row.shortDescription };
+        const title = productTitle(display);
+        const subtitle = productSubtitle(display);
+        const tango = tangoCode(row.sku);
         return (
           <li
             key={row.id}
@@ -75,11 +80,13 @@ export function AdminProductCards({
             </Link>
             <div className="flex flex-1 flex-col gap-2 border-t border-border p-3">
               <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                {[row.brand, row.sku && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(row.sku) ? row.sku : null].filter(Boolean).join(" · ") || "Sin marca"}
+                {row.brand || "Sin marca"}
+                {tango ? <span className="normal-case tracking-normal"> · Tango {tango}</span> : null}
               </p>
-              <Link href={`/admin/products/${row.id}`} className="line-clamp-2 text-sm font-medium leading-snug hover:underline">
+              <Link href={`/admin/products/${row.id}`} className="line-clamp-1 text-sm font-semibold leading-snug hover:underline">
                 {title}
               </Link>
+              {subtitle ? <p className="-mt-1 line-clamp-2 text-xs text-muted-foreground">{subtitle}</p> : null}
               <div className="flex flex-wrap gap-1">
                 {!row.isActive ? <Badge tone="muted">Inactivo</Badge> : null}
                 {row.kind === "ACCESORIO" ? <Badge tone="neutral">Accesorio</Badge> : null}

@@ -3,7 +3,7 @@
 import { brandLogoSrc } from "@/lib/brand-logo";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { loadQuoteForUser } from "@/lib/quote-access";
+import { loadQuoteForEdit, requireQuotePermission } from "@/lib/quote-access";
 import { getCurrentPermissions } from "@/lib/auth-helpers";
 import { permissionsHave } from "@/lib/permissions";
 import { searchProductImages } from "@/services/serper";
@@ -28,7 +28,7 @@ async function persistRemoteLogo(pathname: string, url: string) {
 }
 
 export async function listBrandLibrary() {
-  await getCurrentPermissions();
+  await requireQuotePermission("quotes.edit");
   return prisma.quoteBrandLogo.findMany({
     where: { isActive: true },
     orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
@@ -83,7 +83,7 @@ export async function deleteBrandLibraryLogo(id: string): Promise<{ ok: boolean;
 }
 
 export async function searchBrandLogoImages(query: string) {
-  await getCurrentPermissions();
+  await requireQuotePermission("quotes.edit");
   return searchProductImages(query, 8);
 }
 
@@ -91,8 +91,8 @@ export async function setQuoteBrandsMode(
   quoteId: string,
   mode: BrandsDisplayMode | null
 ): Promise<{ ok: boolean; error?: string }> {
-  const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
 
   await prisma.quote.update({
     where: { id: quoteId },
@@ -109,8 +109,8 @@ export async function setQuoteBrandsMode(
 
 /** Rellena logos individuales a partir de marcas en la planilla + biblioteca. */
 export async function syncQuoteBrandSelections(quoteId: string): Promise<{ ok: boolean; error?: string }> {
-  const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
 
   const products = await prisma.quoteItem.findMany({
     where: { quoteId, productId: { not: null } },
@@ -191,8 +191,8 @@ export async function toggleQuoteBrandVisibility(
 ): Promise<{ ok: boolean; error?: string }> {
   const row = await prisma.quoteBrandSelection.findUnique({ where: { id: selectionId } });
   if (!row) return { ok: false, error: "Logo no encontrado." };
-  const loaded = await loadQuoteForUser(row.quoteId);
-  if (!loaded.quote) return { ok: false, error: "No editable." };
+  const loaded = await loadQuoteForEdit(row.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "No editable." };
 
   await prisma.quoteBrandSelection.update({ where: { id: selectionId }, data: { visible } });
   revalidatePath(`/admin/quotes/${row.quoteId}`);
@@ -202,8 +202,8 @@ export async function toggleQuoteBrandVisibility(
 export async function removeQuoteBrandSelection(selectionId: string): Promise<{ ok: boolean; error?: string }> {
   const row = await prisma.quoteBrandSelection.findUnique({ where: { id: selectionId } });
   if (!row) return { ok: false, error: "Logo no encontrado." };
-  const loaded = await loadQuoteForUser(row.quoteId);
-  if (!loaded.quote) return { ok: false, error: "No editable." };
+  const loaded = await loadQuoteForEdit(row.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "No editable." };
 
   await prisma.quoteBrandSelection.delete({ where: { id: selectionId } });
   revalidatePath(`/admin/quotes/${row.quoteId}`);
@@ -217,8 +217,8 @@ export async function addQuoteBrandSelection(input: {
   saveToLibrary?: boolean;
   brandId?: string | null;
 }): Promise<{ ok: boolean; error?: string }> {
-  const loaded = await loadQuoteForUser(input.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
 
   const label = input.label.trim();
   let url = input.url.trim();
@@ -264,8 +264,8 @@ export async function addLibraryLogoToQuote(
   quoteId: string,
   libraryLogoId: string
 ): Promise<{ ok: boolean; error?: string }> {
-  const loaded = await loadQuoteForUser(quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
 
   const lib = await prisma.quoteBrandLogo.findUnique({ where: { id: libraryLogoId } });
   if (!lib || !lib.isActive) return { ok: false, error: "Logo no encontrado." };

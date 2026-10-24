@@ -99,6 +99,7 @@ export function QuickQuoteForm({
       note: "",
       included: false,
       ivaPercent: product.ivaPercent,
+      subtitle: product.subtitle,
     };
     const included: QuickItem[] = product.accessories
       .filter((a) => a.kind === "INCLUDED")
@@ -243,8 +244,10 @@ export function QuickQuoteForm({
                 onClick={() => add(p)}
                 className="flex w-full justify-between border-b p-2 text-left text-sm"
               >
-                <span>
-                  {p.name} · {p.sku || "Sin SKU"} · {p.brand}
+                <span className="min-w-0">
+                  <span className="font-medium">{p.name}</span>
+                  <span className="text-muted-foreground">{p.brand ? ` · ${p.brand}` : ""}{p.tango ? ` · Tango ${p.tango}` : ""}</span>
+                  {p.subtitle ? <span className="block truncate text-xs text-muted-foreground">{p.subtitle}</span> : null}
                 </span>
                 <b>{formatUsd(p.price)}</b>
               </button>

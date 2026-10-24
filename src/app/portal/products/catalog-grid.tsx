@@ -1,3 +1,4 @@
+import { productSubtitle, productTitle } from "@/lib/product-display";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { formatUsd } from "@/lib/utils";
@@ -68,15 +69,9 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
             </div>
 
             <div className="flex flex-1 flex-col p-3.5">
-              {/* Marca · SKU — 1 línea */}
-              <p className="flex h-4 items-center gap-1.5 truncate text-[11px] uppercase tracking-wider text-muted-foreground">
-                <span className="shrink-0">{p.brandName || "—"}</span>
-                {displaySku(p) ? (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span className="min-w-0 truncate normal-case tracking-normal">{displaySku(p)}</span>
-                  </>
-                ) : null}
+              {/* Marca — 1 línea (el modelo va en el título, no se repite) */}
+              <p className="flex h-4 items-center truncate text-[11px] uppercase tracking-wider text-muted-foreground">
+                {p.brandName || "—"}
               </p>
 
               {/* Nombre — 2 líneas reservadas */}
@@ -158,38 +153,16 @@ export function priceOnRequest(p: Pick<CatalogProduct, "requiresQuote" | "pricin
   return p.requiresQuote || !p.pricing || p.pricing.finalPriceUsd <= 0;
 }
 
-/**
- * Título de la card: el nombre del producto, salvo que sea solo el código
- * (pasa con SoundTube y otros catálogos que nombran por SKU); ahí va el título
- * descriptivo del fabricante, porque el código ya está arriba.
- */
+/** Título: el modelo (igual en todas las pantallas, ver lib/product-display). */
 function cardTitle(p: CatalogProduct): string {
-  const name = p.normalizedName.trim();
-  const original = p.originalName?.trim();
-  const codeOnly = name === displaySku(p) || !/\s/.test(name);
-  return codeOnly && original && original !== name ? original : name;
+  return productTitle(p);
 }
 
-/** Descripción corta (sin repetir el título). */
+/** Debajo del título: la descripción, sin repetir el modelo. */
 function cardDescription(p: CatalogProduct): string | null {
-  const text = p.shortDescription?.replace(/\s+/g, " ").trim();
-  if (!text || text === cardTitle(p)) return null;
-  return text;
+  return productSubtitle(p);
 }
 
-const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MAX_SKU_LENGTH = 24;
-
-/** SKU legible para la card: modelo del fabricante o SKU corto; nunca un UUID interno. */
-function displaySku(p: CatalogProduct): string | null {
-  const candidates = [p.modelNumber, p.supplierSku, p.internalSku];
-  for (const value of candidates) {
-    const clean = value?.trim();
-    if (!clean || UUID_LIKE.test(clean) || clean.length > MAX_SKU_LENGTH) continue;
-    return clean;
-  }
-  return null;
-}
 
 export function StockBadge({ status, qty }: { status: string; qty: number | null }) {
   if (!SHOW_STOCK_TO_CUSTOMERS) return null;
