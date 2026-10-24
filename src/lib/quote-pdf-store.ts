@@ -1,3 +1,4 @@
+import { visibleQuoteBrandLogos } from "@/lib/quote-brands";
 import { prisma } from "@/lib/prisma";
 import { storeQuoteBlob } from "@/server/actions/quote-images";
 import { buildQuotePdf } from "@/lib/quote-pdf";
@@ -51,6 +52,7 @@ export async function generateAndStoreQuotePdf(quoteId: string, actorId: string)
       itemGroups: quote.itemGroups,
       alternatives: quote.alternatives,
       // Igual que la vista previa: condiciones comerciales y fotos de producto.
+      brandLogos: await visibleQuoteBrandLogos(quote.id),
       terms: quote.terms,
       sections: quote.sections,
       assets: quote.assets.map((asset) => ({

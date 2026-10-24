@@ -117,10 +117,9 @@ export async function applyClassificationSuggestion(input: {
     if (input.brandName) {
       // Marcas no se crean automáticamente (precaución: brand es una entidad
       // con datos comerciales). Solo se aplica si existe.
+      // Si la marca sugerida no existe, se deja la que tenía (nunca se borra).
       const b = await prisma.brand.findFirst({ where: { name: { equals: input.brandName, mode: "insensitive" } } });
-      data.brandId = b?.id ?? null;
-    } else {
-      data.brandId = null;
+      if (b) data.brandId = b.id;
     }
   }
   if (input.categoryName !== undefined) {
@@ -132,9 +131,7 @@ export async function applyClassificationSuggestion(input: {
         });
         createdCategory = true;
       }
-      data.categoryId = c?.id ?? null;
-    } else {
-      data.categoryId = null;
+      if (c) data.categoryId = c.id;
     }
   }
   if (input.familyName !== undefined) {
@@ -146,11 +143,10 @@ export async function applyClassificationSuggestion(input: {
         });
         createdFamily = true;
       }
-      data.familyId = f?.id ?? null;
-    } else {
-      data.familyId = null;
+      if (f) data.familyId = f.id;
     }
   }
+  if (Object.keys(data).length === 0) return { ok: false, error: "La sugerencia no coincide con marcas, rubros o subrubros existentes: no se cambió nada." };
 
   await prisma.product.update({ where: { id: input.productId }, data });
   revalidatePath(`/admin/products/${input.productId}`);
@@ -388,11 +384,13 @@ export async function setPrimaryImage(formData: FormData): Promise<void> {
   const id = String(formData.get("id") || "");
   const productId = String(formData.get("productId") || "");
   if (!id || !productId) return;
-  await prisma.productImage.updateMany({
-    where: { productId },
-    data: { isPrimary: false },
-  });
-  await prisma.productImage.update({ where: { id }, data: { isPrimary: true } });
+  // La imagen tiene que ser de este producto: si no, no se toca nada.
+  const image = await prisma.productImage.findFirst({ where: { id, productId }, select: { id: true } });
+  if (!image) return;
+  await prisma.$transaction([
+    prisma.productImage.updateMany({ where: { productId }, data: { isPrimary: false } }),
+    prisma.productImage.update({ where: { id }, data: { isPrimary: true } }),
+  ]);
   revalidateProductImages(productId);
 }
 
@@ -536,8 +534,9 @@ export async function deleteProductImage(formData: FormData): Promise<void> {
   await requireStaff("products.edit", { costs: true });
   const id = String(formData.get("id") || "");
   const productId = String(formData.get("productId") || "");
-  if (!id) return;
-  await prisma.productImage.delete({ where: { id } });
-  if (productId) await ensureProductHasPrimaryImage(productId);
+  if (!id || !productId) return;
+  const removed = await prisma.productImage.deleteMany({ where: { id, productId } });
+  if (!removed.count) return;
+  await ensureProductHasPrimaryImage(productId);
   revalidateProductImages(productId);
 }

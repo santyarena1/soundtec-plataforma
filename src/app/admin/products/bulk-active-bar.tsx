@@ -15,17 +15,13 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { bulkSetActiveByFilter } from "@/server/actions/admin-catalog";
+import { hasAdminProductFilters, type AdminProductFilters } from "@/lib/admin-product-filters";
 
 interface Props {
   /** Cantidad de productos que matchean los filtros actuales (informativo). */
   matchingCount: number;
   /** Filtros actuales aplicados en la URL — los reusamos como input del bulk. */
-  filters: {
-    brandIds: string[];
-    categoryIds: string[];
-    familyIds: string[];
-    q?: string;
-  };
+  filters: AdminProductFilters;
   /** Marca → contador, para el dropdown de "activar todos de marca X". */
   brands: Array<{ id: string; name: string; productCount?: number }>;
 }
@@ -56,14 +52,8 @@ export function BulkActiveBar({ matchingCount, filters, brands }: Props) {
         onlyInactive: isActive,
         onlyActive: !isActive,
       };
-      if (useFilters) {
-        payload.brandIds = filters.brandIds;
-        payload.categoryIds = filters.categoryIds;
-        payload.familyIds = filters.familyIds;
-        payload.q = filters.q;
-      } else if (selectedBrand) {
-        payload.brandIds = [selectedBrand];
-      }
+      if (useFilters) payload.filters = filters;
+      else if (selectedBrand) payload.brandId = selectedBrand;
       const r = await bulkSetActiveByFilter(payload);
       if (r.ok) {
         setMsg(`${r.affected} producto(s) ${isActive ? "activado(s)" : "desactivado(s)"}.`);
@@ -74,11 +64,7 @@ export function BulkActiveBar({ matchingCount, filters, brands }: Props) {
     });
   }
 
-  const hasFilters =
-    filters.brandIds.length > 0 ||
-    filters.categoryIds.length > 0 ||
-    filters.familyIds.length > 0 ||
-    (filters.q ?? "").length > 0;
+  const hasFilters = hasAdminProductFilters(filters);
 
   return (
     <Card className={open ? "border-warning/40" : "border-dashed"}>

@@ -44,13 +44,13 @@ export async function setProductLabels(
   await requireStaff("products.edit");
   if (!productId) return { ok: false, error: "Producto no encontrado." };
 
-  await prisma.productLabel.deleteMany({ where: { productId } });
-  if (labelIds.length > 0) {
-    await prisma.productLabel.createMany({
-      data: labelIds.map((labelId) => ({ productId, labelId })),
-      skipDuplicates: true,
-    });
-  }
+  // Solo etiquetas que existen (una recién creada puede llegar con id provisorio)
+  // y todo junto: si algo falla, el producto conserva las que tenía.
+  const valid = (await prisma.label.findMany({ where: { id: { in: labelIds } }, select: { id: true } })).map((l) => l.id);
+  await prisma.$transaction([
+    prisma.productLabel.deleteMany({ where: { productId } }),
+    prisma.productLabel.createMany({ data: valid.map((labelId) => ({ productId, labelId })), skipDuplicates: true }),
+  ]);
 
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${productId}`);

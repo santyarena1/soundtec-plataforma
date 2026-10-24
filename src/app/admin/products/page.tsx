@@ -7,6 +7,9 @@ import { TableEmpty } from "@/components/ui/table";
 import { Plus } from "lucide-react";
 import { Prisma } from "@prisma/client";
 import { ProductsCatalogAdmin } from "./catalog-admin";
+import { DEFAULT_SORT } from "@/lib/admin-catalog-sort";
+import { parseAdminProductFilters } from "@/lib/admin-product-filters";
+import { CRESTRON_MISSING_WHERE, buildAdminProductWhere } from "@/lib/admin-product-where";
 import { BulkActiveBar } from "./bulk-active-bar";
 import { ProductCompatList } from "../crestron-home/product-compat-list";
 import { CrestronActionsBar } from "../crestron-home/crestron-actions";
@@ -78,38 +81,14 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     params.active === "yes" ? true : params.active === "no" ? false : undefined;
   const openFeedback = await prisma.aiContentFeedback.groupBy({ by: ["refId"], where: { type: "PRODUCT_DESCRIPTION", verdict: "HAS_ERRORS", resolvedAt: null }, _count: { _all: true } });
   const openFeedbackMap = new Map(openFeedback.map((f) => [f.refId, f._count._all]));
-  // Productos Crestron cuyo enriquecimiento falló (no existen en crestron.com).
-  const crestronMissingWhere: Prisma.ProductWhereInput = {
-    brand: { name: { equals: "CRESTRON", mode: "insensitive" } },
-    sourceMetadata: { path: ["crestronCom", "error"], string_contains: "" },
-  };
-  const crestronMissingCount = await prisma.product.count({ where: { isActive: true, ...crestronMissingWhere } });
+  const crestronMissingCount = await prisma.product.count({ where: { isActive: true, ...CRESTRON_MISSING_WHERE } });
 
-  const where: Prisma.ProductWhereInput = {
-    ...(params.feedback === "errors" ? { id: { in: [...openFeedbackMap.keys()] } } : {}),
-    ...(params.crestronMissing === "1" ? crestronMissingWhere : {}),
-    ...(brandIds.length ? { brandId: { in: brandIds } } : {}),
-    ...(categoryIds.length ? { categoryId: { in: categoryIds } } : {}),
-    ...(familyIds.length ? { familyId: { in: familyIds } } : {}),
-    ...(distributorIds.length ? { distributorId: { in: distributorIds } } : {}),
-    ...(stockStatuses.length ? { stockStatus: { in: stockStatuses as any[] } } : {}),
-    ...(activeFilter !== undefined ? { isActive: activeFilter } : {}),
-    ...(params.nocat === "1" ? { categoryId: null } : {}),
-    ...(params.noimg === "1" ? { images: { none: {} } } : {}),
-    ...(params.nodesc === "1" ? { longDescription: null } : {}),
-    ...(params.crestron === "1" ? { isCrestronHomeCompatible: true } : {}),
-    ...(params.q
-      ? (() => {
-          // Búsqueda extendida: AND entre palabras, OR entre campos (nombre,
-          // SKUs, descripciones, contenido enriquecido, marca/categoría/familia).
-          const ands = buildProductSearchAnd(params.q);
-          return ands?.length ? { AND: ands } : {};
-        })()
-      : {}),
-  };
+  // El mismo armado que usa «activar/desactivar los que coinciden».
+  const filters = parseAdminProductFilters(params as Record<string, string | string[] | undefined>);
+  const where: Prisma.ProductWhereInput = await buildAdminProductWhere(filters);
 
   const orderBy: Prisma.ProductOrderByWithRelationInput =
-    SORT_MAP[params.sort || ""] ?? { normalizedName: "asc" };
+    SORT_MAP[params.sort || DEFAULT_SORT] ?? { normalizedName: "asc" };
 
   // Con búsqueda, el orden lo da la relevancia (título/SKU antes que contenido):
   // resolvemos los ids de la página en memoria y después traemos las filas.
@@ -336,7 +315,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         <>
           <BulkActiveBar
             matchingCount={total}
-            filters={{ brandIds, categoryIds, familyIds, q: params.q }}
+            filters={filters}
             brands={brands.map((b) => ({ id: b.id, name: b.name, productCount: b._count.products }))}
           />
           <Suspense fallback={null}>

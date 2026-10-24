@@ -187,6 +187,9 @@ export default async function AdminProductEditPage({ params }: { params: Promise
             description="Identificación, clasificación, descripciones, precios, NCM y disponibilidad. Se guardan con el botón fijo abajo."
           />
           <ProductForm
+            // Se rearma cuando el producto cambia en otro panel (IA, opciones, accesorios):
+            // así guardar el formulario no vuelve a los valores viejos.
+            key={product.updatedAt.toISOString()}
             product={{
               id: product.id,
               internalSku: product.internalSku,
@@ -205,29 +208,29 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               longDescription: product.longDescription,
               baseCostUsd: Number(product.baseCostUsd),
               listPriceUsd: product.listPriceUsd == null ? null : Number(product.listPriceUsd),
-              discountPercent: product.discountPercent ? Number(product.discountPercent) : null,
+              discountPercent: product.discountPercent != null ? Number(product.discountPercent) : null,
               tariffPosition: product.tariffPosition ?? null,
-              tariffDutyPercent: product.tariffDutyPercent ? Number(product.tariffDutyPercent) : null,
+              tariffDutyPercent: product.tariffDutyPercent != null ? Number(product.tariffDutyPercent) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              aecPercent: (product as any).aecPercent ? Number((product as any).aecPercent) : null,
+              aecPercent: (product as any).aecPercent != null ? Number((product as any).aecPercent) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              tePercent: (product as any).tePercent ? Number((product as any).tePercent) : null,
+              tePercent: (product as any).tePercent != null ? Number((product as any).tePercent) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               coo: (product as any).coo ?? null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              weight: (product as any).weight ? Number((product as any).weight) : null,
+              weight: (product as any).weight != null ? Number((product as any).weight) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              volume: (product as any).volume ? Number((product as any).volume) : null,
+              volume: (product as any).volume != null ? Number((product as any).volume) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              coefNac: (product as any).coefNac ? Number((product as any).coefNac) : null,
+              coefNac: (product as any).coefNac != null ? Number((product as any).coefNac) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              coefVta: (product as any).coefVta ? Number((product as any).coefVta) : null,
+              coefVta: (product as any).coefVta != null ? Number((product as any).coefVta) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ivaPercent: (product as any).ivaPercent ? Number((product as any).ivaPercent) : null,
+              ivaPercent: (product as any).ivaPercent != null ? Number((product as any).ivaPercent) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              impIntPercent: (product as any).impIntPercent ? Number((product as any).impIntPercent) : null,
+              impIntPercent: (product as any).impIntPercent != null ? Number((product as any).impIntPercent) : null,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              coefVtaFob: (product as any).coefVtaFob ? Number((product as any).coefVtaFob) : null,
+              coefVtaFob: (product as any).coefVtaFob != null ? Number((product as any).coefVtaFob) : null,
               stockStatus: product.stockStatus,
               stockQuantity: product.stockQuantity,
               isCustomizable: product.isCustomizable,

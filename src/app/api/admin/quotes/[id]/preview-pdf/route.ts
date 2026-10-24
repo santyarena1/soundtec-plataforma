@@ -8,6 +8,7 @@
  * coincidieran.
  */
 
+import { visibleQuoteBrandLogos } from "@/lib/quote-brands";
 import { NextResponse } from "next/server";
 import { loadQuoteForUser } from "@/lib/quote-access";
 import { buildQuoteDocumentHtml } from "@/lib/quote-document-html";
@@ -40,6 +41,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       items: quote.items,
       itemGroups: quote.itemGroups,
       alternatives: quote.alternatives,
+      brandLogos: await visibleQuoteBrandLogos(quote.id),
       terms: quote.terms,
       sections: quote.sections,
       assets: quote.assets.map((asset) => ({

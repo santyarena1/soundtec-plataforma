@@ -1,3 +1,4 @@
+import { alignCommercialTermsText } from "@/lib/quote-terms-text";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
@@ -58,6 +59,8 @@ export type QuoteDocumentHtmlInput = {
   itemGroups?: QuoteGroupRecord[];
   /** Opciones cotizadas. Con más de una, cada una lleva su tabla y su total. */
   alternatives?: Array<{ id: string; name: string; purpose: string | null; sortOrder: number }>;
+  /** Modo «logos individuales»: las marcas elegidas en la cotización (vacío = collage institucional). */
+  brandLogos?: Array<{ label: string; url: string }>;
   terms?: {
     paymentTerms: string | null;
     paymentReference: string | null;
@@ -138,6 +141,25 @@ export async function resolveAssetSrc(url: string, origin?: string): Promise<str
  * HTML tipográfico de la COT (mismo look que Vista PDF / Word).
  * Fuente única para el PDF emitido y el export Word.
  */
+/** Grilla de logos (4 por fila), igual a la de la vista previa. */
+async function brandLogoGrid(logos: Array<{ label: string; url: string }>, origin?: string): Promise<string> {
+  const cells = await Promise.all(
+    logos.map(async (logo) => {
+      const src = await resolveAssetSrc(logo.url, origin);
+      return src
+        ? `<td style="width:25%;padding:6pt;text-align:center;vertical-align:middle;border:.5pt solid #e2e6ea"><img src="${escapeHtml(src)}" alt="${escapeHtml(logo.label)}" style="max-width:100%;max-height:34pt;object-fit:contain"/></td>`
+        : `<td style="width:25%;padding:6pt;text-align:center;vertical-align:middle;border:.5pt solid #e2e6ea;font-size:9pt;font-weight:bold">${escapeHtml(logo.label)}</td>`;
+    })
+  );
+  const rows: string[] = [];
+  for (let i = 0; i < cells.length; i += 4) {
+    const row = cells.slice(i, i + 4);
+    while (row.length < 4) row.push('<td style="width:25%"></td>');
+    rows.push(`<tr>${row.join("")}</tr>`);
+  }
+  return `<table style="width:100%;border-collapse:collapse;margin-top:6pt">${rows.join("")}</table>`;
+}
+
 export async function buildQuoteDocumentHtml(
   quote: QuoteDocumentHtmlInput,
   options?: { origin?: string; forWord?: boolean }
@@ -183,9 +205,15 @@ export async function buildQuoteDocumentHtml(
     if (section.type === "products_table") continue;
     const sectionBody = (section.body ?? "").trim();
     const sectionHasBody = sectionBody.length > 0 && sectionBody !== AI_SECTION_STUB;
+    if (section.type === "commercial_terms" && quote.terms && sectionHasBody) {
+      // El texto fijo toma los datos cargados (forma de pago, vigencia, entrega…): no se contradice ni se repite en tabla.
+      sectionChunks.push(`${heading(section.title)}${paragraphs(alignCommercialTermsText(sectionBody, quote.terms))}`);
+      continue;
+    }
     if (section.type === "commercial_terms" && quote.terms) {
       const rows: Array<[string, string]> = [];
       if (quote.terms.paymentTerms) rows.push(["Forma de pago", quote.terms.paymentTerms]);
+      if (quote.terms.paymentReference) rows.push(["Referencia de pago", quote.terms.paymentReference]);
       if (quote.terms.deliveryText) rows.push(["Plazo de entrega", quote.terms.deliveryText]);
       rows.push(["Mantenimiento de la oferta", `${quote.terms.validityDays} días corridos`]);
       if (quote.terms.productWarranty) rows.push(["Garantía", quote.terms.productWarranty]);
@@ -216,9 +244,9 @@ export async function buildQuoteDocumentHtml(
       continue;
     }
     if (section.type === "brands") {
-      sectionChunks.push(
-        `${heading(section.title)}${hasBody ? paragraphs(body) : ""}${await placedImage(brandsSrc, identity.brands)}`
-      );
+      const logos = quote.brandLogos?.filter((logo) => logo.url.trim()) ?? [];
+      const visual = logos.length ? await brandLogoGrid(logos, origin) : await placedImage(brandsSrc, identity.brands);
+      sectionChunks.push(`${heading(section.title)}${hasBody ? paragraphs(body) : ""}${visual}`);
       continue;
     }
     if (section.type === "iso") {

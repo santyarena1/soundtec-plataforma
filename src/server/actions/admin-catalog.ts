@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
+import { adminProductFiltersSchema, hasAdminProductFilters } from "@/lib/admin-product-filters";
+import { buildAdminProductWhere } from "@/lib/admin-product-where";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/auth-helpers";
 import { slugify } from "@/lib/utils";
@@ -203,6 +205,21 @@ const productSchema = z.object({
   imageUrl: z.string().url().optional().or(z.literal("")).nullable(),
 });
 
+/** Guarda y traduce los errores conocidos a un mensaje (SKU repetido) en vez de romper la página. */
+async function saveProductRow(write: () => Promise<unknown>): Promise<{ ok: false; error: string } | null> {
+  try {
+    await write();
+    return null;
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const target = String((error.meta as { target?: unknown } | undefined)?.target ?? "");
+      return { ok: false, error: target.includes("internalSku") ? "Ya hay otro producto con ese COD. TANGO." : "Ya existe un producto con esos datos (valor repetido)." };
+    }
+    console.error("[upsertProduct]", error);
+    return { ok: false, error: "No se pudo guardar el producto." };
+  }
+}
+
 export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; id?: string; error?: string }> {
   await requireStaff("products.edit", { costs: true });
   const id = formData.get("id")?.toString() || undefined;
@@ -306,7 +323,8 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
         new Date().toISOString()
       );
     }
-    await prisma.product.update({ where: { id }, data });
+    const saved = await saveProductRow(() => prisma.product.update({ where: { id }, data }));
+    if (saved) return saved;
   } else {
     data.searchKey = buildProductSearchKey({
       internalSku: parsed.data.internalSku,
@@ -323,8 +341,12 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
       providedFields,
       new Date().toISOString()
     );
-    const created = await prisma.product.create({ data });
-    productId = created.id;
+    let createdId = "";
+    const saved = await saveProductRow(async () => {
+      createdId = (await prisma.product.create({ data })).id;
+    });
+    if (saved) return saved;
+    productId = createdId;
   }
 
   if (parsed.data.imageUrl && productId) {
@@ -416,10 +438,10 @@ export async function bulkUpdateProducts(input: z.infer<typeof bulkSchema>): Pro
  */
 const bulkByFilterSchema = z.object({
   isActive: z.boolean(),
-  brandIds: z.array(z.string()).optional(),
-  categoryIds: z.array(z.string()).optional(),
-  familyIds: z.array(z.string()).optional(),
-  q: z.string().optional(),
+  /** Los filtros del listado tal cual (mismo where que lo que se ve). */
+  filters: adminProductFiltersSchema.optional(),
+  /** «Todos los de la marca X», sin los demás filtros. */
+  brandId: z.string().optional(),
   onlyInactive: z.boolean().optional(),
   onlyActive: z.boolean().optional(),
 });
@@ -432,25 +454,18 @@ export async function bulkSetActiveByFilter(
   if (!parsed.success)
     return { ok: false, affected: 0, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
 
+  const { filters, brandId } = parsed.data;
+  if (!brandId && (!filters || !hasAdminProductFilters(filters))) {
+    return { ok: false, affected: 0, error: "Poné al menos un filtro o elegí una marca." };
+  }
+  const base = brandId ? { brandId } : await buildAdminProductWhere(filters!);
   const where: Prisma.ProductWhereInput = {
-    ...(parsed.data.brandIds?.length ? { brandId: { in: parsed.data.brandIds } } : {}),
-    ...(parsed.data.categoryIds?.length ? { categoryId: { in: parsed.data.categoryIds } } : {}),
-    ...(parsed.data.familyIds?.length ? { familyId: { in: parsed.data.familyIds } } : {}),
-    ...(parsed.data.q
-      ? {
-          OR: [
-            { normalizedName: { contains: parsed.data.q, mode: "insensitive" } },
-            { internalSku: { contains: parsed.data.q, mode: "insensitive" } },
-            { supplierSku: { contains: parsed.data.q, mode: "insensitive" } },
-            ...(normalizeForSearch(parsed.data.q)
-              ? [{ searchKey: { contains: normalizeForSearch(parsed.data.q) } } as Prisma.ProductWhereInput]
-              : []),
-          ],
-        }
-      : {}),
-    // Evitamos updates innecesarios — actualizamos solo los que cambiarían.
-    ...(parsed.data.onlyInactive ? { isActive: false } : {}),
-    ...(parsed.data.onlyActive ? { isActive: true } : {}),
+    AND: [
+      base,
+      // Solo los que cambiarían.
+      ...(parsed.data.onlyInactive ? [{ isActive: false }] : []),
+      ...(parsed.data.onlyActive ? [{ isActive: true }] : []),
+    ],
   };
 
   const result = await prisma.product.updateMany({

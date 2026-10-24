@@ -10,6 +10,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { formatUsd } from "@/lib/utils";
+import { DEFAULT_SORT } from "@/lib/admin-catalog-sort";
 import {
   Eye,
   Loader2,
@@ -190,27 +191,24 @@ export function ProductsCatalogAdmin(props: Props) {
   const [columnPickerOpen, setColumnPickerOpen] = useState(false);
   const [priceView, setPriceView] = useState<"usdFinal" | "usdFob" | "arsNacional">("usdFinal");
 
-  const [activeCols, setActiveCols] = useState<ColumnKey[]>(() => {
-    if (typeof window === "undefined") return DEFAULT_COLUMNS;
+  const [activeCols, setActiveCols] = useState<ColumnKey[]>(DEFAULT_COLUMNS);
+  const [colsLoaded, setColsLoaded] = useState(false);
+  // Las columnas elegidas se leen al montar: leerlas en el render inicial daba
+  // una tabla distinta en el servidor y en el navegador.
+  useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as string[];
         const valid = parsed.filter((p): p is ColumnKey => ALL_COLUMNS.some((c) => c.key === p));
-        if (valid.length > 0) {
-          if (!valid.includes("salePrice")) {
-            const costIndex = valid.indexOf("cost");
-            valid.splice(costIndex >= 0 ? costIndex + 1 : valid.length, 0, "salePrice");
-          }
-          return valid as ColumnKey[];
-        }
+        if (valid.length > 0) setActiveCols(valid);
       }
     } catch {}
-    return DEFAULT_COLUMNS;
-  });
+    setColsLoaded(true);
+  }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!colsLoaded) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(activeCols));
     } catch {}
@@ -240,7 +238,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const distributorIdsFromUrl = search.getAll("distributor");
   const stockFromUrl = search.getAll("stock");
   const activeFromUrl = search.get("active") || "";
-  const sortFromUrl = search.get("sort") || "name_asc";
+  const sortFromUrl = search.get("sort") || DEFAULT_SORT;
 
   const [qInput, setQInput] = useState(qFromUrl);
   const debouncedQ = useDebouncedValue(qInput, 350);
@@ -262,7 +260,7 @@ export function ProductsCatalogAdmin(props: Props) {
         }
       }
       if (patch.active !== undefined) { patch.active ? sp.set("active", patch.active) : sp.delete("active"); }
-      if (patch.sort !== undefined) { patch.sort && patch.sort !== "updated_desc" ? sp.set("sort", patch.sort) : sp.delete("sort"); }
+      if (patch.sort !== undefined) { patch.sort && patch.sort !== DEFAULT_SORT ? sp.set("sort", patch.sort) : sp.delete("sort"); }
       for (const key of ["nocat", "noimg", "nodesc", "crestron"] as const) {
         if (patch[key] !== undefined) { patch[key] === "1" ? sp.set(key, "1") : sp.delete(key); }
       }
@@ -362,8 +360,8 @@ export function ProductsCatalogAdmin(props: Props) {
     { value: "updated_asc", label: "Más antiguo" },
     { value: "name_asc", label: "Nombre A→Z" },
     { value: "name_desc", label: "Nombre Z→A" },
-    { value: "cost_asc", label: "Precio ↑" },
-    { value: "cost_desc", label: "Precio ↓" },
+    { value: "cost_asc", label: "Costo ↑" },
+    { value: "cost_desc", label: "Costo ↓" },
     { value: "sku_asc", label: "SKU A→Z" },
   ];
 
@@ -478,7 +476,7 @@ export function ProductsCatalogAdmin(props: Props) {
           onClick={() => pushFilters({ nodesc: nodescActive ? "" : "1" })}
           className={`rounded-full border px-3 py-1 text-xs transition-colors ${nodescActive ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-secondary"}`}
         >
-          Sin desc. IA
+          Sin descripción
         </button>
         <button
           onClick={() => pushFilters({ crestron: crestronActive ? "" : "1" })}
@@ -707,6 +705,20 @@ function formatArs(value: number): string {
   }).format(value);
 }
 
+const STOCK_LABEL: Record<string, string> = {
+  IN_STOCK: "En stock",
+  LOW_STOCK: "Poco stock",
+  OUT_OF_STOCK: "Sin stock",
+  ON_REQUEST: "A pedido",
+  UNKNOWN: "Sin dato",
+};
+const STOCK_TONE: Record<string, "success" | "warning" | "muted" | "accent"> = {
+  IN_STOCK: "success",
+  LOW_STOCK: "warning",
+  OUT_OF_STOCK: "muted",
+  ON_REQUEST: "accent",
+};
+
 function renderCell(
   key: ColumnKey,
   r: Row,
@@ -818,7 +830,7 @@ function renderCell(
         </span>
       );
     case "stock":
-      return <Badge tone="muted">{r.stockStatus}</Badge>;
+      return <Badge tone={STOCK_TONE[r.stockStatus] ?? "muted"}>{STOCK_LABEL[r.stockStatus] ?? r.stockStatus}</Badge>;
     case "active":
       return r.isActive ? <Badge tone="success">Sí</Badge> : <Badge tone="muted">No</Badge>;
     case "actions":

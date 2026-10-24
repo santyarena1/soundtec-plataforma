@@ -54,3 +54,8 @@ prisma/dev.db*
 # landing 3D: assets de trabajo (no versionar)
 .scroll-world/
 .env*
+
+# E2E
+e2e/.auth/
+test-results/
+playwright-report/
