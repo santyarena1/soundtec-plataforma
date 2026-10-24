@@ -8,7 +8,7 @@ import { z } from "zod";
 import { Prisma, QuoteAssetKind, QuoteLayoutKey, QuoteNodeSource, QuoteSectionOrigin, QuoteStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logClientActivity } from "@/server/crm/activity";
-import { requireQuotePermission, loadQuoteForUser } from "@/lib/quote-access";
+import { requireQuotePermission, loadQuoteForUser, loadQuoteForEdit } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { allocateQuoteNumber, getQuoteNumberingConfig, QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import {
@@ -20,6 +20,8 @@ import {
   resolveQuoteModuleBodies,
 } from "@/lib/quote-defaults";
 import { isVariantBlockKey, resolveBlockVariantBody } from "@/lib/quote-block-variants";
+import { applyTextVariantsToQuote } from "@/lib/quote-text-variants-apply";
+import { audienceFromSegment, isQuoteAudience } from "@/lib/quote-audiences";
 import { sanitizeQuoteHtml } from "@/lib/quote-richtext";
 import { recordQuoteSnapshot } from "@/lib/quote-edit-history";
 import { ensureQuoteCatalogImage } from "@/lib/quote-product-images";
@@ -99,11 +101,15 @@ export async function createQuoteShell(input: QuoteShellInput) {
       : QUOTE_MODULES.filter((m) => m.defaultOn.includes("tecnico")).map((m) => m.key)
   );
   const bodies = await resolveQuoteModuleBodies();
+  const client = input.clientId
+    ? await prisma.client.findUnique({ where: { id: input.clientId }, select: { segment: true } })
+    : null;
 
   const created = await prisma.quote.create({
     data: {
       number,
       ownerId: input.ownerId,
+      audience: audienceFromSegment(client?.segment),
       clientId: input.clientId || null,
       clientName: input.clientId ? null : input.clientName?.trim() || null,
       reference: input.reference || input.projectType || null,
@@ -155,6 +161,7 @@ export async function createQuoteShell(input: QuoteShellInput) {
     },
     include: { alternatives: true },
   });
+  await applyTextVariantsToQuote(created.id);
   await logClientActivity({ clientId: input.clientId, title: `Se creó la cotización ${created.number}`, referenceType: "QUOTE", referenceId: created.id });
   return created;
 }
@@ -749,8 +756,8 @@ export async function saveQuoteSectionBody(input: {
   await requireQuotePermission("quotes.edit");
   const section = await prisma.quoteSection.findUnique({ where: { id: input.sectionId } });
   if (!section) return { ok: false, error: "El módulo ya no existe." };
-  const loaded = await loadQuoteForUser(section.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso a esta cotización." };
+  const loaded = await loadQuoteForEdit(section.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason || "Sin acceso a esta cotización." };
   const title = (input.title || "").trim();
   await recordQuoteSnapshot({
     quoteId: section.quoteId,
@@ -773,36 +780,37 @@ export async function saveQuoteSectionBody(input: {
 export async function applySectionVariant(input: {
   sectionId: string;
   blockKey: string;
+  /** «auto» = la que corresponde por tipo y rubro; «general» = el texto general. */
   variantSlug: string;
 }): Promise<{ ok: boolean; error?: string }> {
   await requireQuotePermission("quotes.edit");
   if (!isVariantBlockKey(input.blockKey)) {
-    return { ok: false, error: "Este módulo no admite variantes." };
+    return { ok: false, error: "Este texto no tiene versiones." };
   }
   const section = await prisma.quoteSection.findUnique({ where: { id: input.sectionId } });
   if (!section) return { ok: false, error: "El módulo ya no existe." };
-  const loaded = await loadQuoteForUser(section.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
-
-  const def = moduleByKey(input.blockKey);
-  const fallback = def?.body || section.body;
-  const body = await resolveBlockVariantBody(input.blockKey, input.variantSlug, fallback);
+  const loaded = await loadQuoteForEdit(section.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason || "Sin acceso." };
 
   await recordQuoteSnapshot({
     quoteId: section.quoteId,
     actorId: loaded.user.id,
-    summary: `Antes de cambiar variante de «${section.title}»`,
+    summary: `Antes de cambiar la versión de «${section.title}»`,
   });
 
-  await prisma.quoteSection.update({
-    where: { id: section.id },
-    data: {
-      body: sanitizeQuoteHtml(body),
-      variantSlug: input.variantSlug,
-      source: QuoteNodeSource.TEMPLATE,
-      stale: false,
-    },
-  });
+  if (input.variantSlug === "auto") {
+    await prisma.quoteSection.update({ where: { id: section.id }, data: { source: QuoteNodeSource.TEMPLATE, stale: false } });
+    await applyTextVariantsToQuote(section.quoteId);
+  } else {
+    const general = (await resolveQuoteModuleBodies())[input.blockKey] || moduleByKey(input.blockKey)?.body || section.body;
+    const slug = input.variantSlug === "general" ? null : input.variantSlug;
+    const body = await resolveBlockVariantBody(input.blockKey, slug, general);
+    // Elegida a mano: ya no cambia sola si después cambia el tipo o el rubro.
+    await prisma.quoteSection.update({
+      where: { id: section.id },
+      data: { body: sanitizeQuoteHtml(body), variantSlug: slug, source: QuoteNodeSource.CORPORATE, stale: false },
+    });
+  }
 
   revalidatePath(`/admin/quotes/${section.quoteId}`);
   return { ok: true };
@@ -815,8 +823,8 @@ export async function saveQuoteItemBody(input: {
   await requireQuotePermission("quotes.edit");
   const item = await prisma.quoteItem.findUnique({ where: { id: input.itemId } });
   if (!item) return { ok: false, error: "El ítem ya no existe." };
-  const loaded = await loadQuoteForUser(item.quoteId);
-  if (!loaded.quote) return { ok: false, error: "Sin acceso." };
+  const loaded = await loadQuoteForEdit(item.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason || "Sin acceso." };
   await recordQuoteSnapshot({
     quoteId: item.quoteId,
     actorId: loaded.user.id,
@@ -852,6 +860,8 @@ export async function saveQuoteMeta(formData: FormData): Promise<void> {
   const taxRaw = String(formData.get("taxMode") || loaded.quote.taxMode);
   const taxMode = isTaxMode(taxRaw) ? taxRaw : loaded.quote.taxMode;
   const isHeader = formData.get("metaKind") === "header";
+  const audienceRaw = formData.has("audience") ? String(formData.get("audience") || "") : undefined;
+  const audience = audienceRaw === undefined ? undefined : isQuoteAudience(audienceRaw) ? audienceRaw : null;
   await prisma.quote.update({
     where: { id },
     data: {
@@ -860,6 +870,7 @@ export async function saveQuoteMeta(formData: FormData): Promise<void> {
       ...(formData.has("clientId") ? { clientId: String(formData.get("clientId") || "") || null } : {}),
       ...(formData.has("clientName") ? { clientName: String(formData.get("clientName") || "").trim().slice(0, 200) || null } : {}),
       ...(formData.has("brief") ? { brief: String(formData.get("brief") || "") || null } : {}),
+      ...(audience !== undefined ? { audience } : {}),
       layoutKey,
       taxMode,
       ...(isHeader
@@ -870,6 +881,7 @@ export async function saveQuoteMeta(formData: FormData): Promise<void> {
         : {}),
     },
   });
+  if (audience !== undefined && audience !== loaded.quote.audience) await applyTextVariantsToQuote(id);
   revalidatePath(`/admin/quotes/${id}`);
   if (isHeader) redirect(`/admin/quotes/${id}?paso=2`);
 }

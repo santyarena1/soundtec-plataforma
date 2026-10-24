@@ -178,16 +178,56 @@ Indicá usos típicos, integración y datos técnicos relevantes sólo si los co
   }
 }
 
+/** Datos de ficha que se le pasan a la IA para que no tenga que adivinar. */
+export type ShortDescriptionFacts = {
+  originalName?: string | null;
+  modelNumber?: string | null;
+  specifications?: unknown;
+  keyFeatures?: unknown;
+  longDescription?: string | null;
+};
+
+function factsForPrompt(facts: ShortDescriptionFacts): string {
+  const lines: string[] = [];
+  if (facts.originalName) lines.push(`Nombre del proveedor: ${facts.originalName.slice(0, 200)}`);
+  if (facts.modelNumber) lines.push(`Modelo: ${facts.modelNumber}`);
+  if (Array.isArray(facts.keyFeatures)) {
+    const kf = facts.keyFeatures.filter((f): f is string => typeof f === "string" && f.trim().length > 0).slice(0, 6);
+    if (kf.length) lines.push(`Características: ${kf.map((f) => f.trim().slice(0, 140)).join(" | ")}`);
+  }
+  if (Array.isArray(facts.specifications)) {
+    const specs = facts.specifications
+      .map((row) => {
+        if (!row || typeof row !== "object") return "";
+        const o = row as Record<string, unknown>;
+        const label = String(o.labelEs ?? o.label ?? "").trim();
+        const value = String(o.valueEs ?? o.value ?? "").trim();
+        return label && value ? `${label.slice(0, 50)}: ${value.slice(0, 100)}` : "";
+      })
+      .filter(Boolean)
+      .slice(0, 10);
+    if (specs.length) lines.push(`Specs: ${specs.join(" | ")}`);
+  }
+  if (facts.longDescription?.trim()) lines.push(`Ficha: ${facts.longDescription.replace(/\s+/g, " ").trim().slice(0, 600)}`);
+  return lines.join("\n");
+}
+
+/**
+ * Descripción corta de catálogo. Con `noFallback`, si no hay clave o la IA
+ * falla devuelve "" (para no guardar relleno genérico en el catálogo).
+ */
 export async function generateShortDescription(input: {
   name: string;
   brand?: string;
   category?: string;
   compact?: boolean;
   avoid?: string;
+  facts?: ShortDescriptionFacts;
+  noFallback?: boolean;
 }): Promise<string> {
-  const fallback = `${input.brand ? `${input.brand} ` : ""}${input.name}: solución ${
-    input.category || "audiovisual profesional"
-  }.`;
+  const fallback = input.noFallback
+    ? ""
+    : `${input.brand ? `${input.brand} ` : ""}${input.name}: solución ${input.category || "audiovisual profesional"}.`;
   const client = await getClient();
   if (!client) return fallback;
   try {
@@ -195,25 +235,31 @@ export async function generateShortDescription(input: {
     const customSystemPrompt = await getSetting("ai.prompt.short_description", "");
     const systemPrompt =
       customSystemPrompt ||
-      "Sos un copywriter técnico B2B para productos audiovisuales profesionales. Escribís en español, neutro y conciso.";
+      "Sos un redactor técnico de un integrador audiovisual argentino. Escribís en español rioplatense formal, conciso y concreto. Usás solo los datos que te pasan: no inventás potencias, protocolos, compatibilidades ni medidas. Nada de adjetivos de folleto («alta gama», «de vanguardia», «robusto», «solución integral»).";
     const lengthRule = input.compact
       ? "El resultado DEBE tener entre 15 y 20 palabras: una sola frase, qué es y para qué sirve. Sin adjetivos vacíos ni preguntas."
       : "Generá una descripción corta (1-2 oraciones, máximo 120 palabras). Sé directo: qué es y para qué sirve. Sin adjetivos vacíos.";
+    const facts = input.facts ? factsForPrompt(input.facts) : "";
     const resp = await client.chat.completions.create({
       model,
       messages: [
-        { role: "system", content: `${systemPrompt}\n${input.compact ? lengthRule : ""}`.trim() },
+        { role: "system", content: `${systemPrompt}
+${input.compact ? lengthRule : ""}`.trim() },
         {
           role: "user",
           content: `${lengthRule}
 Producto: ${input.name}
 Marca: ${input.brand || "—"}
-Categoría: ${input.category || "—"}
-${input.avoid ? `Escribí una versión distinta a esta, no la copies: "${input.avoid}"` : ""}`,
+${input.facts ? "Categoría de catálogo (amplia, no define qué es el equipo)" : "Categoría"}: ${input.category || "—"}
+${facts ? `Datos de la ficha (única fuente de capacidades):
+${facts}` : "No hay ficha técnica: decí solo qué tipo de equipo es, sin capacidades."}
+${input.avoid ? `Escribí una versión distinta a esta, no la copies: "${input.avoid}"` : ""}
+Devolvé solo la frase, sin comillas.`,
         },
       ],
     });
-    return resp.choices[0]?.message.content?.trim() || fallback;
+    const text = (resp.choices[0]?.message.content?.trim() || "").replace(/^["«]|["»]$/g, "").trim();
+    return text || fallback;
   } catch (error) {
     console.error("OpenAI generateShortDescription error", error);
     return fallback;

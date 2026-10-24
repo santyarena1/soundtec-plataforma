@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
-import { defaultBlockVariantBody, isVariantBlockKey, resolveBlockVariantBody, listBlockVariants } from "@/lib/quote-block-variants";
 
 export const QUOTE_STEPS = [
   { id: 1, key: "datos", title: "Encabezado" },
@@ -456,14 +455,7 @@ export async function ensureQuoteSections(quoteId: string, profileKey = "tecnico
   for (const mod of QUOTE_MODULES) {
     if (existing.has(mod.key)) continue;
     sort += 1;
-    let body = bodies[mod.key] || mod.body;
-    let variantSlug: string | null = null;
-    if (isVariantBlockKey(mod.key)) {
-      body = await defaultBlockVariantBody(mod.key, body);
-      const variants = await listBlockVariants(mod.key);
-      const chosen = variants.find((v) => v.isDefault) || variants[0];
-      variantSlug = chosen?.slug || null;
-    }
+    const body = bodies[mod.key] || mod.body;
     await prisma.quoteSection.create({
       data: {
         quoteId,
@@ -477,8 +469,10 @@ export async function ensureQuoteSections(quoteId: string, profileKey = "tecnico
         sortOrder: sort,
         sourceBlockKey: mod.key,
         sourceBlockVersion: moduleVersion(mod),
-        variantSlug,
       },
     });
   }
+  // Las secciones nuevas toman la versión de texto que corresponde (tipo y rubro).
+  const { applyTextVariantsToQuote } = await import("@/lib/quote-text-variants-apply");
+  await applyTextVariantsToQuote(quoteId);
 }

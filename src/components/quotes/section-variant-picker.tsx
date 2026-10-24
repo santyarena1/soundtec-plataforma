@@ -7,16 +7,23 @@ import type { QuoteBlockVariant } from "@/lib/quote-block-variants";
 import { applySectionVariant } from "@/server/actions/quotes";
 import { Label, Select } from "@/components/ui/input";
 
+/**
+ * Qué versión de este texto sale en la cotización. «Automática» sigue al tipo de
+ * presupuesto y a quién va; elegir una a mano la deja fija.
+ */
 export function SectionVariantPicker({
   sectionId,
   blockKey,
   currentSlug,
+  isAuto,
   variants,
   issued,
 }: {
   sectionId: string;
   blockKey: string;
   currentSlug: string | null;
+  /** La sección sigue la elección automática (no se eligió ni escribió a mano). */
+  isAuto: boolean;
   variants: QuoteBlockVariant[];
   issued: boolean;
 }) {
@@ -25,11 +32,12 @@ export function SectionVariantPicker({
 
   if (variants.length === 0) return null;
 
-  const value = currentSlug || variants.find((v) => v.isDefault)?.slug || variants[0]?.slug || "";
+  const currentLabel = variants.find((v) => v.slug === currentSlug)?.label ?? "Texto general";
+  const value = isAuto ? "auto" : currentSlug || "general";
 
   return (
     <div className="mt-2 max-w-md">
-      <Label htmlFor={`variant-${sectionId}`}>Variante de texto</Label>
+      <Label htmlFor={`variant-${sectionId}`}>Versión de este texto</Label>
       <Select
         id={`variant-${sectionId}`}
         defaultValue={value}
@@ -39,18 +47,19 @@ export function SectionVariantPicker({
           const slug = e.target.value;
           start(async () => {
             const result = await applySectionVariant({ sectionId, blockKey, variantSlug: slug });
-            if (!result.ok) toast.error(result.error || "No se pudo aplicar la variante.");
+            if (!result.ok) toast.error(result.error || "No se pudo cambiar la versión.");
             else {
-              toast.success("Variante aplicada.");
+              toast.success(slug === "auto" ? "Vuelve a elegirse sola según el tipo y a quién va." : "Versión aplicada.");
               router.refresh();
             }
           });
         }}
       >
+        <option value="auto">{isAuto ? `Automática (hoy: ${currentLabel})` : "Automática según tipo y a quién va"}</option>
+        <option value="general">Texto general</option>
         {variants.map((variant) => (
           <option key={variant.slug} value={variant.slug}>
             {variant.label}
-            {variant.isDefault ? " (predeterminada)" : ""}
           </option>
         ))}
       </Select>

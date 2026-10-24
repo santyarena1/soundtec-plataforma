@@ -9,6 +9,7 @@ import { isVariantBlockKey, listBlockVariants } from "@/lib/quote-block-variants
 import { resolveBrandsDisplayMode } from "@/lib/quote-brands";
 import { listBrandLibrary } from "@/server/actions/quote-brands";
 import { SectionVariantPicker } from "@/components/quotes/section-variant-picker";
+import { QUOTE_AUDIENCES } from "@/lib/quote-audiences";
 import { QuoteBrandsEditor } from "@/components/quotes/quote-brands-editor";
 import { QuoteAlternativesPanel } from "@/components/quotes/quote-alternatives-panel";
 import { LiveQuoteCanvas } from "@/components/quotes/live-quote-canvas";
@@ -432,6 +433,20 @@ export default async function QuoteEditorPage({
                 <Input id="clientName" name="clientName" defaultValue={quote.clientName || ""} placeholder="Ej. Hotel Alvear" />
               </div>
               <div className="sm:col-span-2">
+                <Label htmlFor="audience">A quién va</Label>
+                <Select id="audience" name="audience" defaultValue={quote.audience || ""}>
+                  <option value="">Sin rubro (textos generales)</option>
+                  {QUOTE_AUDIENCES.map((a) => (
+                    <option key={a.key} value={a.key}>
+                      {a.label}
+                    </option>
+                  ))}
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Elige qué versión de cada texto del PDF sale (presentación, instalación, cierre…). Se completa solo con el segmento del cliente.
+                </p>
+              </div>
+              <div className="sm:col-span-2">
                 <Label htmlFor="reference">Referencia</Label>
                 <Input id="reference" name="reference" defaultValue={quote.reference || ""} />
               </div>
@@ -485,9 +500,10 @@ export default async function QuoteEditorPage({
                   ) : null}
                 </form>
                 <QuotePlanUpload quoteId={quote.id} plans={plans} />
-                {canEdit ? (
+                {/* Emitida: no se regenera (la acción también lo rechaza). */}
+                {canEdit && !issued ? (
                   <div data-tour="quote-generate">
-                    <GenerateProposalButton quoteId={quote.id} auto={autogen} />
+                    <GenerateProposalButton quoteId={quote.id} auto={autogen} briefFieldId="brief" />
                   </div>
                 ) : null}
                 {aiSuggestions.length > 0 ? (
@@ -541,7 +557,7 @@ export default async function QuoteEditorPage({
                 </p>
                 <div className="flex flex-wrap gap-2" data-tour="quote-add-module">
                   <AddCustomModule quoteId={quote.id} issued={!canEdit} />
-                  <ButtonLink href="/admin/settings/quotes/plantilla" size="sm" variant="outline">
+                  <ButtonLink href="/admin/settings/quotes/textos" size="sm" variant="outline">
                     <Settings className="mr-1 h-3.5 w-3.5" />
                     Textos maestros
                   </ButtonLink>
@@ -578,6 +594,7 @@ export default async function QuoteEditorPage({
                               sectionId={section.id}
                               blockKey={section.type}
                               currentSlug={section.variantSlug}
+                              isAuto={section.source === "TEMPLATE"}
                               variants={variantsByBlock[section.type] || []}
                               issued={!canEdit}
                             />
@@ -633,7 +650,7 @@ export default async function QuoteEditorPage({
                 totals={alternativeTotals}
                 issued={!canEdit}
               />
-              {canEdit ? (
+              {canEdit && !issued ? (
                 <div data-tour="quote-generate-products">
                   <GenerateProposalButton quoteId={quote.id} auto={autogen} />
                 </div>

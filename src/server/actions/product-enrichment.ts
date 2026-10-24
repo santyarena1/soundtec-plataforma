@@ -174,11 +174,21 @@ export async function generateProductShortDescription(
       brand: p.brand?.name,
       category: p.category?.name,
       avoid: p.shortDescription?.trim() || undefined,
+      facts: {
+        modelNumber: p.modelNumber,
+        specifications: p.specifications,
+        keyFeatures: p.keyFeatures,
+        longDescription: p.longDescription,
+      },
+      noFallback: true,
     });
+    if (!text) {
+      return { ok: false, error: "La IA no pudo generar la descripción. Revisá la clave de OpenAI o probá de nuevo." };
+    }
 
     await prisma.product.update({
       where: { id: productId },
-      data: { shortDescription: text },
+      data: { shortDescription: text, aiGeneratedDescription: true },
     });
     revalidatePath(`/admin/products/${productId}`);
     revalidatePath(`/portal/products/${productId}`);

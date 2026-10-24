@@ -277,8 +277,8 @@ export default async function SettingsQuotesPage() {
   const avanzado = (
     <div className="grid gap-3 sm:grid-cols-2">
       {[
-        { href: "/admin/settings/quotes/plantilla", title: "Editar los textos del PDF", body: `Presentación de la empresa, instalación, garantía, cierre… (${blocksCount} secciones). Los cambiás sobre una cotización de ejemplo y se usan en las nuevas.` },
-        { href: "/admin/settings/quotes/variantes", title: "Versiones alternativas de un texto", body: "Por ejemplo, otra forma de presentar la empresa o la instalación, para elegir en cada cotización." },
+        { href: "/admin/settings/quotes/textos", title: "Editar los textos del PDF", body: `Presentación, instalación, garantía, cierre… (${blocksCount} secciones). Cada uno con versiones por tipo de presupuesto y por rubro del cliente, que salen solas.` },
+        { href: "/admin/settings/quotes/plantilla", title: "Ver el PDF de ejemplo", body: "Una cotización de muestra completa, para ver cómo queda todo junto. También se puede escribir encima." },
         { href: "/admin/settings/quotes/modulos", title: "Secciones opcionales", body: "Bloques que podés sumar a mano en una cotización (no salen solos)." },
         { href: "/admin/settings/quotes/clasificadores", title: "Datos internos de cada cotización", body: "Tipo de sala y tamaño. No salen en el PDF: sirven para sugerir equipos de proyectos parecidos." },
         { href: "/admin/settings/quotes/marcas", title: "Otros logos", body: "Logos que no son de una marca del catálogo (certificaciones, partners)." },

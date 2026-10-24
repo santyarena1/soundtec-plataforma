@@ -17,8 +17,8 @@ export default async function AdminSettingsLayout({ children }: { children: Reac
         description="Un solo lugar para todo lo que se configura, agrupado por área."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[224px_minmax(0,1fr)] lg:gap-10">
-        <aside className="lg:sticky lg:top-6 lg:self-start">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[224px_minmax(0,1fr)] lg:gap-10">
+        <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start">
           <SettingsNav allowedHrefs={allowed.map((s) => s.href)} />
         </aside>
         <div className="min-w-0">{children}</div>

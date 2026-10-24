@@ -2318,4 +2318,21 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Expo → Vidriera: elegís una marca y aparecen sus productos sin escribir nada, con la misma foto que sale en la pantalla del stand." },
     ],
   },
+  {
+    id: "ship-2026-10-25-textos-pdf-versiones-y-ia-cotizaciones",
+    version: "2.17.0",
+    releasedAt: "2026-10-25T03:00:00.000Z",
+    summary: "Textos del PDF con versiones por rubro y tipo de presupuesto que salen solas, y la generación con IA de cotizaciones corregida a fondo.",
+    items: [
+      { kind: "NUEVO", text: "Configuración → Cotizaciones → Textos del PDF: cada texto (presentación, instalación, garantía, cierre…) se edita directo, con su vista previa al lado. Se pueden crear versiones para un rubro (Hotelería, Corporativo, Residencial, Educación y gobierno, Salud, Retail, Integradores) o para un tipo de presupuesto (Corto, Estándar, Completo)." },
+      { kind: "NUEVO", text: "Las versiones salen solas: al crear una cotización se elige la que corresponde a su tipo y a quién va. «A quién va» está en el encabezado y se completa con el segmento del cliente. En cada cotización se puede cambiar a mano." },
+      { kind: "NUEVO", text: "«Escribir borrador con IA»: arma una versión para un rubro a partir del texto general, sin inventar datos. Queda para revisar antes de guardar. «Probar» muestra qué versión sale para cada combinación y abre el PDF de ejemplo con esa combinación." },
+      { kind: "FIX", text: "Generar con IA: «Criterios de diseño», «Productos clave» y «Funcionalidad» no se estaban escribiendo nunca. Ahora se redactan con los datos reales de los equipos cargados." },
+      { kind: "FIX", text: "Las sugerencias de equipos ya no asocian productos equivocados (ej. un soporte de proyector terminaba asociado a una rejilla SoundTube). Si no hay coincidencia segura, la sugerencia queda como texto." },
+      { kind: "FIX", text: "El texto para el cliente solo habla de los equipos cargados: ya no nombra sugerencias pendientes ni equipos que no están en la cotización." },
+      { kind: "FIX", text: "Generar ya no pisa textos escritos a mano, toma en cuenta las notas, el relevamiento (m², personas, presupuesto, «No ofrecer») y la lectura de planos, y usa el brief que está escrito aunque no se haya guardado." },
+      { kind: "FIX", text: "Las descripciones cortas que escribe la IA se basan en la ficha del producto y en español; si falla no deja texto de relleno. Regenerarlas pide permiso de edición de productos." },
+      { kind: "MEJORA", text: "Si algo falla al generar, se avisa qué se escribió, qué no y por qué. Sin brief, pide escribirlo antes de generar." },
+    ],
+  },
 ];
