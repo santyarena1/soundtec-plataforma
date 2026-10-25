@@ -11,6 +11,13 @@ import { allowIpAttempt, clearFailedLogins, isEmailLocked, loginIpHash, recordFa
 class TooManyAttempts extends CredentialsSignin {
   code = "too_many_attempts";
 }
+/** Contraseña correcta, falta el código de la app (verificación en dos pasos). */
+class TotpRequired extends CredentialsSignin {
+  code = "totp_required";
+}
+class TotpInvalid extends CredentialsSignin {
+  code = "totp_invalid";
+}
 
 // Hash de una clave cualquiera: si el email no existe se compara igual, así la
 // demora no delata qué emails están dados de alta.
@@ -38,6 +45,7 @@ declare module "next-auth" {
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  code: z.string().max(12).optional(),
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -52,6 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Contraseña", type: "password" },
+        code: { label: "Código de verificación", type: "text" },
       },
       authorize: async (raw, request) => {
         const parsed = credentialsSchema.safeParse(raw);
@@ -72,6 +81,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!user || !user.isActive || !ok) {
           await recordFailedLogin(email);
           return null;
+        }
+        if (user.twoFactorEnabled) {
+          const code = parsed.data.code?.trim();
+          if (!code) throw new TotpRequired();
+          const { decryptSecret } = await import("@/lib/secret-box");
+          const { verifyTotp } = await import("@/lib/totp");
+          if (!(await verifyTotp(decryptSecret(user.twoFactorSecret ?? ""), code))) {
+            await recordFailedLogin(email);
+            throw new TotpInvalid();
+          }
         }
         await clearFailedLogins(email);
 

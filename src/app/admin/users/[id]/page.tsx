@@ -144,7 +144,7 @@ export default async function Page({ params }: { params: { id: string } }) {
       <Card>
         <CardContent className="space-y-3 p-5">
           <h2 className="font-semibold">Acceso</h2>
-          <UserActions id={user.id} email={user.email} name={user.name} isActive={user.isActive} canDelete={canDelete} canManage={canManageThis} />
+          <UserActions id={user.id} email={user.email} name={user.name} isActive={user.isActive} canDelete={canDelete} canManage={canManageThis} twoFactorEnabled={user.twoFactorEnabled} />
           {canManageThis && !canDelete && user.id !== actor.id ? (
             <p className="text-sm text-muted-foreground">No se puede eliminar porque tiene pedidos, cotizaciones o clientes a cargo. Desactivalo para conservar el historial.</p>
           ) : null}

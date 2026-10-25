@@ -39,6 +39,8 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(initialError ? "Credenciales inválidas." : null);
+  // Verificación en dos pasos: la contraseña ya fue aceptada, falta el código de la app.
+  const [needsCode, setNeedsCode] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -47,6 +49,7 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
     const formData = new FormData(form);
     const email = String(formData.get("email") || "").trim();
     const password = String(formData.get("password") || "");
+    const code = String(formData.get("code") || "").replace(/s+/g, "");
 
     if (!email || !password) {
       setError("Completá email y contraseña.");
@@ -58,10 +61,20 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
       const result = await signIn("credentials", {
         email,
         password,
+        ...(needsCode ? { code } : {}),
         redirect: false,
         callbackUrl: target,
       });
+      if (result?.code === "totp_required") {
+        setNeedsCode(true);
+        setError(null);
+        return;
+      }
       if (!result || result.error) {
+        if (result?.code === "totp_invalid") {
+          setError("El código no es correcto o ya venció. Fijate el que muestra ahora la app.");
+          return;
+        }
         setError(
           result?.code === "too_many_attempts"
             ? "Demasiados intentos. Por seguridad, esperá 15 minutos y probá de nuevo (o pedí que te reseteen la contraseña)."
@@ -100,9 +113,19 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
         <FieldError />
       </div>
 
+      {needsCode ? (
+        <div className="space-y-1.5 rounded-md border border-primary/30 bg-primary/5 p-3">
+          <Label htmlFor="code" required>
+            Código de verificación
+          </Label>
+          <p className="text-xs text-muted-foreground">Abrí la app de autenticación (Google Authenticator u otra) y escribí el código de 6 dígitos de Soundtec.</p>
+          <Input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]{6,7}" maxLength={7} autoFocus className="h-11 text-center text-lg tracking-[0.3em]" required />
+        </div>
+      ) : null}
+
       <Button type="submit" className="h-11 w-full" disabled={isPending}>
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {isPending ? "Ingresando..." : "Iniciar sesión"}
+        {isPending ? "Ingresando..." : needsCode ? "Verificar e ingresar" : "Iniciar sesión"}
       </Button>
     </form>
   );

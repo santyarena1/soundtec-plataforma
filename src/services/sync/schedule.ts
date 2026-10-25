@@ -21,7 +21,7 @@ export interface SyncScheduleConfig {
 const SCHEDULE_KEY = "sync.schedule";
 
 export const DEFAULT_SCHEDULE: SyncScheduleConfig = {
-  crestron: { enabled: true, everyHours: 24, atHourArg: 8 },
+  crestron: { enabled: true, everyHours: 168, atHourArg: 8 },
   "crestron-web": { enabled: false, everyHours: 168, atHourArg: 4 },
   sonance: { enabled: true, everyHours: 168, atHourArg: 6 },
   soundtube: { enabled: true, everyHours: 168, atHourArg: 7 },

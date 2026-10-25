@@ -2405,4 +2405,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Seguridad — Se activó el cifrado de las claves de integraciones guardadas en la base." },
     ],
   },
+  {
+    id: "ship-2026-10-25-verificacion-dos-pasos",
+    version: "2.20.0",
+    releasedAt: "2026-10-25T16:00:00.000Z",
+    summary: "Verificación en dos pasos: además de la clave, un código de 6 dígitos del celular.",
+    items: [
+      { kind: "NUEVO", text: "Seguridad (abajo a la izquierda, junto a «Cambiar contraseña») → Verificación en dos pasos: se escanea un QR con Google Authenticator o similar y, desde ahí, al ingresar se pide también el código de 6 dígitos. Si alguien consigue tu clave, igual no puede entrar. Recomendada para todos los administradores." },
+      { kind: "NUEVO", text: "Usuarios → ficha de un usuario: «Quitar verificación en dos pasos» para quien perdió el celular (cierra sus sesiones abiertas)." },
+      { kind: "MEJORA", text: "Sincronización automática de proveedores: una vez por semana para todas las fuentes." },
+    ],
+  },
 ];

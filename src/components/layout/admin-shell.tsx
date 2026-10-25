@@ -93,6 +93,9 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
               <ButtonLink href="/cuenta/clave" size="sm" variant="ghost" className="flex-1">
                 Cambiar contraseña
               </ButtonLink>
+              <ButtonLink href="/cuenta/seguridad" size="sm" variant="ghost" title="Verificación en dos pasos">
+                Seguridad
+              </ButtonLink>
               <form action={handleSignOut}>
                 <button type="submit" className="h-8 rounded-md border border-border px-3 text-xs hover:bg-secondary">
                   Salir

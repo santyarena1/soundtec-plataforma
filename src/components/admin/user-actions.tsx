@@ -9,6 +9,7 @@ import { AccessModePicker, AccessReveal } from "@/components/admin/access-reveal
 import { deleteUser, resetUserPassword, toggleUserActive } from "@/server/actions/users";
 import type { AccessMode, AccessResult } from "@/server/user-access";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
+import { adminResetTwoFactor } from "@/server/actions/two-factor";
 
 export function UserActions({
   id,
@@ -17,6 +18,7 @@ export function UserActions({
   isActive,
   canDelete,
   canManage,
+  twoFactorEnabled = false,
 }: {
   id: string;
   email: string;
@@ -25,6 +27,8 @@ export function UserActions({
   canDelete: boolean;
   /** Quien mira puede modificar a este usuario (jerarquía de tipos). */
   canManage: boolean;
+  /** Tiene activa la verificación en dos pasos. */
+  twoFactorEnabled?: boolean;
 }) {
   const [error, setError] = useState<string>();
   const [resetOpen, setResetOpen] = useState(false);
@@ -57,6 +61,28 @@ export function UserActions({
         >
           {isActive ? "Desactivar" : "Activar"}
         </Button>
+        {twoFactorEnabled ? (
+          <Button
+            variant="outline"
+            disabled={pending}
+            onClick={async () => {
+              if (
+                await confirmDialog({
+                  title: "Quitar verificación en dos pasos",
+                  message: `${name} va a poder entrar solo con la clave (por ejemplo, si perdió el celular) y se cierran sus sesiones abiertas. Después puede volver a activarla.`,
+                  confirmLabel: "Quitar",
+                })
+              )
+                start(async () => {
+                  const r = await adminResetTwoFactor(id);
+                  if (!r.ok) setError(r.error);
+                  router.refresh();
+                });
+            }}
+          >
+            Quitar verificación en dos pasos
+          </Button>
+        ) : null}
         {canDelete ? (
           <Button
             variant="destructive"
