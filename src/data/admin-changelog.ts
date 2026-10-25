@@ -2394,4 +2394,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Revisión de la lista de SoundTube: sugiere el mismo modelo en otro color cuando el Excel trae un código que no está en el sistema (ej. PC9.5-GB ↔ PC9.5-BK)." },
     ],
   },
+  {
+    id: "ship-2026-10-25-seguridad-librerias",
+    version: "2.19.1",
+    releasedAt: "2026-10-25T14:00:00.000Z",
+    summary: "Librerías actualizadas por seguridad y sincronización automática de precios reactivada.",
+    items: [
+      { kind: "MEJORA", text: "Seguridad — Se actualizaron el sistema de ingreso (next-auth), el procesador de imágenes (sharp), el editor de textos y otras librerías con fallas conocidas: las vulnerabilidades detectadas bajaron de 53 a 12." },
+      { kind: "FIX", text: "La sincronización automática de precios de cada hora no corría desde el 5 de octubre (faltaba su clave en el servidor). Ya está configurada." },
+      { kind: "MEJORA", text: "Seguridad — Se activó el cifrado de las claves de integraciones guardadas en la base." },
+    ],
+  },
 ];
