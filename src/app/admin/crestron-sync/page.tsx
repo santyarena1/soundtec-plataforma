@@ -10,11 +10,6 @@ import { CrestronSyncPanel } from "./_client";
 
 export const metadata = { title: "Admin · Sincronización Crestron" };
 
-function mask(v: string) {
-  if (!v) return "";
-  if (v.length <= 6) return "•".repeat(v.length);
-  return `${v.slice(0, 3)}${"•".repeat(v.length - 6)}${v.slice(-3)}`;
-}
 
 export default async function CrestronSyncPage() {
   await requireAdmin();
@@ -60,13 +55,14 @@ export default async function CrestronSyncPage() {
 
             <form action={saveSetting} className="space-y-1.5">
               <input type="hidden" name="key" value="crestron.password" />
+              <input type="hidden" name="isSecret" value="true" />
               <Label htmlFor="crestron-pass">Contraseña</Label>
               <Input
                 id="crestron-pass"
                 name="value"
                 type="password"
-                defaultValue={password}
-                placeholder={password ? mask(password) : "••••••••"}
+                defaultValue=""
+                placeholder={password ? "Configurada — escribí una nueva para cambiarla" : "••••••••"}
                 autoComplete="new-password"
               />
               <div className="flex justify-end">

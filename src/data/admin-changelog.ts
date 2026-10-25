@@ -2416,4 +2416,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Sincronización automática de proveedores: una vez por semana para todas las fuentes." },
     ],
   },
+  {
+    id: "ship-2026-10-25-claves-portales",
+    version: "2.20.1",
+    releasedAt: "2026-10-25T17:00:00.000Z",
+    summary: "Las contraseñas de los portales de Crestron y Sonance tampoco viajan al navegador.",
+    items: [
+      { kind: "MEJORA", text: "Seguridad — En la configuración del sync de Crestron y de la importación de Sonance, la contraseña del portal ya no se precarga en la pantalla (antes se podía leer en el código de la página y se mostraban 6 de sus letras). Dice «Configurada»; para cambiarla se escribe una nueva. Se guardan cifradas como el resto de las claves." },
+    ],
+  },
 ];

@@ -53,13 +53,14 @@ export default async function SonanceImportPage() {
             </form>
             <form action={saveSetting} className="space-y-1.5">
               <input type="hidden" name="key" value="sonance.portal_password" />
+              <input type="hidden" name="isSecret" value="true" />
               <Label htmlFor="portal-pass">Password</Label>
               <Input
                 id="portal-pass"
                 name="value"
                 type="password"
-                defaultValue={portalPass}
-                placeholder="••••••••"
+                defaultValue=""
+                placeholder={portalPass ? "Configurada — escribí una nueva para cambiarla" : "••••••••"}
               />
               <div className="flex justify-end">
                 <Button type="submit" size="sm" variant="outline">Guardar</Button>
