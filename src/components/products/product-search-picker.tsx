@@ -151,7 +151,7 @@ export function ProductSearchPicker({
                 {item.subtitle ? <span className="block truncate text-xs text-muted-foreground">{item.subtitle}</span> : null}
               </span>
               {showPrice && item.price != null ? (
-                <span className="shrink-0 text-sm font-semibold tabular-nums">{item.price > 0 ? formatUsd(item.price) : "A consultar"}</span>
+                <span className="shrink-0 text-sm font-semibold tabular-nums">{item.price > 0 ? formatUsd(item.price) : "Consultá precio"}</span>
               ) : null}
               <button
                 type="button"

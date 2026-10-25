@@ -1,0 +1,29 @@
+{
+  "_comment": "Dominios cuyas fotos pasan por el optimizador de imágenes (next.config + lib/image-url). Las de otros dominios se muestran directo. Sumar acá cuando aparezca una fuente nueva habitual.",
+  "hosts": [
+    "www.soundtecportal.com.ar",
+    "soundtecportal.com.ar",
+    "*.public.blob.vercel-storage.com",
+    "images.salsify.com",
+    "embed.widencdn.net",
+    "www.soundtube.com",
+    "soundtube.mseaudio.com",
+    "images.prismic.io",
+    "cdn-images.av-iq.com",
+    "docs.crestron.com",
+    "www.crestron.com",
+    "cdn.cloud.atlona.com",
+    "i.ebayimg.com",
+    "www.fullcompass.com",
+    "www.4tecdirect.com",
+    "www.bhphotovideo.com",
+    "gaepuiocdjooikxalrtf.supabase.co",
+    "creationnetworks.net",
+    "cdn11.bigcommerce.com",
+    "catalog.advancesound.com",
+    "digitalresources.com",
+    "linqcdn.avbportal.com",
+    "static.topbiz.fr",
+    "m.media-amazon.com"
+  ]
+}

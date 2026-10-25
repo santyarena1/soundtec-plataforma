@@ -29,7 +29,9 @@ export async function saveSetting(formData: FormData): Promise<void> {
   if (!parsed.success) return;
   const secret =
     parsed.data.isSecret === "true" || SECRET_PREFIXES.some((p) => parsed.data.key.startsWith(p) && parsed.data.key.includes("key"));
-  await setSetting(parsed.data.key, parsed.data.value, secret ? { isSecret: true } : undefined);
+  // Una clave vacía no borra la guardada: el campo ya no viene precargado.
+  if (secret && !parsed.data.value.trim()) return;
+  await setSetting(parsed.data.key, parsed.data.value.trim(), secret ? { isSecret: true } : undefined);
   revalidateSettings(["/admin/crestron-sync", "/admin/quotes"]);
 }
 

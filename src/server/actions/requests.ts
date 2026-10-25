@@ -633,6 +633,8 @@ export async function postRequestMessage(formData: FormData): Promise<void> {
   if (!parsed.success) return;
 
   const isStaff = user.role !== "CLIENT";
+  // Como equipo, escribir en el pedido de un cliente exige el permiso de responder pedidos.
+  if (isStaff) await requireStaff("requests.respond");
   const request = await prisma.customerRequest.findFirst({
     where: isStaff
       ? { id: parsed.data.requestId }

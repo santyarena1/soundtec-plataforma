@@ -643,7 +643,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
       <div className="flex flex-wrap gap-4">
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="isCustomizable" defaultChecked={product?.isCustomizable} />
-          Producto configurable (con accesorios/opcionales)
+          Tiene accesorios opcionales
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="accessoryRequiredWithPrimary" defaultChecked={product?.accessoryRequiredWithPrimary} />

@@ -1,10 +1,20 @@
-import NextAuth, { type DefaultSession } from "next-auth";
+import NextAuth, { CredentialsSignin, type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import type { UserRole } from "@prisma/client";
 import { parsePermissions, type Permissions } from "@/lib/permissions";
+import { allowIpAttempt, clearFailedLogins, isEmailLocked, loginIpHash, recordFailedLogin } from "@/lib/login-guard";
+
+/** Demasiados intentos: el formulario lo muestra con su propio mensaje. */
+class TooManyAttempts extends CredentialsSignin {
+  code = "too_many_attempts";
+}
+
+// Hash de una clave cualquiera: si el email no existe se compara igual, así la
+// demora no delata qué emails están dados de alta.
+const DUMMY_HASH = "$2a$12$KCLJaskrFP1AirCivvq66OkNxSdHsY23rvh4QlRFh1wOzvpPhwnIO";
 
 declare module "next-auth" {
   interface Session {
@@ -43,18 +53,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Contraseña", type: "password" },
       },
-      authorize: async (raw) => {
+      authorize: async (raw, request) => {
         const parsed = credentialsSchema.safeParse(raw);
         if (!parsed.success) return null;
+        const email = parsed.data.email.toLowerCase();
+
+        const ipHash = await loginIpHash(request?.headers ?? new Headers());
+        if (!(await allowIpAttempt(ipHash)) || (await isEmailLocked(email))) {
+          console.warn("[auth] ingreso frenado por intentos", { email, ipHash });
+          throw new TooManyAttempts();
+        }
 
         const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email.toLowerCase() },
+          where: { email },
           include: { customRole: { select: { permissionsJson: true, isActive: true } } },
         });
-        if (!user || !user.isActive) return null;
-
-        const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
-        if (!ok) return null;
+        const ok = await bcrypt.compare(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
+        if (!user || !user.isActive || !ok) {
+          await recordFailedLogin(email);
+          return null;
+        }
+        await clearFailedLogins(email);
 
         await prisma.user
           .update({

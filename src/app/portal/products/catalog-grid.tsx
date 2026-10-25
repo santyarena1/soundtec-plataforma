@@ -30,7 +30,7 @@ interface GridProps {
  *  │ Nombre del producto  │  ← 2 líneas reservadas
  *  │ Descripción corta    │  ← 2 líneas reservadas
  *  │ [categoría] [tag]    │  ← 1 fila, sin wrap
- *  │ USD 1.234,00         │  ← siempre abajo (o "Precio a consultar")
+ *  │ USD 1.234,00         │  ← siempre abajo (o "Consultá precio")
  *  │ [ Agregar ]          │
  *  └──────────────────────┘
  */
@@ -117,7 +117,7 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                   <>
                     <div className="flex h-10 items-end justify-between gap-2">
                       {priceOnRequest(p) ? (
-                        <p className="text-sm font-semibold leading-none text-muted-foreground">Precio a consultar</p>
+                        <p className="text-lg font-semibold leading-none">Consultá precio</p>
                       ) : (
                         <>
                           <p className="text-lg font-semibold leading-none tabular-nums">

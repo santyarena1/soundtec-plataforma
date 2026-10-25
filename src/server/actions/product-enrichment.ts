@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireStaff } from "@/lib/auth-helpers";
 import { generateLongDescription, generateShortDescription, suggestProductClassification, type ClassificationSuggestion } from "@/services/openai";
-import { searchProductImages, type SerperImage } from "@/services/serper";
+import { searchProductImages, searchProductImagesOrError, type SerperImage } from "@/services/serper";
 import { getSetting, setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 
@@ -265,6 +265,8 @@ export async function generateProductDescription(
   }
 }
 
+const MSE_BRANDS = /soundtube|soundsphere|solid ?drive|induction ?dynamics|rockustics|phase ?tech|darts/i;
+
 export async function searchProductImagesAction(
   productId: string,
   query?: string
@@ -279,8 +281,11 @@ export async function searchProductImagesAction(
   const q = (query && query.trim().length > 0)
     ? query
     : [p.brand?.name, p.normalizedName].filter(Boolean).join(" ");
-  const images = await searchProductImages(q, 8);
-  return { ok: true, images };
+  // Marcas del grupo MSE (SoundTube, SoundSphere, SolidDrive…): primero en su sitio oficial.
+  const mse = MSE_BRANDS.test(p.brand?.name ?? "");
+  const first = mse ? await searchProductImagesOrError(`${q} site:soundtube.com`, 8) : null;
+  const { images, error } = first?.images.length ? first : await searchProductImagesOrError(q, 8);
+  return images.length ? { ok: true, images } : { ok: false, images: [], error };
 }
 
 /**

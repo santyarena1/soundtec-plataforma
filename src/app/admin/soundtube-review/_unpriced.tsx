@@ -60,7 +60,7 @@ export function UnpricedSection({ items }: { items: Item[] }) {
           </span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Están en el portal de SoundTube pero no en la lista Excel: se ven como «Precio a consultar». El único precio válido es
+          Están en el portal de SoundTube pero no en la lista Excel: se ven como «Consultá precio». El único precio válido es
           SPRDIS US; cargalo acá con su MUP, o desactivá el producto si no se vende. Lo que cargues se conserva al subir otras listas
           (si después aparece en una lista, manda la lista).
         </p>

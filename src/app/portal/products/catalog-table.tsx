@@ -70,7 +70,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
                       </span>
                     ) : null}
                     {priceOnRequest(p) ? (
-                      <span className="text-xs font-medium text-muted-foreground">A consultar</span>
+                      <span className="font-semibold">Consultá precio</span>
                     ) : (
                       <span className="font-semibold">{formatUsd(p.pricing.finalPriceUsd)}</span>
                     )}

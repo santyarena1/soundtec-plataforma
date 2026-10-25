@@ -1,5 +1,6 @@
 "use server";
 
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -89,10 +90,8 @@ export async function searchRelatableProducts(query: string, excludeId: string) 
   await requireStaff("products.edit", { costs: true });
   const q = query.trim();
   if (q.length < 2) return [];
-  const found = await prisma.product.findMany({
-    where: { id: { not: excludeId }, ...buildProductSearchWhere(q) },
-    take: 80,
-    select: {
+  const base = await prisma.product.findUnique({ where: { id: excludeId }, select: { brandId: true } });
+  const select = {
       id: true,
       normalizedName: true,
       originalName: true,
@@ -105,9 +104,18 @@ export async function searchRelatableProducts(query: string, excludeId: string) 
       kind: true,
       brand: { select: { name: true } },
       images: { select: { url: true }, orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 },
-    },
-  });
-  return sortBySearchRelevance(found, q, (p) => ({
+  } satisfies Prisma.ProductSelect;
+  // Primero se busca dentro de la misma marca (antes el tope de 80 filas sin orden
+  // podía dejar afuera el accesorio justo), y después en todas: se puede cruzar marcas.
+  const [sameBrand, all] = await Promise.all([
+    base?.brandId
+      ? prisma.product.findMany({ where: { id: { not: excludeId }, brandId: base.brandId, ...buildProductSearchWhere(q) }, take: 120, select })
+      : Promise.resolve([]),
+    prisma.product.findMany({ where: { id: { not: excludeId }, ...buildProductSearchWhere(q) }, take: 200, select }),
+  ]);
+  const found = [...new Map([...sameBrand, ...all].map((p) => [p.id, p])).values()];
+  const sameBrandIds = new Set(sameBrand.map((p) => p.id));
+  const ranked = sortBySearchRelevance(found, q, (p) => ({
     normalizedName: p.normalizedName,
     originalName: p.originalName,
     internalSku: p.internalSku,
@@ -115,8 +123,10 @@ export async function searchRelatableProducts(query: string, excludeId: string) 
     modelNumber: p.modelNumber,
     manufacturerItem: p.manufacturerItem,
     brandName: p.brand?.name ?? null,
-  }))
-    .slice(0, 12)
+  }));
+  // Misma marca arriba, respetando la relevancia dentro de cada grupo.
+  return [...ranked.filter((p) => sameBrandIds.has(p.id)), ...ranked.filter((p) => !sameBrandIds.has(p.id))]
+    .slice(0, 25)
     .map((p) => ({
       id: p.id,
       title: productTitle(p),
@@ -124,6 +134,6 @@ export async function searchRelatableProducts(query: string, excludeId: string) 
       code: tangoCode(p.internalSku) ?? p.supplierSku,
       brand: p.brand?.name ?? null,
       imageUrl: p.images[0]?.url ?? null,
-      note: p.isActive ? null : "inactivo",
+      note: [sameBrandIds.has(p.id) ? null : "otra marca", p.isActive ? null : "inactivo"].filter(Boolean).join(" · ") || null,
     }));
 }

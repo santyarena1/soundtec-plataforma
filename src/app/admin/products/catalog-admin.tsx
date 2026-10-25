@@ -152,7 +152,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "family", label: "Familia" },
   { key: "distributor", label: "Proveedor", requiresPrices: true },
   { key: "kind", label: "Tipo" },
-  { key: "customizable", label: "Configurable" },
+  { key: "customizable", label: "Con accesorios opcionales" },
   { key: "cost", label: "Costo USD", requiresPrices: true },
   { key: "salePrice", label: "Precio venta", requiresPrices: true },
   { key: "margin", label: "Markup y regla", requiresPrices: true },
@@ -791,7 +791,7 @@ function renderCell(
           ) : null}
           <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
             {r.kind === "ACCESORIO" ? "Accesorio" : "Principal"}
-            {r.isCustomizable ? " · Configurable" : ""}
+            {r.isCustomizable ? " · Accesorios opcionales" : ""}
             {!r.isActive ? <Badge tone="muted">Inactivo</Badge> : null}
             {missingData(r).length ? <Badge tone="warning">Falta {missingData(r).join(", ")}</Badge> : null}
             {r.isCrestronHomeCompatible ? <Badge tone="primary">Crestron Home</Badge> : null}

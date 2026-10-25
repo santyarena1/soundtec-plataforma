@@ -49,7 +49,7 @@ interface SettingFieldProps {
   value: string;
   hint?: string;
   placeholder?: string;
-  /** Guarda el valor cifrado y lo muestra enmascarado. */
+  /** Clave: se guarda cifrada y nunca se manda al navegador (value trae solo la máscara). Vacío al guardar = no se cambia. */
   secret?: boolean;
   multiline?: boolean;
   /** Si se pasan opciones, el campo se renderiza como select. */
@@ -109,8 +109,9 @@ export function SettingField({
             id={settingKey}
             name="value"
             type={secret ? "password" : "text"}
-            defaultValue={value}
-            placeholder={secret && value ? maskSecret(value) : placeholder}
+            defaultValue={secret ? "" : value}
+            autoComplete={secret ? "off" : undefined}
+            placeholder={secret && value ? `${value} — escribí una nueva para reemplazarla` : placeholder}
             className="mt-1.5"
           />
         )}
@@ -123,7 +124,3 @@ export function SettingField({
   );
 }
 
-function maskSecret(value: string) {
-  if (value.length <= 8) return "•".repeat(value.length);
-  return `${value.slice(0, 4)}••••${value.slice(-4)}`;
-}

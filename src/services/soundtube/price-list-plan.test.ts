@@ -73,6 +73,10 @@ describe("suggestCandidates", () => {
     assert.deepEqual(suggestCandidates(row("CI20X MP"), products).map((p) => p.id), ["kit"]);
     assert.deepEqual(suggestCandidates(row("PS1090a"), products).map((p) => p.id), ["bk"]);
   });
+  it("sugiere el mismo modelo en otro color (PC9.5-GB ↔ PC9.5-BK)", () => {
+    const colors = [product("pcbk", "PC9.5-BK"), product("pcwh", "PC9.5-WH"), product("otro", "PC9-BK")];
+    assert.deepEqual(suggestCandidates(row("PC9.5-GB"), colors).map((p) => p.id).sort(), ["pcbk", "pcwh"]);
+  });
   it("no sugiere con SKUs demasiado cortos ni sin relación", () => {
     assert.deepEqual(suggestCandidates(row("ZZZ-9999"), products), []);
     assert.deepEqual(suggestCandidates(row("CI"), products), []);

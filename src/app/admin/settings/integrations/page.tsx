@@ -1,5 +1,6 @@
 import { requirePermission } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
+import { getSettingRows } from "@/lib/settings";
+import { maskForDisplay } from "@/lib/secret-box";
 import { SettingsSectionHeader } from "@/components/admin/settings-section-header";
 import { SettingField, SettingsCard } from "@/components/admin/setting-field";
 
@@ -44,8 +45,9 @@ const OPTIONAL_KEYS = [
 export default async function SettingsIntegrationsPage() {
   await requirePermission("api_keys.manage");
   const keys = [...REQUIRED_KEYS, ...OPTIONAL_KEYS].map((k) => k.key);
-  const rows = await prisma.adminSetting.findMany({ where: { key: { in: [...keys, "images.provider"] } } });
-  const map = new Map(rows.map((r) => [r.key, r.value]));
+  // Las claves nunca viajan al navegador: solo «configurada» y las últimas letras.
+  const rows = await getSettingRows([...keys, "images.provider"]);
+  const map = new Map(rows.map((r) => [r.key, keys.includes(r.key) ? maskForDisplay(r.value) : r.value]));
 
   return (
     <div className="space-y-5">

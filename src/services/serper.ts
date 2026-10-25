@@ -19,13 +19,14 @@ async function getApiKey(): Promise<string> {
 }
 
 export async function searchProductImages(query: string, count = 8): Promise<SerperImage[]> {
+  return (await searchProductImagesOrError(query, count)).images;
+}
+
+/** Igual que searchProductImages, pero dice por qué no hubo resultados (sin créditos, clave inválida…). */
+export async function searchProductImagesOrError(query: string, count = 8): Promise<{ images: SerperImage[]; error?: string }> {
   const apiKey = await getApiKey();
   if (!apiKey) {
-    return Array.from({ length: count }, (_, i) => ({
-      url: `https://placehold.co/800x600/1e3553/ffffff/png?text=${encodeURIComponent(query)}+${i + 1}`,
-      title: `${query} (mock ${i + 1})`,
-      thumbnail: `https://placehold.co/200x150/1e3553/ffffff/png?text=${encodeURIComponent(query)}`,
-    }));
+    return { images: [], error: "No hay clave de Serper cargada (Configuración → Integraciones y claves)." };
   }
 
   try {
@@ -38,17 +39,24 @@ export async function searchProductImages(query: string, count = 8): Promise<Ser
       body: JSON.stringify({ q: query, num: count }),
       cache: "no-store",
     });
-    if (!resp.ok) throw new Error(`Serper status ${resp.status}`);
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => "");
+      console.error("Serper searchProductImages error", resp.status, body.slice(0, 200));
+      if (/credits/i.test(body)) return { images: [], error: "La cuenta de Serper (buscador de imágenes) se quedó sin créditos. Hay que recargarla en serper.dev." };
+      if (resp.status === 401 || resp.status === 403) return { images: [], error: "Serper rechazó la clave. Revisala en Configuración → Integraciones y claves." };
+      return { images: [], error: `El buscador de imágenes respondió con error (${resp.status}). Probá de nuevo en un rato.` };
+    }
     const data = (await resp.json()) as { images?: Array<{ imageUrl: string; title: string; source: string; thumbnailUrl: string }> };
-    return (data.images || []).slice(0, count).map((i) => ({
+    const images = (data.images || []).slice(0, count).map((i) => ({
       url: i.imageUrl,
       title: i.title,
       source: i.source,
       thumbnail: i.thumbnailUrl,
     }));
+    return { images, error: images.length ? undefined : "No se encontraron imágenes. Probá con el modelo y la marca, por ejemplo «SoundTube RS500i»." };
   } catch (error) {
     console.error("Serper searchProductImages error", error);
-    return [];
+    return { images: [], error: "No se pudo conectar con el buscador de imágenes." };
   }
 }
 

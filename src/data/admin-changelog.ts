@@ -2376,4 +2376,22 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Subir imágenes decía «No se pudo guardar la imagen en el almacenamiento»: el almacenamiento de Vercel es privado y el sistema intentaba guardar los archivos como públicos. Ahora se guardan como privados y se muestran a través de soundtecportal.com.ar. Vale para logos, fotos de productos, planos, imágenes de cotizaciones y el Excel de cada cotización emitida." },
     ],
   },
+  {
+    id: "ship-2026-10-25-seguridad-etapa-1",
+    version: "2.19.0",
+    releasedAt: "2026-10-25T12:00:00.000Z",
+    summary: "Refuerzo de seguridad del sitio y ajustes de catálogo, accesorios y búsqueda de imágenes.",
+    items: [
+      { kind: "MEJORA", text: "Seguridad — Ingreso: después de 8 contraseñas incorrectas seguidas, la cuenta se bloquea 15 minutos (y hay un tope por conexión). El aviso lo dice claro. Antes se podían probar contraseñas sin límite." },
+      { kind: "MEJORA", text: "Seguridad — Se eliminó la página técnica de instalación inicial, que podía resetear la contraseña del administrador. Se desactivó el cliente demo, que tenía una contraseña conocida." },
+      { kind: "MEJORA", text: "Seguridad — Las claves de OpenAI, Anthropic, Serper, Gemini y de portales de proveedores se guardan cifradas y la pantalla de Integraciones ya no las manda al navegador: muestra «configurada» y las últimas letras. Dejar el campo vacío al guardar no la borra." },
+      { kind: "MEJORA", text: "Seguridad — Encabezados de seguridad en todo el sitio: no se puede cargar dentro de otra página (clickjacking), política de contenido, HTTPS estricto y no se anuncia la tecnología del servidor." },
+      { kind: "MEJORA", text: "Seguridad — El optimizador de imágenes solo trabaja con las fuentes de fotos conocidas; las de otros sitios se muestran directo. Planos, imágenes y Excel de cotizaciones solo se abren con sesión del equipo." },
+      { kind: "MEJORA", text: "Seguridad — Escribir en el pedido de un cliente exige el permiso de responder pedidos, y el enlace de ingreso solo puede volver a páginas del propio sitio." },
+      { kind: "MEJORA", text: "Ficha del cliente: «Consultá precio» en el mismo tamaño que un precio, y la aclaración ahora dice «Precio en dólares estadounidenses. No incluye impuestos ni descuentos aplicables.»" },
+      { kind: "MEJORA", text: "Accesorios: el buscador muestra primero los productos de la misma marca (con más resultados) y después los de otras marcas, marcados como tales. «Configurable» pasó a llamarse «Accesorios opcionales»." },
+      { kind: "MEJORA", text: "Buscar imágenes: si no hay resultados dice por qué (por ejemplo, que la cuenta de Serper se quedó sin créditos). Para SoundTube, SoundSphere, SolidDrive, Induction Dynamics, Rockustics, Phase Tech y Darts busca primero en soundtube.com." },
+      { kind: "MEJORA", text: "Revisión de la lista de SoundTube: sugiere el mismo modelo en otro color cuando el Excel trae un código que no está en el sistema (ej. PC9.5-GB ↔ PC9.5-BK)." },
+    ],
+  },
 ];

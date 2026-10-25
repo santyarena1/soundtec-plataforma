@@ -112,14 +112,27 @@ const MIN_PREFIX = 4;
  * empieza con el otro ignorando espacios y guiones (ej. "PS1090a" ↔
  * "PS1090a-BK", "CI20X MP" ↔ "CI20X MP KIT"). Más parecidos primero.
  */
+/**
+ * Modelo sin el sufijo de color o terminación (ej. "PC9.5-GB" y "PC9.5-BK" →
+ * "PC9.5"): el último tramo después de un guion o espacio, de 1 a 3 letras.
+ */
+export function colorBaseKey(sku: string): string | null {
+  const match = skuKey(sku).match(/^(.+?)[s-]+[A-Z]{1,3}$/i);
+  return match ? looseSkuKey(match[1]!) : null;
+}
+
 export function suggestCandidates(row: PriceListRow, products: CatalogProduct[]): CatalogProduct[] {
   const key = looseSkuKey(row.sku);
   if (key.length < MIN_PREFIX) return [];
+  const base = colorBaseKey(row.sku);
   return products
     .filter((p) => {
       if (!p.sku) return false;
       const other = looseSkuKey(p.sku);
-      return other !== key && other.length >= MIN_PREFIX && (other.startsWith(key) || key.startsWith(other));
+      if (other === key) return false;
+      // Mismo modelo en otro color: PC9.5-GB ↔ PC9.5-BK.
+      if (base && base.length >= 3 && colorBaseKey(p.sku) === base) return true;
+      return other.length >= MIN_PREFIX && (other.startsWith(key) || key.startsWith(other));
     })
     .sort((a, b) => Math.abs(looseSkuKey(a.sku!).length - key.length) - Math.abs(looseSkuKey(b.sku!).length - key.length));
 }

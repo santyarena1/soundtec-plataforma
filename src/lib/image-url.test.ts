@@ -15,3 +15,8 @@ test("rutas propias, data: y vacíos quedan igual", () => {
   assert.equal(optimizedImage(null, 96), null);
   assert.equal(optimizedImage("", 96), null);
 });
+
+test("fotos de dominios fuera de la lista se muestran directo, sin el optimizador", () => {
+  assert.equal(optimizedImage("https://sitio-cualquiera.example/foto.jpg", 384), "https://sitio-cualquiera.example/foto.jpg");
+  assert.ok(optimizedImage("https://abc.public.blob.vercel-storage.com/x.png", 96)?.startsWith("/_next/image"));
+});

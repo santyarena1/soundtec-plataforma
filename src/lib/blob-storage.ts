@@ -1,4 +1,4 @@
-import { put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 
 /**
  * Archivos subidos (logos, fotos de productos, planos, Excel de cotización).
@@ -26,6 +26,41 @@ export const SERVABLE_PREFIXES = ["quotes/", "products/"] as const;
 function appOrigin(): string {
   const raw = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "";
   return raw.replace(/\/+$/, "");
+}
+
+/**
+ * Planos, imágenes de contexto y Excel de cotizaciones: solo el equipo con
+ * sesión. Los logos del documento (quotes/identity) y las fotos de productos
+ * son públicos: los usan el portal, el catálogo y el PDF.
+ */
+export function isPrivateFilePath(pathname: string): boolean {
+  return pathname.startsWith("quotes/") && !pathname.startsWith("quotes/identity/");
+}
+
+/** Ruta dentro del almacenamiento si la URL es de /api/files; null si no. */
+export function servedFilePath(url: string): string | null {
+  const match = url.match(/\/api\/files\/(.+)$/);
+  if (!match) return null;
+  try {
+    return match[1]!.split("/").map(decodeURIComponent).join("/");
+  } catch {
+    return null;
+  }
+}
+
+/** Lee un archivo propio y lo devuelve como data: URI (para el PDF, que no tiene sesión). */
+export async function servedFileAsDataUri(url: string): Promise<string | null> {
+  const pathname = servedFilePath(url);
+  if (!pathname || !isBlobConfigured()) return null;
+  try {
+    const result = await get(pathname, { access: blobAccess() });
+    if (!result?.stream) return null;
+    const bytes = Buffer.from(await new Response(result.stream as ReadableStream).arrayBuffer());
+    return `data:${result.blob.contentType || "application/octet-stream"};base64,${bytes.toString("base64")}`;
+  } catch (error) {
+    console.error("[blob] no se pudo leer", pathname, error);
+    return null;
+  }
 }
 
 /** URL con la que el resto del sistema (pantallas, PDF, Word) muestra un archivo privado. */

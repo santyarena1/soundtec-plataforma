@@ -12,6 +12,7 @@ import {
 } from "@/lib/quote-defaults";
 import { orderQuoteSections } from "@/lib/quote-section-order";
 import { optimizedImage } from "@/lib/image-url";
+import { servedFileAsDataUri } from "@/lib/blob-storage";
 
 /** Marcas donde van la planilla y la firma dentro del cuerpo (se reemplazan al final). */
 const EQUIPMENT_SLOT = "<!--quote-equipment-->";
@@ -135,6 +136,11 @@ async function fileToDataUri(publicPath: string): Promise<string | null> {
 
 export async function resolveAssetSrc(url: string, origin?: string): Promise<string> {
   if (!url) return "";
+  // Archivos propios (planos, imágenes subidas): se leen directo, el PDF no tiene sesión.
+  if (url.includes("/api/files/")) {
+    const inline = await servedFileAsDataUri(url);
+    if (inline) return inline;
+  }
   if (url.startsWith("data:") || url.startsWith("http://") || url.startsWith("https://")) return url;
   if (url.startsWith("/")) {
     const embedded = await fileToDataUri(url);
@@ -305,7 +311,9 @@ export async function buildQuoteDocumentHtml(
       // bajarlas directo: pasan por el optimizador propio, achicadas.
       // Word no lee WebP: ahí van tal cual.
       const external = /^https?:\/\//i.test(asset.url) && origin && !options?.forWord;
-      const src = external ? `${origin}${optimizedImage(asset.url, 256)}` : await resolveAssetSrc(asset.url, origin);
+      const optimized = external ? optimizedImage(asset.url, 256) : null;
+      // Si el dominio no se optimiza, optimizedImage devuelve la URL tal cual (absoluta).
+      const src = optimized ? (optimized.startsWith("/") ? `${origin}${optimized}` : optimized) : await resolveAssetSrc(asset.url, origin);
       if (src) photoByProduct.set(asset.productId, src);
     }
   }

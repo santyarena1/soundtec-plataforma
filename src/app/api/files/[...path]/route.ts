@@ -1,6 +1,8 @@
 import { get } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { SERVABLE_PREFIXES, isBlobConfigured } from "@/lib/blob-storage";
+import { SERVABLE_PREFIXES, isBlobConfigured, isPrivateFilePath } from "@/lib/blob-storage";
+import { getSessionUser } from "@/lib/auth-helpers";
+import { isPanelRole } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ path: string[]
     return NextResponse.json({ error: "Archivo inválido." }, { status: 400 });
   }
   if (!isBlobConfigured()) return NextResponse.json({ error: "Sin almacenamiento." }, { status: 503 });
+  const privateFile = isPrivateFilePath(pathname);
+  if (privateFile) {
+    const user = await getSessionUser().catch(() => null);
+    if (!user || !isPanelRole(user.role)) return NextResponse.json({ error: "Sin acceso." }, { status: 401 });
+  }
 
   try {
     const result = await get(pathname, { access: "private" });
@@ -23,7 +30,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ path: string[]
     return new NextResponse(result.stream as ReadableStream, {
       headers: {
         "content-type": result.blob.contentType || "application/octet-stream",
-        "cache-control": "public, max-age=31536000, immutable",
+        // Lo privado no queda en cachés compartidas.
+        "cache-control": privateFile ? "private, max-age=3600" : "public, max-age=31536000, immutable",
         "x-content-type-options": "nosniff",
         // Un SVG abierto directo no puede correr scripts en el dominio del sitio.
         "content-security-policy": "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",

@@ -25,6 +25,11 @@ async function rememberCredentials(form: HTMLFormElement): Promise<void> {
   }
 }
 
+/** Solo rutas del propio sitio: un enlace con callbackUrl=https://otro-sitio no saca al usuario afuera. */
+function safeCallback(value: string | null | undefined): string | null {
+  return value && /^\/(?!\/)/.test(value) && !value.includes("\\") ? value : null;
+}
+
 interface LoginFormProps {
   callbackUrl?: string;
   initialError?: string;
@@ -48,20 +53,26 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
       return;
     }
 
+    const target = safeCallback(callbackUrl) || safeCallback(searchParams.get("callbackUrl")) || "/portal";
     startTransition(async () => {
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
-        callbackUrl: callbackUrl || searchParams.get("callbackUrl") || "/portal",
+        callbackUrl: target,
       });
       if (!result || result.error) {
-        setError("Credenciales inválidas o usuario inactivo.");
+        setError(
+          result?.code === "too_many_attempts"
+            ? "Demasiados intentos. Por seguridad, esperá 15 minutos y probá de nuevo (o pedí que te reseteen la contraseña)."
+            : "Credenciales inválidas o usuario inactivo."
+        );
         return;
       }
       await rememberCredentials(form);
       // Navegación completa: además de cargar la sesión, es la señal de "ingreso exitoso" para el gestor de contraseñas.
-      window.location.assign(result.url || callbackUrl || "/portal");
+      const next = result.url ? new URL(result.url, window.location.origin) : null;
+      window.location.assign(next && next.origin === window.location.origin ? next.pathname + next.search : target);
     });
   }
 

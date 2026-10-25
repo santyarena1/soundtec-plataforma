@@ -292,7 +292,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <CardContent className="p-5 space-y-3">
               {product.requiresQuote || pricing.finalPriceUsd <= 0 ? (
                 <>
-                  <p className="text-2xl font-semibold tracking-tight">Precio a consultar</p>
+                  <p className="text-3xl font-semibold tracking-tight">Consultá precio</p>
                   <p className="muted-text text-sm">Agregalo a un pedido y te pasamos el precio.</p>
                 </>
               ) : (
@@ -303,7 +303,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                     </p>
                   ) : null}
                   <p className="text-3xl font-semibold tracking-tight">{formatUsd(pricing.finalPriceUsd)}</p>
-                  <p className="muted-text text-sm">Precio en USD según tus condiciones comerciales. No incluye impuestos.</p>
+                  <p className="muted-text text-sm">Precio en dólares estadounidenses. No incluye impuestos ni descuentos aplicables.</p>
                 </>
               )}
 
