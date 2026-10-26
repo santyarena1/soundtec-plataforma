@@ -314,6 +314,8 @@ export async function applyHallResearchPriceList(
             where: { id: product.id },
             data: {
               baseCostUsd: row.costUsd,
+              // Con costo cargado deja de ser «Consultá precio».
+              ...(row.costUsd > 0 ? { requiresQuote: false } : {}),
               listPriceUsd: row.msrpUsd ?? null,
               ...(reactivate && !product.isActive ? { isActive: true } : {}),
               sourceMetadata: { ...meta, [RAW_KEY]: rawFromRow(row, upload.fileName, nowIso) } as Prisma.InputJsonValue,
@@ -327,7 +329,7 @@ export async function applyHallResearchPriceList(
           if (d.action === "deactivate") {
             await tx.product.update({ where: { id: d.productId }, data: { isActive: false, fieldUpdatedAt: mergeFieldTimestamps(times, ["isActive"], nowIso) } });
           } else if (d.action === "price") {
-            await tx.product.update({ where: { id: d.productId }, data: { baseCostUsd: d.costUsd, fieldUpdatedAt: mergeFieldTimestamps(times, ["baseCostUsd"], nowIso) } });
+            await tx.product.update({ where: { id: d.productId }, data: { baseCostUsd: d.costUsd, ...(d.costUsd > 0 ? { requiresQuote: false } : {}), fieldUpdatedAt: mergeFieldTimestamps(times, ["baseCostUsd"], nowIso) } });
           }
         }
 
