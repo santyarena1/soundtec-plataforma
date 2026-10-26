@@ -2432,7 +2432,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Cargar un costo a un producto «a consultar» ahora muestra su precio en el catálogo.",
     items: [
       { kind: "FIX", text: "Un producto que había quedado «Consultá precio» (porque el proveedor no traía precio) seguía así en el catálogo aunque después se le cargara el costo. Ahora, al cargar un costo nuevo en la ficha, se saca solo." },
-      { kind: "MEJORA", text: "Ficha del producto → Precio y costos: casilla «Mostrar "Consultá precio" en vez del precio» para usarla a propósito." },
+      { kind: "MEJORA", text: "Ficha del producto → Precio y costos: casilla «Mostrar Consultá precio en vez del precio» para usarla a propósito." },
     ],
   },
 ];
