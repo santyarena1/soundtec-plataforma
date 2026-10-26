@@ -2425,4 +2425,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Seguridad — En la configuración del sync de Crestron y de la importación de Sonance, la contraseña del portal ya no se precarga en la pantalla (antes se podía leer en el código de la página y se mostraban 6 de sus letras). Dice «Configurada»; para cambiarla se escribe una nueva. Se guardan cifradas como el resto de las claves." },
     ],
   },
+  {
+    id: "ship-2026-10-26-consulta-precio-con-costo",
+    version: "2.20.2",
+    releasedAt: "2026-10-26T21:00:00.000Z",
+    summary: "Cargar un costo a un producto «a consultar» ahora muestra su precio en el catálogo.",
+    items: [
+      { kind: "FIX", text: "Un producto que había quedado «Consultá precio» (porque el proveedor no traía precio) seguía así en el catálogo aunque después se le cargara el costo. Ahora, al cargar un costo nuevo en la ficha, se saca solo." },
+      { kind: "MEJORA", text: "Ficha del producto → Precio y costos: casilla «Mostrar "Consultá precio" en vez del precio» para usarla a propósito." },
+    ],
+  },
 ];

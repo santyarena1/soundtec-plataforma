@@ -55,6 +55,8 @@ interface Props {
     kind: "PRINCIPAL" | "ACCESORIO";
     accessoryRequiredWithPrimary: boolean;
     isActive: boolean;
+    /** «Consultá precio»: no se muestra el precio aunque haya costo. */
+    requiresQuote?: boolean;
     fieldUpdatedAt?: Record<string, string> | null;
   };
   brands: Option[];
@@ -441,6 +443,16 @@ export function ProductForm({ product, brands, distributors, categories, familie
                 onChange={(e) => setBaseCostUsd(Number(e.target.value) || 0)}
               />
               <FieldStamp at={fieldUpdatedAt?.baseCostUsd} />
+              <input type="hidden" name="requiresQuotePresent" value="1" />
+              <label className="mt-2 flex items-start gap-2 text-sm">
+                <input type="checkbox" name="requiresQuote" defaultChecked={product?.requiresQuote ?? false} className="mt-0.5" />
+                <span>
+                  Mostrar «Consultá precio» en vez del precio
+                  <span className="block text-[11px] text-muted-foreground">
+                    La marcan los syncs cuando el proveedor no trae precio. Si cargás un costo nuevo, se saca sola.
+                  </span>
+                </span>
+              </label>
               {product?.listPriceUsd != null ? (
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   MSRP del fabricante: USD {product.listPriceUsd.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}

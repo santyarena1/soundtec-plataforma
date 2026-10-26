@@ -203,6 +203,7 @@ const productSchema = z.object({
   kind: z.enum(["PRINCIPAL", "ACCESORIO"]).default("PRINCIPAL"),
   accessoryRequiredWithPrimary: z.coerce.boolean().optional(),
   isActive: z.coerce.boolean().optional(),
+  requiresQuote: z.boolean().optional(),
   imageUrl: z.string().url().optional().or(z.literal("")).nullable(),
 });
 
@@ -258,6 +259,8 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     kind: formData.get("kind") || "PRINCIPAL",
     accessoryRequiredWithPrimary: formData.get("accessoryRequiredWithPrimary") === "on" || formData.get("accessoryRequiredWithPrimary") === "true",
     isActive: formData.get("isActive") === "on" || formData.get("isActive") === "true",
+    // Solo si el formulario trae la casilla (otros formularios no la tocan).
+    requiresQuote: formData.has("requiresQuotePresent") ? formData.get("requiresQuote") === "on" : undefined,
     imageUrl: formData.get("imageUrl") || null,
   });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
@@ -304,6 +307,13 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     : null;
   if (id) {
     const current = await prisma.product.findUniqueOrThrow({ where: { id } });
+    if (parsed.data.requiresQuote !== undefined) {
+      // Cargar un costo nuevo saca «Consultá precio» si nadie tocó la casilla: esa marca
+      // la dejan los syncs cuando no hay precio, y antes quedaba aunque después se cargara uno.
+      const costChanged = Number(current.baseCostUsd) !== parsed.data.baseCostUsd && parsed.data.baseCostUsd > 0;
+      const untouched = parsed.data.requiresQuote === current.requiresQuote;
+      data.requiresQuote = current.requiresQuote && costChanged && untouched ? false : parsed.data.requiresQuote;
+    }
     data.searchKey = buildProductSearchKey({
       internalSku: parsed.data.internalSku,
       supplierSku: parsed.data.supplierSku,
