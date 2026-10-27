@@ -1,3 +1,4 @@
+import { quoteReferenceOrNumber } from "@/lib/quote-status";
 import { alignCommercialTermsText } from "@/lib/quote-terms-text";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -453,7 +454,7 @@ thead { display: table-header-group; }
 <table style="width:100%;margin-top:12pt;font-size:10.5pt">
 <tr><td style="width:95pt;font-weight:bold;color:${color};padding:1pt 0">Señores</td><td style="font-weight:bold;padding:1pt 0">${escapeHtml(quote.client?.companyName || "")}</td></tr>
 ${quote.contactName ? `<tr><td style="font-weight:bold;color:${color};padding:1pt 0">At.</td><td style="padding:1pt 0">${escapeHtml(quote.contactName)}</td></tr>` : ""}
-<tr><td style="font-weight:bold;color:${color};padding:1pt 0">Ref.</td><td style="padding:1pt 0">${escapeHtml(quote.reference || "")}</td></tr>
+<tr><td style="font-weight:bold;color:${color};padding:1pt 0">Ref.</td><td style="padding:1pt 0">${escapeHtml(quoteReferenceOrNumber(quote.reference, quote.number))}</td></tr>
 <tr><td style="font-weight:bold;color:${color};padding:1pt 0">Cotización</td><td style="font-weight:bold;color:${color};padding:1pt 0">${escapeHtml(quote.number)}</td></tr>
 </table>
 

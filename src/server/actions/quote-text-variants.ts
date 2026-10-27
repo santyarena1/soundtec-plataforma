@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { isVariantBlockKey } from "@/lib/quote-block-variants";
-import { QUOTE_AUDIENCES, isQuoteAudience } from "@/lib/quote-audiences";
+import { legacyAudience } from "@/lib/quote-audiences";
+import { isQuoteAudience } from "@/lib/quote-audiences-db";
 import { moduleByKey } from "@/lib/quote-defaults";
 import { sanitizeQuoteHtml } from "@/lib/quote-richtext";
 import { getQuoteOpenAI } from "@/lib/quote-llm";
@@ -30,7 +31,7 @@ const variantInput = z.object({
   label: z.string().trim().min(2, "Poné un nombre a la versión.").max(80),
   body: z.string().trim().min(1, "La versión está vacía.").max(40000),
   profiles: z.array(z.enum(PROFILE_KEYS)).max(3),
-  audiences: z.array(z.string().refine(isQuoteAudience, "Rubro desconocido.")).max(QUOTE_AUDIENCES.length),
+  audiences: z.array(z.string().refine(async (k) => isQuoteAudience(k), "Esa opción de «A quién va» ya no existe.")).max(100),
 });
 
 function revalidate() {
@@ -64,7 +65,7 @@ export async function createTextVariant(input: z.input<typeof variantInput>): Pr
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
-  const parsed = variantInput.safeParse(input);
+  const parsed = await variantInput.safeParseAsync(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const row = await prisma.quoteTextVariant.create({
     data: { ...parsed.data, body: sanitizeQuoteHtml(parsed.data.body), createdById: userId },
@@ -79,7 +80,7 @@ export async function updateTextVariant(input: { id: string } & z.input<typeof v
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
-  const parsed = variantInput.safeParse(input);
+  const parsed = await variantInput.safeParseAsync(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const existing = await prisma.quoteTextVariant.findFirst({ where: { id: input.id, isActive: true } });
   if (!existing || existing.blockKey !== parsed.data.blockKey) return { ok: false, error: "Esa versión ya no existe." };
@@ -122,7 +123,9 @@ export async function draftTextVariantWithAI(input: {
   if (!mod || !isVariantBlockKey(input.blockKey)) return { ok: false, error: "Texto inválido." };
   const base = input.baseBody.trim();
   if (!base) return { ok: false, error: "No hay texto base para adaptar." };
-  const audience = QUOTE_AUDIENCES.find((a) => a.key === input.audience);
+  // Para la IA: la descripción que se cargó en Configuración, o la de los rubros de antes, o el nombre.
+  const audienceRow = input.audience ? await prisma.quoteAudience.findUnique({ where: { key: input.audience } }) : null;
+  const audience = audienceRow ? { focus: audienceRow.focus || legacyAudience(audienceRow.key)?.focus || audienceRow.label } : null;
   const profile = input.profile && PROFILE_LABEL[input.profile] ? input.profile : null;
   const extra = (input.instruction ?? "").trim().slice(0, 1000);
   if (!audience && !profile && extra.length < 3) {

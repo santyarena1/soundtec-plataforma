@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { QuickQuoteForm, type QuickInitial } from "./quick-quote-form";
 import { permissionsHave } from "@/lib/permissions";
 import { listDocumentTypes } from "@/lib/quote-document-types";
-import { QUOTE_AUDIENCES } from "@/lib/quote-audiences";
+import { listQuoteAudiences } from "@/lib/quote-audiences-db";
 import { loadQuickQuoteForEdit } from "@/server/actions/quick-quote";
 
 export const metadata = { title: "Admin · Cotización rápida" };
@@ -48,7 +48,7 @@ export default async function QuickQuotePage({ searchParams }: { searchParams: {
           taxMode: defaultTaxMode === "ADDED" || defaultTaxMode === "NONE" ? defaultTaxMode : "NOTE",
         }}
         documentTypes={documentTypes.map((t) => ({ key: t.key, name: t.name, audience: t.audience }))}
-        audiences={QUOTE_AUDIENCES.map((a) => ({ key: a.key, label: a.label }))}
+        audiences={await listQuoteAudiences()}
         initial={initial}
       />
     </div>

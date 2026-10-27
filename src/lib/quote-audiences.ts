@@ -1,10 +1,10 @@
 /**
- * «A quién va» una cotización: el rubro del cliente. Elige qué versión de cada
- * texto fijo del PDF sale (presentación, instalación, cierre…).
- *
- * `focus` es lo que la IA usa para escribir una versión para ese rubro.
+ * «A quién va» una cotización (el rubro del cliente). Las opciones las crea cada
+ * uno en Configuración (tabla QuoteAudience). Estos eran los rubros fijos de
+ * antes: solo se usan para no perder los que ya estén en uso (textos, tipos o
+ * cotizaciones que los nombran) y como texto para la IA si no tienen otro.
  */
-export const QUOTE_AUDIENCES = [
+export const LEGACY_QUOTE_AUDIENCES = [
   {
     key: "corporativo",
     label: "Corporativo / oficinas",
@@ -49,14 +49,11 @@ export const QUOTE_AUDIENCES = [
   },
 ] as const;
 
-export type QuoteAudienceKey = (typeof QUOTE_AUDIENCES)[number]["key"];
+/** Una opción de «A quién va» tal como la usan las pantallas. */
+export type QuoteAudienceOption = { key: string; label: string; focus?: string | null };
 
-export function isQuoteAudience(value: string | null | undefined): value is QuoteAudienceKey {
-  return QUOTE_AUDIENCES.some((a) => a.key === value);
-}
-
-export function audienceLabel(key: string | null | undefined): string | null {
-  return QUOTE_AUDIENCES.find((a) => a.key === key)?.label ?? null;
+export function legacyAudience(key: string | null | undefined) {
+  return LEGACY_QUOTE_AUDIENCES.find((a) => a.key === key) ?? null;
 }
 
 const fold = (value: string) =>
@@ -65,11 +62,19 @@ const fold = (value: string) =>
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
 
-/** Rubro sugerido a partir del «segmento» de la ficha del cliente (texto libre). */
-export function audienceFromSegment(segment: string | null | undefined): QuoteAudienceKey | null {
+/**
+ * Rubro sugerido a partir del «segmento» de la ficha del cliente (texto libre),
+ * entre las opciones creadas: por clave, por nombre o porque el nombre aparece en el segmento.
+ */
+export function audienceFromSegment(segment: string | null | undefined, options: QuoteAudienceOption[]): string | null {
   const text = fold(segment ?? "").trim();
-  if (!text) return null;
-  const exact = QUOTE_AUDIENCES.find((a) => a.key === text || fold(a.label) === text);
+  if (!text || !options.length) return null;
+  const exact = options.find((a) => a.key === text || fold(a.label) === text);
   if (exact) return exact.key;
-  return QUOTE_AUDIENCES.find((a) => a.match.some((m) => text.includes(m)))?.key ?? null;
+  return (
+    options.find((a) => {
+      const words = fold(a.label).split(/[^a-z0-9]+/).filter((w) => w.length >= 4);
+      return words.some((w) => text.includes(w.slice(0, 6)));
+    })?.key ?? null
+  );
 }

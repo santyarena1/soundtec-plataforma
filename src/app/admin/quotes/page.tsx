@@ -1,5 +1,5 @@
 import { payableLines } from "@/lib/quote-totals";
-import { QUOTE_STATUS_LABEL, quoteStatusLabel } from "@/lib/quote-status";
+import { QUOTE_STATUS_LABEL, cleanQuoteReference, quoteStatusLabel } from "@/lib/quote-status";
 import Link from "next/link";
 import { Prisma, QuoteStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -232,7 +232,7 @@ export default async function AdminQuotesPage({
               requestTag: row.sourceRequestId ? requestShortId(row.sourceRequestId) : null,
               client: row.client?.companyName || row.clientName || "Sin cliente",
               owner: row.owner.name || "",
-              reference: row.reference,
+              reference: cleanQuoteReference(row.reference),
               status: row.status,
               statusLabel: quoteStatusLabel(row.status, row.pdfOutdated),
               statusTone: statusTone[row.status] || "muted",

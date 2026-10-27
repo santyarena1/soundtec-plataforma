@@ -3,7 +3,7 @@ import { permissionsHave } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { ensureQuoteProfiles, getCompanyIdentity, QUOTE_MODULES } from "@/lib/quote-defaults";
 import { isVariantBlockKey, listAllBlockVariants } from "@/lib/quote-block-variants";
-import { QUOTE_AUDIENCES } from "@/lib/quote-audiences";
+import { listQuoteAudiences } from "@/lib/quote-audiences-db";
 import { PageHeader } from "@/components/ui/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { PdfTextsEditor, type PdfTextSection } from "./pdf-texts-editor";
@@ -68,7 +68,7 @@ export default async function PdfTextsPage() {
       />
       <PdfTextsEditor
         sections={sections}
-        audiences={QUOTE_AUDIENCES.map((a) => ({ key: a.key, label: a.label }))}
+        audiences={(await listQuoteAudiences()).map((a) => ({ key: a.key, label: a.label }))}
         primaryColor={identity.primary}
       />
     </div>

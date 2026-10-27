@@ -1,4 +1,5 @@
 "use client";
+import { AudienceSelect } from "@/components/quotes/audience-select";
 
 import { TAX_MODES } from "@/lib/quote-totals";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -67,7 +68,7 @@ export function QuickQuoteForm({
   const [contact, setContact] = useState(initial?.contactName ?? "");
   const [reference, setReference] = useState(initial?.reference ?? "");
   const [profileKey, setProfileKey] = useState(initial?.profileKey ?? defaults.profileKey);
-  const [audience, setAudience] = useState(initial ? initial.audience : "auto");
+  const [audience, setAudience] = useState(initial ? initial.audience : "");
   const [taxMode, setTaxMode] = useState<TaxMode>(initial?.taxMode ?? defaults.taxMode);
   const [validity, setValidity] = useState(initial?.validityDays ?? validityDays);
   const [showPhotos, setShowPhotos] = useState(initial?.showProductPhotos ?? true);
@@ -301,16 +302,8 @@ export function QuickQuoteForm({
         </div>
         <div>
           <Label htmlFor="qq-aud">A quién va</Label>
-          <Select id="qq-aud" value={audience} onChange={(e) => setAudience(e.target.value)}>
-            <option value="auto">Automático (según el cliente o el tipo)</option>
-            <option value="">Ninguno (textos generales)</option>
-            {audiences.map((a) => (
-              <option key={a.key} value={a.key}>
-                {a.label}
-              </option>
-            ))}
-          </Select>
-          <p className="mt-1 text-xs text-muted-foreground">Elige la versión de los textos del PDF para ese rubro.</p>
+          <AudienceSelect id="qq-aud" audiences={audiences} value={audience} onChange={setAudience} />
+          <p className="mt-1 text-xs text-muted-foreground">Elige la versión de los textos del PDF para ese público.</p>
         </div>
         <div>
           <Label htmlFor="qq-tax">Impuestos</Label>

@@ -2,6 +2,14 @@ import { expect, test } from "./test";
 import { AUTH_FILES } from "./global-setup";
 import { FIXTURES } from "./fixtures";
 import { pickProduct } from "./picker";
+import { PrismaClient } from "@prisma/client";
+
+// «A quién va» ahora se crea en Configuración: la prueba se asegura de que exista Hotelería.
+test.beforeAll(async () => {
+  const prisma = new PrismaClient();
+  await prisma.quoteAudience.upsert({ where: { key: "hoteleria" }, create: { key: "hoteleria", label: "Hotelería y gastronomía" }, update: { isActive: true } });
+  await prisma.$disconnect();
+});
 
 test.use({ storageState: AUTH_FILES.admin });
 

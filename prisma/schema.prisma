@@ -2316,3 +2316,16 @@ model CompatibilityRule {
   @@index([productId])
   @@index([categoryId])
 }
+
+/// «A quién va» una cotización (rubro del cliente): lo crea cada uno en Configuración. Elige qué versión de los textos del PDF sale.
+model QuoteAudience {
+  id        String   @id @default(cuid())
+  /// Clave estable (la usan Quote.audience, las versiones de textos y los tipos de documento).
+  key       String   @unique
+  label     String
+  /// Para la IA: a quién le escribe y qué le importa (opcional).
+  focus     String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { DocumentTypesManager } from "./document-types-manager";
 import { listDocumentTypes } from "@/lib/quote-document-types";
-import { QUOTE_AUDIENCES } from "@/lib/quote-audiences";
+import { listQuoteAudiences } from "@/lib/quote-audiences-db";
+import { AudiencesManager } from "./audiences-manager";
+import { prisma } from "@/lib/prisma";
 import { requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
 import { ensureQuoteProfiles, QUOTE_CORPORATE_ASSETS, QUOTE_MODULES } from "@/lib/quote-defaults";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { getSetting } from "@/lib/settings";
@@ -119,6 +120,10 @@ export default async function SettingsQuotesPage() {
     prisma.quoteBlock.count({ where: { isActive: true } }),
     listDocumentTypes(),
   ]);
+  const [audiences, audienceRows] = await Promise.all([
+    listQuoteAudiences(),
+    prisma.quoteAudience.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { label: "asc" }], select: { key: true, label: true, focus: true } }),
+  ]);
   const withoutLogo = brands.filter((b) => !b.logoUrl);
 
   const profileModules = (key: string) => QUOTE_MODULES.filter((m) => (m.defaultOn as readonly string[]).includes(key)).map((m) => m.title);
@@ -137,6 +142,13 @@ export default async function SettingsQuotesPage() {
           ))}
         </div>
       </SettingsBatchForm>
+      <section id="a-quien-va" className="scroll-mt-4 space-y-2 rounded-xl border border-border bg-card p-5">
+        <h2 className="text-base font-semibold">A quién va</h2>
+        <p className="text-sm text-muted-foreground">
+          Los públicos para los que armás cotizaciones (ej. Hotelería, Escuelas, Integradores). Se eligen en cada cotización y cada texto del PDF puede tener una versión para cada uno.
+        </p>
+        <AudiencesManager audiences={audienceRows} />
+      </section>
       <section className="space-y-2 rounded-xl border border-border bg-card p-5">
         <h2 className="text-base font-semibold">Tipos de documento propios</h2>
         <p className="text-sm text-muted-foreground">
@@ -145,7 +157,7 @@ export default async function SettingsQuotesPage() {
         <DocumentTypesManager
           types={documentTypes}
           modules={QUOTE_MODULES.filter((m) => m.kind !== "table").map((m) => ({ key: m.key, title: m.title, kind: m.kind, defaultOn: [...m.defaultOn] }))}
-          audiences={QUOTE_AUDIENCES.map((a) => ({ key: a.key, label: a.label }))}
+          audiences={audiences.map((a) => ({ key: a.key, label: a.label }))}
         />
       </section>
 

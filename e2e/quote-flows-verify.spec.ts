@@ -54,6 +54,10 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
+test.beforeAll(async () => {
+  await prisma.quoteAudience.upsert({ where: { key: "educacion_gobierno" }, create: { key: "educacion_gobierno", label: "Educación y gobierno" }, update: { isActive: true } });
+});
+
 test.describe.configure({ mode: "serial" });
 test.use({ storageState: AUTH_FILES.admin });
 

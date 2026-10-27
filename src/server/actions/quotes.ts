@@ -22,7 +22,8 @@ import {
 import { isVariantBlockKey, resolveBlockVariantBody } from "@/lib/quote-block-variants";
 import { applyTextVariantsToQuote } from "@/lib/quote-text-variants-apply";
 import { addIncludedItems, deleteIncludedItems, syncIncludedQuantities } from "@/server/quote-included";
-import { audienceFromSegment, isQuoteAudience } from "@/lib/quote-audiences";
+import { audienceFromSegment } from "@/lib/quote-audiences";
+import { isQuoteAudience, listQuoteAudiences } from "@/lib/quote-audiences-db";
 import { sanitizeQuoteHtml } from "@/lib/quote-richtext";
 import { recordQuoteSnapshot } from "@/lib/quote-edit-history";
 import { ensureQuoteCatalogImage } from "@/lib/quote-product-images";
@@ -112,7 +113,7 @@ export async function createQuoteShell(input: QuoteShellInput) {
     data: {
       number,
       ownerId: input.ownerId,
-      audience: input.audience !== undefined ? input.audience : audienceFromSegment(client?.segment) ?? profile?.audience ?? null,
+      audience: input.audience !== undefined ? input.audience : profile?.audience ?? audienceFromSegment(client?.segment, await listQuoteAudiences()) ?? null,
       clientId: input.clientId || null,
       clientName: input.clientId ? null : input.clientName?.trim() || null,
       reference: input.reference || input.projectType || null,
@@ -230,9 +231,10 @@ export async function createQuoteFromBrief(formData: FormData): Promise<void> {
     projectType: parsed.data.projectType || null,
     layoutKey: parsed.data.layoutKey,
     profileKey: parsed.data.profileKey || null,
-    ...(parsed.data.audience === undefined || parsed.data.audience === "auto"
+    // Sin elegir: la del tipo de documento o la del cliente.
+    ...(!parsed.data.audience || parsed.data.audience === "auto"
       ? {}
-      : { audience: parsed.data.audience && isQuoteAudience(parsed.data.audience) ? parsed.data.audience : null }),
+      : { audience: (await isQuoteAudience(parsed.data.audience)) ? parsed.data.audience : null }),
     taxMode: parsed.data.taxMode,
     alternativesEnabled: parsed.data.alternativesEnabled === "on" || parsed.data.alternativesEnabled === "true",
     notes: parsed.data.notes || null,
@@ -891,7 +893,7 @@ export async function saveQuoteMeta(formData: FormData): Promise<void> {
   const taxMode = isTaxMode(taxRaw) ? taxRaw : loaded.quote.taxMode;
   const isHeader = formData.get("metaKind") === "header";
   const audienceRaw = formData.has("audience") ? String(formData.get("audience") || "") : undefined;
-  const audience = audienceRaw === undefined ? undefined : isQuoteAudience(audienceRaw) ? audienceRaw : null;
+  const audience = audienceRaw === undefined ? undefined : (await isQuoteAudience(audienceRaw)) ? audienceRaw : null;
   await prisma.quote.update({
     where: { id },
     data: {

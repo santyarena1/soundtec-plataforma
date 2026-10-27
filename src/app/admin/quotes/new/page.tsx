@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { requireQuotePermission } from "@/lib/quote-access";
 import { getQuoteNumberingConfig, formatQuoteNumber, QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { listDocumentTypes } from "@/lib/quote-document-types";
-import { QUOTE_AUDIENCES } from "@/lib/quote-audiences";
+import { listQuoteAudiences } from "@/lib/quote-audiences-db";
+import { AudienceSelect } from "@/components/quotes/audience-select";
 import { TAX_MODES } from "@/lib/quote-totals";
 import { getSetting } from "@/lib/settings";
 import { createQuoteFromBrief } from "@/server/actions/quotes";
@@ -19,7 +20,7 @@ export const metadata = { title: "Admin · Nueva cotización" };
 
 export default async function NewQuotePage() {
   await requireQuotePermission("quotes.create");
-  const [clients, documentTypes, cfg, classifiers, owners, priceLists, defaultProfileSetting, defaultTax, validity] = await Promise.all([
+  const [clients, documentTypes, cfg, classifiers, owners, priceLists, defaultProfileSetting, defaultTax, validity, audiences] = await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
       orderBy: { companyName: "asc" },
@@ -37,6 +38,7 @@ export default async function NewQuotePage() {
     getSetting(QUOTE_SETTING_KEYS.defaultProfile, "tecnico"),
     getSetting(QUOTE_SETTING_KEYS.defaultTaxMode, "NOTE"),
     getSetting(QUOTE_SETTING_KEYS.validityDays, "5"),
+    listQuoteAudiences(),
   ]);
   const preview = formatQuoteNumber({ ...cfg, sequence: cfg.nextSequence });
   const defaultProfile = documentTypes.some((t) => t.key === defaultProfileSetting) ? defaultProfileSetting : "tecnico";
@@ -126,16 +128,8 @@ export default async function NewQuotePage() {
                 </div>
                 <div>
                   <Label htmlFor="audience">A quién va</Label>
-                  <Select id="audience" name="audience" defaultValue="auto">
-                    <option value="auto">Automático (según el cliente o el tipo)</option>
-                    <option value="">Ninguno (textos generales)</option>
-                    {QUOTE_AUDIENCES.map((a) => (
-                      <option key={a.key} value={a.key}>
-                        {a.label}
-                      </option>
-                    ))}
-                  </Select>
-                  <FieldHint>Elige la versión de los textos del PDF para ese rubro.</FieldHint>
+                  <AudienceSelect id="audience" name="audience" audiences={audiences} defaultValue="" />
+                  <FieldHint>Elige la versión de los textos del PDF para ese público. Sin elegir: la del tipo de documento, si tiene.</FieldHint>
                 </div>
                 <div>
                   <Label htmlFor="taxMode">Impuestos</Label>

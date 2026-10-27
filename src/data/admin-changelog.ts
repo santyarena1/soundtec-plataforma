@@ -2488,4 +2488,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Los accesorios que exigen producto principal también aceptan los que entran por «Compatible con», no solo los vinculados de a uno." },
     ],
   },
+  {
+    id: "ship-2026-10-28-a-quien-va-propio",
+    version: "2.23.1",
+    releasedAt: "2026-10-28T12:00:00.000Z",
+    summary: "«A quién va» con opciones propias, y la referencia del PDF ya no dice «Cotización rápida».",
+    items: [
+      { kind: "MEJORA", text: "«A quién va» ya no trae rubros fijos: las opciones se crean en Configuración → Cotizaciones → A quién va (nombre y, opcional, cómo es ese cliente para que la IA escriba sus textos). En cada cotización arranca vacío y la última opción, «Agregar a quién va…», lleva a Configuración." },
+      { kind: "FIX", text: "Las cotizaciones rápidas viejas tenían «Cotización rápida dd/mm/aaaa» como referencia y salía en el PDF. Ahora, si no hay nombre de proyecto, en «Ref.» va el número de la cotización." },
+    ],
+  },
 ];

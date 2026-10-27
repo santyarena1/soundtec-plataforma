@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { quoteStatusLabel } from "@/lib/quote-status";
+import { cleanQuoteReference, quoteReferenceOrNumber, quoteStatusLabel } from "@/lib/quote-status";
 import { loadQuoteForUser } from "@/lib/quote-access";
 import { APP_TIME_ZONE } from "@/lib/utils";
 import { TAX_MODES } from "@/lib/quote-totals";
@@ -10,7 +10,8 @@ import { isVariantBlockKey, listBlockVariants } from "@/lib/quote-block-variants
 import { resolveBrandsDisplayMode } from "@/lib/quote-brands";
 import { listBrandLibrary } from "@/server/actions/quote-brands";
 import { SectionVariantPicker } from "@/components/quotes/section-variant-picker";
-import { QUOTE_AUDIENCES } from "@/lib/quote-audiences";
+import { listQuoteAudiences } from "@/lib/quote-audiences-db";
+import { AudienceSelect } from "@/components/quotes/audience-select";
 import { listDocumentTypes } from "@/lib/quote-document-types";
 import { QuoteBrandsEditor } from "@/components/quotes/quote-brands-editor";
 import { QuoteAlternativesPanel } from "@/components/quotes/quote-alternatives-panel";
@@ -92,7 +93,7 @@ export default async function QuoteEditorPage({
 
   const productIds = quote.items.map((i) => i.productId).filter((pid): pid is string => Boolean(pid));
   const variantBlockKeys = [...new Set(quote.sections.map((s) => s.type).filter(isVariantBlockKey))];
-  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms, identity, classifiers, documentTypes, patterns, brandLibrary, ...variantLists] =
+  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms, identity, classifiers, documentTypes, audiences, patterns, brandLibrary, ...variantLists] =
     await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
@@ -129,6 +130,7 @@ export default async function QuoteEditorPage({
     getCompanyIdentity(),
     listQuoteClassifiers(),
     listDocumentTypes(),
+    listQuoteAudiences(),
     loadQuotePatternSuggestions(quote.id),
     listBrandLibrary(),
     ...variantBlockKeys.map((key) => listBlockVariants(key)),
@@ -242,7 +244,7 @@ export default async function QuoteEditorPage({
         })}`,
         clientName: quote.client?.companyName || quote.clientName || "[Cliente a confirmar]",
         contactName: quote.contactName,
-        reference: quote.reference || "[Referencia a confirmar]",
+        reference: quoteReferenceOrNumber(quote.reference, quote.number),
         number: quote.number,
       }}
       modules={quote.sections
@@ -323,7 +325,7 @@ export default async function QuoteEditorPage({
         title={quote.number}
         description={
           <>
-            {current.title} · {quote.reference || "Sin referencia"}
+            {current.title} · {cleanQuoteReference(quote.reference) || "Sin referencia"}
             {quote.sourceRequestId ? (
               <>
                 {" · "}
@@ -440,21 +442,12 @@ export default async function QuoteEditorPage({
               </div>
               <div>
                 <Label htmlFor="audience">A quién va</Label>
-                <Select id="audience" name="audience" defaultValue={quote.audience || ""}>
-                  <option value="">Sin rubro (textos generales)</option>
-                  {QUOTE_AUDIENCES.map((a) => (
-                    <option key={a.key} value={a.key}>
-                      {a.label}
-                    </option>
-                  ))}
-                </Select>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Elige qué versión de cada texto del PDF sale (presentación, instalación, cierre…). Se completa solo con el segmento del cliente.
-                </p>
+                <AudienceSelect id="audience" name="audience" audiences={audiences} defaultValue={quote.audience || ""} />
+                <p className="mt-1 text-xs text-muted-foreground">Elige qué versión de cada texto del PDF sale (presentación, instalación, cierre…).</p>
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="reference">Referencia</Label>
-                <Input id="reference" name="reference" defaultValue={quote.reference || ""} />
+                <Input id="reference" name="reference" defaultValue={cleanQuoteReference(quote.reference) || ""} placeholder={`Si queda vacío, en el PDF va el número (${quote.number})`} />
               </div>
               <div>
                 <Label htmlFor="taxMode">Impuestos</Label>

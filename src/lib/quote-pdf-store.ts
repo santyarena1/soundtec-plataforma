@@ -1,3 +1,4 @@
+import { cleanQuoteReference } from "@/lib/quote-status";
 import { visibleQuoteBrandLogos } from "@/lib/quote-brands";
 import { prisma } from "@/lib/prisma";
 import { storeQuoteBlob } from "@/server/actions/quote-images";
@@ -41,7 +42,7 @@ export async function generateAndStoreQuotePdf(quoteId: string, actorId: string)
   const bytes = await buildQuotePdf(
     {
       number: quote.number,
-      reference: quote.reference,
+      reference: cleanQuoteReference(quote.reference),
       contactName: quote.contactName,
       issuedAt: quote.issuedAt,
       showDeliveryColumn: quote.showDeliveryColumn,

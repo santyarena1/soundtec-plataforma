@@ -47,3 +47,15 @@ test("estado: «PDF generado» y «PDF desactualizado» si se editó después", 
   assert.equal(quoteStatusLabel("DRAFT", true), "Borrador");
   assert.equal(quoteStatusLabel("RARO"), "RARO");
 });
+
+test("referencia: la automática vieja de la rápida cuenta como vacía y en el PDF va el número", async () => {
+  const { cleanQuoteReference, quoteReferenceOrNumber } = await import("./quote-status");
+  assert.equal(cleanQuoteReference("Cotización rápida 27/10/2026"), null);
+  assert.equal(cleanQuoteReference("cotizacion rapida"), null);
+  assert.equal(cleanQuoteReference("  "), null);
+  assert.equal(cleanQuoteReference("Audio del salón principal"), "Audio del salón principal");
+  assert.equal(cleanQuoteReference("Cotización rápida para el Hotel X"), "Cotización rápida para el Hotel X");
+  assert.equal(quoteReferenceOrNumber("Cotización rápida 1/2/2026", "COT14612"), "COT14612");
+  assert.equal(quoteReferenceOrNumber(null, "COT14612"), "COT14612");
+  assert.equal(quoteReferenceOrNumber("Sala de reuniones", "COT14612"), "Sala de reuniones");
+});

@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { QuoteTemplateEditor, type TemplateModule } from "./template-editor";
 import { listAllBlockVariants } from "@/lib/quote-block-variants";
 import { pickTextVariant } from "@/lib/quote-text-variant-pick";
-import { audienceLabel, isQuoteAudience } from "@/lib/quote-audiences";
+import { audienceLabel, isQuoteAudience } from "@/lib/quote-audiences-db";
 
 const PROFILE_LABEL: Record<string, string> = { resumido: "Corto", tecnico: "Estándar", premium: "Completo" };
 
@@ -16,7 +16,8 @@ export const metadata = { title: "Admin · Editor de plantilla" };
 
 export default async function QuoteTemplateEditorPage({ searchParams }: { searchParams: { tipo?: string; rubro?: string } }) {
   const tipo = searchParams.tipo && PROFILE_LABEL[searchParams.tipo] ? searchParams.tipo : null;
-  const rubro = isQuoteAudience(searchParams.rubro) ? searchParams.rubro : null;
+  const rubro = searchParams.rubro && (await isQuoteAudience(searchParams.rubro)) ? searchParams.rubro : null;
+  const rubroLabel = await audienceLabel(rubro);
   const trying = Boolean(tipo || rubro);
   const { permissions } = await requireQuotePermission("quotes.manage_library");
   if (!permissions.fullAccess && !permissionsHave(permissions, "quotes.manage_library")) {
@@ -66,7 +67,7 @@ export default async function QuoteTemplateEditorPage({ searchParams }: { search
 
       {trying ? (
         <p className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
-          Vista de prueba: presupuesto <b>{tipo ? PROFILE_LABEL[tipo] : "cualquier tipo"}</b> para <b>{rubro ? audienceLabel(rubro) : "sin rubro"}</b>. Así sale una cotización
+          Vista de prueba: presupuesto <b>{tipo ? PROFILE_LABEL[tipo] : "cualquier tipo"}</b> para <b>{rubroLabel ?? "sin rubro"}</b>. Así sale una cotización
           nueva con esa combinación. Para cambiar los textos usá{" "}
           <a href="/admin/settings/quotes/textos" className="text-primary underline">Textos del PDF</a>.
         </p>

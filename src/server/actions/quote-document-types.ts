@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { permissionsHave } from "@/lib/permissions";
 import { loadQuoteForEdit, requireQuotePermission } from "@/lib/quote-access";
 import { QUOTE_MODULES } from "@/lib/quote-defaults";
-import { isQuoteAudience } from "@/lib/quote-audiences";
+import { isQuoteAudience } from "@/lib/quote-audiences-db";
 import { BASE_DOCUMENT_TYPES, toDocumentType } from "@/lib/quote-document-types";
 import { applyTextVariantsToQuote } from "@/lib/quote-text-variants-apply";
 
@@ -18,7 +18,7 @@ const MODULE_KEYS = QUOTE_MODULES.map((m) => m.key);
 const typeInput = z.object({
   name: z.string().trim().min(2, "Poné un nombre (ej. «Compacto escolar»).").max(60),
   baseKey: z.enum(BASE_DOCUMENT_TYPES.map((t) => t.key) as ["resumido", "tecnico", "premium"]),
-  audience: z.string().nullable().refine((v) => v === null || isQuoteAudience(v), "Rubro desconocido."),
+  audience: z.string().nullable().refine(async (v) => v === null || (await isQuoteAudience(v)), "Esa opción de «A quién va» ya no existe."),
   sectionKeys: z.array(z.string().refine((k) => MODULE_KEYS.includes(k), "Sección desconocida.")).min(1, "Elegí al menos una sección."),
   description: z.string().trim().max(200).nullable().optional(),
 });
@@ -44,7 +44,7 @@ export async function createDocumentType(input: z.input<typeof typeInput>): Prom
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
-  const parsed = typeInput.safeParse(input);
+  const parsed = await typeInput.safeParseAsync(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const exists = await prisma.quoteContentProfile.findFirst({ where: { name: { equals: parsed.data.name, mode: "insensitive" }, isActive: true } });
   if (exists) return { ok: false, error: "Ya hay un tipo con ese nombre." };
@@ -62,7 +62,7 @@ export async function updateDocumentType(key: string, input: z.input<typeof type
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
-  const parsed = typeInput.safeParse(input);
+  const parsed = await typeInput.safeParseAsync(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const row = await prisma.quoteContentProfile.findUnique({ where: { key } });
   if (!row?.isCustom) return { ok: false, error: "Los tres tipos base no se cambian: creá uno propio a partir de ellos." };
@@ -98,7 +98,7 @@ export async function changeQuoteDocumentType(input: { quoteId: string; key: str
   const row = await prisma.quoteContentProfile.findUnique({ where: { key: input.key } });
   if (!row || !row.isActive) return { ok: false, error: "Ese tipo de documento ya no existe." };
   const type = toDocumentType(row);
-  const audience = input.audience === undefined ? undefined : input.audience && isQuoteAudience(input.audience) ? input.audience : null;
+  const audience = input.audience === undefined ? undefined : input.audience && (await isQuoteAudience(input.audience)) ? input.audience : null;
   await prisma.quote.update({ where: { id: input.quoteId }, data: { contentProfileId: row.id, ...(audience !== undefined ? { audience } : {}) } });
   const wanted = new Set(type.sectionKeys);
   for (const section of loaded.quote.sections) {

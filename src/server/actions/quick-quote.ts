@@ -1,5 +1,6 @@
 "use server";
 
+import { cleanQuoteReference } from "@/lib/quote-status";
 import { quoteUnitPrices } from "@/lib/quote-unit-price";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
@@ -13,7 +14,7 @@ import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { buildProductSearchWhere, sortBySearchRelevance } from "@/lib/product-search";
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
-import { isQuoteAudience } from "@/lib/quote-audiences";
+import { isQuoteAudience } from "@/lib/quote-audiences-db";
 import { toDocumentType } from "@/lib/quote-document-types";
 
 const itemSchema = z.object({
@@ -84,7 +85,8 @@ export async function saveQuickQuote(input: QuickQuoteInput): Promise<SaveResult
   const profile = await prisma.quoteContentProfile.findUnique({ where: { key: data.profileKey } });
   if (!profile?.isActive) return { ok: false, errors: ["Ese tipo de documento ya no existe."] };
   const type = toDocumentType(profile);
-  const audience = data.audience === "auto" ? undefined : data.audience && isQuoteAudience(data.audience) ? data.audience : null;
+  // Sin elegir: al crear toma la del tipo de documento o del cliente; al editar, la saca.
+  const audience = data.audience === "auto" || (!data.audience && !data.quoteId) ? undefined : data.audience && (await isQuoteAudience(data.audience)) ? data.audience : null;
 
   let quoteId: string;
   let number: string;
@@ -106,7 +108,7 @@ export async function saveQuickQuote(input: QuickQuoteInput): Promise<SaveResult
         isQuick: true,
       },
     });
-    if (loaded.quote.contentProfileId !== profile.id || audience !== undefined) {
+    if (loaded.quote.contentProfileId !== profile.id || (audience !== undefined && audience !== loaded.quote.audience)) {
       await changeQuoteDocumentType({ quoteId, key: profile.key, ...(audience !== undefined ? { audience } : {}) });
     }
     // La planilla de la rápida se reescribe entera con lo que hay en pantalla.
@@ -201,7 +203,7 @@ export async function loadQuickQuoteForEdit(quoteId: string) {
     clientId: q.clientId,
     clientName: q.clientName ?? "",
     contactName: q.contactName ?? "",
-    reference: q.reference ?? "",
+    reference: cleanQuoteReference(q.reference) ?? "",
     profileKey: q.contentProfile?.key ?? "resumido",
     audience: q.audience ?? "",
     taxMode: q.taxMode,

@@ -35,11 +35,17 @@ test("empate: la más acotada y luego la más reciente", () => {
   assert.equal(recent?.id, "nueva");
 });
 
-test("el segmento libre del cliente se traduce a un rubro", () => {
-  assert.equal(audienceFromSegment("Corporativo"), "corporativo");
-  assert.equal(audienceFromSegment("Integrador"), "integrador");
-  assert.equal(audienceFromSegment("Hotel boutique"), "hoteleria");
-  assert.equal(audienceFromSegment("Educación"), "educacion_gobierno");
-  assert.equal(audienceFromSegment(""), null);
-  assert.equal(audienceFromSegment("Otro"), null);
+test("el segmento libre del cliente se traduce a una de las opciones creadas", () => {
+  const options = [
+    { key: "corporativo", label: "Corporativo" },
+    { key: "hoteleria", label: "Hotelería y gastronomía" },
+    { key: "escuelas", label: "Escuelas" },
+  ];
+  assert.equal(audienceFromSegment("Corporativo", options), "corporativo");
+  assert.equal(audienceFromSegment("Hotelería boutique", options), "hoteleria");
+  assert.equal(audienceFromSegment("escuela primaria", options), "escuelas");
+  assert.equal(audienceFromSegment("", options), null);
+  assert.equal(audienceFromSegment("Otro", options), null);
+  // Sin opciones creadas no se adivina nada.
+  assert.equal(audienceFromSegment("Corporativo", []), null);
 });

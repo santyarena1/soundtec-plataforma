@@ -8,6 +8,7 @@
  * coincidieran.
  */
 
+import { cleanQuoteReference } from "@/lib/quote-status";
 import { visibleQuoteBrandLogos } from "@/lib/quote-brands";
 import { NextResponse } from "next/server";
 import { loadQuoteForUser } from "@/lib/quote-access";
@@ -27,7 +28,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const html = await buildQuoteDocumentHtml(
     {
       number: quote.number,
-      reference: quote.reference,
+      reference: cleanQuoteReference(quote.reference),
       contactName: quote.contactName,
       issuedAt: quote.issuedAt,
       showDeliveryColumn: quote.showDeliveryColumn,
