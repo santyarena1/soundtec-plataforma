@@ -4,15 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
-import {
-  approveBranchSuggestion,
-  rejectBranchSuggestion,
-  approveProposals,
-  deactivateEmptyLegacyCategories,
-  loadTangoProposals,
-  rejectProposals,
-  undoProposal,
-} from "@/server/category-proposals";
+import { approveProposals, deactivateEmptyLegacyCategories, rejectProposals, removeBranch, undoProposal } from "@/server/category-proposals";
 
 type Result = { ok: boolean; error?: string; message?: string };
 const PAGE = "/admin/products/reclasificacion";
@@ -24,64 +16,50 @@ function done(message: string): Result {
   return { ok: true, message };
 }
 
-export async function loadTangoProposalsAction(): Promise<Result> {
-  await requireStaff("categories.manage");
-  try {
-    const r = await loadTangoProposals();
-    return done(`Árbol listo (${r.nodes} rubros) · ${r.created} propuestas nuevas${r.skipped ? ` · ${r.skipped} ya estaban o el producto no existe` : ""}${r.branches ? ` · ${r.branches} rubros nuevos sugeridos` : ""}.`);
-  } catch (error) {
-    console.error("loadTangoProposals", error);
-    return { ok: false, error: "No se pudieron cargar las propuestas. Probá de nuevo; si sigue, avisame." };
-  }
-}
-
+/** Paso 1: todos los seguros de una vez. */
 export async function approveAllHighAction(): Promise<Result> {
   const { user } = await requireStaff("categories.manage");
   const n = await approveProposals({ confidence: "alta" }, user.id);
-  const off = await deactivateEmptyLegacyCategories();
-  return done(`${n} productos pasaron a su rubro de Tango.${off ? ` ${off} categorías viejas quedaron vacías y se desactivaron.` : ""}`);
+  await deactivateEmptyLegacyCategories();
+  return done(`Listo: ${n.toLocaleString("es-AR")} productos pasaron a su rubro.`);
 }
 
+/** «Está bien»: el producto pasa al rubro propuesto. */
 export async function approveProposalsAction(input: { ids: string[] }): Promise<Result> {
   const { user } = await requireStaff("categories.manage");
   const parsed = ids.safeParse(input.ids);
-  if (!parsed.success) return { ok: false, error: "No hay propuestas elegidas." };
+  if (!parsed.success) return { ok: false, error: "No hay nada elegido." };
   const n = await approveProposals({ ids: parsed.data }, user.id);
   await deactivateEmptyLegacyCategories();
-  return done(n === 1 ? "Aprobada." : `${n} aprobadas.`);
+  return done(n === 1 ? "Listo." : `${n} listos.`);
 }
 
-/** Aprobar con otro rubro elegido a mano. */
+/** «Va en otro rubro»: pasa al rubro elegido. */
 export async function approveWithCategoryAction(input: { id: string; categoryId: string }): Promise<Result> {
   const { user } = await requireStaff("categories.manage");
   const node = await prisma.category.findUnique({ where: { id: input.categoryId }, select: { tangoPath: true } });
-  if (!node?.tangoPath) return { ok: false, error: "Elegí un rubro del árbol de Tango." };
+  if (!node?.tangoPath) return { ok: false, error: "Elegí un rubro de la lista." };
   const n = await approveProposals({ ids: [input.id] }, user.id, node.tangoPath);
   await deactivateEmptyLegacyCategories();
-  return n ? done("Aprobada con el rubro elegido.") : { ok: false, error: "Esa propuesta ya no está pendiente." };
+  return n ? done("Listo, quedó en el rubro elegido.") : { ok: false, error: "Ese producto ya estaba decidido." };
 }
 
+/** «Dejarlo como está»: no se toca el producto. */
 export async function rejectProposalsAction(input: { ids: string[] }): Promise<Result> {
   const { user } = await requireStaff("categories.manage");
   const parsed = ids.safeParse(input.ids);
-  if (!parsed.success) return { ok: false, error: "No hay propuestas elegidas." };
+  if (!parsed.success) return { ok: false, error: "No hay nada elegido." };
   const n = await rejectProposals(parsed.data, user.id);
-  return done(n === 1 ? "Rechazada: el producto queda como estaba." : `${n} rechazadas.`);
+  return done(n === 1 ? "Quedó como estaba." : `${n} quedaron como estaban.`);
 }
 
 export async function undoProposalAction(input: { id: string }): Promise<Result> {
   await requireStaff("categories.manage");
-  return (await undoProposal(input.id)) ? done("Deshecho: volvió a quedar pendiente.") : { ok: false, error: "No se pudo deshacer." };
+  return (await undoProposal(input.id)) ? done("Deshecho: volvió a la lista para revisar.") : { ok: false, error: "No se pudo deshacer." };
 }
 
-export async function approveBranchAction(input: { id: string }): Promise<Result> {
+/** Quitar un rubro nuevo: sus productos vuelven a la ruta original de Tango. */
+export async function removeBranchAction(input: { id: string }): Promise<Result> {
   const { user } = await requireStaff("categories.manage");
-  const r = await approveBranchSuggestion(input.id, user.id);
-  if (!r) return { ok: false, error: "Esa rama ya no está pendiente." };
-  return done(`Rubro creado. ${r.pending} propuestas pendientes pasaron a ese rubro (quedan para aprobar)${r.moved ? ` y ${r.moved} productos ya aprobados se movieron` : ""}.`);
-}
-
-export async function rejectBranchAction(input: { id: string }): Promise<Result> {
-  const { user } = await requireStaff("categories.manage");
-  return (await rejectBranchSuggestion(input.id, user.id)) ? done("Descartada: no se crea ese rubro.") : { ok: false, error: "Esa rama ya no está pendiente." };
+  return (await removeBranch(input.id, user.id)) ? done("Rubro quitado: sus productos usan el rubro original de Tango.") : { ok: false, error: "No se pudo quitar." };
 }

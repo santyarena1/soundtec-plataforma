@@ -921,6 +921,10 @@ model CategoryProposal {
   /// Tanda de la propuesta (ej. «tango-2026-10»).
   batch              String
   tangoPath          String
+  /// Ruta del árbol original de Tango cuando la propuesta usa un rubro nuevo (para volver si se quita ese rubro).
+  basePath           String?
+  /// Confianza original, guardada al pasar a un rubro nuevo (vuelve si se quita ese rubro).
+  baseConfidence     String?
   /// alta | media | baja
   confidence         String
   note               String?

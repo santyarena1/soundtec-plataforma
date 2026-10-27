@@ -57,7 +57,7 @@ export async function loadTangoProposals(): Promise<{ nodes: number; created: nu
 
 type BranchFile = Array<{ ruta: string; motivo: string; productos: string[] }>;
 
-/** Ramas nuevas sugeridas (archivo opcional): se guardan pendientes, sin crear rubros. */
+/** Rubros nuevos (que Tango no tiene): se guardan y se aplican enseguida a las propuestas. */
 async function loadBranchSuggestions(existingProducts: Set<string>): Promise<number> {
   let file: BranchFile;
   try {
@@ -69,50 +69,67 @@ async function loadBranchSuggestions(existingProducts: Set<string>): Promise<num
     data: file.map((b) => ({ batch: TANGO_BATCH, tangoPath: b.ruta, reason: b.motivo, productIds: b.productos.filter((id) => existingProducts.has(id)) })),
     skipDuplicates: true,
   });
+  await applyPendingBranches();
   return r.count;
 }
 
-/**
- * Aprueba una rama nueva: crea el rubro (y sus padres sugeridos si faltan),
- * pasa ahí las propuestas pendientes de sus productos (quedan seguras, para
- * aprobar) y mueve los que ya estaban aprobados en otro rubro.
- */
-export async function approveBranchSuggestion(id: string, userId: string): Promise<{ moved: number; pending: number } | null> {
-  const branch = await prisma.tangoBranchSuggestion.findUnique({ where: { id } });
-  if (!branch || branch.status !== "PENDING") return null;
-  const parts = branch.tangoPath.split(" > ");
+async function ensureNode(path: string): Promise<string> {
+  const parts = path.split(" > ");
   let parentId: string | null = null;
   for (let level = 1; level <= parts.length; level++) {
-    const path = parts.slice(0, level).join(" > ");
-    const existing = await prisma.category.findUnique({ where: { tangoPath: path }, select: { id: true } });
+    const p = parts.slice(0, level).join(" > ");
+    const existing = await prisma.category.findUnique({ where: { tangoPath: p }, select: { id: true } });
     const node: { id: string } =
       existing ??
       (await prisma.category.create({
-        data: { name: tangoDisplayName(parts[level - 1]!), slug: `t-${slugify(path).slice(0, 180)}`, tangoPath: path, level, parentId },
+        data: { name: tangoDisplayName(parts[level - 1]!), slug: `t-${slugify(p).slice(0, 180)}`, tangoPath: p, level, parentId },
         select: { id: true },
       }));
     parentId = node.id;
   }
-  const nodeId = parentId!;
-  const note = `Rama nueva: ${branch.reason ?? branch.tangoPath}`;
-  return prisma.$transaction(async (tx) => {
-    const pending = await tx.categoryProposal.updateMany({
-      where: { batch: TANGO_BATCH, status: "PENDING", productId: { in: branch.productIds } },
-      data: { tangoPath: branch.tangoPath, confidence: "alta", note },
-    });
-    const approved = await tx.categoryProposal.findMany({ where: { batch: TANGO_BATCH, status: "APPROVED", productId: { in: branch.productIds } }, select: { id: true, productId: true } });
-    if (approved.length) {
-      await tx.product.updateMany({ where: { id: { in: approved.map((a) => a.productId) } }, data: { categoryId: nodeId } });
-      await tx.categoryProposal.updateMany({ where: { id: { in: approved.map((a) => a.id) } }, data: { tangoPath: branch.tangoPath, appliedPath: branch.tangoPath, note } });
-    }
-    await tx.tangoBranchSuggestion.update({ where: { id }, data: { status: "APPROVED", decidedById: userId, decidedAt: new Date() } });
-    return { moved: approved.length, pending: pending.count };
-  });
+  return parentId!;
 }
 
-export async function rejectBranchSuggestion(id: string, userId: string): Promise<boolean> {
-  const r = await prisma.tangoBranchSuggestion.updateMany({ where: { id, status: "PENDING" }, data: { status: "REJECTED", decidedById: userId, decidedAt: new Date() } });
-  return r.count > 0;
+/**
+ * Aplica los rubros nuevos pendientes: crea cada rubro y lo pone como propuesta
+ * de sus productos (la ruta original queda en basePath, por si se quita). Los
+ * productos ya aprobados en la ruta original también pasan al rubro nuevo.
+ */
+export async function applyPendingBranches(): Promise<number> {
+  const branches = await prisma.tangoBranchSuggestion.findMany({ where: { batch: TANGO_BATCH, status: "PENDING" } });
+  for (const branch of branches) {
+    const nodeId = await ensureNode(branch.tangoPath);
+    await prisma.$transaction(async (tx) => {
+      if (branch.productIds.length) {
+        const ids = Prisma.join(branch.productIds);
+        await tx.$executeRaw`UPDATE "CategoryProposal" SET "basePath" = COALESCE("basePath", "tangoPath"), "baseConfidence" = COALESCE("baseConfidence", "confidence"), "confidence" = 'alta', "note" = NULL, "tangoPath" = ${branch.tangoPath}
+          WHERE "batch" = ${TANGO_BATCH} AND "status" IN ('PENDING', 'APPROVED') AND "productId" IN (${ids})`;
+        await tx.$executeRaw`UPDATE "CategoryProposal" SET "appliedPath" = "tangoPath" WHERE "batch" = ${TANGO_BATCH} AND "status" = 'APPROVED' AND "productId" IN (${ids})`;
+        await tx.$executeRaw`UPDATE "Product" SET "categoryId" = ${nodeId}, "updatedAt" = NOW()
+          WHERE "id" IN (SELECT "productId" FROM "CategoryProposal" WHERE "batch" = ${TANGO_BATCH} AND "status" = 'APPROVED' AND "productId" IN (${ids}))`;
+      }
+      await tx.tangoBranchSuggestion.update({ where: { id: branch.id }, data: { status: "APPROVED", decidedAt: new Date() } });
+    });
+  }
+  return branches.length;
+}
+
+/** Quita un rubro nuevo: sus productos vuelven a la ruta original de Tango (pendientes o ya aprobados). */
+export async function removeBranch(id: string, userId: string): Promise<boolean> {
+  const branch = await prisma.tangoBranchSuggestion.findUnique({ where: { id } });
+  if (!branch || branch.status !== "APPROVED") return false;
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`UPDATE "CategoryProposal" SET "tangoPath" = "basePath", "basePath" = NULL, "confidence" = COALESCE("baseConfidence", "confidence"), "baseConfidence" = NULL,
+      "appliedPath" = CASE WHEN "status" = 'APPROVED' THEN "basePath" ELSE "appliedPath" END
+      WHERE "batch" = ${TANGO_BATCH} AND "tangoPath" = ${branch.tangoPath} AND "basePath" IS NOT NULL`;
+    await tx.$executeRaw`UPDATE "Product" p SET "categoryId" = c."id", "updatedAt" = NOW()
+      FROM "CategoryProposal" cp JOIN "Category" c ON c."tangoPath" = cp."appliedPath"
+      WHERE p."id" = cp."productId" AND cp."batch" = ${TANGO_BATCH} AND cp."status" = 'APPROVED' AND p."categoryId" = (SELECT "id" FROM "Category" WHERE "tangoPath" = ${branch.tangoPath})`;
+    await tx.tangoBranchSuggestion.update({ where: { id }, data: { status: "REJECTED", decidedById: userId, decidedAt: new Date() } });
+    // El rubro queda sin productos: se desactiva (no se borra).
+    await tx.category.updateMany({ where: { tangoPath: branch.tangoPath, products: { none: {} } }, data: { isActive: false } });
+  });
+  return true;
 }
 
 /**

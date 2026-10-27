@@ -2466,4 +2466,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Con el árbol de Tango cargado, las sincronizaciones de proveedores y las importaciones ya no cambian el rubro de los productos ni crean categorías sueltas. No cambia ningún precio." },
     ],
   },
+  {
+    id: "ship-2026-10-27-reclasificacion-simple",
+    version: "2.22.1",
+    releasedAt: "2026-10-27T21:00:00.000Z",
+    summary: "Reclasificación más simple: paso 1 pasar los seguros, paso 2 revisar los dudosos de a uno.",
+    items: [
+      { kind: "MEJORA", text: "Productos → Reclasificación (Tango) en dos pasos: «Pasar los seguros» con un botón, y abajo solo los productos para revisar, cada uno con «Está bien», «Va en otro rubro» o «Dejarlo como está». Lo ya decidido se ve en «Ver lo que ya decidiste», con «Deshacer»." },
+      { kind: "MEJORA", text: "Ya no hay que cargar nada: al entrar están las propuestas. Los rubros que Tango no tiene vienen aplicados y se listan abajo para crearlos también en Tango; si uno no sirve, «Quitar» devuelve sus productos al rubro original." },
+    ],
+  },
 ];

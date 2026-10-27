@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input, Select } from "@/components/ui/input";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
 import { CategoryTreePicker } from "@/components/admin/category-tree-picker";
@@ -15,8 +14,8 @@ import {
   approveAllHighAction,
   approveProposalsAction,
   approveWithCategoryAction,
-  loadTangoProposalsAction,
   rejectProposalsAction,
+  removeBranchAction,
   undoProposalAction,
 } from "@/server/actions/category-proposals";
 
@@ -29,53 +28,44 @@ export type ProposalRow = {
   description: string | null;
   current: string | null;
   proposed: string;
-  applied: string | null;
-  confidence: "alta" | "media" | "baja";
   note: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
-  previous: string | null;
 };
+export type NewBranch = { id: string; path: string; label: string; reason: string | null; count: number };
+type View = "revisar" | "seguros" | "decididos";
 
-type Filters = { estado: string; conf: string; rubro: string; marca: string; q: string; page: number };
-type Stats = { total: number; pending: number; pendingHigh: number; pendingMedium: number; pendingLow: number; approved: number; rejected: number };
-
-const CONF_LABEL = { alta: "Segura", media: "Con dudas", baja: "No se sabe qué es" } as const;
-const CONF_TONE = { alta: "success", media: "warning", baja: "destructive" } as const;
+const fmt = (n: number) => n.toLocaleString("es-AR");
 
 export function ProposalsBoard({
-  loaded,
   stats,
+  view,
   filters,
-  rubros,
   brands,
   rows,
   matching,
   pageSize,
   nodes,
+  newBranches,
 }: {
-  loaded: boolean;
-  stats: Stats;
-  filters: Filters;
-  rubros: Array<{ value: string; label: string }>;
+  stats: { safe: number; doubtful: number; decided: number; approved: number };
+  view: View;
+  filters: { marca: string; q: string; page: number };
   brands: string[];
   rows: ProposalRow[];
   matching: number;
   pageSize: number;
   nodes: CategoryNode[];
+  newBranches: NewBranch[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<string | null>(null);
-  const [pickedCategory, setPickedCategory] = useState<string>("");
-  const pendingRows = rows.filter((r) => r.status === "PENDING");
+  const [picked, setPicked] = useState("");
 
-  const href = (patch: Partial<Filters>) => {
-    const next = { ...filters, page: 1, ...patch };
+  const href = (patch: { ver?: View; page?: number; marca?: string; q?: string }) => {
+    const next = { ver: view, marca: filters.marca, q: filters.q, page: 1, ...patch };
     const sp = new URLSearchParams();
-    if (next.estado !== "pendientes") sp.set("estado", next.estado);
-    if (next.conf) sp.set("conf", next.conf);
-    if (next.rubro) sp.set("rubro", next.rubro);
+    if (next.ver !== "revisar") sp.set("ver", next.ver);
     if (next.marca) sp.set("marca", next.marca);
     if (next.q) sp.set("q", next.q);
     if (next.page > 1) sp.set("pagina", String(next.page));
@@ -88,175 +78,141 @@ export function ProposalsBoard({
       const r = await action();
       if (!r.ok) return void toast.error(r.error || "No se pudo hacer.");
       toast.success(r.message || "Listo.");
-      setSelected(new Set());
       setEditing(null);
       router.refresh();
     });
   }
 
-  async function applyAllHigh() {
+  async function passSafe() {
     const ok = await confirmDialog({
-      title: "Aplicar las de confianza alta",
-      message: `${stats.pendingHigh.toLocaleString("es-AR")} productos pasan a su rubro de Tango. Se puede deshacer de a uno desde «Aprobadas». No cambia ningún precio.`,
-      confirmLabel: "Aplicar",
+      title: "Pasar los seguros",
+      message: `${fmt(stats.safe)} productos pasan a su rubro de Tango. Si alguno no te convence, después lo deshacés desde «Ver lo que ya decidiste».`,
+      confirmLabel: "Pasarlos",
     });
     if (ok) run(() => approveAllHighAction());
   }
 
-  const allSelected = pendingRows.length > 0 && pendingRows.every((r) => selected.has(r.id));
-  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(pendingRows.map((r) => r.id)));
-  const toggle = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const pages = Math.max(1, Math.ceil(matching / pageSize));
-  const tabs = useMemo(
-    () => [
-      { key: "pendientes", label: "Pendientes", n: stats.pending },
-      { key: "aprobadas", label: "Aprobadas", n: stats.approved },
-      { key: "rechazadas", label: "Rechazadas", n: stats.rejected },
-    ],
-    [stats],
-  );
-
-  if (!loaded) {
-    return (
-      <div className="space-y-3 rounded-lg border border-border bg-card p-6">
-        <p className="font-medium">Todavía no están cargadas las propuestas.</p>
-        <p className="text-sm text-muted-foreground">
-          Carga el árbol de rubros de Tango (2.101 rubros, incluida la rama nueva «Bafles exterior») y una propuesta de rubro para cada producto. No mueve ningún producto: eso pasa cuando aprobás.
-        </p>
-        <Button type="button" onClick={() => run(() => loadTangoProposalsAction())} disabled={pending}>
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {pending ? "Cargando… (puede tardar un minuto)" : "Cargar el árbol y las propuestas"}
-        </Button>
-      </div>
-    );
+  async function removeNew(b: NewBranch) {
+    const ok = await confirmDialog({
+      title: "Quitar rubro nuevo",
+      message: `Se quita «${b.label}» y sus ${fmt(b.count)} productos vuelven al rubro de Tango que les correspondía sin este agregado.`,
+      confirmLabel: "Quitar",
+      tone: "danger",
+    });
+    if (ok) run(() => removeBranchAction({ id: b.id }));
   }
 
+  const pages = Math.max(1, Math.ceil(matching / pageSize));
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
-        <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm tabular-nums">
-          <span><b className="text-base">{stats.pending.toLocaleString("es-AR")}</b> pendientes</span>
-          <span className="text-muted-foreground">{stats.pendingHigh.toLocaleString("es-AR")} seguras · {stats.pendingMedium.toLocaleString("es-AR")} con dudas · {stats.pendingLow} sin saber qué es</span>
-          <span className="text-muted-foreground">{stats.approved.toLocaleString("es-AR")} aprobadas · {stats.rejected.toLocaleString("es-AR")} rechazadas</span>
-        </div>
-        <Button type="button" onClick={() => void applyAllHigh()} disabled={pending || stats.pendingHigh === 0}>
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Aplicar todas las de confianza alta ({stats.pendingHigh.toLocaleString("es-AR")})
-        </Button>
-      </div>
-
-      <nav className="flex flex-wrap gap-1 border-b border-border" aria-label="Estado">
-        {tabs.map((t) => (
-          <Link
-            key={t.key}
-            href={href({ estado: t.key })}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm ${filters.estado === t.key ? "border-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-          >
-            {t.label} <span className="tabular-nums text-muted-foreground">{t.n.toLocaleString("es-AR")}</span>
-          </Link>
-        ))}
-      </nav>
-
-      <form method="get" className="flex flex-wrap items-end gap-2" action="/admin/products/reclasificacion">
-        {filters.estado !== "pendientes" ? <input type="hidden" name="estado" value={filters.estado} /> : null}
-        <Input name="q" defaultValue={filters.q} placeholder="Modelo o código" aria-label="Buscar" className="w-56" />
-        <Select name="conf" defaultValue={filters.conf} aria-label="Confianza" className="w-44">
-          <option value="">Cualquier confianza</option>
-          <option value="alta">Seguras</option>
-          <option value="media">Con dudas</option>
-          <option value="baja">Sin saber qué es</option>
-        </Select>
-        <Select name="rubro" defaultValue={filters.rubro} aria-label="Rubro" className="w-48">
-          <option value="">Todos los rubros</option>
-          {rubros.map((r) => (
-            <option key={r.value} value={r.value}>{r.label}</option>
-          ))}
-        </Select>
-        <Select name="marca" defaultValue={filters.marca} aria-label="Marca" className="w-48">
-          <option value="">Todas las marcas</option>
-          {brands.map((b) => (
-            <option key={b} value={b}>{b}</option>
-          ))}
-        </Select>
-        <Button type="submit" variant="outline" size="sm">Filtrar</Button>
-        <Link href="/admin/products/reclasificacion" className="px-2 py-1.5 text-sm text-muted-foreground hover:underline">Limpiar</Link>
-      </form>
-
-      {filters.estado === "pendientes" && pendingRows.length ? (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={allSelected} onChange={toggleAll} /> Elegir las {pendingRows.length} de esta página
-          </label>
-          {selected.size ? (
+    <div className="space-y-5">
+      <ol className="grid gap-3 md:grid-cols-2">
+        <li className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Paso 1</p>
+          {stats.safe > 0 ? (
             <>
-              <Button type="button" size="sm" disabled={pending} onClick={() => run(() => approveProposalsAction({ ids: [...selected] }))}>
-                Aprobar {selected.size}
+              <p>
+                <b className="text-lg">{fmt(stats.safe)}</b> productos tienen el rubro claro.
+              </p>
+              <Button type="button" className="self-start" disabled={pending} onClick={() => void passSafe()}>
+                {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Pasar los {fmt(stats.safe)} seguros
               </Button>
-              <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => run(() => rejectProposalsAction({ ids: [...selected] }))}>
-                Rechazar {selected.size}
-              </Button>
+              <Link href={href({ ver: "seguros" })} className="text-sm text-muted-foreground hover:underline">
+                Mirarlos antes
+              </Link>
             </>
-          ) : null}
-        </div>
-      ) : null}
+          ) : (
+            <p className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-success" /> Los seguros ya están pasados.
+            </p>
+          )}
+        </li>
+        <li className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Paso 2</p>
+          {stats.doubtful > 0 ? (
+            <>
+              <p>
+                <b className="text-lg">{fmt(stats.doubtful)}</b> productos para revisar de a uno.
+              </p>
+              <p className="text-sm text-muted-foreground">Están en la lista de abajo. En cada uno: «Está bien», «Va en otro rubro» o «Dejarlo como está».</p>
+            </>
+          ) : (
+            <p className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-success" /> No queda nada para revisar.
+            </p>
+          )}
+        </li>
+      </ol>
 
-      <p className="text-sm text-muted-foreground tabular-nums">{matching.toLocaleString("es-AR")} productos con estos filtros</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h2 className="text-base font-semibold">
+          {view === "revisar" ? "Para revisar" : view === "seguros" ? "Seguros (todavía sin pasar)" : "Lo que ya decidiste"}
+          <span className="ml-2 font-normal text-muted-foreground tabular-nums">{fmt(matching)}</span>
+        </h2>
+        <form method="get" action="/admin/products/reclasificacion" className="flex flex-wrap gap-2">
+          {view !== "revisar" ? <input type="hidden" name="ver" value={view} /> : null}
+          <Input name="q" defaultValue={filters.q} placeholder="Buscar modelo o código" aria-label="Buscar" className="w-52" />
+          <Select name="marca" defaultValue={filters.marca} aria-label="Marca" className="w-44">
+            <option value="">Todas las marcas</option>
+            {brands.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </Select>
+          <Button type="submit" variant="outline" size="sm">Buscar</Button>
+        </form>
+      </div>
+      {view !== "revisar" ? (
+        <Link href={href({ ver: "revisar" })} className="text-sm text-accent hover:underline">← Volver a lo que hay que revisar</Link>
+      ) : null}
 
       <ul className="space-y-2">
         {rows.map((r) => (
-          <li key={r.id} className="grid gap-3 rounded-lg border border-border bg-card p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
-            <div className="pt-1">
-              {r.status === "PENDING" ? <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} aria-label={`Elegir ${r.model}`} /> : null}
-            </div>
-            <div className="min-w-0 space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {r.brand || "Sin marca"}{r.sku ? ` · ${r.sku}` : ""}
-              </p>
-              <Link href={`/admin/products/${r.productId}`} className="font-mono text-sm font-medium hover:underline">{r.model}</Link>
-              {r.description ? <p className="text-xs text-muted-foreground">{r.description}</p> : null}
-              <div className="grid gap-0.5 text-sm">
-                {r.status === "APPROVED" ? (
-                  <>
-                    <p><span className="text-muted-foreground">Quedó en:</span> <b>{r.applied}</b></p>
-                    <p className="text-xs text-muted-foreground">Antes: {r.previous}</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs text-muted-foreground">Hoy: {r.current || "Sin rubro"}</p>
-                    <p><span className="text-muted-foreground">Propuesto:</span> <b>{r.proposed}</b></p>
-                  </>
-                )}
+          <li key={r.id} className="space-y-2 rounded-lg border border-border bg-card p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <div className="min-w-0">
+                <Link href={`/admin/products/${r.productId}`} className="font-mono font-medium hover:underline">{r.model}</Link>
+                <span className="ml-2 text-xs text-muted-foreground">{[r.brand, r.sku && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(r.sku) ? r.sku : null].filter(Boolean).join(" · ")}</span>
+                {r.description ? <p className="text-xs text-muted-foreground">{r.description}</p> : null}
               </div>
-              {r.note ? <p className="rounded bg-warning/10 px-2 py-1 text-xs">{r.note}</p> : null}
-              {editing === r.id ? (
+            </div>
+            <div className="grid gap-1 text-sm sm:grid-cols-[6rem_minmax(0,1fr)]">
+              <span className="text-muted-foreground">Hoy</span>
+              <span>{r.current || "Sin rubro"}</span>
+              <span className="text-muted-foreground">{r.status === "PENDING" ? "Propuesto" : r.status === "APPROVED" ? "Quedó en" : "Propuesto"}</span>
+              <span className="font-medium">{r.status === "REJECTED" ? <s className="font-normal text-muted-foreground">{r.proposed}</s> : r.proposed}</span>
+            </div>
+            {r.note ? <p className="rounded-md bg-warning/10 px-2 py-1 text-xs">Por qué hay duda: {r.note}</p> : null}
+
+            {r.status === "PENDING" ? (
+              editing === r.id ? (
                 <div className="space-y-2 rounded-md border border-border p-3">
-                  <p className="text-sm font-medium">¿Dónde va?</p>
-                  <CategoryTreePicker nodes={nodes} name={`cat-${r.id}`} defaultValue="" onChange={setPickedCategory} />
-                  <div className="flex gap-2">
-                    <Button type="button" size="sm" disabled={pending || !pickedCategory} onClick={() => run(() => approveWithCategoryAction({ id: r.id, categoryId: pickedCategory }))}>
-                      Aprobar con este rubro
+                  <p className="text-sm font-medium">Elegí el rubro correcto</p>
+                  <CategoryTreePicker nodes={nodes} name={`cat-${r.id}`} defaultValue="" onChange={setPicked} />
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" size="sm" disabled={pending || !picked} onClick={() => run(() => approveWithCategoryAction({ id: r.id, categoryId: picked }))}>
+                      Pasarlo a este rubro
                     </Button>
                     <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>
                   </div>
                 </div>
-              ) : null}
-            </div>
-            <div className="flex flex-wrap items-start gap-2 sm:flex-col sm:items-end">
-              <Badge tone={CONF_TONE[r.confidence]}>{CONF_LABEL[r.confidence]}</Badge>
-              {r.status === "PENDING" ? (
-                <div className="flex flex-wrap gap-1">
-                  <Button type="button" size="sm" disabled={pending} onClick={() => run(() => approveProposalsAction({ ids: [r.id] }))}>Aprobar</Button>
-                  <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => { setPickedCategory(""); setEditing(editing === r.id ? null : r.id); }}>Cambiar</Button>
-                  <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => run(() => rejectProposalsAction({ ids: [r.id] }))}>Rechazar</Button>
-                </div>
               ) : (
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" size="sm" disabled={pending} onClick={() => run(() => approveProposalsAction({ ids: [r.id] }))}>Está bien</Button>
+                  <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => { setPicked(""); setEditing(r.id); }}>Va en otro rubro</Button>
+                  <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => run(() => rejectProposalsAction({ ids: [r.id] }))}>Dejarlo como está</Button>
+                </div>
+              )
+            ) : (
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <span className="text-muted-foreground">{r.status === "APPROVED" ? "Pasado" : "Quedó como estaba"}</span>
                 <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => run(() => undoProposalAction({ id: r.id }))}>Deshacer</Button>
-              )}
-            </div>
+              </div>
+            )}
           </li>
         ))}
       </ul>
-      {!rows.length ? <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No hay productos con estos filtros.</p> : null}
+      {!rows.length ? <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No hay productos acá.</p> : null}
 
       {pages > 1 ? (
         <div className="flex items-center justify-center gap-3 text-sm">
@@ -264,6 +220,33 @@ export function ProposalsBoard({
           <span className="text-muted-foreground tabular-nums">Página {filters.page} de {pages}</span>
           {filters.page < pages ? <Link href={href({ page: filters.page + 1 })} className="rounded-md border border-border px-3 py-1.5 hover:bg-secondary">Siguiente</Link> : null}
         </div>
+      ) : null}
+
+      <div className="flex flex-wrap gap-4 border-t border-border pt-4 text-sm">
+        {view !== "decididos" && stats.decided > 0 ? (
+          <Link href={href({ ver: "decididos" })} className="text-accent hover:underline">Ver lo que ya decidiste ({fmt(stats.decided)})</Link>
+        ) : null}
+      </div>
+
+      {newBranches.length ? (
+        <details className="rounded-lg border border-border bg-card">
+          <summary className="cursor-pointer px-4 py-3 text-sm">
+            <b>{newBranches.length} rubros que agregamos porque Tango no los tiene.</b>{" "}
+            <span className="text-muted-foreground">Creálos también en Tango para que coincidan. Si alguno no te sirve, quitalo.</span>
+          </summary>
+          <ul className="divide-y divide-border border-t border-border">
+            {newBranches.map((b) => (
+              <li key={b.id} className="flex items-start gap-3 px-4 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">{b.label}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{b.path} · {fmt(b.count)} productos</p>
+                  {b.reason ? <p className="text-xs text-muted-foreground">{b.reason}</p> : null}
+                </div>
+                <Button type="button" size="sm" variant="ghost" className="shrink-0" disabled={pending} onClick={() => void removeNew(b)}>Quitar</Button>
+              </li>
+            ))}
+          </ul>
+        </details>
       ) : null}
     </div>
   );
