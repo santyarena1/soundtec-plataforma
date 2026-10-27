@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { productsMatchingRulesWhere } from "@/lib/compatibility-rules";
 
 export interface CompatiblePrimary {
   id: string;
@@ -39,10 +40,15 @@ export async function evaluateAccessoryPolicy(input: {
     return { blocked: false, needsAcknowledgement: false, compatiblePrimaries: [] };
   }
 
-  const compatiblePrimaries = product.accessoryFor.map((x) => ({
-    id: x.product.id,
-    name: x.product.normalizedName,
-  }));
+  // Compatibles de a pares + los que entran por las reglas «compatible con» (rubro, marca, línea).
+  const ruleWhere = await productsMatchingRulesWhere(product.id);
+  const byRules = ruleWhere
+    ? await prisma.product.findMany({ where: { AND: [ruleWhere, { kind: "PRINCIPAL" }] }, select: { id: true, normalizedName: true }, take: 200, orderBy: { normalizedName: "asc" } })
+    : [];
+  const compatiblePrimaries = [
+    ...product.accessoryFor.map((x) => ({ id: x.product.id, name: x.product.normalizedName })),
+    ...byRules.filter((p) => !product.accessoryFor.some((x) => x.product.id === p.id)).map((p) => ({ id: p.id, name: p.normalizedName })),
+  ];
 
   if (compatiblePrimaries.length === 0) {
     return {
@@ -53,7 +59,9 @@ export async function evaluateAccessoryPolicy(input: {
     };
   }
 
-  if (input.primaryProductId && compatiblePrimaries.some((p) => p.id === input.primaryProductId)) {
+  const primaryMatchesRules =
+    input.primaryProductId && ruleWhere ? (await prisma.product.count({ where: { AND: [ruleWhere, { id: input.primaryProductId }] } })) > 0 : false;
+  if (input.primaryProductId && (primaryMatchesRules || compatiblePrimaries.some((p) => p.id === input.primaryProductId))) {
     return { blocked: false, needsAcknowledgement: false, compatiblePrimaries };
   }
 
@@ -61,7 +69,10 @@ export async function evaluateAccessoryPolicy(input: {
     const hasPrimaryInRequest = await prisma.customerRequestItem.findFirst({
       where: {
         requestId: input.requestId,
-        productId: { in: compatiblePrimaries.map((p) => p.id) },
+        OR: [
+          { productId: { in: compatiblePrimaries.map((p) => p.id) } },
+          ...(ruleWhere ? [{ product: ruleWhere }] : []),
+        ],
       },
       select: { id: true },
     });

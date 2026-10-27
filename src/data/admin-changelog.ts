@@ -2476,4 +2476,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Ya no hay que cargar nada: al entrar están las propuestas. Los rubros que Tango no tiene vienen aplicados y se listan abajo para crearlos también en Tango; si uno no sirve, «Quitar» devuelve sus productos al rubro original." },
     ],
   },
+  {
+    id: "ship-2026-10-27-compatible-con",
+    version: "2.23.0",
+    releasedAt: "2026-10-27T23:00:00.000Z",
+    summary: "Compatibilidad por grupo: un producto puede ser compatible con todo un rubro, o solo con una marca o una línea de ese rubro.",
+    items: [
+      { kind: "NUEVO", text: "Ficha del producto → Relaciones → «Compatible con»: por ejemplo un parlante compatible con Sonido › Amplificadores, o solo con los de Sonance, o solo con la línea Sonamp. Antes de guardar muestra cuántos productos entran. En el portal aparece «Compatible con» con un link al catálogo filtrado." },
+      { kind: "NUEVO", text: "Ficha del producto: campo «Línea / serie» (ej. Sonamp, Landscape, Horizon), para usar en esas reglas." },
+      { kind: "MEJORA", text: "«Qué es este producto» en un solo lugar: producto principal, accesorio que exige un producto principal compatible, o accesorio que no exige producto principal. Reemplaza el selector Principal/Accesorio y la casilla suelta." },
+      { kind: "MEJORA", text: "Los accesorios que exigen producto principal también aceptan los que entran por «Compatible con», no solo los vinculados de a uno." },
+    ],
+  },
 ];

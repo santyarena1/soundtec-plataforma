@@ -211,11 +211,12 @@ model Brand {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  products        Product[]
-  priceLists      PriceList[]
-  mappings        ColumnMappingProfile[]
-  imports         ImportBatch[]
-  quoteBrandLogos QuoteBrandLogo[]
+  products           Product[]
+  compatibilityRules CompatibilityRule[]
+  priceLists         PriceList[]
+  mappings           ColumnMappingProfile[]
+  imports            ImportBatch[]
+  quoteBrandLogos    QuoteBrandLogo[]
 }
 
 model Distributor {
@@ -249,7 +250,8 @@ model Category {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  products Product[]
+  products           Product[]
+  compatibilityRules CompatibilityRule[]
 }
 
 model ProductFamily {
@@ -310,6 +312,8 @@ model Product {
   modelNumber      String? // ej. "AMP-X300"
   manufacturerItem String? // SKU del fabricante (puede diferir del supplierSku)
   productLine      String? // línea de producto del proveedor
+  /// Línea o serie del fabricante (ej. «Sonamp», «Landscape», «Horizon»): sirve para reglas de compatibilidad y para filtrar.
+  line             String?
 
   // URLs / SEO
   vendorProductUrl String? // URL a la página del producto en el portal del proveedor
@@ -405,6 +409,7 @@ model Product {
   accessoryFor        AccessoryRelation[]   @relation("AccessoryTarget")
   taxonomySuggestions TaxonomySuggestion[]
   categoryProposals   CategoryProposal[]
+  compatibilityRules  CompatibilityRule[]
   labels              ProductLabel[]
   quoteItems          QuoteItem[]
   aiProfile           ProductAiProfile?
@@ -2292,4 +2297,22 @@ model ProductView {
   @@index([productId, createdAt])
   @@index([createdAt])
   @@index([visitorKey, productId])
+}
+
+/// Compatibilidad por grupo: el producto es compatible con todo un rubro del árbol (y sus subrubros),
+/// opcionalmente solo de una marca y/o una línea. Complementa las relaciones de a pares (AccessoryRelation).
+model CompatibilityRule {
+  id         String    @id @default(cuid())
+  productId  String
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  brandId    String?
+  brand      Brand?    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  /// Línea/serie (Product.line), sin distinguir mayúsculas.
+  line       String?
+  createdAt  DateTime  @default(now())
+
+  @@index([productId])
+  @@index([categoryId])
 }

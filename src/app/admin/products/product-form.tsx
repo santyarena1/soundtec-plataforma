@@ -56,6 +56,8 @@ interface Props {
     isCrestronHomeCompatible: boolean;
     kind: "PRINCIPAL" | "ACCESORIO";
     accessoryRequiredWithPrimary: boolean;
+    /** Línea o serie del fabricante. */
+    line?: string | null;
     isActive: boolean;
     /** «Consultá precio»: no se muestra el precio aunque haya costo. */
     requiresQuote?: boolean;
@@ -91,6 +93,9 @@ export function ProductForm({ product, brands, distributors, categories, familie
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [role, setRole] = useState<"PRINCIPAL" | "ACC_EXIGE" | "ACC_LIBRE">(
+    product?.kind === "ACCESORIO" ? (product.accessoryRequiredWithPrimary ? "ACC_EXIGE" : "ACC_LIBRE") : "PRINCIPAL",
+  );
   const setDirty = useProductTabsDirty();
   const [saveBarReady, setSaveBarReady] = useState(false);
   const fieldUpdatedAt = product?.fieldUpdatedAt ?? undefined;
@@ -275,12 +280,27 @@ export function ProductForm({ product, brands, distributors, categories, familie
             <FieldStamp at={fieldUpdatedAt?.tipo} />
           </div>
           <div>
-            <Label htmlFor="kind">Tipo de producto</Label>
-            <Select id="kind" name="kind" defaultValue={product?.kind || "PRINCIPAL"}>
-              <option value="PRINCIPAL">Principal</option>
-              <option value="ACCESORIO">Accesorio</option>
+            <Label htmlFor="productRole">Qué es este producto</Label>
+            <Select id="productRole" value={role} onChange={(e) => setRole(e.target.value as typeof role)}>
+              <option value="PRINCIPAL">Producto principal (se vende solo)</option>
+              <option value="ACC_EXIGE">Accesorio que exige un producto principal compatible</option>
+              <option value="ACC_LIBRE">Accesorio que no exige producto principal</option>
             </Select>
+            <input type="hidden" name="kind" value={role === "PRINCIPAL" ? "PRINCIPAL" : "ACCESORIO"} />
+            {role === "ACC_EXIGE" ? <input type="hidden" name="accessoryRequiredWithPrimary" value="on" /> : null}
+            <p className="mt-1 text-xs text-muted-foreground">
+              {role === "ACC_EXIGE"
+                ? "Al pedirlo, el cliente tiene que tener o sumar un producto compatible (ver «Compatible con» más abajo)."
+                : role === "ACC_LIBRE"
+                  ? "Es un accesorio, pero se puede pedir solo."
+                  : "Se vende y se pide solo."}
+            </p>
             <FieldStamp at={fieldUpdatedAt?.kind} />
+          </div>
+          <div>
+            <Label htmlFor="line">Línea / serie</Label>
+            <Input id="line" name="line" placeholder="Ej: Sonamp, Landscape, Horizon" defaultValue={product?.line || ""} />
+            <p className="mt-1 text-xs text-muted-foreground">La línea del fabricante. Sirve para decir con qué es compatible.</p>
           </div>
         </div>
       </div>
@@ -655,10 +675,6 @@ export function ProductForm({ product, brands, distributors, categories, familie
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="isCustomizable" defaultChecked={product?.isCustomizable} />
           Tiene accesorios opcionales
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="accessoryRequiredWithPrimary" defaultChecked={product?.accessoryRequiredWithPrimary} />
-          Si es accesorio, exigir producto principal compatible
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="isCrestronHomeCompatible" defaultChecked={product?.isCrestronHomeCompatible} />

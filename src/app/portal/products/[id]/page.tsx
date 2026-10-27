@@ -1,5 +1,7 @@
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { describeRule } from "@/lib/compatibility-rules";
 import { getCurrentPermissions, requireUser } from "@/lib/auth-helpers";
 import { canSeeCosts, isPanelRole, permissionsHave } from "@/lib/permissions";
 import { EditPriceButton } from "@/components/pricing/edit-price-button";
@@ -231,6 +233,20 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const variantItems = variantRelations.map(relationToItem);
   const relatedItems = relatedRelations.map(relationToItem);
   const compatibleItems = compatibleRelations.map(relationToItem);
+  // «Compatible con» por grupo (rubro, marca, línea): se muestra el grupo con un link al catálogo filtrado.
+  const compatGroups = (
+    await prisma.compatibilityRule.findMany({
+      where: { productId: product.id },
+      orderBy: { createdAt: "asc" },
+      include: { category: { select: { name: true, tangoPath: true } }, brand: { select: { name: true } } },
+    })
+  ).map((r) => {
+    const sp = new URLSearchParams();
+    if (r.categoryId) sp.set("category", r.categoryId);
+    if (r.brandId) sp.set("brand", r.brandId);
+    if (r.line) sp.set("q", r.line);
+    return { id: r.id, label: describeRule(r), href: `/portal/products?${sp.toString()}` };
+  });
 
   return (
     <div className="space-y-6">
@@ -460,6 +476,22 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           items={relatedItems}
           variant="RELATED"
         />
+      ) : null}
+
+      {compatGroups.length > 0 ? (
+        <section className="space-y-2 rounded-xl border border-border bg-card p-5">
+          <h2 className="font-semibold">Compatible con</h2>
+          <ul className="space-y-1 text-sm">
+            {compatGroups.map((g) => (
+              <li key={g.id}>
+                {g.label} ·{" "}
+                <Link href={g.href} className="text-accent hover:underline">
+                  Ver productos
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       {compatibleItems.length > 0 ? (

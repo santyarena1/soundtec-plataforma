@@ -14,6 +14,8 @@ import { ArrowLeft, Tags } from "lucide-react";
 import { ProductImagesPanel } from "./images-panel";
 import { ProductOptionsPanel } from "./options-panel";
 import { AccessoriesPanel } from "./accessories-panel";
+import { CompatibilityRulesPanel } from "./compatibility-rules-panel";
+import { describeRule, ruleWhere } from "@/lib/compatibility-rules";
 import { ProductAiAssist } from "./product-ai-assist";
 import { LabelSelector } from "@/components/admin/label-selector";
 import { getSetting } from "@/lib/settings";
@@ -110,6 +112,13 @@ export default async function AdminProductEditPage({ params }: { params: Promise
       },
     }),
   ]);
+  // «Compatible con»: reglas por rubro, marca o línea, y las líneas conocidas para sugerir.
+  const [ruleRows, lineRows] = await Promise.all([
+    prisma.compatibilityRule.findMany({ where: { productId: product.id }, orderBy: { createdAt: "asc" }, include: { category: { select: { name: true, tangoPath: true } }, brand: { select: { name: true } } } }),
+    prisma.product.findMany({ where: { line: { not: null } }, distinct: ["line"], select: { line: true }, orderBy: { line: "asc" }, take: 500 }),
+  ]);
+  const compatRules = await Promise.all(ruleRows.map(async (r) => ({ id: r.id, label: describeRule(r), count: await prisma.product.count({ where: await ruleWhere(r, product.id) }) })));
+  const knownLines = lineRows.map((l) => l.line!).filter(Boolean);
 
   return (
     <div className="space-y-6 pb-24">
@@ -145,7 +154,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
       <ProductTabsProvider
         counts={{
           imagenes: product.images.length,
-          relaciones: product.options.length + product.accessories.length,
+          relaciones: product.options.length + product.accessories.length + compatRules.length,
         }}
       >
       {/* ── Formulario: sus partes van en General, Precio, Comercio exterior y Contenido. Un solo «Guardar». ── */}
@@ -202,6 +211,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               isCrestronHomeCompatible: product.isCrestronHomeCompatible,
               kind: product.kind,
               accessoryRequiredWithPrimary: product.accessoryRequiredWithPrimary,
+              line: product.line,
               isActive: product.isActive,
               fieldUpdatedAt:
                 (product as unknown as { fieldUpdatedAt?: unknown }).fieldUpdatedAt &&
@@ -303,6 +313,14 @@ export default async function AdminProductEditPage({ params }: { params: Promise
           quantity: r.quantity,
           accessoryProduct: r.accessoryProduct,
         }))}
+      />
+
+      <CompatibilityRulesPanel
+        productId={product.id}
+        initialRules={compatRules}
+        nodes={categories}
+        brands={brands}
+        lines={knownLines}
       />
 
       </TabPane>
