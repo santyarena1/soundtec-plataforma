@@ -1,3 +1,4 @@
+import { categoryFilterOptions } from "@/lib/category-tree";
 import { canSeePrices, requireStaff } from "@/lib/auth-helpers";
 import { permissionsHave } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -171,11 +172,12 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       orderBy: { name: "asc" },
       select: { id: true, name: true, _count: { select: { products: true } } },
     }),
-    prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    categoryFilterOptions(),
     prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
   ]);
+  const categoryLabels = new Map(categories.map((c) => [c.id, c.name]));
 
   const products = pageIds
     ? pageIds
@@ -214,7 +216,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       primaryImage: p.images[0]?.url || null,
       brand: p.brand?.name || null,
       brandId: p.brandId,
-      category: p.category?.name || null,
+      category: (p.categoryId && categoryLabels.get(p.categoryId)) || p.category?.name || null,
       categoryId: p.categoryId,
       family: p.family?.name || null,
       familyId: p.familyId,

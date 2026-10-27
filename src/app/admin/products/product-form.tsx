@@ -1,5 +1,7 @@
 "use client";
 
+import { CategoryTreePicker } from "@/components/admin/category-tree-picker";
+import type { CategoryNode } from "@/lib/category-tree";
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -61,7 +63,7 @@ interface Props {
   };
   brands: Option[];
   distributors: Option[];
-  categories: Option[];
+  categories: CategoryNode[];
   families: Option[];
   enginePricing?: {
     priceUsdFinal: number;
@@ -250,15 +252,12 @@ export function ProductForm({ product, brands, distributors, categories, familie
             <FieldStamp at={fieldUpdatedAt?.distributorId} />
           </div>
           <div>
-            <Label htmlFor="categoryId">Categoría (rubro)</Label>
-            <Select id="categoryId" name="categoryId" defaultValue={product?.categoryId || ""}>
-              <option value="">—</option>
-              {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </Select>
+            <Label htmlFor="categoryId">Rubro (árbol de Tango)</Label>
+            <CategoryTreePicker id="categoryId" name="categoryId" nodes={categories} defaultValue={product?.categoryId || ""} />
             <FieldStamp at={fieldUpdatedAt?.categoryId} />
           </div>
           <div>
-            <Label htmlFor="familyId">Familia (subrubro)</Label>
+            <Label htmlFor="familyId">Familia (para reglas de margen)</Label>
             <Select id="familyId" name="familyId" defaultValue={product?.familyId || ""}>
               <option value="">—</option>
               {families.map((f) => (<option key={f.id} value={f.id}>{f.name}</option>))}

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { expandCategoryIds } from "@/lib/category-tree";
 import {
   calculatePricesForProducts,
   getClientVisibility,
@@ -151,10 +152,13 @@ async function buildCatalogWhere(
   ctx: CatalogContext,
   options?: { skipPrice?: boolean }
 ): Promise<Prisma.ProductWhereInput | null> {
-  const [hidden, catalogHiddenBrands] = await Promise.all([
+  const [hidden, catalogHiddenBrands, filterCategoryIds] = await Promise.all([
     resolveVisibility(ctx.commercialClientId, ctx.isAdmin),
     prisma.brand.findMany({ where: { hiddenFromCatalog: true }, select: { id: true } }),
+    // Rubro elegido u oculto = ese nodo del árbol y todo lo que cuelga de él.
+    expandCategoryIds(filters.categoryIds ?? []),
   ]);
+  const hiddenCategoryIds = await expandCategoryIds(hidden.hiddenCategoryIds);
   // Marcas ocultas (por visibilidad del cliente o desde Admin → Marcas) combinadas
   // con el filtro de marca: un `in` no puede pisar el `notIn`.
   const excludedBrandIds = [...hidden.hiddenBrandIds, ...catalogHiddenBrands.map((b) => b.id)];
@@ -170,13 +174,13 @@ async function buildCatalogWhere(
     isActive: true,
     ...(hidden.hiddenProductIds.length ? { id: { notIn: hidden.hiddenProductIds } } : {}),
     ...brandFilter,
-    ...(hidden.hiddenCategoryIds.length ? { categoryId: { notIn: hidden.hiddenCategoryIds } } : {}),
+    ...(hiddenCategoryIds.length ? { categoryId: { notIn: hiddenCategoryIds } } : {}),
     ...(hidden.hiddenDistributorIds.length ? { distributorId: { notIn: hidden.hiddenDistributorIds } } : {}),
     ...(hidden.hiddenFamilyIds.length ? { familyId: { notIn: hidden.hiddenFamilyIds } } : {}),
     ...(ctx.isAdmin && filters.distributorIds?.length
       ? { distributorId: { in: filters.distributorIds } }
       : {}),
-    ...(filters.categoryIds?.length ? { categoryId: { in: filters.categoryIds } } : {}),
+    ...(filterCategoryIds.length ? { categoryId: { in: filterCategoryIds } } : {}),
     ...(filters.familyIds?.length ? { familyId: { in: filters.familyIds } } : {}),
     ...(filters.kind === "PRINCIPAL" ? { kind: "PRINCIPAL" } : {}),
     ...(filters.kind === "ACCESORIO" ? { kind: "ACCESORIO" } : {}),

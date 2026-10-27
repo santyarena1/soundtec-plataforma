@@ -1,3 +1,4 @@
+import { expandCategoryIds } from "@/lib/category-tree";
 import type { Prisma, StockStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildProductSearchAnd } from "@/lib/product-search";
@@ -23,7 +24,8 @@ export async function buildAdminProductWhere(f: AdminProductFilters): Promise<Pr
     ...(feedbackIds ? { id: { in: feedbackIds } } : {}),
     ...(f.crestronMissing ? CRESTRON_MISSING_WHERE : {}),
     ...(f.brandIds.length ? { brandId: { in: f.brandIds } } : {}),
-    ...(f.categoryIds.length ? { categoryId: { in: f.categoryIds } } : {}),
+    // Un rubro trae también todo lo que cuelga de él en el árbol.
+    ...(f.categoryIds.length ? { categoryId: { in: await expandCategoryIds(f.categoryIds) } } : {}),
     ...(f.familyIds.length ? { familyId: { in: f.familyIds } } : {}),
     ...(f.distributorIds.length ? { distributorId: { in: f.distributorIds } } : {}),
     ...(f.stockStatuses.length ? { stockStatus: { in: f.stockStatuses as StockStatus[] } } : {}),

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
@@ -302,7 +303,8 @@ export async function applyHallResearchPriceList(
       async (tx) => {
         const [brandIds, categoryIds, distributorId] = [
           await ensureIds(tx, "brand", toCreate.map((r) => officialBrand(r.brand) ?? r.brand)),
-          await ensureIds(tx, "category", toCreate.map((r) => r.category).filter((c): c is string => !!c)),
+          // Con el árbol de Tango cargado, los productos nuevos entran sin rubro (no se crean categorías sueltas).
+          (await isTangoTreeActive(tx)) ? new Map<string, string>() : await ensureIds(tx, "category", toCreate.map((r) => r.category).filter((c): c is string => !!c)),
           await ensureNamed(tx, "distributor", DISTRIBUTOR_NAME),
         ];
 

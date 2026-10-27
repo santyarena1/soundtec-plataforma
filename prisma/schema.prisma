@@ -241,6 +241,10 @@ model Category {
   parentId  String?
   parent    Category?  @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
   children  Category[] @relation("CategoryParent")
+  /// Ruta en el árbol de rubros de Tango («SONIDO > BAFLES PASIVOS > …», en mayúsculas como en Tango). null = categoría vieja, fuera del árbol.
+  tangoPath String?    @unique
+  /// Nivel en el árbol de Tango: 1 rubro, 2 subrubro, 3 y 4.
+  level     Int?
   isActive  Boolean    @default(true)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -400,6 +404,7 @@ model Product {
   accessories         AccessoryRelation[]   @relation("AccessorySource")
   accessoryFor        AccessoryRelation[]   @relation("AccessoryTarget")
   taxonomySuggestions TaxonomySuggestion[]
+  categoryProposals   CategoryProposal[]
   labels              ProductLabel[]
   quoteItems          QuoteItem[]
   aiProfile           ProductAiProfile?
@@ -900,6 +905,51 @@ enum TaxonomySuggestionStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+enum CategoryProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Propuesta de rubro del árbol de Tango para un producto (reclasificación). Aprobarla mueve el producto; rechazarla lo deja como estaba.
+model CategoryProposal {
+  id                 String                 @id @default(cuid())
+  productId          String
+  product            Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Tanda de la propuesta (ej. «tango-2026-10»).
+  batch              String
+  tangoPath          String
+  /// alta | media | baja
+  confidence         String
+  note               String?
+  status             CategoryProposalStatus @default(PENDING)
+  /// Ruta que se aplicó al aprobar (puede diferir si se cambió a mano).
+  appliedPath        String?
+  /// Rubro que tenía el producto antes de aprobar (para deshacer).
+  previousCategoryId String?
+  decidedById        String?
+  decidedAt          DateTime?
+  createdAt          DateTime               @default(now())
+
+  @@unique([productId, batch])
+  @@index([batch, status, confidence])
+}
+
+/// Rama nueva sugerida para el árbol de Tango (no existe en el CSV). Aprobarla crea el rubro y mueve ahí a sus productos.
+model TangoBranchSuggestion {
+  id          String                 @id @default(cuid())
+  batch       String
+  tangoPath   String
+  reason      String?
+  productIds  String[]
+  status      CategoryProposalStatus @default(PENDING)
+  decidedById String?
+  decidedAt   DateTime?
+  createdAt   DateTime               @default(now())
+
+  @@unique([batch, tangoPath])
 }
 
 // Sugerencias de IA para asignar categoría/familia a productos (revisión en admin).

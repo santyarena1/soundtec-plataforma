@@ -64,6 +64,8 @@ const nextConfig = {
       "/admin/quotes/[id]": ["./node_modules/@sparticuz/chromium/bin/**"],
       "/admin/requests/[id]": ["./node_modules/@sparticuz/chromium/bin/**"],
       "/admin/quotes/quick": ["./node_modules/@sparticuz/chromium/bin/**"],
+      // Árbol de Tango y propuestas de reclasificación (se leen con fs al cargarlas).
+      "/admin/products/reclasificacion": ["./data/tango/**"],
     },
     serverActions: {
       bodySizeLimit: "50mb",

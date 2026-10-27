@@ -8,6 +8,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { getSetting, setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import { mergeFieldTimestamps } from "@/lib/field-timestamps";
@@ -215,9 +216,11 @@ export async function applySoundTubeRows(input: ApplySoundTubeInput): Promise<Ap
     const validDecisions = decisions.filter((d) => missingIds.has(d.productId));
     const skuById = new Map(products.map((p) => [p.id, p.sku ?? p.name]));
 
+    // Con el árbol de Tango cargado, la lista no pisa el rubro (el segmento sí, va a familia).
+    const tangoActive = await isTangoTreeActive(prisma);
     const [categoryIds, familyIds] = applyTaxonomy
       ? await Promise.all([
-          taxonomyIds("category", plan.matched.map((m) => m.row.categoria)),
+          tangoActive ? new Map<string, string>() : taxonomyIds("category", plan.matched.map((m) => m.row.categoria)),
           taxonomyIds("productFamily", plan.matched.map((m) => m.row.segmento)),
         ])
       : [new Map<string, string>(), new Map<string, string>()];

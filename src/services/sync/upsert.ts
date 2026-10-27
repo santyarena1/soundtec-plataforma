@@ -1,3 +1,4 @@
+import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { applySyncFieldPolicy } from "./field-policy";
 import { Prisma, type ProductRelationKind } from "@prisma/client";
 import { slugify } from "@/lib/utils";
@@ -190,7 +191,9 @@ export async function applyNormalizedProduct(
     include: { brand: { select: { name: true } } },
   });
   const brandName = nonEmpty(n.brandName);
-  const categoryName = nonEmpty(n.categoryName);
+  // Con el árbol de Tango cargado, la categoría la decide Soundtec: el proveedor no la pisa
+  // (su categoría queda en sourceCategoryPath para clasificar los productos nuevos).
+  const categoryName = (await isTangoTreeActive(tx)) ? undefined : nonEmpty(n.categoryName);
   const familyName = nonEmpty(n.familyName);
   let brand: { id: string } | undefined = undefined;
   if (brandName) {

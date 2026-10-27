@@ -2453,4 +2453,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "El botón para generar el PDF queda deshabilitado mientras falte algo, y dice qué falta." },
     ],
   },
+  {
+    id: "ship-2026-10-27-reclasificacion-tango",
+    version: "2.22.0",
+    releasedAt: "2026-10-27T18:00:00.000Z",
+    summary: "Reclasificación con el árbol de rubros de Tango: cada producto tiene un rubro propuesto para aprobar o rechazar.",
+    items: [
+      { kind: "NUEVO", text: "Productos → Reclasificación (Tango): los 3.265 productos con su rubro propuesto en el árbol de Tango (Rubro › Subrubro › Categoría › Tipo), con la confianza y una nota cuando hubo dudas. Nada cambia hasta que lo aprobás." },
+      { kind: "NUEVO", text: "Botón «Aplicar todas las de confianza alta» y aprobación de a una, en tanda o con otro rubro elegido a mano («Cambiar»). Rechazar deja el producto como estaba; «Deshacer» lo vuelve al rubro anterior." },
+      { kind: "NUEVO", text: "Rubros nuevos sugeridos: los que le faltan al árbol (por ejemplo Bafles exterior). Si aprobás uno se crea y sus productos pasan ahí; conviene crearlos igual en Tango." },
+      { kind: "MEJORA", text: "Ficha del producto: el rubro se elige por niveles o buscando por texto. Filtrar por un rubro trae también todo lo que está debajo." },
+      { kind: "MEJORA", text: "Con el árbol de Tango cargado, las sincronizaciones de proveedores y las importaciones ya no cambian el rubro de los productos ni crean categorías sueltas. No cambia ningún precio." },
+    ],
+  },
 ];

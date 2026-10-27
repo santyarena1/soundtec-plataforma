@@ -2,6 +2,7 @@ import { applySyncFieldPolicy } from "@/services/sync/field-policy";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { getSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import { applyMapping, resolvePath } from "@/services/portal-path-resolver";
@@ -478,6 +479,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Pre-resolve any unique brand/category/family names so we don't hit DB per product
+    const tangoActive = await isTangoTreeActive(prisma);
     const brandNamesNeeded = new Set<string>();
     const categoryNamesNeeded = new Set<string>();
     const familyNamesNeeded = new Set<string>();
@@ -492,7 +494,8 @@ export async function POST(req: NextRequest) {
         const name = Array.isArray(v) ? v[0] : v;
         if (typeof name === "string" && name.trim()) brandNamesNeeded.add(name.trim());
       }
-      if (mapping.categoryId) {
+      // Con el árbol de Tango cargado, la importación no pisa el rubro ni crea categorías sueltas.
+      if (mapping.categoryId && !tangoActive) {
         const v = mapped.categoryId;
         const name = Array.isArray(v) ? v[0] : v;
         if (typeof name === "string" && name.trim()) categoryNamesNeeded.add(name.trim());

@@ -86,7 +86,8 @@ const groups: NavGroup[] = [
     title: "Productos",
     tourId: "nav-catalogo",
     items: [
-      { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view", tourId: "nav-link-products" },
+      { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view", tourId: "nav-link-products", notUnder: ["/admin/products/reclasificacion"] },
+      { href: "/admin/products/reclasificacion", label: "Reclasificación (Tango)", icon: ListChecks, scope: "categories.manage" },
       { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage", tourId: "nav-link-brands" },
       { href: "/admin/categories", label: "Categorías y familias", icon: Building2, anyScope: ["categories.manage", "families.manage"], alsoActive: ["/admin/families"] },
       { href: "/admin/labels", label: "Etiquetas", icon: Tags, scope: "brands.manage" },

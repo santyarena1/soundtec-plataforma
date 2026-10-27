@@ -1,3 +1,4 @@
+import { listCategoryTree } from "@/lib/category-tree";
 import { getExchangeRate } from "@/lib/exchange-rate";
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { notFound, redirect } from "next/navigation";
@@ -84,7 +85,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
   const [brands, distributors, categories, families, tcVentaStr, globalCoefStr, allLabels, priceBreakdown] = await Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    listCategoryTree(),
     prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     getExchangeRate().then(String),
     getSetting("app.global_margin_percent", "35"),

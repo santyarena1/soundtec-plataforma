@@ -1,3 +1,4 @@
+import { listCategoryTree } from "@/lib/category-tree";
 import { getExchangeRate } from "@/lib/exchange-rate";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
@@ -13,7 +14,7 @@ export default async function NewProductPage() {
   const [brands, distributors, categories, families, tcVentaStr, globalCoefStr] = await Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    listCategoryTree(),
     prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     getExchangeRate().then(String),
     getSetting("app.global_margin_percent", "35"),

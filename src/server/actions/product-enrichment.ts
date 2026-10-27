@@ -3,6 +3,7 @@
 import { BLOB_NOT_CONFIGURED, BLOB_UPLOAD_FAILED, isBlobConfigured, uploadFile } from "@/lib/blob-storage";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { requireAdmin, requireStaff } from "@/lib/auth-helpers";
 import { generateLongDescription, generateShortDescription, suggestProductClassification, type ClassificationSuggestion } from "@/services/openai";
 import { searchProductImages, searchProductImagesOrError, type SerperImage } from "@/services/serper";
@@ -124,8 +125,10 @@ export async function applyClassificationSuggestion(input: {
   }
   if (input.categoryName !== undefined) {
     if (input.categoryName) {
-      let c = await prisma.category.findFirst({ where: { name: { equals: input.categoryName, mode: "insensitive" } } });
-      if (!c && input.createIfMissing) {
+      // Con el árbol de Tango cargado, solo valen sus rubros y no se crean categorías nuevas.
+      const tango = await isTangoTreeActive(prisma);
+      let c = await prisma.category.findFirst({ where: { name: { equals: input.categoryName, mode: "insensitive" }, ...(tango ? { tangoPath: { not: null } } : {}) } });
+      if (!c && input.createIfMissing && !tango) {
         c = await prisma.category.create({
           data: { name: input.categoryName.trim(), slug: slugify(input.categoryName.trim()) },
         });
