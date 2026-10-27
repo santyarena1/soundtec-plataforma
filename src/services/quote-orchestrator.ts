@@ -271,7 +271,6 @@ export async function generateQuoteProposal(quoteId: string, userId: string): Pr
     },
   });
   if (!quote) return { ok: false, error: "Cotización no encontrada." };
-  if (quote.status === "ISSUED") return { ok: false, error: "La cotización ya está emitida: duplicala para regenerarla." };
 
   const intake = readQuoteIntake(quote.advancedIntake);
   const contextNotes = humanContextNotes(quote.context?.notes);
@@ -798,7 +797,7 @@ ${facts}`,
 async function assertQuoteEditable(quoteId: string) {
   const quote = await prisma.quote.findUnique({ where: { id: quoteId }, select: { status: true } });
   if (!quote) throw new Error("Cotización no encontrada.");
-  if (quote.status === "ISSUED") throw new Error("La cotización ya está emitida: duplicala para cambiarla.");
+  // Emitida se edita igual: el PDF queda desactualizado (lo marca quien llama, con loadQuoteForEdit).
 }
 
 export async function previewRewriteQuoteNode(input: {

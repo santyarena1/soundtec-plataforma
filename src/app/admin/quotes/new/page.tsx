@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { requireQuotePermission } from "@/lib/quote-access";
-import { ensureQuoteProfiles } from "@/lib/quote-defaults";
-import { getQuoteNumberingConfig, formatQuoteNumber } from "@/lib/quote-settings";
+import { getQuoteNumberingConfig, formatQuoteNumber, QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
+import { listDocumentTypes } from "@/lib/quote-document-types";
+import { QUOTE_AUDIENCES } from "@/lib/quote-audiences";
+import { TAX_MODES } from "@/lib/quote-totals";
+import { getSetting } from "@/lib/settings";
 import { createQuoteFromBrief } from "@/server/actions/quotes";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,22 +17,15 @@ import { ClientSelectWithCreate } from "@/components/admin/client-select-with-cr
 
 export const metadata = { title: "Admin · Nueva cotización" };
 
-const PROFILE_HELP: Record<string, string> = {
-  resumido: "Solo lo esencial: apertura, propuesta, tabla de productos y condiciones.",
-  tecnico: "Incluye criterios de diseño y textos técnicos estándar.",
-  premium: "Todos los módulos de texto, incluidos productos clave y funcionalidad.",
-};
-
 export default async function NewQuotePage() {
   await requireQuotePermission("quotes.create");
-  await ensureQuoteProfiles();
-  const [clients, profiles, cfg, classifiers, owners, priceLists] = await Promise.all([
+  const [clients, documentTypes, cfg, classifiers, owners, priceLists, defaultProfileSetting, defaultTax, validity] = await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
       orderBy: { companyName: "asc" },
       select: { id: true, companyName: true, tradeName: true },
     }),
-    prisma.quoteContentProfile.findMany({ orderBy: { name: "asc" } }),
+    listDocumentTypes(),
     getQuoteNumberingConfig(),
     listQuoteClassifiers(),
     prisma.user.findMany({
@@ -38,9 +34,13 @@ export default async function NewQuotePage() {
       select: { id: true, name: true },
     }),
     prisma.priceList.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    getSetting(QUOTE_SETTING_KEYS.defaultProfile, "tecnico"),
+    getSetting(QUOTE_SETTING_KEYS.defaultTaxMode, "NOTE"),
+    getSetting(QUOTE_SETTING_KEYS.validityDays, "5"),
   ]);
   const preview = formatQuoteNumber({ ...cfg, sequence: cfg.nextSequence });
-  const defaultProfile = profiles.find((p) => p.isDefault)?.key || "tecnico";
+  const defaultProfile = documentTypes.some((t) => t.key === defaultProfileSetting) ? defaultProfileSetting : "tecnico";
+  const defaultTaxMode = TAX_MODES.some((m) => m.key === defaultTax) ? defaultTax : "NOTE";
 
   return (
     <div className="space-y-6">
@@ -90,7 +90,7 @@ export default async function NewQuotePage() {
               <div>
                 <h2 className="text-sm font-semibold">2. Qué hay que cotizar</h2>
                 <p className="text-xs text-muted-foreground">
-                  La IA usa esto para sugerir productos y redactar «Nuestra propuesta». No hace falta ser técnico.
+                  Si después le pedís a la IA que sugiera productos o redacte «Nuestra propuesta», usa esto. No hace falta ser técnico.
                 </p>
               </div>
               <Textarea
@@ -109,22 +109,47 @@ export default async function NewQuotePage() {
 
             <section className="space-y-3 rounded-md border border-border bg-secondary/20 p-4" data-tour="quote-new-type">
               <div>
-                <h2 className="text-sm font-semibold">3. Tipo de documento</h2>
-                <p className="text-xs text-muted-foreground">Define cuántos módulos de texto trae la cotización nueva.</p>
+                <h2 className="text-sm font-semibold">3. Cómo sale el documento</h2>
+                <p className="text-xs text-muted-foreground">Todo se puede cambiar después en el editor.</p>
               </div>
-              <div className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="profileKey">Tipo de documento</Label>
                   <Select id="profileKey" name="profileKey" defaultValue={defaultProfile}>
-                    {profiles.map((p) => (
-                      <option key={p.key} value={p.key}>
-                        {p.name}
+                    {documentTypes.map((t) => (
+                      <option key={t.key} value={t.key}>
+                        {t.name}
                       </option>
                     ))}
                   </Select>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {PROFILE_HELP[defaultProfile] || "Podés cambiar módulos después en el paso Módulos."}
-                  </p>
+                  <FieldHint>Qué secciones lleva el PDF. Los tipos propios se crean en Configuración → Cotizaciones.</FieldHint>
+                </div>
+                <div>
+                  <Label htmlFor="audience">A quién va</Label>
+                  <Select id="audience" name="audience" defaultValue="auto">
+                    <option value="auto">Automático (según el cliente o el tipo)</option>
+                    <option value="">Ninguno (textos generales)</option>
+                    {QUOTE_AUDIENCES.map((a) => (
+                      <option key={a.key} value={a.key}>
+                        {a.label}
+                      </option>
+                    ))}
+                  </Select>
+                  <FieldHint>Elige la versión de los textos del PDF para ese rubro.</FieldHint>
+                </div>
+                <div>
+                  <Label htmlFor="taxMode">Impuestos</Label>
+                  <Select id="taxMode" name="taxMode" defaultValue={defaultTaxMode}>
+                    {TAX_MODES.map((m) => (
+                      <option key={m.key} value={m.key}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="validityDays">Vigencia de la oferta (días)</Label>
+                  <Input id="validityDays" name="validityDays" type="number" min="1" max="365" defaultValue={Number(validity) || 5} />
                 </div>
               </div>
             </section>
@@ -145,8 +170,8 @@ export default async function NewQuotePage() {
             <QuoteAdvancedFields />
 
             <p className="text-xs text-muted-foreground">
-              Al crear entrás al paso «Brief y generación». Ahí podés ejecutar la IA para armar productos sugeridos y el
-              texto de «Nuestra propuesta».
+              Al crear entrás al editor. Si escribiste qué hay que cotizar, en «Qué necesita» decidís si la IA sugiere
+              productos y redacta la propuesta: no arranca sola.
             </p>
 
             <div className="flex justify-end">

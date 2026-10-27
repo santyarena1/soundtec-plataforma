@@ -25,6 +25,8 @@ export type QuoteListRow = {
   created: string;
   expires: { label: string; expired: boolean } | null;
   issued: boolean;
+  /** Rápida: se edita en su propia pantalla, no en el editor completo. */
+  isQuick: boolean;
 };
 
 /** PDF: el emitido si está emitida; si no, el documento como está ahora. */
@@ -178,10 +180,10 @@ export function QuotesTable({ rows, canEdit }: { rows: QuoteListRow[]; canEdit: 
                       <button type="button" className={iconButton} onClick={() => toggle(row.id)} aria-expanded={isOpen}>
                         <Eye className="h-3.5 w-3.5" /> Ver
                       </button>
-                      <Link href={`/admin/quotes/${row.id}`} className={iconButton}>
+                      <Link href={row.isQuick ? `/admin/quotes/quick?editar=${row.id}` : `/admin/quotes/${row.id}`} className={iconButton}>
                         <Pencil className="h-3.5 w-3.5" /> Editar
                       </Link>
-                      <a href={pdfHref(row)} target="_blank" rel="noreferrer" className={iconButton} title={row.issued ? "PDF emitido" : "Documento como está ahora (sin emitir)"}>
+                      <a href={pdfHref(row)} target="_blank" rel="noreferrer" className={iconButton} title={row.issued ? "PDF generado para el cliente" : "Cómo queda el documento ahora (todavía sin generar el PDF)"}>
                         <FileText className="h-3.5 w-3.5" /> PDF
                       </a>
                       {canEdit ? (

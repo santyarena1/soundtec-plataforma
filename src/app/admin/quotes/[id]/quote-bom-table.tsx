@@ -279,36 +279,6 @@ function ZoneTable({
                             ))}
                           </Select>
                         ) : null}
-                        <form action={toggleQuoteItemOptional}>
-                          <input type="hidden" name="itemId" value={item.id} />
-                          <Button type="submit" size="sm" variant="ghost" className="w-full">
-                            {item.optional ? "No opcional" : "Opcional"}
-                          </Button>
-                        </form>
-                        <form action={toggleQuoteItemLock}>
-                          <input type="hidden" name="itemId" value={item.id} />
-                          <Button
-                            type="submit"
-                            size="sm"
-                            variant="ghost"
-                            className="w-full"
-                            title="Evita que la IA reescriba este ítem. Vos podés editarlo igual."
-                          >
-                            {item.locked ? "Desfijar IA" : "Fijar IA"}
-                          </Button>
-                        </form>
-                        <form action={toggleQuoteItemExcluded}>
-                          <input type="hidden" name="itemId" value={item.id} />
-                          <Button
-                            type="submit"
-                            size="sm"
-                            variant="ghost"
-                            className="w-full"
-                            title="Queda guardado en la cotización pero no sale en el documento ni suma al total"
-                          >
-                            {item.excluded ? "Volver a incluir" : "Dejar afuera"}
-                          </Button>
-                        </form>
                         <form action={deleteQuoteItem}>
                           <input type="hidden" name="itemId" value={item.id} />
                           <Button
@@ -338,7 +308,43 @@ function ZoneTable({
                             Quitar
                           </Button>
                         </form>
-                        <QuoteRevisePanel quoteId={quoteId} nodeId={item.id} kind="item" />
+                        {/* Lo que se usa poco va adentro: la fila queda con mover, ambiente y quitar. */}
+                        <details className="text-xs">
+                          <summary className="cursor-pointer rounded px-2 py-1 text-center text-muted-foreground hover:bg-secondary">Más…</summary>
+                          <div className="mt-1 flex flex-col gap-1">
+                            <form action={toggleQuoteItemOptional}>
+                              <input type="hidden" name="itemId" value={item.id} />
+                              <Button type="submit" size="sm" variant="ghost" className="w-full" title="Sale en el PDF como opcional y no suma al total">
+                                {item.optional ? "Pasar a no opcional" : "Marcar como opcional"}
+                              </Button>
+                            </form>
+                            <form action={toggleQuoteItemExcluded}>
+                              <input type="hidden" name="itemId" value={item.id} />
+                              <Button
+                                type="submit"
+                                size="sm"
+                                variant="ghost"
+                                className="w-full"
+                                title="Queda guardado en la cotización pero no sale en el documento ni suma al total"
+                              >
+                                {item.excluded ? "Mostrar en el PDF" : "Ocultar del PDF"}
+                              </Button>
+                            </form>
+                            <form action={toggleQuoteItemLock}>
+                              <input type="hidden" name="itemId" value={item.id} />
+                              <Button
+                                type="submit"
+                                size="sm"
+                                variant="ghost"
+                                className="w-full"
+                                title="La IA no reescribe este ítem. Vos podés editarlo igual."
+                              >
+                                {item.locked ? "Dejar que la IA lo cambie" : "Que la IA no lo cambie"}
+                              </Button>
+                            </form>
+                            <QuoteRevisePanel quoteId={quoteId} nodeId={item.id} kind="item" />
+                          </div>
+                        </details>
                       </div>
                     ) : null}
                   </td>
@@ -572,11 +578,11 @@ export function QuoteBomTable({
               <form action={addServiceToQuote} className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-secondary/10 p-3">
                 <input type="hidden" name="quoteId" value={quoteId} />
                 {zone.id ? <input type="hidden" name="groupId" value={zone.id} /> : null}
-                <Input name="description" placeholder="Servicio (instalación, materiales…)" className="min-w-[220px] flex-1" />
-                <Input name="quantity" defaultValue="1" className="w-20" />
-                <Input name="unitPriceUsd" placeholder="USD" className="w-28" />
+                <Input name="description" placeholder="Ítem libre: qué es (mano de obra, cable por metro, flete…)" aria-label="Descripción del ítem libre" className="min-w-[220px] flex-1" />
+                <Input name="quantity" defaultValue="1" className="w-20" aria-label="Cantidad" />
+                <Input name="unitPriceUsd" placeholder="Precio USD" className="w-28" aria-label="Precio unitario USD" />
                 <Button type="submit" size="sm" variant="outline">
-                  Agregar servicio
+                  Agregar ítem libre
                 </Button>
               </form>
             ) : null}

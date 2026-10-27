@@ -88,7 +88,7 @@ function TargetPricePanel({
             ser exactamente el que escribiste. Ejemplo: si el costo sube 10%, el precio sube 10%.
           </li>
           <li>Los descuentos y condiciones de cada cliente se siguen aplicando encima de este precio. El precio en pesos se calcula con el tipo de cambio del día.</li>
-          <li>Afecta catálogo, ficha, cotizaciones y pedidos nuevos. Las cotizaciones ya emitidas no cambian.</li>
+          <li>Afecta catálogo, ficha, cotizaciones y pedidos nuevos. Las cotizaciones ya hechas no cambian.</li>
           <li>Para volver a la regla anterior: «Volver a la regla general» en este mismo editor.</li>
         </ul>
       </div>

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { quoteStatusLabel } from "@/lib/quote-status";
 import { loadQuoteForUser } from "@/lib/quote-access";
 import { APP_TIME_ZONE } from "@/lib/utils";
 import { TAX_MODES } from "@/lib/quote-totals";
@@ -10,6 +11,7 @@ import { resolveBrandsDisplayMode } from "@/lib/quote-brands";
 import { listBrandLibrary } from "@/server/actions/quote-brands";
 import { SectionVariantPicker } from "@/components/quotes/section-variant-picker";
 import { QUOTE_AUDIENCES } from "@/lib/quote-audiences";
+import { listDocumentTypes } from "@/lib/quote-document-types";
 import { QuoteBrandsEditor } from "@/components/quotes/quote-brands-editor";
 import { QuoteAlternativesPanel } from "@/components/quotes/quote-alternatives-panel";
 import { LiveQuoteCanvas } from "@/components/quotes/live-quote-canvas";
@@ -57,14 +59,6 @@ import { saveQuoteClassifierPicks } from "@/server/actions/quote-classifiers";
 
 export const metadata = { title: "Admin · Cotización" };
 
-const QUOTE_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "Borrador",
-  IN_REVIEW: "En revisión",
-  READY: "Lista",
-  ISSUED: "Emitida",
-  SUPERSEDED: "Reemplazada",
-  ARCHIVED: "Archivada",
-};
 
 function texts(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -98,7 +92,7 @@ export default async function QuoteEditorPage({
 
   const productIds = quote.items.map((i) => i.productId).filter((pid): pid is string => Boolean(pid));
   const variantBlockKeys = [...new Set(quote.sections.map((s) => s.type).filter(isVariantBlockKey))];
-  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms, identity, classifiers, patterns, brandLibrary, ...variantLists] =
+  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms, identity, classifiers, documentTypes, patterns, brandLibrary, ...variantLists] =
     await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
@@ -115,7 +109,7 @@ export default async function QuoteEditorPage({
       : Promise.resolve([]),
     productIds.length
       ? prisma.accessoryRelation.findMany({
-          where: { productId: { in: productIds } },
+          where: { productId: { in: productIds }, kind: { not: "INCLUDED" } },
           include: {
             accessoryProduct: { select: { id: true, normalizedName: true, brand: { select: { name: true } } } },
           },
@@ -134,6 +128,7 @@ export default async function QuoteEditorPage({
       : Promise.resolve(null),
     getCompanyIdentity(),
     listQuoteClassifiers(),
+    listDocumentTypes(),
     loadQuotePatternSuggestions(quote.id),
     listBrandLibrary(),
     ...variantBlockKeys.map((key) => listBlockVariants(key)),
@@ -333,7 +328,7 @@ export default async function QuoteEditorPage({
               <>
                 {" · "}
                 <a href={`/admin/requests/${quote.sourceRequestId}`} className="text-accent hover:underline">
-                  Ver pedido de origen
+                  Pedido #{requestShortId(quote.sourceRequestId)}
                 </a>
               </>
             ) : null}
@@ -341,24 +336,25 @@ export default async function QuoteEditorPage({
         }
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {quote.sourceRequestId ? (
-              <Badge tone="accent">Importada del pedido #{requestShortId(quote.sourceRequestId)}</Badge>
-            ) : null}
-            <Badge tone={issued ? "success" : quote.status === "IN_REVIEW" ? "warning" : "muted"}>
-              {QUOTE_STATUS_LABEL[quote.status] ?? quote.status}
+            <Badge tone={issued ? (quote.pdfOutdated ? "warning" : "success") : quote.status === "IN_REVIEW" ? "warning" : "muted"}>
+              {quoteStatusLabel(quote.status, quote.pdfOutdated)}
             </Badge>
             <ButtonLink href={`/api/admin/quotes/${quote.id}/preview-pdf`} target="_blank" size="sm" variant="outline">
-              Vista PDF
+              Ver cómo queda el PDF
             </ButtonLink>
             {canEdit ? <QuoteFocusToggle /> : null}
           </div>
         }
       />
       <QuoteWizardNav quoteId={quote.id} step={step} />
-      {issued ? (
-        <div className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-2.5 text-sm">
-          Esta cotización ya fue emitida. Podés seguir editándola, pero el PDF que tiene el cliente
-          es el de la emisión: volvé a emitirla para regenerarlo.
+      {issued && quote.pdfOutdated ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-2.5 text-sm">
+          <span>Cambiaste la cotización después de generar el PDF: el que tiene el cliente es el anterior.</span>
+          <QuoteIssueBar quoteId={quote.id} canIssue={canIssue} status={quote.status} pdfOutdated missing={issueCheck.errors} />
+        </div>
+      ) : issued ? (
+        <div className="rounded-lg border border-border bg-secondary/30 px-4 py-2.5 text-sm text-muted-foreground">
+          PDF generado: ya está listo para el cliente. Podés seguir editándola; si cambiás algo, te ofrecemos volver a generar el PDF.
         </div>
       ) : null}
       <QuoteMediaRail quoteId={quote.id} planCount={plans.length} imageCount={extraImages.length} />
@@ -431,7 +427,18 @@ export default async function QuoteEditorPage({
                 <Label htmlFor="clientName">Cliente escrito a mano (si no está dado de alta)</Label>
                 <Input id="clientName" name="clientName" defaultValue={quote.clientName || ""} placeholder="Ej. Hotel Alvear" />
               </div>
-              <div className="sm:col-span-2">
+              <div>
+                <Label htmlFor="profileKey">Tipo de documento</Label>
+                <Select id="profileKey" name="profileKey" defaultValue={quote.contentProfile?.key || ""}>
+                  {documentTypes.map((t) => (
+                    <option key={t.key} value={t.key}>
+                      {t.name}
+                    </option>
+                  ))}
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">Cambiarlo prende o apaga las secciones del PDF según ese tipo.</p>
+              </div>
+              <div>
                 <Label htmlFor="audience">A quién va</Label>
                 <Select id="audience" name="audience" defaultValue={quote.audience || ""}>
                   <option value="">Sin rubro (textos generales)</option>
@@ -467,6 +474,10 @@ export default async function QuoteEditorPage({
                   <input type="checkbox" name="showDeliveryColumn" defaultChecked={quote.showDeliveryColumn} />
                   Columna entrega
                 </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" name="showProductPhotos" defaultChecked={quote.showProductPhotos} />
+                  Mostrar las fotos de los productos en el PDF
+                </label>
               </div>
               {canEdit ? (
                 <Button type="submit" size="sm">
@@ -477,7 +488,7 @@ export default async function QuoteEditorPage({
           ) : null}
           {step === 1 && prevTerms?.terms ? (
             <p className="rounded-md border border-border bg-card p-3 text-sm text-muted-foreground">
-              Este cliente ya tuvo condiciones propias. En Emitir podés elegir “las que este cliente usó antes”.
+              Este cliente ya tuvo condiciones propias. En el paso «Condiciones y PDF» podés elegir «las que este cliente usó antes».
             </p>
           ) : null}
 
@@ -485,7 +496,7 @@ export default async function QuoteEditorPage({
             <Card>
               <CardContent className="space-y-5 p-5">
                 <p className="text-sm text-muted-foreground">
-                  Prompt + planos. La IA arma un borrador editable. No toca módulos fijos ni inventa precios.
+                  Contá qué necesita el cliente y, si querés, subí planos. Con «Generar propuesta» la IA sugiere equipos y redacta la propuesta: todo queda editable, no toca los textos fijos ni inventa precios.
                 </p>
                 <form action={saveQuoteMeta} className="space-y-2" data-tour="quote-brief">
                   <input type="hidden" name="quoteId" value={quote.id} />
@@ -499,8 +510,7 @@ export default async function QuoteEditorPage({
                   ) : null}
                 </form>
                 <QuotePlanUpload quoteId={quote.id} plans={plans} />
-                {/* Emitida: no se regenera (la acción también lo rechaza). */}
-                {canEdit && !issued ? (
+                {canEdit ? (
                   <div data-tour="quote-generate">
                     <GenerateProposalButton quoteId={quote.id} auto={autogen} briefFieldId="brief" />
                   </div>
@@ -807,9 +817,9 @@ export default async function QuoteEditorPage({
               </Card>
               <Card>
                 <CardContent className="space-y-3 p-5">
-                  <h2 className="heading-3">Checklist para emitir</h2>
+                  <h2 className="heading-3">Antes de generar el PDF</h2>
                   {issueCheck.errors.length === 0 && issueCheck.warnings.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Lista para emitir.</p>
+                    <p className="text-sm text-muted-foreground">Todo listo para generar el PDF.</p>
                   ) : null}
                   {issueCheck.errors.map((e) => (
                     <p key={e} className="text-sm text-destructive">
@@ -838,16 +848,13 @@ export default async function QuoteEditorPage({
                 </CardContent>
               </Card>
               <div className="flex flex-wrap gap-2">
-                <ButtonLink href={`/api/admin/quotes/${quote.id}/preview-pdf`} target="_blank" size="sm">
-                  Vista PDF
-                </ButtonLink>
                 <ButtonLink href={`/api/admin/quotes/${quote.id}/word`} size="sm" variant="outline">
-                  Word
+                  Descargar en Word
                 </ButtonLink>
                 <ButtonLink href={`/api/admin/quotes/${quote.id}/excel`} size="sm" variant="outline">
-                  Excel
+                  Descargar planilla Excel
                 </ButtonLink>
-                <QuoteIssueBar quoteId={quote.id} canIssue={canIssue} issued={!canEdit} />
+                <QuoteIssueBar quoteId={quote.id} canIssue={canIssue} status={quote.status} pdfOutdated={quote.pdfOutdated} missing={issueCheck.errors} />
               </div>
             </div>
           ) : null}

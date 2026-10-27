@@ -12,7 +12,7 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
   subtitle: "Recorrido guiado por la operación diaria",
   welcomeTitle: "Te damos la bienvenida al panel Soundtec",
   welcomeBody:
-    "Este tutorial te acompaña módulo por módulo: clientes, precios, catálogo, pedidos y cotizaciones. En cada paso te mostramos qué clickear; el salto entre pantallas lo hacés vos. Importante: es solo un paseo — no uses Guardar, Enviar, Emitir ni Crear. Si solo mirás y navegás, no se guarda nada.",
+    "Este tutorial te acompaña módulo por módulo: clientes, precios, catálogo, pedidos y cotizaciones. En cada paso te mostramos qué clickear; el salto entre pantallas lo hacés vos. Importante: es solo un paseo — no uses Guardar, Enviar, Generar el PDF ni Crear. Si solo mirás y navegás, no se guarda nada.",
   steps: [
     {
       id: "admin-menu",
@@ -140,7 +140,7 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       body: "Vamos al catálogo. En el menú, grupo Productos → «Productos».",
       requirePath: "/admin/products",
       autoAdvanceOnRoute: true,
-      tip: "Durante el tutorial: mirá y navegá. No uses Guardar, Enviar, Emitir ni Crear.",
+      tip: "Durante el tutorial: mirá y navegá. No uses Guardar, Enviar, Generar el PDF ni Crear.",
     },
     {
       id: "products-list",
@@ -531,16 +531,16 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       body: "Operación → «Cotizaciones».",
       requirePath: "/admin/quotes",
       autoAdvanceOnRoute: true,
-      tip: "No emitas ni guardes cotizaciones durante el tutorial.",
+      tip: "No generes el PDF ni guardes cotizaciones durante el tutorial.",
     },
     {
       id: "quotes-list",
       route: "/admin/quotes",
       target: "page-header",
       title: "Lista de cotizaciones",
-      body: "Propuestas formales con diseño Soundtec: ítems, textos, PDF y emisión.",
+      body: "Propuestas formales con diseño Soundtec: ítems, textos y PDF para el cliente.",
       bullets: [
-        "Estados: Borrador, En revisión, Lista, Emitida, Reemplazada, Archivada.",
+        "Estados: Borrador, En revisión, Lista, PDF generado, Reemplazada, Archivada.",
         "«Nueva cotización»: flujo completo por pasos.",
         "«Cotización rápida»: una sola pantalla para listas cortas.",
         "Memoria histórica: base de cotizaciones viejas para reusar criterio.",
@@ -551,7 +551,7 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       route: "/admin/quotes",
       target: "quotes-open-row",
       title: "Abrí una cotización existente",
-      body: "Tu turno: entrá a Editar en cualquier fila. Vamos a recorrer el asistente paso a paso sin emitir.",
+      body: "Tu turno: entrá a Editar en cualquier fila. Vamos a recorrer el asistente paso a paso sin generar el PDF.",
       requirePath: "/admin/quotes",
       requirePathMode: "child",
       requirePathExclude: ["new", "quick", "history"],
@@ -561,22 +561,22 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       id: "quote-wizard",
       route: "/admin/quotes",
       target: "quote-wizard",
-      title: "Asistente en 7 pasos",
-      body: "La barra superior es el mapa: Encabezado → Brief → Módulos → Productos → Textos con IA → Imágenes → Emitir. Podés saltar entre pasos sin perder el borrador… pero en el tutorial no guardes de más.",
+      title: "Asistente en 6 pasos",
+      body: "La barra superior es el mapa: Cliente → Qué necesita → Textos del documento → Productos y precios → Fotos → Condiciones y PDF. Podés saltar entre pasos sin perder el borrador… pero en el tutorial no guardes de más.",
     },
     {
       id: "quote-header",
       route: "/admin/quotes",
       target: "quote-header",
-      title: "Paso Encabezado",
-      body: "Cliente, contacto, proyecto, clasificación interna y datos de cabecera del PDF. Sin cliente no se puede emitir al final.",
+      title: "Paso Cliente",
+      body: "Cliente, contacto, proyecto, clasificación interna y datos de cabecera del PDF. Sin cliente no se puede generar el PDF al final.",
       tip: "Si vino desde un pedido, vas a ver el vínculo al pedido de origen.",
     },
     {
       id: "quote-brief",
       route: "/admin/quotes",
       target: "quote-brief",
-      title: "Brief y generación",
+      title: "Qué necesita",
       body: "Acá contás qué hay que cotizar y podés subir planos/fotos. La IA usa este brief para proponer módulos, productos y textos.",
       tip: "Generar con IA no «rompe» nada solo, pero puede reescribir contenido: en el tutorial no dispares generadores.",
     },
@@ -612,10 +612,10 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       id: "quote-issue",
       route: "/admin/quotes",
       target: "quote-issue",
-      title: "Emitir (no lo hagas en el tutorial)",
-      body: "Checklist final, condiciones, enviar a revisión o emitir COT, y descargas PDF/Word/Excel. Emitir deja la cotización formal para el cliente.",
-      affects: "Una vez emitida, el documento queda registrado y puede adjuntarse a un pedido.",
-      tip: "No pulses Emitir ni Enviar a revisión en el paseo.",
+      title: "Condiciones y PDF (no lo generes en el tutorial)",
+      body: "Checklist final, condiciones, enviar a revisión o generar el PDF para el cliente, y descargas PDF/Word/Excel. Generar el PDF deja la cotización lista para el cliente, pero sigue siendo editable.",
+      affects: "Una vez generado el PDF, el documento queda registrado y puede adjuntarse a un pedido. Si después cambiás algo, queda «PDF desactualizado» y podés volver a generarlo.",
+      tip: "No pulses Generar el PDF ni Enviar a revisión en el paseo.",
     },
     {
       id: "quotes-back-list",
@@ -662,7 +662,7 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       route: "/admin/quotes/new",
       target: "quote-new-type",
       title: "Alta: tipo de documento",
-      body: "Extensión (resumido / técnico / premium) y diseño del PDF. Después seguís en el asistente de 7 pasos.",
+      body: "Extensión (Corto / Estándar / Completo) y diseño del PDF. Después seguís en el asistente de 6 pasos.",
     },
     {
       id: "quotes-back-for-quick",
@@ -681,7 +681,7 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       route: "/admin/quotes",
       target: "quotes-quick-btn",
       title: "Cotización rápida de cero",
-      body: "En el listado, tocá «Cotización rápida». Es el atajo: cliente, referencia, plantilla, ítems y emitir/guardar en una pantalla.",
+      body: "En el listado, tocá «Cotización rápida». Es el atajo: cliente, referencia, plantilla, ítems y generar el PDF o guardar en una pantalla.",
       requirePath: "/admin/quotes/quick",
       requirePathMode: "exact",
       autoAdvanceOnRoute: true,
@@ -692,11 +692,11 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       route: "/admin/quotes/quick",
       target: "quote-quick-form",
       title: "Formulario rápido",
-      body: "Ideal para una lista corta. Podés guardar borrador o crear y emitir PDF, e incluso adjuntarlo a un pedido abierto.",
+      body: "Ideal para una lista corta. Podés guardar borrador o crear y generar el PDF, e incluso adjuntarlo a un pedido abierto.",
       bullets: [
         "Cliente + referencia + validez + plantilla.",
         "Buscar productos o pegar SKUs.",
-        "No uses Guardar / Emitir en el tutorial.",
+        "No uses Guardar / Generar el PDF en el tutorial.",
       ],
     },
 
@@ -973,7 +973,7 @@ export function tourForUser(surface: "admin" | "portal", access?: OnboardingAcce
   return {
     ...base,
     welcomeBody:
-      "Este tutorial te muestra las pantallas que usa tu rol: clientes, pedidos, cotizaciones y el catálogo. En cada paso te mostramos qué clickear; el salto entre pantallas lo hacés vos. Es solo un paseo: no uses Guardar, Enviar, Emitir ni Crear.",
+      "Este tutorial te muestra las pantallas que usa tu rol: clientes, pedidos, cotizaciones y el catálogo. En cada paso te mostramos qué clickear; el salto entre pantallas lo hacés vos. Es solo un paseo: no uses Guardar, Enviar, Generar el PDF ni Crear.",
     steps,
   };
 }

@@ -3,7 +3,7 @@
 import { Prisma, QuoteNodeSource } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { loadQuoteForUser } from "@/lib/quote-access";
+import { loadQuoteForUser, loadQuoteForEdit } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { readAiSuggestions, spacesWithoutSuggestion } from "@/lib/quote-ai-suggestions";
 import { addProductToQuote } from "@/server/actions/quotes";
@@ -20,13 +20,10 @@ export async function approveQuoteSuggestion(input: {
   quoteId: string;
   key: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const loaded = await loadQuoteForUser(input.quoteId);
+  const loaded = await loadQuoteForEdit(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Cotización no encontrada." };
   if (!loaded.permissions.fullAccess && !permissionsHave(loaded.permissions, "quotes.edit")) {
     return { ok: false, error: "Sin permiso de edición." };
-  }
-  if (loaded.quote.status === "ISSUED") {
-    return { ok: false, error: "Una COT emitida no se edita." };
   }
 
   const [ctx, items, alternatives] = await Promise.all([
@@ -89,9 +86,6 @@ export async function dismissQuoteSuggestion(input: {
   if (!loaded.quote) return { ok: false, error: "Cotización no encontrada." };
   if (!loaded.permissions.fullAccess && !permissionsHave(loaded.permissions, "quotes.edit")) {
     return { ok: false, error: "Sin permiso de edición." };
-  }
-  if (loaded.quote.status === "ISSUED") {
-    return { ok: false, error: "Una COT emitida no se edita." };
   }
 
   const ctx = await prisma.quoteContext.findUnique({ where: { quoteId: input.quoteId } });

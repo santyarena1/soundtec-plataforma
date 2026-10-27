@@ -3,7 +3,7 @@
 import { isBlobConfigured, uploadFile } from "@/lib/blob-storage";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
+import { loadQuoteForUser, requireQuotePermission, loadQuoteForEdit } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { quoteIssueCheck } from "@/lib/quote-issue";
 import { revalidatePath } from "next/cache";
@@ -54,13 +54,16 @@ export async function issueQuote(formData: FormData): Promise<{ ok: boolean; err
   }
 
   // La fecha de emisión se guarda antes de armar el PDF: el documento lleva la misma fecha que la base.
-  const previous = { status: loaded.quote.status, issuedAt: loaded.quote.issuedAt, issuedById: loaded.quote.issuedById };
+  const previous = { status: loaded.quote.status, issuedAt: loaded.quote.issuedAt, issuedById: loaded.quote.issuedById, pdfOutdated: loaded.quote.pdfOutdated };
+  // Volver a emitir una emitida regenera el PDF con el mismo número y los cambios hechos.
+  const reissue = loaded.quote.status === "ISSUED";
   await prisma.quote.update({
     where: { id },
     data: {
       status: "ISSUED",
       issuedAt: new Date(),
       issuedById: loaded.user.id,
+      pdfOutdated: false,
       ...(xlsxBlobUrl ? { xlsxBlobUrl } : {}),
     },
   });
@@ -76,7 +79,7 @@ export async function issueQuote(formData: FormData): Promise<{ ok: boolean; err
     data: {
       quoteId: id,
       actorId: loaded.user.id,
-      summary: `Emisión ${loaded.quote.number}`,
+      summary: reissue ? `PDF regenerado ${loaded.quote.number}` : `Emisión ${loaded.quote.number}`,
       snapshot,
     },
   });
@@ -145,7 +148,7 @@ export async function addServiceToQuote(formData: FormData): Promise<void> {
   const qty = Number(formData.get("quantity") || "1") || 1;
   const unitPrice = Number(formData.get("unitPriceUsd") || "0") || 0;
   if (!description) return;
-  const loaded = await loadQuoteForUser(quoteId);
+  const loaded = await loadQuoteForEdit(quoteId);
   if (!loaded.quote) return;
   // El servicio usaba 21 fijo e ignoraba el IVA configurado.
   const serviceIva = Number(await getSetting(QUOTE_SETTING_KEYS.defaultIva, "21")) || 21;

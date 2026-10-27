@@ -5,13 +5,16 @@ import { pickProduct } from "./picker";
 
 test.use({ storageState: AUTH_FILES.admin });
 
-test("borrador desde la rápida → condiciones editadas se guardan y la COT se puede emitir con cliente escrito a mano", async ({ page }) => {
+test("borrador desde la rápida → condiciones editadas se guardan y se puede generar el PDF con cliente escrito a mano", async ({ page }) => {
+  test.setTimeout(420_000);
   await page.goto("/admin/quotes/quick", { waitUntil: "networkidle" });
   await page.getByPlaceholder("Ej. Hotel Alvear").fill("Cliente E2E sin alta");
   await pickProduct(page, FIXTURES.withIncluded.sku);
-  await page.getByRole("button", { name: "Guardar como borrador y abrir el editor" }).click();
-  await page.waitForURL(/\/admin\/quotes\/[^/?]+\?paso=4/, { timeout: 120_000 });
-  const quoteUrl = page.url().split("?")[0]!;
+  // Guardar la rápida deja en la rápida (?editar=id); el editor completo se abre aparte.
+  await page.getByRole("button", { name: "Guardar", exact: true }).click();
+  await page.waitForURL(/\/admin\/quotes\/quick\?editar=/, { timeout: 120_000 });
+  const quoteUrl = `/admin/quotes/${new URL(page.url()).searchParams.get("editar")}`;
+  await page.goto(`${quoteUrl}?paso=4`, { waitUntil: "networkidle" });
 
   // El incluido figura «sin cargo» y no dispara el aviso de fila sin precio.
   await expect(page.getByText("Incluido sin cargo").first()).toBeVisible();
@@ -28,6 +31,7 @@ test("borrador desde la rápida → condiciones editadas se guardan y la COT se 
   await expect(page.locator("#validityDays")).toHaveValue("12");
   await expect(page.locator("#termsSource")).toHaveValue("CUSTOM");
 
-  // Con el cliente escrito a mano ya no aparece «Falta asignar cliente».
+  // Con el cliente escrito a mano ya no aparece «Falta asignar cliente», y el botón queda habilitado.
   await expect(page.getByText(/Falta asignar cliente|Falta el cliente/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Generar el PDF para el cliente" })).toBeEnabled();
 });

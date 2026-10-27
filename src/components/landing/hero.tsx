@@ -132,7 +132,7 @@ function PortalMockup() {
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success/15 text-success">
             <Check className="h-3 w-3" />
           </span>
-          Cotización COT-2041 emitida
+          Cotización COT-2041 · PDF generado
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">PDF listo · precios de tu cuenta</p>
       </div>

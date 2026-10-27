@@ -129,7 +129,7 @@ export const PERMISSION_GROUPS: Array<{
       { scope: "quotes.create", label: "Crear cotizaciones" },
       { scope: "quotes.edit", label: "Editar cotizaciones" },
       { scope: "quotes.submit_review", label: "Enviar a revisión", help: "Para quien no puede emitir: un admin revisa y emite." },
-      { scope: "quotes.issue", label: "Emitir el PDF oficial sin revisión" },
+      { scope: "quotes.issue", label: "Generar el PDF para el cliente sin revisión" },
       { scope: "quotes.approve", label: "Aprobar cotizaciones de otros" },
       { scope: "quotes.manage_library", label: "Biblioteca, numeración y perfiles" },
     ],

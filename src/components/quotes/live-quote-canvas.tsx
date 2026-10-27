@@ -787,7 +787,7 @@ export function LiveQuoteCanvas({
                   );
                 })}
 
-                <ModuleChrome label="Firma" hint="Sale del perfil de quien emite">
+                <ModuleChrome label="Firma" hint="Sale del perfil de quien la arma">
                   <div className="quote-doc__keep">
                     <p className="font-semibold">{signature.name}</p>
                     {signature.title ? <p className="text-[10pt]">{signature.title}</p> : null}

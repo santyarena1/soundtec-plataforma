@@ -16,6 +16,8 @@ export type QuickItem = {
   discountPercent: number;
   note: string;
   included: boolean;
+  /** Ítem libre: escrito a mano, sin producto del catálogo. */
+  free?: boolean;
   /** Descripción corta debajo del modelo. */
   subtitle?: string | null;
   /** IVA de la ficha; null = el IVA por defecto de cotizaciones. */
@@ -62,7 +64,7 @@ export function QuickQuoteItems({
   const iva = [...ivaByRate.values()].reduce((a, b) => a + b, 0);
 
   if (!items.length)
-    return <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">Agregá productos para empezar.</p>;
+    return <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">Buscá productos o agregá un ítem libre para empezar.</p>;
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-md border">
@@ -82,8 +84,19 @@ export function QuickQuoteItems({
             {items.map((item) => (
               <tr key={item.uid} className={`border-t ${item.parentUid ? "bg-secondary/30" : ""}`}>
                 <td className={`p-2 ${item.parentUid ? "pl-6" : ""}`}>
-                  <p className="font-medium">{item.name}</p>
+                  {item.free ? (
+                    <Input
+                      value={item.name}
+                      onChange={(e) => update(item.uid, { name: e.target.value })}
+                      placeholder="Qué es (ej. Mano de obra de instalación, Cable por metro)"
+                      aria-label="Descripción del ítem libre"
+                      className="min-w-[16rem]"
+                    />
+                  ) : (
+                    <p className="font-medium">{item.name}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">
+                    {item.free ? "Ítem libre · " : ""}
                     {[tangoCode(item.sku) ? `Tango ${tangoCode(item.sku)}` : null, item.included ? "Incluido sin cargo" : item.subtitle].filter(Boolean).join(" · ")}
                     {item.parentUid ? ` · ${item.perParent ?? 1} por unidad` : ""}
                   </p>

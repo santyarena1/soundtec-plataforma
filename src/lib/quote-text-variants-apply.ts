@@ -16,17 +16,21 @@ export async function applyTextVariantsToQuote(quoteId: string): Promise<{ chang
     select: {
       status: true,
       audience: true,
-      contentProfile: { select: { key: true } },
+      contentProfile: { select: { key: true, baseKey: true, audience: true } },
       sections: { select: { id: true, type: true, body: true, source: true, variantSlug: true } },
     },
   });
-  if (!quote || quote.status === "ISSUED") return { changed: 0 };
+  if (!quote) return { changed: 0 };
 
   const targets = quote.sections.filter((s) => isVariantBlockKey(s.type) && s.source === "TEMPLATE");
   if (!targets.length) return { changed: 0 };
 
   const [variants, bodies] = await Promise.all([listAllBlockVariants(), resolveQuoteModuleBodies()]);
-  const ctx = { profileKey: quote.contentProfile?.key ?? null, audience: quote.audience ?? null };
+  // Un tipo propio («Compacto escolar») usa las versiones de su tipo base y, si la cotización no dice a quién va, su rubro.
+  const ctx = {
+    profileKey: quote.contentProfile?.baseKey ?? quote.contentProfile?.key ?? null,
+    audience: quote.audience ?? quote.contentProfile?.audience ?? null,
+  };
   let changed = 0;
   for (const section of targets) {
     const chosen = pickTextVariant(variants[section.type] ?? [], ctx);

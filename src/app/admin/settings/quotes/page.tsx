@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { DocumentTypesManager } from "./document-types-manager";
+import { listDocumentTypes } from "@/lib/quote-document-types";
+import { QUOTE_AUDIENCES } from "@/lib/quote-audiences";
 import { requireQuotePermission } from "@/lib/quote-access";
 import { permissionsHave } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -107,13 +110,14 @@ export default async function SettingsQuotesPage() {
   const values = Object.fromEntries(await Promise.all(keys.map(async ([key, fallback]) => [key, await getSetting(key, fallback)] as const))) as Record<string, string>;
   const v = (key: string) => values[key] ?? "";
 
-  const [brands, blocksCount] = await Promise.all([
+  const [brands, blocksCount, documentTypes] = await Promise.all([
     prisma.brand.findMany({
       where: { products: { some: { isActive: true } } },
       orderBy: { name: "asc" },
       select: { id: true, name: true, logoUrl: true, _count: { select: { products: true } } },
     }),
     prisma.quoteBlock.count({ where: { isActive: true } }),
+    listDocumentTypes(),
   ]);
   const withoutLogo = brands.filter((b) => !b.logoUrl);
 
@@ -133,6 +137,17 @@ export default async function SettingsQuotesPage() {
           ))}
         </div>
       </SettingsBatchForm>
+      <section className="space-y-2 rounded-xl border border-border bg-card p-5">
+        <h2 className="text-base font-semibold">Tipos de documento propios</h2>
+        <p className="text-sm text-muted-foreground">
+          Variantes de Corto, Estándar o Completo con nombre propio (ej. «Compacto escolar», «Completo hotelería»): eligen qué secciones van y para qué rubro salen los textos. Se eligen al crear cualquier cotización, también la rápida, y se pueden cambiar después.
+        </p>
+        <DocumentTypesManager
+          types={documentTypes}
+          modules={QUOTE_MODULES.filter((m) => m.kind !== "table").map((m) => ({ key: m.key, title: m.title, kind: m.kind, defaultOn: [...m.defaultOn] }))}
+          audiences={QUOTE_AUDIENCES.map((a) => ({ key: a.key, label: a.label }))}
+        />
+      </section>
 
       <SettingsBatchForm title="¿Cómo se muestra el IVA?" description="Cómo aparecen los precios en el documento que recibe el cliente.">
         <div className="grid gap-3 sm:col-span-2 lg:grid-cols-3">
@@ -158,7 +173,7 @@ export default async function SettingsQuotesPage() {
             </label>
           </div>
         </Field>
-        <Field label="Plazo que se pone solo en cada producto" hint="Ej.: «Inmediata» o «15 días». Si lo dejás vacío, hay que cargarlo a mano (y con la columna visible no se puede emitir sin completarlo).">
+        <Field label="Plazo que se pone solo en cada producto" hint="Ej.: «Inmediata» o «15 días». Si lo dejás vacío, hay que cargarlo a mano (si no, sale el plazo general de las condiciones).">
           <Input name={name(K.defaultDelivery)} defaultValue={v(K.defaultDelivery)} placeholder="Ej. Inmediata" />
         </Field>
         <Field label="Unidad que se pone sola" hint="«u» = unidad. Otros ejemplos: «m» (metros), «hs» (horas), «global».">

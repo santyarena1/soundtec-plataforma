@@ -1163,6 +1163,12 @@ model QuoteContentProfile {
   name        String
   description String?
   sectionKeys Json
+  /// Tipo base (resumido | tecnico | premium) de un tipo creado por el usuario: define qué versión de los textos le toca.
+  baseKey     String?
+  /// Rubro al que apunta (lib/quote-audiences): las cotizaciones de este tipo lo toman si no tienen otro.
+  audience    String?
+  isCustom    Boolean  @default(false)
+  isActive    Boolean  @default(true)
   isDefault   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1291,6 +1297,12 @@ model Quote {
   issuedById          String?
   issuedBy            User?                @relation("QuoteIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
   pdfBlobUrl          String?
+  /// Se editó después de emitir: el PDF guardado no refleja los cambios hasta volver a generarlo.
+  pdfOutdated         Boolean              @default(false)
+  /// Hecha con la cotización rápida: se edita en esa pantalla, sin los textos del editor completo.
+  isQuick             Boolean              @default(false)
+  /// Fotos de los productos en la planilla del PDF (se puede apagar por cotización).
+  showProductPhotos   Boolean              @default(true)
   docxBlobUrl         String?
   xlsxBlobUrl         String?
   supersededById      String?
@@ -1356,6 +1368,9 @@ model QuoteItemGroup {
 model QuoteItem {
   id                String            @id @default(cuid())
   quoteId           String
+  /// Línea «incluida sin cargo» de otro producto de la planilla: sigue su cantidad y se borra con él.
+  includedWithId    String?
+  includedPerUnit   Int?
   quote             Quote             @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   groupId           String?
   group             QuoteItemGroup?   @relation(fields: [groupId], references: [id], onDelete: SetNull)

@@ -8,8 +8,11 @@ export function quoteIssueCheck(quote: QuoteForIssue) {
   if (!quote.clientId && !quote.clientName?.trim()) errors.push("Falta el cliente: elegilo o escribí su nombre.");
   if (quote.items.length === 0) errors.push("No hay ítems en la planilla.");
   if (quote.items.some((i) => !i.excluded && !(Number(i.quantity) > 0))) errors.push("Hay cantidades en cero o negativas.");
-  if (quote.showDeliveryColumn && quote.items.some((i) => !i.deliveryKey && !i.excluded && !i.optional)) {
-    errors.push("Falta completar entrega en filas no opcionales.");
+  // Una fila sin plazo propio usa el plazo general de las condiciones (también en el PDF):
+  // antes había que completarlo fila por fila y bloqueaba sin decir dónde.
+  const rowsWithoutDelivery = quote.showDeliveryColumn && quote.items.some((i) => !i.deliveryKey && !i.excluded && !i.optional);
+  if (rowsWithoutDelivery && !quote.terms?.deliveryText?.trim()) {
+    errors.push("Falta el plazo de entrega: cargalo en Condiciones (vale para todas las filas).");
   }
   const placeholders = quote.sections.filter((s) => s.included && /\[a confirmar\]|TODO|lorem/i.test(s.body));
   if (placeholders.length) warnings.push("Hay textos con placeholder ([a confirmar]).");

@@ -32,7 +32,7 @@ export async function StaffHome({ user, permissions }: { user: CurrentUser; perm
 
   const stats = [
     can("quotes.view_own") && { label: "Cotizaciones abiertas", value: quotesOpen, href: "/admin/quotes" },
-    can("quotes.view_own") && { label: "Cotizaciones emitidas", value: quotesIssued, href: "/admin/quotes" },
+    can("quotes.view_own") && { label: "Cotizaciones con PDF generado", value: quotesIssued, href: "/admin/quotes" },
     (can("clients.view") || can("clients.view_all")) && { label: "Mis clientes", value: myClients, href: "/admin/clients" },
     can("requests.view") && { label: "Pedidos a responder", value: requestsToAnswer, href: "/admin/requests" },
     can("account_requests.create") && { label: "Altas esperando aprobación", value: myAltas, href: "/admin/account-requests" },

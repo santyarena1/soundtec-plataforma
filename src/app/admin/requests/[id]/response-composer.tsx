@@ -39,7 +39,8 @@ export function ResponseComposer({ requestId, currentStatus, savedResponse, stor
   const router = useRouter();
 
   const trimmed = text.trim();
-  const dirty = trimmed !== savedResponse.trim() || status !== currentStatus;
+  // El estado arranca en el siguiente sugerido: eso solo no es un cambio del usuario.
+  const dirty = trimmed !== savedResponse.trim() || status !== suggestedNextStatus(currentStatus);
   const needsConfirm = status === "REJECTED" || status === "CLOSED";
 
   function runAi() {

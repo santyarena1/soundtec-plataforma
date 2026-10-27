@@ -26,7 +26,7 @@ export function QuoteMediaRail({
         className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-secondary"
       >
         <FileImage className="h-4 w-4 text-[#1e3553]" />
-        <span className="font-medium">Imágenes</span>
+        <span className="font-medium">Fotos</span>
         <span className="tabular-nums text-muted-foreground">{imageCount}</span>
       </Link>
       <span className="ml-auto text-xs text-muted-foreground">Siempre visibles: no están escondidos en otro paso.</span>

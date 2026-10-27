@@ -202,7 +202,7 @@ function TourOverlay({
         ) : null}
         {missing ? (
           <p className="mt-2 text-xs text-amber-700">
-            Este control no está visible ahora (puede faltar un permiso, estar en otro paso o la COT emitida).
+            Este control no está visible ahora (puede faltar un permiso, estar en otro paso o la COT ya con PDF generado).
           </p>
         ) : null}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">

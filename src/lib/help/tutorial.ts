@@ -26,12 +26,12 @@ export const TUTORIAL_SIMPLE: TutorialArticle[] = [
         title: "Pasos",
         body: [
           "1. Nueva cotización: tipo, escala y un prompt si querés.",
-          "2. Datos: cliente, referencia, contacto.",
-          "3. Brief y planos: generar propuesta con IA (opcional).",
-          "4. Plantilla: qué módulos van. Podés agregar módulos extra.",
-          "5. Planilla: productos. Si es una casa, un ambiente por zona.",
-          "6. Textos e imágenes: retocás en el documento.",
-          "7. Emitir o adjuntar PDF a el pedido.",
+          "2. Cliente: cliente, referencia, contacto.",
+          "3. Qué necesita: generar propuesta con IA (opcional).",
+          "4. Textos del documento: qué módulos van. Podés agregar módulos extra.",
+          "5. Productos y precios: Si es una casa, un ambiente por zona.",
+          "6. Fotos: retocás en el documento.",
+          "7. Condiciones y PDF: generás el PDF para el cliente o lo adjuntás al pedido.",
         ],
       },
     ],
@@ -136,7 +136,7 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
         title: "Operación diaria",
         body: [
           "Pedidos: el cliente pide; el equipo responde y puede adjuntar un PDF de COT.",
-          "Cotizaciones: el editor interno. Acá se escribe, se genera IA y se emite.",
+          "Cotizaciones: el editor interno. Acá se escribe, se genera IA y se genera el PDF para el cliente.",
           "Nueva cotización: alta. Reserva número y deja la plantilla lista.",
           "Tickets al dev: fallas o pedidos técnicos. También se abre desde Ayuda en cualquier pantalla.",
         ],
@@ -193,22 +193,22 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
   },
   {
     id: "wizard",
-    title: "Los 7 pasos del editor",
-    summary: "Qué hay en cada paso, qué se edita y qué queda bloqueado.",
+    title: "Los 6 pasos del editor",
+    summary: "Qué hay en cada paso, qué se edita y qué pasa cuando ya generaste el PDF.",
     blocks: [
       {
-        title: "1. Datos",
+        title: "1. Cliente",
         body: [
           "Clasificación interna (arriba).",
-          "Cliente: hace falta para emitir. Sin cliente podés trabajar el borrador.",
+          "Cliente: hace falta para generar el PDF. Sin cliente podés trabajar el borrador.",
           "Contacto y referencia: salen en la carta.",
           "Layout visual (Compacto / Estándar / Editorial): se guarda; hoy el documento usa el mismo diseño A4.",
           "Columna entrega y alternativas: opciones de esta COT.",
-          "Editable hasta emitir. Emitida: solo lectura.",
+          "Editable siempre, aunque ya tenga el PDF generado. Si cambiás algo, queda marcada «PDF desactualizado».",
         ],
       },
       {
-        title: "2. Brief y planos",
+        title: "2. Qué necesita",
         body: [
           "Brief / prompt: el problema a resolver. La IA lo usa para propuesta y para inferir clasificadores si el texto nombra «mediana», «videoconferencia», etc.",
           "Planos: PDF o fotos. La IA puede leerlos al generar.",
@@ -217,17 +217,18 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
         ],
       },
       {
-        title: "3. Plantilla",
+        title: "3. Textos del documento",
         body: [
           "Incluido / No va: apaga un módulo de ESTA cotización.",
           "La planilla de productos siempre va.",
           "Agregar módulo: título + cuerpo a mano o con prompt. Opcional: guardar como borrador para otras COT (no entra solo).",
           "En el documento: clickeá y escribí. Pills «Texto fijo» vs «IA» vs «Módulo extra».",
           "Fotos del módulo: subir, Serper o generar. Layout: izquierda, derecha, arriba, abajo, dos en fila.",
+          "Módulos de proyecto: fijar evita que «Generar propuesta» los pise.",
         ],
       },
       {
-        title: "4. Planilla",
+        title: "4. Productos",
         body: [
           "Productos del catálogo y servicios a mano.",
           "Nombre en negrita + descripción corta del producto. Regenerar descripción la guarda en el catálogo.",
@@ -238,14 +239,7 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
         ],
       },
       {
-        title: "5. Textos",
-        body: [
-          "Módulos de proyecto. Fijar evita que «Generar propuesta» los pise.",
-          "Seguí editando en el documento de la derecha.",
-        ],
-      },
-      {
-        title: "6. Imágenes",
+        title: "5. Imágenes",
         body: [
           "Foto de producto: catálogo, Serper o archivo. Es de ESTA COT.",
           "Aplicación / esquemas: galería suelta al final del documento. Las fotos de un módulo extra no se duplican acá.",
@@ -253,11 +247,11 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
         ],
       },
       {
-        title: "7. Emitir",
+        title: "6. Condiciones y PDF",
         body: [
           "Condiciones: del sistema, las del cliente anterior, o nuevas para esta COT.",
-          "Emitir congela la COT. Para cambiar, no se edita la emitida: se trabaja otra versión.",
-          "Al emitir se genera un PDF snapshot.",
+          "Generar el PDF para el cliente: deja la cotización lista para descargar o enviar. Sigue siendo editable después.",
+          "Si cambiás algo tras generar el PDF, la COT queda «PDF desactualizado» y podés volver a generarlo.",
         ],
       },
     ],
@@ -334,7 +328,7 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
       {
         title: "Adjuntar",
         body: [
-          "En el pedido: Adjuntar PDF como respuesta. Se genera un snapshot en ese momento.",
+          "En el pedido: Adjuntar PDF como respuesta. Se genera el PDF en ese momento.",
           "El cliente ve «Descargar PDF». Links viejos de «abrir cotización» también bajan el PDF.",
           "El equipo sigue abriendo el editor desde admin.",
         ],
@@ -356,7 +350,7 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
         title: "Alta / Datos",
         body: [
           "Tipo de sala / Escala: memoria interna. No salen en el PDF.",
-          "Cliente: bloquea emitir si falta.",
+          "Cliente: bloquea generar el PDF si falta.",
           "Referencia: el «Ref:» de la carta.",
           "Qué querés armar / Brief: prompt para la IA.",
           "Perfil de contenido: qué módulos vienen tildados al crear (resumido / técnico / premium).",
@@ -419,7 +413,7 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
         body: [
           "Márgenes: sobre costo. Gana la regla más específica. Se editan y quedan con fecha de alta.",
           "Descuentos: bajan lo que ve el cliente. Visibilidad: qué ve en el portal.",
-          "Clientes = empresa comercial (hace falta para emitir COT). Usuarios = quién entra.",
+          "Clientes = empresa comercial (hace falta para generar el PDF de la COT). Usuarios = quién entra.",
           "Roles del equipo: permisos por pantalla y acción, más el acceso a precios (todo, solo venta o ninguno). Los administradores ven todo.",
         ],
       },
@@ -452,14 +446,14 @@ export const TUTORIAL_DETAILED: TutorialArticle[] = [
         body: [
           "Título del control, para qué sirve, y un recuadro «Se edita» si aplica.",
           "Siguiente / atrás (también flechas del teclado). Escape o Saltar cierra.",
-          "Si el control no está (COT emitida, otro paso, sin permiso), el globo lo dice.",
+          "Si el control no está (COT con PDF generado, otro paso, sin permiso), el globo lo dice.",
         ],
       },
       {
         title: "Pantallas con recorrido",
         body: [
           "Todas las del admin: el título se señala siempre. Cotizaciones, pedidos, productos y settings tienen pasos extra.",
-          "Si un botón no está (permiso o COT emitida), el globo lo dice. El chatbot explica el módulo aunque no haya globo.",
+          "Si un botón no está (permiso o COT con PDF generado), el globo lo dice. El chatbot explica el módulo aunque no haya globo.",
         ],
       },
     ],

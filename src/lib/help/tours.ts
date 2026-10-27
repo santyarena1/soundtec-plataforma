@@ -45,7 +45,7 @@ export const TOURS: TourDef[] = [
       {
         target: "new-client",
         title: "Cliente",
-        body: "Podés dejarlo vacío y asignarlo después. Sin cliente no se emite.",
+        body: "Podés dejarlo vacío y asignarlo después. Sin cliente no se puede generar el PDF.",
         editable: "La lista sale de Admin → Clientes.",
       },
       {
@@ -68,13 +68,13 @@ export const TOURS: TourDef[] = [
       {
         target: "quote-wizard",
         title: "Pasos",
-        body: "Siete pasos. Podés saltar. El documento de la derecha es el que se imprime / PDF.",
+        body: "Seis pasos. Podés saltar. El documento de la derecha es el que se imprime / PDF.",
       },
       {
         target: "quote-classifiers",
         title: "Clasificación",
         body: "Guardala para que Memoria interna compare con otras COT. No sale en el PDF.",
-        editable: "Opciones en Configuración → Clasificadores. En una COT emitida no se cambia.",
+        editable: "Opciones en Configuración → Clasificadores. Se puede cambiar en cualquier momento, aunque ya tenga el PDF generado.",
       },
       {
         target: "quote-memory",
@@ -86,7 +86,7 @@ export const TOURS: TourDef[] = [
         target: "quote-header",
         title: "Cliente y referencia",
         body: "Salen en la carta. Layout y columna entrega son de esta COT.",
-        editable: "Hasta emitir. Cliente se carga en Admin → Clientes.",
+        editable: "Editable siempre, aunque ya tenga el PDF generado. Cliente se carga en Admin → Clientes.",
       },
     ],
   },
@@ -149,7 +149,7 @@ export const TOURS: TourDef[] = [
         target: "quote-bom",
         title: "Filas",
         body: "Cantidad, precio, IVA, opcional, foto. Regenerar descripción corta la guarda en el producto del catálogo.",
-        editable: "Hasta emitir. Fijar evita que la IA de ítem lo pise.",
+        editable: "Editable siempre, aunque ya tenga el PDF generado. Fijar evita que la IA de ítem lo pise.",
       },
     ],
   },
@@ -179,13 +179,13 @@ export const TOURS: TourDef[] = [
   },
   {
     id: "quote-emitir",
-    title: "Emitir",
+    title: "Condiciones y PDF",
     steps: [
       {
         target: "quote-issue",
-        title: "Condiciones y emitir",
-        body: "Condiciones del sistema, las del cliente anterior, o nuevas. Emitir congela la COT y genera un PDF snapshot.",
-        editable: "Sin cliente no se emite. Para cambiar una emitida, se trabaja otra versión.",
+        title: "Condiciones y generar el PDF",
+        body: "Condiciones del sistema, las del cliente anterior, o nuevas. Generar el PDF para el cliente deja la cotización lista para descargar o enviar.",
+        editable: "Sin cliente no se puede generar el PDF. Si después cambiás algo, la COT queda «PDF desactualizado» y podés volver a generarlo.",
       },
     ],
   },

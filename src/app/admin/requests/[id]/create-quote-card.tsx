@@ -1,5 +1,6 @@
 "use client";
 
+import { QUOTE_STATUS_LABEL } from "@/lib/quote-status";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -28,14 +29,6 @@ export type LinkedQuote = {
   attached?: boolean;
 };
 
-const QUOTE_STATUS: Record<string, string> = {
-  DRAFT: "Borrador",
-  IN_REVIEW: "En revisión",
-  READY: "Lista",
-  ISSUED: "Emitida",
-  SUPERSEDED: "Reemplazada",
-  ARCHIVED: "Archivada",
-};
 
 interface Props {
   requestId: string;
@@ -46,7 +39,7 @@ interface Props {
 
 export function CreateQuoteCard({ requestId, canCreate, lines, existingQuotes }: Props) {
   const [open, setOpen] = useState(false);
-  const [fillAi, setFillAi] = useState(true);
+  const [fillAi, setFillAi] = useState(false);
   const [pending, start] = useTransition();
   const router = useRouter();
 
@@ -61,6 +54,8 @@ export function CreateQuoteCard({ requestId, canCreate, lines, existingQuotes }:
         toast.error(r.error || "No se pudo crear la cotización.");
         return;
       }
+      // Lo que no se pudo copiar (productos dados de baja, etc.) se avisa: no se pierde en silencio.
+      if (r.warning) toast.warning(r.warning, { duration: 12000 });
       toast.success(`Borrador ${r.quoteNumber} creado`, {
         description: fillAi
           ? "Productos y plantilla listos. La IA va a completar los textos de propuesta."
@@ -120,7 +115,7 @@ export function CreateQuoteCard({ requestId, canCreate, lines, existingQuotes }:
                       </Button>
                     )}
                   </div>
-                  <Badge tone={q.status === "ISSUED" ? "success" : "muted"}>{QUOTE_STATUS[q.status] || q.status}</Badge>
+                  <Badge tone={q.status === "ISSUED" ? "success" : "muted"}>{QUOTE_STATUS_LABEL[q.status] || q.status}</Badge>
                 </li>
               ))}
             </ul>

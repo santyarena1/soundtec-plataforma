@@ -45,9 +45,9 @@ test.describe("cotización rápida", () => {
 test.describe("vendedor", () => {
   test.use({ storageState: AUTH_FILES.seller });
 
-  test("el vendedor puede emitir desde la rápida", async ({ page }) => {
+  test("el vendedor puede generar el PDF desde la rápida", async ({ page }) => {
     await page.goto("/admin/quotes/quick", { waitUntil: "networkidle" });
     await addBySku(page, sku);
-    await expect(page.getByRole("button", { name: "Crear y emitir PDF" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Guardar y generar el PDF" })).toBeVisible();
   });
 });

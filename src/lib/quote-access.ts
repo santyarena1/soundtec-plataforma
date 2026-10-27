@@ -70,17 +70,25 @@ export async function loadQuoteForUser(id: string) {
 }
 
 /**
- * Para MODIFICAR una cotización: exige el permiso «Editar cotizaciones», que
- * pueda verla y que no esté emitida. Devuelve la misma forma que
- * loadQuoteForUser; si algo falla, `quote` viene en null y `blockedReason`
- * dice por qué. Antes muchas acciones solo pedían permiso de ver.
+ * Emitida = ya se generó su PDF. Se puede seguir editando: el primer cambio
+ * marca el PDF como desactualizado y la pantalla ofrece volver a generarlo
+ * (mismo número). El cliente sigue viendo el último PDF hasta entonces.
+ */
+export async function markPdfOutdated(quote: { id: string; status: string; pdfOutdated?: boolean | null }) {
+  if (quote.status !== "ISSUED" || quote.pdfOutdated) return;
+  await prisma.quote.update({ where: { id: quote.id }, data: { pdfOutdated: true } });
+}
+
+/**
+ * Para MODIFICAR una cotización: exige el permiso «Editar cotizaciones» y que
+ * pueda verla. Si está emitida se permite igual y queda con el PDF
+ * desactualizado. Devuelve la misma forma que loadQuoteForUser; si algo
+ * falla, `quote` viene en null y `blockedReason` dice por qué.
  */
 export async function loadQuoteForEdit(id: string) {
   await requireQuotePermission("quotes.edit");
   const loaded = await loadQuoteForUser(id);
   if (!loaded.quote) return { ...loaded, blockedReason: "Sin acceso a esta cotización." as string | null };
-  if (loaded.quote.status === "ISSUED") {
-    return { ...loaded, quote: null, blockedReason: "La cotización ya está emitida: duplicala para cambiarla." as string | null };
-  }
+  await markPdfOutdated(loaded.quote);
   return { ...loaded, blockedReason: null as string | null };
 }

@@ -1,4 +1,5 @@
 import { payableLines } from "@/lib/quote-totals";
+import { QUOTE_STATUS_LABEL, quoteStatusLabel } from "@/lib/quote-status";
 import Link from "next/link";
 import { Prisma, QuoteStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -16,14 +17,6 @@ import { requestShortId } from "@/lib/request-quote-link";
 
 export const metadata = { title: "Admin · Cotizaciones" };
 
-const statusLabel: Record<string, string> = {
-  DRAFT: "Borrador",
-  IN_REVIEW: "En revisión",
-  READY: "Lista",
-  ISSUED: "Emitida",
-  SUPERSEDED: "Reemplazada",
-  ARCHIVED: "Archivada",
-};
 
 const statusTone: Record<string, "muted" | "primary" | "accent" | "success" | "warning" | "destructive"> = {
   DRAFT: "muted",
@@ -78,7 +71,7 @@ export default async function AdminQuotesPage({
   const params = searchParams ? await searchParams : {};
 
   const q = (params.q || "").trim();
-  const status = params.status && params.status in statusLabel ? (params.status as QuoteStatus) : undefined;
+  const status = params.status && params.status in QUOTE_STATUS_LABEL ? (params.status as QuoteStatus) : undefined;
   const from = parseDateStart(params.from || "");
   const to = parseDateEnd(params.to || "");
   const sort: SortKey = params.sort && params.sort in SORTS ? (params.sort as SortKey) : "createdAt";
@@ -184,7 +177,7 @@ export default async function AdminQuotesPage({
           <Label htmlFor="status">Estado</Label>
           <Select id="status" name="status" defaultValue={status || ""}>
             <option value="">Todos</option>
-            {Object.entries(statusLabel).map(([value, label]) => (
+            {Object.entries(QUOTE_STATUS_LABEL).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
@@ -241,12 +234,13 @@ export default async function AdminQuotesPage({
               owner: row.owner.name || "",
               reference: row.reference,
               status: row.status,
-              statusLabel: statusLabel[row.status] || row.status,
+              statusLabel: quoteStatusLabel(row.status, row.pdfOutdated),
               statusTone: statusTone[row.status] || "muted",
               net,
               created: formatDateShort(row.createdAt),
               expires: expires ? { label: `${expired ? "Vencida" : "Vence"} ${formatDateShort(expires)}`, expired } : null,
               issued: row.status === "ISSUED" && !!row.pdfBlobUrl,
+              isQuick: row.isQuick,
             };
           })}
         />

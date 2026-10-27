@@ -1,12 +1,12 @@
 /**
  * Las condiciones comerciales (garantía, pagos, plazos, vigencia, descuentos,
  * soporte) NO las cambia la IA: salen de Configuración → Cotizaciones → Pago,
- * entrega y garantía, o del paso «Emitir» de cada cotización. Decisión del
+ * entrega y garantía, o del paso «Condiciones y PDF» de cada cotización. Decisión del
  * negocio (2026-10-25): una instrucción a la IA no puede prometer otra cosa.
  */
 
 export const COMMERCIAL_BLOCK_MESSAGE =
-  "Las condiciones comerciales (garantía, pagos, plazos, vigencia, descuentos, soporte) no se cambian con la IA. Se definen en Configuración → Cotizaciones → Pago, entrega y garantía, o en el paso «Emitir» de la cotización.";
+  "Las condiciones comerciales (garantía, pagos, plazos, vigencia, descuentos, soporte) no se cambian con la IA. Se definen en Configuración → Cotizaciones → Pago, entrega y garantía, o en el paso «Condiciones y PDF» de la cotización.";
 
 const fold = (value: string) =>
   value

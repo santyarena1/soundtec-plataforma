@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
+import { loadQuoteForUser, requireQuotePermission, loadQuoteForEdit } from "@/lib/quote-access";
 import { sanitizeQuoteHtml } from "@/lib/quote-richtext";
 
 function revalidate(quoteId: string) {
@@ -14,7 +14,7 @@ export async function createQuoteItemGroup(input: {
   title?: string;
 }): Promise<{ ok: boolean; error?: string; groupId?: string }> {
   await requireQuotePermission("quotes.edit");
-  const loaded = await loadQuoteForUser(input.quoteId);
+  const loaded = await loadQuoteForEdit(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
 
   const count = await prisma.quoteItemGroup.count({ where: { quoteId: input.quoteId } });
@@ -39,7 +39,7 @@ export async function updateQuoteItemGroup(input: {
   await requireQuotePermission("quotes.edit");
   const group = await prisma.quoteItemGroup.findUnique({ where: { id: input.groupId } });
   if (!group) return { ok: false, error: "Ese ambiente ya no existe." };
-  const loaded = await loadQuoteForUser(group.quoteId);
+  const loaded = await loadQuoteForEdit(group.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
 
   const data: { title?: string; body?: string } = {};
@@ -60,7 +60,7 @@ export async function deleteQuoteItemGroup(input: {
   await requireQuotePermission("quotes.edit");
   const group = await prisma.quoteItemGroup.findUnique({ where: { id: input.groupId } });
   if (!group) return { ok: false, error: "Ese ambiente ya no existe." };
-  const loaded = await loadQuoteForUser(group.quoteId);
+  const loaded = await loadQuoteForEdit(group.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
 
   await prisma.quoteItem.updateMany({ where: { groupId: group.id }, data: { groupId: null } });
@@ -76,7 +76,7 @@ export async function moveQuoteItemToGroup(input: {
   await requireQuotePermission("quotes.edit");
   const item = await prisma.quoteItem.findUnique({ where: { id: input.itemId } });
   if (!item) return { ok: false, error: "El ítem ya no existe." };
-  const loaded = await loadQuoteForUser(item.quoteId);
+  const loaded = await loadQuoteForEdit(item.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
 
   if (input.groupId) {

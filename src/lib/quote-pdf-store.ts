@@ -45,6 +45,7 @@ export async function generateAndStoreQuotePdf(quoteId: string, actorId: string)
       contactName: quote.contactName,
       issuedAt: quote.issuedAt,
       showDeliveryColumn: quote.showDeliveryColumn,
+      showProductPhotos: quote.showProductPhotos,
       taxMode: quote.taxMode,
       client: quote.client ?? (quote.clientName ? { companyName: quote.clientName, tradeName: null } : null),
       owner: quote.owner,

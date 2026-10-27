@@ -56,6 +56,8 @@ export type QuoteDocumentHtmlInput = {
   contactName: string | null;
   issuedAt: Date | null;
   showDeliveryColumn: boolean;
+  /** Fotos de los productos en la planilla (por defecto sí). */
+  showProductPhotos?: boolean;
   taxMode?: QuoteTaxMode | null;
   client: { companyName: string; tradeName: string | null } | null;
   owner: {
@@ -317,7 +319,7 @@ export async function buildQuoteDocumentHtml(
       if (src) photoByProduct.set(asset.productId, src);
     }
   }
-  const anyPhoto = visibleItems.some((item) => item.productId && photoByProduct.has(item.productId));
+  const anyPhoto = quote.showProductPhotos !== false && visibleItems.some((item) => item.productId && photoByProduct.has(item.productId));
   const showTax = (quote.taxMode ?? "NOTE") === "ADDED";
 
   const itemRow = (item: QuoteDocumentHtmlItem, index: number) => {
@@ -342,7 +344,7 @@ ${photoCell}<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">$
 <td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.unitPriceUsd) > 0 ? formatUsd(Number(item.unitPriceUsd)) : "Sin cargo"}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right;font-weight:bold">${Number(item.lineTotalUsd) > 0 ? formatUsd(Number(item.lineTotalUsd)) : "—"}</td>
 ${showTax ? `<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.ivaRate ?? 0)}%</td>` : ""}
-${showDelivery ? `<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.deliveryKey || "")}</td>` : ""}
+${showDelivery ? `<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.deliveryKey || quote.terms?.deliveryText || "")}</td>` : ""}
 </tr>`;
   };
 

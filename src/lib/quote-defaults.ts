@@ -3,12 +3,12 @@ import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 
 export const QUOTE_STEPS = [
-  { id: 1, key: "datos", title: "Encabezado" },
-  { id: 2, key: "brief", title: "Brief y generación" },
-  { id: 3, key: "modulos", title: "Módulos y textos" },
-  { id: 4, key: "productos", title: "Productos" },
-  { id: 5, key: "imagenes", title: "Imágenes" },
-  { id: 6, key: "emitir", title: "Emitir" },
+  { id: 1, key: "datos", title: "Cliente" },
+  { id: 2, key: "brief", title: "Qué necesita" },
+  { id: 3, key: "modulos", title: "Textos del documento" },
+  { id: 4, key: "productos", title: "Productos y precios" },
+  { id: 5, key: "imagenes", title: "Fotos" },
+  { id: 6, key: "emitir", title: "Condiciones y PDF" },
 ] as const;
 
 
@@ -263,21 +263,21 @@ export function moduleByKey(key: string) {
 export const PROFILES = [
   {
     key: "resumido",
-    name: "Resumido",
+    name: "Corto",
     description: "Carta corta: intro, tabla, condiciones, garantía.",
     sectionKeys: QUOTE_MODULES.filter((m) => m.defaultOn.includes("resumido")).map((m) => m.key),
     isDefault: false,
   },
   {
     key: "tecnico",
-    name: "Técnico estándar",
+    name: "Estándar",
     description: "Propuesta + tabla + instalación + condiciones.",
     sectionKeys: QUOTE_MODULES.filter((m) => m.defaultOn.includes("tecnico")).map((m) => m.key),
     isDefault: true,
   },
   {
     key: "premium",
-    name: "Técnico premium",
+    name: "Completo",
     description: "Editorial: fichas, fotos, criterios, como COT detallada.",
     sectionKeys: QUOTE_MODULES.filter((m) => m.defaultOn.includes("premium")).map((m) => m.key),
     isDefault: false,

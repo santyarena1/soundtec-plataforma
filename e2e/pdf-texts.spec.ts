@@ -35,15 +35,16 @@ test("textos del PDF: una versión para un rubro sale sola en la cotización de 
   await page.goto("/admin/quotes/quick", { waitUntil: "networkidle" });
   await page.getByPlaceholder("Ej. Hotel Alvear").fill("Hotel E2E");
   await pickProduct(page, FIXTURES.withIncluded.sku);
-  await page.getByRole("button", { name: "Guardar como borrador y abrir el editor" }).click();
-  await page.waitForURL(/\/admin\/quotes\/[^/?]+\?paso=4/, { timeout: 120_000 });
-  const quoteUrl = page.url().split("?")[0]!;
+  await page.getByRole("button", { name: "Guardar", exact: true }).click();
+  await page.waitForURL(/\/admin\/quotes\/quick\?editar=/, { timeout: 120_000 });
+  const quoteUrl = `/admin/quotes/${new URL(page.url()).searchParams.get("editar")}`;
   await page.goto(`${quoteUrl}?paso=1`, { waitUntil: "networkidle" });
   await page.getByLabel("A quién va").selectOption("hoteleria");
   await page.getByRole("button", { name: "Guardar y seguir" }).click();
   await page.waitForURL(/paso=2/, { timeout: 180_000 });
   await page.goto(`${quoteUrl}?paso=3`, { waitUntil: "networkidle" });
-  await expect(page.locator("select").filter({ has: page.locator(`option:text("Automática (hoy: ${LABEL})")`) })).toHaveCount(1);
+  // Otra corrida contra la misma base puede haber creado una versión de Hotelería más nueva: alcanza con que elija una de Hotelería.
+  await expect(page.locator("select").filter({ has: page.locator('option:text-matches("^Automática \\\\(hoy: E2E Hotelería")') })).toHaveCount(1);
 
   // Limpieza: borrar la versión.
   await page.goto("/admin/settings/quotes/textos", { waitUntil: "networkidle" });

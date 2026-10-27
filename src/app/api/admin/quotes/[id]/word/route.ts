@@ -17,6 +17,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       contactName: quote.contactName,
       issuedAt: quote.issuedAt,
       showDeliveryColumn: quote.showDeliveryColumn,
+      showProductPhotos: quote.showProductPhotos,
       taxMode: quote.taxMode,
       client: quote.client ?? (quote.clientName ? { companyName: quote.clientName, tradeName: null } : null),
       owner: {

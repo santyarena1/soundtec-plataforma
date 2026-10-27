@@ -613,7 +613,7 @@ export function OnboardingHost({
               <li className="flex items-start gap-2.5">
                 <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <span>
-                  Es solo un paseo: no uses Guardar, Enviar, Emitir ni Crear. Si únicamente mirás y navegás, no se guarda nada.
+                  Es solo un paseo: no uses Guardar, Enviar, Generar el PDF ni Crear. Si únicamente mirás y navegás, no se guarda nada.
                 </span>
               </li>
             </ul>
@@ -727,7 +727,7 @@ export function OnboardingHost({
           </div>
 
           <p className="mb-3 rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[11px] leading-snug text-amber-900 dark:text-amber-100">
-            Modo tutorial: mirá y navegá. No uses Guardar, Enviar, Emitir ni Crear — esas acciones sí se guardan. Si solo explorás, no se persiste nada.
+            Modo tutorial: mirá y navegá. No uses Guardar, Enviar, Generar el PDF ni Crear — esas acciones sí se guardan. Si solo explorás, no se persiste nada.
           </p>
 
           {needsPath ? (

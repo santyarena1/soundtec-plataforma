@@ -2435,4 +2435,22 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Ficha del producto → Precio y costos: casilla «Mostrar Consultá precio en vez del precio» para usarla a propósito." },
     ],
   },
+  {
+    id: "ship-2026-10-27-cotizaciones-pdf-editable",
+    version: "2.21.0",
+    releasedAt: "2026-10-27T12:00:00.000Z",
+    summary: "Cotizaciones: se siguen editando después de generar el PDF, tipos de documento propios, ítems libres y fotos opcionales.",
+    items: [
+      { kind: "MEJORA", text: "«Emitir» pasa a llamarse «Generar el PDF para el cliente». Una cotización con PDF generado se puede seguir editando: si cambiás algo queda «PDF desactualizado» y aparece «Volver a generar el PDF»." },
+      { kind: "NUEVO", text: "Tipos de documento propios (Configuración → Cotizaciones → Cómo sale el PDF): por ejemplo «Compacto escolar», basado en Corto, con las secciones que elijas y los textos del rubro Educación. Se eligen al crear la cotización, también en la rápida, y se pueden cambiar en el paso 1." },
+      { kind: "NUEVO", text: "Ítems libres: en la rápida y en el editor se puede agregar algo que no está en el catálogo (mano de obra, cable por metro, flete) con su precio." },
+      { kind: "NUEVO", text: "Casilla «Mostrar las fotos de los productos en el PDF», en la rápida y en el paso 1 del editor." },
+      { kind: "MEJORA", text: "Cotización rápida: «Editar» la abre en la misma pantalla rápida, sin pasarla al editor completo. Tiene tipo de documento, a quién va, impuestos y vigencia. El nombre del proyecto es opcional." },
+      { kind: "MEJORA", text: "Nueva cotización: se eligen tipo de documento, a quién va, impuestos y vigencia desde el principio. La IA ya no arranca sola: se decide en el paso del brief." },
+      { kind: "FIX", text: "El plazo de entrega de Condiciones vale para todas las filas: ya no frena el PDF pidiendo la entrega fila por fila." },
+      { kind: "FIX", text: "Lo que viene incluido con un producto (fuente, soporte) ahora se agrega solo también en el editor y al cotizar desde un pedido, y sigue la cantidad del producto." },
+      { kind: "FIX", text: "Cotizar desde un pedido avisa qué productos no se pudieron pasar, y «Completar textos con IA» arranca destildado." },
+      { kind: "FIX", text: "El botón para generar el PDF queda deshabilitado mientras falte algo, y dice qué falta." },
+    ],
+  },
 ];
