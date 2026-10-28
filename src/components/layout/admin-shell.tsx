@@ -72,6 +72,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
         <AdminSidebarNav
           allowedScopes={permissions.scopes}
           fullAccess={permissions.fullAccess}
+          isAdmin={user.role === "ADMIN" || user.role === "SUPER_ADMIN"}
           seesCosts={canSeeCosts(permissions)}
           seesSalePrices={canSeeSalePrices(permissions)}
           expandAll={expandAll}

@@ -1,5 +1,6 @@
 "use server";
 
+import { searchQuoteServices } from "@/server/quote-services";
 import { cleanQuoteReference } from "@/lib/quote-status";
 import { quoteUnitPrices } from "@/lib/quote-unit-price";
 import { z } from "zod";
@@ -23,6 +24,8 @@ const itemSchema = z.object({
   productId: z.string().nullable(),
   /** Texto del ítem libre. */
   name: z.string().max(500).default(""),
+  /** Detalle debajo del nombre (servicios): sale completo en el PDF. */
+  detail: z.string().max(4000).default(""),
   quantity: z.number().positive("La cantidad tiene que ser mayor que cero."),
   unitPriceUsd: z.number().min(0),
   discountPercent: z.number().min(0).max(100).default(0),
@@ -158,6 +161,7 @@ export async function saveQuickQuote(input: QuickQuoteInput): Promise<SaveResult
         // La segunda línea sale en el editor y en el PDF: así el «sin cargo» se ve.
         description: [
           title,
+          !product ? item.detail.trim() : "",
           item.included ? `Incluido sin cargo${parentName ? ` (con ${parentName.name || "el producto"})` : ""}` : "",
         ]
           .filter(Boolean)
@@ -217,6 +221,7 @@ export async function loadQuickQuoteForEdit(quoteId: string) {
         productId: i.productId ?? "",
         free: !i.productId,
         name: i.product?.normalizedName ?? first ?? "",
+        detail: !i.productId ? rest.filter((l) => !/^incluido sin cargo/i.test(l)).join("\n") : "",
         sku: null as string | null,
         quantity: Number(i.quantity),
         unitPriceUsd: Number(i.unitPriceUsd),
@@ -265,8 +270,26 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
   })).slice(0, 20);
   // Mismo precio que cualquier otra cotización (lib/quote-unit-price).
   const unitPrices = await quoteUnitPrices(products, clientId || null);
-  return products.map((p) => ({
+  // Servicios para cotizar (instalación, visitas, horas…): primero, con su precio de venta.
+  const services = (await searchQuoteServices(q)).map((s) => ({
+    id: `svc:${s.id}`,
+    name: s.name,
+    subtitle: s.description ? s.description.slice(0, 140) : null,
+    detail: s.description ?? "",
+    sku: null as string | null,
+    tango: null as string | null,
+    brand: "Servicio" as string | null,
+    imageUrl: null as string | null,
+    stock: "UNKNOWN" as (typeof products)[number]["stockStatus"],
+    price: s.priceUsd == null ? 0 : Number(s.priceUsd),
+    needsPrice: s.priceUsd == null,
+    ivaPercent: Number(s.ivaPercent) as number | null,
+    accessories: [] as Array<{ id: string; name: string; sku: string | null; kind: string; ivaPercent: number | null; quantity: number }>,
+  }));
+  return [...services, ...products.map((p) => ({
     id: p.id,
+    detail: "",
+    needsPrice: false,
     name: productTitle(p),
     /** Descripción debajo del modelo (misma regla que el catálogo). */
     subtitle: productSubtitle(p),
@@ -286,7 +309,7 @@ export async function searchQuickQuoteProducts(query: string, clientId?: string 
       /** Unidades incluidas por cada unidad del producto (ficha); 1 si no está cargado. */
       quantity: a.quantity && a.quantity > 0 ? a.quantity : 1,
     })),
-  }));
+  }))];
 }
 
 export async function resolveQuickQuoteSkus(lines: string, clientId?: string | null) {

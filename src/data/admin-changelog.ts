@@ -2498,4 +2498,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Las cotizaciones rápidas viejas tenían «Cotización rápida dd/mm/aaaa» como referencia y salía en el PDF. Ahora, si no hay nombre de proyecto, en «Ref.» va el número de la cotización." },
     ],
   },
+  {
+    id: "ship-2026-10-28-servicios",
+    version: "2.24.0",
+    releasedAt: "2026-10-28T18:00:00.000Z",
+    summary: "Servicios para cotizar: instalación, visitas técnicas, horas, mantenimiento y programación con su precio de venta.",
+    items: [
+      { kind: "NUEVO", text: "Productos → Servicios (solo administradores): los 46 servicios de la planilla con nombre, detalle completo, precio de venta, IVA y rubro. Se editan, se agregan nuevos o se dejan de usar. Los que no tienen precio se cargan a mano en cada cotización." },
+      { kind: "NUEVO", text: "Al cotizar (editor y rápida), el buscador también encuentra los servicios: entran con su nombre, el detalle completo y el precio de venta. Los sin precio entran en 0 con el aviso «Cargá el precio»." },
+      { kind: "MEJORA", text: "Los servicios no son productos: no aparecen en el catálogo ni en el portal, y el equipo que no es administrador solo los ve al cotizar." },
+    ],
+  },
 ];

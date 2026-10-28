@@ -61,11 +61,12 @@ const nextConfig = {
       "/api/admin/quotes/[id]/preview-pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
       "/api/quotes/[id]/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
       "/api/portal/requests/[id]/quote-pdf/[quoteId]": ["./node_modules/@sparticuz/chromium/bin/**"],
-      "/admin/quotes/[id]": ["./node_modules/@sparticuz/chromium/bin/**"],
+      "/admin/quotes/[id]": ["./node_modules/@sparticuz/chromium/bin/**", "./data/servicios/**"],
       "/admin/requests/[id]": ["./node_modules/@sparticuz/chromium/bin/**"],
-      "/admin/quotes/quick": ["./node_modules/@sparticuz/chromium/bin/**"],
+      "/admin/quotes/quick": ["./node_modules/@sparticuz/chromium/bin/**", "./data/servicios/**"],
       // Árbol de Tango y propuestas de reclasificación (se leen con fs al cargarlas).
       "/admin/products/reclasificacion": ["./data/tango/**"],
+      "/admin/products/servicios": ["./data/servicios/**", "./data/tango/**"],
     },
     serverActions: {
       bodySizeLimit: "50mb",

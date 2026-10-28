@@ -73,7 +73,7 @@ async function loadBranchSuggestions(existingProducts: Set<string>): Promise<num
   return r.count;
 }
 
-async function ensureNode(path: string): Promise<string> {
+export async function ensureNode(path: string): Promise<string> {
   const parts = path.split(" > ");
   let parentId: string | null = null;
   for (let level = 1; level <= parts.length; level++) {

@@ -110,6 +110,27 @@ export function QuickQuoteForm({
    */
   function add(product: Product, quantity = 1) {
     const uid = newUid();
+    // Servicio para cotizar: entra como ítem con su nombre, el detalle completo y su precio de venta.
+    if (product.id.startsWith("svc:")) {
+      setItems((old) => [
+        ...old,
+        {
+          uid,
+          productId: "",
+          free: true,
+          name: product.name,
+          detail: product.detail,
+          sku: null,
+          quantity,
+          unitPriceUsd: product.price,
+          discountPercent: 0,
+          note: product.needsPrice ? "Cargá el precio" : "",
+          included: false,
+          ivaPercent: product.ivaPercent,
+        },
+      ]);
+      return;
+    }
     const line: QuickItem = {
       uid,
       productId: product.id,
@@ -169,6 +190,7 @@ export function QuickQuoteForm({
           uid: i.uid,
           productId: i.free ? null : i.productId,
           name: i.name,
+          detail: i.detail ?? "",
           quantity: i.quantity,
           unitPriceUsd: i.unitPriceUsd,
           discountPercent: i.discountPercent,

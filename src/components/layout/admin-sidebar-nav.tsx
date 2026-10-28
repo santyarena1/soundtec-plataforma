@@ -35,6 +35,7 @@ import {
   PackageSearch,
   RefreshCw,
   ScrollText,
+  Wrench,
 } from "lucide-react";
 import type { PermissionScope } from "@/lib/permissions";
 import { SETTINGS_SECTIONS } from "@/lib/settings-sections";
@@ -60,6 +61,8 @@ type NavItem = {
   alsoActive?: string[];
   /** Subpantallas que NO cuentan como esta. */
   notUnder?: string[];
+  /** Solo administradores (ADMIN / SUPER_ADMIN). */
+  adminOnly?: boolean;
 };
 type NavGroup = { title: string; items: NavItem[]; tourId?: string };
 
@@ -86,7 +89,8 @@ const groups: NavGroup[] = [
     title: "Productos",
     tourId: "nav-catalogo",
     items: [
-      { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view", tourId: "nav-link-products", notUnder: ["/admin/products/reclasificacion"] },
+      { href: "/admin/products", label: "Productos", icon: Package, scope: "products.view", tourId: "nav-link-products", notUnder: ["/admin/products/reclasificacion", "/admin/products/servicios"] },
+      { href: "/admin/products/servicios", label: "Servicios", icon: Wrench, adminOnly: true },
       { href: "/admin/products/reclasificacion", label: "Reclasificación (Tango)", icon: ListChecks, scope: "categories.manage" },
       { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage", tourId: "nav-link-brands" },
       { href: "/admin/categories", label: "Categorías y familias", icon: Building2, anyScope: ["categories.manage", "families.manage"], alsoActive: ["/admin/families"] },
@@ -147,6 +151,8 @@ interface Props {
   allowedScopes: PermissionScope[];
   /** Si es full access (super admin) ignora allowedScopes. */
   fullAccess?: boolean;
+  /** Es ADMIN o SUPER_ADMIN (pantallas solo para administradores). */
+  isAdmin?: boolean;
   /** Ve costos y márgenes. */
   seesCosts?: boolean;
   /** Ve precios de venta. */
@@ -158,7 +164,7 @@ interface Props {
   active?: Partial<Record<"soundtubeReview", boolean>>;
 }
 
-export function AdminSidebarNav({ allowedScopes, fullAccess, seesCosts, seesSalePrices, expandAll, counts, active }: Props) {
+export function AdminSidebarNav({ allowedScopes, fullAccess, seesCosts, seesSalePrices, expandAll, counts, active, isAdmin }: Props) {
   const pathname = usePathname();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
 
@@ -182,6 +188,7 @@ export function AdminSidebarNav({ allowedScopes, fullAccess, seesCosts, seesSale
   const filteredGroups = useMemo(() => {
     const canSee = (item: NavItem) => {
       if (item.onlyWhen && !active?.[item.onlyWhen]) return false;
+      if (item.adminOnly && !isAdmin) return false;
       if (item.costs && !seesCosts) return false;
       if (item.salePrices && !seesSalePrices) return false;
       if (fullAccess) return true;

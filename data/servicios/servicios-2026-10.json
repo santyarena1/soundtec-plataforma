@@ -1,0 +1,416 @@
+[
+ {
+  "sourceKey": "xls-servicios-2026-10-1281",
+  "name": "ADICIONAL INSTALACION",
+  "description": "Necesario para la implementación de la funcionalidad. Calculado sobre la base de otros trabajos en curso",
+  "priceUsd": 550,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1282",
+  "name": "ADICIONAL POR VISITA TÉCNICA – GBA 1",
+  "description": "Adicional por distancia y tiempos de traslado aplicable a servicios técnicos prestados en la zona GBA 1, sobre la base tarifaria correspondiente a CABA",
+  "priceUsd": 40,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1283",
+  "name": "ADICIONAL POR VISITA TÉCNICA – GBA 2",
+  "description": "Adicional por distancia y tiempos de traslado aplicable a servicios técnicos prestados en la zona GBA 2, sobre la base tarifaria correspondiente a CABA",
+  "priceUsd": 60,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1284",
+  "name": "AJUSTE Y MATERIALES",
+  "description": null,
+  "priceUsd": 312,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1285",
+  "name": "GESTIÓN DE REZAGOS ELECTRÓNICOS",
+  "description": "servicio integral para la recolección y descarte responsable de equipos obsoletos o en desuso. Incluye inventariado, retiro en sitio, clasificación según tipo de residuo",
+  "priceUsd": 345,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1286",
+  "name": "HORA ADICIONAL SLA NORMAL ING",
+  "description": "Asistencia técnica adicional, nivel Ing, una hora no fraccionable, presencial o remota, con tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 35,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1287",
+  "name": "HORA ADICIONAL SLA NORMAL TECH SR",
+  "description": "Asistencia técnica adicional, nivel Tech Sr, una hora no fraccionable, presencial o remota, con tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 25,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1288",
+  "name": "HORA ADICIONAL SLA NORMAL TECH",
+  "description": "Asistencia técnica adicional, nivel Tech, una hora no fraccionable, presencial o remota, con tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 18,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1289",
+  "name": "HORA ADICIONAL SLA URGENTE ING",
+  "description": "Asistencia técnica adicional, nivel Ing, una hora no fraccionable, presencial o remota, con tiempo de respuesta menor a 24hs",
+  "priceUsd": 53,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1290",
+  "name": "HORA ADICIONAL SLA URGENTE TECH SR",
+  "description": "Asistencia técnica adicional, nivel Tech Sr, una hora no fraccionable, presencial o remota, con tiempo de respuesta menor a 24hs",
+  "priceUsd": 38,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1291",
+  "name": "HORA ADICIONAL SLA URGENTE TECH",
+  "description": "Asistencia técnica adicional, nivel Tech, una hora no fraccionable, presencial o remota, con tiempo de respuesta menor a 24hs",
+  "priceUsd": 27,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1292",
+  "name": "INGENIERIA, ASESORAMIENTO A D.O., PUESTA EN MARCHA",
+  "description": "Diseño y proyecto de sistema, asesoramiento a DO para ejecución de la instalación y montaje general.",
+  "priceUsd": 2550,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1293",
+  "name": "INSTALACION & MATERIALES",
+  "description": "Servicios de instalación puesta en marcha, configuración y capacitación. Incluye Materiales",
+  "priceUsd": 450,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1294",
+  "name": "INSTALACION & MATERIALES",
+  "description": "Servicios de instalación puesta en marcha, configuración y capacitación. Incluye Materiales",
+  "priceUsd": 115,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1295",
+  "name": "INSTALACION BASICA y CAPACITACION EQUIPO VC",
+  "description": "Incluye envío, armado y conexionado de la unidad, puesta en marcha y configuración de equipo, personalización básica, pruebas de usuario y capacitación (hasta 4hs.).",
+  "priceUsd": 350,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1296",
+  "name": "INSTALACION MINIMA",
+  "description": "Diseño y proyecto de sistema, instalación y puesta en marcha LLAVE EN MANO",
+  "priceUsd": null,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1297",
+  "name": "INSTALACION",
+  "description": "Diseño y proyecto de sistema, instalación y puesta en marcha LLAVE EN MANO",
+  "priceUsd": null,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1298",
+  "name": "INSTALACION y MATERIALES",
+  "description": "Incluye transporte, instalación, conexionado y puesta en marcha del conjunto. Incluye cables de conexión y materiales necesarios. Incluye capacitación al usuario",
+  "priceUsd": 300,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1299",
+  "name": "INSTALACIÓN Y PUESTA EN MARCHA",
+  "description": "instalación física de equipos, cableado, montaje, configuración y pruebas operativas para garantizar su correcto funcionamiento",
+  "priceUsd": 550,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1300",
+  "name": "INSTALACION, PUESTA EN MARCHA y CONFIGURACION",
+  "description": "Montaje, conexionado y puesta en marcha operativa de equipamiento",
+  "priceUsd": 1600,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1301",
+  "name": "RECUPERO DE ACTIVOS TECNOLÓGICOS",
+  "description": "servicio de identificación y toma de equipamiento en desuso con valor comercial residual. Incluye evaluación técnica, retiro, reacondicionamiento o derivación a canales de reutilización.",
+  "priceUsd": -2480,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > INSTALACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1302",
+  "name": "MANTENIMIENTO BASICO DE PROYECTOR",
+  "description": "Mantenimiento, limpieza, prueba funcional intensiva e informe de estado de unidad. Incluye insumos necesarios de limpieza y filtro de aire de recambio.",
+  "priceUsd": 110,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > MANTENIMIENTO"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1303",
+  "name": "MANTENIMIENTO DE UNIDAD ACTUAL",
+  "description": "Mantenimiento, limpieza y puesta en valor de unidad de potencia. Adaptación de electrónica para uso requerido",
+  "priceUsd": 80,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > MANTENIMIENTO"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1304",
+  "name": "MANTENIMIENTO ON SITE BASICO DE PROYECTOR",
+  "description": "Mantenimiento, limpieza, prueba funcional intensiva e informe de estado de unidad. Incluye insumos necesarios de limpieza y filtro de aire de recambio.",
+  "priceUsd": 210,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > MANTENIMIENTO"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1305",
+  "name": "SERVICIO BASICO 30-1",
+  "description": "Servicio de mantenimiento mensual según lo antes descripto. Plazo mínimo de contratación: 6 meses. Precio unitario",
+  "priceUsd": 93,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > MANTENIMIENTO"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1306",
+  "name": "PROGRAMACION SISTEMA CRESTRON",
+  "description": "De acuerdo a lo antes descripto. Incluye generación de interfase de usuario para Paneles de control del sistema y programa de control del sistema",
+  "priceUsd": 2500,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > PROGRAMACION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1307",
+  "name": "Asistencia de técnico responsable de instalación",
+  "description": "Asistencia de técnico Responsable de Instalación o representante de D.O. (a criterio de Soundtec) durante 4 a 6 horas en el lugar. Se estima una cantidad total de 2 visitas.",
+  "priceUsd": null,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1308",
+  "name": "Visitas de supervisión",
+  "description": "Destinadas a la orientación y control de cada instancia de la instalación del sistema",
+  "priceUsd": null,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1309",
+  "name": "VTE CABA ING 1H - NORMAL",
+  "description": "Asistencia técnica en sitio, nivel Ing, duración máxima una hora, para la localidad de CABA, tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 100,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1310",
+  "name": "VTE CABA ING 1H - URG",
+  "description": "Asistencia técnica en sitio, nivel Ing, duración máxima una hora, para la localidad de CABA, urgente tiempo de respuesta menor a 24hs",
+  "priceUsd": 230,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1311",
+  "name": "VTE CABA ING 4H - NORMAL",
+  "description": "Asistencia técnica en sitio, nivel Ing, duración máxima cuatro horas, para la localidad de CABA, tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 310,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1312",
+  "name": "VTE CABA ING 4H - URG",
+  "description": "Asistencia técnica en sitio, nivel Ing, duración máxima cuatro horas, para la localidad de CABA, urgente tiempo de respuesta menor a 24hs",
+  "priceUsd": 510,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1313",
+  "name": "VTE CABA ING 8H - NORMAL",
+  "description": "Asistencia técnica en sitio, nivel Ing, duración máxima ocho horas, para la localidad de CABA, tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 590,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1314",
+  "name": "VTE CABA ING 8H - URG",
+  "description": "Asistencia técnica en sitio, nivel Ing, duración máxima ocho horas, para la localidad de CABA, urgente tiempo de respuesta menor a 24hs",
+  "priceUsd": 990,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1315",
+  "name": "VTE CABA TECH 1H - NORMAL",
+  "description": "Asistencia técnica en sitio, nivel Tech, duración máxima una hora, para la localidad de CABA, tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 70,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1316",
+  "name": "VTE CABA TECH 1H - URG",
+  "description": "Asistencia técnica en sitio, nivel Tech, duración máxima una hora, para la localidad de CABA, urgente tiempo de respuesta menor a 24hs",
+  "priceUsd": 140,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1317",
+  "name": "VTE CABA TECH 4H - NORMAL",
+  "description": "Asistencia técnica en sitio, nivel Tech, duración máxima cuatro horas, para la localidad de CABA, tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 190,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1318",
+  "name": "VTE CABA TECH 4H - URG",
+  "description": "Asistencia técnica en sitio, nivel Tech, duración máxima cuatro horas, para la localidad de CABA, urgente tiempo de respuesta menor a 24hs",
+  "priceUsd": 270,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1319",
+  "name": "VTE CABA TECH 8H - NORMAL",
+  "description": "Asistencia técnica en sitio, nivel Tech, duración máxima ocho horas, para la localidad de CABA, tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 350,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1320",
+  "name": "VTE CABA TECH 8H - URG",
+  "description": "Asistencia técnica en sitio, nivel Tech, duración máxima ocho horas, para la localidad de CABA, urgente tiempo de respuesta menor a 24hs",
+  "priceUsd": 510,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1321",
+  "name": "VTE CABA TECH SR 1H - NORMAL",
+  "description": "Asistencia técnica en sitio, nivel Tech Sr, duración máxima una hora, para la localidad de CABA, tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 80,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1322",
+  "name": "VTE CABA TECH SR 1H - URG",
+  "description": "Asistencia técnica en sitio, nivel Tech Sr, duración máxima una hora, para la localidad de CABA, urgente tiempo de respuesta menor a 24hs",
+  "priceUsd": 162.5,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1323",
+  "name": "VTE CABA TECH SR 4H - NORMAL",
+  "description": "Asistencia técnica en sitio, nivel Tech Sr, duración máxima cuatro horas, para la localidad de CABA, tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 230,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1324",
+  "name": "VTE CABA TECH SR 4H - URG",
+  "description": "Asistencia técnica en sitio, nivel Tech Sr, duración máxima cuatro horas, para la localidad de CABA, urgente tiempo de respuesta menor a 24hs",
+  "priceUsd": 330,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1325",
+  "name": "VTE CABA TECH SR 8H - NORMAL",
+  "description": "Asistencia técnica en sitio, nivel Tech Sr, duración máxima ocho horas, para la localidad de CABA, tiempo de respuesta dentro de los 5 días hábiles, según disponibilidad",
+  "priceUsd": 430,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ },
+ {
+  "sourceKey": "xls-servicios-2026-10-1326",
+  "name": "VTE CABA TECH SR 8H - URG",
+  "description": "Asistencia técnica en sitio, nivel Tech Sr, duración máxima ocho horas, para la localidad de CABA, urgente tiempo de respuesta menor a 24hs",
+  "priceUsd": 630,
+  "ivaPercent": 21,
+  "deliveryText": "A coordinar",
+  "tangoPath": "SERVICIOS > SUPERVISION"
+ }
+]

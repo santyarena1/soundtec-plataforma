@@ -252,6 +252,7 @@ model Category {
 
   products           Product[]
   compatibilityRules CompatibilityRule[]
+  quoteServices      QuoteService[]
 }
 
 model ProductFamily {
@@ -2328,4 +2329,26 @@ model QuoteAudience {
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
+}
+
+/// Servicios para cotizar (instalación, visitas, horas, mantenimiento…): precio de venta fijo, no salen en el catálogo ni los ve el cliente.
+/// Los administra un admin (Productos → Servicios); el equipo los usa al cotizar.
+model QuoteService {
+  id           String    @id @default(cuid())
+  /// Nombre corto (ej. «VTE CABA ING 1H - NORMAL»).
+  name         String
+  /// Detalle completo, tal como sale en la cotización.
+  description  String?
+  /// Precio de venta en USD sin IVA. null = se carga a mano en cada cotización.
+  priceUsd     Decimal?  @db.Decimal(14, 2)
+  ivaPercent   Decimal   @default(21) @db.Decimal(5, 2)
+  unit         String    @default("u")
+  deliveryText String?
+  categoryId   String?
+  category     Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  isActive     Boolean   @default(true)
+  /// De qué carga vino (para no duplicar al importar de nuevo).
+  sourceKey    String?   @unique
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
