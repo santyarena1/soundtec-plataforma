@@ -75,6 +75,26 @@ test.describe("equipo y clientes", () => {
     await expect(page.getByRole("option").filter({ hasText: "VTE CABA ING 1H - NORMAL" }).first()).toBeVisible({ timeout: 30_000 });
   });
 
+  test("el vendedor cambia el precio de un servicio solo en su cotización; el recupero negativo se guarda", async ({ page }) => {
+    test.setTimeout(300_000);
+    const svc = await prisma.quoteService.findFirst({ where: { name: "VTE CABA TECH SR 1H - NORMAL" } });
+    const listPrice = Number(svc!.priceUsd);
+    await page.goto("/admin/quotes/quick", { waitUntil: "networkidle", timeout: 120_000 });
+    await page.locator("#qq-client").fill("E2E Precio de servicio");
+    await pickProduct(page, "VTE CABA TECH SR 1H - NORMAL");
+    await pickProduct(page, "RECUPERO DE ACTIVOS");
+    const row = page.locator("table tbody tr").filter({ has: page.locator('input[value="VTE CABA TECH SR 1H - NORMAL"]') });
+    await row.locator('input[type="number"]').nth(1).fill("99");
+    await page.getByRole("button", { name: "Guardar", exact: true }).click();
+    await page.waitForURL(/editar=/, { timeout: 120_000 });
+    const id = new URL(page.url()).searchParams.get("editar")!;
+    created.push(id);
+    const items = await prisma.quoteItem.findMany({ where: { quoteId: id } });
+    expect(Number(items.find((i) => i.description.startsWith("VTE CABA TECH SR 1H - NORMAL"))?.unitPriceUsd)).toBe(99);
+    expect(Number(items.find((i) => i.description.startsWith("RECUPERO DE ACTIVOS"))?.unitPriceUsd)).toBe(-2480);
+    expect(Number((await prisma.quoteService.findUnique({ where: { id: svc!.id } }))?.priceUsd), "el servicio de la lista no cambia").toBe(listPrice);
+  });
+
   test("el catálogo no muestra servicios", async ({ page }) => {
     await page.goto("/portal/products?q=VTE%20CABA", { waitUntil: "networkidle", timeout: 120_000 });
     await expect(page.getByText("VTE CABA ING 1H - NORMAL")).toHaveCount(0);

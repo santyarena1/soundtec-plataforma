@@ -27,7 +27,8 @@ const itemSchema = z.object({
   /** Detalle debajo del nombre (servicios): sale completo en el PDF. */
   detail: z.string().max(4000).default(""),
   quantity: z.number().positive("La cantidad tiene que ser mayor que cero."),
-  unitPriceUsd: z.number().min(0),
+  /** Servicios e ítems libres admiten negativo (descuento, ej. recupero de equipos); los productos no. */
+  unitPriceUsd: z.number().finite(),
   discountPercent: z.number().min(0).max(100).default(0),
   note: z.string().max(1000).default(""),
   included: z.boolean().default(false),
@@ -76,6 +77,7 @@ export async function saveQuickQuote(input: QuickQuoteInput): Promise<SaveResult
   const data = parsed.data;
   if (data.issue && !data.clientId && !data.clientName.trim())
     return { ok: false, errors: ["Elegí un cliente o escribí su nombre para generar el PDF."] };
+  if (data.items.some((i) => i.productId && i.unitPriceUsd < 0)) return { ok: false, errors: ["Un producto no puede tener precio negativo."] };
   const free = data.items.filter((i) => !i.productId);
   if (free.some((i) => !i.name.trim())) return { ok: false, errors: ["Hay un ítem libre sin descripción."] };
 

@@ -685,7 +685,9 @@ export async function updateQuoteItem(formData: FormData): Promise<void> {
   // Con la columna Entrega oculta el select no viaja: se conserva la que tenía.
   const deliveryKey = formData.has("deliveryKey") ? String(formData.get("deliveryKey") || "") || null : item.deliveryKey;
   const ivaRate = parseTypedNumber(formData.get("ivaRate"), Number(item.ivaRate));
-  const unitPrice = Math.max(0, parseTypedNumber(formData.get("unitPriceUsd"), Number(item.unitPriceUsd)));
+  // Servicios e ítems libres pueden ir en negativo (ej. recupero de equipos: descuenta); los productos no.
+  const typedPrice = parseTypedNumber(formData.get("unitPriceUsd"), Number(item.unitPriceUsd));
+  const unitPrice = item.kind === "SERVICE" ? typedPrice : Math.max(0, typedPrice);
   // «Manual» solo si el precio cambió de verdad (cambiar la cantidad no lo fija).
   const overridden = Math.abs(unitPrice - Number(item.unitPriceUsd)) > 0.0001;
 

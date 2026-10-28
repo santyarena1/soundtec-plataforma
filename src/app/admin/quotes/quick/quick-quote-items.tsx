@@ -130,13 +130,19 @@ export function QuickQuoteItems({
                 <td className="p-2">
                   <Input
                     type="number"
-                    min="0"
+                    min={item.free ? undefined : "0"}
                     step="0.01"
                     value={item.unitPriceUsd}
                     disabled={item.included}
-                    onChange={(e) => update(item.uid, { unitPriceUsd: Math.max(0, Number(e.target.value) || 0) })}
+                    onChange={(e) => {
+                      const n = Number(e.target.value) || 0;
+                      // Servicios e ítems libres pueden ir en negativo (descuento); los productos no.
+                      update(item.uid, { unitPriceUsd: item.free ? n : Math.max(0, n) });
+                    }}
                     className="w-28"
+                    title={item.free ? "Precio solo para esta cotización: no cambia el servicio de la lista" : undefined}
                   />
+                  {item.free && item.detail ? <p className="mt-0.5 text-[11px] text-muted-foreground">Solo para esta cotización</p> : null}
                 </td>
                 <td className="p-2">
                   <Input

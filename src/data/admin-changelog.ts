@@ -2509,4 +2509,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Los servicios no son productos: no aparecen en el catálogo ni en el portal, y el equipo que no es administrador solo los ve al cotizar." },
     ],
   },
+  {
+    id: "ship-2026-10-28-precio-servicio-por-cot",
+    version: "2.24.1",
+    releasedAt: "2026-10-28T20:00:00.000Z",
+    summary: "El precio de un servicio se cambia solo para esa cotización, y los servicios con precio negativo (recupero) se guardan bien.",
+    items: [
+      { kind: "MEJORA", text: "Vendedores y admins cambian el precio de un servicio dentro de la cotización: vale solo para esa cotización y no toca el precio de la lista de Servicios. En la rápida la fila lo aclara («Solo para esta cotización»)." },
+      { kind: "FIX", text: "«Recupero de activos tecnológicos» (precio negativo, descuenta) no se podía guardar en la rápida y en el editor pasaba a 0 al tocar la fila. Ahora los servicios e ítems libres admiten precio negativo; los productos no." },
+    ],
+  },
 ];
