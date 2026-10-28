@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
-import { saveSetting } from "@/server/actions/settings";
+import { SettingFieldForm } from "@/components/admin/setting-field-form";
 
 /** Agrupa varios ajustes relacionados en una sola tarjeta, en lugar de una tarjeta por ajuste. */
 export function SettingsCard({
@@ -67,10 +66,7 @@ export function SettingField({
   options,
 }: SettingFieldProps) {
   return (
-    <form
-      action={saveSetting}
-      className="grid gap-2 py-4 first:pt-3 last:pb-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-3"
-    >
+    <SettingFieldForm>
       <input type="hidden" name="key" value={settingKey} />
       {secret ? <input type="hidden" name="isSecret" value="true" /> : null}
 
@@ -110,17 +106,14 @@ export function SettingField({
             name="value"
             type={secret ? "password" : "text"}
             defaultValue={secret ? "" : value}
-            autoComplete={secret ? "off" : undefined}
+            autoComplete={secret ? "new-password" : undefined}
             placeholder={secret && value ? `${value} — escribí una nueva para reemplazarla` : placeholder}
             className="mt-1.5"
           />
         )}
       </div>
 
-      <Button type="submit" variant="outline" size="sm">
-        Guardar
-      </Button>
-    </form>
+    </SettingFieldForm>
   );
 }
 

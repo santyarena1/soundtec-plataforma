@@ -35,6 +35,34 @@ export async function saveSetting(formData: FormData): Promise<void> {
   revalidateSettings(["/admin/crestron-sync", "/admin/quotes"]);
 }
 
+export interface SaveSettingState {
+  ok: boolean;
+  message: string;
+}
+
+/** Igual que saveSetting pero devuelve qué pasó, para que el formulario lo muestre. */
+export async function saveSettingWithFeedback(_prev: SaveSettingState | null, formData: FormData): Promise<SaveSettingState> {
+  await requireAdmin();
+  const parsed = setSchema.safeParse({
+    key: formData.get("key"),
+    value: formData.get("value") || "",
+    isSecret: String(formData.get("isSecret") || ""),
+  });
+  if (!parsed.success) return { ok: false, message: "El valor no es válido (máximo 8000 caracteres)." };
+  const secret =
+    parsed.data.isSecret === "true" || SECRET_PREFIXES.some((p) => parsed.data.key.startsWith(p) && parsed.data.key.includes("key"));
+  const value = parsed.data.value.trim();
+  if (secret && !value) return { ok: false, message: "Pegá la clave nueva en el campo antes de guardar." };
+  try {
+    await setSetting(parsed.data.key, value, secret ? { isSecret: true } : undefined);
+  } catch (error) {
+    console.error("saveSetting failed", parsed.data.key, error);
+    return { ok: false, message: "No se pudo guardar. Probá de nuevo; si sigue, avisame." };
+  }
+  revalidateSettings(["/admin/crestron-sync", "/admin/quotes"]);
+  return { ok: true, message: secret ? `Clave guardada (termina en ${value.slice(-4)}).` : "Guardado." };
+}
+
 const bulkSchema = z.record(z.string(), z.string());
 
 export async function saveBulkSettings(input: Record<string, string>): Promise<{ ok: boolean; error?: string }> {

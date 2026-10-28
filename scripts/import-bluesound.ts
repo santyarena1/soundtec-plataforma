@@ -19,7 +19,8 @@ type Item = {
   sku: string;
   listModel: string;
   color: string | null;
-  fobUsd: number;
+  /** null = no está en la lista de precios: se carga con «Consultá precio». */
+  fobUsd: number | null;
   originalName: string;
   shortDescription: string;
   longDescription: string;
@@ -94,7 +95,8 @@ async function main() {
       heightCm: dec(item.heightCm),
       depthCm: dec(item.depthCm),
       weight: dec(item.weightKg),
-      baseCostUsd: new Prisma.Decimal(item.fobUsd),
+      baseCostUsd: new Prisma.Decimal(item.fobUsd ?? 0),
+      requiresQuote: item.fobUsd == null,
       currency: "USD",
       isActive: true,
       enrichedAt: now,

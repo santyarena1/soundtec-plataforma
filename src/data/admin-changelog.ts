@@ -2529,4 +2529,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Cada producto trae descripción y características en castellano, especificaciones traducidas, fotos y documentos del sitio del fabricante, medidas, país de origen y sus accesorios vinculados (rack, soporte, kit colgante, rejillas, paneles)." },
     ],
   },
+  {
+    id: "ship-2026-10-28-bluesound-fotos-claves",
+    version: "2.24.3",
+    releasedAt: "2026-10-28T23:00:00.000Z",
+    summary: "Bluesound completo con fotos y 3 equipos a consultar; markup global en 3; logo de dARTS arreglado; el guardado de claves ahora avisa.",
+    items: [
+      { kind: "NUEVO", text: "Bluesound Professional: se suman A860, B160S y B240M (están en el sitio pero no en la lista) con «Consultá precio». El rack RM160 queda vinculado al B160S." },
+      { kind: "MEJORA", text: "Fotos oficiales para las 4 rejillas BCS (redonda y cuadrada, negra y blanca) y el kit colgante blanco. Ya no queda ningún Bluesound sin foto." },
+      { kind: "MEJORA", text: "Markup global por defecto en 3 (antes 1,35). Aplica a los productos sin regla de margen ni coeficiente propio." },
+      { kind: "FIX", text: "El logo de dARTS volvió a verse (el anterior apuntaba a un sitio caído) y las fotos con espacios en el nombre ya no se rompen." },
+      { kind: "FIX", text: "Integraciones y claves: al guardar una clave ahora aparece si se guardó (con las últimas 4 letras) o por qué no, y el navegador ya no autocompleta el campo con una contraseña guardada." },
+    ],
+  },
 ];
