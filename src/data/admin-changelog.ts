@@ -2519,4 +2519,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "«Recupero de activos tecnológicos» (precio negativo, descuenta) no se podía guardar en la rápida y en el editor pasaba a 0 al tocar la fila. Ahora los servicios e ítems libres admiten precio negativo; los productos no." },
     ],
   },
+  {
+    id: "ship-2026-10-28-bluesound",
+    version: "2.24.2",
+    releasedAt: "2026-10-28T22:00:00.000Z",
+    summary: "Bluesound Professional: 30 productos cargados con fichas en castellano, fotos, documentos y rubro de Tango.",
+    items: [
+      { kind: "NUEVO", text: "Bluesound Professional: streamers B100S y B400S, amplificador B170S, parlantes BCS, BSP y BSW (negro y blanco), paneles CP100/200/300, CS1, PRO HUB, racks, soportes, kits colgantes y rejillas. Costo = FOB de la lista de mayo 2026 (proveedor «Bluesound Professional (Lenbrook)»); los coeficientes de venta se ponen por regla." },
+      { kind: "MEJORA", text: "Cada producto trae descripción y características en castellano, especificaciones traducidas, fotos y documentos del sitio del fabricante, medidas, país de origen y sus accesorios vinculados (rack, soporte, kit colgante, rejillas, paneles)." },
+    ],
+  },
 ];
