@@ -2556,4 +2556,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Los ítems con precio negativo (descuentos o recupero) se ven con su monto en el PDF en lugar de «Sin cargo»." },
     ],
   },
+  {
+    id: "ship-2026-10-30-lista-catalogo",
+    version: "2.26.0",
+    releasedAt: "2026-10-30T20:00:00.000Z",
+    summary: "Catálogo en lista mucho más clara: una fila por producto con marca, modelo, categoría y precio a la vista, en Productos y en el portal.",
+    items: [
+      { kind: "NUEVO", text: "Productos arranca en la vista Lista: foto, marca y código Tango arriba, modelo en negrita, descripción en una línea, la categoría con su parte final destacada y el precio de venta grande con costo y markup debajo." },
+      { kind: "MEJORA", text: "La tabla con columnas a elección sigue disponible en «Tabla»; las tarjetas quedan igual." },
+      { kind: "MEJORA", text: "Catálogo del portal (vista Lista): el mismo diseño para clientes, con precio, descuento y el botón Agregar en cada fila; en el celular se lee sin columnas cortadas." },
+      { kind: "FIX", text: "Los productos sin precio aparecían como USD 0,00 en la tabla de Productos: ahora dicen «A consultar»." },
+    ],
+  },
 ];

@@ -14,6 +14,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { formatUsd } from "@/lib/utils";
 import { DEFAULT_SORT } from "@/lib/admin-catalog-sort";
 import { AdminProductCards } from "./admin-product-cards";
+import { AdminProductList } from "./admin-product-list";
 import {
   Eye,
   Loader2,
@@ -175,7 +176,10 @@ export function ProductsCatalogAdmin(props: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
-  const cardsView = search.get("vista") === "tarjetas";
+  // Lista (por defecto): una fila clara por producto. Tarjetas: con foto grande. Tabla: columnas a elección.
+  const view: "lista" | "tarjetas" | "tabla" =
+    search.get("vista") === "tarjetas" ? "tarjetas" : search.get("vista") === "tabla" ? "tabla" : "lista";
+  const cardsView = view === "tarjetas";
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [priceEditorIds, setPriceEditorIds] = useState<string[] | null>(null);
@@ -595,20 +599,22 @@ export function ProductsCatalogAdmin(props: Props) {
         <div className="ml-auto flex items-center gap-2">
           <div className="flex rounded-md border border-border p-0.5" role="group" aria-label="Vista">
             {([
-              ["tabla", "Tabla"],
-              ["tarjetas", "Tarjetas"],
-            ] as const).map(([key, label]) => (
+              ["lista", "Lista", "Una fila clara por producto"],
+              ["tarjetas", "Tarjetas", "Con la foto grande"],
+              ["tabla", "Tabla", "Elegís qué columnas ver"],
+            ] as const).map(([key, label, hint]) => (
               <Link
                 key={key}
-                href={buildHref({ vista: key === "tabla" ? undefined : key })}
-                aria-pressed={(key === "tarjetas") === cardsView}
-                className={`rounded px-2.5 py-1 text-xs font-medium ${(key === "tarjetas") === cardsView ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                href={buildHref({ vista: key === "lista" ? undefined : key })}
+                aria-pressed={key === view}
+                title={hint}
+                className={`rounded px-2.5 py-1 text-xs font-medium ${key === view ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {label}
               </Link>
             ))}
           </div>
-          <div className={`relative ${cardsView ? "hidden" : ""}`}>
+          <div className={`relative ${view === "tabla" ? "" : "hidden"}`}>
             <Button
               onClick={() => setColumnPickerOpen((s) => !s)}
               variant="outline"
@@ -651,7 +657,18 @@ export function ProductsCatalogAdmin(props: Props) {
         </div>
       </div>
 
-      {cardsView ? (
+      {view === "lista" ? (
+        <AdminProductList
+          rows={props.rows}
+          showPrices={props.showPrices}
+          priceView={priceView}
+          selected={selected}
+          onToggle={toggle}
+          onToggleAll={toggleAll}
+          onPreview={setPreviewId}
+          onEditPrice={editPrice}
+        />
+      ) : cardsView ? (
         <AdminProductCards rows={props.rows} showPrices={props.showPrices} selected={selected} onToggle={toggle} onEditPrice={editPrice} />
       ) : (
       <div className="overflow-x-auto">
@@ -858,11 +875,8 @@ function renderCell(
       return showPrices ? formatUsd(r.cost) : "—";
     case "salePrice": {
       if (!showPrices) return "—";
-      const value = priceView === "usdFob"
-        ? formatUsd(r.priceFobUsd)
-        : priceView === "arsNacional"
-          ? formatArs(r.priceNacFinalArs)
-          : formatUsd(r.priceUsdFinal);
+      const amount = priceView === "usdFob" ? r.priceFobUsd : priceView === "arsNacional" ? r.priceNacFinalArs : r.priceUsdFinal;
+      const value = amount <= 0 ? "A consultar" : priceView === "arsNacional" ? formatArs(amount) : formatUsd(amount);
       return (
         <div className="whitespace-nowrap">
           <span className="font-medium">{value}</span>

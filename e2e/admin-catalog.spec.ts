@@ -8,7 +8,13 @@ test("listado admin: stock en español, orden por defecto coherente y sin errore
   page.on("console", (message) => {
     if (message.type() === "error" && /did not match|hydration/i.test(message.text())) errors.push(message.text());
   });
+  // Vista por defecto: la lista. La tabla con columnas sigue en «Tabla».
   await page.goto("/admin/products", { waitUntil: "networkidle" });
+  const list = page.getByTestId("product-list");
+  await expect(list).toBeVisible();
+  await expect(list).not.toContainText(/IN_STOCK|OUT_OF_STOCK|LOW_STOCK|ON_REQUEST|USD 0,00/);
+  await page.getByRole("link", { name: "Tabla", exact: true }).click();
+  await page.waitForURL(/vista=tabla/);
   const table = page.locator("table").first();
   await expect(table).toBeVisible();
   await expect(table).not.toContainText(/IN_STOCK|OUT_OF_STOCK|LOW_STOCK|ON_REQUEST/);
