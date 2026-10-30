@@ -8,6 +8,8 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { loadQuoteForEdit, requireQuotePermission } from "@/lib/quote-access";
+import { defaultAlternativeId, rowsOfAlternative } from "@/lib/quote-alternatives";
+import { ensureQuoteCatalogImage } from "@/lib/quote-product-images";
 import { createQuoteShell } from "@/server/actions/quotes";
 import { issueQuote } from "@/server/actions/quote-export";
 import { changeQuoteDocumentType } from "@/server/actions/quote-document-types";
@@ -31,6 +33,8 @@ const itemSchema = z.object({
   unitPriceUsd: z.number().finite(),
   discountPercent: z.number().min(0).max(100).default(0),
   note: z.string().max(1000).default(""),
+  /** La nota sale en la cotización; si no, es interna. */
+  noteVisible: z.boolean().default(false),
   included: z.boolean().default(false),
   /** Línea incluida sin cargo de otra línea (uid del producto). */
   parentUid: z.string().nullable().optional(),
@@ -117,7 +121,12 @@ export async function saveQuickQuote(input: QuickQuoteInput): Promise<SaveResult
       await changeQuoteDocumentType({ quoteId, key: profile.key, ...(audience !== undefined ? { audience } : {}) });
     }
     // La planilla de la rápida se reescribe entera con lo que hay en pantalla.
-    await prisma.quoteItem.deleteMany({ where: { quoteId } });
+    // Solo la de la alternativa principal: si en el editor completo se armaron
+    // otras alternativas, no se tocan.
+    const mainAlternative = defaultAlternativeId(loaded.quote.alternatives);
+    await prisma.quoteItem.deleteMany({
+      where: { quoteId, id: { in: rowsOfAlternative(loaded.quote.items, mainAlternative, loaded.quote.alternatives).map((i) => i.id) } },
+    });
   } else {
     const { user, permissions } = await requireQuotePermission("quotes.create");
     void permissions;
@@ -142,6 +151,8 @@ export async function saveQuickQuote(input: QuickQuoteInput): Promise<SaveResult
   await prisma.quoteCommercialTerms.update({ where: { quoteId }, data: { validityDays: data.validityDays, pricesIn: "USD" } });
 
   const alternative = await prisma.quoteAlternative.findFirst({ where: { quoteId }, orderBy: [{ isDefault: "desc" }, { sortOrder: "asc" }] });
+  // Fotos: cada producto queda con la del catálogo para el PDF.
+  const photoProducts = new Set<string>();
   const defaultIva = Number(await getSetting(QUOTE_SETTING_KEYS.defaultIva, "21")) || 21;
   const byId = new Map(products.map((p) => [p.id, p]));
   const idByUid = new Map<string, string>();
@@ -175,12 +186,17 @@ export async function saveQuickQuote(input: QuickQuoteInput): Promise<SaveResult
         source: "MANUAL",
         sortOrder: index,
         notes: item.note || (item.included ? "Incluido" : null),
+        notesVisible: Boolean(item.note.trim()) && item.noteVisible,
         includedWithId: item.included ? parentId : null,
         includedPerUnit: item.included && parentId ? item.perParent ?? 1 : null,
       },
     });
     idByUid.set(item.uid, created.id);
+    if (product) photoProducts.add(product.id);
     index += 1;
+  }
+  for (const productId of photoProducts) {
+    await ensureQuoteCatalogImage({ quoteId, productId }).catch((error) => console.error("[saveQuickQuote] foto", error));
   }
 
   if (data.issue) {
@@ -200,7 +216,8 @@ export async function loadQuickQuoteForEdit(quoteId: string) {
   const loaded = await loadQuoteForEdit(quoteId);
   if (!loaded.quote) return null;
   const q = loaded.quote;
-  const items = [...q.items].sort((a, b) => a.sortOrder - b.sortOrder);
+  // La rápida edita la alternativa principal (las otras, si las hay, se ven en el editor completo).
+  const items = rowsOfAlternative(q.items, defaultAlternativeId(q.alternatives), q.alternatives).sort((a, b) => a.sortOrder - b.sortOrder);
   return {
     id: q.id,
     number: q.number,
@@ -229,6 +246,7 @@ export async function loadQuickQuoteForEdit(quoteId: string) {
         unitPriceUsd: Number(i.unitPriceUsd),
         discountPercent: 0,
         note: i.notes && i.notes !== "Incluido" ? i.notes : "",
+        noteVisible: i.notesVisible,
         included,
         ivaPercent: Number(i.ivaRate),
         parentUid: i.includedWithId ?? undefined,

@@ -1407,20 +1407,25 @@ model QuoteAlternative {
 
   items    QuoteItem[]
   sections QuoteSection[]
+  /// Ambientes de esta alternativa: cada alternativa arma su propia planilla.
+  groups   QuoteItemGroup[]
 
   @@unique([quoteId, key])
 }
 
 model QuoteItemGroup {
-  id        String      @id @default(cuid())
-  quoteId   String
-  quote     Quote       @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  title     String
-  body      String      @default("") @db.Text
-  sortOrder Int         @default(0)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  items     QuoteItem[]
+  id            String            @id @default(cuid())
+  quoteId       String
+  quote         Quote             @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  /// Alternativa a la que pertenece (null = la por defecto, cotizaciones viejas).
+  alternativeId String?
+  alternative   QuoteAlternative? @relation(fields: [alternativeId], references: [id], onDelete: Cascade)
+  title         String
+  body          String            @default("") @db.Text
+  sortOrder     Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  items         QuoteItem[]
 
   @@index([quoteId])
 }
@@ -1457,6 +1462,8 @@ model QuoteItem {
   lastAiRunId       String?
   quantityRationale String?
   notes             String?
+  /// La nota sale en la cotización debajo del producto (si no, es interna).
+  notesVisible      Boolean           @default(false)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 

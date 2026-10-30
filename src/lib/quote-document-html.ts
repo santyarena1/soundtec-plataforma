@@ -22,6 +22,7 @@ import { isRichText, sanitizeQuoteHtml, splitParagraphs } from "@/lib/quote-rich
 import { formatUsd } from "@/lib/utils";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
 import { buildQuoteZones, type QuoteGroupRecord } from "@/lib/quote-item-groups";
+import { defaultAlternativeId, rowsOfAlternative, sortAlternatives } from "@/lib/quote-alternatives";
 import {
   computeQuoteTotals,
   taxLabel,
@@ -44,10 +45,15 @@ export type QuoteDocumentHtmlItem = {
   alternativeId?: string | null;
   productId?: string | null;
   ivaRate?: unknown;
+  /** Nota del producto: sale debajo solo si notesVisible. */
+  notes?: string | null;
+  notesVisible?: boolean;
   product?: {
     normalizedName: string;
     shortDescription: string | null;
     brand?: { name: string } | null;
+    /** Foto del catálogo: se usa si la cotización no tiene una propia para el producto. */
+    images?: Array<{ url: string }>;
   } | null;
 };
 
@@ -69,7 +75,7 @@ export type QuoteDocumentHtmlInput = {
   items: QuoteDocumentHtmlItem[];
   itemGroups?: QuoteGroupRecord[];
   /** Opciones cotizadas. Con más de una, cada una lleva su tabla y su total. */
-  alternatives?: Array<{ id: string; name: string; purpose: string | null; sortOrder: number }>;
+  alternatives?: Array<{ id: string; name: string; purpose: string | null; sortOrder: number; isDefault?: boolean }>;
   /** Modo «logos individuales»: las marcas elegidas en la cotización (vacío = collage institucional). */
   brandLogos?: Array<{ label: string; url: string }>;
   terms?: {
@@ -304,20 +310,34 @@ export async function buildQuoteDocumentHtml(
   }
 
   const visibleItems = quote.items.filter((item) => !item.excluded);
-  const totals = computeQuoteTotals(quote.items, quote.taxMode ?? "NOTE");
+  const totals = computeQuoteTotals(visibleItems, quote.taxMode ?? "NOTE");
   // Las fotos de producto se mostraban en la vista previa y no llegaban al
   // documento del cliente, que es el que termina decidiendo la compra.
   const photoByProduct = new Map<string, string>();
-  for (const asset of assets) {
-    if (asset.kind === "PRODUCT" && asset.productId && !photoByProduct.has(asset.productId)) {
-      // Las fotos del fabricante pesan hasta 1 MB y algunos sitios no dejan
-      // bajarlas directo: pasan por el optimizador propio, achicadas.
-      // Word no lee WebP: ahí van tal cual.
-      const external = /^https?:\/\//i.test(asset.url) && origin && !options?.forWord;
-      const optimized = external ? optimizedImage(asset.url, 256) : null;
-      // Si el dominio no se optimiza, optimizedImage devuelve la URL tal cual (absoluta).
-      const src = optimized ? (optimized.startsWith("/") ? `${origin}${optimized}` : optimized) : await resolveAssetSrc(asset.url, origin);
-      if (src) photoByProduct.set(asset.productId, src);
+  const photoSrc = async (url: string) => {
+    // Archivos propios (fotos subidas a mano): son privados, el navegador del PDF
+    // no tiene sesión. Se leen directo y van embebidos.
+    if (url.includes("/api/files/") || !/^https?:\/\//i.test(url)) return resolveAssetSrc(url, origin);
+    // Las fotos del fabricante pesan hasta 1 MB y algunos sitios no dejan
+    // bajarlas directo: pasan por el optimizador propio, achicadas.
+    // Word no lee WebP: ahí van tal cual.
+    const optimized = origin && !options?.forWord ? optimizedImage(url, 256) : null;
+    // Si el dominio no se optimiza, optimizedImage devuelve la URL tal cual (absoluta).
+    return optimized ? (optimized.startsWith("/") ? `${origin}${optimized}` : optimized) : url;
+  };
+  if (quote.showProductPhotos !== false) {
+    for (const asset of assets) {
+      if (asset.kind === "PRODUCT" && asset.productId && !photoByProduct.has(asset.productId)) {
+        const src = await photoSrc(asset.url);
+        if (src) photoByProduct.set(asset.productId, src);
+      }
+    }
+    // Sin foto propia en la cotización (p. ej. la rápida): la del catálogo.
+    for (const item of visibleItems) {
+      const catalog = item.product?.images?.[0]?.url;
+      if (!item.productId || photoByProduct.has(item.productId) || !catalog) continue;
+      const src = await photoSrc(catalog);
+      if (src) photoByProduct.set(item.productId, src);
     }
   }
   const anyPhoto = quote.showProductPhotos !== false && visibleItems.some((item) => item.productId && photoByProduct.has(item.productId));
@@ -329,7 +349,15 @@ export async function buildQuoteDocumentHtml(
       line.blurb
         ? `<br/><span style="font-size:9pt;font-weight:normal;text-align:justify">${escapeHtml(line.blurb)}</span>`
         : ""
-    }${item.optional ? " <i>(opcional)</i>" : ""}`;
+    }${
+      item.optional
+        ? ` <span style="display:inline-block;margin-left:3pt;padding:0 4pt;border:.75pt solid ${color};border-radius:3pt;color:${color};font-size:7.5pt;font-weight:bold;letter-spacing:.3pt;text-transform:uppercase;vertical-align:1pt">Opcional</span>`
+        : ""
+    }${
+      item.notesVisible && item.notes?.trim() && item.notes.trim() !== "Incluido"
+        ? `<br/><span style="font-size:8.5pt;font-weight:normal;font-style:italic;color:#445">${escapeHtml(item.notes.trim()).replaceAll("\n", "<br/>")}</span>`
+        : ""
+    }`;
     const photo = item.productId ? photoByProduct.get(item.productId) : null;
     const photoCell = anyPhoto
       ? `<td style="border:.5pt solid #c9d0d8;padding:3pt;text-align:center">${
@@ -342,8 +370,8 @@ export async function buildQuoteDocumentHtml(
 ${photoCell}<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.quantity)}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.unit)}</td>
 <td style="border:.5pt solid #c9d0d8;padding:4pt">${detail}</td>
-<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.unitPriceUsd) > 0 ? formatUsd(Number(item.unitPriceUsd)) : "Sin cargo"}</td>
-<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right;font-weight:bold">${Number(item.lineTotalUsd) > 0 ? formatUsd(Number(item.lineTotalUsd)) : "—"}</td>
+<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.unitPriceUsd) !== 0 ? formatUsd(Number(item.unitPriceUsd)) : "Sin cargo"}</td>
+<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right;font-weight:bold">${Number(item.lineTotalUsd) !== 0 ? formatUsd(Number(item.lineTotalUsd)) : "—"}</td>
 ${showTax ? `<td style="border:.5pt solid #c9d0d8;padding:4pt;text-align:right">${Number(item.ivaRate ?? 0)}%</td>` : ""}
 ${showDelivery ? `<td style="border:.5pt solid #c9d0d8;padding:4pt">${escapeHtml(item.deliveryKey || quote.terms?.deliveryText || "")}</td>` : ""}
 </tr>`;
@@ -364,20 +392,20 @@ ${showDelivery ? `<th style="border:.5pt solid ${color};padding:4pt;text-align:l
   // Con una sola opción el documento se arma como siempre. Con más de una,
   // cada opción lleva su tabla y su total: sumarlas daría un precio que
   // nadie va a pagar, porque el cliente elige una.
-  const alternatives = (quote.alternatives ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder);
-  const usedAlternatives = alternatives.filter((alternative) =>
-    visibleItems.some((item) => item.alternativeId === alternative.id)
-  );
+  // Cada alternativa tiene su planilla (con sus propios ambientes). Los ítems y
+  // ambientes sin alternativa (cotizaciones viejas) son de la por defecto.
+  const alternatives = sortAlternatives((quote.alternatives ?? []).map((a) => ({ ...a, isDefault: a.isDefault ?? false })));
+  const usedAlternatives = alternatives.filter((alternative) => rowsOfAlternative(visibleItems, alternative.id, alternatives).length > 0);
   const multiAlternative = usedAlternatives.length > 1;
 
-  const renderItems = (items: QuoteDocumentHtmlItem[]) => {
-    const zones = buildQuoteZones(items, quote.itemGroups ?? []);
-    const multiTables = (quote.itemGroups?.length ?? 0) > 0;
+  const renderItems = (items: QuoteDocumentHtmlItem[], groups: QuoteGroupRecord[]) => {
+    // Un ambiente sin productos no sale en el documento del cliente.
+    const used = groups.filter((group) => items.some((item) => item.groupId === group.id));
+    const zones = buildQuoteZones(items, used);
+    const multiTables = used.length > 0;
     return zones
       .map((zone) => {
-        const subtotal = zone.items
-          .filter((item) => !item.optional)
-          .reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+        const subtotal = zone.items.reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
         return `${heading(zone.title)}${zone.body.trim() ? paragraphs(zone.body) : ""}${tableHead}
 ${zone.items.map(itemRow).join("")}
 </tbody></table>
@@ -389,17 +417,27 @@ ${multiTables ? `<p style="margin:8pt 0 0;text-align:right;font-size:10.5pt;font
   const equipmentHtml = multiAlternative
     ? usedAlternatives
         .map((alternative) => {
-          const items = visibleItems.filter((item) => item.alternativeId === alternative.id);
+          const items = rowsOfAlternative(visibleItems, alternative.id, alternatives);
+          const groups = rowsOfAlternative(quote.itemGroups ?? [], alternative.id, alternatives);
           const optionTotal = computeQuoteTotals(items, quote.taxMode ?? "NOTE");
-          return `${heading(alternative.name)}${
-            alternative.purpose ? paragraphs(alternative.purpose) : ""
-          }${renderItems(items)}
-<p style="margin:8pt 0 0;text-align:right;font-size:11pt;font-weight:bold;color:${color}">Total ${escapeHtml(
+          const optionTotals =
+            optionTotal.mode === "ADDED"
+              ? `<p style="margin:8pt 0 0;text-align:right;font-size:10pt">Neto ${formatUsd(optionTotal.net)} · ${escapeHtml(taxLabel(optionTotal))} ${formatUsd(optionTotal.tax)}</p>`
+              : "";
+          return `<div style="margin-top:14pt;padding:6pt 9pt;background:${color};color:#fff;font-size:12pt;font-weight:bold;letter-spacing:.3pt;page-break-after:avoid">${escapeHtml(alternative.name)}</div>${
+            alternative.purpose ? `<div style="margin-top:6pt">${paragraphs(alternative.purpose)}</div>` : ""
+          }${renderItems(items, groups)}${optionTotals}
+<p style="margin:6pt 0 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total ${escapeHtml(
             alternative.name
           )} ${formatUsd(optionTotal.total)}</p>`;
         })
-        .join('<div style="height:10pt"></div>')
-    : renderItems(visibleItems);
+        .join('<div style="height:14pt"></div>')
+    : renderItems(
+        visibleItems,
+        alternatives.length === 0
+          ? quote.itemGroups ?? []
+          : rowsOfAlternative(quote.itemGroups ?? [], usedAlternatives[0]?.id ?? defaultAlternativeId(alternatives), alternatives)
+      );
 
   // Planilla + totales en el lugar de «Productos y servicios»; firma y pie con el cierre.
   const totalsHtml = `<div style="page-break-inside:avoid">${multiAlternative ? "" : totals.mode === "ADDED"
@@ -409,7 +447,7 @@ ${multiTables ? `<p style="margin:8pt 0 0;text-align:right;font-size:10.5pt;font
 <tr><td style="padding:3pt 10pt 1pt 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total</td><td style="padding:3pt 0 1pt;text-align:right;font-size:12pt;font-weight:bold;color:${color}">${formatUsd(totals.total)}</td></tr>
 </table>`
   : `<p style="margin:10pt 0 0;text-align:right;font-size:12pt;font-weight:bold;color:${color}">Total neto ${formatUsd(totals.net)}</p>`}
-${!multiAlternative && taxNote(totals) ? `<p style="margin:2pt 0 0;text-align:right;font-size:8pt;color:#556">${escapeHtml(taxNote(totals) as string)}</p>` : ""}</div>`;
+${taxNote(totals) ? `<p style="margin:2pt 0 0;text-align:right;font-size:8pt;color:#556">${escapeHtml(taxNote(totals) as string)}</p>` : ""}</div>`;
   const equipmentBlock = `${equipmentHtml}
 ${totalsHtml}`;
   const signatureBlock = `<p style="margin-top:28pt;font-size:10.5pt"><b>${escapeHtml(signName)}</b><br/>${escapeHtml(signTitle)}<br/>${escapeHtml(identity.name)} S.R.L.</p>

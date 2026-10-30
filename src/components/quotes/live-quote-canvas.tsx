@@ -76,6 +76,8 @@ export type LiveTableItem = {
   photoUrl?: string | null;
   productId?: string | null;
   groupId?: string | null;
+  /** Nota visible en la cotización (las internas no llegan acá). */
+  note?: string | null;
 };
 
 export type LiveTerms = {
@@ -199,6 +201,7 @@ function ProductsTable({
   quoteId,
   issued,
   totalLabel = "Total",
+  showPhotos = true,
 }: {
   items: LiveTableItem[];
   color: string;
@@ -207,10 +210,13 @@ function ProductsTable({
   quoteId?: string;
   issued?: boolean;
   totalLabel?: string;
+  /** Igual que el PDF: sin fotos si la cotización las apagó. */
+  showPhotos?: boolean;
 }) {
   const visible = items;
-  const total = visible.filter((item) => !item.optional).reduce((sum, item) => sum + item.lineTotal, 0);
-  const anyPhoto = Boolean(quoteId) || visible.some((item) => item.photoUrl);
+  // Los opcionales suman igual: solo llevan la marca.
+  const total = visible.reduce((sum, item) => sum + item.lineTotal, 0);
+  const anyPhoto = showPhotos && (Boolean(quoteId) || visible.some((item) => item.photoUrl));
   const cols = 4 + (anyPhoto ? 1 : 0) + 2 + (sample ? 0 : 1) + (showDelivery ? 1 : 0);
 
   if (visible.length === 0) {
@@ -276,10 +282,14 @@ function ProductsTable({
               <span className="quote-product-name">{item.name || item.detail}</span>
               {item.blurb ? <p className="quote-product-blurb">{item.blurb}</p> : null}
               {item.optional ? (
-                <span className="ml-1 text-[7.5pt] font-semibold uppercase tracking-wide text-neutral-500">
+                <span
+                  className="ml-1 inline-block rounded-[3px] border px-[1.2mm] text-[7.5pt] font-bold uppercase tracking-wide"
+                  style={{ borderColor: color, color }}
+                >
                   Opcional
                 </span>
               ) : null}
+              {item.note ? <p className="mt-[0.8mm] text-[8.5pt] italic text-neutral-600">{item.note}</p> : null}
             </td>
             <td className="border-b border-neutral-200 px-[2mm] py-[1.8mm] text-right tabular-nums">
               {formatUsd(item.unitPrice)}
@@ -348,6 +358,8 @@ export function LiveQuoteCanvas({
   itemGroups = [],
   brandsMode,
   brandLogos = [],
+  showProductPhotos = true,
+  alternativeLabel = null,
 }: {
   scope: "template" | "quote";
   identity: LiveIdentity;
@@ -365,6 +377,10 @@ export function LiveQuoteCanvas({
   quoteId?: string;
   brandsMode?: "collage" | "individual";
   brandLogos?: QuoteBrandLogoView[];
+  /** Fotos de los productos en la planilla (se apagan por cotización). */
+  showProductPhotos?: boolean;
+  /** Con varias alternativas: cuál se está viendo (la vista previa muestra una por vez). */
+  alternativeLabel?: string | null;
 }) {
   const color = identity.primary;
   const effectiveBrandsMode = brandsMode ?? identity.brandsDisplayMode ?? "collage";
@@ -645,6 +661,14 @@ export function LiveQuoteCanvas({
                         label={title}
                         hint={scope === "template" ? "Se arma con los equipos de cada cotización" : "Planilla de esta cotización"}
                       >
+                        {alternativeLabel ? (
+                          <p
+                            className="mb-[3mm] px-[3mm] py-[1.6mm] text-[11pt] font-bold text-white"
+                            style={{ background: color }}
+                          >
+                            {alternativeLabel}
+                          </p>
+                        ) : null}
                         {tableZones.map((zone) => (
                           <div key={zone.id || "general"} className="quote-doc__block">
                             <SectionTitle value={zone.title} color={color} editable={false} />
@@ -660,16 +684,15 @@ export function LiveQuoteCanvas({
                               sample={scope === "template"}
                               quoteId={scope === "quote" ? quoteId : undefined}
                               issued={issued}
-                              totalLabel={multiTables ? `Subtotal ${zone.title}` : "Total"}
+                              totalLabel={multiTables ? `Subtotal ${zone.title}` : alternativeLabel ? `Total ${alternativeLabel}` : "Total"}
+                              showPhotos={showProductPhotos}
                             />
                           </div>
                         ))}
                         {multiTables ? (
                           <p className="mt-[3mm] text-right text-[11pt] font-bold" style={{ color }}>
-                            Total neto{" "}
-                            {formatUsd(
-                              tableItems.filter((item) => !item.optional).reduce((sum, item) => sum + item.lineTotal, 0)
-                            )}
+                            {alternativeLabel ? `Total ${alternativeLabel}` : "Total neto"}{" "}
+                            {formatUsd(tableItems.reduce((sum, item) => sum + item.lineTotal, 0))}
                           </p>
                         ) : null}
                         {scope === "template" ? (

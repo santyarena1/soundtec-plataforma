@@ -26,6 +26,8 @@ export async function generateAndStoreQuotePdf(quoteId: string, actorId: string)
               normalizedName: true,
               shortDescription: true,
               brand: { select: { name: true } },
+              // Foto del catálogo: la usa el PDF si la cotización no tiene una propia.
+              images: { select: { url: true }, orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1 },
             },
           },
         },

@@ -15,6 +15,8 @@ export type QuickItem = {
   unitPriceUsd: number;
   discountPercent: number;
   note: string;
+  /** La nota sale en la cotización (si no, la ve solo el equipo). */
+  noteVisible?: boolean;
   included: boolean;
   /** Ítem libre: escrito a mano, sin producto del catálogo. */
   free?: boolean;
@@ -158,7 +160,15 @@ export function QuickQuoteItems({
                 </td>
                 <td className="p-2 text-right font-semibold tabular-nums">{item.included ? "Sin cargo" : formatUsd(lineTotal(item))}</td>
                 <td className="p-2">
-                  <Input value={item.note} onChange={(e) => update(item.uid, { note: e.target.value })} />
+                  <Input value={item.note} onChange={(e) => update(item.uid, { note: e.target.value })} placeholder="Nota (opcional)" aria-label="Nota" />
+                  <label className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(item.noteVisible)}
+                      onChange={(e) => update(item.uid, { noteVisible: e.target.checked })}
+                    />
+                    Mostrar en la cotización
+                  </label>
                 </td>
                 <td className="p-2">
                   <Button type="button" size="sm" variant="ghost" onClick={() => remove(item.uid)}>

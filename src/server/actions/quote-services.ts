@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { loadQuoteForEdit, requireQuotePermission } from "@/lib/quote-access";
+import { targetAlternativeId } from "@/lib/quote-alternatives";
 import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { searchQuoteServices, serviceItemDescription } from "@/server/quote-services";
@@ -63,7 +64,7 @@ export async function searchServicesForQuote(query: string) {
 }
 
 /** Agrega un servicio a la cotización: nombre + detalle completo, con su precio de venta (o 0 para cargar a mano). */
-export async function addQuoteServiceToQuote(input: { quoteId: string; serviceId: string; groupId?: string | null }): Promise<Result> {
+export async function addQuoteServiceToQuote(input: { quoteId: string; serviceId: string; groupId?: string | null; alternativeId?: string | null }): Promise<Result> {
   await requireQuotePermission("quotes.edit");
   const loaded = await loadQuoteForEdit(input.quoteId);
   if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
@@ -72,11 +73,12 @@ export async function addQuoteServiceToQuote(input: { quoteId: string; serviceId
   const unit = (await getSetting(QUOTE_SETTING_KEYS.defaultUnit, "u")).trim() || service.unit;
   const price = service.priceUsd == null ? 0 : Number(service.priceUsd);
   const sort = loaded.quote.items.reduce((m, i) => Math.max(m, i.sortOrder), -1) + 1;
+  const group = input.groupId ? loaded.quote.itemGroups.find((g) => g.id === input.groupId) ?? null : null;
   await prisma.quoteItem.create({
     data: {
       quoteId: loaded.quote.id,
-      groupId: input.groupId || null,
-      alternativeId: loaded.quote.alternatives.find((a) => a.isDefault)?.id,
+      groupId: group?.id ?? null,
+      alternativeId: targetAlternativeId({ alternatives: loaded.quote.alternatives, requested: input.alternativeId, group }),
       kind: "SERVICE",
       serviceType: "servicio",
       quantity: new Prisma.Decimal(1),

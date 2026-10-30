@@ -15,6 +15,8 @@ import { AudienceSelect } from "@/components/quotes/audience-select";
 import { listDocumentTypes } from "@/lib/quote-document-types";
 import { QuoteBrandsEditor } from "@/components/quotes/quote-brands-editor";
 import { QuoteAlternativesPanel } from "@/components/quotes/quote-alternatives-panel";
+import { QuoteProductPhotosToggle } from "@/components/quotes/quote-product-photos-toggle";
+import { defaultAlternativeId, rowsOfAlternative, sortAlternatives } from "@/lib/quote-alternatives";
 import { LiveQuoteCanvas } from "@/components/quotes/live-quote-canvas";
 import { prisma } from "@/lib/prisma";
 import { permissionsHave } from "@/lib/permissions";
@@ -74,7 +76,7 @@ export default async function QuoteEditorPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ paso?: string; autogen?: string }>;
+  searchParams?: Promise<{ paso?: string; autogen?: string; alt?: string }>;
 }) {
   const { id } = await params;
   const sp = searchParams ? await searchParams : {};
@@ -156,21 +158,28 @@ export default async function QuoteEditorPage({
    * que hay que volver a emitirla para que el cliente reciba el PDF nuevo.
    */
   const canEdit = permissions.fullAccess || permissionsHave(permissions, "quotes.edit");
-  // Mismo criterio que el documento: los opcionales se cotizan aparte y los
-  // excluidos no van. Antes la planilla mostraba un neto que no coincidía
-  // con el del PDF en cuanto había un opcional cargado.
-  const total = quote.items
-    .filter((i) => !i.optional && !i.excluded)
-    .reduce((s, i) => s + Number(i.lineTotalUsd), 0);
-  // Cuánto suma cada opción, para verlo sin abrir el PDF.
-  const alternativeTotals = new Map<string, { count: number; amount: number }>();
-  for (const item of quote.items) {
-    if (!item.alternativeId || item.excluded) continue;
-    const current = alternativeTotals.get(item.alternativeId) ?? { count: 0, amount: 0 };
-    current.count += 1;
-    if (!item.optional) current.amount += Number(item.lineTotalUsd);
-    alternativeTotals.set(item.alternativeId, current);
-  }
+  // Cada alternativa tiene su planilla: el editor muestra la elegida en las pestañas.
+  const alternatives = sortAlternatives(quote.alternatives);
+  const activeAlternativeId =
+    (sp.alt && alternatives.some((a) => a.id === sp.alt) ? sp.alt : null) ?? defaultAlternativeId(alternatives);
+  const multipleAlternatives = alternatives.length > 1;
+  const activeAlternative = alternatives.find((a) => a.id === activeAlternativeId) ?? null;
+  const activeItems = rowsOfAlternative(quote.items, activeAlternativeId, alternatives);
+  const activeGroups = rowsOfAlternative(quote.itemGroups, activeAlternativeId, alternatives);
+  // Mismo criterio que el documento: los excluidos no van; los opcionales suman (solo llevan la marca).
+  const sumLines = (rows: typeof quote.items) =>
+    rows.filter((i) => !i.excluded).reduce((s, i) => s + Number(i.lineTotalUsd), 0);
+  const total = sumLines(activeItems);
+  const alternativeTabs = alternatives.map((alt) => {
+    const rows = rowsOfAlternative(quote.items, alt.id, alternatives);
+    return {
+      id: alt.id,
+      name: alt.name,
+      purpose: alt.purpose,
+      count: rows.filter((i) => !i.excluded).length,
+      amount: sumLines(rows),
+    };
+  });
   const canIssue = permissions.fullAccess || permissionsHave(permissions, "quotes.issue");
   const issueCheck = quoteIssueCheck(quote);
   const onQuoteProductIds = new Set(productIds);
@@ -199,7 +208,7 @@ export default async function QuoteEditorPage({
     });
   const plans = quote.assets.filter((a) => a.kind === "PLAN");
   const extraImages = quote.assets.filter((a) => a.kind !== "PLAN" && a.kind !== "CORPORATE" && !a.sectionId);
-  const bomRows = quote.items.map((i) => {
+  const bomRows = activeItems.map((i) => {
     const asset = i.productId ? quote.assets.find((a) => a.productId === i.productId && a.kind === "PRODUCT") : null;
     const line = quoteItemDisplay(i);
     return {
@@ -219,6 +228,8 @@ export default async function QuoteEditorPage({
       photoUrl: asset?.url || (i.productId ? catalogByProduct.get(i.productId) || null : null),
       productId: i.productId,
       groupId: i.groupId,
+      notes: i.notes === "Incluido" ? "" : i.notes || "",
+      notesVisible: i.notesVisible,
     };
   });
   const needsShortDescriptions = quote.items.some(
@@ -264,7 +275,7 @@ export default async function QuoteEditorPage({
             .sort((a, b) => a.sortOrder - b.sortOrder)
             .map((asset) => ({ id: asset.id, url: asset.url, caption: asset.caption })),
         }))}
-      items={quote.items
+      items={activeItems
         .filter((item) => !item.excluded)
         .map((item) => {
           const asset = item.productId
@@ -287,9 +298,12 @@ export default async function QuoteEditorPage({
             photoUrl: asset?.url || (item.productId ? catalogByProduct.get(item.productId) || null : null),
             productId: item.productId,
             groupId: item.groupId,
+            note: item.notesVisible && item.notes && item.notes !== "Incluido" ? item.notes : null,
           };
         })}
-      itemGroups={quote.itemGroups.map((group) => ({
+      showProductPhotos={quote.showProductPhotos}
+      alternativeLabel={multipleAlternatives ? activeAlternative?.name ?? null : null}
+      itemGroups={activeGroups.map((group) => ({
         id: group.id,
         title: group.title,
         body: group.body,
@@ -646,12 +660,6 @@ export default async function QuoteEditorPage({
 
           {step === 4 ? (
             <div className="space-y-4">
-              <QuoteAlternativesPanel
-                quoteId={quote.id}
-                alternatives={quote.alternatives}
-                totals={alternativeTotals}
-                issued={!canEdit}
-              />
               {canEdit && !issued ? (
                 <div data-tour="quote-generate-products">
                   <GenerateProposalButton quoteId={quote.id} auto={autogen} />
@@ -660,10 +668,24 @@ export default async function QuoteEditorPage({
               {canEdit ? (
                 <QuoteAiSuggestions quoteId={quote.id} suggestions={aiSuggestions} issued={!canEdit} />
               ) : null}
+              <QuoteProductPhotosToggle quoteId={quote.id} checked={quote.showProductPhotos} readOnly={!canEdit} />
+              {/* Las pestañas de alternativas van pegadas a la planilla que muestran. */}
+              <QuoteAlternativesPanel
+                quoteId={quote.id}
+                alternatives={alternativeTabs}
+                activeId={activeAlternativeId}
+                readOnly={!canEdit}
+              />
               <QuoteBomTable
+                key={activeAlternativeId ?? "default"}
                 quoteId={quote.id}
                 items={bomRows}
-                groups={quote.itemGroups.map((group) => ({
+                alternativeId={activeAlternativeId}
+                alternativeName={multipleAlternatives ? activeAlternative?.name ?? null : null}
+                otherAlternatives={alternatives
+                  .filter((alt) => alt.id !== activeAlternativeId)
+                  .map((alt) => ({ id: alt.id, name: alt.name }))}
+                groups={activeGroups.map((group) => ({
                   id: group.id,
                   title: group.title,
                   body: group.body,

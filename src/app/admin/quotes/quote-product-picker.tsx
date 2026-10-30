@@ -11,7 +11,16 @@ const usd = (n: number) => `USD ${n.toLocaleString("es-AR", { maximumFractionDig
 import { ProductSearchPicker, type PickerItem } from "@/components/products/product-search-picker";
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 
-export function QuoteProductPicker({ quoteId, groupId }: { quoteId: string; groupId?: string | null }) {
+export function QuoteProductPicker({
+  quoteId,
+  groupId,
+  alternativeId,
+}: {
+  quoteId: string;
+  groupId?: string | null;
+  /** Alternativa que se está editando: el producto entra en su planilla. */
+  alternativeId?: string | null;
+}) {
   const router = useRouter();
 
   const search = useCallback(async (q: string): Promise<PickerItem[]> => {
@@ -37,7 +46,7 @@ export function QuoteProductPicker({ quoteId, groupId }: { quoteId: string; grou
 
   async function addProduct(item: PickerItem) {
     if (item.id.startsWith(SERVICE)) {
-      const r = await addQuoteServiceToQuote({ quoteId, serviceId: item.id.slice(SERVICE.length), groupId: groupId ?? null });
+      const r = await addQuoteServiceToQuote({ quoteId, serviceId: item.id.slice(SERVICE.length), groupId: groupId ?? null, alternativeId: alternativeId ?? null });
       if (!r.ok) return void toast.error(r.error || "No se pudo agregar el servicio.");
       toast.success(r.message || `${item.title} agregado.`);
       router.refresh();
@@ -48,6 +57,7 @@ export function QuoteProductPicker({ quoteId, groupId }: { quoteId: string; grou
     fd.set("productId", item.id);
     fd.set("quantity", "1");
     if (groupId) fd.set("groupId", groupId);
+    if (alternativeId) fd.set("alternativeId", alternativeId);
     const result = await addProductToQuote(fd);
     if (result && typeof result === "object" && "ok" in result && !result.ok) {
       toast.error(result.error || "No se pudo agregar el producto.");

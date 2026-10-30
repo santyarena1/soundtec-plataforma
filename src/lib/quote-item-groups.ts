@@ -3,6 +3,8 @@ export type QuoteGroupRecord = {
   title: string;
   body: string;
   sortOrder: number;
+  /** Alternativa del ambiente (null = la por defecto). */
+  alternativeId?: string | null;
 };
 
 export type QuoteZoned<T> = {

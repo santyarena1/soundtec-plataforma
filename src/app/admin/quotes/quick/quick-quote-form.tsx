@@ -195,6 +195,7 @@ export function QuickQuoteForm({
           unitPriceUsd: i.unitPriceUsd,
           discountPercent: i.discountPercent,
           note: i.note,
+          noteVisible: Boolean(i.noteVisible),
           included: i.included,
           parentUid: i.parentUid ?? null,
           perParent: i.perParent ?? null,

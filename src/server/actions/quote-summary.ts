@@ -2,6 +2,7 @@
 
 import { loadQuoteForUser } from "@/lib/quote-access";
 import { computeQuoteTotals } from "@/lib/quote-totals";
+import { primaryAlternativeItems } from "@/lib/quote-alternatives";
 import { quoteItemDisplay } from "@/lib/quote-product-line";
 
 /** Resumen chico de una cotización para el desplegable del listado (solo lectura). */
@@ -23,7 +24,8 @@ export type QuoteSummary =
 export async function loadQuoteSummary(quoteId: string): Promise<QuoteSummary> {
   const { quote } = await loadQuoteForUser(quoteId);
   if (!quote) return { ok: false, error: "No tenés acceso a esta cotización." };
-  const totals = computeQuoteTotals(quote.items, quote.taxMode);
+  // Con varias alternativas el resumen muestra la por defecto (sumar opciones excluyentes no tiene sentido).
+  const totals = computeQuoteTotals(primaryAlternativeItems(quote.items, quote.alternatives), quote.taxMode);
   return {
     ok: true,
     client: quote.client?.companyName ?? quote.clientName ?? null,

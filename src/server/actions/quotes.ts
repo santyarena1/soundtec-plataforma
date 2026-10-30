@@ -9,6 +9,7 @@ import { Prisma, QuoteAssetKind, QuoteLayoutKey, QuoteNodeSource, QuoteSectionOr
 import { prisma } from "@/lib/prisma";
 import { logClientActivity } from "@/server/crm/activity";
 import { requireQuotePermission, loadQuoteForUser, loadQuoteForEdit } from "@/lib/quote-access";
+import { alternativeOf, targetAlternativeId } from "@/lib/quote-alternatives";
 import { permissionsHave } from "@/lib/permissions";
 import { allocateQuoteNumber, getQuoteNumberingConfig, QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import {
@@ -26,7 +27,7 @@ import { audienceFromSegment } from "@/lib/quote-audiences";
 import { isQuoteAudience, listQuoteAudiences } from "@/lib/quote-audiences-db";
 import { sanitizeQuoteHtml } from "@/lib/quote-richtext";
 import { recordQuoteSnapshot } from "@/lib/quote-edit-history";
-import { ensureQuoteCatalogImage } from "@/lib/quote-product-images";
+import { ensureQuoteCatalogImage, fillMissingQuoteProductImages } from "@/lib/quote-product-images";
 import { getSetting, setSetting } from "@/lib/settings";
 import { quoteListUnitUsd } from "@/lib/quote-unit-price";
 import { storeQuoteBlob } from "@/server/actions/quote-images";
@@ -608,7 +609,12 @@ export async function addProductToQuote(formData: FormData): Promise<{ ok: boole
   const afterProductId = String(formData.get("afterProductId") || "").trim();
   const parent = afterProductId ? [...loaded.quote.items].reverse().find((i) => i.productId === afterProductId) : undefined;
   const requestedGroup = String(formData.get("groupId") || "").trim() || null;
-  const groupId = parent ? parent.groupId : requestedGroup && loaded.quote.itemGroups.some((g) => g.id === requestedGroup) ? requestedGroup : null;
+  const requested = requestedGroup ? loaded.quote.itemGroups.find((g) => g.id === requestedGroup) ?? null : null;
+  const groupId = parent ? parent.groupId : requested?.id ?? null;
+  // Un accesorio va en la alternativa de su producto; si no, en la del ambiente o la que se está editando.
+  const alternativeId = parent
+    ? alternativeOf(parent, loaded.quote.alternatives)
+    : targetAlternativeId({ alternatives: loaded.quote.alternatives, requested: String(formData.get("alternativeId") || ""), group: requested });
   let sortOrder = maxSort + 1;
   if (parent) {
     sortOrder = parent.sortOrder + 1;
@@ -621,7 +627,7 @@ export async function addProductToQuote(formData: FormData): Promise<{ ok: boole
       quoteId,
       groupId,
       deliveryKey: defaultDelivery,
-      alternativeId: loaded.quote.alternatives.find((a) => a.isDefault)?.id ?? loaded.quote.alternatives[0]?.id,
+      alternativeId,
       kind: "PRODUCT",
       productId: product.id,
       quantity: new Prisma.Decimal(qty),
@@ -690,10 +696,17 @@ export async function updateQuoteItem(formData: FormData): Promise<void> {
   const unitPrice = item.kind === "SERVICE" ? typedPrice : Math.max(0, typedPrice);
   // «Manual» solo si el precio cambió de verdad (cambiar la cantidad no lo fija).
   const overridden = Math.abs(unitPrice - Number(item.unitPriceUsd)) > 0.0001;
+  // Nota del producto: interna salvo que se tilde «Mostrar en la cotización».
+  // «Incluido» marca las líneas sin cargo de la cotización rápida: no se pierde al dejar la nota vacía.
+  const typedNote = formData.has("notes") ? String(formData.get("notes") || "").trim().slice(0, 2000) : null;
+  const notes = typedNote === null ? item.notes : typedNote || (item.notes === "Incluido" ? "Incluido" : null);
+  const notesVisible = formData.has("notesField") ? formData.get("notesVisible") === "on" && Boolean(typedNote) : item.notesVisible;
 
   await prisma.quoteItem.update({
     where: { id },
     data: {
+      notes,
+      notesVisible,
       quantity: new Prisma.Decimal(quantity),
       unit,
       description,
@@ -718,6 +731,18 @@ export async function toggleQuoteItemLock(formData: FormData): Promise<void> {
   if (!loaded.quote) return;
   await prisma.quoteItem.update({ where: { id }, data: { locked: !item.locked } });
   revalidatePath(`/admin/quotes/${item.quoteId}`);
+}
+
+/** Fotos de los productos en el PDF: se prenden o apagan por cotización. */
+export async function setQuoteProductPhotos(input: { quoteId: string; show: boolean }): Promise<{ ok: boolean; error?: string }> {
+  await requireQuotePermission("quotes.edit");
+  const loaded = await loadQuoteForEdit(input.quoteId);
+  if (!loaded.quote) return { ok: false, error: loaded.blockedReason ?? "Sin acceso." };
+  await prisma.quote.update({ where: { id: input.quoteId }, data: { showProductPhotos: input.show } });
+  // Al prenderlas, cada producto queda con su foto del catálogo para el PDF.
+  if (input.show) await fillMissingQuoteProductImages(input.quoteId).catch((error) => console.error("[setQuoteProductPhotos]", error));
+  revalidatePath(`/admin/quotes/${input.quoteId}`);
+  return { ok: true };
 }
 
 export async function toggleQuoteItemOptional(formData: FormData): Promise<void> {
@@ -1135,6 +1160,8 @@ export async function duplicateQuote(formData: FormData): Promise<void> {
       contentProfileId: src.contentProfileId,
       alternativesEnabled: src.alternativesEnabled,
       showDeliveryColumn: src.showDeliveryColumn,
+      showProductPhotos: src.showProductPhotos,
+      isQuick: src.isQuick,
       projectType: src.projectType,
       brief: src.brief,
       advancedIntake: src.advancedIntake ?? undefined,
@@ -1170,6 +1197,7 @@ export async function duplicateQuote(formData: FormData): Promise<void> {
     const created2 = await prisma.quoteItemGroup.create({
       data: {
         quoteId: created.id,
+        alternativeId: group.alternativeId ? altMap.get(group.alternativeId) ?? null : null,
         title: group.title,
         body: group.body,
         sortOrder: group.sortOrder,
@@ -1197,6 +1225,7 @@ export async function duplicateQuote(formData: FormData): Promise<void> {
         optional: item.optional,
         excluded: item.excluded,
         notes: item.notes,
+        notesVisible: item.notesVisible,
         source: "MANUAL",
         sortOrder: item.sortOrder,
       },

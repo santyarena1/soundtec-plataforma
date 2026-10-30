@@ -37,7 +37,7 @@ export interface TaxableLine {
 }
 
 export interface QuoteTotals {
-  /** Suma de las líneas que entran en el precio (sin opcionales ni excluidas). */
+  /** Suma de las líneas que entran en el precio (las opcionales suman; las excluidas no). */
   net: number;
   /** Monto de IVA. Cero si el modo no lo discrimina. */
   tax: number;
@@ -53,9 +53,9 @@ function toNumber(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-/** Líneas que suman al precio: las opcionales se cotizan aparte y las excluidas no van. */
+/** Líneas que suman al precio. Las opcionales suman igual (solo llevan la marca «Opcional»); las excluidas no van. */
 export function payableLines<T extends TaxableLine>(items: T[]): T[] {
-  return items.filter((item) => !item.excluded && !item.optional);
+  return items.filter((item) => !item.excluded);
 }
 
 export function computeQuoteTotals(items: TaxableLine[], mode: QuoteTaxMode): QuoteTotals {

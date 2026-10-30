@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { loadQuoteForUser, requireQuotePermission, loadQuoteForEdit } from "@/lib/quote-access";
 import { sanitizeQuoteHtml } from "@/lib/quote-richtext";
+import { alternativeOf, rowsOfAlternative, targetAlternativeId } from "@/lib/quote-alternatives";
 
 function revalidate(quoteId: string) {
   revalidatePath(`/admin/quotes/${quoteId}`);
@@ -12,19 +13,25 @@ function revalidate(quoteId: string) {
 export async function createQuoteItemGroup(input: {
   quoteId: string;
   title?: string;
+  /** Alternativa en la que se arma el ambiente (cada una tiene los suyos). */
+  alternativeId?: string | null;
 }): Promise<{ ok: boolean; error?: string; groupId?: string }> {
   await requireQuotePermission("quotes.edit");
   const loaded = await loadQuoteForEdit(input.quoteId);
   if (!loaded.quote) return { ok: false, error: "Sin acceso." };
 
-  const count = await prisma.quoteItemGroup.count({ where: { quoteId: input.quoteId } });
+  const alternatives = loaded.quote.alternatives;
+  const alternativeId = targetAlternativeId({ alternatives, requested: input.alternativeId });
+  const count = rowsOfAlternative(loaded.quote.itemGroups, alternativeId, alternatives).length;
   const title = (input.title || "").trim() || `Ambiente ${count + 1}`;
+  const sortOrder = loaded.quote.itemGroups.reduce((max, g) => Math.max(max, g.sortOrder), -1) + 1;
   const group = await prisma.quoteItemGroup.create({
     data: {
       quoteId: input.quoteId,
+      alternativeId,
       title,
       body: "",
-      sortOrder: count,
+      sortOrder,
     },
   });
   revalidate(input.quoteId);
@@ -84,10 +91,15 @@ export async function moveQuoteItemToGroup(input: {
       where: { id: input.groupId, quoteId: item.quoteId },
     });
     if (!group) return { ok: false, error: "Ese ambiente no es de esta cotización." };
+    const alternatives = loaded.quote.alternatives;
+    if (alternativeOf(group, alternatives) !== alternativeOf(item, alternatives)) {
+      return { ok: false, error: "Ese ambiente es de otra alternativa." };
+    }
   }
 
-  await prisma.quoteItem.update({
-    where: { id: item.id },
+  // Las líneas «incluido sin cargo» acompañan a su producto.
+  await prisma.quoteItem.updateMany({
+    where: { OR: [{ id: item.id }, { includedWithId: item.id }] },
     data: { groupId: input.groupId },
   });
   revalidate(item.quoteId);

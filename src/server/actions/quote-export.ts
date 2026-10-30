@@ -12,6 +12,7 @@ import { generateAndStoreQuotePdf } from "@/lib/quote-pdf-store";
 import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { payableLines } from "@/lib/quote-totals";
+import { alternativeOf, rowsOfAlternative, sortAlternatives, targetAlternativeId } from "@/lib/quote-alternatives";
 
 export async function issueQuote(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const id = String(formData.get("quoteId") || "");
@@ -117,9 +118,10 @@ export async function buildQuoteWorkbook(quoteId: string): Promise<{ bytes: Uint
     ["Cliente", loaded.quote.client?.companyName || loaded.quote.clientName || ""],
     ["Referencia", loaded.quote.reference || ""],
     [],
-    ["Ambiente", "Cant", "U", "Detalle", "Unitario USD", "Total USD", "IVA %", "Entrega"],
+    ["Alternativa", "Ambiente", "Cant", "U", "Detalle", "Unitario USD", "Total USD", "IVA %", "Entrega", "Opcional"],
     // Lo que va al documento: sin las filas «dejar afuera».
     ...loaded.quote.items.filter((i) => !i.excluded).map((i) => [
+      loaded.quote.alternatives.find((alt) => alt.id === alternativeOf(i, loaded.quote.alternatives))?.name || "",
       loaded.quote.itemGroups.find((group) => group.id === i.groupId)?.title || "General",
       Number(i.quantity),
       i.unit,
@@ -128,9 +130,15 @@ export async function buildQuoteWorkbook(quoteId: string): Promise<{ bytes: Uint
       Number(i.lineTotalUsd),
       Number(i.ivaRate),
       i.deliveryKey || "",
+      i.optional ? "Opcional" : "",
     ]),
     [],
-    ["Total neto USD", payableLines(loaded.quote.items).reduce((s, i) => s + Number(i.lineTotalUsd), 0)],
+    ...sortAlternatives(loaded.quote.alternatives)
+      .filter((alt) => loaded.quote.alternatives.length === 1 || rowsOfAlternative(loaded.quote.items, alt.id, loaded.quote.alternatives).length > 0)
+      .map((alt) => [
+        loaded.quote.alternatives.length > 1 ? `Total neto ${alt.name} USD` : "Total neto USD",
+        payableLines(rowsOfAlternative(loaded.quote.items, alt.id, loaded.quote.alternatives)).reduce((s, i) => s + Number(i.lineTotalUsd), 0),
+      ]),
   ];
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -155,12 +163,13 @@ export async function addServiceToQuote(formData: FormData): Promise<void> {
   const serviceUnit = (await getSetting(QUOTE_SETTING_KEYS.defaultUnit, "u")).trim() || "u";
   const serviceDelivery = (await getSetting(QUOTE_SETTING_KEYS.defaultDelivery, "")).trim();
   const sort = loaded.quote.items.reduce((m, i) => Math.max(m, i.sortOrder), -1) + 1;
-  const groupId = String(formData.get("groupId") || "").trim() || null;
+  const requestedGroup = String(formData.get("groupId") || "").trim() || null;
+  const group = requestedGroup ? loaded.quote.itemGroups.find((g) => g.id === requestedGroup) ?? null : null;
   await prisma.quoteItem.create({
     data: {
       quoteId,
-      groupId,
-      alternativeId: loaded.quote.alternatives.find((a) => a.isDefault)?.id,
+      groupId: group?.id ?? null,
+      alternativeId: targetAlternativeId({ alternatives: loaded.quote.alternatives, requested: String(formData.get("alternativeId") || ""), group }),
       kind: "SERVICE",
       serviceType: "servicio",
       quantity: new Prisma.Decimal(qty),

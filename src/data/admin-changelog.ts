@@ -2542,4 +2542,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Integraciones y claves: al guardar una clave ahora aparece si se guardó (con las últimas 4 letras) o por qué no, y el navegador ya no autocompleta el campo con una contraseña guardada." },
     ],
   },
+  {
+    id: "ship-2026-10-29-alternativas",
+    version: "2.25.0",
+    releasedAt: "2026-10-29T20:00:00.000Z",
+    summary: "Cotizaciones: cada alternativa tiene su propia planilla y su total; opcionales que suman; notas visibles por producto y fotos que salen en el PDF.",
+    items: [
+      { kind: "NUEVO", text: "Alternativas como pestañas en Productos (Opción A, Opción B…): cada una con sus productos, sus ambientes y su total. Se crean vacías o duplicando otra para cambiar solo lo que difiere; en el PDF salen una debajo de la otra con su total." },
+      { kind: "MEJORA", text: "Los ambientes (Living, Quincho…) quedan dentro de cada alternativa y los que están vacíos ya no salen en el PDF." },
+      { kind: "MEJORA", text: "Los productos opcionales suman al total y salen con la marca «Opcional» bien visible en la planilla y en el PDF." },
+      { kind: "NUEVO", text: "Nota por producto con la tilde «Mostrar en la cotización»: sin tildar es interna; tildada sale en el PDF debajo del producto. También en la cotización rápida." },
+      { kind: "FIX", text: "Las fotos de los productos vuelven a salir en el PDF (también en la cotización rápida y las subidas a mano), y en Productos hay una tilde para mostrarlas o no." },
+      { kind: "FIX", text: "Los ítems con precio negativo (descuentos o recupero) se ven con su monto en el PDF en lugar de «Sin cargo»." },
+    ],
+  },
 ];

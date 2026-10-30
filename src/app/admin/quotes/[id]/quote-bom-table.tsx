@@ -22,6 +22,7 @@ import {
   moveQuoteItemToGroup,
   updateQuoteItemGroup,
 } from "@/server/actions/quote-groups";
+import { moveQuoteItemToAlternative } from "@/server/actions/quote-alternatives";
 import { QuoteProductPicker } from "../quote-product-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,13 @@ export type QuoteBomRow = {
   photoUrl: string | null;
   productId: string | null;
   groupId: string | null;
+  /** Nota del producto (sin la marca interna «Incluido»). */
+  notes: string;
+  /** La nota sale en la cotización; si no, la ve solo el equipo. */
+  notesVisible: boolean;
 };
+
+export type QuoteBomAlternative = { id: string; name: string };
 
 export type QuoteBomGroup = {
   id: string;
@@ -70,10 +77,12 @@ function ZoneTable({
   readOnly,
   totalLabel,
   total,
+  otherAlternatives,
 }: {
   quoteId: string;
   items: QuoteBomRow[];
   groups: QuoteBomGroup[];
+  otherAlternatives: QuoteBomAlternative[];
   deliveryOptions: string[];
   showDelivery: boolean;
   readOnly: boolean;
@@ -171,6 +180,12 @@ function ZoneTable({
                       }}
                       onBlur={(e) => saveRow(e.currentTarget.form)}
                     />
+                    {item.optional ? (
+                      <p className="mb-1">
+                        <Badge tone="accent">Opcional</Badge>
+                        <span className="ml-1.5 text-[11px] text-muted-foreground">Sale marcado «Opcional» en el PDF y suma al total.</span>
+                      </p>
+                    ) : null}
                     <p className="mb-1 text-[11px] text-muted-foreground">
                       Primera línea: título. Lo que escribas debajo sale como descripción de esta fila.
                     </p>
@@ -182,6 +197,44 @@ function ZoneTable({
                     {item.productId && !readOnly ? (
                       <RegenerateShortDescription quoteId={quoteId} productId={item.productId} />
                     ) : null}
+                    <div className="mt-2 rounded-md border border-dashed border-border bg-white/60 p-2">
+                      <input type="hidden" name="notesField" value="1" form={formId} />
+                      <Textarea
+                        form={formId}
+                        name="notes"
+                        defaultValue={item.notes}
+                        rows={1}
+                        disabled={readOnly}
+                        placeholder="Nota (opcional)"
+                        aria-label="Nota del producto"
+                        className="min-h-[34px] text-xs"
+                        onChange={(e) => {
+                          const form = e.currentTarget.form;
+                          if (form) form.dataset.dirty = "1";
+                        }}
+                        onBlur={(e) => saveRow(e.currentTarget.form)}
+                      />
+                      <label className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          form={formId}
+                          name="notesVisible"
+                          defaultChecked={item.notesVisible}
+                          disabled={readOnly}
+                          onChange={(e) => {
+                            const form = e.currentTarget.form;
+                            if (form) {
+                              form.dataset.dirty = "1";
+                              saveRow(form);
+                            }
+                          }}
+                        />
+                        Mostrar en la cotización
+                        <span className="text-muted-foreground/70">
+                          {item.notesVisible && item.notes ? "· sale debajo del producto" : "· si no, la ve solo el equipo"}
+                        </span>
+                      </label>
+                    </div>
                   </td>
                   <td className="px-2 py-2">
                     <Input
@@ -232,7 +285,6 @@ function ZoneTable({
                   <td className="px-2 py-2">
                     {!readOnly ? (
                       <div className="flex flex-col items-stretch gap-1">
-                        {item.optional ? <Badge tone="accent">Opcional</Badge> : null}
                         <div className="flex gap-1">
                           {(["up", "down"] as const).map((direction) => (
                             <Button
@@ -314,7 +366,7 @@ function ZoneTable({
                           <div className="mt-1 flex flex-col gap-1">
                             <form action={toggleQuoteItemOptional}>
                               <input type="hidden" name="itemId" value={item.id} />
-                              <Button type="submit" size="sm" variant="ghost" className="w-full" title="Sale en el PDF como opcional y no suma al total">
+                              <Button type="submit" size="sm" variant="ghost" className="w-full" title="Sale en el PDF marcado «Opcional» (suma al total igual)">
                                 {item.optional ? "Pasar a no opcional" : "Marcar como opcional"}
                               </Button>
                             </form>
@@ -342,6 +394,33 @@ function ZoneTable({
                                 {item.locked ? "Dejar que la IA lo cambie" : "Que la IA no lo cambie"}
                               </Button>
                             </form>
+                            {otherAlternatives.length > 0 ? (
+                              <Select
+                                defaultValue=""
+                                className="h-8 text-xs"
+                                aria-label="Pasar a otra alternativa"
+                                disabled={pending}
+                                onChange={(e) => {
+                                  const alternativeId = e.target.value;
+                                  if (!alternativeId) return;
+                                  start(async () => {
+                                    const result = await moveQuoteItemToAlternative({ itemId: item.id, alternativeId });
+                                    if (!result.ok) toast.error(result.error || "No se pudo pasar.");
+                                    else {
+                                      toast.success("Pasado a la otra alternativa.");
+                                      router.refresh();
+                                    }
+                                  });
+                                }}
+                              >
+                                <option value="">Pasar a otra alternativa…</option>
+                                {otherAlternatives.map((alt) => (
+                                  <option key={alt.id} value={alt.id}>
+                                    {alt.name}
+                                  </option>
+                                ))}
+                              </Select>
+                            ) : null}
                             <QuoteRevisePanel quoteId={quoteId} nodeId={item.id} kind="item" />
                           </div>
                         </details>
@@ -377,6 +456,9 @@ export function QuoteBomTable({
   showDelivery,
   readOnly,
   total,
+  alternativeId,
+  alternativeName,
+  otherAlternatives = [],
 }: {
   quoteId: string;
   items: QuoteBomRow[];
@@ -385,6 +467,11 @@ export function QuoteBomTable({
   showDelivery: boolean;
   readOnly: boolean;
   total: number;
+  /** Alternativa que muestra esta planilla (lo que se agrega entra en ella). */
+  alternativeId: string | null;
+  /** Nombre a mostrar cuando la cotización tiene varias alternativas. */
+  alternativeName?: string | null;
+  otherAlternatives?: QuoteBomAlternative[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -396,7 +483,7 @@ export function QuoteBomTable({
     groups.map((group, index) => ({ ...group, sortOrder: index }))
   );
 
-  const activeCount = items.filter((item) => !item.optional).length;
+  const activeCount = items.filter((item) => !item.excluded).length;
   // Una fila a cero o sin entrega no se distingue de una correcta hasta que
   // se intenta emitir. Mejor decirlo acá.
   // Lo que viene incluido sin cargo con otro producto está bien en cero.
@@ -428,7 +515,9 @@ export function QuoteBomTable({
       <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold tracking-tight">Planilla de productos y servicios</h2>
+            <h2 className="text-base font-semibold tracking-tight">
+              {alternativeName ? `Planilla de ${alternativeName}` : "Planilla de productos y servicios"}
+            </h2>
             <p className="text-xs text-muted-foreground">
               {activeCount} ítem{activeCount === 1 ? "" : "s"} · Neto {formatUsd(total)}
             </p>
@@ -464,7 +553,7 @@ export function QuoteBomTable({
                 disabled={pending}
                 onClick={() =>
                   start(async () => {
-                    const result = await createQuoteItemGroup({ quoteId });
+                    const result = await createQuoteItemGroup({ quoteId, alternativeId });
                     if (!result.ok) {
                       toast.error(result.error || "No se pudo crear el ambiente.");
                       return;
@@ -477,22 +566,22 @@ export function QuoteBomTable({
                 }
               >
                 <Plus className="h-3.5 w-3.5" />
-                Ambiente
+                {multi ? "Ambiente" : "Dividir por ambientes"}
               </Button>
             ) : null}
           </div>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
           {multi
-            ? "Cada ambiente tiene su texto y su tabla. Lo importado del cliente es referencia: podés editar cantidad, título, unidad, precio, IVA y entrega. Los opcionales no suman al total."
-            : "Lo que pidió el cliente es referencia: podés cambiar cantidad, título, unidad, precio, IVA y entrega. Editá directo en la tabla."}
+            ? "La planilla está dividida por ambiente (Living, Quincho…): cada uno tiene su texto, su tabla y su subtotal. Editá directo en la tabla."
+            : "Editá directo en la tabla: cantidad, título, unidad, precio, IVA, entrega y nota. Si la querés separar por lugar (Living, Quincho…), tocá «Dividir por ambientes»."}
         </p>
       </div>
 
       {filteredZones.map((zone) => {
         const zoneKey = zone.id || "general";
         const isCollapsed = collapsed[zoneKey] === true;
-        const subtotal = zone.items.filter((item) => !item.optional).reduce((sum, item) => sum + item.lineTotalUsd, 0);
+        const subtotal = zone.items.filter((item) => !item.excluded).reduce((sum, item) => sum + item.lineTotalUsd, 0);
         return (
           <section key={zoneKey} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
             <button
@@ -567,17 +656,18 @@ export function QuoteBomTable({
                   />
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    Equipos sin ambiente asignado. Movelos con el selector de cada fila.
+                    Equipos que todavía no están en ningún ambiente. Para pasarlos a uno, elegilo en el selector de la fila.
                   </p>
                 )}
               </div>
             ) : null}
 
-            {!readOnly ? <QuoteProductPicker quoteId={quoteId} groupId={zone.id} /> : null}
+            {!readOnly ? <QuoteProductPicker quoteId={quoteId} groupId={zone.id} alternativeId={alternativeId} /> : null}
             {!readOnly ? (
               <form action={addServiceToQuote} className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-secondary/10 p-3">
                 <input type="hidden" name="quoteId" value={quoteId} />
                 {zone.id ? <input type="hidden" name="groupId" value={zone.id} /> : null}
+                {alternativeId ? <input type="hidden" name="alternativeId" value={alternativeId} /> : null}
                 <Input name="description" placeholder="Ítem libre: qué es (mano de obra, cable por metro, flete…)" aria-label="Descripción del ítem libre" className="min-w-[220px] flex-1" />
                 <Input name="quantity" defaultValue="1" className="w-20" aria-label="Cantidad" />
                 <Input name="unitPriceUsd" placeholder="Precio USD" className="w-28" aria-label="Precio unitario USD" />
@@ -591,10 +681,11 @@ export function QuoteBomTable({
               quoteId={quoteId}
               items={zone.items}
               groups={groups}
+              otherAlternatives={otherAlternatives}
               deliveryOptions={deliveryOptions}
               showDelivery={showDelivery}
               readOnly={readOnly}
-              totalLabel={multi ? `Subtotal ${zone.title}` : "Total neto USD"}
+              totalLabel={multi ? `Subtotal ${zone.title}` : alternativeName ? `Total neto ${alternativeName} USD` : "Total neto USD"}
               total={multi ? subtotal : total}
             />
               </div>

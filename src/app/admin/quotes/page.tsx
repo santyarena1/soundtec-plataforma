@@ -1,4 +1,5 @@
 import { payableLines } from "@/lib/quote-totals";
+import { primaryAlternativeItems } from "@/lib/quote-alternatives";
 import { QUOTE_STATUS_LABEL, cleanQuoteReference, quoteStatusLabel } from "@/lib/quote-status";
 import Link from "next/link";
 import { Prisma, QuoteStatus } from "@prisma/client";
@@ -106,8 +107,9 @@ export default async function AdminQuotesPage({
       include: {
         client: { select: { companyName: true } },
         owner: { select: { name: true } },
-        // El total suma solo lo que va al precio (sin opcionales ni filas «dejar afuera»).
-        items: { select: { lineTotalUsd: true, excluded: true, optional: true, ivaRate: true } },
+        // El total suma lo que va al precio (sin filas «dejar afuera»); con varias alternativas, la por defecto.
+        items: { select: { lineTotalUsd: true, excluded: true, optional: true, ivaRate: true, alternativeId: true } },
+        alternatives: { select: { id: true, name: true, isDefault: true, sortOrder: true } },
         terms: { select: { validityDays: true } },
       },
     }),
@@ -223,7 +225,7 @@ export default async function AdminQuotesPage({
         <QuotesTable
           canEdit={canEdit}
           rows={quotes.map((row) => {
-            const net = payableLines(row.items).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
+            const net = payableLines(primaryAlternativeItems(row.items, row.alternatives)).reduce((sum, item) => sum + Number(item.lineTotalUsd), 0);
             const expires = row.status === "ISSUED" && row.issuedAt ? new Date(row.issuedAt.getTime() + (row.terms?.validityDays ?? 5) * 86_400_000) : null;
             const expired = expires ? expires.getTime() < Date.now() : false;
             return {
