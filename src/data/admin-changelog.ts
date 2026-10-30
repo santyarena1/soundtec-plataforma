@@ -2568,4 +2568,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Los productos sin precio aparecían como USD 0,00 en la tabla de Productos: ahora dicen «A consultar»." },
     ],
   },
+  {
+    id: "ship-2026-10-30-catalogo-vitrina",
+    version: "2.27.0",
+    releasedAt: "2026-10-30T23:00:00.000Z",
+    summary: "Catálogo de clientes en vista Lista rediseñado como vitrina: foto grande, letra cómoda, precio destacado y lugar para ofertas.",
+    items: [
+      { kind: "NUEVO", text: "Portal, vista Lista: cada producto en su panel con la foto grande, marca y categoría arriba, el modelo bien visible, la descripción completa en letra más grande y, a la derecha, el precio con «+ IVA», el botón Agregar a mi pedido y favoritos." },
+      { kind: "NUEVO", text: "Etiqueta comercial sobre la foto (hoy Oferta con su %, y Últimas unidades en los discontinuados): ahí se van a ver liquidaciones y promociones cuando se sumen." },
+      { kind: "MEJORA", text: "En el catálogo público la misma vista invita a ingresar para ver precios, con el botón Ver ficha." },
+    ],
+  },
 ];
