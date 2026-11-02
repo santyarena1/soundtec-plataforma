@@ -29,6 +29,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import { formatUsd } from "@/lib/utils";
+
+/** Sin precio (producto a consultar): se dice así, no «USD 0,00». */
+const money = (value: number) => (value > 0 ? formatUsd(value) : "A consultar");
 import { showToast } from "@/components/portal/portal-toaster";
 import { addItemsToDraftBundle } from "@/server/actions/requests";
 
@@ -169,7 +172,7 @@ export function ProductBundleProvider({ mainProduct, draftRequestId, children }:
             showToast({
               type: "success",
               title: `Agregaste ${items.length} producto${items.length === 1 ? "" : "s"} a tu pedido`,
-              description: `Total: ${totalUnits} unidades por ${formatUsd(subtotal)} estimado.`,
+              description: subtotal > 0 ? `Total: ${totalUnits} unidades por ${formatUsd(subtotal)} estimado.` : `Total: ${totalUnits} unidades. Te pasamos el precio con la respuesta.`,
               requestId: r.requestId,
               itemsTotal: r.itemsTotal,
               unitsTotal: r.unitsTotal,
@@ -295,7 +298,7 @@ export function BundleStagingPanel({ draftItemCount, draftRequestId }: BundlePan
                     <Badge tone="primary" className="mt-0.5">Producto principal</Badge>
                   </div>
                   <p className="text-sm font-semibold tabular-nums text-right">
-                    {formatUsd(mainItem.unitPriceUsd * mainItem.quantity)}
+                    {money(mainItem.unitPriceUsd * mainItem.quantity)}
                   </p>
                 </div>
                 <QtyControl
@@ -333,7 +336,7 @@ export function BundleStagingPanel({ draftItemCount, draftRequestId }: BundlePan
                     </Badge>
                   </div>
                   <p className="text-sm font-semibold tabular-nums text-right">
-                    {formatUsd(it.unitPriceUsd * it.quantity)}
+                    {money(it.unitPriceUsd * it.quantity)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -383,8 +386,11 @@ export function BundleStagingPanel({ draftItemCount, draftRequestId }: BundlePan
                 Subtotal del armado
               </p>
               <p className="text-xl font-bold tabular-nums text-success">
-                {formatUsd(ctx.subtotal)}
+                {money(ctx.subtotal)}
               </p>
+              {ctx.subtotal > 0 && ctx.items.some((it) => it.unitPriceUsd <= 0) ? (
+                <p className="text-[11px] text-muted-foreground">+ productos a consultar</p>
+              ) : null}
             </div>
           </div>
         </div>

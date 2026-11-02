@@ -7,6 +7,7 @@
  * NO escribe precio ni stock: eso sigue siendo dominio del conector "crestron".
  */
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { translateBatchCached } from "@/services/translation-cache";
 import { enrichCrestronProduct } from "@/services/crestron-web/enrich";
@@ -27,11 +28,22 @@ interface Candidate extends CrestronTargetProduct {
   vendorProductUrl: string | null;
 }
 
-function crestronWhere() {
+function crestronWhere(): Prisma.ProductWhereInput {
   return {
     isActive: true,
     internalSku: { not: null },
     brand: { name: { equals: "CRESTRON", mode: "insensitive" as const } },
+    // CRESTRON_WEB_MISSING_ONLY=1: solo los que todavía no tienen especificaciones o fotos.
+    ...(process.env.CRESTRON_WEB_MISSING_ONLY === "1"
+      ? {
+          OR: [
+            { specifications: { equals: Prisma.DbNull } },
+            { specifications: { equals: Prisma.JsonNull } },
+            { specifications: { equals: [] } },
+            { images: { none: {} } },
+          ],
+        }
+      : {}),
   };
 }
 

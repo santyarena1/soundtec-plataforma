@@ -271,7 +271,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         mainProduct={{
           id: product.id,
           name: product.normalizedName,
-          unitPriceUsd: pricing.finalPriceUsd,
+          // «Consultá precio»: el armado no muestra un precio aunque haya costo cargado.
+          unitPriceUsd: product.requiresQuote ? 0 : pricing.finalPriceUsd,
           imageUrl: product.images[0]?.url ?? null,
         }}
         draftRequestId={activeDraft.id}

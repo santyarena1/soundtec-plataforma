@@ -2603,4 +2603,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Características destacadas también en la ficha del catálogo público." },
     ],
   },
+  {
+    id: "ship-2026-11-03-consultar-fotos",
+    version: "2.28.2",
+    releasedAt: "2026-11-03T12:00:00.000Z",
+    summary: "Productos a consultar sin USD 0,00 en el armado del pedido y fotos oficiales para productos que no tenían.",
+    items: [
+      { kind: "FIX", text: "Ficha del portal: en «Armado para tu pedido» un producto sin precio dice «A consultar» en lugar de USD 0,00." },
+      { kind: "MEJORA", text: "Fotos oficiales del fabricante para 12 productos que no tenían (Sonance SonAmp, IPORT, Phase Technology, rejillas SoundTube, Atlona)." },
+    ],
+  },
 ];
