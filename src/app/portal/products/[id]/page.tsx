@@ -12,6 +12,7 @@ import { evaluateAccessoryPolicy } from "@/lib/accessory-context";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { Badge } from "@/components/ui/badge";
 import { commercialTagFor } from "@/lib/commercial-tags";
+import { ProductKeyFeatures } from "@/components/catalog/product-key-features";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { FavoriteButton } from "../favorite-button";
 import { StockBadge } from "../catalog-grid";
@@ -40,7 +41,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       brand: true,
       category: true,
       family: true,
-      images: { orderBy: { isPrimary: "desc" } },
+      images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
       options: { orderBy: { sortOrder: "asc" } },
       accessories: {
         include: {
@@ -413,22 +414,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <p className="muted-text">Sin descripción detallada cargada.</p>
           )}
 
-          {/* Características del fabricante: solo las que ya están en castellano (fichas traducidas). */}
-          {product.translatedAt && Array.isArray(product.keyFeatures) && product.keyFeatures.length > 0 ? (
-            <div className="mt-5 border-t border-border pt-4">
-              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-primary">Características destacadas</h3>
-              <ul className="grid gap-x-8 gap-y-1.5 text-[15px] leading-relaxed sm:grid-cols-2">
-                {(product.keyFeatures as unknown[])
-                  .filter((f): f is string => typeof f === "string" && f.trim().length > 0)
-                  .map((feature, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          ) : null}
+          <ProductKeyFeatures features={product.keyFeatures} translated={Boolean(product.translatedAt)} />
 
           {product.aiGeneratedDescription ? (
             <AiContentNotice

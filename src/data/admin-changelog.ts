@@ -2592,4 +2592,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Ficha del portal: las especificaciones salen agrupadas como en la web del fabricante (Video, Audio, Alimentación…) y se suma «Características destacadas» cuando están en castellano." },
     ],
   },
+  {
+    id: "ship-2026-11-02-hall-recursos-marcas",
+    version: "2.28.1",
+    releasedAt: "2026-11-02T23:00:00.000Z",
+    summary: "Fichas de Hall Research con todos los recursos del fabricante (firmware, drivers, CAD, diagramas y compatibles) y barra de marcas en una sola fila.",
+    items: [
+      { kind: "MEJORA", text: "Atlona, Javelin, Hall Tech, Gain Audio y Captivate: cada ficha suma todos los documentos de la web (manuales, CAD, declaraciones, cartas de volatilidad, software, firmware con versión y fecha, drivers de control), los diagramas y gráficos en la galería, y los productos relacionados o variantes que están en el catálogo." },
+      { kind: "MEJORA", text: "Catálogo: la barra de marcas pasa a una sola fila de logos del mismo tamaño, con flechas para recorrerla y acceso a ver todas las marcas." },
+      { kind: "MEJORA", text: "Características destacadas también en la ficha del catálogo público." },
+    ],
+  },
 ];

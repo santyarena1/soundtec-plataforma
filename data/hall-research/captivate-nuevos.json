@@ -386,19 +386,24 @@
     ],
     "documents": [
       {
-        "name": "AT-HDVS-CAM-HDMI Specifications",
+        "name": "AT-HDVS-CAM-HDMI Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-HDVS-CAM-HDMI_Spec.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "AT-HDVS-CAM-HDMI Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-HDVS-CAM-HDMI.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "AT-HDVS-CAM API",
         "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-HDVS-CAM_API.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "Firmware 2.5.9 (02/02/2022)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/Firmware_AT-HDVS-CAM-HDMI_V259.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-hdvs-cam-hdmi",
@@ -406,6 +411,10 @@
     "originalName": "PTZ Camera with HDMI Output and USB",
     "images": [
       "https://images.prismic.io/hallresearch/agJE7aYofJOwHGaG_AT-HDVS-CAMf-1600x742-1.png?auto=format,compress"
-    ]
+    ],
+    "graphics": [
+      "https://images.prismic.io/hallresearch/BhKr38JDNLzG7uNd_AT-HDVS-CAM-HDMI_callouts-1.jpg?auto=format,compress"
+    ],
+    "relations": []
   }
 ]

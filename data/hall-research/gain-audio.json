@@ -407,23 +407,89 @@
     ],
     "documents": [
       {
-        "name": "AT-GAIN-M240 Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-GAIN-M240_Spec.pdf",
-        "fileType": "pdf"
+        "name": "AT-GAIN-M240 Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-GAIN-M240_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-GAIN-M120-M240 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1443%20(AT-GAIN-M120)/Manual/AT-GAIN-M120_M240.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "AT-GAIN-M120-M240 API",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1543%20(AT-GAIN-M240)/API/AT-GAIN-M120_M240_API.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "AT-GAIN-M240",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/FCC%20AT-GAIN-M240.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE AT-GAIN-M240",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE%20AT-GAIN-M240.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA AT-GAIN-M240",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA%20AT-GAIN-M240.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "Firmware 1.1.6 (26/08/2026)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1543%20(AT-GAIN-M240)/Firmware/Firmware_AT-GAIN-M120_M240_V116.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.1.5 (20/07/2026)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/Firmware_AT-GAIN-M120_M240_V115.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.1.4 (10/06/2026)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/Firmware_AT-GAIN-M120_M240_V114.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.0.0",
+        "url": "https://atlonainc.box.com/shared/static/k5cl41vdno36zjd471oe2ypvbdmqbniz.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Q-SYS Plugin",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1543%20(AT-GAIN-M240)/Other/Q-SYS_GAIN_Plugin_Release_AT-GAIN-M120_M240_V120.zip",
+        "fileType": "Driver de control"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-gain-m240",
-    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA"
+    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aXEb8QIvOtkhByQm_gain-120-240_callouts.jpg?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aXEcQQIvOtkhByQs_AT-GAIN-M240-DIAGRAM.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-GAIN-M120"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-GAIN-60"
+      },
+      {
+        "kind": "RELATED",
+        "sku": "AT-GAIN-VOL"
+      },
+      {
+        "kind": "RELATED",
+        "sku": "AT-GAIN-NET"
+      },
+      {
+        "kind": "RELATED",
+        "sku": "SPK-IC6"
+      }
+    ]
   },
   {
     "sku": "HT-SATELLITE-CM",
@@ -443,11 +509,20 @@
       {
         "name": "HT-SATELLITE / OSIRIS DSP1 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-OSIRIS-DSP1_Manual-1.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-satellite-cm",
-    "tangoPath": "SONIDO > MICROFONOS > MICROFONOS COLGANTES"
+    "tangoPath": "SONIDO > MICROFONOS > MICROFONOS COLGANTES",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR5Gl2GnmrmGqDbV_Satellite-CM-Diagram-3.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-OSIRIS-DSP1"
+      }
+    ]
   },
   {
     "sku": "SPK-IC6-BRKT",
@@ -457,7 +532,14 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/spk-ic6-brkt",
-    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS P/BAFLES"
+    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS P/BAFLES",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "SPK-IC6"
+      }
+    ]
   },
   {
     "sku": "AMP-4840",
@@ -598,18 +680,25 @@
     ],
     "documents": [
       {
-        "name": "AMP-4840 Specifications",
+        "name": "AMP-4840 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/AMP-4840_Specsheet_Nov_18.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "AMP-4840 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/AMP-4840_Product_Manual_Jan_6.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "CE AMP-4840",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/DoC%20AMP-4840%20%26%20AMP-7040.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/amp-4840",
-    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA"
+    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "AT-GAIN-60",
@@ -920,33 +1009,84 @@
     ],
     "documents": [
       {
-        "name": "AT-GAIN-60 Specifications",
+        "name": "AT-GAIN-60 Hoja técnica",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1322%20(AT-GAIN-60)/Spec%20Sheet/AT-GAIN-60_Spec.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "AT-GAIN-60 Installation Guide",
+        "name": "AT-GAIN-60 Guía de instalación",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1322%20(AT-GAIN-60)/Installation%20Guide/AT-GAIN-60_G.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "AT-GAIN-60 Manual",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1322%20(AT-GAIN-60)/Manual/AT-GAIN-60.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "AT-GAIN-60 API",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1322%20(AT-GAIN-60)/API/AT-GAIN-60_API.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "Product Engineering Document",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/Product_Engineering_Spec.docx",
+        "fileType": "Soporte"
       },
       {
         "name": "GAIN-60",
-        "url": "https://atlona.com/pdf/cad/AT-GAIN-60.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-GAIN-60.dwg",
+        "fileType": "Plano CAD"
+      },
+      {
+        "name": "GAIN-60",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-GAIN-60.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE GAIN-60",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-GAIN-60.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK GAIN-60",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-GAIN-60.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "GAIN-60",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/LoV/LoV_AT-GAIN.pdf",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "Firmware 1.0.16",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-GAIN-60_V1016.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.0.13",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-GAIN-60_V1013.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.0.3",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-GAIN-60_V1003.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.0.1",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-GAIN-60_V1001.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-gain-60",
-    "tangoPath": "SONIDO > AMPLIFICADORES > UNIDADES DE POTENCIA"
+    "tangoPath": "SONIDO > AMPLIFICADORES > UNIDADES DE POTENCIA",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aQ4KybpReVYa4PUq_gain-60_callouts-1.jpg?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQ4LArpReVYa4PU1_AT-OCS-900N_ver2_wd-1-.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQ4LDbpReVYa4PU2_AT-GAIN-60_wd.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "AT-GAIN-M120",
@@ -1314,23 +1454,93 @@
     ],
     "documents": [
       {
-        "name": "AT-GAIN-M120 Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-GAIN-M120_Spec.pdf",
-        "fileType": "pdf"
+        "name": "AT-GAIN-M120 Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-GAIN-M120_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-GAIN-M120-M240 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1443%20(AT-GAIN-M120)/Manual/AT-GAIN-M120_M240.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "AT-GAIN-M120-M240 API",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1443%20(AT-GAIN-M120)/API/AT-GAIN-M120_M240_API.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "AT-GAIN-M120",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/FCC%20AT-GAIN-M240.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE AT-GAIN-M120",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE%20AT-GAIN-M120.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA AT-GAIN-M120",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA%20AT-GAIN-M120.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "Firmware 1.1.6 (26/08/2026)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1443%20(AT-GAIN-M120)/Firmware/Firmware_AT-GAIN-M120_M240_V116.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.1.5 (20/07/2026)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/Firmware_AT-GAIN-M120_M240_V115.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.1.4 (10/06/2026)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/Firmware_AT-GAIN-M120_M240_V114.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.0.0",
+        "url": "https://atlonainc.box.com/shared/static/k5cl41vdno36zjd471oe2ypvbdmqbniz.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Q-SYS Plugin",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1443%20(AT-GAIN-M120)/Other/Q-SYS_GAIN_Plugin_Release_AT-GAIN-M120_M240_V120.zip",
+        "fileType": "Driver de control"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-gain-m120",
-    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA"
+    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aXEd0wIvOtkhByRj_AT-GAIN-M120_Callouts.jpg?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aXEd9AIvOtkhByRk_AT-GAIN-M120-DIAGRAM.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-GAIN-M240"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-GAIN-VOL"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-GAIN-NET"
+      },
+      {
+        "kind": "RELATED",
+        "sku": "SPK-IC6"
+      },
+      {
+        "kind": "RELATED",
+        "sku": "HT-OSIRIS-DSP1"
+      },
+      {
+        "kind": "RELATED",
+        "sku": "HT-SATELLITE-CM"
+      }
+    ]
   },
   {
     "sku": "AT-GAIN-M50-LZ",
@@ -1615,33 +1825,72 @@
     ],
     "documents": [
       {
-        "name": "AT-GAIN-M50-LZ Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-GAIN-M50-LZ_Spec.pdf",
-        "fileType": "pdf"
+        "name": "AT-GAIN-M50-LZ Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-GAIN-M50-LZ_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
-        "name": "AT-GAIN-M50-LZ Manual and Installation Guide",
-        "url": "https://atlona.com/pdf/manuals/AT-GAIN-M50-LZ_G.pdf",
-        "fileType": "pdf"
+        "name": "AT-GAIN-M50-LZ Manual and Guía de instalación",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-GAIN-M50-LZ_G.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-GAIN-M50-LZ API",
-        "url": "https://atlona.com/pdf/AT-GAIN-M50-LZ_API.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-GAIN-M50-LZ_API.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "GAIN-M50-LZ (dwg)",
-        "url": "https://atlona.com/pdf/cad/AT-GAIN-M50-LZ.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-GAIN-M50-LZ.dwg",
+        "fileType": "Plano CAD"
       },
       {
         "name": "GAIN-M50-LZ (pdf)",
-        "url": "https://atlona.com/pdf/cad/AT-GAIN-M50-LZ.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-GAIN-M50-LZ.pdf",
+        "fileType": "Plano CAD"
+      },
+      {
+        "name": "GAIN-M50-LZ",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-GAIN-M50-LZ.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE GAIN-M50-LZ",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-GAIN-M50-LZ.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK GAIN-M50-LZ",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-GAIN-M50-LZ.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "GAIN-M50-LZ",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/LoV/LoV_AT-GAIN-M50-LZ.pdf",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "Firmware 1.0.1",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-GAIN-M50-LZ_V101.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-gain-m50-lz",
-    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA"
+    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aQ4NZrpReVYa4PWq_AT-GAIN-M50-LZ_callouts.jpg?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQ4NLLpReVYa4PWg_AT-GAIN-M50-LZ_1-01-1-.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-GAIN-VOL"
+      },
+      {
+        "kind": "RELATED",
+        "sku": "SPK-IC6"
+      }
+    ]
   },
   {
     "sku": "AT-GAIN-NET",
@@ -1741,18 +1990,25 @@
     ],
     "documents": [
       {
-        "name": "AT-GAIN-NET Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-GAIN-NET_Spec.pdf",
-        "fileType": "pdf"
+        "name": "AT-GAIN-NET Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-GAIN-NET_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
-        "name": "AT-GAIN-NET Installation Guide",
-        "url": "https://atlona.com/pdf/manuals/AT-GAIN-NET_G.pdf",
-        "fileType": "pdf"
+        "name": "AT-GAIN-NET Guía de instalación",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-GAIN-NET_G.pdf",
+        "fileType": "Documentación"
+      },
+      {
+        "name": "Firmware 1.0.01 (20/12/2018)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-GAIN-NET_V1001.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-gain-net",
-    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS ESPECIFICOS",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "AT-GAIN-VOL",
@@ -1854,28 +2110,76 @@
     ],
     "documents": [
       {
-        "name": "AT-GAIN-VOL Specifications",
+        "name": "AT-GAIN-VOL Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-GAIN-VOL_Spec.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "AT-GAIN-VOL Manual and Installation Guide",
+        "name": "AT-GAIN-VOL Manual and Guía de instalación",
         "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-GAIN-VOL_G.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "Product Engineering Document",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/Product_Engineering_Spec.docx",
+        "fileType": "Soporte"
       },
       {
         "name": "AT-GAIN-VOL (dwg)",
-        "url": "https://atlona.com/pdf/cad/AT-GAIN-VOL.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-GAIN-VOL.dwg",
+        "fileType": "Plano CAD"
       },
       {
         "name": "AT-GAIN-VOL (pdf)",
-        "url": "https://atlona.com/pdf/cad/AT-GAIN-VOL.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-GAIN-VOL.pdf",
+        "fileType": "Plano CAD"
+      },
+      {
+        "name": "AT-GAIN-VOL",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-GAIN-VOL.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE AT-GAIN-VOL",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-GAIN-VOL.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK AT-GAIN-VOL",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-GAIN-VOL.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "AT-GAIN-VOL",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/LoV/LoV_AT-GAIN-VOL.pdf",
+        "fileType": "Carta de volatilidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-gain-vol",
-    "tangoPath": "SONIDO > ACCESORIOS > ATENUADORES"
+    "tangoPath": "SONIDO > ACCESORIOS > ATENUADORES",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-GAIN-M50-LZ"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-GAIN-M120"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-GAIN-M240"
+      },
+      {
+        "kind": "RELATED",
+        "sku": "SPK-IC6"
+      },
+      {
+        "kind": "RELATED",
+        "sku": "SPK-OW6"
+      }
+    ]
   },
   {
     "sku": "AT-HDR-M2C",
@@ -2098,33 +2402,53 @@
     ],
     "documents": [
       {
-        "name": "AT-HDR-M2C Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-HDR-M2C_Spec.pdf",
-        "fileType": "pdf"
+        "name": "AT-HDR-M2C Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-HDR-M2C_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-HDR-M2C Manual",
-        "url": "https://atlona.com/pdf/manuals/AT-HDR-M2C.pdf",
-        "fileType": "pdf"
-      },
-      {
-        "name": "AT-HDR-M2C Installation Guide",
-        "url": "https://atlona.com/pdf/AT-HDR-M2C_G.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-HDR-M2C.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-HDR-M2C API",
-        "url": "https://atlona.com/pdf/AT-HDR-M2C_M2C-QUAD_API.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-HDR-M2C_M2C-QUAD_API.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-HDR-M2C",
-        "url": "https://atlona.com/pdf/cad/AT-HDR-M2C.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-HDR-M2C.dwg",
+        "fileType": "Plano CAD"
+      },
+      {
+        "name": "DoC AT-HDR-M2C",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-HDR-M2C.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE AT-HDR-M2C",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-HDR-M2C.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK AT-HDR-M2C",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-HDR-M2C.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "Firmware 1.1.44 (28/10/2019)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-HDR-M2C_V1144.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-hdr-m2c",
-    "tangoPath": "SONIDO > PROCESADORES > CONVERSORES E INTERFASES"
+    "tangoPath": "SONIDO > PROCESADORES > CONVERSORES E INTERFASES",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/agDdW6YofJOwHC1S_hdr-m2c_callouts.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aeVls51ZCF7ETV3M_AT-HDR-M2C_application_diagram.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "GN-MISC-H1512",
@@ -2347,33 +2671,52 @@
     ],
     "documents": [
       {
-        "name": "GN-MISC-H1512 Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-HDR-M2C_Spec.pdf",
-        "fileType": "pdf"
+        "name": "GN-MISC-H1512 Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-HDR-M2C_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "GN-MISC-H1512 Manual",
-        "url": "https://atlona.com/pdf/manuals/AT-HDR-M2C.pdf",
-        "fileType": "pdf"
-      },
-      {
-        "name": "GN-MISC-H1512 Installation Guide",
-        "url": "https://atlona.com/pdf/AT-HDR-M2C_G.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-HDR-M2C.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "GN-MISC-H1512 API",
-        "url": "https://atlona.com/pdf/AT-HDR-M2C_M2C-QUAD_API.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-HDR-M2C_M2C-QUAD_API.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-HDR-M2C",
-        "url": "https://atlona.com/pdf/cad/AT-HDR-M2C.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-HDR-M2C.dwg",
+        "fileType": "Plano CAD"
+      },
+      {
+        "name": "DoC AT-HDR-M2C",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-HDR-M2C.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE AT-HDR-M2C",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-HDR-M2C.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK AT-HDR-M2C",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-HDR-M2C.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "Firmware 1.1.44",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-HDR-M2C_V1144.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/gn-misc-h1512",
-    "tangoPath": "SONIDO > PROCESADORES > CONVERSORES E INTERFASES"
+    "tangoPath": "SONIDO > PROCESADORES > CONVERSORES E INTERFASES",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aeVls51ZCF7ETV3M_AT-HDR-M2C_application_diagram.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "GN-MISC-H1522",
@@ -2529,18 +2872,22 @@
     ],
     "documents": [
       {
-        "name": "GN-MISC-H1522 Specifications",
-        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-MISC-H1522%20(HD-AUD-IO)/Spec%20Sheet/GN-MISC-H1522_Spec_Sheet.pdf",
-        "fileType": "pdf"
-      },
-      {
         "name": "HD-AUD-IO Manual",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-MISC-H1522%20(HD-AUD-IO)/Manual/HD-AUD-IO-Manual.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "Firmware HD-AUD-IO 1.2 Firmware",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-MISC-H1522%20(HD-AUD-IO)/Firmware/HD-AUD-IO_V1.2.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/gn-misc-h1522",
-    "tangoPath": "SONIDO > PROCESADORES > CONVERSORES E INTERFASES"
+    "tangoPath": "SONIDO > PROCESADORES > CONVERSORES E INTERFASES",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR5A32GnmrmGqDZg_HD-AUD-IO-Diagram.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "GN-OSIR-M1501-CM",
@@ -2587,13 +2934,17 @@
     ],
     "documents": [
       {
-        "name": "GN-OSIR-M1501-CM Specifications",
+        "name": "GN-OSIR-M1501-CM Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-OSIR-M1501-CM%20(HT-SATELLITE-CM)/Spec%20Sheet/GN-OSIR-M1501-CM_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/gn-osir-m1501-cm",
-    "tangoPath": "SONIDO > MICROFONOS > MICROFONOS COLGANTES"
+    "tangoPath": "SONIDO > MICROFONOS > MICROFONOS COLGANTES",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR5Gl2GnmrmGqDbV_Satellite-CM-Diagram-3.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "HT-COMALERT-KIT",
@@ -2737,16 +3088,20 @@
       {
         "name": "ComAlert Kit Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-COMALERT_Manual-2.0.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "ComAlert Specifications",
+        "name": "ComAlert Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-ComAlert-Spec-Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-comalert-kit",
-    "tangoPath": "SONIDO > SISTEMAS INALAMBRICOS > MICROFONOS INALAMBRICOS"
+    "tangoPath": "SONIDO > SISTEMAS INALAMBRICOS > MICROFONOS INALAMBRICOS",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR5D1WGnmrmGqDaV_ComAlert-Diagrams-03-1-.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "HT-OSIRIS-DSP1",
@@ -2836,21 +3191,40 @@
       {
         "name": "HT-OSIRIS-DSP1 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-OSIR-Z1199%20(HT-OSIRIS-DSP1)/Manual/HT-OSIRIS-DSP1_Manual-1.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "HT-OSIRIS-DSP1 Spec Sheet",
+        "name": "HT-OSIRIS-DSP1 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-OSIRIS-DSP1-Spec-Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-OSIRIS-DSP1 API",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-OSIR-Z1199%20(HT-OSIRIS-DSP1)/API/HT-OSIRIS_API-Commands.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "HT-OSIRIS-DSP1",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/DoC_FCC%20HT-OSIRIS-DSP1.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE HT-OSIRIS-DSP1",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/DoC_CE%20HT-OSIRIS-DSP1.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "Firmware Firmware Version 1.0.37",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-OSIR-Z1199%20(HT-OSIRIS-DSP1)/Firmware/GN-OSIR-Z1199_HT-OSIRIS-DSP1%20Firmware%20Version%201.0.37.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-osiris-dsp1",
-    "tangoPath": "SONIDO > PROCESADORES > PROCESADORES DSP"
+    "tangoPath": "SONIDO > PROCESADORES > PROCESADORES DSP",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aheP8LK9tuLqENAp_ComAlert-Diagrams-03.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "HT-SATELLITE-CM-MNT",
@@ -2866,11 +3240,18 @@
       {
         "name": "HT-SATELLITE-CM-MNT Manual",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-OSIR-Y1501-MT%20(HT-SATELLITE-CM-MNT)/Manual/HT-SATELLITE-CM-MNT.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-satellite-cm-mnt",
-    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS P/MICROFONOS"
+    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS P/MICROFONOS",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-SATELLITE-CM"
+      }
+    ]
   },
   {
     "sku": "SPK-IC6",
@@ -2988,16 +3369,28 @@
       {
         "name": "SPK-IC6 Specification",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/SPK-IC6_SpecSheet_July_11.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "SPK-IC6 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/SPK-IC6_Manual_July_15.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "CE SPK-IC6",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20SPK-IC6.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/spk-ic6",
-    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES DE EMBUTIR"
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES DE EMBUTIR",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "ACCESSORY",
+        "sku": "SPK-IC6-BRKT"
+      }
+    ]
   },
   {
     "sku": "SPK-OW6",
@@ -3101,15 +3494,17 @@
       {
         "name": "SPK-OW6 Specification",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/SPK-OW6_SpecSheet_Aug_2_reduced_size.docx",
-        "fileType": "docx"
+        "fileType": "Documentación"
       },
       {
         "name": "SPK-OW6 Manual",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-TONE-S1122-SM%20(SPK-OW6)/Manual/SPK-OW6_Manual_July_14-1.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/spk-ow6",
-    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS",
+    "graphics": [],
+    "relations": []
   }
 ]

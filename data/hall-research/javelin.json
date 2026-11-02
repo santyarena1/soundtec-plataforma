@@ -134,13 +134,15 @@
     ],
     "documents": [
       {
-        "name": "CHD-JAV4K-DE* Specifications",
+        "name": "CHD-JAV4K-DE* Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-JAV4K-DE50",
@@ -277,13 +279,15 @@
     ],
     "documents": [
       {
-        "name": "CHD-JAV4K-DE* Specifications",
+        "name": "CHD-JAV4K-DE* Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-SF06",
@@ -299,7 +303,9 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-SF25",
@@ -315,7 +321,9 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "EM-HD-NCP",
@@ -334,16 +342,20 @@
       {
         "name": "EM-HD-NCP Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HDMI20EDID20Emulator20-20In20a20Nutshell-1.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "EM-HD-NCP Monitor Info Utility",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/moninfo-1.zip",
-        "fileType": "zip"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/em-hd-ncp",
-    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI"
+    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aRzjwWGnmrmGqAF__EM-HD-NCP_block-2.jpg?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "GC-HDPI-USB",
@@ -356,7 +368,9 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/gc-hdpi-usb",
-    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI"
+    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "GLI-3.5MM",
@@ -401,7 +415,11 @@
     ],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/gli-3.5mm",
-    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS ESPECIFICOS",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR39i2GnmrmGqC7Q_GLI-35mm_Innards.jpg?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "JAV-CNTL-H1611",
@@ -708,26 +726,59 @@
       {
         "name": "JAV-CNTL-H1611 Specification",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-CNTL-H1611%20(AT-DISP-CTRL)/Spec%20Sheet/JAV-CNTL-H1611_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-CNTL-H1611 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-CNTL-H1611%20(AT-DISP-CTRL)/Manual/JAV-CNTL-H1611_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-CNTL-H1611 API",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-CNTL-H1611%20(AT-DISP-CTRL)/API/JAV-CNTL-H1611-API.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-DISP-CTRL",
-        "url": "https://atlona.com/pdf/cad/AT-DISP-CTRL.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-DISP-CTRL.dwg",
+        "fileType": "Plano CAD"
+      },
+      {
+        "name": "JAV-DISP-CTRL",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-DISP-CTRL.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE JAV-DISP-CTRL",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-DISP-CTRL.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK JAV-DISP-CTRL",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-DISP-CTRL.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "JAV-DISP-CTRL",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/LoV/LoV_AT-DISP-CTRL.pdf",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "Firmware 1.0.16 (28/01/2020)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-DISP-CTRL_V1016.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/jav-cntl-h1611",
-    "tangoPath": "CONTROL > AUTOMATIZACION > SISTEMAS DE CONTROL > SISTEMA DE CONTROL P/PANTALLA"
+    "tangoPath": "CONTROL > AUTOMATIZACION > SISTEMAS DE CONTROL > SISTEMA DE CONTROL P/PANTALLA",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/FBcBa4H_hIpnI8QW_jav-cntl-h1611_callouts.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQ0U4bpReVYa4LMu_AT-DISP-CTRL_v1-01-web.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQ0U7bpReVYa4LM2_AT-DISP-CTRL_v2-01-web.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQ0U-7pReVYa4LNB_AT-DISP-CTRL_v3-01-web.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQ0VD7pReVYa4LNQ_AT-OME-EX-KIT-LT_v3-01.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "HT-ECLIPSE-USBC-KIT",
@@ -739,16 +790,27 @@
       {
         "name": "HT-ECLIPSE-USBC-KIT How TO",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-ECPS-T04UC-KT%20(HT-ECLIPSE-USBC-KIT)/Manual/Eclipse%20How-To%20-%20USB-C.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "Eclipse One-Page",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/_Brochures/Eclipse%20Handout%20-%20Javelin_Final.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-eclipse-usbc-kit",
-    "tangoPath": "VARIOS > INFORMATICA > ACCESORIOS"
+    "tangoPath": "VARIOS > INFORMATICA > ACCESORIOS",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-ECLIPSE-USBA-KIT"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-ECLIPSE-RJ45-KIT"
+      }
+    ]
   },
   {
     "sku": "JAV-EXT-F1211",
@@ -957,16 +1019,21 @@
       {
         "name": "JAV-EXT-F1211 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-EXT-F1211/Manual/JAV-EXT-F1211_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "JAV-EXT-F1211 Specifications",
+        "name": "JAV-EXT-F1211 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-EXT-F1211/Spec%20Sheet/JAV-EXT-F1211_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/jav-ext-f1211",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/k8aC2z9s8m4mjnXl_JAV-EXT-F1211_Callouts_1600x742.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/r2hSh48FQJjePfWb_JAV-EXT-F1211BlockDiagramV2.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "U22-160",
@@ -1075,33 +1142,37 @@
     ],
     "documents": [
       {
-        "name": "JAV-MISC-F1212 Specifications",
+        "name": "JAV-MISC-F1212 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-160_Specsheet_Nov_10-1.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-MISC-F1212 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-160-Manual-.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "U22-160 Mechanical (DWG)",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-16020DIMS.vnd_.dwg",
-        "fileType": "dwg"
+        "fileType": "Plano CAD"
       },
       {
         "name": "U22-160 Mechanical (DXF)",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-16020DIMS.vnd_.dxf",
-        "fileType": "dxf"
+        "fileType": "Plano CAD"
       },
       {
         "name": "U22-160 Mechanical (PDF)",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-16020DIMS.pdf",
-        "fileType": "pdf"
+        "fileType": "Plano CAD"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/u22-160",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR4RlWGnmrmGqDFs_U22-160diagram_Nov_17.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "AT-ETU-SYNC",
@@ -1293,23 +1364,63 @@
     ],
     "documents": [
       {
-        "name": "AT-ETU-SYNC Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-ETU-SYNC_Spec.pdf",
-        "fileType": "pdf"
+        "name": "AT-ETU-SYNC Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-ETU-SYNC_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
-        "name": "AT-ETU-SYNC Installation Guide",
-        "url": "https://atlona.com/pdf/manuals/AT-ETU-SYNC_G.pdf",
-        "fileType": "pdf"
+        "name": "AT-ETU-SYNC Guía de instalación",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-ETU-SYNC_G.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-ETU-SYNC Manual",
-        "url": "https://atlona.com/pdf/manuals/AT-ETU-SYNC.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-ETU-SYNC.pdf",
+        "fileType": "Documentación"
+      },
+      {
+        "name": "AT-ETU-SYNC",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-ETU-SYNC.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "AT-ETU-SYNC",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-ETU-SYNC.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "AT-ETU-SYNC",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-ETU-SYNC.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "JAV-ETU-SYNC",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/LoV/LoV_AT-ETU-SYNC.pdf",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "JAV-ETU-SYNC",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-ETU-SYNC.dwg",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "Firmware 2.0.6 (21/10/2021)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-ETU-SYNC_V206.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.0.6 (21/10/2021)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/AT-ETU-SYNC%20Firmware.pdf",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-etu-sync",
-    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO"
+    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aQ0aurpReVYa4LcW_at-etu-sync_callouts.jpg?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQ0bDLpReVYa4LdI_AT-ETU-SYNC_application_diagram.jpg?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "GC-HD-DP",
@@ -1326,13 +1437,15 @@
     "specifications": [],
     "documents": [
       {
-        "name": "GC-HD-DP Specifications",
+        "name": "GC-HD-DP Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/GC-HD-DP-SpecSheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/gc-hd-dp",
-    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI"
+    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "GCDP-1HD",
@@ -1355,7 +1468,9 @@
     ],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/gcdp-1hd",
-    "tangoPath": "CONECTIVIDAD > PANELES DE CONEXION > FIJOS"
+    "tangoPath": "CONECTIVIDAD > PANELES DE CONEXION > FIJOS",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "HT-EM-8K",
@@ -1443,18 +1558,20 @@
     ],
     "documents": [
       {
-        "name": "HT-EM-8K Specifications",
+        "name": "HT-EM-8K Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-EM-8K-Spec-Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-EM-8K Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-EM-8K_Manual-1.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-em-8k",
-    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO"
+    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "JAV-DP-HDMI",
@@ -1471,38 +1588,55 @@
     "specifications": [],
     "documents": [
       {
-        "name": "JAV-DP-HDMI Installation Guide",
+        "name": "JAV-DP-HDMI Guía de instalación",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/JAV-DP-HDMI%20IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "JAV-DP-HDMI Installation Guide (Dutch)",
+        "name": "JAV-DP-HDMI Guía de instalación (Dutch)",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/Dutch/JAV-DP-HDMI%20IFU%20(Dutch).pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "JAV-DP-HDMI Installation Guide (French)",
+        "name": "JAV-DP-HDMI Guía de instalación (French)",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/French/JAV-DP-HDMI%20IFU%20(French).pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "JAV-DP-HDMI Installation Guide (German)",
+        "name": "JAV-DP-HDMI Guía de instalación (German)",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/German/JAV-DP-HDMI%20IFU%20(German).pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "JAV-DP-HDMI Installation Guide (Italian)",
+        "name": "JAV-DP-HDMI Guía de instalación (Italian)",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/Italian/JAV-DP-HDMI%20IFU%20(Italian).pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "JAV-DP-HDMI Installation Guide (Spanish)",
+        "name": "JAV-DP-HDMI Guía de instalación (Spanish)",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/Spanish/JAV-DP-HDMI%20IFU%20(Spanish).pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "JAV-DP-HDMI",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20JAV-DP-HDMI.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE JAV-DP-HDMI",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20JAV-DP-HDMI.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA JAV-DP-HDMI",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20JAV-DP-HDMI.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/jav-dp-hdmi",
-    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI"
+    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "JAV-ETU-H1211-HD",
@@ -1521,16 +1655,20 @@
       {
         "name": "JAV-ETU-H1211-HD Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HDMI20EDID20Emulator20-20In20a20Nutshell-1.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-ETU-H1211-HD Monitor Info Utility",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/moninfo-1.zip",
-        "fileType": "zip"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/jav-etu-h1211-hd",
-    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO"
+    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aRzjwWGnmrmGqAF__EM-HD-NCP_block-2.jpg?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "JAV-ETU-H1311-HD",
@@ -1716,18 +1854,58 @@
     ],
     "documents": [
       {
-        "name": "JAV-ETU-H1311-HD Specifications",
+        "name": "JAV-ETU-H1311-HD Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-ETU-H1311-HD%20(AT-ETU-SYNC)/Spec%20Sheet/JAV-ETU-H1311-HD_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-ETU-H1311-HD Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-ETU-H1311-HD%20(AT-ETU-SYNC)/Manual/JAV-ETU-H1311-HD_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "JAV-ETU-SYNC",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-ETU-SYNC.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE JAV-ETU-SYNC",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-ETU-SYNC.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK JAV-ETU-SYNC",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-ETU-SYNC.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "JAV-ETU-SYNC",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/LoV/LoV_AT-ETU-SYNC.pdf",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "JAV-ETU-SYNC",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-ETU-SYNC.dwg",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "Firmware 2.0.6 (21/10/2021)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-ETU-SYNC_V206.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.0.6 (21/10/2021)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/AT-ETU-SYNC%20Firmware.pdf",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/jav-etu-h1311-hd",
-    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO"
+    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/9d1_4rrYBnaW6YyO_jav-etu-h1311-hd_callout.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQ0bDLpReVYa4LdI_AT-ETU-SYNC_application_diagram.jpg?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "JAV-OCS-900N",
@@ -1905,28 +2083,73 @@
     ],
     "documents": [
       {
-        "name": "JAV-OCS-900N Spec Sheet",
+        "name": "JAV-OCS-900N Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-OCS-900N%20(AT-OCS-900N)/Spec%20Sheet/JAV-OCS-900N_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "JAV-OCS-900N Installation Guide",
+        "name": "JAV-OCS-900N Guía de instalación",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-OCS-900N%20(AT-OCS-900N)/Installation%20Guide/JAV-OCS-900N_Installation_Guide.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-OCS-900N Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-OCS-900N%20(AT-OCS-900N)/Other/AT-OCS-900N.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-OCS-900N API",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-OCS-900N%20(AT-OCS-900N)/API/AT-OCS-900N_API.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "JSON over WebSocket Schema",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/AT-OCS-900N_Schema.zip",
+        "fileType": "Soporte"
+      },
+      {
+        "name": "JAV-OCS-900N",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-OCS-900N.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE JAV-OCS-900N",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-OCS-900N.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK JAV-OCS-900N",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-OCS-900N.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "AT-OCS-900N",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/LoV/LoV_AT-OCS-900N.pdf",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "AT-OCS-900N (dwg)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-OCS-900N.dwg",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "AT-OCS-900N (pdf)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-OCS-900N.pdf",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "Firmware 1.0.1 (18/05/2022)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/firmware/Firmware_AT-OCS-900N_V101.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/jav-ocs-900n",
-    "tangoPath": "CONTROL > ACCESORIOS > SENSORES"
+    "tangoPath": "CONTROL > ACCESORIOS > SENSORES",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aQ0kPLpReVYa4Lxt_AT-OCS-900_Callouts.jpg?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQ0lVLpReVYa4L0b_AT-OCS-900N_ver2_wd.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "JAV-SF-UC2UC-6F",
@@ -2016,13 +2239,15 @@
     ],
     "documents": [
       {
-        "name": "JAV-SF-UC2UC Specifications",
+        "name": "JAV-SF-UC2UC Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-SF-UC2UC/Specs/JAV-SF-UC2UC_Specs.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/jav-sf-uc2uc-6f",
-    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "JAV-PS-POE",
@@ -2166,23 +2391,42 @@
     ],
     "documents": [
       {
-        "name": "JAV-PS-POE Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-PS-POE_Spec.pdf",
-        "fileType": "pdf"
+        "name": "JAV-PS-POE Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-PS-POE_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-PS-POE Manual",
-        "url": "https://atlona.com/pdf/manuals/AT-PS-POE.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-PS-POE.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-PS-POE",
-        "url": "https://atlona.com/pdf/cad/AT-PS-POE.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-PS-POE.dwg",
+        "fileType": "Plano CAD"
+      },
+      {
+        "name": "AT-PS-POE",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-PS-POE.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "EC AT-PS-POE",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/EC_DoC_AT-PS-POE.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK AT-PS-POE",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-PS-POE.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/jav-ps-poe",
-    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aQ3_TrpReVYa4PKh_AT-PS-POE_AT-HDVS-210H-TX-WP_wd-01.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "CHD-JAV4K-DE25",
@@ -2319,13 +2563,15 @@
     ],
     "documents": [
       {
-        "name": "CHD-JAV4K-DE* Specifications",
+        "name": "CHD-JAV4K-DE* Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-JAV4K-DE75",
@@ -2462,13 +2708,15 @@
     ],
     "documents": [
       {
-        "name": "CHD-JAV4K-DE* Specifications",
+        "name": "CHD-JAV4K-DE* Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-SF01",
@@ -2484,7 +2732,9 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-SF10",
@@ -2500,7 +2750,9 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-SF35",
@@ -2516,7 +2768,9 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-SF50",
@@ -2532,7 +2786,9 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CUSB2-06",
@@ -2542,7 +2798,14 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/cusb2-06",
-    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "CUSB2-15"
+      }
+    ]
   },
   {
     "sku": "CUSB-JAV-C-C-5",
@@ -2655,7 +2918,14 @@
     ],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/usb-c-aoc",
-    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "CUSB-JAV-C-C-10"
+      }
+    ]
   },
   {
     "sku": "AT-IR-CS-TX",
@@ -2672,12 +2942,19 @@
     "documents": [
       {
         "name": "AT-IR-CS-TX Manual",
-        "url": "https://atlona.com/pdf/manuals/AT-IR-CS-TX.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-IR-CS-TX.pdf",
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-ir-cs-tx",
-    "tangoPath": "CONTROL > ACCESORIOS > EMISORES IR"
+    "tangoPath": "CONTROL > ACCESORIOS > EMISORES IR",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-IR-CS-RX"
+      }
+    ]
   },
   {
     "sku": "U2-DR1",
@@ -2763,18 +3040,35 @@
     ],
     "documents": [
       {
-        "name": "U2-DR1 Specifications",
+        "name": "U2-DR1 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U2-DR1_SpecSheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "U2-DR1 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U2-DR1-Manual-1.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/u2-dr1",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/ajMpsY1P9HI4Up0h_U2-DR1-Diagram.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-ASTRO2-4"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "U22-160"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "U22-160-DP"
+      }
+    ]
   },
   {
     "sku": "AT-IR-CS-RX",
@@ -2792,12 +3086,19 @@
     "documents": [
       {
         "name": "AT-IR-CS-RX Manual",
-        "url": "https://atlona.com/pdf/manuals/AT-IR-CS-RX.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-IR-CS-RX.pdf",
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-ir-cs-rx",
-    "tangoPath": "CONTROL > ACCESORIOS > RECEPTOR IR"
+    "tangoPath": "CONTROL > ACCESORIOS > RECEPTOR IR",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-IR-CS-TX"
+      }
+    ]
   },
   {
     "sku": "AT-LC-UC2UC-5M",
@@ -2903,13 +3204,15 @@
     ],
     "documents": [
       {
-        "name": "AT-LC-UC2UC-5M Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-LC-UC2UC_Spec.pdf",
-        "fileType": "pdf"
+        "name": "AT-LC-UC2UC-5M Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-LC-UC2UC_Spec.pdf",
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-lc-uc2uc-5m",
-    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "AT-OME-WP-BKT",
@@ -2925,23 +3228,25 @@
     "specifications": [],
     "documents": [
       {
-        "name": "AT-OME-WP-BKT Installation Guide",
+        "name": "AT-OME-WP-BKT Guía de instalación",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-WP-BKT%20(AT-OME-WP-BKT)/Installation%20Guide/AT-OME-WP-BKT_G.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "AT-OME-WP-BKT drawing",
-        "url": "https://atlona.com/pdf/cad/AT-OME-WP-BKT.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-OME-WP-BKT.dwg",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-OME-WP-BKT (pdf)",
-        "url": "https://atlona.com/pdf/cad/AT-OME-WP-BKT.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-OME-WP-BKT.pdf",
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-ome-wp-bkt",
-    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "AT-PS-POE",
@@ -3085,23 +3390,42 @@
     ],
     "documents": [
       {
-        "name": "AT-PS-POE Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-PS-POE_Spec.pdf",
-        "fileType": "pdf"
+        "name": "AT-PS-POE Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-PS-POE_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-PS-POE Manual",
-        "url": "https://atlona.com/pdf/manuals/AT-PS-POE.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-PS-POE.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-PS-POE",
-        "url": "https://atlona.com/pdf/cad/AT-PS-POE.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-PS-POE.dwg",
+        "fileType": "Plano CAD"
+      },
+      {
+        "name": "AT-PS-POE",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-PS-POE.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "EC AT-PS-POE",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/EC_DoC_AT-PS-POE.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK AT-PS-POE",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-PS-POE.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-ps-poe",
-    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aQ3_TrpReVYa4PKh_AT-PS-POE_AT-HDVS-210H-TX-WP_wd-01.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "AT-RACK-1RU",
@@ -3111,18 +3435,20 @@
     "specifications": [],
     "documents": [
       {
-        "name": "AT-RACK-1RU Installation Guide",
-        "url": "https://atlona.com/pdf/AT-RACK-1RU_G.pdf",
-        "fileType": "pdf"
+        "name": "AT-RACK-1RU Guía de instalación",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-RACK-1RU_G.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-RACK-1RU Drawing",
-        "url": "https://atlona.com/pdf/cad/AT-RACK-1RU.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-RACK-1RU.dwg",
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-rack-1ru",
-    "tangoPath": "RACK & CASES > ACCESORIOS > BANDEJAS RACK > BANDEJA RACK ESPECIFICA"
+    "tangoPath": "RACK & CASES > ACCESORIOS > BANDEJAS RACK > BANDEJA RACK ESPECIFICA",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "AT-RACK-1RU-ME",
@@ -3136,18 +3462,17 @@
     "specifications": [],
     "documents": [
       {
-        "name": "AT-RACK-1RU-ME Installation Guide",
-        "url": "https://atlona.com/product/at-rack-1ru-me/",
-        "fileType": "com/product/at-rack-1ru-me/"
-      },
-      {
         "name": "AT-RACK-1RU-ME Drawing",
-        "url": "https://atlona.com/pdf/cad/AT-RACK-1RU-ME.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-RACK-1RU-ME.dwg",
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-rack-1ru-me",
-    "tangoPath": "RACK & CASES > ACCESORIOS > BANDEJAS RACK > BANDEJA RACK ESPECIFICA"
+    "tangoPath": "RACK & CASES > ACCESORIOS > BANDEJAS RACK > BANDEJA RACK ESPECIFICA",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aQ4AsrpReVYa4PMj_AT-RACK-1RU-ME_4E_ISO_wPWR.jpg?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "AT-SFP-PLUS-10GE-SR",
@@ -3304,13 +3629,20 @@
     ],
     "documents": [
       {
-        "name": "JAV-MISC-Z1111 Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-SFP-PLUS-10GE-SR_Spec.pdf",
-        "fileType": "pdf"
+        "name": "JAV-MISC-Z1111 Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-SFP-PLUS-10GE-SR_Spec.pdf",
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-sfp-plus-10ge-sr",
-    "tangoPath": "VARIOS > INFORMATICA > COMUNICACIONES"
+    "tangoPath": "VARIOS > INFORMATICA > COMUNICACIONES",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-PRO5-MX810"
+      }
+    ]
   },
   {
     "sku": "C-HDMI-DVI-2M",
@@ -3327,11 +3659,13 @@
       {
         "name": "C-HDMI-DVI-*M Drawing",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HDMI_to_DVI_Cable.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/c-hdmi-dvi-2m",
-    "tangoPath": "CONECTIVIDAD > ADAPES > CABLES ADAPES"
+    "tangoPath": "CONECTIVIDAD > ADAPES > CABLES ADAPES",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-JAV4K-DE10",
@@ -3468,13 +3802,15 @@
     ],
     "documents": [
       {
-        "name": "CHD-JAV4K-DE* Specifications",
+        "name": "CHD-JAV4K-DE* Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-JAV4K-DE100",
@@ -3611,13 +3947,15 @@
     ],
     "documents": [
       {
-        "name": "CHD-JAV4K-DE* Specifications",
+        "name": "CHD-JAV4K-DE* Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-JAV4K-DE30",
@@ -3754,13 +4092,15 @@
     ],
     "documents": [
       {
-        "name": "CHD-JAV4K-DE* Specifications",
+        "name": "CHD-JAV4K-DE* Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-SF03",
@@ -3776,7 +4116,9 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CHD-SF15",
@@ -3792,7 +4134,9 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
-    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "CIR-KIT-EMT2",
@@ -3807,7 +4151,11 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/cir-kit-emt2",
-    "tangoPath": "CONTROL > ACCESORIOS > EMISORES IR"
+    "tangoPath": "CONTROL > ACCESORIOS > EMISORES IR",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aRzGSGGnmrmGp_y1_CIR-KIT-EMT2_installation.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "CUSB-JAV-C-C-10",
@@ -3920,7 +4268,14 @@
     ],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/cusb-jav-c-c-10",
-    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "CUSB-JAV-C-C-5"
+      }
+    ]
   },
   {
     "sku": "CUSB2-15",
@@ -3930,7 +4285,14 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/cusb2-15",
-    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "CUSB2-15"
+      }
+    ]
   },
   {
     "sku": "HT-ECLIPSE-RJ45-KIT",
@@ -3942,16 +4304,27 @@
       {
         "name": "HT-ECLIPSE-RJ45-KIT How To",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-ECPS-T10RJ-KT%20(HT-ECLIPSE-RJ45-KIT)/Manual/Eclipse%20How-To%20-%20RJ-45.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "Eclipse One-Page",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/_Brochures/Eclipse%20Handout%20-%20Javelin_Final.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-eclipse-rj45-kit",
-    "tangoPath": "CONECTIVIDAD > ACCESORIOS > CONECTORES RJ > TAPA JACK RJ45 / RJ11"
+    "tangoPath": "CONECTIVIDAD > ACCESORIOS > CONECTORES RJ > TAPA JACK RJ45 / RJ11",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-ECLIPSE-USBA-KIT"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-ECLIPSE-USBC-KIT"
+      }
+    ]
   },
   {
     "sku": "HT-ECLIPSE-USBA-KIT",
@@ -3963,16 +4336,27 @@
       {
         "name": "HT-ECLIPSE-USBA-KIT How To",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-ECPS-T04UA-KT%20(HT-ECLIPSE-USBA-KIT)/Manual/Eclipse%20How-To%20-%20USB-A.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "Eclipse One-Page",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/_Brochures/Eclipse%20Handout%20-%20Javelin_Final.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-eclipse-usba-kit",
-    "tangoPath": "VARIOS > INFORMATICA > ACCESORIOS"
+    "tangoPath": "VARIOS > INFORMATICA > ACCESORIOS",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-ECLIPSE-USBC-KIT"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-ECLIPSE-RJ45-KIT"
+      }
+    ]
   },
   {
     "sku": "JAV-WP-BKT",
@@ -3988,23 +4372,25 @@
     "specifications": [],
     "documents": [
       {
-        "name": "JAV-WP-BKT Installation Guide",
+        "name": "JAV-WP-BKT Guía de instalación",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-WP-BKT%20(AT-OME-WP-BKT)/Installation%20Guide/AT-OME-WP-BKT_G.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-WP-BKT drawing",
-        "url": "https://atlona.com/pdf/cad/AT-OME-WP-BKT.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-OME-WP-BKT.dwg",
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-WP-BKT (pdf)",
-        "url": "https://atlona.com/pdf/cad/AT-OME-WP-BKT.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-OME-WP-BKT.pdf",
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/jav-wp-bkt",
-    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "RMS-1U-1A",
@@ -4014,7 +4400,9 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/rms-1u-1a",
-    "tangoPath": "RACK & CASES > ACCESORIOS > BANDEJAS RACK > BANDEJA RACK ESPECIFICA"
+    "tangoPath": "RACK & CASES > ACCESORIOS > BANDEJAS RACK > BANDEJA RACK ESPECIFICA",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "U22-160-DP",
@@ -4124,17 +4512,21 @@
     ],
     "documents": [
       {
-        "name": "JAV-MISC-F1212-WP Specifications",
+        "name": "JAV-MISC-F1212-WP Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-160-DP_Specsheet_Nov_10.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "JAV-MISC-F1212-WP Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-160-dp-Manual-.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/u22-160-dp",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR4NU2GnmrmGqDD7_U2-DR1-Diagram.png?auto=format,compress"
+    ],
+    "relations": []
   }
 ]

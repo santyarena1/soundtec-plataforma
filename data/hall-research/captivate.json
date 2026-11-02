@@ -384,23 +384,53 @@
     ],
     "documents": [
       {
-        "name": "AT-HDVS-CAM Specifications",
+        "name": "AT-HDVS-CAM Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-HDVS-CAM_Spec.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "AT-HDVS-CAM Installation Guide",
+        "name": "AT-HDVS-CAM Guía de instalación",
         "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-HDVS-CAM_G.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "AT-HDVS-CAM Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-HDVS-CAM.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "AT-HDVS-CAM",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-HDVS-CAM.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE AT-HDVS-CAM",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-HDVS-CAM.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA AT-HDVS-CAM",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-HDVS-CAM.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "Firmware 2.5.9 (02/02/2022)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/Firmware_AT-HDVS-CAM-HDMI_V259.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-hdvs-cam-w",
-    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ"
+    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/agJE76YofJOwHGaI_AT-HDVS-CAM_CALLOUTS-.jpg?auto=format,compress",
+      "https://images.prismic.io/hallresearch/agJHu6YofJOwHGbR_AT-OCS-900N_ver4_wd-01.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-HDVS-CAM"
+      }
+    ]
   },
   {
     "sku": "HT-VOYAGER2",
@@ -495,18 +525,20 @@
     ],
     "documents": [
       {
-        "name": "HT-VOYAGER2 Specifications",
+        "name": "HT-VOYAGER2 Hoja técnica",
         "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-WAVE-Y1211-PK%20(HT-VOYAGER2)/Spec%20Sheet/HT-VOYAGER2-Spec-Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-VOYAGER2 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-WAVE-Y1211-PK%20(HT-VOYAGER2)/Manual/HT-VOYAGER2_Manual.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-voyager2",
-    "tangoPath": "VIDEO > PROCESADORES > PRESENTADOR AIR MEDIA"
+    "tangoPath": "VIDEO > PROCESADORES > PRESENTADOR AIR MEDIA",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "AT-CAP-FC110",
@@ -741,33 +773,70 @@
     ],
     "documents": [
       {
-        "name": "AT-CAP-FC110 Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-CAP-FC110_Spec.pdf",
-        "fileType": "pdf"
+        "name": "AT-CAP-FC110 Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-CAP-FC110_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
-        "name": "AT-CAP-FC110 Installation Guide",
-        "url": "https://atlona.com/pdf/manuals/AT-CAP-FC110_G_WEB.pdf",
-        "fileType": "pdf"
+        "name": "AT-CAP-FC110 Guía de instalación",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-CAP-FC110_G_WEB.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-CAP-FC110 Manual",
-        "url": "https://atlona.com/pdf/manuals/AT-CAP-FC110.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-CAP-FC110.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-CAP-FC110",
-        "url": "https://atlona.com/pdf/cad/AT-CAP-FC110.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-CAP-FC110.dwg",
+        "fileType": "Plano CAD"
       },
       {
         "name": "AT-CAP-FC110 (pdf)",
-        "url": "https://atlona.com/pdf/cad/AT-CAP-FC110.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-CAP-FC110.pdf",
+        "fileType": "Plano CAD"
+      },
+      {
+        "name": "AT-CAP-FC110",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-CAP-FC110.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE AT-CAP-FC110",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-CAP-FC110.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK AT-CAP-FC110",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-CAP-FC110.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "AT-CAP-FC110_LoV",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/LoV/LoV_AT-CAP-FC110.pdf",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "Captivate™ Camera Update Tool",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-PVOT-C1511%20(AT-CAP-FC110)/Other/CaptivateCameraUpdateTool.zip",
+        "fileType": "Software"
+      },
+      {
+        "name": "Firmware 1.0.1 (19/12/2022)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-PVOT-C1511%20(AT-CAP-FC110)/Firmware/Firmware_AT-CAP-FC110_V101.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-cap-fc110",
-    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ"
+    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aQvL6LpReVYa4G6y_cap-fc110_callouts.jpg?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQvTYbpReVYa4G-I_AT-CAP-FC110-01.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQvTfrpReVYa4G-K_AT-OME-EX-KIT-LT_v2a-01.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aQvTnLpReVYa4G-N_AT-OME-MS42_R2-01-1-.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "AT-HDVS-CAM",
@@ -1154,23 +1223,53 @@
     ],
     "documents": [
       {
-        "name": "AT-HDVS-CAM Specifications",
+        "name": "AT-HDVS-CAM Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-HDVS-CAM_Spec.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "AT-HDVS-CAM Installation Guide",
+        "name": "AT-HDVS-CAM Guía de instalación",
         "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-HDVS-CAM_G.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "AT-HDVS-CAM Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-HDVS-CAM.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "AT-HDVS-CAM",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-HDVS-CAM.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE AT-HDVS-CAM",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-HDVS-CAM.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA AT-HDVS-CAM",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-HDVS-CAM.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "Firmware 2.4.7 (02/02/2022)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/Firmware_AT-HDVS-CAM_V247.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-hdvs-cam",
-    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ"
+    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/agJE76YofJOwHGaI_AT-HDVS-CAM_CALLOUTS-.jpg?auto=format,compress",
+      "https://images.prismic.io/hallresearch/agJHu6YofJOwHGbR_AT-OCS-900N_ver4_wd-01.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "AT-HDVS-CAM-W"
+      }
+    ]
   },
   {
     "sku": "AT-OME-MH21",
@@ -1630,38 +1729,68 @@
     ],
     "documents": [
       {
-        "name": "AT-OME-MH21 Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-OME-MH21_Spec.pdf",
-        "fileType": "pdf"
+        "name": "AT-OME-MH21 Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-OME-MH21_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
-        "name": "AT-OME-MH21 Installation Guide",
+        "name": "AT-OME-MH21 Guía de instalación",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/AT-OME-MH21/Installation%20Guide/AT-OME-MH21_G.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "AT-OME-MH21 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/AT-OME-MH21/Other/AT-OME-MH21_MH21-CP.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "AT-OME-MH21 API",
-        "url": "https://atlona.com/pdf/AT-OME-MH21_MH21_API.pdf",
-        "fileType": "pdf"
+        "name": "Omega USB Peripheral Lista de compatibilidad",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/OmegaUSBlist.pdf",
+        "fileType": "Soporte"
       },
       {
         "name": "AT-OME-MH21 (dwg)",
-        "url": "https://atlona.com/pdf/cad/AT-OME-MH21.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-OME-MH21.dwg",
+        "fileType": "Plano CAD"
       },
       {
-        "name": "AT-OME-MH21 (pdf)",
-        "url": "https://atlona.com/pdf/cad/AT-OME-MH21.pdf",
-        "fileType": "pdf"
+        "name": "AT-OME-MH21",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-OME-MH21.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE AT-OME-MH21",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-OME-MH21.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK AT-OME-MH21",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-OME-MH21.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "AT-OME-MH21",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/LoV/LoV_AT-OME-MH21.pdf",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "Firmware 1.0.6",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-MHUB-R1621%20(AT-OME-MH21-CP)/Firmware/Firmware_AT-OME-MH21_MH21-CP_V106.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Crestron AT-OME-MH21 RS-232 and TCP/IP Control",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/drivers/Crestron_AT-OME-MH21.zip",
+        "fileType": "Driver de control Crestron"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-ome-mh21",
-    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS"
+    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aeUzrJ1ZCF7ETVxA_ome-mh21_callouts-1.jpg?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aRIYirpReVYa4T6-_OME-MH21-CP-application-diagram.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "AT-OME-MH21-CP",
@@ -2122,38 +2251,79 @@
     ],
     "documents": [
       {
-        "name": "AT-OME-MH21-CP Specifications",
-        "url": "https://atlona.com/pdf/data_sheet/AT-OME-MH21-CP_Spec.pdf",
-        "fileType": "pdf"
+        "name": "AT-OME-MH21-CP Hoja técnica",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-OME-MH21-CP_Spec.pdf",
+        "fileType": "Documentación"
       },
       {
-        "name": "AT-OME-MH21-CP Installation Guide",
-        "url": "https://atlona.com/pdf/manuals/AT-OME-MH21-CP_G.pdf",
-        "fileType": "pdf"
+        "name": "AT-OME-MH21-CP Guía de instalación",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-OME-MH21-CP_G.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-OME-MH21-CP Manual",
-        "url": "https://atlona.com/pdf/manuals/AT-OME-MH21_MH21-CP.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-OME-MH21_MH21-CP.pdf",
+        "fileType": "Documentación"
       },
       {
         "name": "AT-OME-MH21-CP API",
-        "url": "https://atlona.com/pdf/AT-OME-MH21_MH21-CP_API.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-OME-MH21_MH21-CP_API.pdf",
+        "fileType": "Documentación"
+      },
+      {
+        "name": "Omega USB Peripheral Lista de compatibilidad",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/OmegaUSBlist.pdf",
+        "fileType": "Soporte"
       },
       {
         "name": "AT-OME-MH21-CP (dwg)",
-        "url": "https://atlona.com/pdf/cad/AT-OME-MH21-CP.dwg",
-        "fileType": "dwg"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-OME-MH21-CP.dwg",
+        "fileType": "Plano CAD"
       },
       {
         "name": "AT-OME-MH21-CP (pdf)",
-        "url": "https://atlona.com/pdf/cad/AT-OME-MH21-CP.pdf",
-        "fileType": "pdf"
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/cad/AT-OME-MH21-CP.pdf",
+        "fileType": "Plano CAD"
+      },
+      {
+        "name": "AT-OME-MH21-CP",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/DoC_AT-OME-MH21-CP.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE AT-OME-MH21-CP",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/CE_DoC_AT-OME-MH21-CP.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UK AT-OME-MH21-CP",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/DoC/UKCA_DoC_AT-OME-MH21-CP.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "AT-OME-MH21-CP",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/LoV/LoV_AT-OME-MH21-CP.pdf",
+        "fileType": "Carta de volatilidad"
+      },
+      {
+        "name": "Firmware 1.0.6",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-MHUB-R1621%20(AT-OME-MH21-CP)/Firmware/Firmware_AT-OME-MH21_MH21-CP_V106.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Crestron AT-OME-MH21 RS-232 and TCP/IP Control",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/downloads/drivers/Crestron_AT-OME-MH21.zip",
+        "fileType": "Driver de control Crestron"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/at-ome-mh21-cp",
-    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS"
+    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aRIYMbpReVYa4T6u_ome-mh21-cp_callouts-2.jpg?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aRIYirpReVYa4T6-_OME-MH21-CP-application-diagram.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/aRIYlrpReVYa4T7D_AT-OME-MH21-CP_AV_cart.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "CP-PVOT-C1622",
@@ -2509,21 +2679,26 @@
       {
         "name": "CP-PVOT-C1622 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-PVOT-C1622%20(HT-CAM-4K-DUAL)/Manual/CP-PVOT-C1622_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "CP-PVOT-C1622 Specifications",
+        "name": "CP-PVOT-C1622 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-PVOT-C1622%20(HT-CAM-4K-DUAL)/Spec%20Sheet/CP-PVOT-C1622_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "CP-PVOT-C1622 API",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-PVOT-C1622%20(HT-CAM-4K-DUAL)/API/CP-PVOT-C1622-API.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/cp-pvot-c1622",
-    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ"
+    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/8-6I7lmZFrpC1eqg_CP-PVOT-C1622_Callout%401920x.png?auto=format,compress",
+      "https://images.prismic.io/hallresearch/W8BCIft-Zr1qMSfd_CP-PVOT-C1622WITHAT-OME-EX-TXANDAT-OME-RXBlockDiagram1.png?auto=format,compress"
+    ],
+    "relations": []
   },
   {
     "sku": "HT-RANGER2",
@@ -2694,28 +2869,51 @@
     ],
     "documents": [
       {
-        "name": "HT-RANGER2 Specifications",
+        "name": "HT-RANGER2 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-RNGE-R1821%20(HT-RANGER2)/Spec%20Sheet/HT-RANGER2-Spec-Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-RANGER2 Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-RNGE-R1821%20(HT-RANGER2)/Manual/HT-RANGER2_Manual-2.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-RANGER2 API",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-RNGE-R1821%20(HT-RANGER2)/API/HT-RANGER2_API-Commands.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "BYOD Deployment Guide (Atlona)",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-RNGE-R1821%20(HT-RANGER2)/Other/BYOD_IT_Deployment_Guide_Atlona.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "Firmware 1.1.7 (15/10/2025)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-RNGE-R1821%20(HT-RANGER2)/Firmware/HT-RANGER2_Firmware_1.1.7.zip",
+        "fileType": "Firmware"
+      },
+      {
+        "name": "Firmware 1.1.5 (20/02/2025)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/fsc640-h20-update-V1.1.5.zip",
+        "fileType": "Firmware"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-ranger2",
-    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS"
+    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR4xhWGnmrmGqDTt_Screenshot-2025-08-05-at-11.47.19-AM-scaled.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-VOYAGER2"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-DSCV-70-RX"
+      }
+    ]
   },
   {
     "sku": "HT-SATELLITE-BT",
@@ -2804,15 +3002,19 @@
       {
         "name": "HT-SATELLITE-BT Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-SAT-M1501-BT%20(HT-SATELLITE-BT)/Manual/HT-Satellite-BT_manual_Nov_10-1.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "CP-SAT-M1501-BT Spec Sheet",
+        "name": "CP-SAT-M1501-BT Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-SAT-M1501-BT%20(HT-SATELLITE-BT)/Spec%20Sheet/CP-SAT-M1501-BT_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-satellite-bt",
-    "tangoPath": "TELEPRESENCIA > TELEFONIA > EQUIPOS AC"
+    "tangoPath": "TELEPRESENCIA > TELEFONIA > EQUIPOS AC",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/ayD4yK36iXXCGH32_AT-OME-EX-WP-KIT-LTANDHT-SATELLITE-BTANDCP-PVOT-C1622BlockDiagram.png?auto=format,compress"
+    ],
+    "relations": []
   }
 ]

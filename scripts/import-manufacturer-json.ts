@@ -45,10 +45,15 @@ type Item = {
   kind?: "PRINCIPAL" | "ACCESORIO";
   accessoryRequiredWithPrimary?: boolean;
   accessoryFor?: string[];
+  /** Diagramas y gráficos del fabricante: van a la galería después de las fotos. */
+  graphics?: string[];
+  /** Productos que el fabricante relaciona (por modelo, de cualquier marca del catálogo). */
+  relations?: Array<{ kind: "ACCESSORY" | "MODEL_VARIANT" | "RELATED" | "COMPATIBLE"; sku: string }>;
   line?: string | null;
   tangoPath?: string | null;
 };
 
+const GRAPHIC_SOURCE = "manufacturer-diagram";
 const STOCK: StockStatus[] = ["IN_STOCK", "LOW_STOCK", "OUT_OF_STOCK", "ON_REQUEST", "UNKNOWN"];
 const dec = (n: number | null | undefined) => (n == null || !Number.isFinite(n) ? null : new Prisma.Decimal(n));
 
@@ -143,6 +148,15 @@ async function main() {
         data: item.images.map((url, i) => ({ productId: product.id, url, alt: `${item.sku}${i ? ` - ${i + 1}` : ""}`, source: "supplier", isPrimary: !hasPrimary && i === 0 })),
       });
     }
+    // Diagramas y gráficos: se reemplazan los anteriores del mismo origen; nunca son la foto principal.
+    if (item.graphics) {
+      await prisma.productImage.deleteMany({ where: { productId: product.id, source: GRAPHIC_SOURCE } });
+      if (item.graphics.length) {
+        await prisma.productImage.createMany({
+          data: item.graphics.map((url, i) => ({ productId: product.id, url, alt: `${item.sku} - diagrama ${i + 1}`, source: GRAPHIC_SOURCE, isPrimary: false })),
+        });
+      }
+    }
   }
 
   let relations = 0;
@@ -159,6 +173,29 @@ async function main() {
       relations += 1;
     }
   }
+  // Relacionados del fabricante: el modelo se busca en todo el catálogo (activo).
+  const wanted = [...new Set(items.flatMap((i) => (i.relations ?? []).map((r) => r.sku.toUpperCase())))];
+  const targets = wanted.length
+    ? await prisma.product.findMany({ where: { isActive: true, normalizedName: { in: wanted, mode: "insensitive" } }, select: { id: true, normalizedName: true } })
+    : [];
+  const targetBySku = new Map(targets.map((t) => [t.normalizedName.toUpperCase(), t.id]));
+  let linked = 0;
+  const notFound = new Set<string>();
+  for (const item of items) {
+    const productId = idBySku.get(item.sku.toUpperCase())!;
+    for (const rel of item.relations ?? []) {
+      const otherId = targetBySku.get(rel.sku.toUpperCase());
+      if (!otherId) { notFound.add(rel.sku); continue; }
+      if (otherId === productId) continue;
+      await prisma.accessoryRelation.upsert({
+        where: { productId_accessoryProductId_kind: { productId, accessoryProductId: otherId, kind: rel.kind } },
+        create: { productId, accessoryProductId: otherId, kind: rel.kind, isRequired: false },
+        update: {},
+      });
+      linked += 1;
+    }
+  }
+  if (linked || notFound.size) console.log(`Relacionados: ${linked} vinculados · ${notFound.size} modelos que no están en el catálogo`);
   console.log(`Listo: ${idBySku.size} productos de ${brandName}${relations ? ` · ${relations} relaciones accesorio → equipo` : ""}${tag ? ` · cartel ${tag}` : ""}${stock ? ` · ${stock}` : ""}.`);
 }
 

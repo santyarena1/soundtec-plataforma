@@ -50,7 +50,9 @@
     ],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/511-u5v2ap5",
-    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "HT-HV32-4K",
@@ -264,33 +266,63 @@
     ],
     "documents": [
       {
-        "name": "HT-HV32-4K Spec Sheet",
+        "name": "HT-HV32-4K Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HV32-4K/Spec%20Sheet/HT-HV32-4K_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HV32-4K OSD Manual",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HV32-4K_OSD.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HV32-4K OSD Manual (German)",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HV32-4K/Manual/HT-HV32-4K_OSD_DE.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "HT-HV32-4K Mount Installation Guide",
+        "name": "HT-HV32-4K Mount Guía de instalación",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HV32-4K/Manual/HT-HV32-2K_4K_Mount%20IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "HT-HV32-4K Mount Installation Guide (German)",
+        "name": "HT-HV32-4K Mount Guía de instalación (German)",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HV32-4K/Manual/HT-HV32-2K_4K_Mount_IFU_DE.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "HT-HV32-4K",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20HT-HV32-4K.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE HT-HV32-4K",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20HT-HV32-4K.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA HT-HV32-4K",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20HT-HV32-4K.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hv32-4k",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HV24-HD"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HV43"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HV55"
+      }
+    ]
   },
   {
     "sku": "HT-HV75-Q",
@@ -497,13 +529,15 @@
     ],
     "documents": [
       {
-        "name": "HT-HV75-Q Spec Sheet",
+        "name": "HT-HV75-Q Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HV75-Q/Spec%20Sheet/HT-HV75-Q_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hv75-q",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "HT-HVM32",
@@ -689,23 +723,53 @@
     ],
     "documents": [
       {
-        "name": "HT-HVM32 Spec Sheet",
+        "name": "HT-HVM32 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HVM32/Spec%20Sheet/HT-HVM32_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HVM* UI",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HVM24HT-HVM32HT-HVM43-UI-20250704.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HV-MNT-S_Assembly Guide",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HV-MNT-S_Assembly-Guide.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "HT-HVM32",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20HT-HVM32.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE HT-HVM32",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20HT-HVM32.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA HT-HVM32",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20HT-HVM32.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hvm32",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVM24"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVM27-2K"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVM43"
+      }
+    ]
   },
   {
     "sku": "KVM-HDU-4",
@@ -844,18 +908,35 @@
     ],
     "documents": [
       {
-        "name": "KVM-HDU-4 Spec Sheet",
+        "name": "KVM-HDU-4 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/KVM-HDU-4/Spec%20Sheet/KVM-HDU-4_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "KVM-HDU-4 Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/KVM-HDU-4/Manual/KVM-HDU-4_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "KVM-HDU-4",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20KVM-HDU-4.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE KVM-HDU-4",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/DoC%20KVM-HDU-4.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA KVM-HDU-4",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20KVM-HDU-4.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/kvm-hdu-4",
-    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS"
+    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "ULTRA-V-R",
@@ -972,11 +1053,52 @@
       {
         "name": "ULTRA-V-R Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/ULTRA-V-R/Manual/ULTRA-V-R_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "ULTRA-V",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20ULTRA-V.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE ULTRA-V",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20ULTRA-V.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CAUK ULTRA-V",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20ULTRA-V-R%2C%20ULTRA-V-1S.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "ULTRA Family Software GUI V2.2",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Software-ULTRA-4K-V2.2.zip",
+        "fileType": "Software"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ultra-v-r",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR-QrmGnmrmGqGIJ_Ultra-V-Diagram-1.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-1S"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-4S"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-8S"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-4K-S"
+      }
+    ]
   },
   {
     "sku": "GEM-EX-R",
@@ -1069,26 +1191,35 @@
       {
         "name": "GEM-EX-R Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/GEM-EX-R/Manual/GEM-EX-R_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "GEM-EX-R Spec Sheet",
+        "name": "GEM-EX-R Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/GEM-EX-R/Spec%20Sheet/GEM-EX-R_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "GEM-EX USB Pairing Lock - V2.1",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/GEM-EX-R-USB-Pairing-Lock-V2.1.hex_.zip",
-        "fileType": "zip"
+        "fileType": "Documentación"
       },
       {
         "name": "GEM-EX V2.3 GUI",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/GEM-EX-V2.3-GUI.zip",
-        "fileType": "zip"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/gem-ex-r",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/HE_jlMAgSwSj80ai_GEM-EX-SANDGEM-EX-RBlockDiagramV1.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "GEM-EX-S"
+      }
+    ]
   },
   {
     "sku": "GEM-EX-S",
@@ -1174,21 +1305,30 @@
       {
         "name": "GEM-EX-S Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/GEM-EX-S/Manual/GEM-EX-S_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "GEM-EX-S Spec Sheet",
+        "name": "GEM-EX-S Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/GEM-EX-S/Spec%20Sheet/GEM-EX-S_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "GEM-EX V2.3 GUI",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/GEM-EX-V2.3-GUI.zip",
-        "fileType": "zip"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/gem-ex-s",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/HE_jlMAgSwSj80ai_GEM-EX-SANDGEM-EX-RBlockDiagramV1.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "GEM-EX-R"
+      }
+    ]
   },
   {
     "sku": "HBX-R",
@@ -1350,11 +1490,18 @@
       {
         "name": "HBX-R Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HBX-R/Manual/HBX-R_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/hbx-r",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HBX-S"
+      }
+    ]
   },
   {
     "sku": "HBX-S",
@@ -1516,11 +1663,18 @@
       {
         "name": "HBX-S Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HBX-S/Manual/HBX-S_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/hbx-s",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HBX-R"
+      }
+    ]
   },
   {
     "sku": "HT-HV24-HD",
@@ -1721,13 +1875,30 @@
     ],
     "documents": [
       {
-        "name": "HT-HV24 Spec Sheet",
+        "name": "HT-HV24 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HV24/Spec%20Sheet/HT-HV24_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "HT-HV24-HD",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20HT-HV24.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE HT-HV24-HD",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20HT-HV24.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA HT-HV24-HD",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20HT-HV24.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hv24-hd",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "HT-HV43",
@@ -1892,18 +2063,48 @@
     ],
     "documents": [
       {
-        "name": "HT-HV43 Spec Sheet",
+        "name": "HT-HV43 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HV43/Spec%20Sheet/HT-HV43_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HV43 Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HV43/Manual/HT-HV43_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "HT-HV43",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20HT-HV43.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE HT-HV43",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20HT-HV43.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA HT-HV43",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20HT-HV43.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hv43",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HV24-HD"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HV32-4K"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HV55"
+      }
+    ]
   },
   {
     "sku": "HT-HV55",
@@ -2068,18 +2269,48 @@
     ],
     "documents": [
       {
-        "name": "HT-HV55 Spec Sheet",
+        "name": "HT-HV55 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HV55/Spec%20Sheet/HT-HV55_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HV55 Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HV55/Manual/HT-HV55_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "HT-HV55",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20HT-HV55.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE HT-HV55",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20HT-HV55.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA HT-HV55",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20HT-HV55.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hv55",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HV24-HD"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HV32-4K"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HV43"
+      }
+    ]
   },
   {
     "sku": "HT-HV55-Q",
@@ -2286,13 +2517,15 @@
     ],
     "documents": [
       {
-        "name": "HT-HV55-Q Spec Sheet",
+        "name": "HT-HV55-Q Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HV55-Q/Spec%20Sheet/HT-HV55-Q_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hv55-q",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "HT-HVM24",
@@ -2478,23 +2711,53 @@
     ],
     "documents": [
       {
-        "name": "HT-HVM24 Spec Sheet",
+        "name": "HT-HVM24 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HVM24/Spec%20Sheet/HT-HVM24_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HVM* UI",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HVM24HT-HVM32HT-HVM43-UI-20250704.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HV-MNT-S_Assembly Guide",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HV-MNT-S_Assembly-Guide.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "HT-HVM24",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20HT-HVM24.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE HT-HVM24",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20HT-HVM24.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA HT-HVM24",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20HT-HVM24.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hvm24",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVM27-2K"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVM32"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVM43"
+      }
+    ]
   },
   {
     "sku": "HT-HVM27-2K",
@@ -2680,28 +2943,58 @@
     ],
     "documents": [
       {
-        "name": "HT-HVM27-2K Spec Sheet",
+        "name": "HT-HVM27-2K Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HVM27-2K%20(HT-HVM27)/Spec%20Sheet/HT-HVM27-2K_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
-        "name": "HT-HVM* Specifications",
+        "name": "HT-HVM* Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HVM24-32-43_Specifications.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HVM* UI",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HVM24HT-HVM32HT-HVM43-UI-20250704.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HV-MNT-S_Assembly Guide",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HV-MNT-S_Assembly-Guide.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "HT-HVM27",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20HT-HVM27.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE HT-HVM27",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20HT-HVM27.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA HT-HVM27",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20HT-HVM27.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hvm27-2k",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVM24"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVM32"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVM43"
+      }
+    ]
   },
   {
     "sku": "HT-HVM43",
@@ -2894,23 +3187,35 @@
     ],
     "documents": [
       {
-        "name": "HT-HVM43 Spec Sheet",
+        "name": "HT-HVM43 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HVM43/Spec%20Sheet/HT-HVM43_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HVM* UI",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HVM24HT-HVM32HT-HVM43-UI-20250704.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HV-MNT-S_Assembly Guide",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HV-MNT-S_Assembly-Guide.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "HT-HVM43",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20HT-HVM43.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE HT-HVM43",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20HT-HVM43.pdf",
+        "fileType": "Declaración de conformidad"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hvm43",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "HT-HVMT24",
@@ -3138,18 +3443,33 @@
     ],
     "documents": [
       {
-        "name": "HT-HVMT24 Spec Sheet",
+        "name": "HT-HVMT24 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HVMT24/Spec%20Sheet/HT-HVMT24_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HV-MNT-S Assembly Guide",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HV-MNT-S_Assembly-Guide.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hvmt24",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVMT27-2K"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVMT32"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVMT43"
+      }
+    ]
   },
   {
     "sku": "HT-HVMT27-2K",
@@ -3377,18 +3697,33 @@
     ],
     "documents": [
       {
-        "name": "HT-HVMT27-2K Spec Sheet",
+        "name": "HT-HVMT27-2K Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HVMT27-2K%20(HT-HVMT27)/Spec%20Sheet/HT-HVMT27-2K_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HV-MNT-S Assembly Guide",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HV-MNT-S_Assembly-Guide.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hvmt27-2k",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVMT24"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVMT32"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVMT43"
+      }
+    ]
   },
   {
     "sku": "HT-HVMT32",
@@ -3616,18 +3951,33 @@
     ],
     "documents": [
       {
-        "name": "HT-HVMT32 Spec Sheet",
+        "name": "HT-HVMT32 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HVMT32/Spec%20Sheet/HT-HVMT32_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "HT-HV-MNT-S Assembly Guide",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-HV-MNT-S_Assembly-Guide.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hvmt32",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVMT24"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVMT27-2K"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-HVMT43"
+      }
+    ]
   },
   {
     "sku": "HT-HVT27",
@@ -3862,13 +4212,15 @@
     ],
     "documents": [
       {
-        "name": "HT-HVT27 Spec Sheet",
+        "name": "HT-HVT27 Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/HT-HVT27/Spec%20Sheet/HT-HVT27_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ht-hvt27",
-    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD"
+    "tangoPath": "VIDEO > DISPLAYS > DISPLAYS LCD",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "KVMC-UH-8-UHD",
@@ -3996,18 +4348,27 @@
     ],
     "documents": [
       {
-        "name": "KVMC-UH-8-UHD Spec Sheet",
+        "name": "KVMC-UH-8-UHD Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/KVMC-UH-8-UHD/Spec%20Sheet/KVMC-UH-8-UHD_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "KVMC-UH-8-UHD Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/KVMC-UH-8-UHD/Manual/KVMC-UH-8-UHD_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/kvmc-uh-8-uhd",
-    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS"
+    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/ipF83UaE8xFKbucB_KVMC-UH-8-UHDBlockDiagram.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "RELATED",
+        "sku": "KVM-HDU-4"
+      }
+    ]
   },
   {
     "sku": "ULTRA-4K-R",
@@ -4137,18 +4498,51 @@
     ],
     "documents": [
       {
-        "name": "ULTRA-4K-R Spec Sheet",
+        "name": "ULTRA-4K-R Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/ULTRA-4K-R/Spec%20Sheet/ULTRA-4K-R_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "ULTRA-4K-R Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/ULTRA-4K-R/Manual/ULTRA-4K-R_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "ULTRA-4K",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20ULTRA-4K.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE ULTRA-4K",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/DoC%20ULTRA-4K.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA ULTRA-4K",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20ULTRA-4K.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "ULTRA Family Software GUI V2.2",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Software-ULTRA-4K-V2.2.zip",
+        "fileType": "Software"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ultra-4k-r",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR-JlWGnmrmGqGFF_Ultra-4K-Block-Diagram.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "ACCESSORY",
+        "sku": "F10568-KIT"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-4K-S"
+      }
+    ]
   },
   {
     "sku": "ULTRA-4K-S",
@@ -4278,18 +4672,51 @@
     ],
     "documents": [
       {
-        "name": "ULTRA-4K-S Spec Sheet",
+        "name": "ULTRA-4K-S Hoja técnica",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/ULTRA-4K-S/Spec%20Sheet/ULTRA-4K-S_Spec_Sheet.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
       },
       {
         "name": "ULTRA-4K-S Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/ULTRA-4K-S/Manual/ULTRA-4K-S_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "ULTRA-4K",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20ULTRA-4K.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE ULTRA-4K",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/DoC%20ULTRA-4K.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA ULTRA-4K",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20ULTRA-4K.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "ULTRA Family Software GUI V2.2",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Software-ULTRA-4K-V2.2.zip",
+        "fileType": "Software"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ultra-4k-s",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR-LWGGnmrmGqGFs_Ultra-4K-Block-Diagram-1-.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "ACCESSORY",
+        "sku": "F10560-KIT"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-4K-R"
+      }
+    ]
   },
   {
     "sku": "ULTRA-V-1S",
@@ -4405,11 +4832,48 @@
       {
         "name": "ULTRA-V-1S Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/ULTRA-V-1S/Manual/ULTRA-V-1S_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "ULTRA-V-1S",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20ULTRA-V.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE ULTRA-V-1S",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20ULTRA-V.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA ULTRA-V-1S",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20ULTRA-V-R%2C%20ULTRA-V-1S.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "ULTRA Family Software GUI V2.2",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Software-ULTRA-4K-V2.2.zip",
+        "fileType": "Software"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ultra-v-1s",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR-NamGnmrmGqGGa_Ultra-V-1S-Diagram.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-R"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-4S"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-8S"
+      }
+    ]
   },
   {
     "sku": "ULTRA-V-4S",
@@ -4525,11 +4989,52 @@
       {
         "name": "ULTRA-V-4S Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/ULTRA-V-4S/Manual/ULTRA-V-4S_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "ULTRA-V",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20ULTRA-V.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE ULTRA-V",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20ULTRA-V.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA ULTRA-V",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20ULTRA-V-R%2C%20ULTRA-V-4S.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "ULTRA Family Software GUI V2.2",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Software-ULTRA-4K-V2.2.zip",
+        "fileType": "Software"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ultra-v-4s",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR-OnmGnmrmGqGGz_Ultra-V-4S-Diagram.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-1S"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-8S"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-R"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-4K-S"
+      }
+    ]
   },
   {
     "sku": "ULTRA-V-8S",
@@ -4645,11 +5150,52 @@
       {
         "name": "ULTRA-V-8S Instructions for Use",
         "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/HALL%20TECHNOLOGIES/ULTRA-V-8S/Manual/ULTRA-V-8S_IFU.pdf",
-        "fileType": "pdf"
+        "fileType": "Documentación"
+      },
+      {
+        "name": "ULTRA-V",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/FCC%20ULTRA-V.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "CE ULTRA-V",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CE%20ULTRA-V.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "UKCA ULTRA-V-8S",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/UKCA%20ULTRA-V-R%2C%20ULTRA-V-8S.pdf",
+        "fileType": "Declaración de conformidad"
+      },
+      {
+        "name": "ULTRA Family Software GUI V2.2",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Software-ULTRA-4K-V2.2.zip",
+        "fileType": "Software"
       }
     ],
     "vendorProductUrl": "https://hallresearch.com/product/ultra-v-8s",
-    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER",
+    "graphics": [
+      "https://images.prismic.io/hallresearch/aR-PrGGnmrmGqGHy_Ultra-V-8S-Diagram.png?auto=format,compress"
+    ],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-4S"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-1S"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-V-R"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "ULTRA-4K-S"
+      }
+    ]
   },
   {
     "sku": "511-PS9016A",
@@ -4702,7 +5248,9 @@
     ],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/511-ps9016a",
-    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "511-U5V2AP5",
@@ -4755,7 +5303,9 @@
     ],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/511-u5v2ap5",
-    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS",
+    "graphics": [],
+    "relations": []
   },
   {
     "sku": "F10568-KIT",
@@ -4769,6 +5319,17 @@
     "specifications": [],
     "documents": [],
     "vendorProductUrl": "https://hallresearch.com/product/f10568-kit",
-    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS",
+    "graphics": [],
+    "relations": [
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-ULTRA-4K-R"
+      },
+      {
+        "kind": "MODEL_VARIANT",
+        "sku": "HT-ULTRA-4K-S"
+      }
+    ]
   }
 ]

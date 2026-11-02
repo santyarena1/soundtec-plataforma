@@ -15,6 +15,7 @@ import { ProductAccountCta } from "@/components/catalog/account-cta";
 import { recordProductView } from "@/server/catalog/product-views";
 import { ArrowLeft, ArrowRight, FileText, Lock, Package } from "lucide-react";
 import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
+import { ProductKeyFeatures } from "@/components/catalog/product-key-features";
 
 export const dynamic = "force-dynamic";
 
@@ -157,6 +158,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
                 </p>
               ))}
             </div>
+            <ProductKeyFeatures features={product.keyFeatures} translated={Boolean(product.translatedAt)} />
           </CardContent>
         </Card>
       ) : null}
