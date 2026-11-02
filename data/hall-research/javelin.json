@@ -1,0 +1,4140 @@
+[
+  {
+    "sku": "CHD-JAV4K-DE15",
+    "shortDescription": "Cable HDMI activo de fibra óptica con conectores desmontables y vaina plenum, para 4K a 60 Hz 4:4:4, HDR y 18 Gbps en tendidos largos.",
+    "longDescription": "El CHD-JAV4K-DE* es un cable HDMI activo de fibra óptica de nivel profesional para transmitir señales 4K a larga distancia en instalaciones AV comerciales. Admite el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo, y mantiene la integridad de la señal en tendidos largos.\n\nTiene conectores HDMI desmontables que facilitan el pasaje por cañería y vaina con clasificación plenum para cumplir los códigos de seguridad de edificios. Es adecuado para salas de reuniones, auditorios, cartelería digital y cualquier lugar que necesite HDMI confiable a larga distancia, con bajo consumo y facilidad de instalación.",
+    "keyFeatures": [
+      "Admite una amplia gama de resoluciones, hasta 4K a 60 Hz (espacio de color 4:4:4), 3D y color profundo",
+      "Velocidad de datos máxima de 18 Gbps",
+      "Admite audio multicanal, Dolby TrueHD y DTS-HD Master Audio",
+      "Compatible con HDMI: EDID, CEC, HDCP (2.2), HDR (alto rango dinámico)",
+      "Menor EMI y RFI",
+      "Alta resistencia a la tracción y a la compresión"
+    ],
+    "specifications": [
+      {
+        "group": "Entrada",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Salida",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Estándares de video",
+        "label": "Value",
+        "value": "Single Link DVI: Up to 2560×1600 HDMI/HDTV : Up to 4K@60Hz (4:4:4), 3D, Deep color, HDR",
+        "labelEs": "Valor",
+        "valueEs": "DVI Single Link: hasta 2560×1600 HDMI/HDTV: hasta 4K@60Hz (4:4:4), 3D, Deep Color, HDR"
+      },
+      {
+        "group": "Ancho de banda",
+        "label": "Value",
+        "value": "18Gbps",
+        "labelEs": "Valor",
+        "valueEs": "18Gbps"
+      },
+      {
+        "group": "Datos auxiliares",
+        "label": "Value",
+        "value": "Up to HDCP 2.2 compliant, EDID, CEC",
+        "labelEs": "Valor",
+        "valueEs": "Compatible hasta HDCP 2.2, EDID, CEC"
+      },
+      {
+        "group": "Estándares de audio",
+        "label": "Value",
+        "value": "Supports PCM, Multi-channel audio, Dolby, True HD, DTS-HD",
+        "labelEs": "Valor",
+        "valueEs": "Admite PCM, audio multicanal, Dolby, TrueHD, DTS-HD"
+      },
+      {
+        "group": "Tensión de alimentación",
+        "label": "Value",
+        "value": "Powered from Source (HDMI/DVI) Nominal: 5v (operating range: 4.5v ~ 5.5 v) Optional Power Injector Cable Included (Micro USB Male to USB A Male)",
+        "labelEs": "Valor",
+        "valueEs": "Alimentado desde la fuente (HDMI/DVI) Nominal: 5 V (rango de funcionamiento: 4,5 V ~ 5,5 V) Incluye cable inyector de alimentación opcional (Micro USB macho a USB A macho)"
+      },
+      {
+        "group": "Corriente de alimentación",
+        "label": "Value",
+        "value": "Nominal: 40 ma, max: 47 ma",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 40 mA, máx.: 47 mA"
+      },
+      {
+        "group": "Consumo",
+        "label": "Value",
+        "value": "Nominal: 0.23 watts (range: 0.2w ~ 0.25w)",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 0,23 W (rango: 0,2 W ~ 0,25 W)"
+      },
+      {
+        "group": "Clasificación",
+        "label": "Value",
+        "value": "Plenum CMP c(UL) & FT6",
+        "labelEs": "Valor",
+        "valueEs": "Plenum CMP c(UL) & FT6"
+      },
+      {
+        "group": "Diámetro del cable",
+        "label": "Value",
+        "value": "4.9mm (1.92 inch)",
+        "labelEs": "Valor",
+        "valueEs": "4,9mm (1,92 pulgadas)"
+      },
+      {
+        "group": "Radio de curvatura",
+        "label": "Value",
+        "value": "12mm (0.5 inch) minimum",
+        "labelEs": "Valor",
+        "valueEs": "12mm (0,5 pulgadas) mínimo"
+      },
+      {
+        "group": "Resistencia a la tracción del conector",
+        "label": "Value",
+        "value": "20 Kg (44 lbs) maximum CAUTION DAMAGE DUE TO CONNECTOR BEING PULLED HARDER THAN 20 kg, IS NOT COVERED BY WARRANTY To pull cable through conduits or tight spaces, never grab the connector, as it is easy to exceed the force limit on the connector, instead, remove the detachable end, protect the connector using a cable pulling sock and make sure the force is applied directly to the cable jacket",
+        "labelEs": "Valor",
+        "valueEs": "20 kg (44 lb) máximo PRECAUCIÓN: LOS DAÑOS POR TRACCIONAR EL CONECTOR CON MÁS DE 20 kg NO ESTÁN CUBIERTOS POR LA GARANTÍA Para pasar el cable por cañerías o espacios estrechos, nunca lo tome del conector, ya que es fácil superar el límite de fuerza; en su lugar, retire el extremo desmontable, proteja el conector con una media pasacables y asegúrese de que la fuerza se aplique directamente sobre la cubierta del cable"
+      },
+      {
+        "group": "Dimensiones de la carcasa del conector",
+        "label": "Value",
+        "value": "Without the HDMI metal plug or strain relief: 1.45 inch x 0.48 inch x 0.32 inch (36.83mm x 12.26mm x 8.03 mm) Total length including HDMI plug and Strain relief: 2.77 inch",
+        "labelEs": "Valor",
+        "valueEs": "Sin la ficha metálica HDMI ni el alivio de tensión: 1,45 x 0,48 x 0,32 pulgadas (36,83mm x 12,26mm x 8,03 mm) Largo total incluida la ficha HDMI y el alivio de tensión: 2,77 pulgadas"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Value",
+        "value": "Storage: -40 to +158 °F (-40 to +70 °C) / 5% to 90%, non-condensing +32 to +122 °F (0 to +50 °C) / 10% to 80%, RH non-condensing",
+        "labelEs": "Valor",
+        "valueEs": "Almacenamiento: -40 a +158 °F (-40 a +70 °C) / 5% a 90%, sin condensación +32 a +122 °F (0 a +50 °C) / 10% a 80% HR, sin condensación"
+      },
+      {
+        "group": "Normativas",
+        "label": "Value",
+        "value": "CE, RoHS2",
+        "labelEs": "Valor",
+        "valueEs": "CE, RoHS2"
+      },
+      {
+        "group": "EMI/EMC",
+        "label": "Value",
+        "value": "CE, FCC Class A",
+        "labelEs": "Valor",
+        "valueEs": "CE, FCC Clase A"
+      }
+    ],
+    "documents": [
+      {
+        "name": "CHD-JAV4K-DE* Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-JAV4K-DE50",
+    "shortDescription": "Cable HDMI activo de fibra óptica con conectores desmontables y vaina plenum, para 4K a 60 Hz 4:4:4, HDR y 18 Gbps en tendidos largos.",
+    "longDescription": "El CHD-JAV4K-DE* es un cable HDMI activo de fibra óptica de nivel profesional para transmitir señales 4K a larga distancia en instalaciones AV comerciales. Admite el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo, y mantiene la integridad de la señal en tendidos largos.\n\nTiene conectores HDMI desmontables que facilitan el pasaje por cañería y vaina con clasificación plenum para cumplir los códigos de seguridad de edificios. Es adecuado para salas de reuniones, auditorios, cartelería digital y cualquier lugar que necesite HDMI confiable a larga distancia, con bajo consumo y facilidad de instalación.",
+    "keyFeatures": [
+      "Admite una amplia gama de resoluciones, hasta 4K a 60 Hz (espacio de color 4:4:4), 3D y color profundo",
+      "Velocidad de datos máxima de 18 Gbps",
+      "Admite audio multicanal, Dolby TrueHD y DTS-HD Master Audio",
+      "Compatible con HDMI: EDID, CEC, HDCP (2.2), HDR (alto rango dinámico)",
+      "Menor EMI y RFI",
+      "Alta resistencia a la tracción y a la compresión"
+    ],
+    "specifications": [
+      {
+        "group": "Entrada",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Salida",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Estándares de video",
+        "label": "Value",
+        "value": "Single Link DVI: Up to 2560×1600 HDMI/HDTV : Up to 4K@60Hz (4:4:4), 3D, Deep color, HDR",
+        "labelEs": "Valor",
+        "valueEs": "DVI Single Link: hasta 2560×1600 HDMI/HDTV: hasta 4K@60Hz (4:4:4), 3D, Deep Color, HDR"
+      },
+      {
+        "group": "Ancho de banda",
+        "label": "Value",
+        "value": "18Gbps",
+        "labelEs": "Valor",
+        "valueEs": "18Gbps"
+      },
+      {
+        "group": "Datos auxiliares",
+        "label": "Value",
+        "value": "Up to HDCP 2.2 compliant, EDID, CEC",
+        "labelEs": "Valor",
+        "valueEs": "Compatible hasta HDCP 2.2, EDID, CEC"
+      },
+      {
+        "group": "Estándares de audio",
+        "label": "Value",
+        "value": "Supports PCM, Multi-channel audio, Dolby, True HD, DTS-HD",
+        "labelEs": "Valor",
+        "valueEs": "Admite PCM, audio multicanal, Dolby, TrueHD, DTS-HD"
+      },
+      {
+        "group": "Tensión de alimentación",
+        "label": "Value",
+        "value": "Powered from Source (HDMI/DVI) Nominal: 5v (operating range: 4.5v ~ 5.5 v) Optional Power Injector Cable Included (Micro USB Male to USB A Male)",
+        "labelEs": "Valor",
+        "valueEs": "Alimentado desde la fuente (HDMI/DVI) Nominal: 5 V (rango de funcionamiento: 4,5 V ~ 5,5 V) Incluye cable inyector de alimentación opcional (Micro USB macho a USB A macho)"
+      },
+      {
+        "group": "Corriente de alimentación",
+        "label": "Value",
+        "value": "Nominal: 40 ma, max: 47 ma",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 40 mA, máx.: 47 mA"
+      },
+      {
+        "group": "Consumo",
+        "label": "Value",
+        "value": "Nominal: 0.23 watts (range: 0.2w ~ 0.25w)",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 0,23 W (rango: 0,2 W ~ 0,25 W)"
+      },
+      {
+        "group": "Clasificación",
+        "label": "Value",
+        "value": "Plenum CMP c(UL) & FT6",
+        "labelEs": "Valor",
+        "valueEs": "Plenum CMP c(UL) & FT6"
+      },
+      {
+        "group": "Diámetro del cable",
+        "label": "Value",
+        "value": "4.9mm (1.92 inch)",
+        "labelEs": "Valor",
+        "valueEs": "4,9mm (1,92 pulgadas)"
+      },
+      {
+        "group": "Radio de curvatura",
+        "label": "Value",
+        "value": "12mm (0.5 inch) minimum",
+        "labelEs": "Valor",
+        "valueEs": "12mm (0,5 pulgadas) mínimo"
+      },
+      {
+        "group": "Resistencia a la tracción del conector",
+        "label": "Value",
+        "value": "20 Kg (44 lbs) maximum CAUTION DAMAGE DUE TO CONNECTOR BEING PULLED HARDER THAN 20 kg, IS NOT COVERED BY WARRANTY To pull cable through conduits or tight spaces, never grab the connector, as it is easy to exceed the force limit on the connector, instead, remove the detachable end, protect the connector using a cable pulling sock and make sure the force is applied directly to the cable jacket",
+        "labelEs": "Valor",
+        "valueEs": "20 kg (44 lb) máximo PRECAUCIÓN: LOS DAÑOS POR TRACCIONAR EL CONECTOR CON MÁS DE 20 kg NO ESTÁN CUBIERTOS POR LA GARANTÍA Para pasar el cable por cañerías o espacios estrechos, nunca lo tome del conector, ya que es fácil superar el límite de fuerza; en su lugar, retire el extremo desmontable, proteja el conector con una media pasacables y asegúrese de que la fuerza se aplique directamente sobre la cubierta del cable"
+      },
+      {
+        "group": "Dimensiones de la carcasa del conector",
+        "label": "Value",
+        "value": "Without the HDMI metal plug or strain relief: 1.45 inch x 0.48 inch x 0.32 inch (36.83mm x 12.26mm x 8.03 mm) Total length including HDMI plug and Strain relief: 2.77 inch",
+        "labelEs": "Valor",
+        "valueEs": "Sin la ficha metálica HDMI ni el alivio de tensión: 1,45 x 0,48 x 0,32 pulgadas (36,83mm x 12,26mm x 8,03 mm) Largo total incluida la ficha HDMI y el alivio de tensión: 2,77 pulgadas"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Value",
+        "value": "Storage: -40 to +158 °F (-40 to +70 °C) / 5% to 90%, non-condensing +32 to +122 °F (0 to +50 °C) / 10% to 80%, RH non-condensing",
+        "labelEs": "Valor",
+        "valueEs": "Almacenamiento: -40 a +158 °F (-40 a +70 °C) / 5% a 90%, sin condensación +32 a +122 °F (0 a +50 °C) / 10% a 80% HR, sin condensación"
+      },
+      {
+        "group": "Normativas",
+        "label": "Value",
+        "value": "CE, RoHS2",
+        "labelEs": "Valor",
+        "valueEs": "CE, RoHS2"
+      },
+      {
+        "group": "EMI/EMC",
+        "label": "Value",
+        "value": "CE, FCC Class A",
+        "labelEs": "Valor",
+        "valueEs": "CE, FCC Clase A"
+      }
+    ],
+    "documents": [
+      {
+        "name": "CHD-JAV4K-DE* Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-SF06",
+    "shortDescription": "Cable HDMI de alta velocidad con conector de traba SnugFit, de 18 Gbps para 4K a 60 Hz 4:4:4 y HDR, que evita desconexiones accidentales y por vibración.",
+    "longDescription": "El CHD-SF es un cable HDMI de alta confiabilidad con el conector de traba SnugFit de Hall Technologies, diseñado para mantener una conexión firme y resistente a las vibraciones en entornos AV profesionales. Admite el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo, y se ofrece en largos adecuados para salas de reuniones, aulas, cartelería digital y sistemas de control.\n\nLa traba SnugFit mantiene el cable bien asentado en los puertos HDMI, lo que reduce las desconexiones accidentales y los tiempos fuera de servicio en instalaciones críticas. Su construcción robusta y la integridad estable de la señal lo hacen adecuado para instalaciones AV comerciales.",
+    "keyFeatures": [
+      "18 Gb/s para video 4K UltraHD a 60 Hz",
+      "Disponible en largos de 1 ft a 50 ft",
+      "Mayor fuerza de retención y conexión de video firme",
+      "Pestañas con resorte en la parte superior que encajan en las ranuras de los conectores",
+      "Encastra a presión y puede dar una confirmación táctil y audible"
+    ],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-SF25",
+    "shortDescription": "Cable HDMI de alta velocidad con conector de traba SnugFit, de 18 Gbps para 4K a 60 Hz 4:4:4 y HDR, que evita desconexiones accidentales y por vibración.",
+    "longDescription": "El CHD-SF es un cable HDMI de alta confiabilidad con el conector de traba SnugFit de Hall Technologies, diseñado para mantener una conexión firme y resistente a las vibraciones en entornos AV profesionales. Admite el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo, y se ofrece en largos adecuados para salas de reuniones, aulas, cartelería digital y sistemas de control.\n\nLa traba SnugFit mantiene el cable bien asentado en los puertos HDMI, lo que reduce las desconexiones accidentales y los tiempos fuera de servicio en instalaciones críticas. Su construcción robusta y la integridad estable de la señal lo hacen adecuado para instalaciones AV comerciales.",
+    "keyFeatures": [
+      "18 Gb/s para video 4K UltraHD a 60 Hz",
+      "Disponible en largos de 1 ft a 50 ft",
+      "Mayor fuerza de retención y conexión de video firme",
+      "Pestañas con resorte en la parte superior que encajan en las ranuras de los conectores",
+      "Encastra a presión y puede dar una confirmación táctil y audible"
+    ],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "EM-HD-NCP",
+    "shortDescription": "Emulador de EDID HDMI que se conecta en línea y presenta un EDID y una señal de hot-plug fijos, para evitar pérdidas de imagen y cambios de resolución entre fuente y display.",
+    "longDescription": "El EM-HD-NCP es un emulador de EDID HDMI que mantiene estable la negociación de video entre las fuentes y los displays en sistemas AV profesionales. Al presentar un EDID y una señal de hot-plug detect constantes, evita problemas habituales como caídas de resolución, fallas de sincronismo HDMI o pérdida de video al cambiar de entrada o al encender y apagar los displays.\n\nEs compacto y se coloca en línea con facilidad. Es adecuado para usar con extensores, switchers, escaladores o laptops que tienen problemas con la negociación de EDID, y resuelve problemas de compatibilidad HDMI sin complicar la instalación.",
+    "keyFeatures": [
+      "Emula un display HDMI (dispositivo sink) entregando HPD (hot plug detect) y EDID",
+      "Viene con un EDID predeterminado con las resoluciones más comunes",
+      "Adecuado para usar con switchers y extensores de video",
+      "Emulador de display para acceso a escritorio remoto",
+      "Se puede programar con otras resoluciones (requiere un programador aparte)",
+      "Funciona con Mac Mini, CompuLab fit-PC, Intense PC o cualquier otra computadora o laptop"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "EM-HD-NCP Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HDMI20EDID20Emulator20-20In20a20Nutshell-1.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "EM-HD-NCP Monitor Info Utility",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/moninfo-1.zip",
+        "fileType": "zip"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/em-hd-ncp",
+    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI"
+  },
+  {
+    "sku": "GC-HDPI-USB",
+    "shortDescription": "Adaptador inyector de alimentación HDMI que suma +5 V desde un puerto USB, para fuentes que no alimentan bien cables activos, extensores y switchers.",
+    "longDescription": "El GC-HDPI-USB es un adaptador de inyección de alimentación HDMI que resuelve problemas de alimentación de +5 V insuficiente en las fuentes HDMI. Al sumar alimentación por una conexión USB, estabiliza la línea de 5 V del HDMI para asegurar la comunicación de EDID, la detección de hot-plug y el funcionamiento correcto con equipos como cables activos, extensores, switchers y tendidos HDMI largos.\n\nSu diseño pasante no interviene en el camino del video y entrega la alimentación adicional necesaria para una conexión estable. Es compacto y fácil de instalar, y resuelve fallas de negociación HDMI, parpadeos en los displays o fuentes que no logran alimentar accesorios HDMI activos.",
+    "keyFeatures": [
+      "Resuelve problemas de HDMI causados por una salida de 5 V insuficiente en la fuente HDMI",
+      "Perfil bajo: agrega muy poca profundidad"
+    ],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/gc-hdpi-usb",
+    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI"
+  },
+  {
+    "sku": "GLI-3.5MM",
+    "shortDescription": "Aislador de lazo de masa estéreo pasivo con plug de 3,5 mm que elimina zumbidos y ruidos entre una fuente de audio y el amplificador o sistema AV, sin alimentación.",
+    "longDescription": "El GLI-3.5MM es un aislador de lazo de masa estéreo compacto que elimina el zumbido y el ruido causados por problemas de masa en sistemas de audio de 3,5 mm. Se coloca en línea entre una fuente, como una laptop, una tablet o un reproductor multimedia, y un amplificador, una consola o el sistema AV de un aula; corta los caminos de masa problemáticos y conserva la calidad de audio en todo el rango.\n\nEs pasivo, no requiere alimentación, y por su tamaño y peso es fácil de usar en salas de reuniones, establecimientos educativos, sonido en vivo y cualquier lugar donde haya que eliminar ruido de lazo de masa.\n\nConsulte disponibilidad con el área de ventas.",
+    "keyFeatures": [
+      "Elimina el ruido de lazo de masa entre la fuente de audio y el TV o el amplificador de audio",
+      "Funciona con todas las notebooks, PC de escritorio y dispositivos portátiles con plug mini estéreo de 3,5 mm",
+      "Respuesta casi perfecta de 0,03 dB de 20 a 20.000 Hz",
+      "Adecuado para presentaciones AV en aulas o salas de reuniones",
+      "Compacto y económico"
+    ],
+    "specifications": [
+      {
+        "group": "Dimensiones",
+        "label": "Value",
+        "value": "1.65 ” x 1.25″ x 1″",
+        "labelEs": "Valor",
+        "valueEs": "1.65 ” x 1.25″ x 1″"
+      },
+      {
+        "group": "Material",
+        "label": "Value",
+        "value": "ABS Plastic",
+        "labelEs": "Valor",
+        "valueEs": "Plástico ABS"
+      },
+      {
+        "group": "Normativas",
+        "label": "Value",
+        "value": "CE, FCC, RoHS",
+        "labelEs": "Valor",
+        "valueEs": "CE, FCC, RoHS"
+      },
+      {
+        "group": "Respuesta en frecuencia",
+        "label": "Value",
+        "value": "20 to 20,000Hz",
+        "labelEs": "Valor",
+        "valueEs": "20 a 20.000Hz"
+      }
+    ],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/gli-3.5mm",
+    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+  },
+  {
+    "sku": "JAV-CNTL-H1611",
+    "shortDescription": "Controlador de display que enciende, apaga y cambia la entrada del display en forma automática al detectar fuentes activas, con control por IP, RS-232, IR y CEC, 4K a 60 Hz 4:4:4 y PoE.",
+    "longDescription": "El Javelin JAV-CNTL-H1611 es un controlador de display que automatiza el encendido y la selección de entrada en salas de reuniones chicas, aulas y salas huddle. Detecta las fuentes de video activas por el estado de la conexión de video o por comandos CEC, y enciende o apaga los displays y cambia de entrada según haga falta, sin necesidad de controles remotos ni manejo manual.\n\nAdmite 4K/UHD a 60 Hz (4:4:4) y es compatible con HDCP 2.2. Con control por IP, RS-232, IR y CEC, y alimentación PoE, se integra tanto en salas independientes como en sistemas de automatización más grandes.",
+    "keyFeatures": [
+      "Control automático y sencillo del display por IP, RS-232, IR o CEC",
+      "Modos de control del display programables",
+      "4K/UHD a 60 Hz con muestreo de croma 4:4:4 y compatibilidad con formatos HDR",
+      "Alimentación local o PoE (Power over Ethernet)",
+      "Amplia selección de drivers de display de la base de datos del sistema Velocity™",
+      "Dos puertos Ethernet y switch de red integrado"
+    ],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Signal",
+        "value": "HDMI",
+        "labelEs": "Señal",
+        "valueEs": "HDMI"
+      },
+      {
+        "group": "Video",
+        "label": "Copy Protection",
+        "value": "HDCP 2.2",
+        "labelEs": "Protección de copia",
+        "valueEs": "HDCP 2.2"
+      },
+      {
+        "group": "Video",
+        "label": "TMDS Clock",
+        "value": "600 MHz",
+        "labelEs": "Reloj TMDS",
+        "valueEs": "600 MHz"
+      },
+      {
+        "group": "Video",
+        "label": "UHD/HD/SD",
+        "value": "4096×2160 @ 60/30/25/24 Hz 3840×2160 @ 60/30/25/24 Hz 1920x1080p @ 60/59.9/50/30/29.97/25/24/23.98 Hz 1920x1080i @ 60/59.94/50 Hz 1280x720p @ 60/59.94/50 Hz 720x576p @ 50 Hz 720x576i @ 50 Hz 640x480p @ 60/59.96 Hz 640x480i @ 60 Hz",
+        "labelEs": "UHD/HD/SD",
+        "valueEs": "4096×2160 @ 60/30/25/24 Hz 3840×2160 @ 60/30/25/24 Hz 1920x1080p @ 60/59.9/50/30/29.97/25/24/23.98 Hz 1920x1080i @ 60/59.94/50 Hz 1280x720p @ 60/59.94/50 Hz 720x576p @ 50 Hz 720x576i @ 50 Hz 640x480p @ 60/59.96 Hz 640x480i @ 60 Hz"
+      },
+      {
+        "group": "Video",
+        "label": "VESA",
+        "value": "2560×1600 @ 60 Hz 2048×1536 @ 60 Hz 1920×1200 @ 60 Hz 1680×1050 @ 60 Hz 1600×1200 @ 60 Hz 1440×900 @ 60 Hz 1400×1050 @ 60 Hz 1280×1024 @ 60 Hz 1280×800 @ 60 Hz 1366×768 @ 60 Hz 1360×768 @ 60 Hz 1152×864 @ 60 Hz 1024×768 @ 60 Hz 800×600 @ 60 Hz 640×480 @ 60 Hz",
+        "labelEs": "VESA",
+        "valueEs": "2560×1600 @ 60 Hz 2048×1536 @ 60 Hz 1920×1200 @ 60 Hz 1680×1050 @ 60 Hz 1600×1200 @ 60 Hz 1440×900 @ 60 Hz 1400×1050 @ 60 Hz 1280×1024 @ 60 Hz 1280×800 @ 60 Hz 1366×768 @ 60 Hz 1360×768 @ 60 Hz 1152×864 @ 60 Hz 1024×768 @ 60 Hz 800×600 @ 60 Hz 640×480 @ 60 Hz"
+      },
+      {
+        "group": "Video",
+        "label": "Color Space",
+        "value": "YUV, RGB",
+        "labelEs": "Espacio de color",
+        "valueEs": "YUV, RGB"
+      },
+      {
+        "group": "Video",
+        "label": "Chroma Subsampling",
+        "value": "4:4:4, 4:2:2, 4:2:0",
+        "labelEs": "Submuestreo de croma",
+        "valueEs": "4:4:4, 4:2:2, 4:2:0"
+      },
+      {
+        "group": "Video",
+        "label": "Color Depth",
+        "value": "8-bit, 10-bit, 12-bit",
+        "labelEs": "Profundidad de color",
+        "valueEs": "8 bits, 10 bits, 12 bits"
+      },
+      {
+        "group": "Video",
+        "label": "HDR",
+        "value": "HDR10, Hybrid-Log Gamma (HLG), and Dolby® Vision™ @ 60Hz",
+        "labelEs": "HDR",
+        "valueEs": "HDR10, Hybrid-Log Gamma (HLG) y Dolby® Vision™ @ 60Hz"
+      },
+      {
+        "group": "Audio",
+        "label": "Pass-Through Formats",
+        "value": "PCM 2.0 LPCM 5.1 LPCM 7.1 Dolby® Digital Dolby Digital Plus™ Dolby TrueHD Dolby Atmos® DTS® Digital Surround™ DTS-HD Master Audio™ DTS:X®",
+        "labelEs": "Formatos pass-through",
+        "valueEs": "PCM 2.0 LPCM 5.1 LPCM 7.1 Dolby® Digital Dolby Digital Plus™ Dolby TrueHD Dolby Atmos® DTS® Digital Surround™ DTS-HD Master Audio™ DTS:X®"
+      },
+      {
+        "group": "Audio",
+        "label": "Sample Rate",
+        "value": "32 kHz, 44.1 kHz, 48 kHz, 88.2 kHz, 96 kHz, 176.4 kHz, 192 kHz",
+        "labelEs": "Frecuencia de muestreo",
+        "valueEs": "32 kHz, 44,1 kHz, 48 kHz, 88,2 kHz, 96 kHz, 176,4 kHz, 192 kHz"
+      },
+      {
+        "group": "Audio",
+        "label": "Bit Rate",
+        "value": "24 Mbps max",
+        "labelEs": "Tasa de bits",
+        "valueEs": "24 Mbps máx."
+      },
+      {
+        "group": "Protocolos",
+        "label": "Supported",
+        "value": "HTTP, Telnet",
+        "labelEs": "Admitido",
+        "valueEs": "HTTP, Telnet"
+      },
+      {
+        "group": "Protocolos",
+        "label": "Addressing",
+        "value": "DHCP, static",
+        "labelEs": "Direccionamiento",
+        "valueEs": "DHCP, estática"
+      },
+      {
+        "group": "Control",
+        "label": "RS-232",
+        "value": "Device control and configuration; supports baud rates from 2400 to 9600 Bidirectional pass-through from control system to network",
+        "labelEs": "RS-232",
+        "valueEs": "Control y configuración del dispositivo; admite velocidades de 2400 a 9600 baudios Paso directo bidireccional desde el sistema de control hacia la red"
+      },
+      {
+        "group": "Control",
+        "label": "IP",
+        "value": "Device control and configuration",
+        "labelEs": "IP",
+        "valueEs": "Control y configuración del dispositivo"
+      },
+      {
+        "group": "Control",
+        "label": "IR",
+        "value": "Device control and configuration",
+        "labelEs": "IR",
+        "valueEs": "Control y configuración del dispositivo"
+      },
+      {
+        "group": "Control",
+        "label": "CEC",
+        "value": "Device control and configuration",
+        "labelEs": "CEC",
+        "valueEs": "Control y configuración del dispositivo"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDMI IN",
+        "value": "1 – Type A, 19-pin female",
+        "labelEs": "HDMI IN",
+        "valueEs": "1 – Tipo A, 19 pines, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDMI OUT",
+        "value": "1 – Type A, 19-pin female",
+        "labelEs": "HDMI OUT",
+        "valueEs": "1 – Tipo A, 19 pines, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "LAN(1)",
+        "value": "2 – RJ45, 10/100/1000 Mbps",
+        "labelEs": "LAN(1)",
+        "valueEs": "2 – RJ45, 10/100/1000 Mbps"
+      },
+      {
+        "group": "Conectores",
+        "label": "RS-232 / IR OUT",
+        "value": "1 – Captive screw, 5-pin",
+        "labelEs": "RS-232 / IR OUT",
+        "valueEs": "1 – tornillo cautivo, 5 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "FW / DC 5V",
+        "value": "1 – mini USB",
+        "labelEs": "FW / DC 5V",
+        "valueEs": "1 – mini USB"
+      },
+      {
+        "group": "Indicadores y controles",
+        "label": "POWER",
+        "value": "1 – LED, green",
+        "labelEs": "POWER",
+        "valueEs": "1 – LED, verde"
+      },
+      {
+        "group": "Indicadores y controles",
+        "label": "SOURCE",
+        "value": "1 – LED, yellow",
+        "labelEs": "SOURCE",
+        "valueEs": "1 – LED, amarillo"
+      },
+      {
+        "group": "Indicadores y controles",
+        "label": "IP MODE / RESET",
+        "value": "2 – LED, green",
+        "labelEs": "IP MODE / RESET",
+        "valueEs": "2 – LED, verde"
+      },
+      {
+        "group": "Indicadores y controles",
+        "label": "IP MODE, RESET",
+        "value": "2 – Momentary, tact type",
+        "labelEs": "IP MODE, RESET",
+        "valueEs": "2 – pulsador momentáneo, tipo táctil"
+      },
+      {
+        "group": "Resolución / distancia",
+        "label": "HDMI IN/OUT",
+        "value": "15 5 30 10",
+        "labelEs": "HDMI IN/OUT",
+        "valueEs": "15 5 30 10"
+      },
+      {
+        "group": "Alimentación",
+        "label": "PoE",
+        "value": "IEEE 802.3af",
+        "labelEs": "PoE",
+        "valueEs": "IEEE 802.3af"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "5.32 W",
+        "labelEs": "Consumo",
+        "valueEs": "5.32 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "BTU/h",
+        "value": "18.1",
+        "labelEs": "BTU/h",
+        "valueEs": "18.1"
+      },
+      {
+        "group": "Alimentación",
+        "label": "External Power Supply (optional)",
+        "value": "5 V, 500 mA (USB)",
+        "labelEs": "Fuente de alimentación externa (opcional)",
+        "valueEs": "5 V, 500 mA (USB)"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Temperature",
+        "value": "+32 to +122 °F 0 to +50 °C",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "+32 a +122 °F 0 a +50 °C"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Storage Temperature",
+        "value": "-4 to +140 °F -20 to +60 °C",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-4 a +140 °F -20 a +60 °C"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Humidity (RH)",
+        "value": "20% to 95%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "20% a 95%, sin condensación"
+      },
+      {
+        "group": "Chasis",
+        "label": "Dimensions (H x W x D)",
+        "value": "1.02 in x 4.29 in x 3.50 in 26 mm x 109 mm x 89 mm",
+        "labelEs": "Dimensiones (alto × ancho × profundidad)",
+        "valueEs": "1,02 x 4,29 x 3,50 pulg. 26 mm x 109 mm x 89 mm"
+      },
+      {
+        "group": "Chasis",
+        "label": "Weight",
+        "value": "0.65 lbs 0.30 kg",
+        "labelEs": "Peso",
+        "valueEs": "0,65 lb 0,30 kg"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, FCC, CB, RoHS",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC, CB, RoHS"
+      },
+      {
+        "group": "Certificación",
+        "label": "Supply",
+        "value": "CE, FCC, cULus, CB, RCM, RoHS",
+        "labelEs": "Alimentación",
+        "valueEs": "CE, FCC, cULus, CB, RCM, RoHS"
+      },
+      {
+        "group": "Normativas",
+        "label": "NDAA-899",
+        "value": "Yes",
+        "labelEs": "NDAA-899",
+        "valueEs": "Sí"
+      },
+      {
+        "group": "Normativas",
+        "label": "TAA",
+        "value": "Yes",
+        "labelEs": "TAA",
+        "valueEs": "Sí"
+      }
+    ],
+    "documents": [
+      {
+        "name": "JAV-CNTL-H1611 Specification",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-CNTL-H1611%20(AT-DISP-CTRL)/Spec%20Sheet/JAV-CNTL-H1611_Spec_Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-CNTL-H1611 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-CNTL-H1611%20(AT-DISP-CTRL)/Manual/JAV-CNTL-H1611_IFU.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-CNTL-H1611 API",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-CNTL-H1611%20(AT-DISP-CTRL)/API/JAV-CNTL-H1611-API.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-DISP-CTRL",
+        "url": "https://atlona.com/pdf/cad/AT-DISP-CTRL.dwg",
+        "fileType": "dwg"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/jav-cntl-h1611",
+    "tangoPath": "CONTROL > AUTOMATIZACION > SISTEMAS DE CONTROL > SISTEMA DE CONTROL P/PANTALLA"
+  },
+  {
+    "sku": "HT-ECLIPSE-USBC-KIT",
+    "shortDescription": "Kit de bloqueadores de puertos USB-C (1 llave y 4 trabas) para impedir conexiones no autorizadas en equipos compartidos.",
+    "longDescription": "Bloquea los puertos USB-C que no se usan en equipos compartidos para que nadie conecte nada sin permiso. Cada traba queda colocada hasta que se retira con la llave.\n\nPara colocarla, se carga una traba en la llave, se inserta en el puerto USB-C y se retira la llave: la traba queda en el puerto. Para quitarla, se vuelve a insertar la llave en la traba y se tira hacia afuera.\n\nNota: los bloqueadores de puertos son una medida de disuasión física. Úselos junto con las políticas de seguridad de red y de equipos de su organización.",
+    "keyFeatures": [],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "HT-ECLIPSE-USBC-KIT How TO",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-ECPS-T04UC-KT%20(HT-ECLIPSE-USBC-KIT)/Manual/Eclipse%20How-To%20-%20USB-C.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Eclipse One-Page",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/_Brochures/Eclipse%20Handout%20-%20Javelin_Final.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/ht-eclipse-usbc-kit",
+    "tangoPath": "VARIOS > INFORMATICA > ACCESORIOS"
+  },
+  {
+    "sku": "JAV-EXT-F1211",
+    "shortDescription": "Kit extensor HDMI punto a punto por cable de categoría para 4K a 60 Hz 4:4:4 y HDCP 2.2 hasta 40 m, con salida HDMI local y PoC bidireccional de 12 V.",
+    "longDescription": "El Javelin JAV-EXT-F1211 es un extensor HDMI sobre cable de categoría, compacto y punto a punto, que entrega video de hasta 4K a 60 Hz 4:4:4 y contenido HDCP 2.2 por un solo cable de categoría de hasta 40 m.\n\nAdmite video UHD de hasta 4K a 60 Hz 4:4:4 y es compatible con HDCP 2.2, para fuentes y displays AV profesionales actuales.\n\nLa salida HDMI de loop del transmisor permite conectar un display local mientras el receptor alimenta al display remoto.\n\nEl PoC bidireccional de 12 V alimenta el par TX/RX con un solo adaptador incluido, que se puede conectar en cualquiera de los dos extremos. El gabinete compacto de 80 × 16 × 95 mm y el consumo máximo de 4,1 W permiten instalaciones discretas y eficientes.",
+    "keyFeatures": [],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "HDMI Version",
+        "value": "HDMI 2.0",
+        "labelEs": "Versión HDMI",
+        "valueEs": "HDMI 2.0"
+      },
+      {
+        "group": "Video",
+        "label": "HDCP Version",
+        "value": "HDCP 2.2, backward compatible",
+        "labelEs": "Versión HDCP",
+        "valueEs": "HDCP 2.2, retrocompatible"
+      },
+      {
+        "group": "Video",
+        "label": "Maximum Resolution",
+        "value": "4K@60 Hz, 4:4:4, 8-bit",
+        "labelEs": "Resolución máxima",
+        "valueEs": "4K@60 Hz, 4:4:4, 8 bits"
+      },
+      {
+        "group": "Video",
+        "label": "Scaling",
+        "value": "Automatic 4K to 1080p downscaling at HDMI outputs",
+        "labelEs": "Escalado",
+        "valueEs": "Reducción de escala automática de 4K a 1080p en las salidas HDMI"
+      },
+      {
+        "group": "Audio",
+        "label": "HDMI Audio Formats",
+        "value": "LPCM 2.0/5.1/7.1; Dolby Digital; Dolby Digital Plus; Dolby TrueHD; DTS; DTS-HD Master Audio",
+        "labelEs": "Formatos de audio HDMI",
+        "valueEs": "LPCM 2.0/5.1/7.1; Dolby Digital; Dolby Digital Plus; Dolby TrueHD; DTS; DTS-HD Master Audio"
+      },
+      {
+        "group": "Extensión",
+        "label": "4K",
+        "value": "Up to 131 ft Up to 40 m",
+        "labelEs": "4K",
+        "valueEs": "Hasta 131 ft Hasta 40 m"
+      },
+      {
+        "group": "Extensión",
+        "label": "1080p",
+        "value": "Up to 230 ft Up to 70 m",
+        "labelEs": "1080p",
+        "valueEs": "Hasta 230 ft Hasta 70 m"
+      },
+      {
+        "group": "Extensión",
+        "label": "Cable",
+        "value": "CAT5e/6; shielded twisted pair (STP/FTP) recommended",
+        "labelEs": "Cable",
+        "valueEs": "CAT5e/6; se recomienda par trenzado blindado (STP/FTP)"
+      },
+      {
+        "group": "Conectores | Transmisor",
+        "label": "VIDEO IN",
+        "value": "1× HDMI Type A, 19-pin female",
+        "labelEs": "VIDEO IN",
+        "valueEs": "1× HDMI Tipo A, 19 pines, hembra"
+      },
+      {
+        "group": "Conectores | Transmisor",
+        "label": "VIDEO OUT",
+        "value": "1× HDMI Type A, 19-pin female (local loop)",
+        "labelEs": "VIDEO OUT",
+        "valueEs": "1× HDMI Tipo A, 19 pines, hembra (loop local)"
+      },
+      {
+        "group": "Conectores | Transmisor",
+        "label": "RJ45",
+        "value": "1× RJ45 (CAT5e/6 extension)",
+        "labelEs": "RJ45",
+        "valueEs": "1× RJ45 (extensión CAT5e/6)"
+      },
+      {
+        "group": "Conectores | Transmisor",
+        "label": "FW",
+        "value": "1× USB Type-C (firmware update)",
+        "labelEs": "FW",
+        "valueEs": "1× USB Type-C (actualización de firmware)"
+      },
+      {
+        "group": "Conectores | Transmisor",
+        "label": "12V DC",
+        "value": "1× DC barrel jack",
+        "labelEs": "12V DC",
+        "valueEs": "1× jack DC tipo barril"
+      },
+      {
+        "group": "Conectores | Receptor",
+        "label": "RJ45",
+        "value": "1× RJ45 (CAT5e/6 extension)",
+        "labelEs": "RJ45",
+        "valueEs": "1× RJ45 (extensión CAT5e/6)"
+      },
+      {
+        "group": "Conectores | Receptor",
+        "label": "VIDEO OUT",
+        "value": "1× HDMI Type A, 19-pin female",
+        "labelEs": "VIDEO OUT",
+        "valueEs": "1× HDMI Tipo A, 19 pines, hembra"
+      },
+      {
+        "group": "Conectores | Receptor",
+        "label": "12V DC",
+        "value": "1× DC barrel jack",
+        "labelEs": "12V DC",
+        "valueEs": "1× jack DC tipo barril"
+      },
+      {
+        "group": "Control e indicadores",
+        "label": "Buttons",
+        "value": "RESET (transmitter and receiver) — reboots the device.",
+        "labelEs": "Botones",
+        "valueEs": "RESET (transmisor y receptor) — reinicia el equipo."
+      },
+      {
+        "group": "Control e indicadores",
+        "label": "Indicators",
+        "value": "LINK – Blue | POWER – Blue | FW – Blue. LINK LED (TX/RX): solid blue with a valid connection and signal path, off when no signal. POWER LED (TX/RX): blue when powered. FW LED (TX): blue for firmware update status.",
+        "labelEs": "Indicadores",
+        "valueEs": "LINK – azul | POWER – azul | FW – azul. LED LINK (TX/RX): azul fijo con conexión y señal válidas, apagado sin señal. LED POWER (TX/RX): azul con alimentación. LED FW (TX): azul para el estado de actualización de firmware."
+      },
+      {
+        "group": "Alimentación",
+        "label": "Power Adapter",
+        "value": "Input 100 to 240 V AC, 50/60 Hz; output 12 V DC, 1 A (included)",
+        "labelEs": "Adaptador de corriente",
+        "valueEs": "Entrada 100 a 240 V AC, 50/60 Hz; salida 12 V DC, 1 A (incluida)"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Power over Cable",
+        "value": "Bidirectional 12 V PoC; one adapter at either unit powers both",
+        "labelEs": "Alimentación por cable",
+        "valueEs": "PoC bidireccional de 12 V; un adaptador en cualquiera de las unidades alimenta a ambas"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "4.1 W (max.)",
+        "labelEs": "Consumo",
+        "valueEs": "4,1 W (máx.)"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Temperature",
+        "value": "+23° to +131°F -5° to +55°C",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "+23° a +131°F -5° a +55°C"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Storage Temperature",
+        "value": "-13° to +158°F -25° to +70°C",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-13° a +158°F -25° a +70°C"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Humidity (RH)",
+        "value": "10% to 90%, non-condensing",
+        "labelEs": "Humedad (HR)",
+        "valueEs": "10% a 90%, sin condensación"
+      },
+      {
+        "group": "Dimensiones (ancho × alto × profundidad)",
+        "label": "Unit (with mounting ears)",
+        "value": "4.02 × 0.63 × 3.74 in. 102 × 16 × 95 mm",
+        "labelEs": "Equipo (con orejas de montaje)",
+        "valueEs": "4,02 × 0,63 × 3,74 pulg. 102 × 16 × 95 mm"
+      },
+      {
+        "group": "Dimensiones (ancho × alto × profundidad)",
+        "label": "Unit (without mounting ears)",
+        "value": "3.15 × 0.63 × 3.74 in. 80 × 16 × 95 mm",
+        "labelEs": "Equipo (sin orejas de montaje)",
+        "valueEs": "3,15 × 0,63 × 3,74 pulg. 80 × 16 × 95 mm"
+      },
+      {
+        "group": "Peso",
+        "label": "Transmitter",
+        "value": "0.40 lbs 180 g",
+        "labelEs": "Transmisor",
+        "valueEs": "0,40 lb 180 g"
+      },
+      {
+        "group": "Peso",
+        "label": "Receiver",
+        "value": "0.39 lbs 175 g",
+        "labelEs": "Receptor",
+        "valueEs": "0,39 lb 175 g"
+      }
+    ],
+    "documents": [
+      {
+        "name": "JAV-EXT-F1211 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-EXT-F1211/Manual/JAV-EXT-F1211_IFU.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-EXT-F1211 Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-EXT-F1211/Spec%20Sheet/JAV-EXT-F1211_Spec_Sheet.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/jav-ext-f1211",
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+  },
+  {
+    "sku": "U22-160",
+    "shortDescription": "Kit transmisor y receptor que extiende USB 2.0 (480 Mb/s) hasta 50 m por un solo cable Cat5e/6, con hub remoto de dos puertos.",
+    "longDescription": "El Hall Technologies U22-160 extiende USB 2.0 hasta 50 m (165 ft) por un solo cable Cat5e/6. Incluye un hub remoto de dos puertos y admite dispositivos USB de alta velocidad de 480 Mb/s en entornos AV, de conferencia e industriales.",
+    "keyFeatures": [
+      "Extiende dispositivos USB 2.0 hasta 165 ft (50 m) con cable Cat5",
+      "Admite dispositivos de alta velocidad, velocidad completa y baja velocidad",
+      "LED de estado de alimentación y datos",
+      "Admite conexión y desconexión en caliente",
+      "Puede alimentar la mayoría de los dispositivos USB sin fuente de alimentación",
+      "Instalación plug and play"
+    ],
+    "specifications": [
+      {
+        "group": "Interfaz de bus",
+        "label": "Value",
+        "value": "USB 2.0",
+        "labelEs": "Valor",
+        "valueEs": "USB 2.0"
+      },
+      {
+        "group": "Cantidad de puertos",
+        "label": "Value",
+        "value": "2 (on the Remote Unit)",
+        "labelEs": "Valor",
+        "valueEs": "2 (en la unidad remota)"
+      },
+      {
+        "group": "Unidad local",
+        "label": "Value",
+        "value": "1 x USB type B female 1 x RJ45 Ethernet female 1 x DC Power supply",
+        "labelEs": "Valor",
+        "valueEs": "1 x USB tipo B hembra 1 x RJ45 Ethernet hembra 1 x fuente de alimentación DC"
+      },
+      {
+        "group": "Unidad remota",
+        "label": "Value",
+        "value": "2 x USB type A female 1 x RJ45 Ethernet female 1 x DC Power supply",
+        "labelEs": "Valor",
+        "valueEs": "2 x USB tipo A hembra 1 x RJ45 Ethernet hembra 1 x fuente de alimentación DC"
+      },
+      {
+        "group": "LED",
+        "label": "Value",
+        "value": "1 x Power, 1 x Data",
+        "labelEs": "Valor",
+        "valueEs": "1 x alimentación, 1 x datos"
+      },
+      {
+        "group": "Velocidad máxima de datos",
+        "label": "Value",
+        "value": "480 Mbps",
+        "labelEs": "Valor",
+        "valueEs": "480 Mbps"
+      },
+      {
+        "group": "Distancia máxima del cable",
+        "label": "Value",
+        "value": "50m (165 ft)",
+        "labelEs": "Valor",
+        "valueEs": "50m (165 ft)"
+      },
+      {
+        "group": "Tipo de cable",
+        "label": "Value",
+        "value": "Cat 5e/6/6a",
+        "labelEs": "Valor",
+        "valueEs": "Cat 5e/6/6a"
+      },
+      {
+        "group": "Fuente de alimentación",
+        "label": "Value",
+        "value": "5V DC 2A",
+        "labelEs": "Valor",
+        "valueEs": "5V DC 2A"
+      },
+      {
+        "group": "Temperatura de funcionamiento",
+        "label": "Value",
+        "value": "32 to 122 °F (0 to 50 °C)",
+        "labelEs": "Valor",
+        "valueEs": "32 a 122 °F (0 a 50 °C)"
+      },
+      {
+        "group": "Humedad de funcionamiento",
+        "label": "Value",
+        "value": "20% – 80% RH",
+        "labelEs": "Valor",
+        "valueEs": "20% – 80% HR"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "Value",
+        "value": "Ends: 2.5 x 1.3 x 0.9 inch (65 x 35 x 25 mm) Shipping: 9.5 x 8 x 3 inch (24 x 20 x 8 cm)",
+        "labelEs": "Valor",
+        "valueEs": "Extremos: 2,5 x 1,3 x 0,9 pulgadas (65 x 35 x 25 mm) Con embalaje: 9,5 x 8 x 3 pulgadas (24 x 20 x 8 cm)"
+      },
+      {
+        "group": "Peso",
+        "label": "Value",
+        "value": "Shipping: 1 lbs (450g)",
+        "labelEs": "Valor",
+        "valueEs": "Con embalaje: 1 lb (450g)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "JAV-MISC-F1212 Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-160_Specsheet_Nov_10-1.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-MISC-F1212 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-160-Manual-.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "U22-160 Mechanical (DWG)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-16020DIMS.vnd_.dwg",
+        "fileType": "dwg"
+      },
+      {
+        "name": "U22-160 Mechanical (DXF)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-16020DIMS.vnd_.dxf",
+        "fileType": "dxf"
+      },
+      {
+        "name": "U22-160 Mechanical (PDF)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-16020DIMS.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/u22-160",
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+  },
+  {
+    "sku": "AT-ETU-SYNC",
+    "shortDescription": "Emulador de EDID y de señal HDMI compacto que resuelve problemas de handshake entre fuente y pantalla. Soporta 4K/UHD a 60 Hz 4:4:4, HDR, HDCP 2.2 y regenera señales de hasta 18 Gbps.",
+    "longDescription": "El Javelin AT-ETU-SYNC (Etude Sync) es un emulador de EDID y de integridad de señal HDMI compacto, diseñado para resolver los problemas habituales de handshake y de compatibilidad de video en sistemas AV profesionales. Mantiene una comunicación confiable entre la fuente y la pantalla emulando las señales de EDID y Hot Plug Detect (HPD), lo que asegura un funcionamiento estable aun cuando los equipos se encienden o se conectan en un orden impredecible.\n\nAdmite video 4K/UHD a 60 Hz con croma 4:4:4 y formatos HDR, además de HDCP 2.2, con compatibilidad total con los estándares HDMI más recientes. El AT-ETU-SYNC también restaura y regenera señales HDMI de hasta 18 Gbps, por lo que sirve para diagnosticar fallas, extender recorridos de señal o integrar fuentes 4K nuevas con pantallas más antiguas, tanto en instalaciones residenciales como comerciales.",
+    "keyFeatures": [
+      "Emulación y gestión de EDID para señales HDMI",
+      "Emulación de 5 V y Hot Plug Detect para la comunicación entre fuente y receptor HDMI",
+      "Detecta y resuelve problemas de handshake entre los equipos de origen y de destino",
+      "Capacidad 4K/UHD a 60 Hz con muestreo de croma 4:4:4, más soporte de formatos HDR",
+      "Compatible con HDCP 2.2"
+    ],
+    "specifications": [
+      {
+        "group": "Resolución",
+        "label": "Video",
+        "value": "4096×2160@24/25/30/50/60Hz, 3840×2160@24/25/30/50/60Hz, 2048x1080p, 1080p@23.98/24/25/29.97/30/50/59.94/60Hz, 1080i@50/59.94/60Hz, 720p@50/59.94/60Hz, 576p, 576i, 480p, 480i",
+        "labelEs": "Video",
+        "valueEs": "4096×2160@24/25/30/50/60Hz, 3840×2160@24/25/30/50/60Hz, 2048x1080p, 1080p@23.98/24/25/29.97/30/50/59.94/60Hz, 1080i@50/59.94/60Hz, 720p@50/59.94/60Hz, 576p, 576i, 480p, 480i"
+      },
+      {
+        "group": "Resolución",
+        "label": "VESA",
+        "value": "2560×1600, 2048×1536, 1920×1200, 1680×1050, 1600×1200, 1440×900, 1400×1050, 1366×768, 1360×768, 1280×1024, 1280×800, 1152×768, 1024×768, 800×600, 640×480",
+        "labelEs": "VESA",
+        "valueEs": "2560×1600, 2048×1536, 1920×1200, 1680×1050, 1600×1200, 1440×900, 1400×1050, 1366×768, 1360×768, 1280×1024, 1280×800, 1152×768, 1024×768, 800×600, 640×480"
+      },
+      {
+        "group": "Resolución",
+        "label": "Color Space",
+        "value": "YUV, RGB",
+        "labelEs": "Espacio de color",
+        "valueEs": "YUV, RGB"
+      },
+      {
+        "group": "Resolución",
+        "label": "Chroma Subsampling",
+        "value": "4:4:4, 4:2:2, 4:2:0",
+        "labelEs": "Submuestreo de croma",
+        "valueEs": "4:4:4, 4:2:2, 4:2:0"
+      },
+      {
+        "group": "Resolución",
+        "label": "Color Depth",
+        "value": "8-bit, 10-bit, 12-bit",
+        "labelEs": "Profundidad de color",
+        "valueEs": "8 bits, 10 bits, 12 bits"
+      },
+      {
+        "group": "Resolución",
+        "label": "HDR",
+        "value": "HDR10 and Dolby® Vision™ @ 60Hz",
+        "labelEs": "HDR",
+        "valueEs": "HDR10 y Dolby® Vision™ @ 60Hz"
+      },
+      {
+        "group": "Audio",
+        "label": "HDMI Output",
+        "value": "PCM 2Ch, LPCM 5.1, LPCM 7.1, Dolby Digital, Dolby Digital Plus, Dolby TrueHD, DTS 5.1, DTS-HD Master Audio, DTS:X, Dolby Atmos",
+        "labelEs": "Salida HDMI",
+        "valueEs": "PCM 2Ch, LPCM 5.1, LPCM 7.1, Dolby Digital, Dolby Digital Plus, Dolby TrueHD, DTS 5.1, DTS-HD Master Audio, DTS:X, Dolby Atmos"
+      },
+      {
+        "group": "Audio",
+        "label": "Sample Rate",
+        "value": "32kHz, 44.1kHz, 48kHz, 88.2kHz, 96kHz, 176.4kHz, 192kHz",
+        "labelEs": "Frecuencia de muestreo",
+        "valueEs": "32kHz, 44,1kHz, 48kHz, 88,2kHz, 96kHz, 176,4kHz, 192kHz"
+      },
+      {
+        "group": "Audio",
+        "label": "Bit Rate",
+        "value": "up to 24-bit",
+        "labelEs": "Tasa de bits",
+        "valueEs": "hasta 24 bits"
+      },
+      {
+        "group": "Distancia",
+        "label": "HDMI UHD@60Hz",
+        "value": "up to 2 meters up to 6ft",
+        "labelEs": "HDMI UHD@60Hz",
+        "valueEs": "hasta 2 metros hasta 6ft"
+      },
+      {
+        "group": "Distancia",
+        "label": "HDMI UHD@24Hz",
+        "value": "up to 5 meters up to 16ft",
+        "labelEs": "HDMI UHD@24Hz",
+        "valueEs": "hasta 5 metros hasta 16ft"
+      },
+      {
+        "group": "Distancia",
+        "label": "HDMI 1080p@60Hz",
+        "value": "up to 10 meters up to 30ft",
+        "labelEs": "HDMI 1080p@60Hz",
+        "valueEs": "hasta 10 metros hasta 30ft"
+      },
+      {
+        "group": "Distancia",
+        "label": "HDMI 1080p@24Hz",
+        "value": "up to 15 meters up to 50ft",
+        "labelEs": "HDMI 1080p@24Hz",
+        "valueEs": "hasta 15 metros hasta 50ft"
+      },
+      {
+        "group": "Señal",
+        "label": "Bandwidth",
+        "value": "18 Gbps",
+        "labelEs": "Ancho de banda",
+        "valueEs": "18 Gbps"
+      },
+      {
+        "group": "Señal",
+        "label": "CEC",
+        "value": "No",
+        "labelEs": "CEC",
+        "valueEs": "No"
+      },
+      {
+        "group": "Señal",
+        "label": "HDCP",
+        "value": "2.2 Compliant",
+        "labelEs": "HDCP",
+        "valueEs": "Compatible con 2.2"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Operating",
+        "value": "0°C to 50°C 32°F to 122°F",
+        "labelEs": "Funcionamiento",
+        "valueEs": "0°C a 50°C 32°F a 122°F"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Storage",
+        "value": "-20°C to 60°C -4°F to 140°F",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-20°C a 60°C -4°F a 140°F"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Humidity",
+        "value": "20 to 90% non-condensing",
+        "labelEs": "Humedad",
+        "valueEs": "20 a 90%, sin condensación"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "5.2 W",
+        "labelEs": "Consumo",
+        "valueEs": "5.2 W"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Unit",
+        "value": "1.5 x 5 x 4.02 38 x 127 x 102",
+        "labelEs": "Equipo",
+        "valueEs": "1.5 x 5 x 4.02 38 x 127 x 102"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Power Supply",
+        "value": "2.3 x 4.4 x 2.8 58.4 x 111.7 x 71.1",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "2.3 x 4.4 x 2.8 58.4 x 111.7 x 71.1"
+      },
+      {
+        "group": "Peso",
+        "label": "Unit",
+        "value": "0.27 kg 0.6 lbs",
+        "labelEs": "Equipo",
+        "valueEs": "0,27 kg 0,6 lb"
+      },
+      {
+        "group": "Certificación",
+        "label": "Unit",
+        "value": "CE, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC"
+      },
+      {
+        "group": "Certificación",
+        "label": "Power Supply",
+        "value": "CE, FCC, cULus, RoHS, CCC, RCM",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "CE, FCC, cULus, RoHS, CCC, RCM"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-ETU-SYNC Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-ETU-SYNC_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-ETU-SYNC Installation Guide",
+        "url": "https://atlona.com/pdf/manuals/AT-ETU-SYNC_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-ETU-SYNC Manual",
+        "url": "https://atlona.com/pdf/manuals/AT-ETU-SYNC.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-etu-sync",
+    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO"
+  },
+  {
+    "sku": "GC-HD-DP",
+    "shortDescription": "Adaptador activo de HDMI a DisplayPort para conectar una fuente HDMI a un monitor DisplayPort, hasta 4K a 30 Hz o 1080p a 120 Hz, con audio LPCM de 8 canales. Plug-and-play, sin drivers.",
+    "longDescription": "El GC-HD-DP es un adaptador activo de HDMI a DisplayPort diseñado para conectar fuentes HDMI a monitores DisplayPort con una conversión de señal confiable y de alta calidad. Admite resoluciones de hasta 4K a 30 Hz y 1080p con frecuencias de refresco más altas, por lo que es compatible con una amplia variedad de displays usados en AV comercial, estaciones de trabajo y cartelería digital.\n\nEl adaptador maneja protección de contenido HDCP 1.3, entrega una salida DP estable incluso desde fuentes HDMI que no son Dual Mode y no requiere drivers ni configuraciones complejas. Compacto y resistente, el GC-HD-DP es una forma directa de conectar equipos HDMI a displays DisplayPort actuales.",
+    "keyFeatures": [
+      "Conecta una fuente de video HDMI a un monitor DisplayPort",
+      "Admite resoluciones de hasta 4K x 2K a 30 Hz, 1080p a 120 Hz y 3D",
+      "Cumple con HDMI 1.4b y HDCP 1.3",
+      "Cumple con VESA Dual-Mode DisplayPort 1.2a",
+      "Admite hasta 8 canales de audio LPCM y audio HBR de hasta 192 kHz",
+      "Plug-and-play"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "GC-HD-DP Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/GC-HD-DP-SpecSheet.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/gc-hd-dp",
+    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI"
+  },
+  {
+    "sku": "GCDP-1HD",
+    "shortDescription": "Placa de pared Decora de un módulo con un pasante HDMI pasivo (sin alimentación) para salas de reuniones, aulas y atriles. Compatible con HDCP 1.4 y 2.0; incluye la placa Decora.",
+    "longDescription": "La GCDP-1HD es una placa de pared estilo Decora con pasante HDMI pasivo, diseñada para ofrecer un punto de conexión prolijo y profesional para el cableado HDMI en salas de reuniones, aulas e instalaciones AV comerciales.\n\nTiene formato de un módulo con paso HDMI de la parte trasera al frente, lo que mantiene la integridad de la señal sin electrónica activa ni necesidad de alimentación. Con un conector resistente y una placa frontal Decora estándar, la GCDP-1HD permite llevar HDMI de forma ordenada y confiable desde cajas de pared, cajas de piso o atriles hasta displays, switchers o extensores, y es compatible con contenido protegido por HDCP.",
+    "keyFeatures": [
+      "Brinda una conexión HDMI pasante para placas de pared o atriles",
+      "Compatible con HDCP 1.4 y 2.0",
+      "Formato compacto de placa Decora de un módulo",
+      "Incluye placa de pared Decora"
+    ],
+    "specifications": [
+      {
+        "group": "Dimensiones",
+        "label": "Value",
+        "value": "Model: 2.75(70mm) W x 2.40(72mm) D x 4.5(114.3mm) H (case) Shipping: 6.00(152mm) x 4.00(102mm) x 2.00(51mm)",
+        "labelEs": "Valor",
+        "valueEs": "Equipo: 2,75 (70mm) ancho x 2,40 (72mm) prof. x 4,5 (114,3mm) alto (gabinete) Con embalaje: 6,00 (152mm) x 4,00 (102mm) x 2,00 (51mm)"
+      }
+    ],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/gcdp-1hd",
+    "tangoPath": "CONECTIVIDAD > PANELES DE CONEXION > FIJOS"
+  },
+  {
+    "sku": "HT-EM-8K",
+    "shortDescription": "Emulador de EDID HDMI 2.1 que simula un monitor HDMI para que PCs y notebooks entreguen video: hasta 4K60 en modo normal y hasta 4K120 y 8K60 en modo alternativo, con botón de aprendizaje.",
+    "longDescription": "Emulador de EDID HDMI 8K que se comporta como un monitor HDMI emulando el EDID de un monitor HDMI típico.\n\nLa mayoría de las PC y notebooks necesitan un handshake específico del display antes de entregar video. Ese handshake consiste en leer la tabla EDID del monitor.",
+    "keyFeatures": [
+      "El modo predeterminado admite resoluciones de hasta 4K@60Hz",
+      "El modo de respaldo admite resoluciones de hasta 4K@120Hz y 8K@60Hz",
+      "Botón de aprendizaje para copiar el EDID del monitor o volver al EDID predeterminado",
+      "Oculta el EDID del display y entrega a la fuente un EDID genérico",
+      "Admite las especificaciones VESA y CEA",
+      "Admite HDMI 2.1"
+    ],
+    "specifications": [
+      {
+        "group": "Equipo",
+        "label": "Interface Ports",
+        "value": "1 x Female HDMI: Used to connect to the display 1 x Male HDMI: Used to connect to the display",
+        "labelEs": "Puertos de interfaz",
+        "valueEs": "1 x HDMI hembra: para conectar a la pantalla 1 x HDMI macho: para conectar a la pantalla"
+      },
+      {
+        "group": "Equipo",
+        "label": "Resolution",
+        "value": "Default Mode: 4K@60Hz Backup Mode: 4K@120Hz, 8K@60Hz",
+        "labelEs": "Resolución",
+        "valueEs": "Modo predeterminado: 4K@60Hz Modo alternativo: 4K@120Hz, 8K@60Hz"
+      },
+      {
+        "group": "Equipo",
+        "label": "HDMI Support",
+        "value": "HDMI 2.0 (Default), HDMI 2.1 (Backup)",
+        "labelEs": "Compatibilidad HDMI",
+        "valueEs": "HDMI 2.0 (predeterminado), HDMI 2.1 (alternativo)"
+      },
+      {
+        "group": "Equipo",
+        "label": "Video Spec Support",
+        "value": "VESA and CEA",
+        "labelEs": "Especificaciones de video admitidas",
+        "valueEs": "VESA y CEA"
+      },
+      {
+        "group": "General",
+        "label": "Operating Temperature",
+        "value": "0 to + 45°C (32 to + 113°F)",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "0 a + 45°C (32 a + 113°F)"
+      },
+      {
+        "group": "General",
+        "label": "Storage Temperature",
+        "value": "-20 to +70°C (-4 to + 158°F)",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-20 a +70°C (-4 a + 158°F)"
+      },
+      {
+        "group": "General",
+        "label": "Humidity",
+        "value": "10% to 90%, non-condensing",
+        "labelEs": "Humedad",
+        "valueEs": "10% a 90%, sin condensación"
+      },
+      {
+        "group": "General",
+        "label": "ESD Protection",
+        "value": "",
+        "labelEs": "Protección ESD",
+        "valueEs": ""
+      },
+      {
+        "group": "General",
+        "label": "Device Dimension (WxHxD)",
+        "value": ".8 x 2 x .4 inches 22 x 52 x 10mm",
+        "labelEs": "Dimensiones del equipo (ancho × alto × profundidad)",
+        "valueEs": "0,8 x 2 x 0,4 pulgadas 22 x 52 x 10mm"
+      },
+      {
+        "group": "General",
+        "label": "Device Weight",
+        "value": ".05 lb .032kg",
+        "labelEs": "Peso del equipo",
+        "valueEs": "0,05 lb 0,032kg"
+      }
+    ],
+    "documents": [
+      {
+        "name": "HT-EM-8K Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-EM-8K-Spec-Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "HT-EM-8K Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-EM-8K_Manual-1.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/ht-em-8k",
+    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO"
+  },
+  {
+    "sku": "JAV-DP-HDMI",
+    "shortDescription": "Adaptador activo de DisplayPort a HDMI para conectar una fuente DisplayPort a un display HDMI, con soporte hasta 4K x 2K a 30 Hz, HDMI 1.4b y HDCP 1.3.",
+    "longDescription": "El JAV-DP-HDMI es un adaptador activo de DisplayPort a HDMI diseñado para conectar una fuente DisplayPort a un display HDMI con una conversión de señal confiable. Admite resoluciones de hasta 4K x 2K a 30 Hz y cumple por completo con HDMI 1.4b y HDCP 1.3, lo que asegura la compatibilidad con monitores, proyectores y sistemas AV comerciales.\n\nEl adaptador utiliza conversión DP++ activa para un funcionamiento estable tanto con salidas DisplayPort estándar como de modo dual, por lo que es una solución plug-and-play para notebooks, computadoras de escritorio y reproductores multimedia. Compacto y resistente, es adecuado para salas de reuniones, aulas, señalización digital y puestos de trabajo de uso diario.",
+    "keyFeatures": [
+      "Conecta una fuente DisplayPort a un display HDMI",
+      "Admite resoluciones de hasta 4K x 2K a 30 Hz, 1080p a 120 Hz y 3D",
+      "Cumple con HDMI 1.4b y HDCP 1.3",
+      "Cumple con VESA Dual-Mode DisplayPort 1.2a",
+      "Admite audio LPCM de hasta 8 canales y HBR de hasta 192 kHz",
+      "Plug-and-play"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "JAV-DP-HDMI Installation Guide",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/JAV-DP-HDMI%20IFU.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-DP-HDMI Installation Guide (Dutch)",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/Dutch/JAV-DP-HDMI%20IFU%20(Dutch).pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-DP-HDMI Installation Guide (French)",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/French/JAV-DP-HDMI%20IFU%20(French).pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-DP-HDMI Installation Guide (German)",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/German/JAV-DP-HDMI%20IFU%20(German).pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-DP-HDMI Installation Guide (Italian)",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/Italian/JAV-DP-HDMI%20IFU%20(Italian).pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-DP-HDMI Installation Guide (Spanish)",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-DP-HDMI%20(GC-DP-HD)/Installation%20Guide/Spanish/JAV-DP-HDMI%20IFU%20(Spanish).pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/jav-dp-hdmi",
+    "tangoPath": "CONECTIVIDAD > ADAPES > ADAPES > HDMI"
+  },
+  {
+    "sku": "JAV-ETU-H1211-HD",
+    "shortDescription": "Emulador de EDID HDMI que se intercala en la línea para mantener estable el enlace entre fuente y display, evitando caídas de resolución, fallas de sincronismo o pérdida de video.",
+    "longDescription": "El JAV-ETU-H1211-HD es un emulador de EDID HDMI diseñado para mantener un enlace de video estable entre las fuentes y los displays en sistemas AV profesionales. Al presentar un EDID y una señal de hot plug detect constantes, evita problemas habituales como caídas de resolución, fallas de sincronismo HDMI o pérdida de video al cambiar de entrada o al encender y apagar los displays.\n\nEs compacto y se intercala fácilmente en la línea, por lo que resulta ideal para usar con extensores, switchers, escaladores o notebooks que tienen dificultades con la negociación de EDID. El JAV-ETU-H1211-HD ofrece una solución simple y confiable a los problemas de compatibilidad HDMI sin agregar complejidad innecesaria a la instalación.",
+    "keyFeatures": [
+      "Emula un display HDMI (dispositivo sink) entregando HPD (hot plug detect) y EDID",
+      "Se entrega con un EDID predeterminado con las resoluciones más comunes",
+      "Ideal para usar con switchers y extensores de video",
+      "Emulador de display para acceso a escritorio remoto",
+      "Puede programarse con otras resoluciones (requiere un programador, que se vende por separado)",
+      "Funciona con Mac Mini, CompuLab fit-PC, Intense PC o cualquier otra computadora o notebook"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "JAV-ETU-H1211-HD Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HDMI20EDID20Emulator20-20In20a20Nutshell-1.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-ETU-H1211-HD Monitor Info Utility",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/moninfo-1.zip",
+        "fileType": "zip"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/jav-etu-h1211-hd",
+    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO"
+  },
+  {
+    "sku": "JAV-ETU-H1311-HD",
+    "shortDescription": "Emulador de EDID con comunicación hot plug detect entre fuente y display HDMI; detecta y corrige la integridad de la señal, compatible con HDR y HDCP 2.2.",
+    "longDescription": "El Javelin JAV-ETU-H1311-HD proporciona emulación de EDID y comunicación de Hot Plug Detect entre dispositivos HDMI sink y fuente. Detecta y corrige la integridad de la señal. Es compatible con formatos de alto rango dinámico (HDR) y cumple con HDCP 2.2.\n\nEs ideal para la resolución de problemas en sistemas AV y para asegurar un funcionamiento confiable y constante.",
+    "keyFeatures": [],
+    "specifications": [
+      {
+        "group": "Resolución",
+        "label": "Video",
+        "value": "4096×2160@24/25/30/50/60Hz, 3840×2160@24/25/30/50/60Hz, 2048x1080p, 1080p@23.98/24/25/29.97/30/50/59.94/60Hz, 1080i@50/59.94/60Hz, 720p@50/59.94/60Hz, 576p, 576i, 480p, 480i",
+        "labelEs": "Video",
+        "valueEs": "4096×2160@24/25/30/50/60Hz, 3840×2160@24/25/30/50/60Hz, 2048x1080p, 1080p@23.98/24/25/29.97/30/50/59.94/60Hz, 1080i@50/59.94/60Hz, 720p@50/59.94/60Hz, 576p, 576i, 480p, 480i"
+      },
+      {
+        "group": "Resolución",
+        "label": "VESA",
+        "value": "2560×1600, 2048×1536, 1920×1200, 1680×1050, 1600×1200, 1440×900, 1400×1050, 1366×768, 1360×768, 1280×1024, 1280×800, 1152×768, 1024×768, 800×600, 640×480",
+        "labelEs": "VESA",
+        "valueEs": "2560×1600, 2048×1536, 1920×1200, 1680×1050, 1600×1200, 1440×900, 1400×1050, 1366×768, 1360×768, 1280×1024, 1280×800, 1152×768, 1024×768, 800×600, 640×480"
+      },
+      {
+        "group": "Resolución",
+        "label": "Color Space",
+        "value": "YUV, RGB",
+        "labelEs": "Espacio de color",
+        "valueEs": "YUV, RGB"
+      },
+      {
+        "group": "Resolución",
+        "label": "Chroma Subsampling",
+        "value": "4:4:4, 4:2:2, 4:2:0",
+        "labelEs": "Submuestreo de croma",
+        "valueEs": "4:4:4, 4:2:2, 4:2:0"
+      },
+      {
+        "group": "Resolución",
+        "label": "Color Depth",
+        "value": "8-bit, 10-bit, 12-bit",
+        "labelEs": "Profundidad de color",
+        "valueEs": "8 bits, 10 bits, 12 bits"
+      },
+      {
+        "group": "Resolución",
+        "label": "HDR",
+        "value": "HDR10 and Dolby® Vision™ @ 60Hz",
+        "labelEs": "HDR",
+        "valueEs": "HDR10 y Dolby® Vision™ @ 60Hz"
+      },
+      {
+        "group": "Audio",
+        "label": "HDMI Output",
+        "value": "PCM 2Ch, LPCM 5.1, LPCM 7.1, Dolby Digital, Dolby Digital Plus, Dolby TrueHD, DTS 5.1, DTS-HD Master Audio, DTS:X, Dolby Atmos",
+        "labelEs": "Salida HDMI",
+        "valueEs": "PCM 2Ch, LPCM 5.1, LPCM 7.1, Dolby Digital, Dolby Digital Plus, Dolby TrueHD, DTS 5.1, DTS-HD Master Audio, DTS:X, Dolby Atmos"
+      },
+      {
+        "group": "Audio",
+        "label": "Sample Rate",
+        "value": "32kHz, 44.1kHz, 48kHz, 88.2kHz, 96kHz, 176.4kHz, 192kHz",
+        "labelEs": "Frecuencia de muestreo",
+        "valueEs": "32kHz, 44,1kHz, 48kHz, 88,2kHz, 96kHz, 176,4kHz, 192kHz"
+      },
+      {
+        "group": "Audio",
+        "label": "Bit Rate",
+        "value": "up to 24-bit",
+        "labelEs": "Tasa de bits",
+        "valueEs": "hasta 24 bits"
+      },
+      {
+        "group": "Distancia",
+        "label": "HDMI UHD@60Hz",
+        "value": "up to 2 meters up to 6ft",
+        "labelEs": "HDMI UHD@60Hz",
+        "valueEs": "hasta 2 metros hasta 6ft"
+      },
+      {
+        "group": "Distancia",
+        "label": "HDMI UHD@24Hz",
+        "value": "up to 5 meters up to 16ft",
+        "labelEs": "HDMI UHD@24Hz",
+        "valueEs": "hasta 5 metros hasta 16ft"
+      },
+      {
+        "group": "Distancia",
+        "label": "HDMI 1080p@60Hz",
+        "value": "up to 10 meters up to 30ft",
+        "labelEs": "HDMI 1080p@60Hz",
+        "valueEs": "hasta 10 metros hasta 30ft"
+      },
+      {
+        "group": "Distancia",
+        "label": "HDMI 1080p@24Hz",
+        "value": "up to 15 meters up to 50ft",
+        "labelEs": "HDMI 1080p@24Hz",
+        "valueEs": "hasta 15 metros hasta 50ft"
+      },
+      {
+        "group": "Señal",
+        "label": "Bandwidth",
+        "value": "18 Gbps",
+        "labelEs": "Ancho de banda",
+        "valueEs": "18 Gbps"
+      },
+      {
+        "group": "Señal",
+        "label": "CEC",
+        "value": "No",
+        "labelEs": "CEC",
+        "valueEs": "No"
+      },
+      {
+        "group": "Señal",
+        "label": "HDCP",
+        "value": "2.2 Compliant",
+        "labelEs": "HDCP",
+        "valueEs": "Compatible con 2.2"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Operating",
+        "value": "0°C to 50°C 32°F to 122°F",
+        "labelEs": "Funcionamiento",
+        "valueEs": "0°C a 50°C 32°F a 122°F"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Storage",
+        "value": "-20°C to 60°C -4°F to 140°F",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-20°C a 60°C -4°F a 140°F"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Humidity",
+        "value": "20 to 90% non-condensing",
+        "labelEs": "Humedad",
+        "valueEs": "20 a 90%, sin condensación"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "5.2 W",
+        "labelEs": "Consumo",
+        "valueEs": "5.2 W"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Unit",
+        "value": "1.5 x 5 x 4.02 38 x 127 x 102",
+        "labelEs": "Equipo",
+        "valueEs": "1.5 x 5 x 4.02 38 x 127 x 102"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Power Supply",
+        "value": "2.3 x 4.4 x 2.8 58.4 x 111.7 x 71.1",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "2.3 x 4.4 x 2.8 58.4 x 111.7 x 71.1"
+      },
+      {
+        "group": "Peso",
+        "label": "Unit",
+        "value": "0.27 kg 0.6 lbs",
+        "labelEs": "Equipo",
+        "valueEs": "0,27 kg 0,6 lb"
+      },
+      {
+        "group": "Certificación",
+        "label": "Unit",
+        "value": "CE, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC"
+      },
+      {
+        "group": "Certificación",
+        "label": "Power Supply",
+        "value": "CE, FCC, cULus, RoHS, CCC, RCM",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "CE, FCC, cULus, RoHS, CCC, RCM"
+      }
+    ],
+    "documents": [
+      {
+        "name": "JAV-ETU-H1311-HD Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-ETU-H1311-HD%20(AT-ETU-SYNC)/Spec%20Sheet/JAV-ETU-H1311-HD_Spec_Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-ETU-H1311-HD Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-ETU-H1311-HD%20(AT-ETU-SYNC)/Manual/JAV-ETU-H1311-HD_IFU.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/jav-etu-h1311-hd",
+    "tangoPath": "VIDEO > PROCESADORES > PROCESADORES DE VIDEO"
+  },
+  {
+    "sku": "JAV-OCS-900N",
+    "shortDescription": "Sensor multifunción de techo con conexión de red: detecta presencia por infrarrojo pasivo (PIR), temperatura y nivel de luz ambiente, para automatizar sistemas AV.",
+    "longDescription": "El Javelin OCS-900N es un sensor multifunción con conexión de red, diseñado para una amplia variedad de aplicaciones de automatización AV.\n\nEste sensor de montaje en techo utiliza tecnología de infrarrojo pasivo (PIR) para detectar la presencia de personas en el área de cobertura.",
+    "keyFeatures": [
+      "Sensor multifunción que detecta presencia, temperatura y nivel de luz ambiente",
+      "Habilitado para IP: comunica su estado por Ethernet",
+      "Funciona con los productos WAVE™, Velocity™ y Omega™ para automatizar el funcionamiento del sistema",
+      "Admite comunicación de red con dispositivos de terceros mediante protocolos comunes",
+      "Área de detección configurable de 900 ft² (83,6 m²) a 2.000 ft² (185,8 m²)"
+    ],
+    "specifications": [
+      {
+        "group": "Sensor de movimiento",
+        "label": "Detection",
+        "value": "PIR (Passive Infrared)",
+        "labelEs": "Detección",
+        "valueEs": "PIR (infrarrojo pasivo)"
+      },
+      {
+        "group": "Sensor de movimiento",
+        "label": "Coverage Area",
+        "value": "900 ft2 (83.6 m2), 2000 ft2 (185.8 m2) with accessory lens",
+        "labelEs": "Área de cobertura",
+        "valueEs": "900 ft² (83,6 m²), 2000 ft² (185,8 m²) con lente accesoria"
+      },
+      {
+        "group": "Sensor de movimiento",
+        "label": "Coverage Pattern",
+        "value": "360°",
+        "labelEs": "Patrón de cobertura",
+        "valueEs": "360°"
+      },
+      {
+        "group": "Sensor de luz ambiente",
+        "label": "Range",
+        "value": "0 to 65535 lux",
+        "labelEs": "Alcance",
+        "valueEs": "0 a 65535 lux"
+      },
+      {
+        "group": "Sensor de luz ambiente",
+        "label": "Color Spectrum",
+        "value": "RGBW, 16-bit",
+        "labelEs": "Espectro de color",
+        "valueEs": "RGBW, 16 bits"
+      },
+      {
+        "group": "Sensor de temperatura (Fahrenheit)",
+        "label": "Range",
+        "value": "-40 to +257",
+        "labelEs": "Alcance",
+        "valueEs": "-40 a +257"
+      },
+      {
+        "group": "Sensor de temperatura (Fahrenheit)",
+        "label": "Measurement System",
+        "value": "Celsius, Fahrenheit, ADC",
+        "labelEs": "Sistema de medición",
+        "valueEs": "Celsius, Fahrenheit, ADC"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Port",
+        "value": "1 x RJ45",
+        "labelEs": "Puerto",
+        "valueEs": "1 x RJ45"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Standards and Protocols",
+        "value": "MQTT, JSON over WebSocket, mDNS, HTTP/TLS, TCP, UDP",
+        "labelEs": "Estándares y protocolos",
+        "valueEs": "MQTT, JSON sobre WebSocket, mDNS, HTTP/TLS, TCP, UDP"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Speeds",
+        "value": "10/100 Mbps",
+        "labelEs": "Velocidades",
+        "valueEs": "10/100 Mbps"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Addressing",
+        "value": "DHCP, Static",
+        "labelEs": "Direccionamiento",
+        "valueEs": "DHCP, estática"
+      },
+      {
+        "group": "Ethernet",
+        "label": "LED Indicators",
+        "value": "Motion Detection",
+        "labelEs": "Indicadores LED",
+        "valueEs": "Detección de movimiento"
+      },
+      {
+        "group": "Ethernet",
+        "label": "4 – LED, configurable (inner/outer illumination) 4 – LED, configurable (inner/outer illumination)",
+        "value": "",
+        "labelEs": "4 – LED, configurables (iluminación interior/exterior) 4 – LED, configurables (iluminación interior/exterior)",
+        "valueEs": ""
+      },
+      {
+        "group": "Conectores",
+        "label": "LAN",
+        "value": "1 – RJ45, female",
+        "labelEs": "LAN",
+        "valueEs": "1 – RJ45, hembra"
+      },
+      {
+        "group": "Ambiente (Fahrenheit)",
+        "label": "Operating",
+        "value": "+32 to +122",
+        "labelEs": "Funcionamiento",
+        "valueEs": "+32 a +122"
+      },
+      {
+        "group": "Ambiente (Fahrenheit)",
+        "label": "Storage",
+        "value": "-40 to +158",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-40 a +158"
+      },
+      {
+        "group": "Ambiente (Fahrenheit)",
+        "label": "Humidity (RH)",
+        "value": "90% (maximum), non-condensing",
+        "labelEs": "Humedad (HR)",
+        "valueEs": "90% (máximo), sin condensación"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "1.1 W",
+        "labelEs": "Consumo",
+        "valueEs": "1.1 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "PoE",
+        "value": "802.3af",
+        "labelEs": "PoE",
+        "valueEs": "802.3af"
+      },
+      {
+        "group": "Dimensiones (alto × diámetro) (pulgadas)",
+        "label": "Unit",
+        "value": "2.13 x 2.90",
+        "labelEs": "Equipo",
+        "valueEs": "2.13 x 2.90"
+      },
+      {
+        "group": "Peso (onzas)",
+        "label": "Device",
+        "value": "2.11",
+        "labelEs": "Equipo",
+        "valueEs": "2.11"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, FCC, UL 916 file no. #E524557, UKCA",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC, UL 916 expediente n.º E524557, UKCA"
+      },
+      {
+        "group": "Normativas",
+        "label": "NDAA-899",
+        "value": "Yes",
+        "labelEs": "NDAA-899",
+        "valueEs": "Sí"
+      }
+    ],
+    "documents": [
+      {
+        "name": "JAV-OCS-900N Spec Sheet",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-OCS-900N%20(AT-OCS-900N)/Spec%20Sheet/JAV-OCS-900N_Spec_Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-OCS-900N Installation Guide",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-OCS-900N%20(AT-OCS-900N)/Installation%20Guide/JAV-OCS-900N_Installation_Guide.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-OCS-900N Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-OCS-900N%20(AT-OCS-900N)/Other/AT-OCS-900N.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-OCS-900N API",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-OCS-900N%20(AT-OCS-900N)/API/AT-OCS-900N_API.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/jav-ocs-900n",
+    "tangoPath": "CONTROL > ACCESORIOS > SENSORES"
+  },
+  {
+    "sku": "JAV-SF-UC2UC-6F",
+    "shortDescription": "Cable USB-C a USB-C pasivo de función completa, 6 ft: carga de hasta 100 W, datos a 10 Gbps y video 4K, con ficha SnugFit de mayor retención.",
+    "longDescription": "El cable Javelin USB Type-C SnugFit es un cable USB-C pasivo de función completa, diseñado para transmitir en simultáneo carga de hasta 100 W, datos de alta velocidad a 10 Gbps y video 4K de alta resolución.\n\nSu ficha SnugFit patentada triplica con creces la fuerza de inserción y extracción de una ficha USB-C estándar, lo que asegura que el cable se mantenga conectado sin necesidad de tornillos adicionales.",
+    "keyFeatures": [
+      "Admite USB 3.2 Gen2 con capacidad USB 3.1 completa (compatible con USB 2.0)",
+      "Admite transferencia de datos de alta velocidad a 10 Gbps con solo 10 ns de latencia",
+      "Admite video 4K UHD completo",
+      "Admite transmisión de potencia PD3.0 de hasta 100 W",
+      "Conductor de cobre puro",
+      "Vaina de PVC flexible y conector moldeado resistente",
+      "Conectores con traba niquelados para resistir la corrosión",
+      "Diámetro exterior de 5 mm"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "Cable Length",
+        "value": "6 Feet",
+        "labelEs": "Largo del cable",
+        "valueEs": "6 pies"
+      },
+      {
+        "group": "General",
+        "label": "Interface",
+        "value": "USB Type-C Male to USB Type-C Male",
+        "labelEs": "Interfaz",
+        "valueEs": "USB Type-C macho a USB Type-C macho"
+      },
+      {
+        "group": "General",
+        "label": "Bandwidth",
+        "value": "USB 3.2 Gen2: 10Gbps; USB 3.1: 10Gbps; USB 2.0: 480 Mbps",
+        "labelEs": "Ancho de banda",
+        "valueEs": "USB 3.2 Gen2: 10Gbps; USB 3.1: 10Gbps; USB 2.0: 480 Mbps"
+      },
+      {
+        "group": "General",
+        "label": "Latency",
+        "value": "10ns",
+        "labelEs": "Latencia",
+        "valueEs": "10ns"
+      },
+      {
+        "group": "General",
+        "label": "Power Delivery",
+        "value": "PD3.0, 20V 5A, 100W",
+        "labelEs": "Power Delivery",
+        "valueEs": "PD3.0, 20V 5A, 100W"
+      },
+      {
+        "group": "General",
+        "label": "Cable Outer Diameter",
+        "value": "5mm",
+        "labelEs": "Diámetro exterior del cable",
+        "valueEs": "5mm"
+      },
+      {
+        "group": "General",
+        "label": "Conductor Material & Size",
+        "value": "Bare Copper; 1 conductor per wire with a diameter of 0.20mm",
+        "labelEs": "Material y sección del conductor",
+        "valueEs": "Cobre desnudo; 1 conductor por hilo, de 0,20mm de diámetro"
+      },
+      {
+        "group": "General",
+        "label": "Shielding & Layers",
+        "value": "Drain wire, Aluminum Foil Shield, Heat-seal Mylar tape",
+        "labelEs": "Blindaje y capas",
+        "valueEs": "Hilo de drenaje, blindaje de lámina de aluminio, cinta Mylar termosellada"
+      },
+      {
+        "group": "General",
+        "label": "Jacket Material",
+        "value": "Thermoplastic Elastomer",
+        "labelEs": "Material de la cubierta",
+        "valueEs": "Elastómero termoplástico"
+      },
+      {
+        "group": "General",
+        "label": "USB-C Extraction Force",
+        "value": "11.46lbf (5.2kgf)",
+        "labelEs": "Fuerza de extracción USB-C",
+        "valueEs": "11,46 lbf (5,2 kgf)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "JAV-SF-UC2UC Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-SF-UC2UC/Specs/JAV-SF-UC2UC_Specs.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/jav-sf-uc2uc-6f",
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+  },
+  {
+    "sku": "JAV-PS-POE",
+    "shortDescription": "Inyector PoE mid-span de 48 V DC (IEEE 802.3af) para alimentar a distancia transmisores y receptores HDBaseT y equipos AV en red, compatible con señales 4K/UHD.",
+    "longDescription": "El Javelin JAV-PS-POE es un inyector PoE mid-span diseñado para equipos HDBaseT y AV en red: entrega 48 V DC por Ethernet conforme al estándar IEEE 802.3af. Permite alimentar transmisores y receptores Atlona compatibles, lo que reduce la necesidad de tomas de corriente locales o de varios cables de alimentación, manteniendo la integridad de señales 4K/UHD compatibles con HDCP 2.2.\n\nSu formato compacto y su construcción robusta lo hacen una muy buena opción para instalaciones prolijas y eficientes en salas de reunión, aulas y entornos AV corporativos.",
+    "keyFeatures": [
+      "Fuente para alimentar a distancia equipos en líneas de transmisión HDBaseT™",
+      "Fuente de tipo mid-span",
+      "Interruptores de alimentación para la línea entrante y la saliente",
+      "Admite señales 4K/UHD",
+      "Actualización para sistemas PoCc existentes",
+      "Gabinete discreto de bajo perfil"
+    ],
+    "specifications": [
+      {
+        "group": "Botones e indicadores",
+        "label": "Switches:ON/OFF",
+        "value": "2 – Slide switch",
+        "labelEs": "Interruptores: ON/OFF",
+        "valueEs": "2 – selector deslizante"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Indicators:PoE",
+        "value": "1 – LED, red",
+        "labelEs": "Indicadores: PoE",
+        "valueEs": "1 – LED, rojo"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDBaseT IN",
+        "value": "1 – RJ45",
+        "labelEs": "HDBaseT IN",
+        "valueEs": "1 – RJ45"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDBaseT OUT",
+        "value": "1 – RJ45",
+        "labelEs": "HDBaseT OUT",
+        "valueEs": "1 – RJ45"
+      },
+      {
+        "group": "Conectores",
+        "label": "DC 48V IN",
+        "value": "1 – Euroblock, 2-pin",
+        "labelEs": "DC 48V IN",
+        "valueEs": "1 – Euroblock, 2 pines"
+      },
+      {
+        "group": "General",
+        "label": "Environmental",
+        "value": "Fahrenheit Celsius",
+        "labelEs": "Ambiente",
+        "valueEs": "Fahrenheit Celsius"
+      },
+      {
+        "group": "General",
+        "label": "Operating Temperature",
+        "value": "+32 to +122 0 to +50",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "+32 a +122 0 a +50"
+      },
+      {
+        "group": "General",
+        "label": "Storage Temperature",
+        "value": "-4 to +140 -20 to +60",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-4 a +140 -20 a +60"
+      },
+      {
+        "group": "General",
+        "label": "Operating Humidity (RH)",
+        "value": "20% to 90%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "20% a 90%, sin condensación"
+      },
+      {
+        "group": "General",
+        "label": "Consumption",
+        "value": "Max: 15.2 W",
+        "labelEs": "Consumo",
+        "valueEs": "Máx.: 15,2 W"
+      },
+      {
+        "group": "General",
+        "label": "External Power Supply",
+        "value": "Input: 100 – 240 V AC, 50/60 Hz Output: 48 V / 0.83 A DC",
+        "labelEs": "Fuente de alimentación externa",
+        "valueEs": "Entrada: 100 – 240 V AC, 50/60 Hz Salida: 48 V / 0,83 A DC"
+      },
+      {
+        "group": "General",
+        "label": "Dimensions (H x W x D)",
+        "value": "Inches Millimeters",
+        "labelEs": "Dimensiones (alto × ancho × profundidad)",
+        "valueEs": "Pulgadas Milímetros"
+      },
+      {
+        "group": "General",
+        "label": "Unit",
+        "value": "0.96 x 2.89 x 2.77 24 x 73 x 70",
+        "labelEs": "Equipo",
+        "valueEs": "0.96 x 2.89 x 2.77 24 x 73 x 70"
+      },
+      {
+        "group": "General",
+        "label": "Power Supply (AT-PS-54-L)",
+        "value": "1.42 x 1.81 x 4.41 36 x 46 x 112",
+        "labelEs": "Fuente de alimentación (AT-PS-54-L)",
+        "valueEs": "1.42 x 1.81 x 4.41 36 x 46 x 112"
+      },
+      {
+        "group": "General",
+        "label": "Weight",
+        "value": "Pounds Kilograms",
+        "labelEs": "Peso",
+        "valueEs": "Libras Kilogramos"
+      },
+      {
+        "group": "General",
+        "label": "Device",
+        "value": "0.09 0.19",
+        "labelEs": "Equipo",
+        "valueEs": "0.09 0.19"
+      },
+      {
+        "group": "General",
+        "label": "Device",
+        "value": "CE, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC"
+      },
+      {
+        "group": "General",
+        "label": "Power Supply",
+        "value": "CE, FCC, Level VI, RoHS, cULus, RCM, CCC",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "CE, FCC, Level VI, RoHS, cULus, RCM, CCC"
+      }
+    ],
+    "documents": [
+      {
+        "name": "JAV-PS-POE Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-PS-POE_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-PS-POE Manual",
+        "url": "https://atlona.com/pdf/manuals/AT-PS-POE.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-PS-POE",
+        "url": "https://atlona.com/pdf/cad/AT-PS-POE.dwg",
+        "fileType": "dwg"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/jav-ps-poe",
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+  },
+  {
+    "sku": "CHD-JAV4K-DE25",
+    "shortDescription": "Cable HDMI óptico activo con conectores desmontables para pasar por cañería, 18 Gbps para 4K a 60 Hz 4:4:4 con HDR, y vaina plenum, para tendidos largos en instalaciones AV.",
+    "longDescription": "El CHD-JAV4K-DE* es un cable HDMI óptico activo de nivel profesional, diseñado para transmitir señales 4K a larga distancia en instalaciones AV comerciales. Admite el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo (deep color), manteniendo la integridad de la señal en tendidos largos.\n\nEl cable tiene conectores HDMI desmontables que facilitan el pasaje por cañería, y una vaina con clasificación plenum para cumplir con los códigos de seguridad edilicia. Es ideal para salas de reunión, auditorios, señalización digital y cualquier entorno que requiera un funcionamiento HDMI confiable a larga distancia: entrega video de alta calidad con bajo consumo y gran flexibilidad de instalación.",
+    "keyFeatures": [
+      "Admite una amplia gama de resoluciones de hasta 4K a 60 Hz (espacio de color 4:4:4), 3D y deep color",
+      "Admite una tasa de datos máxima de 18 Gbps",
+      "Admite audio multicanal, Dolby TrueHD y DTS-HD Master Audio",
+      "Cumple con HDMI: EDID, CEC, HDCP (2.2), HDR (alto rango dinámico)",
+      "Menor interferencia EMI y RFI",
+      "Alta resistencia a la tracción y a la compresión"
+    ],
+    "specifications": [
+      {
+        "group": "Entrada",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Salida",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Estándares de video",
+        "label": "Value",
+        "value": "Single Link DVI: Up to 2560×1600 HDMI/HDTV : Up to 4K@60Hz (4:4:4), 3D, Deep color, HDR",
+        "labelEs": "Valor",
+        "valueEs": "DVI Single Link: hasta 2560×1600 HDMI/HDTV: hasta 4K@60Hz (4:4:4), 3D, Deep Color, HDR"
+      },
+      {
+        "group": "Ancho de banda",
+        "label": "Value",
+        "value": "18Gbps",
+        "labelEs": "Valor",
+        "valueEs": "18Gbps"
+      },
+      {
+        "group": "Datos auxiliares",
+        "label": "Value",
+        "value": "Up to HDCP 2.2 compliant, EDID, CEC",
+        "labelEs": "Valor",
+        "valueEs": "Compatible hasta HDCP 2.2, EDID, CEC"
+      },
+      {
+        "group": "Estándares de audio",
+        "label": "Value",
+        "value": "Supports PCM, Multi-channel audio, Dolby, True HD, DTS-HD",
+        "labelEs": "Valor",
+        "valueEs": "Admite PCM, audio multicanal, Dolby, TrueHD, DTS-HD"
+      },
+      {
+        "group": "Tensión de alimentación",
+        "label": "Value",
+        "value": "Powered from Source (HDMI/DVI) Nominal: 5v (operating range: 4.5v ~ 5.5 v) Optional Power Injector Cable Included (Micro USB Male to USB A Male)",
+        "labelEs": "Valor",
+        "valueEs": "Alimentado desde la fuente (HDMI/DVI) Nominal: 5 V (rango de funcionamiento: 4,5 V ~ 5,5 V) Incluye cable inyector de alimentación opcional (Micro USB macho a USB A macho)"
+      },
+      {
+        "group": "Corriente de alimentación",
+        "label": "Value",
+        "value": "Nominal: 40 ma, max: 47 ma",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 40 mA, máx.: 47 mA"
+      },
+      {
+        "group": "Consumo",
+        "label": "Value",
+        "value": "Nominal: 0.23 watts (range: 0.2w ~ 0.25w)",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 0,23 W (rango: 0,2 W ~ 0,25 W)"
+      },
+      {
+        "group": "Clasificación",
+        "label": "Value",
+        "value": "Plenum CMP c(UL) & FT6",
+        "labelEs": "Valor",
+        "valueEs": "Plenum CMP c(UL) & FT6"
+      },
+      {
+        "group": "Diámetro del cable",
+        "label": "Value",
+        "value": "4.9mm (1.92 inch)",
+        "labelEs": "Valor",
+        "valueEs": "4,9mm (1,92 pulgadas)"
+      },
+      {
+        "group": "Radio de curvatura",
+        "label": "Value",
+        "value": "12mm (0.5 inch) minimum",
+        "labelEs": "Valor",
+        "valueEs": "12mm (0,5 pulgadas) mínimo"
+      },
+      {
+        "group": "Resistencia a la tracción del conector",
+        "label": "Value",
+        "value": "20 Kg (44 lbs) maximum CAUTION DAMAGE DUE TO CONNECTOR BEING PULLED HARDER THAN 20 kg, IS NOT COVERED BY WARRANTY To pull cable through conduits or tight spaces, never grab the connector, as it is easy to exceed the force limit on the connector, instead, remove the detachable end, protect the connector using a cable pulling sock and make sure the force is applied directly to the cable jacket",
+        "labelEs": "Valor",
+        "valueEs": "20 kg (44 lb) máximo PRECAUCIÓN: LOS DAÑOS POR TRACCIONAR EL CONECTOR CON MÁS DE 20 kg NO ESTÁN CUBIERTOS POR LA GARANTÍA Para pasar el cable por cañerías o espacios estrechos, nunca lo tome del conector, ya que es fácil superar el límite de fuerza; en su lugar, retire el extremo desmontable, proteja el conector con una media pasacables y asegúrese de que la fuerza se aplique directamente sobre la cubierta del cable"
+      },
+      {
+        "group": "Dimensiones de la carcasa del conector",
+        "label": "Value",
+        "value": "Without the HDMI metal plug or strain relief: 1.45 inch x 0.48 inch x 0.32 inch (36.83mm x 12.26mm x 8.03 mm) Total length including HDMI plug and Strain relief: 2.77 inch",
+        "labelEs": "Valor",
+        "valueEs": "Sin la ficha metálica HDMI ni el alivio de tensión: 1,45 x 0,48 x 0,32 pulgadas (36,83mm x 12,26mm x 8,03 mm) Largo total incluida la ficha HDMI y el alivio de tensión: 2,77 pulgadas"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Value",
+        "value": "Storage: -40 to +158 °F (-40 to +70 °C) / 5% to 90%, non-condensing +32 to +122 °F (0 to +50 °C) / 10% to 80%, RH non-condensing",
+        "labelEs": "Valor",
+        "valueEs": "Almacenamiento: -40 a +158 °F (-40 a +70 °C) / 5% a 90%, sin condensación +32 a +122 °F (0 a +50 °C) / 10% a 80% HR, sin condensación"
+      },
+      {
+        "group": "Normativas",
+        "label": "Value",
+        "value": "CE, RoHS2",
+        "labelEs": "Valor",
+        "valueEs": "CE, RoHS2"
+      },
+      {
+        "group": "EMI/EMC",
+        "label": "Value",
+        "value": "CE, FCC Class A",
+        "labelEs": "Valor",
+        "valueEs": "CE, FCC Clase A"
+      }
+    ],
+    "documents": [
+      {
+        "name": "CHD-JAV4K-DE* Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-JAV4K-DE75",
+    "shortDescription": "Cable HDMI óptico activo con conectores desmontables para pasar por cañería, 18 Gbps para 4K a 60 Hz 4:4:4 con HDR, y vaina plenum, para tendidos largos en instalaciones AV.",
+    "longDescription": "El CHD-JAV4K-DE* es un cable HDMI óptico activo de nivel profesional, diseñado para transmitir señales 4K a larga distancia en instalaciones AV comerciales. Admite el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo (deep color), manteniendo la integridad de la señal en tendidos largos.\n\nEl cable tiene conectores HDMI desmontables que facilitan el pasaje por cañería, y una vaina con clasificación plenum para cumplir con los códigos de seguridad edilicia. Es ideal para salas de reunión, auditorios, señalización digital y cualquier entorno que requiera un funcionamiento HDMI confiable a larga distancia: entrega video de alta calidad con bajo consumo y gran flexibilidad de instalación.",
+    "keyFeatures": [
+      "Admite una amplia gama de resoluciones de hasta 4K a 60 Hz (espacio de color 4:4:4), 3D y deep color",
+      "Admite una tasa de datos máxima de 18 Gbps",
+      "Admite audio multicanal, Dolby TrueHD y DTS-HD Master Audio",
+      "Cumple con HDMI: EDID, CEC, HDCP (2.2), HDR (alto rango dinámico)",
+      "Menor interferencia EMI y RFI",
+      "Alta resistencia a la tracción y a la compresión"
+    ],
+    "specifications": [
+      {
+        "group": "Entrada",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Salida",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Estándares de video",
+        "label": "Value",
+        "value": "Single Link DVI: Up to 2560×1600 HDMI/HDTV : Up to 4K@60Hz (4:4:4), 3D, Deep color, HDR",
+        "labelEs": "Valor",
+        "valueEs": "DVI Single Link: hasta 2560×1600 HDMI/HDTV: hasta 4K@60Hz (4:4:4), 3D, Deep Color, HDR"
+      },
+      {
+        "group": "Ancho de banda",
+        "label": "Value",
+        "value": "18Gbps",
+        "labelEs": "Valor",
+        "valueEs": "18Gbps"
+      },
+      {
+        "group": "Datos auxiliares",
+        "label": "Value",
+        "value": "Up to HDCP 2.2 compliant, EDID, CEC",
+        "labelEs": "Valor",
+        "valueEs": "Compatible hasta HDCP 2.2, EDID, CEC"
+      },
+      {
+        "group": "Estándares de audio",
+        "label": "Value",
+        "value": "Supports PCM, Multi-channel audio, Dolby, True HD, DTS-HD",
+        "labelEs": "Valor",
+        "valueEs": "Admite PCM, audio multicanal, Dolby, TrueHD, DTS-HD"
+      },
+      {
+        "group": "Tensión de alimentación",
+        "label": "Value",
+        "value": "Powered from Source (HDMI/DVI) Nominal: 5v (operating range: 4.5v ~ 5.5 v) Optional Power Injector Cable Included (Micro USB Male to USB A Male)",
+        "labelEs": "Valor",
+        "valueEs": "Alimentado desde la fuente (HDMI/DVI) Nominal: 5 V (rango de funcionamiento: 4,5 V ~ 5,5 V) Incluye cable inyector de alimentación opcional (Micro USB macho a USB A macho)"
+      },
+      {
+        "group": "Corriente de alimentación",
+        "label": "Value",
+        "value": "Nominal: 40 ma, max: 47 ma",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 40 mA, máx.: 47 mA"
+      },
+      {
+        "group": "Consumo",
+        "label": "Value",
+        "value": "Nominal: 0.23 watts (range: 0.2w ~ 0.25w)",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 0,23 W (rango: 0,2 W ~ 0,25 W)"
+      },
+      {
+        "group": "Clasificación",
+        "label": "Value",
+        "value": "Plenum CMP c(UL) & FT6",
+        "labelEs": "Valor",
+        "valueEs": "Plenum CMP c(UL) & FT6"
+      },
+      {
+        "group": "Diámetro del cable",
+        "label": "Value",
+        "value": "4.9mm (1.92 inch)",
+        "labelEs": "Valor",
+        "valueEs": "4,9mm (1,92 pulgadas)"
+      },
+      {
+        "group": "Radio de curvatura",
+        "label": "Value",
+        "value": "12mm (0.5 inch) minimum",
+        "labelEs": "Valor",
+        "valueEs": "12mm (0,5 pulgadas) mínimo"
+      },
+      {
+        "group": "Resistencia a la tracción del conector",
+        "label": "Value",
+        "value": "20 Kg (44 lbs) maximum CAUTION DAMAGE DUE TO CONNECTOR BEING PULLED HARDER THAN 20 kg, IS NOT COVERED BY WARRANTY To pull cable through conduits or tight spaces, never grab the connector, as it is easy to exceed the force limit on the connector, instead, remove the detachable end, protect the connector using a cable pulling sock and make sure the force is applied directly to the cable jacket",
+        "labelEs": "Valor",
+        "valueEs": "20 kg (44 lb) máximo PRECAUCIÓN: LOS DAÑOS POR TRACCIONAR EL CONECTOR CON MÁS DE 20 kg NO ESTÁN CUBIERTOS POR LA GARANTÍA Para pasar el cable por cañerías o espacios estrechos, nunca lo tome del conector, ya que es fácil superar el límite de fuerza; en su lugar, retire el extremo desmontable, proteja el conector con una media pasacables y asegúrese de que la fuerza se aplique directamente sobre la cubierta del cable"
+      },
+      {
+        "group": "Dimensiones de la carcasa del conector",
+        "label": "Value",
+        "value": "Without the HDMI metal plug or strain relief: 1.45 inch x 0.48 inch x 0.32 inch (36.83mm x 12.26mm x 8.03 mm) Total length including HDMI plug and Strain relief: 2.77 inch",
+        "labelEs": "Valor",
+        "valueEs": "Sin la ficha metálica HDMI ni el alivio de tensión: 1,45 x 0,48 x 0,32 pulgadas (36,83mm x 12,26mm x 8,03 mm) Largo total incluida la ficha HDMI y el alivio de tensión: 2,77 pulgadas"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Value",
+        "value": "Storage: -40 to +158 °F (-40 to +70 °C) / 5% to 90%, non-condensing +32 to +122 °F (0 to +50 °C) / 10% to 80%, RH non-condensing",
+        "labelEs": "Valor",
+        "valueEs": "Almacenamiento: -40 a +158 °F (-40 a +70 °C) / 5% a 90%, sin condensación +32 a +122 °F (0 a +50 °C) / 10% a 80% HR, sin condensación"
+      },
+      {
+        "group": "Normativas",
+        "label": "Value",
+        "value": "CE, RoHS2",
+        "labelEs": "Valor",
+        "valueEs": "CE, RoHS2"
+      },
+      {
+        "group": "EMI/EMC",
+        "label": "Value",
+        "value": "CE, FCC Class A",
+        "labelEs": "Valor",
+        "valueEs": "CE, FCC Clase A"
+      }
+    ],
+    "documents": [
+      {
+        "name": "CHD-JAV4K-DE* Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-SF01",
+    "shortDescription": "Cable HDMI de alta velocidad con conector con traba SnugFit que evita desconexiones accidentales; 18 Gbps para 4K a 60 Hz 4:4:4 con HDR. Línea disponible de 1 a 50 ft.",
+    "longDescription": "El CHD-SF es un cable HDMI de alta confiabilidad con el conector con traba SnugFit de Hall Technologies, diseñado para mantener una conexión firme y resistente a las vibraciones en entornos AV profesionales. Está construido para el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo (deep color), y entrega video de alta calidad constante en largos adecuados para salas de reunión, aulas, señalización digital y sistemas de control.\n\nLa traba SnugFit asegura que el cable quede firmemente asentado en los puertos HDMI, lo que reduce las desconexiones accidentales y los tiempos fuera de servicio en instalaciones críticas. Su construcción robusta y la integridad estable de la señal hacen del CHD-SF una opción confiable para instalaciones AV comerciales.",
+    "keyFeatures": [
+      "Ofrece 18 Gb/s para video 4K UltraHD a 60 Hz",
+      "Disponible en largos de 1 ft a 50 ft",
+      "Aumenta la fuerza de retención y asegura una conexión de video firme",
+      "Las pestañas elásticas superiores encajan en las ranuras de los conectores correspondientes",
+      "Encaja a presión y puede dar una confirmación táctil y audible"
+    ],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-SF10",
+    "shortDescription": "Cable HDMI de alta velocidad con conector con traba SnugFit que evita desconexiones accidentales; 18 Gbps para 4K a 60 Hz 4:4:4 con HDR. Línea disponible de 1 a 50 ft.",
+    "longDescription": "El CHD-SF es un cable HDMI de alta confiabilidad con el conector con traba SnugFit de Hall Technologies, diseñado para mantener una conexión firme y resistente a las vibraciones en entornos AV profesionales. Está construido para el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo (deep color), y entrega video de alta calidad constante en largos adecuados para salas de reunión, aulas, señalización digital y sistemas de control.\n\nLa traba SnugFit asegura que el cable quede firmemente asentado en los puertos HDMI, lo que reduce las desconexiones accidentales y los tiempos fuera de servicio en instalaciones críticas. Su construcción robusta y la integridad estable de la señal hacen del CHD-SF una opción confiable para instalaciones AV comerciales.",
+    "keyFeatures": [
+      "Ofrece 18 Gb/s para video 4K UltraHD a 60 Hz",
+      "Disponible en largos de 1 ft a 50 ft",
+      "Aumenta la fuerza de retención y asegura una conexión de video firme",
+      "Las pestañas elásticas superiores encajan en las ranuras de los conectores correspondientes",
+      "Encaja a presión y puede dar una confirmación táctil y audible"
+    ],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-SF35",
+    "shortDescription": "Cable HDMI de alta velocidad con conector con traba SnugFit que evita desconexiones accidentales; 18 Gbps para 4K a 60 Hz 4:4:4 con HDR. Línea disponible de 1 a 50 ft.",
+    "longDescription": "El CHD-SF es un cable HDMI de alta confiabilidad con el conector con traba SnugFit de Hall Technologies, diseñado para mantener una conexión firme y resistente a las vibraciones en entornos AV profesionales. Está construido para el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo (deep color), y entrega video de alta calidad constante en largos adecuados para salas de reunión, aulas, señalización digital y sistemas de control.\n\nLa traba SnugFit asegura que el cable quede firmemente asentado en los puertos HDMI, lo que reduce las desconexiones accidentales y los tiempos fuera de servicio en instalaciones críticas. Su construcción robusta y la integridad estable de la señal hacen del CHD-SF una opción confiable para instalaciones AV comerciales.",
+    "keyFeatures": [
+      "Ofrece 18 Gb/s para video 4K UltraHD a 60 Hz",
+      "Disponible en largos de 1 ft a 50 ft",
+      "Aumenta la fuerza de retención y asegura una conexión de video firme",
+      "Las pestañas elásticas superiores encajan en las ranuras de los conectores correspondientes",
+      "Encaja a presión y puede dar una confirmación táctil y audible"
+    ],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-SF50",
+    "shortDescription": "Cable HDMI de alta velocidad con conector con traba SnugFit que evita desconexiones accidentales; 18 Gbps para 4K a 60 Hz 4:4:4 con HDR. Línea disponible de 1 a 50 ft.",
+    "longDescription": "El CHD-SF es un cable HDMI de alta confiabilidad con el conector con traba SnugFit de Hall Technologies, diseñado para mantener una conexión firme y resistente a las vibraciones en entornos AV profesionales. Está construido para el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo (deep color), y entrega video de alta calidad constante en largos adecuados para salas de reunión, aulas, señalización digital y sistemas de control.\n\nLa traba SnugFit asegura que el cable quede firmemente asentado en los puertos HDMI, lo que reduce las desconexiones accidentales y los tiempos fuera de servicio en instalaciones críticas. Su construcción robusta y la integridad estable de la señal hacen del CHD-SF una opción confiable para instalaciones AV comerciales.",
+    "keyFeatures": [
+      "Ofrece 18 Gb/s para video 4K UltraHD a 60 Hz",
+      "Disponible en largos de 1 ft a 50 ft",
+      "Aumenta la fuerza de retención y asegura una conexión de video firme",
+      "Las pestañas elásticas superiores encajan en las ranuras de los conectores correspondientes",
+      "Encaja a presión y puede dar una confirmación táctil y audible"
+    ],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CUSB2-06",
+    "shortDescription": "Cable USB 2.0 de alta velocidad, blindado, con fichas tipo A y tipo B, de 6 ft.",
+    "longDescription": "Cable blindado USB 2.0 de alta velocidad, de A a B, de 6 ft.",
+    "keyFeatures": [],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/cusb2-06",
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+  },
+  {
+    "sku": "CUSB-JAV-C-C-5",
+    "shortDescription": "Cable óptico activo (AOC) USB-C a USB-C de función completa, 5 m, vaina plenum: USB 3.1 Gen 2, USB 2.0 y DisplayPort 1.2 de 2 carriles, resistente a EMI.",
+    "longDescription": "El cable óptico activo (AOC) USB tipo C de Hall Technologies utiliza fibra óptica en lugar de cobre como medio de transmisión de señales de alta velocidad. Puede transmitir datos USB 2.0, USB 3.1 Gen2 y DP1.2 de 2 carriles con excelente calidad de señal.\n\nFrente al cable de cobre tradicional es más flexible, más delgado y más liviano, y resiste las interferencias EMI/EMC. Los productos AOC además ofrecen mayor confiabilidad que el cable de cobre.",
+    "keyFeatures": [
+      "Admite USB 3.1 Gen 2",
+      "Admite USB 2.0 High Speed y Full Speed",
+      "Admite DP 1.2 de 2 carriles",
+      "Plug-and-play, sin depender de drivers",
+      "Alta confiabilidad y velocidad de transferencia",
+      "Más delgado, liviano y flexible que un cable de cobre convencional",
+      "Alta resistencia a EMI y RFI",
+      "Compacto y de poco volumen",
+      "Entrega de potencia: USB-C puede entregar hasta 100 W, suficiente para cargar notebooks y otros equipos de alto consumo",
+      "Compatibilidad: USB-C es compatible con una amplia gama de equipos, como notebooks, tablets, smartphones, displays y docks"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "Cable length",
+        "value": "5m and 10m",
+        "labelEs": "Largo del cable",
+        "valueEs": "5m y 10m"
+      },
+      {
+        "group": "General",
+        "label": "Interface",
+        "value": "USB type-C plug – USB type-C plug",
+        "labelEs": "Interfaz",
+        "valueEs": "Ficha USB Type-C – ficha USB Type-C"
+      },
+      {
+        "group": "General",
+        "label": "Bandwidth",
+        "value": "USB3.1: 10 Gbps; USB2.0: 480 Mbps; DP1.2: 8.1 Gbps",
+        "labelEs": "Ancho de banda",
+        "valueEs": "USB3.1: 10 Gbps; USB2.0: 480 Mbps; DP1.2: 8.1 Gbps"
+      },
+      {
+        "group": "General",
+        "label": "Power Delivery",
+        "value": "PD3.0, 20V 3A",
+        "labelEs": "Power Delivery",
+        "valueEs": "PD3.0, 20V 3A"
+      },
+      {
+        "group": "General",
+        "label": "Power Supply",
+        "value": "By VCONN Pin (3.0V to 5.5V)",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "Por pin VCONN (3,0V a 5,5V)"
+      },
+      {
+        "group": "General",
+        "label": "Power Consumption (TYP)",
+        "value": "1100mW (5V input)",
+        "labelEs": "Consumo (típico)",
+        "valueEs": "1100mW (entrada de 5V)"
+      },
+      {
+        "group": "General",
+        "label": "Cable Outer Diameter",
+        "value": "6.5mm",
+        "labelEs": "Diámetro exterior del cable",
+        "valueEs": "6,5mm"
+      },
+      {
+        "group": "General",
+        "label": "Jacket Outer Material",
+        "value": "TPE (Thermoplastic Elastomer)",
+        "labelEs": "Material exterior de la cubierta",
+        "valueEs": "TPE (elastómero termoplástico)"
+      },
+      {
+        "group": "General",
+        "label": "Cable Filler",
+        "value": "Kevlar",
+        "labelEs": "Relleno del cable",
+        "valueEs": "Kevlar"
+      },
+      {
+        "group": "General",
+        "label": "Cable Weight",
+        "value": "5m: 0.95 lbs. (0.43kg); 10m: 1.63 lbs. (0.74kg)",
+        "labelEs": "Peso del cable",
+        "valueEs": "5m: 0,95 lb (0,43kg); 10m: 1,63 lb (0,74kg)"
+      },
+      {
+        "group": "General",
+        "label": "Cable Color",
+        "value": "Black or custom",
+        "labelEs": "Color del cable",
+        "valueEs": "Negro o personalizado"
+      },
+      {
+        "group": "General",
+        "label": "Bend radius",
+        "value": "10 x O.D.",
+        "labelEs": "Radio de curvatura",
+        "valueEs": "10 x O.D."
+      },
+      {
+        "group": "General",
+        "label": "Tensile Strength",
+        "value": "200N",
+        "labelEs": "Resistencia a la tracción",
+        "valueEs": "200N"
+      }
+    ],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/usb-c-aoc",
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+  },
+  {
+    "sku": "AT-IR-CS-TX",
+    "shortDescription": "Cable emisor IR de 3 m con puntas peladas para bornera de 2 pines, para controlar equipos por IR a través de los extensores Atlona UHD EX y UHD PRO3.",
+    "longDescription": "El Javelin AT-IR-CS-TX es un cable emisor IR diseñado para integrarse en sistemas AV que usan las líneas de extensores UHD EX y UHD PRO3 de Atlona. Sus cables se conectan directamente a los equipos Atlona compatibles mediante un puerto de bornera de 2 pines con tornillo, y el emisor se monta discretamente sobre el receptor IR del display o de la fuente.\n\nCon su tamaño reducido y sus características eléctricas optimizadas, el AT-IR-CS-TX transmite comandos IR de forma confiable y permite controlar a distancia equipos ocultos detrás de paredes, en racks o dentro de muebles, sin infraestructura a la vista.",
+    "keyFeatures": [
+      "Emisor IR diseñado para usar con distintos productos de extensión de Atlona",
+      "LED rojo de estado que indica que el emisor está funcionando y transmitiendo",
+      "Cable de dos conductores con puntas peladas: señal y masa",
+      "Largo: 3 m (9,9 ft)",
+      "Incluye una cubierta IR para evitar interferencias de otros equipos IR"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "AT-IR-CS-TX Manual",
+        "url": "https://atlona.com/pdf/manuals/AT-IR-CS-TX.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-ir-cs-tx",
+    "tangoPath": "CONTROL > ACCESORIOS > EMISORES IR"
+  },
+  {
+    "sku": "U2-DR1",
+    "shortDescription": "Extensor USB de alta velocidad sobre cable CAT6 de hasta 150 m (500 ft), plug-and-play, para webcams, memorias, pantallas táctiles, impresoras y escáneres.",
+    "longDescription": "Extensor USB sobre cable CAT6 de hasta 150 m (500 ft).",
+    "keyFeatures": [
+      "Extiende USB de alta velocidad hasta 150 metros (500 ft)",
+      "Plug-and-play: no requiere instalar drivers",
+      "Compatible con una gran variedad de dispositivos USB, como webcams, memorias flash, pantallas táctiles, impresoras, escáneres, etc.",
+      "Incluye fuente de alimentación universal"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "Standard",
+        "value": "USB",
+        "labelEs": "Estándar",
+        "valueEs": "USB"
+      },
+      {
+        "group": "General",
+        "label": "Supported Systems",
+        "value": "Microsoft Windows, Mac OS, Linux",
+        "labelEs": "Sistemas compatibles",
+        "valueEs": "Microsoft Windows, Mac OS, Linux"
+      },
+      {
+        "group": "General",
+        "label": "Max Data Rate",
+        "value": "480 Mbps",
+        "labelEs": "Velocidad máxima de datos",
+        "valueEs": "480 Mbps"
+      },
+      {
+        "group": "General",
+        "label": "Max Cable Distance",
+        "value": "150m / 500 ft",
+        "labelEs": "Distancia máxima del cable",
+        "valueEs": "150m / 500 ft"
+      },
+      {
+        "group": "General",
+        "label": "UTP Cable Type",
+        "value": "CAT5e/CAT6",
+        "labelEs": "Tipo de cable UTP",
+        "valueEs": "CAT5e/CAT6"
+      },
+      {
+        "group": "General",
+        "label": "Housing Material",
+        "value": "Metal",
+        "labelEs": "Material de la carcasa",
+        "valueEs": "Metal"
+      },
+      {
+        "group": "General",
+        "label": "Operating Temperature",
+        "value": "32 to 122 °F (0 to 50 °C)",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "32 a 122 °F (0 a 50 °C)"
+      },
+      {
+        "group": "General",
+        "label": "Operating Humidity",
+        "value": "20% – 80% RH",
+        "labelEs": "Humedad de funcionamiento",
+        "valueEs": "20% – 80% HR"
+      },
+      {
+        "group": "General",
+        "label": "Dimensions",
+        "value": "Ends: 2.5 x 1.3 x 0.9 inch (65 x 35 x 25 mm) Shipping: 8.5 x 7.5 x 2.5 inch (21.6 x 19 x 6.5 cm)",
+        "labelEs": "Dimensiones",
+        "valueEs": "Extremos: 2,5 x 1,3 x 0,9 pulgadas (65 x 35 x 25 mm) Con embalaje: 8,5 x 7,5 x 2,5 pulgadas (21,6 x 19 x 6,5 cm)"
+      },
+      {
+        "group": "General",
+        "label": "Weight",
+        "value": "Weight Each end: 0.2 lbs (90g) Shipping: 1.2 lbs (550g)",
+        "labelEs": "Peso",
+        "valueEs": "Peso de cada extremo: 0,2 lb (90g) Con embalaje: 1,2 lb (550g)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "U2-DR1 Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U2-DR1_SpecSheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "U2-DR1 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U2-DR1-Manual-1.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/u2-dr1",
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+  },
+  {
+    "sku": "AT-IR-CS-RX",
+    "shortDescription": "Cable receptor IR de 3 m con puntas peladas para bornera de 3 pines (12 V, señal y masa), para recibir comandos de controles remotos en extensores y switchers Atlona.",
+    "longDescription": "El Javelin AT-IR-CS-RX es un cable receptor IR compacto diseñado para usar con determinados productos Atlona que admiten control IR mediante un conector de bornera de 3 pines con tornillo. Permite recibir de forma confiable las señales infrarrojas de los controles remotos y transmitirlas a los equipos Atlona compatibles, como los extensores y switchers de la serie UHD-EX.\n\nCon conexiones de alimentación de 12 V, señal y masa en cables con puntas peladas, el AT-IR-CS-RX se integra sin inconvenientes en sistemas de control AV. Su carcasa pequeña con dorso adhesivo permite ubicarlo discretamente sobre displays o racks de equipos, lo que lo convierte en una solución simple y eficaz para extender el control IR en instalaciones AV comerciales y residenciales.",
+    "keyFeatures": [
+      "Receptor IR diseñado para extensores Atlona",
+      "Usa un sistema estándar de 12 V",
+      "LED rojo de estado que indica que el receptor está captando la señal del control remoto IR",
+      "Cable de tres conductores con puntas peladas: señal, masa y alimentación",
+      "Largo: 3 m (9,9 ft)",
+      "Dorso autoadhesivo"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "AT-IR-CS-RX Manual",
+        "url": "https://atlona.com/pdf/manuals/AT-IR-CS-RX.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-ir-cs-rx",
+    "tangoPath": "CONTROL > ACCESORIOS > RECEPTOR IR"
+  },
+  {
+    "sku": "AT-LC-UC2UC-5M",
+    "shortDescription": "Cable USB-C a USB-C de 5 m con ficha con traba: USB 3.2 Gen 1 a 5 Gbps, video 4K a 60 Hz por DisplayPort Alt Mode y carga de hasta 60 W, para equipos Atlona.",
+    "longDescription": "El Atlona AT-LC-UC2UC-5M es un cable USB-C a USB-C de 5 metros y alto rendimiento, diseñado para entornos AV e IT profesionales donde la confiabilidad es clave. Admite velocidades de datos USB-C 3.2 Gen 1 de hasta 5 Gbps, video 4K mediante DisplayPort Alt Mode y entrega de potencia de hasta 60 W para cargar notebooks o periféricos.\n\nCon un blindaje robusto y una construcción resistente, mantiene la integridad de la señal en tendidos largos y con uso intensivo diario, por lo que es una opción sólida para salas de reunión, aulas e instalaciones BYOD que dependen de una conexión USB-C constante.",
+    "keyFeatures": [
+      "Cable USB-C",
+      "Largo de 5 metros (16 ft)",
+      "Ideal para productos Atlona con entradas USB-C para AV, datos USB y alimentación para carga de dispositivos",
+      "Diseño de cable de cobre de alto rendimiento para asegurar la integridad de las señales de alta frecuencia",
+      "Pensado para una conexión punto a punto confiable en instalaciones AV comerciales",
+      "Compatible con la especificación USB 3.2 Gen 1",
+      "Velocidades de datos de hasta 5 Gbps",
+      "Admite USB 3.2 Gen 1 y USB 2.0 (hasta 480 Mbps) en simultáneo",
+      "Admite carga de dispositivos de hasta 60 W",
+      "Ideal para la serie Omega y otros productos Atlona con alimentación por USB-C",
+      "USB Power Delivery de hasta 60 W (20 V a 3 A)",
+      "DisplayPort Alt Mode",
+      "Resoluciones de video de hasta 4K a 60 Hz",
+      "Soporte de video de alta resolución para las necesidades actuales y futuras",
+      "Conector USB-C con traba",
+      "Asegura una conexión firme del cable en determinados equipos AV Atlona con puertos USB-C",
+      "Evita los problemas de confiabilidad asociados a malas conexiones de cable en switchers AV"
+    ],
+    "specifications": [
+      {
+        "group": "Especificaciones",
+        "label": "Bandwidth",
+        "value": "18 Gbps",
+        "labelEs": "Ancho de banda",
+        "valueEs": "18 Gbps"
+      },
+      {
+        "group": "Especificaciones",
+        "label": "Video",
+        "value": "Video: up to 4Kx2K VESA: up to 2560×2048",
+        "labelEs": "Video",
+        "valueEs": "Video: hasta 4Kx2K VESA: hasta 2560×2048"
+      },
+      {
+        "group": "Especificaciones",
+        "label": "Audio",
+        "value": "Passes through up to Dolby® Digital, DTS® 5.1, Dolby Digital Plus™, Dolby TrueHD, DTS-HD Master Audio™, Dolby Atmos®, DTS:X®",
+        "labelEs": "Audio",
+        "valueEs": "Paso directo de hasta Dolby® Digital, DTS® 5.1, Dolby Digital Plus™, Dolby TrueHD, DTS-HD Master Audio™, Dolby Atmos®, DTS:X®"
+      },
+      {
+        "group": "Especificaciones",
+        "label": "Length",
+        "value": "5 m (16 ft)",
+        "labelEs": "Largo",
+        "valueEs": "5 m (16 ft)"
+      },
+      {
+        "group": "Especificaciones",
+        "label": "Shielding",
+        "value": "Triple Shielded",
+        "labelEs": "Blindaje",
+        "valueEs": "Triple blindaje"
+      },
+      {
+        "group": "Especificaciones",
+        "label": "Cable Diameter",
+        "value": "7.3 mm (0.29 in)",
+        "labelEs": "Diámetro del cable",
+        "valueEs": "7,3 mm (0,29 pulg.)"
+      },
+      {
+        "group": "Especificaciones",
+        "label": "Jacket Material",
+        "value": "PVC",
+        "labelEs": "Material de la cubierta",
+        "valueEs": "PVC"
+      },
+      {
+        "group": "Especificaciones",
+        "label": "Conductor",
+        "value": "30 AWG",
+        "labelEs": "Conductor",
+        "valueEs": "30 AWG"
+      },
+      {
+        "group": "Especificaciones",
+        "label": "Connector",
+        "value": "Nickel-plated",
+        "labelEs": "Conector",
+        "valueEs": "Niquelado"
+      },
+      {
+        "group": "Especificaciones",
+        "label": "Bend Radius",
+        "value": "100 mm",
+        "labelEs": "Radio de curvatura",
+        "valueEs": "100 mm"
+      },
+      {
+        "group": "Especificaciones",
+        "label": "Fire Rating",
+        "value": "CL2",
+        "labelEs": "Clasificación ignífuga",
+        "valueEs": "CL2"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-LC-UC2UC-5M Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-LC-UC2UC_Spec.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-lc-uc2uc-5m",
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+  },
+  {
+    "sku": "AT-OME-WP-BKT",
+    "shortDescription": "Soporte para montar en superficie, bajo mesa, en muebles o en riel de rack equipos de placa de pared Decora de un módulo, como los transmisores Atlona Omega.",
+    "longDescription": "El Javelin AT-OME-WP-BKT es un soporte de montaje diseñado para equipos de formato de caja de pared estadounidense de un módulo (one-gang) o estilo Decora, ideal para instalaciones AV en pared, en superficie o en muebles.\n\nConstruido para ser durable y fácil de integrar, el AT-OME-WP-BKT asegura una terminación profesional en salas de reunión, aulas y espacios de colaboración, y ofrece flexibilidad tanto para obras nuevas como para la renovación de sistemas AV existentes.",
+    "keyFeatures": [
+      "Accesorio de montaje para productos de placa de pared Decora estadounidense de un módulo (one-gang)",
+      "Permite instalar cómodamente en superficie los transmisores de placa de pared Omega debajo de una mesa de reunión o en muebles como un atril o un escritorio",
+      "Puede usarse con otros productos AV estadounidenses de un módulo con placa frontal estilo Decora (este producto está diseñado solo para aplicaciones de baja tensión)",
+      "También puede instalarse en un riel de rack de equipos compatible",
+      "Incluye la tornillería necesaria para la instalación"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "AT-OME-WP-BKT Installation Guide",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-WP-BKT%20(AT-OME-WP-BKT)/Installation%20Guide/AT-OME-WP-BKT_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-OME-WP-BKT drawing",
+        "url": "https://atlona.com/pdf/cad/AT-OME-WP-BKT.dwg",
+        "fileType": "dwg"
+      },
+      {
+        "name": "AT-OME-WP-BKT (pdf)",
+        "url": "https://atlona.com/pdf/cad/AT-OME-WP-BKT.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-ome-wp-bkt",
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+  },
+  {
+    "sku": "AT-PS-POE",
+    "shortDescription": "Inyector PoE mid-span de 48 V DC (IEEE 802.3af) para alimentar a distancia transmisores y receptores HDBaseT y equipos AV en red, compatible con señales 4K/UHD.",
+    "longDescription": "El Javelin AT-PS-POE es un inyector PoE mid-span diseñado para equipos HDBaseT y AV en red: entrega 48 V DC por Ethernet conforme al estándar IEEE 802.3af. Permite alimentar transmisores y receptores Atlona compatibles, lo que reduce la necesidad de tomas de corriente locales o de varios cables de alimentación, manteniendo la integridad de señales 4K/UHD compatibles con HDCP 2.2.\n\nSu formato compacto y su construcción robusta lo hacen una muy buena opción para instalaciones prolijas y eficientes en salas de reunión, aulas y entornos AV corporativos.",
+    "keyFeatures": [
+      "Fuente para alimentar a distancia equipos en líneas de transmisión HDBaseT™",
+      "Fuente de tipo mid-span",
+      "Interruptores de alimentación para la línea entrante y la saliente",
+      "Admite señales 4K/UHD",
+      "Actualización para sistemas PoCc existentes",
+      "Gabinete discreto de bajo perfil"
+    ],
+    "specifications": [
+      {
+        "group": "Botones e indicadores",
+        "label": "Switches:ON/OFF",
+        "value": "2 – Slide switch",
+        "labelEs": "Interruptores: ON/OFF",
+        "valueEs": "2 – selector deslizante"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Indicators:PoE",
+        "value": "1 – LED, red",
+        "labelEs": "Indicadores: PoE",
+        "valueEs": "1 – LED, rojo"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDBaseT IN",
+        "value": "1 – RJ45",
+        "labelEs": "HDBaseT IN",
+        "valueEs": "1 – RJ45"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDBaseT OUT",
+        "value": "1 – RJ45",
+        "labelEs": "HDBaseT OUT",
+        "valueEs": "1 – RJ45"
+      },
+      {
+        "group": "Conectores",
+        "label": "DC 48V IN",
+        "value": "1 – Euroblock, 2-pin",
+        "labelEs": "DC 48V IN",
+        "valueEs": "1 – Euroblock, 2 pines"
+      },
+      {
+        "group": "General",
+        "label": "Environmental",
+        "value": "Fahrenheit Celsius",
+        "labelEs": "Ambiente",
+        "valueEs": "Fahrenheit Celsius"
+      },
+      {
+        "group": "General",
+        "label": "Operating Temperature",
+        "value": "+32 to +122 0 to +50",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "+32 a +122 0 a +50"
+      },
+      {
+        "group": "General",
+        "label": "Storage Temperature",
+        "value": "-4 to +140 -20 to +60",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-4 a +140 -20 a +60"
+      },
+      {
+        "group": "General",
+        "label": "Operating Humidity (RH)",
+        "value": "20% to 90%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "20% a 90%, sin condensación"
+      },
+      {
+        "group": "General",
+        "label": "Consumption",
+        "value": "Max: 15.2 W",
+        "labelEs": "Consumo",
+        "valueEs": "Máx.: 15,2 W"
+      },
+      {
+        "group": "General",
+        "label": "External Power Supply",
+        "value": "Input: 100 – 240 V AC, 50/60 Hz Output: 48 V / 0.83 A DC",
+        "labelEs": "Fuente de alimentación externa",
+        "valueEs": "Entrada: 100 – 240 V AC, 50/60 Hz Salida: 48 V / 0,83 A DC"
+      },
+      {
+        "group": "General",
+        "label": "Dimensions (H x W x D)",
+        "value": "Inches Millimeters",
+        "labelEs": "Dimensiones (alto × ancho × profundidad)",
+        "valueEs": "Pulgadas Milímetros"
+      },
+      {
+        "group": "General",
+        "label": "Unit",
+        "value": "0.96 x 2.89 x 2.77 24 x 73 x 70",
+        "labelEs": "Equipo",
+        "valueEs": "0.96 x 2.89 x 2.77 24 x 73 x 70"
+      },
+      {
+        "group": "General",
+        "label": "Power Supply (AT-PS-54-L)",
+        "value": "1.42 x 1.81 x 4.41 36 x 46 x 112",
+        "labelEs": "Fuente de alimentación (AT-PS-54-L)",
+        "valueEs": "1.42 x 1.81 x 4.41 36 x 46 x 112"
+      },
+      {
+        "group": "General",
+        "label": "Weight",
+        "value": "Pounds Kilograms",
+        "labelEs": "Peso",
+        "valueEs": "Libras Kilogramos"
+      },
+      {
+        "group": "General",
+        "label": "Device",
+        "value": "0.09 0.19",
+        "labelEs": "Equipo",
+        "valueEs": "0.09 0.19"
+      },
+      {
+        "group": "General",
+        "label": "Device",
+        "value": "CE, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC"
+      },
+      {
+        "group": "General",
+        "label": "Power Supply",
+        "value": "CE, FCC, Level VI, RoHS, cULus, RCM, CCC",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "CE, FCC, Level VI, RoHS, cULus, RCM, CCC"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-PS-POE Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-PS-POE_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-PS-POE Manual",
+        "url": "https://atlona.com/pdf/manuals/AT-PS-POE.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-PS-POE",
+        "url": "https://atlona.com/pdf/cad/AT-PS-POE.dwg",
+        "fileType": "dwg"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-ps-poe",
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+  },
+  {
+    "sku": "AT-RACK-1RU",
+    "shortDescription": "Bandeja reforzada de 1U para rack de 19\" para instalar y ordenar equipos AV compactos, de acero, con calados para ventilación y manejo de cables.",
+    "longDescription": "La Javelin RACK-1RU es una bandeja reforzada de 1U para montaje en rack, diseñada para instalar de forma segura y ordenar productos AV y otros equipos AV compactos en racks de equipos estándar de 19\".\n\nConstruida en acero robusto con calados de precisión para ventilación y manejo de cables, la RACK-1RU asegura una estabilidad de nivel profesional y confiabilidad a largo plazo en sistemas AV comerciales, educativos y corporativos.",
+    "keyFeatures": [],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "AT-RACK-1RU Installation Guide",
+        "url": "https://atlona.com/pdf/AT-RACK-1RU_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-RACK-1RU Drawing",
+        "url": "https://atlona.com/pdf/cad/AT-RACK-1RU.dwg",
+        "fileType": "dwg"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-rack-1ru",
+    "tangoPath": "RACK & CASES > ACCESORIOS > BANDEJAS RACK > BANDEJA RACK ESPECIFICA"
+  },
+  {
+    "sku": "AT-RACK-1RU-ME",
+    "shortDescription": "Bandeja de 1U y ancho completo de rack de 19\" para montar hasta cuatro equipos de un cuarto de rack, como extensores, con tornillos de tope y barra estabilizadora.",
+    "longDescription": "La Javelin RACK-1RU-ME es una bandeja robusta de 1U para montaje en rack, construida para alojar varios componentes chicos de un cuarto o medio rack de ancho y equipos AV similares. Con su diseño de ancho completo de 19\", permite agrupar de forma compacta equipos más chicos, ideal cuando el espacio en el rack es escaso y hay varias unidades para montar.\n\nLa bandeja tiene construcción de acero reforzado, ranuras de ventilación y manejo de cables integrado para lograr una instalación limpia y ordenada en racks de AV comercial, aulas o salas de control.",
+    "keyFeatures": [
+      "Bandeja de 1U y ancho completo de rack para hasta cuatro equipos de un cuarto de rack de ancho",
+      "Los tornillos de tope y la barra estabilizadora fijan los extensores a la bandeja",
+      "Las ranuras de la base sirven como puntos de amarre para el manejo de cables"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "AT-RACK-1RU-ME Installation Guide",
+        "url": "https://atlona.com/product/at-rack-1ru-me/",
+        "fileType": "com/product/at-rack-1ru-me/"
+      },
+      {
+        "name": "AT-RACK-1RU-ME Drawing",
+        "url": "https://atlona.com/pdf/cad/AT-RACK-1RU-ME.dwg",
+        "fileType": "dwg"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-rack-1ru-me",
+    "tangoPath": "RACK & CASES > ACCESORIOS > BANDEJAS RACK > BANDEJA RACK ESPECIFICA"
+  },
+  {
+    "sku": "AT-SFP-PLUS-10GE-SR",
+    "shortDescription": "Transceptor SFP+ de fibra óptica 10 Gigabit Ethernet para equipos Atlona con SDVoE (como la serie PRO5): hasta 300 m por fibra multimodo OM3, conector LC dúplex.",
+    "longDescription": "El AT-SFP-PLUS-10GE-SR es un módulo transceptor SFP+ de fibra óptica 10 Gigabit Ethernet diseñado para aplicaciones AV y de redes de datos de alto rendimiento. Admite fibra multimodo OM3 u OM4 con conectores LC dúplex y permite distancias de transmisión confiables de hasta 300 metros a 10 Gbps.\n\nEs intercambiable en caliente y compatible con SDVoE y con interfaces 10 GbE estándar, por lo que ofrece un enlace confiable para sistemas de AV sobre IP de gran ancho de banda, como los productos Atlona OmniStream. Ideal para instalaciones corporativas, educativas y de broadcast, el AT-SFP-PLUS-10GE-SR asegura una conectividad robusta y de baja latencia para transportar señales 4K/60 (4:4:4) por redes de fibra.",
+    "keyFeatures": [
+      "Módulo transceptor SFP+ de fibra óptica",
+      "Se coloca en la ranura SFP+ de productos Atlona con tecnología SDVoE, como la serie PRO5",
+      "Permite conexiones 10GbE de larga distancia, de hasta 300 metros (980 ft), con cable de fibra óptica multimodo OM3",
+      "Conector LC dúplex",
+      "Instalación y extracción en caliente"
+    ],
+    "specifications": [
+      {
+        "group": "Características físicas",
+        "label": "Form Factor",
+        "value": "SFP+",
+        "labelEs": "Formato",
+        "valueEs": "SFP+"
+      },
+      {
+        "group": "Características físicas",
+        "label": "Transmitter Type",
+        "value": "VCSEL",
+        "labelEs": "Tipo de transmisor",
+        "valueEs": "VCSEL"
+      },
+      {
+        "group": "Características físicas",
+        "label": "Receiver Type",
+        "value": "PIN",
+        "labelEs": "Tipo de receptor",
+        "valueEs": "PIN"
+      },
+      {
+        "group": "Distancia máxima de funcionamiento",
+        "label": "50/125 μm multimode fiber (OM3)",
+        "value": "984 300",
+        "labelEs": "Fibra multimodo de 50/125 μm (OM3)",
+        "valueEs": "984 300"
+      },
+      {
+        "group": "Conector",
+        "label": "Type",
+        "value": "1 x LC, duplex",
+        "labelEs": "Tipo",
+        "valueEs": "1 x LC, dúplex"
+      },
+      {
+        "group": "Rendimiento",
+        "label": "Wavelength Range",
+        "value": "840 ≤ λ ≤ 860 nm",
+        "labelEs": "Rango de longitud de onda",
+        "valueEs": "840 ≤ λ ≤ 860 nm"
+      },
+      {
+        "group": "Rendimiento",
+        "label": "Protocol",
+        "value": "IEEE 802.3ae",
+        "labelEs": "Protocolo",
+        "valueEs": "IEEE 802.3ae"
+      },
+      {
+        "group": "Rendimiento",
+        "label": "Maximum Data Rate",
+        "value": "10.3125 Gbs",
+        "labelEs": "Velocidad máxima de datos",
+        "valueEs": "10,3125 Gbs"
+      },
+      {
+        "group": "Rendimiento",
+        "label": "Extinction Ratio",
+        "value": "ER ≥ 3 dB",
+        "labelEs": "Relación de extinción",
+        "valueEs": "ER ≥ 3 dB"
+      },
+      {
+        "group": "Rendimiento",
+        "label": "Receiver Sensitivity",
+        "value": "OMA ≤-11.1 dBm",
+        "labelEs": "Sensibilidad del receptor",
+        "valueEs": "OMA ≤ -11,1 dBm"
+      },
+      {
+        "group": "Rendimiento",
+        "label": "DDM/DDMI",
+        "value": "Supported",
+        "labelEs": "DDM/DDMI",
+        "valueEs": "Compatible"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "< 1.0 W",
+        "labelEs": "Consumo",
+        "valueEs": "< 1.0 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "MTBF",
+        "value": "4,986,536 hours (569 years)",
+        "labelEs": "MTBF",
+        "valueEs": "4.986.536 horas (569 años)"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Temperature",
+        "value": "+32° to +158° 0° to +70°",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "+32° a +158° 0° a +70°"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Storage Temperature",
+        "value": "-40° to +185° -40° to +85°",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-40° a +185° -40° a +85°"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Humidity",
+        "value": "85% (at +25° C), non-condensing",
+        "labelEs": "Humedad de funcionamiento",
+        "valueEs": "85% (a +25° C), sin condensación"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "Unit",
+        "value": "0.46 x 0.53 x 2.19 11.9 x 13.7 x 55.7",
+        "labelEs": "Equipo",
+        "valueEs": "0.46 x 0.53 x 2.19 11.9 x 13.7 x 55.7"
+      },
+      {
+        "group": "Peso",
+        "label": "Unit",
+        "value": "0.4 0.0171",
+        "labelEs": "Equipo",
+        "valueEs": "0.4 0.0171"
+      },
+      {
+        "group": "Normativas",
+        "label": "Standards",
+        "value": "SFF-8024, SFF-8431, SFF-8472",
+        "labelEs": "Estándares",
+        "valueEs": "SFF-8024, SFF-8431, SFF-8472"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "UL 1950 CSA 22.2 No. 950, RoHS",
+        "labelEs": "Equipo",
+        "valueEs": "UL 1950 CSA 22.2 n.º 950, RoHS"
+      }
+    ],
+    "documents": [
+      {
+        "name": "JAV-MISC-Z1111 Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-SFP-PLUS-10GE-SR_Spec.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-sfp-plus-10ge-sr",
+    "tangoPath": "VARIOS > INFORMATICA > COMUNICACIONES"
+  },
+  {
+    "sku": "C-HDMI-DVI-2M",
+    "shortDescription": "Cable de HDMI a DVI (macho a macho) de 2 m para conectar fuentes HDMI a displays DVI con video digital.",
+    "longDescription": "La serie Javelin C-HDMI-DVI-M es un cable de HDMI a DVI (macho a macho) para equipos de generaciones anteriores, disponible en 2 m, diseñado para conexiones de video digital confiables entre fuentes HDMI y displays DVI.",
+    "keyFeatures": [
+      "Cables de DVI a HDMI de 2 metros",
+      "Reemplace el «*» del número de parte por el largo deseado; por ejemplo, C-HDMI-DVI-2M es un cable de 2 metros",
+      "Precios competitivos que varían según el largo",
+      "Nuestra especialidad son los cables a medida y los armados de cable según plano"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "C-HDMI-DVI-*M Drawing",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HDMI_to_DVI_Cable.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/c-hdmi-dvi-2m",
+    "tangoPath": "CONECTIVIDAD > ADAPES > CABLES ADAPES"
+  },
+  {
+    "sku": "CHD-JAV4K-DE10",
+    "shortDescription": "Cable HDMI óptico activo con conectores desmontables para pasar por cañería, 18 Gbps para 4K a 60 Hz 4:4:4 con HDR, y vaina plenum, para tendidos largos en instalaciones AV.",
+    "longDescription": "El CHD-JAV4K-DE* es un cable HDMI óptico activo de nivel profesional, diseñado para transmitir señales 4K a larga distancia en instalaciones AV comerciales. Admite el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo (deep color), manteniendo la integridad de la señal en tendidos largos.\n\nEl cable tiene conectores HDMI desmontables que facilitan el pasaje por cañería, y una vaina con clasificación plenum para cumplir con los códigos de seguridad edilicia. Es ideal para salas de reunión, auditorios, señalización digital y cualquier entorno que requiera un funcionamiento HDMI confiable a larga distancia: entrega video de alta calidad con bajo consumo y gran flexibilidad de instalación.",
+    "keyFeatures": [
+      "Admite una amplia gama de resoluciones de hasta 4K a 60 Hz (espacio de color 4:4:4), 3D y deep color",
+      "Admite una tasa de datos máxima de 18 Gbps",
+      "Admite audio multicanal, Dolby TrueHD y DTS-HD Master Audio",
+      "Cumple con HDMI: EDID, CEC, HDCP (2.2), HDR (alto rango dinámico)",
+      "Menor interferencia EMI y RFI",
+      "Alta resistencia a la tracción y a la compresión"
+    ],
+    "specifications": [
+      {
+        "group": "Entrada",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Salida",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Estándares de video",
+        "label": "Value",
+        "value": "Single Link DVI: Up to 2560×1600 HDMI/HDTV : Up to 4K@60Hz (4:4:4), 3D, Deep color, HDR",
+        "labelEs": "Valor",
+        "valueEs": "DVI Single Link: hasta 2560×1600 HDMI/HDTV: hasta 4K@60Hz (4:4:4), 3D, Deep Color, HDR"
+      },
+      {
+        "group": "Ancho de banda",
+        "label": "Value",
+        "value": "18Gbps",
+        "labelEs": "Valor",
+        "valueEs": "18Gbps"
+      },
+      {
+        "group": "Datos auxiliares",
+        "label": "Value",
+        "value": "Up to HDCP 2.2 compliant, EDID, CEC",
+        "labelEs": "Valor",
+        "valueEs": "Compatible hasta HDCP 2.2, EDID, CEC"
+      },
+      {
+        "group": "Estándares de audio",
+        "label": "Value",
+        "value": "Supports PCM, Multi-channel audio, Dolby, True HD, DTS-HD",
+        "labelEs": "Valor",
+        "valueEs": "Admite PCM, audio multicanal, Dolby, TrueHD, DTS-HD"
+      },
+      {
+        "group": "Tensión de alimentación",
+        "label": "Value",
+        "value": "Powered from Source (HDMI/DVI) Nominal: 5v (operating range: 4.5v ~ 5.5 v) Optional Power Injector Cable Included (Micro USB Male to USB A Male)",
+        "labelEs": "Valor",
+        "valueEs": "Alimentado desde la fuente (HDMI/DVI) Nominal: 5 V (rango de funcionamiento: 4,5 V ~ 5,5 V) Incluye cable inyector de alimentación opcional (Micro USB macho a USB A macho)"
+      },
+      {
+        "group": "Corriente de alimentación",
+        "label": "Value",
+        "value": "Nominal: 40 ma, max: 47 ma",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 40 mA, máx.: 47 mA"
+      },
+      {
+        "group": "Consumo",
+        "label": "Value",
+        "value": "Nominal: 0.23 watts (range: 0.2w ~ 0.25w)",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 0,23 W (rango: 0,2 W ~ 0,25 W)"
+      },
+      {
+        "group": "Clasificación",
+        "label": "Value",
+        "value": "Plenum CMP c(UL) & FT6",
+        "labelEs": "Valor",
+        "valueEs": "Plenum CMP c(UL) & FT6"
+      },
+      {
+        "group": "Diámetro del cable",
+        "label": "Value",
+        "value": "4.9mm (1.92 inch)",
+        "labelEs": "Valor",
+        "valueEs": "4,9mm (1,92 pulgadas)"
+      },
+      {
+        "group": "Radio de curvatura",
+        "label": "Value",
+        "value": "12mm (0.5 inch) minimum",
+        "labelEs": "Valor",
+        "valueEs": "12mm (0,5 pulgadas) mínimo"
+      },
+      {
+        "group": "Resistencia a la tracción del conector",
+        "label": "Value",
+        "value": "20 Kg (44 lbs) maximum CAUTION DAMAGE DUE TO CONNECTOR BEING PULLED HARDER THAN 20 kg, IS NOT COVERED BY WARRANTY To pull cable through conduits or tight spaces, never grab the connector, as it is easy to exceed the force limit on the connector, instead, remove the detachable end, protect the connector using a cable pulling sock and make sure the force is applied directly to the cable jacket",
+        "labelEs": "Valor",
+        "valueEs": "20 kg (44 lb) máximo PRECAUCIÓN: LOS DAÑOS POR TRACCIONAR EL CONECTOR CON MÁS DE 20 kg NO ESTÁN CUBIERTOS POR LA GARANTÍA Para pasar el cable por cañerías o espacios estrechos, nunca lo tome del conector, ya que es fácil superar el límite de fuerza; en su lugar, retire el extremo desmontable, proteja el conector con una media pasacables y asegúrese de que la fuerza se aplique directamente sobre la cubierta del cable"
+      },
+      {
+        "group": "Dimensiones de la carcasa del conector",
+        "label": "Value",
+        "value": "Without the HDMI metal plug or strain relief: 1.45 inch x 0.48 inch x 0.32 inch (36.83mm x 12.26mm x 8.03 mm) Total length including HDMI plug and Strain relief: 2.77 inch",
+        "labelEs": "Valor",
+        "valueEs": "Sin la ficha metálica HDMI ni el alivio de tensión: 1,45 x 0,48 x 0,32 pulgadas (36,83mm x 12,26mm x 8,03 mm) Largo total incluida la ficha HDMI y el alivio de tensión: 2,77 pulgadas"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Value",
+        "value": "Storage: -40 to +158 °F (-40 to +70 °C) / 5% to 90%, non-condensing +32 to +122 °F (0 to +50 °C) / 10% to 80%, RH non-condensing",
+        "labelEs": "Valor",
+        "valueEs": "Almacenamiento: -40 a +158 °F (-40 a +70 °C) / 5% a 90%, sin condensación +32 a +122 °F (0 a +50 °C) / 10% a 80% HR, sin condensación"
+      },
+      {
+        "group": "Normativas",
+        "label": "Value",
+        "value": "CE, RoHS2",
+        "labelEs": "Valor",
+        "valueEs": "CE, RoHS2"
+      },
+      {
+        "group": "EMI/EMC",
+        "label": "Value",
+        "value": "CE, FCC Class A",
+        "labelEs": "Valor",
+        "valueEs": "CE, FCC Clase A"
+      }
+    ],
+    "documents": [
+      {
+        "name": "CHD-JAV4K-DE* Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-JAV4K-DE100",
+    "shortDescription": "Cable HDMI óptico activo con conectores desmontables para pasar por cañería, 18 Gbps para 4K a 60 Hz 4:4:4 con HDR, y vaina plenum, para tendidos largos en instalaciones AV.",
+    "longDescription": "El CHD-JAV4K-DE* es un cable HDMI óptico activo de nivel profesional, diseñado para transmitir señales 4K a larga distancia en instalaciones AV comerciales. Admite el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo (deep color), manteniendo la integridad de la señal en tendidos largos.\n\nEl cable tiene conectores HDMI desmontables que facilitan el pasaje por cañería, y una vaina con clasificación plenum para cumplir con los códigos de seguridad edilicia. Es ideal para salas de reunión, auditorios, señalización digital y cualquier entorno que requiera un funcionamiento HDMI confiable a larga distancia: entrega video de alta calidad con bajo consumo y gran flexibilidad de instalación.",
+    "keyFeatures": [
+      "Admite una amplia gama de resoluciones de hasta 4K a 60 Hz (espacio de color 4:4:4), 3D y deep color",
+      "Admite una tasa de datos máxima de 18 Gbps",
+      "Admite audio multicanal, Dolby TrueHD y DTS-HD Master Audio",
+      "Cumple con HDMI: EDID, CEC, HDCP (2.2), HDR (alto rango dinámico)",
+      "Menor interferencia EMI y RFI",
+      "Alta resistencia a la tracción y a la compresión"
+    ],
+    "specifications": [
+      {
+        "group": "Entrada",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Salida",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Estándares de video",
+        "label": "Value",
+        "value": "Single Link DVI: Up to 2560×1600 HDMI/HDTV : Up to 4K@60Hz (4:4:4), 3D, Deep color, HDR",
+        "labelEs": "Valor",
+        "valueEs": "DVI Single Link: hasta 2560×1600 HDMI/HDTV: hasta 4K@60Hz (4:4:4), 3D, Deep Color, HDR"
+      },
+      {
+        "group": "Ancho de banda",
+        "label": "Value",
+        "value": "18Gbps",
+        "labelEs": "Valor",
+        "valueEs": "18Gbps"
+      },
+      {
+        "group": "Datos auxiliares",
+        "label": "Value",
+        "value": "Up to HDCP 2.2 compliant, EDID, CEC",
+        "labelEs": "Valor",
+        "valueEs": "Compatible hasta HDCP 2.2, EDID, CEC"
+      },
+      {
+        "group": "Estándares de audio",
+        "label": "Value",
+        "value": "Supports PCM, Multi-channel audio, Dolby, True HD, DTS-HD",
+        "labelEs": "Valor",
+        "valueEs": "Admite PCM, audio multicanal, Dolby, TrueHD, DTS-HD"
+      },
+      {
+        "group": "Tensión de alimentación",
+        "label": "Value",
+        "value": "Powered from Source (HDMI/DVI) Nominal: 5v (operating range: 4.5v ~ 5.5 v) Optional Power Injector Cable Included (Micro USB Male to USB A Male)",
+        "labelEs": "Valor",
+        "valueEs": "Alimentado desde la fuente (HDMI/DVI) Nominal: 5 V (rango de funcionamiento: 4,5 V ~ 5,5 V) Incluye cable inyector de alimentación opcional (Micro USB macho a USB A macho)"
+      },
+      {
+        "group": "Corriente de alimentación",
+        "label": "Value",
+        "value": "Nominal: 40 ma, max: 47 ma",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 40 mA, máx.: 47 mA"
+      },
+      {
+        "group": "Consumo",
+        "label": "Value",
+        "value": "Nominal: 0.23 watts (range: 0.2w ~ 0.25w)",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 0,23 W (rango: 0,2 W ~ 0,25 W)"
+      },
+      {
+        "group": "Clasificación",
+        "label": "Value",
+        "value": "Plenum CMP c(UL) & FT6",
+        "labelEs": "Valor",
+        "valueEs": "Plenum CMP c(UL) & FT6"
+      },
+      {
+        "group": "Diámetro del cable",
+        "label": "Value",
+        "value": "4.9mm (1.92 inch)",
+        "labelEs": "Valor",
+        "valueEs": "4,9mm (1,92 pulgadas)"
+      },
+      {
+        "group": "Radio de curvatura",
+        "label": "Value",
+        "value": "12mm (0.5 inch) minimum",
+        "labelEs": "Valor",
+        "valueEs": "12mm (0,5 pulgadas) mínimo"
+      },
+      {
+        "group": "Resistencia a la tracción del conector",
+        "label": "Value",
+        "value": "20 Kg (44 lbs) maximum CAUTION DAMAGE DUE TO CONNECTOR BEING PULLED HARDER THAN 20 kg, IS NOT COVERED BY WARRANTY To pull cable through conduits or tight spaces, never grab the connector, as it is easy to exceed the force limit on the connector, instead, remove the detachable end, protect the connector using a cable pulling sock and make sure the force is applied directly to the cable jacket",
+        "labelEs": "Valor",
+        "valueEs": "20 kg (44 lb) máximo PRECAUCIÓN: LOS DAÑOS POR TRACCIONAR EL CONECTOR CON MÁS DE 20 kg NO ESTÁN CUBIERTOS POR LA GARANTÍA Para pasar el cable por cañerías o espacios estrechos, nunca lo tome del conector, ya que es fácil superar el límite de fuerza; en su lugar, retire el extremo desmontable, proteja el conector con una media pasacables y asegúrese de que la fuerza se aplique directamente sobre la cubierta del cable"
+      },
+      {
+        "group": "Dimensiones de la carcasa del conector",
+        "label": "Value",
+        "value": "Without the HDMI metal plug or strain relief: 1.45 inch x 0.48 inch x 0.32 inch (36.83mm x 12.26mm x 8.03 mm) Total length including HDMI plug and Strain relief: 2.77 inch",
+        "labelEs": "Valor",
+        "valueEs": "Sin la ficha metálica HDMI ni el alivio de tensión: 1,45 x 0,48 x 0,32 pulgadas (36,83mm x 12,26mm x 8,03 mm) Largo total incluida la ficha HDMI y el alivio de tensión: 2,77 pulgadas"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Value",
+        "value": "Storage: -40 to +158 °F (-40 to +70 °C) / 5% to 90%, non-condensing +32 to +122 °F (0 to +50 °C) / 10% to 80%, RH non-condensing",
+        "labelEs": "Valor",
+        "valueEs": "Almacenamiento: -40 a +158 °F (-40 a +70 °C) / 5% a 90%, sin condensación +32 a +122 °F (0 a +50 °C) / 10% a 80% HR, sin condensación"
+      },
+      {
+        "group": "Normativas",
+        "label": "Value",
+        "value": "CE, RoHS2",
+        "labelEs": "Valor",
+        "valueEs": "CE, RoHS2"
+      },
+      {
+        "group": "EMI/EMC",
+        "label": "Value",
+        "value": "CE, FCC Class A",
+        "labelEs": "Valor",
+        "valueEs": "CE, FCC Clase A"
+      }
+    ],
+    "documents": [
+      {
+        "name": "CHD-JAV4K-DE* Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-JAV4K-DE30",
+    "shortDescription": "Cable HDMI óptico activo con conectores desmontables para pasar por cañería, 18 Gbps para 4K a 60 Hz 4:4:4 con HDR, y vaina plenum, para tendidos largos en instalaciones AV.",
+    "longDescription": "El CHD-JAV4K-DE* es un cable HDMI óptico activo de nivel profesional, diseñado para transmitir señales 4K a larga distancia en instalaciones AV comerciales. Admite el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo (deep color), manteniendo la integridad de la señal en tendidos largos.\n\nEl cable tiene conectores HDMI desmontables que facilitan el pasaje por cañería, y una vaina con clasificación plenum para cumplir con los códigos de seguridad edilicia. Es ideal para salas de reunión, auditorios, señalización digital y cualquier entorno que requiera un funcionamiento HDMI confiable a larga distancia: entrega video de alta calidad con bajo consumo y gran flexibilidad de instalación.",
+    "keyFeatures": [
+      "Admite una amplia gama de resoluciones de hasta 4K a 60 Hz (espacio de color 4:4:4), 3D y deep color",
+      "Admite una tasa de datos máxima de 18 Gbps",
+      "Admite audio multicanal, Dolby TrueHD y DTS-HD Master Audio",
+      "Cumple con HDMI: EDID, CEC, HDCP (2.2), HDR (alto rango dinámico)",
+      "Menor interferencia EMI y RFI",
+      "Alta resistencia a la tracción y a la compresión"
+    ],
+    "specifications": [
+      {
+        "group": "Entrada",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Salida",
+        "label": "Value",
+        "value": "Cable Connector: Proprietary ConnectorDetachable Connector: HDMI Type A to Proprietary Connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector del cable: conector propietario Conector desmontable: HDMI Tipo A a conector propietario"
+      },
+      {
+        "group": "Estándares de video",
+        "label": "Value",
+        "value": "Single Link DVI: Up to 2560×1600 HDMI/HDTV : Up to 4K@60Hz (4:4:4), 3D, Deep color, HDR",
+        "labelEs": "Valor",
+        "valueEs": "DVI Single Link: hasta 2560×1600 HDMI/HDTV: hasta 4K@60Hz (4:4:4), 3D, Deep Color, HDR"
+      },
+      {
+        "group": "Ancho de banda",
+        "label": "Value",
+        "value": "18Gbps",
+        "labelEs": "Valor",
+        "valueEs": "18Gbps"
+      },
+      {
+        "group": "Datos auxiliares",
+        "label": "Value",
+        "value": "Up to HDCP 2.2 compliant, EDID, CEC",
+        "labelEs": "Valor",
+        "valueEs": "Compatible hasta HDCP 2.2, EDID, CEC"
+      },
+      {
+        "group": "Estándares de audio",
+        "label": "Value",
+        "value": "Supports PCM, Multi-channel audio, Dolby, True HD, DTS-HD",
+        "labelEs": "Valor",
+        "valueEs": "Admite PCM, audio multicanal, Dolby, TrueHD, DTS-HD"
+      },
+      {
+        "group": "Tensión de alimentación",
+        "label": "Value",
+        "value": "Powered from Source (HDMI/DVI) Nominal: 5v (operating range: 4.5v ~ 5.5 v) Optional Power Injector Cable Included (Micro USB Male to USB A Male)",
+        "labelEs": "Valor",
+        "valueEs": "Alimentado desde la fuente (HDMI/DVI) Nominal: 5 V (rango de funcionamiento: 4,5 V ~ 5,5 V) Incluye cable inyector de alimentación opcional (Micro USB macho a USB A macho)"
+      },
+      {
+        "group": "Corriente de alimentación",
+        "label": "Value",
+        "value": "Nominal: 40 ma, max: 47 ma",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 40 mA, máx.: 47 mA"
+      },
+      {
+        "group": "Consumo",
+        "label": "Value",
+        "value": "Nominal: 0.23 watts (range: 0.2w ~ 0.25w)",
+        "labelEs": "Valor",
+        "valueEs": "Nominal: 0,23 W (rango: 0,2 W ~ 0,25 W)"
+      },
+      {
+        "group": "Clasificación",
+        "label": "Value",
+        "value": "Plenum CMP c(UL) & FT6",
+        "labelEs": "Valor",
+        "valueEs": "Plenum CMP c(UL) & FT6"
+      },
+      {
+        "group": "Diámetro del cable",
+        "label": "Value",
+        "value": "4.9mm (1.92 inch)",
+        "labelEs": "Valor",
+        "valueEs": "4,9mm (1,92 pulgadas)"
+      },
+      {
+        "group": "Radio de curvatura",
+        "label": "Value",
+        "value": "12mm (0.5 inch) minimum",
+        "labelEs": "Valor",
+        "valueEs": "12mm (0,5 pulgadas) mínimo"
+      },
+      {
+        "group": "Resistencia a la tracción del conector",
+        "label": "Value",
+        "value": "20 Kg (44 lbs) maximum CAUTION DAMAGE DUE TO CONNECTOR BEING PULLED HARDER THAN 20 kg, IS NOT COVERED BY WARRANTY To pull cable through conduits or tight spaces, never grab the connector, as it is easy to exceed the force limit on the connector, instead, remove the detachable end, protect the connector using a cable pulling sock and make sure the force is applied directly to the cable jacket",
+        "labelEs": "Valor",
+        "valueEs": "20 kg (44 lb) máximo PRECAUCIÓN: LOS DAÑOS POR TRACCIONAR EL CONECTOR CON MÁS DE 20 kg NO ESTÁN CUBIERTOS POR LA GARANTÍA Para pasar el cable por cañerías o espacios estrechos, nunca lo tome del conector, ya que es fácil superar el límite de fuerza; en su lugar, retire el extremo desmontable, proteja el conector con una media pasacables y asegúrese de que la fuerza se aplique directamente sobre la cubierta del cable"
+      },
+      {
+        "group": "Dimensiones de la carcasa del conector",
+        "label": "Value",
+        "value": "Without the HDMI metal plug or strain relief: 1.45 inch x 0.48 inch x 0.32 inch (36.83mm x 12.26mm x 8.03 mm) Total length including HDMI plug and Strain relief: 2.77 inch",
+        "labelEs": "Valor",
+        "valueEs": "Sin la ficha metálica HDMI ni el alivio de tensión: 1,45 x 0,48 x 0,32 pulgadas (36,83mm x 12,26mm x 8,03 mm) Largo total incluida la ficha HDMI y el alivio de tensión: 2,77 pulgadas"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Value",
+        "value": "Storage: -40 to +158 °F (-40 to +70 °C) / 5% to 90%, non-condensing +32 to +122 °F (0 to +50 °C) / 10% to 80%, RH non-condensing",
+        "labelEs": "Valor",
+        "valueEs": "Almacenamiento: -40 a +158 °F (-40 a +70 °C) / 5% a 90%, sin condensación +32 a +122 °F (0 a +50 °C) / 10% a 80% HR, sin condensación"
+      },
+      {
+        "group": "Normativas",
+        "label": "Value",
+        "value": "CE, RoHS2",
+        "labelEs": "Valor",
+        "valueEs": "CE, RoHS2"
+      },
+      {
+        "group": "EMI/EMC",
+        "label": "Value",
+        "value": "CE, FCC Class A",
+        "labelEs": "Valor",
+        "valueEs": "CE, FCC Clase A"
+      }
+    ],
+    "documents": [
+      {
+        "name": "CHD-JAV4K-DE* Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/CHD-JAV4K-DE_SpecSheet_Aug_5.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-jav4k-de",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-SF03",
+    "shortDescription": "Cable HDMI de alta velocidad con conector con traba SnugFit que evita desconexiones accidentales; 18 Gbps para 4K a 60 Hz 4:4:4 con HDR. Línea disponible de 1 a 50 ft.",
+    "longDescription": "El CHD-SF es un cable HDMI de alta confiabilidad con el conector con traba SnugFit de Hall Technologies, diseñado para mantener una conexión firme y resistente a las vibraciones en entornos AV profesionales. Está construido para el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo (deep color), y entrega video de alta calidad constante en largos adecuados para salas de reunión, aulas, señalización digital y sistemas de control.\n\nLa traba SnugFit asegura que el cable quede firmemente asentado en los puertos HDMI, lo que reduce las desconexiones accidentales y los tiempos fuera de servicio en instalaciones críticas. Su construcción robusta y la integridad estable de la señal hacen del CHD-SF una opción confiable para instalaciones AV comerciales.",
+    "keyFeatures": [
+      "Ofrece 18 Gb/s para video 4K UltraHD a 60 Hz",
+      "Disponible en largos de 1 ft a 50 ft",
+      "Aumenta la fuerza de retención y asegura una conexión de video firme",
+      "Las pestañas elásticas superiores encajan en las ranuras de los conectores correspondientes",
+      "Encaja a presión y puede dar una confirmación táctil y audible"
+    ],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CHD-SF15",
+    "shortDescription": "Cable HDMI de alta velocidad con conector con traba SnugFit que evita desconexiones accidentales; 18 Gbps para 4K a 60 Hz 4:4:4 con HDR. Línea disponible de 1 a 50 ft.",
+    "longDescription": "El CHD-SF es un cable HDMI de alta confiabilidad con el conector con traba SnugFit de Hall Technologies, diseñado para mantener una conexión firme y resistente a las vibraciones en entornos AV profesionales. Está construido para el ancho de banda completo de 18 Gbps para 4K a 60 Hz (4:4:4), HDR y formatos de color profundo (deep color), y entrega video de alta calidad constante en largos adecuados para salas de reunión, aulas, señalización digital y sistemas de control.\n\nLa traba SnugFit asegura que el cable quede firmemente asentado en los puertos HDMI, lo que reduce las desconexiones accidentales y los tiempos fuera de servicio en instalaciones críticas. Su construcción robusta y la integridad estable de la señal hacen del CHD-SF una opción confiable para instalaciones AV comerciales.",
+    "keyFeatures": [
+      "Ofrece 18 Gb/s para video 4K UltraHD a 60 Hz",
+      "Disponible en largos de 1 ft a 50 ft",
+      "Aumenta la fuerza de retención y asegura una conexión de video firme",
+      "Las pestañas elásticas superiores encajan en las ranuras de los conectores correspondientes",
+      "Encaja a presión y puede dar una confirmación táctil y audible"
+    ],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/chd-sf",
+    "tangoPath": "CABLES > ARMADOS > VIDEO > HDMI"
+  },
+  {
+    "sku": "CIR-KIT-EMT2",
+    "shortDescription": "Kit de emisor IR con ficha mono de 3,5 mm y cubierta de goma autoadhesiva que lo fija sobre la ventana IR del equipo; el cable puede extenderse hasta 150 m (500 ft).",
+    "longDescription": "El CIR-KIT-EMT2 es un kit de emisor IR diseñado para extender el control infrarrojo de forma confiable en sistemas AV profesionales. Incluye un emisor con ficha mono de 3,5 mm y un cable apto para tendidos de hasta 500 ft, además de una carcasa de goma negra autoadhesiva que fija el emisor sobre la ventana IR del equipo.\n\nPensado para ser compatible con controladores, switchers y extensores de Hall Technologies, el kit permite enviar la señal IR con precisión a equipos remotos ubicados en racks, gabinetes o detrás de displays. Su construcción resistente y su aptitud para tendidos largos lo hacen una solución confiable para instalaciones AV que requieren control IR a distancia.",
+    "keyFeatures": [
+      "Cable emisor IR con ficha estándar de 3,5 mm",
+      "Incluye una carcasa de goma negra que se coloca sobre el cabezal del emisor",
+      "El cable puede extenderse hasta 150 m (500 ft)",
+      "Ideal para limitar los rayos IR a un solo equipo (TV o decodificador)"
+    ],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/cir-kit-emt2",
+    "tangoPath": "CONTROL > ACCESORIOS > EMISORES IR"
+  },
+  {
+    "sku": "CUSB-JAV-C-C-10",
+    "shortDescription": "Cable óptico activo (AOC) USB-C a USB-C de función completa, 10 m, vaina plenum: USB 3.1 Gen 2, USB 2.0 y DisplayPort 1.2 de 2 carriles, resistente a EMI.",
+    "longDescription": "El cable óptico activo (AOC) USB tipo C de Hall Technologies utiliza fibra óptica en lugar de cobre como medio de transmisión de señales de alta velocidad. Puede transmitir datos USB 2.0, USB 3.1 Gen2 y DP1.2 de 2 carriles con excelente calidad de señal.\n\nFrente al cable de cobre tradicional es más flexible, más delgado y más liviano, y resiste las interferencias EMI/EMC. Los productos AOC además ofrecen mayor confiabilidad que el cable de cobre.",
+    "keyFeatures": [
+      "Admite USB 3.1 Gen 2",
+      "Admite USB 2.0 High Speed y Full Speed",
+      "Admite DP 1.2 de 2 carriles",
+      "Plug-and-play, sin depender de drivers",
+      "Alta confiabilidad y velocidad de transferencia",
+      "Más delgado, liviano y flexible que un cable de cobre convencional",
+      "Alta resistencia a EMI y RFI",
+      "Compacto y de poco volumen",
+      "Entrega de potencia: USB-C puede entregar hasta 100 W, suficiente para cargar notebooks y otros equipos de alto consumo",
+      "Compatibilidad: USB-C es compatible con una amplia gama de equipos, como notebooks, tablets, smartphones, displays y docks"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "Cable length",
+        "value": "5m and 10m",
+        "labelEs": "Largo del cable",
+        "valueEs": "5m y 10m"
+      },
+      {
+        "group": "General",
+        "label": "Interface",
+        "value": "USB type-C plug – USB type-C plug",
+        "labelEs": "Interfaz",
+        "valueEs": "Ficha USB Type-C – ficha USB Type-C"
+      },
+      {
+        "group": "General",
+        "label": "Bandwidth",
+        "value": "USB3.1: 10 Gbps; USB2.0: 480 Mbps; DP1.2: 8.1 Gbps",
+        "labelEs": "Ancho de banda",
+        "valueEs": "USB3.1: 10 Gbps; USB2.0: 480 Mbps; DP1.2: 8.1 Gbps"
+      },
+      {
+        "group": "General",
+        "label": "Power Delivery",
+        "value": "PD3.0, 20V 3A",
+        "labelEs": "Power Delivery",
+        "valueEs": "PD3.0, 20V 3A"
+      },
+      {
+        "group": "General",
+        "label": "Power Supply",
+        "value": "By VCONN Pin (3.0V to 5.5V)",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "Por pin VCONN (3,0V a 5,5V)"
+      },
+      {
+        "group": "General",
+        "label": "Power Consumption (TYP)",
+        "value": "1100mW (5V input)",
+        "labelEs": "Consumo (típico)",
+        "valueEs": "1100mW (entrada de 5V)"
+      },
+      {
+        "group": "General",
+        "label": "Cable Outer Diameter",
+        "value": "6.5mm",
+        "labelEs": "Diámetro exterior del cable",
+        "valueEs": "6,5mm"
+      },
+      {
+        "group": "General",
+        "label": "Jacket Outer Material",
+        "value": "TPE (Thermoplastic Elastomer)",
+        "labelEs": "Material exterior de la cubierta",
+        "valueEs": "TPE (elastómero termoplástico)"
+      },
+      {
+        "group": "General",
+        "label": "Cable Filler",
+        "value": "Kevlar",
+        "labelEs": "Relleno del cable",
+        "valueEs": "Kevlar"
+      },
+      {
+        "group": "General",
+        "label": "Cable Weight",
+        "value": "5m: 0.95 lbs. (0.43kg); 10m: 1.63 lbs. (0.74kg)",
+        "labelEs": "Peso del cable",
+        "valueEs": "5m: 0,95 lb (0,43kg); 10m: 1,63 lb (0,74kg)"
+      },
+      {
+        "group": "General",
+        "label": "Cable Color",
+        "value": "Black or custom",
+        "labelEs": "Color del cable",
+        "valueEs": "Negro o personalizado"
+      },
+      {
+        "group": "General",
+        "label": "Bend radius",
+        "value": "10 x O.D.",
+        "labelEs": "Radio de curvatura",
+        "valueEs": "10 x O.D."
+      },
+      {
+        "group": "General",
+        "label": "Tensile Strength",
+        "value": "200N",
+        "labelEs": "Resistencia a la tracción",
+        "valueEs": "200N"
+      }
+    ],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/cusb-jav-c-c-10",
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+  },
+  {
+    "sku": "CUSB2-15",
+    "shortDescription": "Cable USB 2.0 de alta velocidad, blindado, con fichas tipo A y tipo B, de 15 ft.",
+    "longDescription": "Cable blindado USB 2.0 de alta velocidad, de A a B, de 15 ft.",
+    "keyFeatures": [],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/cusb2-15",
+    "tangoPath": "CABLES > ARMADOS > DATOS > USB"
+  },
+  {
+    "sku": "HT-ECLIPSE-RJ45-KIT",
+    "shortDescription": "Kit de bloqueadores para puertos de red RJ45 sin uso (1 llave + 4 trabas): impiden conectar cables o equipos sin autorización y solo se retiran con la llave.",
+    "longDescription": "Bloquea los puertos de red que no se usan para que nadie pueda conectar un cable o un equipo sin autorización. Las trabas quedan enganchadas dentro del puerto y solo salen con la llave.\n\nPara colocarlo, se monta el bloqueador en la llave y se inserta en el puerto; luego se sostiene el bloqueador en su lugar y se retira la llave. Para sacarlo, se vuelve a insertar la llave en el bloqueador hasta que haga clic y se tira hacia afuera.\n\nNota: los bloqueadores de puertos son un elemento disuasorio físico y visual. Úselos junto con las políticas de seguridad de red de su organización.",
+    "keyFeatures": [],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "HT-ECLIPSE-RJ45-KIT How To",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-ECPS-T10RJ-KT%20(HT-ECLIPSE-RJ45-KIT)/Manual/Eclipse%20How-To%20-%20RJ-45.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Eclipse One-Page",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/_Brochures/Eclipse%20Handout%20-%20Javelin_Final.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/ht-eclipse-rj45-kit",
+    "tangoPath": "CONECTIVIDAD > ACCESORIOS > CONECTORES RJ > TAPA JACK RJ45 / RJ11"
+  },
+  {
+    "sku": "HT-ECLIPSE-USBA-KIT",
+    "shortDescription": "Kit de bloqueadores para puertos USB-A sin uso (1 llave + 4 trabas): impiden conectar memorias, cables o equipos sin autorización y solo se retiran con la llave.",
+    "longDescription": "Bloquea los puertos USB-A que no se usan para que nadie pueda conectar una memoria, un cable o un equipo sin autorización. Cada traba queda en el puerto hasta que se retira con la llave.\n\nPara colocarla, se carga la traba en la llave de presionar y soltar, se inserta en el puerto USB-A y se presiona la llave para liberarla: la traba queda en el puerto. Para sacarla, se vuelve a insertar la llave en la traba y se tira hacia afuera.\n\nNota: los bloqueadores de puertos son un elemento disuasorio físico. Úselos junto con las políticas de seguridad de red y de equipos de su organización.",
+    "keyFeatures": [],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "HT-ECLIPSE-USBA-KIT How To",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-ECPS-T04UA-KT%20(HT-ECLIPSE-USBA-KIT)/Manual/Eclipse%20How-To%20-%20USB-A.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Eclipse One-Page",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/_Brochures/Eclipse%20Handout%20-%20Javelin_Final.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/ht-eclipse-usba-kit",
+    "tangoPath": "VARIOS > INFORMATICA > ACCESORIOS"
+  },
+  {
+    "sku": "JAV-WP-BKT",
+    "shortDescription": "Soporte para montar en superficie, bajo mesa, en muebles o en riel de rack equipos de placa de pared Decora de un módulo, como los transmisores Atlona Omega.",
+    "longDescription": "El Javelin JAV-WP-BKT es un soporte de montaje diseñado para equipos de formato de caja de pared estadounidense de un módulo (one-gang) o estilo Decora, ideal para instalaciones AV en pared, en superficie o en muebles.\n\nConstruido para ser durable y fácil de integrar, el JAV-WP-BKT asegura una terminación profesional en salas de reunión, aulas y espacios de colaboración, y ofrece flexibilidad tanto para obras nuevas como para la renovación de sistemas AV existentes.",
+    "keyFeatures": [
+      "Accesorio de montaje para productos de placa de pared Decora estadounidense de un módulo (one-gang)",
+      "Permite instalar cómodamente en superficie los transmisores de placa de pared Omega debajo de una mesa de reunión o en muebles como un atril o un escritorio",
+      "Puede usarse con otros productos AV estadounidenses de un módulo con placa frontal estilo Decora (este producto está diseñado solo para aplicaciones de baja tensión)",
+      "También puede instalarse en un riel de rack de equipos compatible",
+      "Incluye la tornillería necesaria para la instalación"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "JAV-WP-BKT Installation Guide",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/JAVELIN/JAV-WP-BKT%20(AT-OME-WP-BKT)/Installation%20Guide/AT-OME-WP-BKT_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-WP-BKT drawing",
+        "url": "https://atlona.com/pdf/cad/AT-OME-WP-BKT.dwg",
+        "fileType": "dwg"
+      },
+      {
+        "name": "JAV-WP-BKT (pdf)",
+        "url": "https://atlona.com/pdf/cad/AT-OME-WP-BKT.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/jav-wp-bkt",
+    "tangoPath": "VIDEO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+  },
+  {
+    "sku": "RMS-1U-1A",
+    "shortDescription": "Bandeja de 1 RU para rack que aloja de forma segura los extensores Hall Tech, con perforaciones previas para una instalación rápida.",
+    "longDescription": "La RMS-1U-1A es una bandeja de 1 RU para montaje en rack, diseñada para alojar de forma segura los extensores Hall Tech, con patrones de perforaciones previas que permiten una instalación rápida. Es ideal para racks AV profesionales e integradores de sistemas.",
+    "keyFeatures": [],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/rms-1u-1a",
+    "tangoPath": "RACK & CASES > ACCESORIOS > BANDEJAS RACK > BANDEJA RACK ESPECIFICA"
+  },
+  {
+    "sku": "U22-160-DP",
+    "shortDescription": "Kit extensor USB 2.0 por un único cable Cat5e/6 de hasta 50 m (165 ft): placa de pared Decora del lado local y hub remoto de dos puertos, para dispositivos de 480 Mb/s.",
+    "longDescription": "El U22-160-DP permite extender un puerto USB 2.0 hasta 50 m (165 ft) por un único cable Cat5e/6. Admite dispositivos de alta velocidad de 480 Mb/s e incluye un hub remoto de dos puertos y una placa de pared para el extremo local.\n\nEs ideal para salas de reunión, aulas y sistemas AV.",
+    "keyFeatures": [
+      "Extiende dispositivos USB 2.0 hasta 50 m (165 ft) por Cat5",
+      "Admite dispositivos de alta velocidad, velocidad completa y baja velocidad",
+      "LEDs de estado de alimentación y datos",
+      "Admite conexión y desconexión en caliente",
+      "Puede alimentar la mayoría de los dispositivos USB sin fuente de alimentación",
+      "Instalación plug-and-play",
+      "Lado local (host) en placa de pared Decora® de un módulo"
+    ],
+    "specifications": [
+      {
+        "group": "Interfaz de bus",
+        "label": "Value",
+        "value": "USB 2.0",
+        "labelEs": "Valor",
+        "valueEs": "USB 2.0"
+      },
+      {
+        "group": "Cantidad de puertos",
+        "label": "Value",
+        "value": "2 (on the Remote Unit)",
+        "labelEs": "Valor",
+        "valueEs": "2 (en la unidad remota)"
+      },
+      {
+        "group": "Unidad local",
+        "label": "Value",
+        "value": "1 x USB type B female 1 x RJ45 Ethernet female 1 x DC Power supply",
+        "labelEs": "Valor",
+        "valueEs": "1 x USB tipo B hembra 1 x RJ45 Ethernet hembra 1 x fuente de alimentación DC"
+      },
+      {
+        "group": "Unidad remota",
+        "label": "Value",
+        "value": "2 x USB type A female 1 x RJ45 Ethernet female 1 x DC Power supply",
+        "labelEs": "Valor",
+        "valueEs": "2 x USB tipo A hembra 1 x RJ45 Ethernet hembra 1 x fuente de alimentación DC"
+      },
+      {
+        "group": "LED",
+        "label": "Value",
+        "value": "1 x Power, 1 x Data",
+        "labelEs": "Valor",
+        "valueEs": "1 x alimentación, 1 x datos"
+      },
+      {
+        "group": "Velocidad máxima de datos",
+        "label": "Value",
+        "value": "480 Mbps",
+        "labelEs": "Valor",
+        "valueEs": "480 Mbps"
+      },
+      {
+        "group": "Distancia máxima del cable",
+        "label": "Value",
+        "value": "50m (165 ft)",
+        "labelEs": "Valor",
+        "valueEs": "50m (165 ft)"
+      },
+      {
+        "group": "Tipo de cable",
+        "label": "Value",
+        "value": "Cat 5e/6/6a",
+        "labelEs": "Valor",
+        "valueEs": "Cat 5e/6/6a"
+      },
+      {
+        "group": "Fuente de alimentación",
+        "label": "Value",
+        "value": "5V DC 2A",
+        "labelEs": "Valor",
+        "valueEs": "5V DC 2A"
+      },
+      {
+        "group": "Temperatura de funcionamiento",
+        "label": "Value",
+        "value": "32 to 122 °F (0 to 50 °C)",
+        "labelEs": "Valor",
+        "valueEs": "32 a 122 °F (0 a 50 °C)"
+      },
+      {
+        "group": "Humedad de funcionamiento",
+        "label": "Value",
+        "value": "20% – 80% RH",
+        "labelEs": "Valor",
+        "valueEs": "20% – 80% HR"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "Value",
+        "value": "Local: 4.5 x 2.7 x 1.8 inch (114 x 69 x 46 mm) Remote: 2.5 x 1.3 x 0.9 (65 x 35 x 25 mm) Shipping: 9.5 x 8 x 3 inch (24 x 20 x 8 cm)",
+        "labelEs": "Valor",
+        "valueEs": "Local: 4,5 x 2,7 x 1,8 pulgadas (114 x 69 x 46 mm) Remoto: 2,5 x 1,3 x 0,9 (65 x 35 x 25 mm) Con embalaje: 9,5 x 8 x 3 pulgadas (24 x 20 x 8 cm)"
+      },
+      {
+        "group": "Peso",
+        "label": "Value",
+        "value": "Shipping: 1.2 lbs (544 g)",
+        "labelEs": "Valor",
+        "valueEs": "Con embalaje: 1,2 lb (544 g)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "JAV-MISC-F1212-WP Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-160-DP_Specsheet_Nov_10.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "JAV-MISC-F1212-WP Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/U22-160-dp-Manual-.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/u22-160-dp",
+    "tangoPath": "VIDEO > ACCESORIOS > EXTENDER"
+  }
+]

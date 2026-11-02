@@ -205,6 +205,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               coefVtaFob: (product as any).coefVtaFob != null ? Number((product as any).coefVtaFob) : null,
               stockStatus: product.stockStatus,
+              commercialTag: product.commercialTag,
               stockQuantity: product.stockQuantity,
               isCustomizable: product.isCustomizable,
               requiresQuote: product.requiresQuote,

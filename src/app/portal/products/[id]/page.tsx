@@ -11,6 +11,7 @@ import { resolveCommercialClientId } from "@/lib/client-context";
 import { evaluateAccessoryPolicy } from "@/lib/accessory-context";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { Badge } from "@/components/ui/badge";
+import { commercialTagFor } from "@/lib/commercial-tags";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { FavoriteButton } from "../favorite-button";
 import { StockBadge } from "../catalog-grid";
@@ -289,6 +290,20 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               {product.category?.name ? ` · ${product.category.name}` : ""}
               {product.family?.name ? ` · ${product.family.name}` : ""}
             </p>
+            {(() => {
+              const tag = commercialTagFor({
+                commercialTag: product.commercialTag,
+                isDiscontinued: product.isDiscontinued,
+                discountPercent: pricing.discountPercent,
+                priceOnRequest: product.requiresQuote || pricing.finalPriceUsd <= 0,
+              });
+              return tag ? (
+                <p className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${tag.className}`}>{tag.label}</span>
+                  {tag.hint ? <span className="text-sm text-muted-foreground">{tag.hint}</span> : null}
+                </p>
+              ) : null;
+            })()}
             <h1 className="heading-2 text-2xl leading-tight sm:text-3xl">{productTitle(product)}</h1>
             {productSubtitle(product) ? <p className="muted-text mt-2">{productSubtitle(product)}</p> : null}
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -397,6 +412,23 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           ) : (
             <p className="muted-text">Sin descripción detallada cargada.</p>
           )}
+
+          {/* Características del fabricante: solo las que ya están en castellano (fichas traducidas). */}
+          {product.translatedAt && Array.isArray(product.keyFeatures) && product.keyFeatures.length > 0 ? (
+            <div className="mt-5 border-t border-border pt-4">
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-primary">Características destacadas</h3>
+              <ul className="grid gap-x-8 gap-y-1.5 text-[15px] leading-relaxed sm:grid-cols-2">
+                {(product.keyFeatures as unknown[])
+                  .filter((f): f is string => typeof f === "string" && f.trim().length > 0)
+                  .map((feature, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          ) : null}
 
           {product.aiGeneratedDescription ? (
             <AiContentNotice

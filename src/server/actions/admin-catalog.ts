@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isCommercialTag } from "@/lib/commercial-tags";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
@@ -199,6 +200,8 @@ const productSchema = z.object({
   coefVtaFob: z.coerce.number().min(0).optional().nullable(),
   stockStatus: z.enum(["IN_STOCK", "LOW_STOCK", "OUT_OF_STOCK", "ON_REQUEST", "UNKNOWN"]).default("UNKNOWN"),
   stockQuantity: z.coerce.number().int().min(0).optional().nullable(),
+  /** Cartel comercial; "" = automático. Sin el campo en el form no se toca. */
+  commercialTag: z.string().max(40).optional(),
   isCustomizable: z.coerce.boolean().optional(),
   isCrestronHomeCompatible: z.coerce.boolean().optional(),
   kind: z.enum(["PRINCIPAL", "ACCESORIO"]).default("PRINCIPAL"),
@@ -256,6 +259,7 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     coefVtaFob: formData.get("coefVtaFob") || null,
     stockStatus: formData.get("stockStatus") || "UNKNOWN",
     stockQuantity: formData.get("stockQuantity") || null,
+    commercialTag: formData.has("commercialTag") ? String(formData.get("commercialTag") || "") : undefined,
     isCustomizable: formData.get("isCustomizable") === "on" || formData.get("isCustomizable") === "true",
     isCrestronHomeCompatible: formData.get("isCrestronHomeCompatible") === "on" || formData.get("isCrestronHomeCompatible") === "true",
     kind: formData.get("kind") || "PRINCIPAL",
@@ -297,6 +301,9 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     coefVtaFob: parsed.data.coefVtaFob ?? null,
     stockStatus: parsed.data.stockStatus,
     stockQuantity: parsed.data.stockQuantity ?? null,
+    ...(parsed.data.commercialTag !== undefined
+      ? { commercialTag: isCommercialTag(parsed.data.commercialTag) ? parsed.data.commercialTag : null }
+      : {}),
     isCustomizable: parsed.data.isCustomizable ?? false,
     isCrestronHomeCompatible: parsed.data.isCrestronHomeCompatible ?? false,
     kind: parsed.data.kind,

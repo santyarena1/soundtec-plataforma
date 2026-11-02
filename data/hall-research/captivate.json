@@ -1,0 +1,2818 @@
+[
+  {
+    "sku": "AT-HDVS-CAM-W",
+    "shortDescription": "Cámara PTZ con interfaz USB 2.0 para videoconferencia, captura de clases y educación a distancia: 1080p a 30 Hz, zoom óptico de 10x, streaming H.264/H.265 por IP. Color blanco.",
+    "longDescription": "La Atlona AT-HDVS-CAM-W es una cámara PTZ de nivel corporativo para videoconferencia y otras aplicaciones, como captura de clases y educación a distancia. Tiene una interfaz USB 2.0 para video y control de la cámara.\n\nLa HDVS-CAM se integra con la serie Omega™ y con OmniStream™ para formar un sistema de conferencia completo y automatizado con extensión AV y USB. Ofrece imagen de calidad profesional con resoluciones de video de hasta 1080p a 30 Hz, enfoque automático rápido y preciso, y un mecanismo de paneo e inclinación rápido y silencioso. También ofrece streaming H.264 o H.265 por IP con soporte de los protocolos RTMP y RTSP.\n\nEs adecuada para una amplia variedad de salas de reuniones chicas y medianas, aulas y salas de capacitación. La HDVS-CAM se ofrece en negro o blanco.",
+    "keyFeatures": [
+      "Diseñada para videoconferencia con sistemas AV que admiten interfaz y extensión USB",
+      "Interfaz USB 2.0 para video",
+      "Compatible con cualquier PC mediante el driver estándar UVC 1.1 (USB Video Class)",
+      "Funciona con los códecs por software y clientes de comunicaciones unificadas más usados, como Microsoft® Teams, Zoom™, Slack™, WebEx® y GoToMeeting®",
+      "Control de la cámara por USB desde aplicaciones compatibles como Zoom Rooms",
+      "Hasta 255 presets de cámara, 10 accesibles desde el control remoto IR",
+      "Admite los protocolos de control de cámara VISCA, Pelco-D y Pelco-P",
+      "Enfoque automático rápido y preciso, con modos de balance de blancos y exposición automáticos",
+      "Mecanismo de paneo e inclinación rápido y silencioso",
+      "Ajustes de imagen de brillo, color, saturación, contraste, nitidez y gamma",
+      "Streaming de video H.264 y H.265 por red IP, con soporte de los protocolos RTMP y RTSP",
+      "Configuración sencilla por interfaz gráfica mediante el servidor web integrado",
+      "Control por TCP/IP, RS-232, USB e IR; incluye control remoto IR de mano",
+      "Resoluciones de video disponibles desde 176×144 hasta 1080p a 30 Hz",
+      "Imagen de alto rendimiento, buen detalle y reproducción de color con sensor HD CMOS de bajo ruido de 1/2,8″",
+      "Lente zoom de varios elementos con zoom óptico de 10x y campo de visión horizontal de 60,9°",
+      "Compatible con rosca de trípode estándar 1/4-20 UNC",
+      "Incluye guía de instalación, soporte de montaje en pared, control remoto IR, cable USB tipo A macho a macho de 2 m (6,5 ft), adaptador VISCA a RS-232 DB-9, tapa de lente y fuente de alimentación universal externa"
+    ],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Signal",
+        "value": "USB",
+        "labelEs": "Señal",
+        "valueEs": "USB"
+      },
+      {
+        "group": "Video",
+        "label": "HD",
+        "value": "1920x1080p@60/59.97/50/30/29.97/25 Hz; 1920x1080i@60/59.94/50 Hz; 1280x720p@60/59.94/50 Hz",
+        "labelEs": "HD",
+        "valueEs": "1920x1080p@60/59.97/50/30/29.97/25 Hz; 1920x1080i@60/59.94/50 Hz; 1280x720p@60/59.94/50 Hz"
+      },
+      {
+        "group": "Video",
+        "label": "Color Space",
+        "value": "YUV, RGB",
+        "labelEs": "Espacio de color",
+        "valueEs": "YUV, RGB"
+      },
+      {
+        "group": "Video",
+        "label": "Chroma Subsampling",
+        "value": "4:4:4, 4:2:2, 4:2:0",
+        "labelEs": "Submuestreo de croma",
+        "valueEs": "4:4:4, 4:2:2, 4:2:0"
+      },
+      {
+        "group": "Streaming",
+        "label": "Video Compression",
+        "value": "H.264 / H.265",
+        "labelEs": "Compresión de video",
+        "valueEs": "H.264 / H.265"
+      },
+      {
+        "group": "Streaming",
+        "label": "Protocol",
+        "value": "TCP, UDP, RTMP, RTSP",
+        "labelEs": "Protocolo",
+        "valueEs": "TCP, UDP, RTMP, RTSP"
+      },
+      {
+        "group": "Streaming",
+        "label": "Bitrate",
+        "value": "46 kbps - 40960 kbps",
+        "labelEs": "Tasa de bits",
+        "valueEs": "46 kbps - 40960 kbps"
+      },
+      {
+        "group": "Streaming",
+        "label": "Compression Profiles",
+        "value": "BP, MP, HP",
+        "labelEs": "Perfiles de compresión",
+        "valueEs": "BP, MP, HP"
+      },
+      {
+        "group": "Streaming",
+        "label": "Bitrate Control",
+        "value": "VBR",
+        "labelEs": "Control de tasa de bits",
+        "valueEs": "VBR"
+      },
+      {
+        "group": "Streaming",
+        "label": "Multi-Stream",
+        "value": "Main Stream / Sub Stream (simultaneous stream output) (1) Tested using VLC media player connected to the camera.",
+        "labelEs": "Multistream",
+        "valueEs": "Stream principal / substream (salida simultánea de streams) (1) Probado con el reproductor VLC conectado a la cámara."
+      },
+      {
+        "group": "Streaming",
+        "label": "Latency",
+        "value": "175 ms",
+        "labelEs": "Latencia",
+        "valueEs": "175 ms"
+      },
+      {
+        "group": "Cámara",
+        "label": "Sensor",
+        "value": "1/2.8\" HD CMOS",
+        "labelEs": "Sensor",
+        "valueEs": "CMOS HD de 1/2,8\""
+      },
+      {
+        "group": "Cámara",
+        "label": "Effective Pixels",
+        "value": "16:9, 2.07 MP",
+        "labelEs": "Píxeles efectivos",
+        "valueEs": "16:9, 2,07 MP"
+      },
+      {
+        "group": "Cámara",
+        "label": "Optical Zoom",
+        "value": "f = 4.7 ~ 47 mm",
+        "labelEs": "Zoom óptico",
+        "valueEs": "f = 4,7 a 47 mm"
+      },
+      {
+        "group": "Cámara",
+        "label": "View Angle",
+        "value": "6.43° (telephoto), 60.9° (wide-angle)",
+        "labelEs": "Ángulo de visión",
+        "valueEs": "6,43° (teleobjetivo), 60,9° (gran angular)"
+      },
+      {
+        "group": "Cámara",
+        "label": "Av",
+        "value": "f/1.6 - f/3.0",
+        "labelEs": "Av",
+        "valueEs": "f/1.6 - f/3.0"
+      },
+      {
+        "group": "Cámara",
+        "label": "Digital Zoom",
+        "value": "10X",
+        "labelEs": "Zoom digital",
+        "valueEs": "10X"
+      },
+      {
+        "group": "Cámara",
+        "label": "Minimum Illumination",
+        "value": "0.5 lm (f/1.8 with AGC On)",
+        "labelEs": "Iluminación mínima",
+        "valueEs": "0,5 lm (f/1.8 con AGC activado)"
+      },
+      {
+        "group": "Cámara",
+        "label": "DNR",
+        "value": "2D / 3D",
+        "labelEs": "DNR",
+        "valueEs": "2D / 3D"
+      },
+      {
+        "group": "Cámara",
+        "label": "White Balance",
+        "value": "Auto / Manual / One Push / 3000 K / 4000 K / 5000 K / 6500 K",
+        "labelEs": "Balance de blancos",
+        "valueEs": "Automático / Manual / One Push / 3000 K / 4000 K / 5000 K / 6500 K"
+      },
+      {
+        "group": "Cámara",
+        "label": "Focus",
+        "value": "Auto / Manual",
+        "labelEs": "Enfoque",
+        "valueEs": "Automático / Manual"
+      },
+      {
+        "group": "Cámara",
+        "label": "Aperture",
+        "value": "Auto / Manual",
+        "labelEs": "Apertura",
+        "valueEs": "Automática / Manual"
+      },
+      {
+        "group": "Cámara",
+        "label": "Electronic Shutter",
+        "value": "Auto / Manual",
+        "labelEs": "Obturador electrónico",
+        "valueEs": "Automático / Manual"
+      },
+      {
+        "group": "Cámara",
+        "label": "BLC",
+        "value": "ON / OFF",
+        "labelEs": "BLC",
+        "valueEs": "Activado / Desactivado"
+      },
+      {
+        "group": "Cámara",
+        "label": "WDR",
+        "value": "Off / Dynamic Level Adjustment",
+        "labelEs": "WDR",
+        "valueEs": "Desactivado / ajuste dinámico de nivel"
+      },
+      {
+        "group": "Cámara",
+        "label": "Video Adjustment",
+        "value": "Brightness, Color, Saturation, Contrast, Sharpness, B/W Mode, Gamma Curve",
+        "labelEs": "Ajustes de video",
+        "valueEs": "Brillo, color, saturación, contraste, nitidez, modo blanco y negro, curva gamma"
+      },
+      {
+        "group": "Cámara",
+        "label": "SNR",
+        "value": "> 55 dB",
+        "labelEs": "Relación señal/ruido",
+        "valueEs": "> 55 dB"
+      },
+      {
+        "group": "PTZ",
+        "label": "Pan Rotation",
+        "value": "± 170°",
+        "labelEs": "Giro horizontal (pan)",
+        "valueEs": "± 170°"
+      },
+      {
+        "group": "PTZ",
+        "label": "Tilt Rotation",
+        "value": "-30° ~ +90°",
+        "labelEs": "Giro vertical (tilt)",
+        "valueEs": "-30° a +90°"
+      },
+      {
+        "group": "PTZ",
+        "label": "Pan Control Speed",
+        "value": "0.1 - 180° / sec",
+        "labelEs": "Velocidad de pan",
+        "valueEs": "0,1 - 180° / s"
+      },
+      {
+        "group": "PTZ",
+        "label": "Tilt Control Speed",
+        "value": "0.1 - 80° / sec",
+        "labelEs": "Velocidad de tilt",
+        "valueEs": "0,1 - 80° / s"
+      },
+      {
+        "group": "PTZ",
+        "label": "Preset Speed",
+        "value": "Pan: 60° / sec, Tilt: 30° / sec",
+        "labelEs": "Velocidad de presets",
+        "valueEs": "Pan: 60° / s, tilt: 30° / s"
+      },
+      {
+        "group": "PTZ",
+        "label": "Preset Number",
+        "value": "255 (10 presets using the included IR remote control)",
+        "labelEs": "Cantidad de presets",
+        "valueEs": "255 (10 presets desde el control remoto IR incluido)"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB",
+        "value": "1 x USB, Type A",
+        "labelEs": "USB",
+        "valueEs": "1 × USB tipo A"
+      },
+      {
+        "group": "Conectores",
+        "label": "LAN",
+        "value": "1 x RJ45, 100Base-T",
+        "labelEs": "LAN",
+        "valueEs": "1 × RJ45, 100Base-T"
+      },
+      {
+        "group": "Conectores",
+        "label": "AUDIO IN",
+        "value": "1 x 3.5 mm, stereo",
+        "labelEs": "AUDIO IN",
+        "valueEs": "1 × 3,5 mm, estéreo"
+      },
+      {
+        "group": "Conectores",
+        "label": "RS-232",
+        "value": "2 x 9-pin DIN",
+        "labelEs": "RS-232",
+        "valueEs": "2 × DIN de 9 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "12VDC",
+        "value": "1 x HEC3800",
+        "labelEs": "12VDC",
+        "valueEs": "1 × HEC3800"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Operating",
+        "value": "14 to 122 °F (-10 to 50 °C)",
+        "labelEs": "Funcionamiento",
+        "valueEs": "14 a 122 °F (-10 a 50 °C)"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Storage",
+        "value": "-14 to 140 °F (-10 to 60 °C)",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-14 a 140 °F (-10 a 60 °C)"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Operating Humidity (RH)",
+        "value": "20% to 80%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "20 % a 80 %, sin condensación"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Storage Humidity (RH)",
+        "value": "20% to 95%, non-condensing",
+        "labelEs": "Humedad de almacenamiento (HR)",
+        "valueEs": "20 % a 95 %, sin condensación"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "12 W",
+        "labelEs": "Consumo",
+        "valueEs": "12 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "BTU/h",
+        "value": "40.9",
+        "labelEs": "BTU/h",
+        "valueEs": "40,9"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Supply",
+        "value": "Input: 110 - 220 V AC, 50/60 Hz; Output: 12 V DC, 1 A",
+        "labelEs": "Alimentación",
+        "valueEs": "Entrada: 110 - 220 V CA, 50/60 Hz; salida: 12 V CC, 1 A"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Unit",
+        "value": "6.59 x 5.90 x 5.90 in (167.5 x 150 x 150 mm)",
+        "labelEs": "Equipo",
+        "valueEs": "6,59 × 5,90 × 5,90 in (167,5 × 150 × 150 mm)"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Power Supply (AT-PS-122-NL)",
+        "value": "1.26 x 1.97 x 3.7 in (32.05 x 50 x 94 mm)",
+        "labelEs": "Fuente de alimentación (AT-PS-122-NL)",
+        "valueEs": "1,26 × 1,97 × 3,7 in (32,05 × 50 × 94 mm)"
+      },
+      {
+        "group": "Peso",
+        "label": "Device",
+        "value": "3.08 lb (1.4 kg)",
+        "labelEs": "Equipo",
+        "valueEs": "3,08 lb (1,4 kg)"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC"
+      },
+      {
+        "group": "Garantía",
+        "label": "Device",
+        "value": "To view the product warranty, use the following link: https://atlona.com/warranty",
+        "labelEs": "Equipo",
+        "valueEs": "Para ver la garantía del producto, use el siguiente enlace: https://atlona.com/warranty"
+      },
+      {
+        "group": "Accesorios",
+        "label": "AT-HDVS-CAM-CMNT",
+        "value": "Ceiling Mount Kit for AT-HDVS-CAM",
+        "labelEs": "AT-HDVS-CAM-CMNT",
+        "valueEs": "Kit de montaje en techo para AT-HDVS-CAM"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-HDVS-CAM Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-HDVS-CAM_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-HDVS-CAM Installation Guide",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-HDVS-CAM_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-HDVS-CAM Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-HDVS-CAM.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-hdvs-cam-w",
+    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ"
+  },
+  {
+    "sku": "HT-VOYAGER2",
+    "shortDescription": "Transmisor inalámbrico de presentación USB-C (ex Voyager de Captivate) para compartir pantalla en 4K a 30 fps sin instalar aplicaciones, en salas BYOD y aulas.",
+    "longDescription": "El transmisor inalámbrico de presentación USB-C, antes conocido como Voyager de Captivate, permite compartir pantalla en 4K a 30 sin necesidad de aplicaciones. Es adecuado para salas de reuniones BYOD, aulas y espacios de colaboración.",
+    "keyFeatures": [
+      "Transmisión inalámbrica de video de hasta 4K a 30 fps con baja latencia",
+      "Plug and play: no requiere instalación ni drivers",
+      "Rápido y simple: se presiona el botón para transmitir video y audio",
+      "Admite las bandas de 5G y 2,4G",
+      "Distancia de transmisión suficiente para el uso en salas de reuniones",
+      "Compatible con los sistemas operativos más usados, como Windows 10/11 y Mac OS"
+    ],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Max Resolution",
+        "value": "3840 x 2160p @ 30fps",
+        "labelEs": "Resolución máxima",
+        "valueEs": "3840 x 2160p @ 30fps"
+      },
+      {
+        "group": "Video",
+        "label": "Terminal Type",
+        "value": "1 x Type-C (Support DP Alt mode)",
+        "labelEs": "Tipo de terminal",
+        "valueEs": "1 x Type-C (admite DP Alt mode)"
+      },
+      {
+        "group": "Video",
+        "label": "Frequence",
+        "value": "5GHz (default) and 2.4 GHz",
+        "labelEs": "Frecuencia",
+        "valueEs": "5GHz (predeterminado) y 2,4 GHz"
+      },
+      {
+        "group": "USB",
+        "label": "Operating System",
+        "value": "Windows 10/11, Mac OS",
+        "labelEs": "Sistema operativo",
+        "valueEs": "Windows 10/11, Mac OS"
+      },
+      {
+        "group": "USB",
+        "label": "USB Cable",
+        "value": "Integrated",
+        "labelEs": "Cable USB",
+        "valueEs": "Integrado"
+      },
+      {
+        "group": "General",
+        "label": "Input Voltage",
+        "value": "5V (power over USB)",
+        "labelEs": "Tensión de entrada",
+        "valueEs": "5V (alimentación por USB)"
+      },
+      {
+        "group": "General",
+        "label": "Operating Temperature",
+        "value": "0 to +42 C (32 to +104F)",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "0 a +42 C (32 a +104F)"
+      },
+      {
+        "group": "General",
+        "label": "Storage Temperature",
+        "value": "-20 to +70C (-4 to +158F)",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-20 a +70C (-4 a +158F)"
+      },
+      {
+        "group": "General",
+        "label": "Humidity",
+        "value": "10% to 90%, non-condensing",
+        "labelEs": "Humedad",
+        "valueEs": "10% a 90%, sin condensación"
+      },
+      {
+        "group": "General",
+        "label": "Device Dimension (WxHxD)",
+        "value": "2.72\" x .55\" x 2.72\" (69mm x 14mm x 69mm)",
+        "labelEs": "Dimensiones del equipo (ancho × alto × profundidad)",
+        "valueEs": "2,72\" x 0,55\" x 2,72\" (69mm x 14mm x 69mm)"
+      },
+      {
+        "group": "General",
+        "label": "Net Weight",
+        "value": ".15lbs (.07kg)",
+        "labelEs": "Peso neto",
+        "valueEs": "0,15 lb (0,07 kg)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "HT-VOYAGER2 Specifications",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-WAVE-Y1211-PK%20(HT-VOYAGER2)/Spec%20Sheet/HT-VOYAGER2-Spec-Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "HT-VOYAGER2 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-WAVE-Y1211-PK%20(HT-VOYAGER2)/Manual/HT-VOYAGER2_Manual.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/ht-voyager2",
+    "tangoPath": "VIDEO > PROCESADORES > PRESENTADOR AIR MEDIA"
+  },
+  {
+    "sku": "AT-CAP-FC110",
+    "shortDescription": "Cámara 4K ePTZ con encuadre automático de hasta 6 participantes, campo de visión horizontal de 110°, zoom digital 4x e interfaz USB-C, para salas de reuniones, huddle y aulas.",
+    "longDescription": "La Pivot ePTZ es una cámara 4K profesional con encuadre automático, diseñada para salas de reuniones, salas huddle y aulas.",
+    "keyFeatures": [
+      "Diseñada para videoconferencia y otras aplicaciones con sistemas AV que admiten interfaz y extensión USB",
+      "Interfaz USB-C para video y audio, y para alimentar el equipo",
+      "Zoom digital 4x y campo de visión horizontal amplio de 110° (el zoom queda fijo en 1x para video 4K)",
+      "Funciona con los códecs por software y clientes de comunicaciones unificadas más usados, como Microsoft Teams, Zoom, Webex®, Google Meet™, GoToMeeting® y Amazon Chime®",
+      "Control de la cámara por USB desde aplicaciones compatibles como Zoom Rooms",
+      "Detecta y reencuadra automáticamente hasta 6 participantes"
+    ],
+    "specifications": [
+      {
+        "group": "Formato de señal de video",
+        "label": "USB 2.0 Compression",
+        "value": "USB 2.0 Resolution @ FR",
+        "labelEs": "Compresión USB 2.0",
+        "valueEs": "Resolución USB 2.0 @ cuadros por segundo"
+      },
+      {
+        "group": "Formato de señal de video",
+        "label": "MJPEG, H.264/265",
+        "value": "1920×1080 @ 30/25 Hz, 1280×720 @ 30/25 Hz, 640×360 @ 30/25 Hz",
+        "labelEs": "MJPEG, H.264/265",
+        "valueEs": "1920×1080 @ 30/25 Hz, 1280×720 @ 30/25 Hz, 640×360 @ 30/25 Hz"
+      },
+      {
+        "group": "Formato de señal de video",
+        "label": "YUY2",
+        "value": "640×360 @ 30/25 Hz",
+        "labelEs": "YUY2",
+        "valueEs": "640×360 @ 30/25 Hz"
+      },
+      {
+        "group": "Formato de señal de video",
+        "label": "USB 3.0 Compression",
+        "value": "USB 3.0 Resolution @ FR",
+        "labelEs": "Compresión USB 3.0",
+        "valueEs": "Resolución USB 3.0 @ cuadros por segundo"
+      },
+      {
+        "group": "Formato de señal de video",
+        "label": "MJPEG, H.264/265",
+        "value": "3840×2160 @ 30/25 Hz, 1920×1080 @ 30/25 Hz, 1280×720 @ 30/25 Hz, 40×360 @ 30/25 Hz",
+        "labelEs": "MJPEG, H.264/265",
+        "valueEs": "3840×2160 @ 30/25 Hz, 1920×1080 @ 30/25 Hz, 1280×720 @ 30/25 Hz, 40×360 @ 30/25 Hz"
+      },
+      {
+        "group": "Formato de señal de video",
+        "label": "YUY2",
+        "value": "1920×1080 @ 30/25 Hz, 1280×720 @ 30/25 Hz, 640×360 @ 30/25 Hz",
+        "labelEs": "YUY2",
+        "valueEs": "1920×1080 @ 30/25 Hz, 1280×720 @ 30/25 Hz, 640×360 @ 30/25 Hz"
+      },
+      {
+        "group": "Formato de señal de video",
+        "label": "NV12",
+        "value": "1920×1080 @ 30/25 Hz, 1280×720 @ 30/25 Hz, 640×360 @ 30/25 Hz",
+        "labelEs": "NV12",
+        "valueEs": "1920×1080 @ 30/25 Hz, 1280×720 @ 30/25 Hz, 640×360 @ 30/25 Hz"
+      },
+      {
+        "group": "Cámara",
+        "label": "Sensor",
+        "value": "1/2.8” CMOS, Progressive scan",
+        "labelEs": "Sensor",
+        "valueEs": "CMOS de 1/2.8”, escaneo progresivo"
+      },
+      {
+        "group": "Cámara",
+        "label": "Effective Pixels",
+        "value": "8.42 MP",
+        "labelEs": "Píxeles efectivos",
+        "valueEs": "8,42 MP"
+      },
+      {
+        "group": "Cámara",
+        "label": "Focal Length",
+        "value": "f = 2.1 mm",
+        "labelEs": "Distancia focal",
+        "valueEs": "f = 2,1 mm"
+      },
+      {
+        "group": "Cámara",
+        "label": "View Angle",
+        "value": "D: 120.1°, H: 109.7°, V: 87°",
+        "labelEs": "Ángulo de visión",
+        "valueEs": "D: 120.1°, H: 109.7°, V: 87°"
+      },
+      {
+        "group": "Cámara",
+        "label": "Aperture",
+        "value": "F2.2",
+        "labelEs": "Apertura",
+        "valueEs": "F2.2"
+      },
+      {
+        "group": "Cámara",
+        "label": "Digital Zoom",
+        "value": "4X",
+        "labelEs": "Zoom digital",
+        "valueEs": "4X"
+      },
+      {
+        "group": "Cámara",
+        "label": "White Balance",
+        "value": "Auto, Manual, Static",
+        "labelEs": "Balance de blancos",
+        "valueEs": "Automático, manual, estático"
+      },
+      {
+        "group": "Cámara",
+        "label": "Video Adjustment",
+        "value": "Brightness, Contrast, Hue, Saturation, Sharpness, Gamma, Gain",
+        "labelEs": "Ajuste de video",
+        "valueEs": "Brillo, contraste, tono, saturación, nitidez, gamma, ganancia"
+      },
+      {
+        "group": "Cámara",
+        "label": "Exposure Control",
+        "value": "Auto",
+        "labelEs": "Control de exposición",
+        "valueEs": "Automático"
+      },
+      {
+        "group": "Cámara",
+        "label": "SNR",
+        "value": "≥ 50 dB",
+        "labelEs": "SNR",
+        "valueEs": "≥ 50 dB"
+      },
+      {
+        "group": "Audio",
+        "label": "Audio Input",
+        "value": "Built-in dual MIC pick-up",
+        "labelEs": "Entrada de audio",
+        "valueEs": "Doble micrófono integrado"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB",
+        "value": "1 x USB-C 3.0",
+        "labelEs": "USB",
+        "valueEs": "1 x USB-C 3.0"
+      },
+      {
+        "group": "Temperatura (Fahrenheit)",
+        "label": "Operating",
+        "value": "+32° to 104°",
+        "labelEs": "Funcionamiento",
+        "valueEs": "+32° a 104°"
+      },
+      {
+        "group": "Temperatura (Fahrenheit)",
+        "label": "Storage",
+        "value": "-4° to 140°",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-4° a 140°"
+      },
+      {
+        "group": "Temperatura (Fahrenheit)",
+        "label": "Operating Humidity (RH)",
+        "value": "10% to 90%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "10% a 90%, sin condensación"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "< 2.5 W",
+        "labelEs": "Consumo",
+        "valueEs": "< 2.5 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "BTU/h",
+        "value": "4.6",
+        "labelEs": "BTU/h",
+        "valueEs": "4.6"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Supply",
+        "value": "5 V DC, 0.5 A (USB)",
+        "labelEs": "Alimentación",
+        "valueEs": "5 V DC, 0,5 A (USB)"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad) (pulgadas)",
+        "label": "Unit",
+        "value": "1.89 x 8.27 x 2.91",
+        "labelEs": "Equipo",
+        "valueEs": "1.89 x 8.27 x 2.91"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad) (milímetros)",
+        "label": "Unit",
+        "value": "48 x 210 x 74",
+        "labelEs": "Equipo",
+        "valueEs": "48 x 210 x 74"
+      },
+      {
+        "group": "Peso (onzas)",
+        "label": "Device",
+        "value": "10.58",
+        "labelEs": "Equipo",
+        "valueEs": "10.58"
+      },
+      {
+        "group": "Peso (gramos)",
+        "label": "Device",
+        "value": "300",
+        "labelEs": "Equipo",
+        "valueEs": "300"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC"
+      },
+      {
+        "group": "Normativas",
+        "label": "NDAA-899",
+        "value": "Yes",
+        "labelEs": "NDAA-899",
+        "valueEs": "Sí"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-CAP-FC110 Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-CAP-FC110_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-CAP-FC110 Installation Guide",
+        "url": "https://atlona.com/pdf/manuals/AT-CAP-FC110_G_WEB.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-CAP-FC110 Manual",
+        "url": "https://atlona.com/pdf/manuals/AT-CAP-FC110.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-CAP-FC110",
+        "url": "https://atlona.com/pdf/cad/AT-CAP-FC110.dwg",
+        "fileType": "dwg"
+      },
+      {
+        "name": "AT-CAP-FC110 (pdf)",
+        "url": "https://atlona.com/pdf/cad/AT-CAP-FC110.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-cap-fc110",
+    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ"
+  },
+  {
+    "sku": "AT-HDVS-CAM",
+    "shortDescription": "Cámara PTZ para videoconferencia y captura de clases con interfaz USB 2.0, video hasta 1080p a 30 Hz, zoom óptico 10x, streaming H.264/H.265 por IP (RTMP/RTSP) y control VISCA/Pelco.",
+    "longDescription": "La Atlona AT-HDVS-CAM es una cámara PTZ de nivel corporativo, diseñada para videoconferencia y otras aplicaciones como captura de clases y educación a distancia. Tiene una interfaz USB 2.0 para video y control de cámara.\n\nLa HDVS-CAM se integra con las líneas Omega y OmniStream para formar un sistema de conferencia completo y automatizado que incluye extensión de AV y USB. Ofrece imagen de calidad profesional con resoluciones de video de hasta 1080p a 30 Hz, enfoque automático rápido y preciso, y un mecanismo de paneo e inclinación rápido y silencioso.\n\nTambién permite streaming H.264 o H.265 por IP, con soporte de los protocolos RTMP y RTSP. Esta cámara PTZ es ideal para una amplia variedad de salas de reunión chicas y medianas, aulas y salas de capacitación. La HDVS-CAM se ofrece en negro o blanco.",
+    "keyFeatures": [
+      "Diseñada para videoconferencia con sistemas AV que admiten interfaz y extensión USB",
+      "Interfaz USB 2.0 para video",
+      "Compatibilidad universal con PC mediante el driver estándar UVC 1.1 (USB Video Class)",
+      "Funciona con los soft codecs y clientes de comunicaciones unificadas más usados, como Microsoft Teams, Zoom, Slack, WebEx y GoToMeeting",
+      "Control de cámara por USB desde aplicaciones compatibles, como Zoom Rooms",
+      "Hasta 255 presets de cámara, 10 accesibles desde el control remoto IR",
+      "Soporta los protocolos de control de cámara VISCA, Pelco-D y Pelco-P",
+      "Enfoque automático rápido y preciso, más modos de balance de blancos y exposición automáticos",
+      "Mecanismo de paneo e inclinación rápido y silencioso",
+      "Controles de imagen de brillo, color, saturación, contraste, nitidez y gamma",
+      "Streaming de video H.264 y H.265 por red IP, con soporte de los protocolos RTMP y RTSP",
+      "Configuración sencilla mediante interfaz gráfica en el servidor web integrado",
+      "Control por TCP/IP, RS-232, USB e IR; incluye control remoto IR de mano",
+      "Resoluciones de video disponibles desde 176×144 hasta 1080p a 30 Hz",
+      "Imagen de alto rendimiento, buen detalle y reproducción de color con sensor CMOS HD de bajo ruido de 1/2,8″",
+      "Lente zoom de varios elementos con zoom óptico 10x y campo de visión horizontal de 60,9°",
+      "Compatible con la rosca estándar de trípode 1/4-20 UNC",
+      "Incluye guía de instalación, soporte de montaje en pared, control remoto IR, cable USB tipo A macho a macho de 2 metros (6,5 pies), adaptador VISCA a RS-232 DB-9, tapa de lente y fuente de alimentación universal externa"
+    ],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Signal",
+        "value": "USB",
+        "labelEs": "Señal",
+        "valueEs": "USB"
+      },
+      {
+        "group": "Video",
+        "label": "HD",
+        "value": "1920x1080p@60/59.97/50/30/29.97/25 Hz; 1920x1080i@60/59.94/50 Hz; 1280x720p@60/59.94/50 Hz",
+        "labelEs": "HD",
+        "valueEs": "1920x1080p@60/59.97/50/30/29.97/25 Hz; 1920x1080i@60/59.94/50 Hz; 1280x720p@60/59.94/50 Hz"
+      },
+      {
+        "group": "Video",
+        "label": "Color Space",
+        "value": "YUV, RGB",
+        "labelEs": "Espacio de color",
+        "valueEs": "YUV, RGB"
+      },
+      {
+        "group": "Video",
+        "label": "Chroma Subsampling",
+        "value": "4:4:4, 4:2:2, 4:2:0",
+        "labelEs": "Submuestreo de croma",
+        "valueEs": "4:4:4, 4:2:2, 4:2:0"
+      },
+      {
+        "group": "Streaming",
+        "label": "Video Compression",
+        "value": "H.264 / H.265",
+        "labelEs": "Compresión de video",
+        "valueEs": "H.264 / H.265"
+      },
+      {
+        "group": "Streaming",
+        "label": "Protocol",
+        "value": "TCP, UDP, RTMP, RTSP",
+        "labelEs": "Protocolo",
+        "valueEs": "TCP, UDP, RTMP, RTSP"
+      },
+      {
+        "group": "Streaming",
+        "label": "Bitrate",
+        "value": "46 kbps - 40960 kbps",
+        "labelEs": "Tasa de bits",
+        "valueEs": "46 kbps - 40960 kbps"
+      },
+      {
+        "group": "Streaming",
+        "label": "Compression Profiles",
+        "value": "BP, MP, HP",
+        "labelEs": "Perfiles de compresión",
+        "valueEs": "BP, MP, HP"
+      },
+      {
+        "group": "Streaming",
+        "label": "Bitrate Control",
+        "value": "VBR",
+        "labelEs": "Control de tasa de bits",
+        "valueEs": "VBR"
+      },
+      {
+        "group": "Streaming",
+        "label": "Multi-Stream",
+        "value": "Main Stream / Sub Stream (simultaneous stream output) (1) Tested using VLC media player connected to the camera.",
+        "labelEs": "Multistream",
+        "valueEs": "Stream principal / substream (salida simultánea de streams) (1) Probado con el reproductor VLC conectado a la cámara."
+      },
+      {
+        "group": "Streaming",
+        "label": "Latency",
+        "value": "175 ms",
+        "labelEs": "Latencia",
+        "valueEs": "175 ms"
+      },
+      {
+        "group": "Cámara",
+        "label": "Sensor",
+        "value": "1/2.8\" HD CMOS",
+        "labelEs": "Sensor",
+        "valueEs": "CMOS HD de 1/2,8\""
+      },
+      {
+        "group": "Cámara",
+        "label": "Effective Pixels",
+        "value": "16:9, 2.07 MP",
+        "labelEs": "Píxeles efectivos",
+        "valueEs": "16:9, 2,07 MP"
+      },
+      {
+        "group": "Cámara",
+        "label": "Optical Zoom",
+        "value": "f = 4.7 ~ 47 mm",
+        "labelEs": "Zoom óptico",
+        "valueEs": "f = 4,7 a 47 mm"
+      },
+      {
+        "group": "Cámara",
+        "label": "View Angle",
+        "value": "6.43° (telephoto), 60.9° (wide-angle)",
+        "labelEs": "Ángulo de visión",
+        "valueEs": "6,43° (teleobjetivo), 60,9° (gran angular)"
+      },
+      {
+        "group": "Cámara",
+        "label": "Av",
+        "value": "f/1.6 - f/3.0",
+        "labelEs": "Av",
+        "valueEs": "f/1.6 - f/3.0"
+      },
+      {
+        "group": "Cámara",
+        "label": "Digital Zoom",
+        "value": "10X",
+        "labelEs": "Zoom digital",
+        "valueEs": "10X"
+      },
+      {
+        "group": "Cámara",
+        "label": "Minimum Illumination",
+        "value": "0.5 lm (f/1.8 with AGC On)",
+        "labelEs": "Iluminación mínima",
+        "valueEs": "0,5 lm (f/1.8 con AGC activado)"
+      },
+      {
+        "group": "Cámara",
+        "label": "DNR",
+        "value": "2D / 3D",
+        "labelEs": "DNR",
+        "valueEs": "2D / 3D"
+      },
+      {
+        "group": "Cámara",
+        "label": "White Balance",
+        "value": "Auto / Manual / One Push / 3000 K / 4000 K / 5000 K / 6500 K",
+        "labelEs": "Balance de blancos",
+        "valueEs": "Automático / Manual / One Push / 3000 K / 4000 K / 5000 K / 6500 K"
+      },
+      {
+        "group": "Cámara",
+        "label": "Focus",
+        "value": "Auto / Manual",
+        "labelEs": "Enfoque",
+        "valueEs": "Automático / Manual"
+      },
+      {
+        "group": "Cámara",
+        "label": "Aperture",
+        "value": "Auto / Manual",
+        "labelEs": "Apertura",
+        "valueEs": "Automática / Manual"
+      },
+      {
+        "group": "Cámara",
+        "label": "Electronic Shutter",
+        "value": "Auto / Manual",
+        "labelEs": "Obturador electrónico",
+        "valueEs": "Automático / Manual"
+      },
+      {
+        "group": "Cámara",
+        "label": "BLC",
+        "value": "ON / OFF",
+        "labelEs": "BLC",
+        "valueEs": "Activado / Desactivado"
+      },
+      {
+        "group": "Cámara",
+        "label": "WDR",
+        "value": "Off / Dynamic Level Adjustment",
+        "labelEs": "WDR",
+        "valueEs": "Desactivado / ajuste dinámico de nivel"
+      },
+      {
+        "group": "Cámara",
+        "label": "Video Adjustment",
+        "value": "Brightness, Color, Saturation, Contrast, Sharpness, B/W Mode, Gamma Curve",
+        "labelEs": "Ajustes de video",
+        "valueEs": "Brillo, color, saturación, contraste, nitidez, modo blanco y negro, curva gamma"
+      },
+      {
+        "group": "Cámara",
+        "label": "SNR",
+        "value": "> 55 dB",
+        "labelEs": "Relación señal/ruido",
+        "valueEs": "> 55 dB"
+      },
+      {
+        "group": "PTZ",
+        "label": "Pan Rotation",
+        "value": "± 170°",
+        "labelEs": "Giro horizontal (pan)",
+        "valueEs": "± 170°"
+      },
+      {
+        "group": "PTZ",
+        "label": "Tilt Rotation",
+        "value": "-30° ~ +90°",
+        "labelEs": "Giro vertical (tilt)",
+        "valueEs": "-30° a +90°"
+      },
+      {
+        "group": "PTZ",
+        "label": "Pan Control Speed",
+        "value": "0.1 - 180° / sec",
+        "labelEs": "Velocidad de pan",
+        "valueEs": "0,1 - 180° / s"
+      },
+      {
+        "group": "PTZ",
+        "label": "Tilt Control Speed",
+        "value": "0.1 - 80° / sec",
+        "labelEs": "Velocidad de tilt",
+        "valueEs": "0,1 - 80° / s"
+      },
+      {
+        "group": "PTZ",
+        "label": "Preset Speed",
+        "value": "Pan: 60° / sec, Tilt: 30° / sec",
+        "labelEs": "Velocidad de presets",
+        "valueEs": "Pan: 60° / s, tilt: 30° / s"
+      },
+      {
+        "group": "PTZ",
+        "label": "Preset Number",
+        "value": "255 (10 presets using the included IR remote control)",
+        "labelEs": "Cantidad de presets",
+        "valueEs": "255 (10 presets desde el control remoto IR incluido)"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB",
+        "value": "1 x USB, Type A",
+        "labelEs": "USB",
+        "valueEs": "1 × USB tipo A"
+      },
+      {
+        "group": "Conectores",
+        "label": "LAN",
+        "value": "1 x RJ45, 100Base-T",
+        "labelEs": "LAN",
+        "valueEs": "1 × RJ45, 100Base-T"
+      },
+      {
+        "group": "Conectores",
+        "label": "AUDIO IN",
+        "value": "1 x 3.5 mm, stereo",
+        "labelEs": "AUDIO IN",
+        "valueEs": "1 × 3,5 mm, estéreo"
+      },
+      {
+        "group": "Conectores",
+        "label": "RS-232",
+        "value": "2 x 9-pin DIN",
+        "labelEs": "RS-232",
+        "valueEs": "2 × DIN de 9 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "12VDC",
+        "value": "1 x HEC3800",
+        "labelEs": "12VDC",
+        "valueEs": "1 × HEC3800"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Operating",
+        "value": "14 to 122 °F (-10 to 50 °C)",
+        "labelEs": "Funcionamiento",
+        "valueEs": "14 a 122 °F (-10 a 50 °C)"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Storage",
+        "value": "-14 to 140 °F (-10 to 60 °C)",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-14 a 140 °F (-10 a 60 °C)"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Operating Humidity (RH)",
+        "value": "20% to 80%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "20 % a 80 %, sin condensación"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Storage Humidity (RH)",
+        "value": "20% to 95%, non-condensing",
+        "labelEs": "Humedad de almacenamiento (HR)",
+        "valueEs": "20 % a 95 %, sin condensación"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "12 W",
+        "labelEs": "Consumo",
+        "valueEs": "12 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "BTU/h",
+        "value": "40.9",
+        "labelEs": "BTU/h",
+        "valueEs": "40,9"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Supply",
+        "value": "Input: 110 - 220 V AC, 50/60 Hz; Output: 12 V DC, 1 A",
+        "labelEs": "Alimentación",
+        "valueEs": "Entrada: 110 - 220 V CA, 50/60 Hz; salida: 12 V CC, 1 A"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Unit",
+        "value": "6.59 x 5.90 x 5.90 in (167.5 x 150 x 150 mm)",
+        "labelEs": "Equipo",
+        "valueEs": "6,59 × 5,90 × 5,90 in (167,5 × 150 × 150 mm)"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Power Supply (AT-PS-122-NL)",
+        "value": "1.26 x 1.97 x 3.7 in (32.05 x 50 x 94 mm)",
+        "labelEs": "Fuente de alimentación (AT-PS-122-NL)",
+        "valueEs": "1,26 × 1,97 × 3,7 in (32,05 × 50 × 94 mm)"
+      },
+      {
+        "group": "Peso",
+        "label": "Device",
+        "value": "3.08 lb (1.4 kg)",
+        "labelEs": "Equipo",
+        "valueEs": "3,08 lb (1,4 kg)"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC"
+      },
+      {
+        "group": "Garantía",
+        "label": "Device",
+        "value": "To view the product warranty, use the following link: https://atlona.com/warranty",
+        "labelEs": "Equipo",
+        "valueEs": "Para ver la garantía del producto, use el siguiente enlace: https://atlona.com/warranty"
+      },
+      {
+        "group": "Accesorios",
+        "label": "AT-HDVS-CAM-CMNT",
+        "value": "Ceiling Mount Kit for AT-HDVS-CAM",
+        "labelEs": "AT-HDVS-CAM-CMNT",
+        "valueEs": "Kit de montaje en techo para AT-HDVS-CAM"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-HDVS-CAM Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/data_sheet/AT-HDVS-CAM_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-HDVS-CAM Installation Guide",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-HDVS-CAM_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-HDVS-CAM Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/manuals/AT-HDVS-CAM.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-hdvs-cam",
+    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ"
+  },
+  {
+    "sku": "AT-OME-MH21",
+    "shortDescription": "Switcher AV de dos entradas (USB-C y HDMI) con hub USB 3.0 integrado, 4K/UHD a 60 Hz 4:4:4, selección automática de entrada y control automático de pantalla, para salas de reunión y aulas.",
+    "longDescription": "El Media Hub de Captivate (antes Atlona) es un switcher 2×1 y hub de sala compacto que combina conectividad USB-C y HDMI para simplificar la integración AV en salas de reunión, aulas y espacios de trabajo híbridos actuales.",
+    "keyFeatures": [
+      "Switcher AV de dos entradas con entradas USB-C y HDMI",
+      "Entrada USB-C para AV y datos USB (no permite cargar el dispositivo)",
+      "Hub USB 3.0 integrado",
+      "Capacidad 4K/UHD a 60 Hz con muestreo de croma 4:4:4",
+      "Reducción de escala seleccionable de 4K a 1080p",
+      "Selección automática de entrada y control automático de la pantalla",
+      "Desembebido de audio"
+    ],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Signal",
+        "value": "Input – HDMI, USB-C Output – HDMI",
+        "labelEs": "Señal",
+        "valueEs": "Entrada – HDMI, USB-C Salida – HDMI"
+      },
+      {
+        "group": "Video",
+        "label": "Copy Protection",
+        "value": "HDCP 2.2",
+        "labelEs": "Protección de copia",
+        "valueEs": "HDCP 2.2"
+      },
+      {
+        "group": "Video",
+        "label": "Pixel Clock",
+        "value": "600 MHz",
+        "labelEs": "Reloj de píxeles",
+        "valueEs": "600 MHz"
+      },
+      {
+        "group": "Video",
+        "label": "UHD/HD/SD",
+        "value": "4096×2160@60/50/30/25/24 Hz 3840×2160@60/50/30/25/24 Hz 1920x1080p@60/59.9/50/30/29.97/25/24/23.98 Hz 1920x1080i@30/29.97/25 Hz 1280x720p@60/59.94/50 Hz 720x576p@50 Hz 720x576i@50 Hz 640x480p@60/59.96 Hz 640x480i@30 Hz",
+        "labelEs": "UHD/HD/SD",
+        "valueEs": "4096×2160@60/50/30/25/24 Hz 3840×2160@60/50/30/25/24 Hz 1920x1080p@60/59.9/50/30/29.97/25/24/23.98 Hz 1920x1080i@30/29.97/25 Hz 1280x720p@60/59.94/50 Hz 720x576p@50 Hz 720x576i@50 Hz 640x480p@60/59.96 Hz 640x480i@30 Hz"
+      },
+      {
+        "group": "Video",
+        "label": "VESAAll resolutions are 60 Hz",
+        "value": "2560×1600 2048×1536 1920×1200 1680×1050 1600×1200 1440×900 1400×1050 1280×1024 1280×800 1366×768 1360×768 1152×864 1024×768 800×600 640×480",
+        "labelEs": "VESA (todas las resoluciones son a 60 Hz)",
+        "valueEs": "2560×1600 2048×1536 1920×1200 1680×1050 1600×1200 1440×900 1400×1050 1280×1024 1280×800 1366×768 1360×768 1152×864 1024×768 800×600 640×480"
+      },
+      {
+        "group": "Video",
+        "label": "VESA 21:9",
+        "value": "5120×2160 @ 30 Hz 4:4:4 3840×1600 @ 60 Hz 4:4:4 3840×1600 @ 30 Hz 4:4:4 3440×1440 @ 60 Hz 4:4:4 3440×1440 @ 50 Hz 4:4:4 3440×1440 @ 30 Hz 4:4:4 2560×1080 @ 60 Hz 4:4:4 2560×1080 @ 30 Hz 4:4:4",
+        "labelEs": "VESA 21:9",
+        "valueEs": "5120×2160 @ 30 Hz 4:4:4 3840×1600 @ 60 Hz 4:4:4 3840×1600 @ 30 Hz 4:4:4 3440×1440 @ 60 Hz 4:4:4 3440×1440 @ 50 Hz 4:4:4 3440×1440 @ 30 Hz 4:4:4 2560×1080 @ 60 Hz 4:4:4 2560×1080 @ 30 Hz 4:4:4"
+      },
+      {
+        "group": "Video",
+        "label": "Scaler(1)",
+        "value": "IN OUT",
+        "labelEs": "Escalador(1)",
+        "valueEs": "Entrada Salida"
+      },
+      {
+        "group": "Video",
+        "label": "USB-C",
+        "value": "Up to 4K/UHD @ 60 Hz",
+        "labelEs": "USB-C",
+        "valueEs": "Hasta 4K/UHD @ 60 Hz"
+      },
+      {
+        "group": "Video",
+        "label": "Color Space",
+        "value": "YUV, RGB",
+        "labelEs": "Espacio de color",
+        "valueEs": "YUV, RGB"
+      },
+      {
+        "group": "Video",
+        "label": "Chroma Subsampling",
+        "value": "4:4:4, 4:2:2, 4:2:0(2)",
+        "labelEs": "Submuestreo de croma",
+        "valueEs": "4:4:4, 4:2:2, 4:2:0(2)"
+      },
+      {
+        "group": "Video",
+        "label": "Color Depth",
+        "value": "8-bit, 10-bit, 12-bit",
+        "labelEs": "Profundidad de color",
+        "valueEs": "8 bits, 10 bits, 12 bits"
+      },
+      {
+        "group": "Video",
+        "label": "HDR",
+        "value": "HDR10, Hybrid-Log Gamma (HLG), and Dolby® Vision™ @ 60 Hz",
+        "labelEs": "HDR",
+        "valueEs": "HDR10, Hybrid-Log Gamma (HLG) y Dolby® Vision™ @ 60 Hz"
+      },
+      {
+        "group": "Audio",
+        "label": "HDMIPass-Through Formats",
+        "value": "PCM 2.0 LPCM 5.1 LPCM 7.1 Dolby® Digital Dolby Digital Plus™ Dolby TrueHD DTS® Digital Surround™ DTS-HD Master Audio™",
+        "labelEs": "Formatos pass-through HDMI",
+        "valueEs": "PCM 2.0 LPCM 5.1 LPCM 7.1 Dolby® Digital Dolby Digital Plus™ Dolby TrueHD DTS® Digital Surround™ DTS-HD Master Audio™"
+      },
+      {
+        "group": "Audio",
+        "label": "Bit Rate",
+        "value": "24 Mbits/s max",
+        "labelEs": "Tasa de bits",
+        "valueEs": "24 Mbits/s máx."
+      },
+      {
+        "group": "Audio",
+        "label": "Format",
+        "value": "2-channel stereo",
+        "labelEs": "Formato",
+        "valueEs": "Estéreo de 2 canales"
+      },
+      {
+        "group": "Audio",
+        "label": "Balanced Output",
+        "value": "+4 dBu, nominal gain; +20 dBu headroom",
+        "labelEs": "Salida balanceada",
+        "valueEs": "+4 dBu de ganancia nominal; +20 dBu de margen dinámico"
+      },
+      {
+        "group": "Audio",
+        "label": "Frequency Response",
+        "value": "20 Hz to 20 kHz, ±0.5 dB",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "20 Hz a 20 kHz, ±0,5 dB"
+      },
+      {
+        "group": "Audio",
+        "label": "Impedance",
+        "value": "150 Ω",
+        "labelEs": "Impedancia",
+        "valueEs": "150 Ω"
+      },
+      {
+        "group": "Audio",
+        "label": "Stereo channel separation",
+        "value": "> 90 dB",
+        "labelEs": "Separación de canales estéreo",
+        "valueEs": "> 90 dB"
+      },
+      {
+        "group": "Audio",
+        "label": "THD + N",
+        "value": "< 0.004% @ 20 Hz to 20 kHz",
+        "labelEs": "THD + N",
+        "valueEs": "< 0,004% @ 20 Hz a 20 kHz"
+      },
+      {
+        "group": "Audio",
+        "label": "SNR",
+        "value": "> 94 dB @ 1 kHz, zero clipping @ 0 dBFS, unweighted",
+        "labelEs": "SNR",
+        "valueEs": "> 94 dB @ 1 kHz, sin recorte @ 0 dBFS, sin ponderar"
+      },
+      {
+        "group": "USB",
+        "label": "Compliance",
+        "value": "3.0",
+        "labelEs": "Normativas",
+        "valueEs": "3.0"
+      },
+      {
+        "group": "USB",
+        "label": "Maximum Data Rate",
+        "value": "5 Gbps(3)",
+        "labelEs": "Velocidad máxima de datos",
+        "valueEs": "5 Gbps(3)"
+      },
+      {
+        "group": "USB",
+        "label": "USB-C",
+        "value": "Supports audio, video, device and host data",
+        "labelEs": "USB-C",
+        "valueEs": "Admite audio, video, datos de dispositivo y host"
+      },
+      {
+        "group": "USB",
+        "label": "Internal Hubs",
+        "value": "1 USB hub (when connected to USB-C or USB type B host port)",
+        "labelEs": "Hubs internos",
+        "valueEs": "1 hub USB (al conectarse al puerto host USB-C o USB tipo B)"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Port",
+        "value": "1 x RJ45",
+        "labelEs": "Puerto",
+        "valueEs": "1 x RJ45"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Standards and Protocols",
+        "value": "HTTP, HTTPS, Telnet, SSH, mDNS",
+        "labelEs": "Estándares y protocolos",
+        "valueEs": "HTTP, HTTPS, Telnet, SSH, mDNS"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Speeds",
+        "value": "10/100 Mbps",
+        "labelEs": "Velocidades",
+        "valueEs": "10/100 Mbps"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Addressing",
+        "value": "DHCP, Static – selectable through front panel, IP, RS-232 commands, and built-in web server",
+        "labelEs": "Direccionamiento",
+        "valueEs": "DHCP, estática – seleccionable mediante el panel frontal, comandos IP y RS-232, y el servidor web integrado"
+      },
+      {
+        "group": "RS-232",
+        "label": "Port",
+        "value": "1 x 4-pin captive screw; TX, RX, GND",
+        "labelEs": "Puerto",
+        "valueEs": "1 x tornillo cautivo de 4 pines; TX, RX, GND"
+      },
+      {
+        "group": "RS-232",
+        "label": "Use",
+        "value": "Device control and configuration",
+        "labelEs": "Uso",
+        "valueEs": "Control y configuración del dispositivo"
+      },
+      {
+        "group": "RS-232",
+        "label": "Baud Rates",
+        "value": "2400, 4800, 9600, 19200, 38400, 57600, 115200",
+        "labelEs": "Velocidades en baudios",
+        "valueEs": "2400, 4800, 9600, 19200, 38400, 57600, 115200"
+      },
+      {
+        "group": "RS-232",
+        "label": "Data flow",
+        "value": "Bidirectional",
+        "labelEs": "Flujo de datos",
+        "valueEs": "Bidireccional"
+      },
+      {
+        "group": "IR",
+        "label": "Port",
+        "value": "1 x 4-pin captive screw; TX, GND",
+        "labelEs": "Puerto",
+        "valueEs": "1 x tornillo cautivo de 4 pines; TX, GND"
+      },
+      {
+        "group": "IR",
+        "label": "Use",
+        "value": "Pass-through control",
+        "labelEs": "Uso",
+        "valueEs": "Control por paso directo"
+      },
+      {
+        "group": "IR",
+        "label": "Frequency Range",
+        "value": "30 kHz to 60 kHz",
+        "labelEs": "Rango de frecuencia",
+        "valueEs": "30 kHz a 60 kHz"
+      },
+      {
+        "group": "CEC",
+        "label": "Port",
+        "value": "1 x HDMI OUTPUT, Type A, 19-pin female",
+        "labelEs": "Puerto",
+        "valueEs": "1 x HDMI OUTPUT, Tipo A, 19 pines, hembra"
+      },
+      {
+        "group": "CEC",
+        "label": "Triggering",
+        "value": "Through IP, RS-232, and built-in web server",
+        "labelEs": "Disparo (trigger)",
+        "valueEs": "Mediante IP, RS-232 y el servidor web integrado"
+      },
+      {
+        "group": "Resolución / distancia (pies)",
+        "label": "HDMI IN/OUT",
+        "value": "15 (4K UHD) 30 (1080P)",
+        "labelEs": "HDMI IN/OUT",
+        "valueEs": "15 (4K UHD) 30 (1080P)"
+      },
+      {
+        "group": "Resolución / distancia (pies)",
+        "label": "USB-C(3)",
+        "value": "6.6 (4K UHD) 6.6 (1080P)",
+        "labelEs": "USB-C(3)",
+        "valueEs": "6,6 (4K UHD) 6,6 (1080P)"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Buttons:DISPLAY, INPUTIP MODE, RESET",
+        "value": "2 – momentary, tact-type 2 – momentary, tact-type",
+        "labelEs": "Botones: DISPLAY, INPUT, IP MODE, RESET",
+        "valueEs": "2 – pulsador momentáneo, tipo táctil 2 – pulsador momentáneo, tipo táctil"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Indicators:PWR, INPUTIP MODE, RESET",
+        "value": "3 – LED, green 2 – LED, green",
+        "labelEs": "Indicadores: PWR, INPUT, IP MODE, RESET",
+        "valueEs": "3 – LED, verde 2 – LED, verde"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDMI IN",
+        "value": "1 – Type A, 19-pin female",
+        "labelEs": "HDMI IN",
+        "valueEs": "1 – Tipo A, 19 pines, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB-C IN",
+        "value": "1 – USB Type-C v3.1, 24-pin female, AV input (Alternate Mode)",
+        "labelEs": "USB-C IN",
+        "valueEs": "1 – USB Type-C v3.1, 24 pines, hembra, entrada AV (Alternate Mode)"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDMI OUT",
+        "value": "1 – Type A, 19-pin female",
+        "labelEs": "HDMI OUT",
+        "valueEs": "1 – Tipo A, 19 pines, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB HUB",
+        "value": "2 – Type A, 4-pin female",
+        "labelEs": "USB HUB",
+        "valueEs": "2 – Tipo A, 4 pines, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB HOST",
+        "value": "1 – Type B, female",
+        "labelEs": "USB HOST",
+        "valueEs": "1 – Tipo B, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "AUDIO OUT",
+        "value": "1 – 5-pin captive screw, balanced / unbalanced 2-channel",
+        "labelEs": "AUDIO OUT",
+        "valueEs": "1 – tornillo cautivo de 5 pines, balanceado / no balanceado, 2 canales"
+      },
+      {
+        "group": "Conectores",
+        "label": "RS-232 / IR OUT",
+        "value": "1 – 4-pin captive screw (bidirectional)",
+        "labelEs": "RS-232 / IR OUT",
+        "valueEs": "1 – tornillo cautivo de 4 pines (bidireccional)"
+      },
+      {
+        "group": "Conectores",
+        "label": "LAN",
+        "value": "1 – RJ45, 100Base-T",
+        "labelEs": "LAN",
+        "valueEs": "1 – RJ45, 100Base-T"
+      },
+      {
+        "group": "Conectores",
+        "label": "PWR",
+        "value": "1 – 4-pin mini-DIN",
+        "labelEs": "PWR",
+        "valueEs": "1 – mini-DIN de 4 pines"
+      },
+      {
+        "group": "Ambiente (Fahrenheit)",
+        "label": "Operating Temperature",
+        "value": "+32 to +122",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "+32 a +122"
+      },
+      {
+        "group": "Ambiente (Fahrenheit)",
+        "label": "Storage Temperature",
+        "value": "-4 to +140",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-4 a +140"
+      },
+      {
+        "group": "Ambiente (Fahrenheit)",
+        "label": "Operating Humidity (RH)",
+        "value": "20% to 90%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "20% a 90%, sin condensación"
+      },
+      {
+        "group": "Ambiente (Fahrenheit)",
+        "label": "Maximum Operating Altitude",
+        "value": "2000 meters",
+        "labelEs": "Altitud máxima de funcionamiento",
+        "valueEs": "2000 metros"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "Unit only: 6.0 W Full load: 90.4 W (while powering USB-C devices up to 60 W and USB Type A devices up to 9 W total across all ports)",
+        "labelEs": "Consumo",
+        "valueEs": "Solo la unidad: 6,0 W A plena carga: 90,4 W (alimentando dispositivos USB-C de hasta 60 W y dispositivos USB tipo A de hasta 9 W en total entre todos los puertos)"
+      },
+      {
+        "group": "Alimentación",
+        "label": "External Power Supply",
+        "value": "100 – 240 V AC, 50/60 Hz",
+        "labelEs": "Fuente de alimentación externa",
+        "valueEs": "100 – 240 V AC, 50/60 Hz"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad) (pulgadas)",
+        "label": "Unit",
+        "value": "1.02 x 8.62 x 5.98",
+        "labelEs": "Equipo",
+        "valueEs": "1.02 x 8.62 x 5.98"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad) (pulgadas)",
+        "label": "Power Supply (AT-PS-245-D4)",
+        "value": "1.59 x 2.63 x 6.17",
+        "labelEs": "Fuente de alimentación (AT-PS-245-D4)",
+        "valueEs": "1.59 x 2.63 x 6.17"
+      },
+      {
+        "group": "Peso (libras)",
+        "label": "Device",
+        "value": "2.15",
+        "labelEs": "Equipo",
+        "valueEs": "2.15"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, FCC, CB",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC, CB"
+      },
+      {
+        "group": "Certificación",
+        "label": "Power Supply",
+        "value": "CE, FCC, UL, CB",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "CE, FCC, UL, CB"
+      },
+      {
+        "group": "Certificación",
+        "label": "NDAA-899",
+        "value": "Yes",
+        "labelEs": "NDAA-899",
+        "valueEs": "Sí"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-OME-MH21 Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-OME-MH21_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-OME-MH21 Installation Guide",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/AT-OME-MH21/Installation%20Guide/AT-OME-MH21_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-OME-MH21 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/AT-OME-MH21/Other/AT-OME-MH21_MH21-CP.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-OME-MH21 API",
+        "url": "https://atlona.com/pdf/AT-OME-MH21_MH21_API.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-OME-MH21 (dwg)",
+        "url": "https://atlona.com/pdf/cad/AT-OME-MH21.dwg",
+        "fileType": "dwg"
+      },
+      {
+        "name": "AT-OME-MH21 (pdf)",
+        "url": "https://atlona.com/pdf/cad/AT-OME-MH21.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-ome-mh21",
+    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS"
+  },
+  {
+    "sku": "AT-OME-MH21-CP",
+    "shortDescription": "Switcher AV de dos entradas (USB-C y HDMI) con carga del dispositivo por USB-C de hasta 60 W, hub USB 3.0, 4K/UHD a 60 Hz 4:4:4 y selección automática de entrada, para salas de reunión y aulas.",
+    "longDescription": "El Media Hub de Captivate es un switcher 2×1 y hub de sala compacto que combina conectividad USB-C y HDMI para simplificar la integración AV en salas de reunión, aulas y espacios de trabajo híbridos actuales.",
+    "keyFeatures": [
+      "Switcher AV de dos entradas con entradas USB-C y HDMI",
+      "Entrada USB-C para AV, datos USB y carga del dispositivo (hasta 60 W)",
+      "Hub USB 3.0 integrado",
+      "Capacidad 4K/UHD a 60 Hz con muestreo de croma 4:4:4",
+      "Reducción de escala seleccionable de 4K a 1080p",
+      "Selección automática de entrada y control automático de la pantalla",
+      "Desembebido de audio",
+      "También disponible: AT-OME-MH21, sin carga del dispositivo por USB-C"
+    ],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Signal",
+        "value": "Input – HDMI, USB-C Output – HDMI",
+        "labelEs": "Señal",
+        "valueEs": "Entrada – HDMI, USB-C Salida – HDMI"
+      },
+      {
+        "group": "Video",
+        "label": "Copy Protection",
+        "value": "HDCP 2.2",
+        "labelEs": "Protección de copia",
+        "valueEs": "HDCP 2.2"
+      },
+      {
+        "group": "Video",
+        "label": "Pixel Clock",
+        "value": "600 MHz",
+        "labelEs": "Reloj de píxeles",
+        "valueEs": "600 MHz"
+      },
+      {
+        "group": "Video",
+        "label": "UHD/HD/SD",
+        "value": "4096×2160@60/50/30/25/24 Hz 3840×2160@60/50/30/25/24 Hz 1920x1080p@60/59.9/50/30/29.97/25/24/23.98 Hz 1920x1080i@30/29.97/25 Hz 1280x720p@60/59.94/50 Hz 720x576p@50 Hz 720x576i@50 Hz 640x480p@60/59.96 Hz 640x480i@30 Hz",
+        "labelEs": "UHD/HD/SD",
+        "valueEs": "4096×2160@60/50/30/25/24 Hz 3840×2160@60/50/30/25/24 Hz 1920x1080p@60/59.9/50/30/29.97/25/24/23.98 Hz 1920x1080i@30/29.97/25 Hz 1280x720p@60/59.94/50 Hz 720x576p@50 Hz 720x576i@50 Hz 640x480p@60/59.96 Hz 640x480i@30 Hz"
+      },
+      {
+        "group": "Video",
+        "label": "VESAAll resolutions are 60 Hz",
+        "value": "2560×1600 2048×1536 1920×1200 1680×1050 1600×1200 1440×900 1400×1050 1280×1024 1280×800 1366×768 1360×768 1152×864 1024×768 800×600 640×480",
+        "labelEs": "VESA (todas las resoluciones son a 60 Hz)",
+        "valueEs": "2560×1600 2048×1536 1920×1200 1680×1050 1600×1200 1440×900 1400×1050 1280×1024 1280×800 1366×768 1360×768 1152×864 1024×768 800×600 640×480"
+      },
+      {
+        "group": "Video",
+        "label": "VESA 21:9",
+        "value": "5120×2160 @ 30 Hz 4:4:4 3840×1600 @ 60 Hz 4:4:4 3840×1600 @ 30 Hz 4:4:4 3440×1440 @ 60 Hz 4:4:4 3440×1440 @ 50 Hz 4:4:4 3440×1440 @ 30 Hz 4:4:4 2560×1080 @ 60 Hz 4:4:4 2560×1080 @ 30 Hz 4:4:4",
+        "labelEs": "VESA 21:9",
+        "valueEs": "5120×2160 @ 30 Hz 4:4:4 3840×1600 @ 60 Hz 4:4:4 3840×1600 @ 30 Hz 4:4:4 3440×1440 @ 60 Hz 4:4:4 3440×1440 @ 50 Hz 4:4:4 3440×1440 @ 30 Hz 4:4:4 2560×1080 @ 60 Hz 4:4:4 2560×1080 @ 30 Hz 4:4:4"
+      },
+      {
+        "group": "Video",
+        "label": "Scaler(1)",
+        "value": "IN OUT",
+        "labelEs": "Escalador(1)",
+        "valueEs": "Entrada Salida"
+      },
+      {
+        "group": "Video",
+        "label": "USB-C",
+        "value": "Up to 4K/UHD @ 60 Hz",
+        "labelEs": "USB-C",
+        "valueEs": "Hasta 4K/UHD @ 60 Hz"
+      },
+      {
+        "group": "Video",
+        "label": "Color Space",
+        "value": "YUV, RGB",
+        "labelEs": "Espacio de color",
+        "valueEs": "YUV, RGB"
+      },
+      {
+        "group": "Video",
+        "label": "Chroma Subsampling",
+        "value": "4:4:4, 4:2:2, 4:2:0(2)",
+        "labelEs": "Submuestreo de croma",
+        "valueEs": "4:4:4, 4:2:2, 4:2:0(2)"
+      },
+      {
+        "group": "Video",
+        "label": "Color Depth",
+        "value": "8-bit, 10-bit, 12-bit",
+        "labelEs": "Profundidad de color",
+        "valueEs": "8 bits, 10 bits, 12 bits"
+      },
+      {
+        "group": "Video",
+        "label": "HDR",
+        "value": "HDR10, Hybrid-Log Gamma (HLG), and Dolby® Vision™ @ 60 Hz",
+        "labelEs": "HDR",
+        "valueEs": "HDR10, Hybrid-Log Gamma (HLG) y Dolby® Vision™ @ 60 Hz"
+      },
+      {
+        "group": "Audio",
+        "label": "HDMIPass-Through Formats",
+        "value": "PCM 2.0 LPCM 5.1 LPCM 7.1 Dolby® Digital Dolby Digital Plus™ Dolby TrueHD DTS® Digital Surround™ DTS-HD Master Audio™",
+        "labelEs": "Formatos pass-through HDMI",
+        "valueEs": "PCM 2.0 LPCM 5.1 LPCM 7.1 Dolby® Digital Dolby Digital Plus™ Dolby TrueHD DTS® Digital Surround™ DTS-HD Master Audio™"
+      },
+      {
+        "group": "Audio",
+        "label": "Bit Rate",
+        "value": "24 Mbits/s max",
+        "labelEs": "Tasa de bits",
+        "valueEs": "24 Mbits/s máx."
+      },
+      {
+        "group": "Audio",
+        "label": "Format",
+        "value": "2-channel stereo",
+        "labelEs": "Formato",
+        "valueEs": "Estéreo de 2 canales"
+      },
+      {
+        "group": "Audio",
+        "label": "Balanced Output",
+        "value": "+4 dBu, nominal gain; +20 dBu headroom",
+        "labelEs": "Salida balanceada",
+        "valueEs": "+4 dBu de ganancia nominal; +20 dBu de margen dinámico"
+      },
+      {
+        "group": "Audio",
+        "label": "Frequency Response",
+        "value": "20 Hz to 20 kHz, ±0.5 dB",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "20 Hz a 20 kHz, ±0,5 dB"
+      },
+      {
+        "group": "Audio",
+        "label": "Impedance",
+        "value": "150 Ω",
+        "labelEs": "Impedancia",
+        "valueEs": "150 Ω"
+      },
+      {
+        "group": "Audio",
+        "label": "Stereo channel separation",
+        "value": "> 90 dB",
+        "labelEs": "Separación de canales estéreo",
+        "valueEs": "> 90 dB"
+      },
+      {
+        "group": "Audio",
+        "label": "THD + N",
+        "value": "< 0.004% @ 20 Hz to 20 kHz",
+        "labelEs": "THD + N",
+        "valueEs": "< 0,004% @ 20 Hz a 20 kHz"
+      },
+      {
+        "group": "Audio",
+        "label": "SNR",
+        "value": "> 94 dB @ 1 kHz, zero clipping @ 0 dBFS, unweighted",
+        "labelEs": "SNR",
+        "valueEs": "> 94 dB @ 1 kHz, sin recorte @ 0 dBFS, sin ponderar"
+      },
+      {
+        "group": "USB",
+        "label": "Compliance",
+        "value": "3.0",
+        "labelEs": "Normativas",
+        "valueEs": "3.0"
+      },
+      {
+        "group": "USB",
+        "label": "Maximum Data Rate",
+        "value": "5 Gbps(3)",
+        "labelEs": "Velocidad máxima de datos",
+        "valueEs": "5 Gbps(3)"
+      },
+      {
+        "group": "USB",
+        "label": "USB-C",
+        "value": "Supports audio, video, device and host data, and up to 60 W power charging",
+        "labelEs": "USB-C",
+        "valueEs": "Admite audio, video, datos de dispositivo y host, y carga de hasta 60 W"
+      },
+      {
+        "group": "USB",
+        "label": "Internal Hubs",
+        "value": "1 USB hub (when connected to USB-C or USB type B host port)",
+        "labelEs": "Hubs internos",
+        "valueEs": "1 hub USB (al conectarse al puerto host USB-C o USB tipo B)"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Port",
+        "value": "1 x RJ45",
+        "labelEs": "Puerto",
+        "valueEs": "1 x RJ45"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Standards and Protocols",
+        "value": "HTTP, HTTPS, Telnet, SSH, mDNS",
+        "labelEs": "Estándares y protocolos",
+        "valueEs": "HTTP, HTTPS, Telnet, SSH, mDNS"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Speeds",
+        "value": "10/100 Mbps",
+        "labelEs": "Velocidades",
+        "valueEs": "10/100 Mbps"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Addressing",
+        "value": "DHCP, Static – selectable through front panel, IP, RS-232 commands, and built-in web server",
+        "labelEs": "Direccionamiento",
+        "valueEs": "DHCP, estática – seleccionable mediante el panel frontal, comandos IP y RS-232, y el servidor web integrado"
+      },
+      {
+        "group": "RS-232",
+        "label": "Port",
+        "value": "1 x 4-pin captive screw; TX, RX, GND",
+        "labelEs": "Puerto",
+        "valueEs": "1 x tornillo cautivo de 4 pines; TX, RX, GND"
+      },
+      {
+        "group": "RS-232",
+        "label": "Use",
+        "value": "Device control and configuration",
+        "labelEs": "Uso",
+        "valueEs": "Control y configuración del dispositivo"
+      },
+      {
+        "group": "RS-232",
+        "label": "Baud Rates",
+        "value": "2400, 4800, 9600, 19200, 38400, 57600, 115200",
+        "labelEs": "Velocidades en baudios",
+        "valueEs": "2400, 4800, 9600, 19200, 38400, 57600, 115200"
+      },
+      {
+        "group": "RS-232",
+        "label": "Data flow",
+        "value": "Bidirectional",
+        "labelEs": "Flujo de datos",
+        "valueEs": "Bidireccional"
+      },
+      {
+        "group": "IR",
+        "label": "Port",
+        "value": "1 x 4-pin captive screw; TX, GND",
+        "labelEs": "Puerto",
+        "valueEs": "1 x tornillo cautivo de 4 pines; TX, GND"
+      },
+      {
+        "group": "IR",
+        "label": "Use",
+        "value": "Pass-through control",
+        "labelEs": "Uso",
+        "valueEs": "Control por paso directo"
+      },
+      {
+        "group": "IR",
+        "label": "Frequency Range",
+        "value": "30 kHz to 60 kHz",
+        "labelEs": "Rango de frecuencia",
+        "valueEs": "30 kHz a 60 kHz"
+      },
+      {
+        "group": "CEC",
+        "label": "Port",
+        "value": "1 x HDMI OUTPUT, Type A, 19-pin female",
+        "labelEs": "Puerto",
+        "valueEs": "1 x HDMI OUTPUT, Tipo A, 19 pines, hembra"
+      },
+      {
+        "group": "CEC",
+        "label": "Triggering",
+        "value": "Through IP, RS-232, and built-in web server",
+        "labelEs": "Disparo (trigger)",
+        "valueEs": "Mediante IP, RS-232 y el servidor web integrado"
+      },
+      {
+        "group": "Resolución / distancia (pies)",
+        "label": "HDMI IN/OUT",
+        "value": "15 (4K UHD) 30 (1080P)",
+        "labelEs": "HDMI IN/OUT",
+        "valueEs": "15 (4K UHD) 30 (1080P)"
+      },
+      {
+        "group": "Resolución / distancia (pies)",
+        "label": "USB-C(3)",
+        "value": "6.6 (4K UHD) 6.6 (1080P)",
+        "labelEs": "USB-C(3)",
+        "valueEs": "6,6 (4K UHD) 6,6 (1080P)"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Buttons:DISPLAY, INPUTIP MODE, RESET",
+        "value": "2 – momentary, tact-type 2 – momentary, tact-type",
+        "labelEs": "Botones: DISPLAY, INPUT, IP MODE, RESET",
+        "valueEs": "2 – pulsador momentáneo, tipo táctil 2 – pulsador momentáneo, tipo táctil"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Indicators:PWR, INPUTIP MODE, RESET",
+        "value": "3 – LED, green 2 – LED, green",
+        "labelEs": "Indicadores: PWR, INPUT, IP MODE, RESET",
+        "valueEs": "3 – LED, verde 2 – LED, verde"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDMI IN",
+        "value": "1 – Type A, 19-pin female",
+        "labelEs": "HDMI IN",
+        "valueEs": "1 – Tipo A, 19 pines, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB-C IN",
+        "value": "1 – USB Type-C v3.1, 24-pin female, AV input (Alternate Mode)",
+        "labelEs": "USB-C IN",
+        "valueEs": "1 – USB Type-C v3.1, 24 pines, hembra, entrada AV (Alternate Mode)"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDMI OUT",
+        "value": "1 – Type A, 19-pin female",
+        "labelEs": "HDMI OUT",
+        "valueEs": "1 – Tipo A, 19 pines, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB HUB",
+        "value": "2 – Type A, 4-pin female",
+        "labelEs": "USB HUB",
+        "valueEs": "2 – Tipo A, 4 pines, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB HOST",
+        "value": "1 – Type B, female",
+        "labelEs": "USB HOST",
+        "valueEs": "1 – Tipo B, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "AUDIO OUT",
+        "value": "1 – 5-pin captive screw, balanced / unbalanced 2-channel",
+        "labelEs": "AUDIO OUT",
+        "valueEs": "1 – tornillo cautivo de 5 pines, balanceado / no balanceado, 2 canales"
+      },
+      {
+        "group": "Conectores",
+        "label": "RS-232 / IR OUT",
+        "value": "1 – 4-pin captive screw (bidirectional)",
+        "labelEs": "RS-232 / IR OUT",
+        "valueEs": "1 – tornillo cautivo de 4 pines (bidireccional)"
+      },
+      {
+        "group": "Conectores",
+        "label": "LAN",
+        "value": "1 – RJ45, 100Base-T",
+        "labelEs": "LAN",
+        "valueEs": "1 – RJ45, 100Base-T"
+      },
+      {
+        "group": "Conectores",
+        "label": "PWR",
+        "value": "1 – 4-pin mini-DIN",
+        "labelEs": "PWR",
+        "valueEs": "1 – mini-DIN de 4 pines"
+      },
+      {
+        "group": "Ambiente (Fahrenheit)",
+        "label": "Operating Temperature",
+        "value": "+32 to +122",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "+32 a +122"
+      },
+      {
+        "group": "Ambiente (Fahrenheit)",
+        "label": "Storage Temperature",
+        "value": "-4 to +140",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-4 a +140"
+      },
+      {
+        "group": "Ambiente (Fahrenheit)",
+        "label": "Operating Humidity (RH)",
+        "value": "20% to 90%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "20% a 90%, sin condensación"
+      },
+      {
+        "group": "Ambiente (Fahrenheit)",
+        "label": "Maximum Operating Altitude",
+        "value": "2000 meters",
+        "labelEs": "Altitud máxima de funcionamiento",
+        "valueEs": "2000 metros"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "Unit only: 6.0 W Full load: 90.4 W (while powering USB-C devices up to 60 W and USB Type A devices up to 9 W total across all ports)",
+        "labelEs": "Consumo",
+        "valueEs": "Solo la unidad: 6,0 W A plena carga: 90,4 W (alimentando dispositivos USB-C de hasta 60 W y dispositivos USB tipo A de hasta 9 W en total entre todos los puertos)"
+      },
+      {
+        "group": "Alimentación",
+        "label": "External Power Supply",
+        "value": "100 – 240 V AC, 50/60 Hz",
+        "labelEs": "Fuente de alimentación externa",
+        "valueEs": "100 – 240 V AC, 50/60 Hz"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad) (pulgadas)",
+        "label": "Unit",
+        "value": "1.02 x 8.62 x 5.98",
+        "labelEs": "Equipo",
+        "valueEs": "1.02 x 8.62 x 5.98"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad) (pulgadas)",
+        "label": "Power Supply (AT-PS-245-D4)",
+        "value": "1.59 x 2.63 x 6.17",
+        "labelEs": "Fuente de alimentación (AT-PS-245-D4)",
+        "valueEs": "1.59 x 2.63 x 6.17"
+      },
+      {
+        "group": "Peso (libras)",
+        "label": "Device",
+        "value": "2.15",
+        "labelEs": "Equipo",
+        "valueEs": "2.15"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, FCC, CB",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC, CB"
+      },
+      {
+        "group": "Certificación",
+        "label": "Power Supply",
+        "value": "CE, FCC, UL, CB",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "CE, FCC, UL, CB"
+      },
+      {
+        "group": "Certificación",
+        "label": "NDAA-899",
+        "value": "Yes",
+        "labelEs": "NDAA-899",
+        "valueEs": "Sí"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-OME-MH21-CP Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-OME-MH21-CP_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-OME-MH21-CP Installation Guide",
+        "url": "https://atlona.com/pdf/manuals/AT-OME-MH21-CP_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-OME-MH21-CP Manual",
+        "url": "https://atlona.com/pdf/manuals/AT-OME-MH21_MH21-CP.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-OME-MH21-CP API",
+        "url": "https://atlona.com/pdf/AT-OME-MH21_MH21-CP_API.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-OME-MH21-CP (dwg)",
+        "url": "https://atlona.com/pdf/cad/AT-OME-MH21-CP.dwg",
+        "fileType": "dwg"
+      },
+      {
+        "name": "AT-OME-MH21-CP (pdf)",
+        "url": "https://atlona.com/pdf/cad/AT-OME-MH21-CP.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-ome-mh21-cp",
+    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS"
+  },
+  {
+    "sku": "CP-PVOT-C1622",
+    "shortDescription": "Cámara 4K de doble lente con seguimiento automático por IA para salas de reuniones medianas: muestra la vista general de la sala y un encuadre del orador en picture-in-picture. Conexión USB-C y HDMI.",
+    "longDescription": "La cámara Pivot 4K es una cámara de seguimiento 4K de doble lente diseñada para salas de reuniones medianas, que muestra la sala completa junto con detalles ampliados. Con inteligencia artificial integrada, la cámara puede hacer pan, tilt o zoom automáticamente hacia la mejor toma para incluir a todos los participantes o seguir a un presentador, mientras muestra una vista fija amplia de la sala en picture-in-picture.\n\nLas dos vistas de cámara trabajan juntas para que los participantes remotos mantengan el contexto de toda la sala y, a la vez, vean de cerca a quien está hablando.\n\nEl encuadre automático y el seguimiento del orador o presentador permiten que la cámara siga la conversación sin depender del control manual.\n\nLa conexión USB-C la hace práctica para plataformas de reuniones por software y para las PC de sala habituales, con salida HDMI disponible para otras necesidades de integración.",
+    "keyFeatures": [],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Maximum Resolution",
+        "value": "3840 × 2160@30fps (4K) over USB 3.0",
+        "labelEs": "Resolución máxima",
+        "valueEs": "3840 × 2160@30fps (4K) por USB 3.0"
+      },
+      {
+        "group": "Video",
+        "label": "USB Resolutions (MJPEG / H.264 / H.265)",
+        "value": "320 × 240, 640 × 340, 640 × 480, 1280 × 720 (default), 1920 × 1080, 3840 × 2160 — all @30fps",
+        "labelEs": "Resoluciones USB (MJPEG / H.264 / H.265)",
+        "valueEs": "320 × 240, 640 × 340, 640 × 480, 1280 × 720 (predeterminada), 1920 × 1080, 3840 × 2160 — todas @30fps"
+      },
+      {
+        "group": "Video",
+        "label": "USB Resolutions (NV12)",
+        "value": "320 × 240, 640 × 360, 640 × 480, 1280 × 720 (default)*, 1920 × 1080* — all @30fps (* not supported over USB 2.0)",
+        "labelEs": "Resoluciones USB (NV12)",
+        "valueEs": "320 × 240, 640 × 360, 640 × 480, 1280 × 720 (predeterminada)*, 1920 × 1080* — todas @30fps (* no disponible por USB 2.0)"
+      },
+      {
+        "group": "Video",
+        "label": "Panoramic Lens Output",
+        "value": "1080p@30fps, MJPEG (fixed)",
+        "labelEs": "Salida de la lente panorámica",
+        "valueEs": "1080p@30fps, MJPEG (fijo)"
+      },
+      {
+        "group": "Video",
+        "label": "Video Encoding",
+        "value": "MJPEG / H.264 / H.265 / NV12",
+        "labelEs": "Codificación de video",
+        "valueEs": "MJPEG / H.264 / H.265 / NV12"
+      },
+      {
+        "group": "Video",
+        "label": "USB Video Class",
+        "value": "UVC 1.1",
+        "labelEs": "USB Video Class",
+        "valueEs": "UVC 1.1"
+      },
+      {
+        "group": "Video",
+        "label": "HDMI Output",
+        "value": "HDMI 1.4b; 4K@30Hz; no HDCP; continuous output unless powered off or in standby",
+        "labelEs": "Salida HDMI",
+        "valueEs": "HDMI 1.4b; 4K@30Hz; sin HDCP; salida continua salvo que esté apagada o en espera"
+      },
+      {
+        "group": "Video",
+        "label": "Low Latency Mode",
+        "value": "USB and HDMI output fixed at 1080p@60 when enabled",
+        "labelEs": "Modo de baja latencia",
+        "valueEs": "Salidas USB y HDMI fijas en 1080p@60 cuando está activado"
+      },
+      {
+        "group": "Cámara",
+        "label": "Main Lens",
+        "value": "8 MP; 3× optical zoom; DFOV 110°",
+        "labelEs": "Lente principal",
+        "valueEs": "8 MP; zoom óptico 3×; DFOV 110°"
+      },
+      {
+        "group": "Cámara",
+        "label": "Panoramic Lens",
+        "value": "2 MP; fixed focus; DFOV 120°",
+        "labelEs": "Lente panorámica",
+        "valueEs": "2 MP; foco fijo; DFOV 120°"
+      },
+      {
+        "group": "Cámara",
+        "label": "Pan / Tilt",
+        "value": "Horizontal ±75°; vertical ±35° (Manual or AI Tracking)",
+        "labelEs": "Paneo / inclinación",
+        "valueEs": "Horizontal ±75°; vertical ±35° (manual o seguimiento por IA)"
+      },
+      {
+        "group": "Cámara",
+        "label": "Zoom",
+        "value": "3× optical in AI tracking modes; 6× mixed (3× optical + 2× digital) in manual mode",
+        "labelEs": "Zoom",
+        "valueEs": "3× óptico en los modos de seguimiento por IA; 6× mixto (3× óptico + 2× digital) en modo manual"
+      },
+      {
+        "group": "Cámara",
+        "label": "Tracking Modes",
+        "value": "Auto Framing / Speaker Tracking / Presenter Tracking / Individuals Gallery / Off",
+        "labelEs": "Modos de seguimiento",
+        "valueEs": "Auto Framing / Speaker Tracking / Presenter Tracking / Individuals Gallery / desactivado"
+      },
+      {
+        "group": "Cámara",
+        "label": "HDR",
+        "value": "Supported",
+        "labelEs": "HDR",
+        "valueEs": "Compatible"
+      },
+      {
+        "group": "Cámara",
+        "label": "White Balance",
+        "value": "Auto",
+        "labelEs": "Balance de blancos",
+        "valueEs": "Automático"
+      },
+      {
+        "group": "Cámara",
+        "label": "Backlight Compensation",
+        "value": "Auto",
+        "labelEs": "Compensación de contraluz",
+        "valueEs": "Automático"
+      },
+      {
+        "group": "Cámara",
+        "label": "Noise Reduction",
+        "value": "2D and 3D digital noise reduction",
+        "labelEs": "Reducción de ruido",
+        "valueEs": "Reducción de ruido digital 2D y 3D"
+      },
+      {
+        "group": "Cámara",
+        "label": "AI Light Compensation",
+        "value": "Supported (default off)",
+        "labelEs": "Compensación de luz por IA",
+        "valueEs": "Compatible (desactivado por defecto)"
+      },
+      {
+        "group": "Cámara",
+        "label": "Image Controls",
+        "value": "Mirror, inverted mode, HD mode, powerline frequency (50 / 60 Hz)",
+        "labelEs": "Controles de imagen",
+        "valueEs": "Espejo, modo invertido, modo HD, frecuencia de red eléctrica (50 / 60 Hz)"
+      },
+      {
+        "group": "Cámara",
+        "label": "Presets",
+        "value": "2 presets from the IR remote; presets settable and recallable in the Web UI",
+        "labelEs": "Presets",
+        "valueEs": "2 presets desde el control remoto IR; presets configurables y recuperables en la interfaz web"
+      },
+      {
+        "group": "Audio",
+        "label": "Microphone",
+        "value": "4× linear microphone arrays for sound source localization and audio tracking",
+        "labelEs": "Micrófono",
+        "valueEs": "4× arreglos lineales de micrófonos para localización de la fuente sonora y seguimiento por audio"
+      },
+      {
+        "group": "Audio",
+        "label": "Audio Source",
+        "value": "The microphone arrays cannot be used as the audio source for a video conference",
+        "labelEs": "Fuente de audio",
+        "valueEs": "Los arreglos de micrófonos no pueden usarse como fuente de audio para una videoconferencia"
+      },
+      {
+        "group": "Red y streaming",
+        "label": "LAN",
+        "value": "1× RJ45; NDI output, Web UI, and Telnet control",
+        "labelEs": "LAN",
+        "valueEs": "1× RJ45; salida NDI, interfaz web y control por Telnet"
+      },
+      {
+        "group": "Red y streaming",
+        "label": "NDI Main Stream",
+        "value": "Up to 4K@30 (H.264 or H.265); fixed at 1080p@60 when low latency mode is enabled",
+        "labelEs": "Stream principal NDI",
+        "valueEs": "Hasta 4K@30 (H.264 o H.265); fija en 1080p@60 cuando está activado el modo de baja latencia"
+      },
+      {
+        "group": "Red y streaming",
+        "label": "NDI Preview Stream",
+        "value": "640 × 360@30 (unavailable when the main stream is 4K@30)",
+        "labelEs": "Stream de vista previa NDI",
+        "valueEs": "640 × 360@30 (no disponible cuando el stream principal es 4K@30)"
+      },
+      {
+        "group": "Red y streaming",
+        "label": "Bitrate Control",
+        "value": "CBR or VBR; main stream 64 to 16384 Kbps, preview stream 64 to 4096 Kbps",
+        "labelEs": "Control de tasa de bits",
+        "valueEs": "CBR o VBR; stream principal de 64 a 16384 Kbps, stream de vista previa de 64 a 4096 Kbps"
+      },
+      {
+        "group": "Red y streaming",
+        "label": "I-Frame Interval",
+        "value": "1 to 150",
+        "labelEs": "Intervalo de I-frames",
+        "valueEs": "1 a 150"
+      },
+      {
+        "group": "Red y streaming",
+        "label": "IP Mode",
+        "value": "DHCP (default) with AutoIP fallback to 169.254.1.100; static addressing supported",
+        "labelEs": "Modo IP",
+        "valueEs": "DHCP (predeterminado) con AutoIP de respaldo en 169.254.1.100; admite direccionamiento estático"
+      },
+      {
+        "group": "Red y streaming",
+        "label": "Security",
+        "value": "HTTPS (default on), optional Telnet authentication, IP conflict detection",
+        "labelEs": "Seguridad",
+        "valueEs": "HTTPS (activado por defecto), autenticación Telnet opcional, detección de conflictos de IP"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB-C",
+        "value": "1× USB 3.0 Type-C female",
+        "labelEs": "USB-C",
+        "valueEs": "1× USB 3.0 Type-C hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB",
+        "value": "1× USB 2.0 Type-A female",
+        "labelEs": "USB",
+        "valueEs": "1× USB 2.0 tipo A hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDMI OUT",
+        "value": "1× HDMI Type A, 19-pin",
+        "labelEs": "HDMI OUT",
+        "valueEs": "1× HDMI Tipo A, 19 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "LAN (PoE+)",
+        "value": "1× RJ45",
+        "labelEs": "LAN (PoE+)",
+        "valueEs": "1× RJ45"
+      },
+      {
+        "group": "Conectores",
+        "label": "DC 12V",
+        "value": "1× DC barrel jack (12 V / 3 A)",
+        "labelEs": "DC 12V",
+        "valueEs": "1× jack DC tipo barril (12 V / 3 A)"
+      },
+      {
+        "group": "Conectores",
+        "label": "RESET",
+        "value": "1× recessed button",
+        "labelEs": "RESET",
+        "valueEs": "1× botón embutido"
+      },
+      {
+        "group": "Conectores",
+        "label": "Security",
+        "value": "1× Kensington security slot",
+        "labelEs": "Seguridad",
+        "valueEs": "1× ranura de seguridad Kensington"
+      },
+      {
+        "group": "Control y compatibilidad",
+        "label": "Control Methods",
+        "value": "IR remote (included), Web UI, and Telnet over LAN",
+        "labelEs": "Métodos de control",
+        "valueEs": "Control remoto IR (incluido), interfaz web y Telnet por LAN"
+      },
+      {
+        "group": "Control y compatibilidad",
+        "label": "Operating Systems",
+        "value": "Windows 10/11; macOS 10.10 or above",
+        "labelEs": "Sistemas operativos",
+        "valueEs": "Windows 10/11; macOS 10.10 o superior"
+      },
+      {
+        "group": "Control y compatibilidad",
+        "label": "UC Applications",
+        "value": "Zoom, Microsoft Teams, Skype, Cisco Webex",
+        "labelEs": "Aplicaciones de UC",
+        "valueEs": "Zoom, Microsoft Teams, Skype, Cisco Webex"
+      },
+      {
+        "group": "Control y compatibilidad",
+        "label": "Web UI Browsers",
+        "value": "Chrome, Safari, Firefox, or Edge",
+        "labelEs": "Navegadores para la interfaz web",
+        "valueEs": "Chrome, Safari, Firefox o Edge"
+      },
+      {
+        "group": "Control y compatibilidad",
+        "label": "Mounting",
+        "value": "Display or wall; brackets and mounting hardware included",
+        "labelEs": "Montaje",
+        "valueEs": "Sobre pantalla o pared; soportes y herrajes de montaje incluidos"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Input",
+        "value": "DC 12 V, 3 A (power adapter included; US, UK, EU, and AU pins)",
+        "labelEs": "Entrada",
+        "valueEs": "DC 12 V, 3 A (adaptador de alimentación incluido; fichas EE. UU., Reino Unido, UE y AU)"
+      },
+      {
+        "group": "Alimentación",
+        "label": "PoE",
+        "value": "PoE (PD+) via the LAN port",
+        "labelEs": "PoE",
+        "valueEs": "PoE (PD+) mediante el puerto LAN"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "10.824 W (max.)",
+        "labelEs": "Consumo",
+        "valueEs": "10,824 W (máx.)"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Temperature",
+        "value": "+32° to +104°F 0° to +40°C",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "+32° a +104°F 0° a +40°C"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Storage Temperature",
+        "value": "-4° to +140°F -20° to +60°C",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-4° a +140°F -20° a +60°C"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Humidity (RH)",
+        "value": "10% to 90%, non-condensing",
+        "labelEs": "Humedad (HR)",
+        "valueEs": "10% a 90%, sin condensación"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Unit Dimension",
+        "value": "7.87 × 2.72 × 3.95 in. 200 × 69 × 100.44 mm",
+        "labelEs": "Dimensiones del equipo",
+        "valueEs": "7,87 × 2,72 × 3,95 pulg. 200 × 69 × 100,44 mm"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Device Weight",
+        "value": "0.97 lbs 0.44 kg",
+        "labelEs": "Peso del equipo",
+        "valueEs": "0,97 lb 0,44 kg"
+      }
+    ],
+    "documents": [
+      {
+        "name": "CP-PVOT-C1622 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-PVOT-C1622%20(HT-CAM-4K-DUAL)/Manual/CP-PVOT-C1622_IFU.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "CP-PVOT-C1622 Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-PVOT-C1622%20(HT-CAM-4K-DUAL)/Spec%20Sheet/CP-PVOT-C1622_Spec_Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "CP-PVOT-C1622 API",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-PVOT-C1622%20(HT-CAM-4K-DUAL)/API/CP-PVOT-C1622-API.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/cp-pvot-c1622",
+    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ"
+  },
+  {
+    "sku": "HT-RANGER2",
+    "shortDescription": "Switcher de presentación BYOD 2×1 con presentación inalámbrica (AirPlay, Miracast, Smart View), entrada USB-C con video, USB 3.0 y carga, salida HDMI 4K60 y HDBaseT, y switch USB 3.0 4×2.",
+    "longDescription": "El switcher Ranger2, antes llamado Ranger, es un switcher de presentación BYOD de alto rendimiento con capacidad de presentación inalámbrica.",
+    "keyFeatures": [
+      "Switcher de presentación 2×1",
+      "Puerto USB-C con entrada de video, USB 3.0, carga y Ethernet",
+      "Presentación en vista doble",
+      "Módulo Wi-Fi integrado para conexión inalámbrica con dispositivos por AirPlay, Miracast, Smart View y HT-VOYAGER2",
+      "Admite resoluciones de entrada HDMI de hasta 4K@30Hz 4:4:4",
+      "Admite resoluciones de salida HDMI de hasta 4K@60Hz 4:4:4 (4:2:0 en la salida HDBT)",
+      "Switcher USB 3.0 de 4 entradas y 2 salidas",
+      "Switch Ethernet integrado con diseño de seguridad",
+      "Salida de audio analógico",
+      "Información detallada en pantalla (OSD)",
+      "Control del equipo por interfaz web y API Telnet",
+      "Las notebooks conectadas al Ranger2 por USB-C pueden acceder a los periféricos USB (por ejemplo, cámaras y micrófonos) conectados a los puertos USB-A del Ranger2"
+    ],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Rear Interface Ports",
+        "value": "1 x USB Type-C Female Input: Up to 3840x2160 @30Hz | USB to Ethernet bridge for network connection | USB-C charger up to 60W (20V, 3A) | USB3.0 Host 1 x HDMI Type-A Female Input: Video input up to 3840x2160 @30Hz 1 x USB 3.0 Type-B Female Host Port: Standalone USB host port 1 x RJ45 Female Connector HDBT Out: Mirror of HDMI output | Supported HDBT with HT-DSCV-70-RX 2 x RJ45 Female Connectors LAN Ports: 10/100/1000Mbps Ethernet | Divided into 2 VLANs for network security 4 x SMA Connectors: WiFi Antenna connections 1 x 5.5/2.1 DC Screw Connector: DC 20V power supply",
+        "labelEs": "Puertos de interfaz traseros",
+        "valueEs": "1 x USB Type-C hembra Entrada: hasta 3840x2160 @30Hz | puente USB a Ethernet para conexión de red | cargador USB-C de hasta 60W (20V, 3A) | host USB3.0 1 x HDMI Tipo A hembra Entrada: entrada de video de hasta 3840x2160 @30Hz 1 x USB 3.0 tipo B hembra Puerto host: puerto host USB independiente 1 x conector RJ45 hembra HDBT Out: espejo de la salida HDMI | HDBT compatible con HT-DSCV-70-RX 2 x conectores RJ45 hembra Puertos LAN: Ethernet 10/100/1000Mbps | divididos en 2 VLAN para seguridad de red 4 x conectores SMA: conexiones de antena WiFi 1 x conector DC a rosca 5,5/2,1: fuente de alimentación DC 20V"
+      },
+      {
+        "group": "Video",
+        "label": "Front Interface Ports",
+        "value": "3 x USB 3.0 Type-A Connectors: Connection to USB peripherals | Up to 1A each 1 x 5-pin 3.5mm Phoenix Male Connector: Analog audio output | Balanced 2-channel 1 x 3-pin 3.5mm Phoneix Male Connecotr: RS-232 for external control 1 x USB Type-C Female Connector: Pairing to HT-VOYAGER2",
+        "labelEs": "Puertos de interfaz frontales",
+        "valueEs": "3 x conectores USB 3.0 tipo A: conexión a periféricos USB | hasta 1A cada uno 1 x conector Phoenix macho de 5 pines, 3,5mm: salida de audio analógica | balanceada, 2 canales 1 x conector Phoenix macho de 3 pines, 3,5mm: RS-232 para control externo 1 x conector USB Type-C hembra: emparejamiento con HT-VOYAGER2"
+      },
+      {
+        "group": "Video",
+        "label": "Input Resolutions",
+        "value": "HDMI/USB-C (8-bit, YUV 4:4:4 / 4:2:2 or RGB, up to HDCP 1.4) 640x4808 | 800x6008 | 1024x7688 | 1280x7688 | 1280x8008 | 1280x10248 | 1360x7688 | 1366x7688 | 1440x9008 | 1400x10508 | 1600x12008 | 1680x10508 | 1920x12008 | 720x4808 | 720x5766 | 1280x7205,6,8 | 1920x10802,3,5,6,8 | 3840x21605 Miracast (Wi-Fi) 640x4808 | 720x4808 | 720x5766 | 1280x7202,3,5,6,8 | 1920x10802,3,5,6,8 Airplay Mirroring (LAN/Wi-Fi) Max 1920x10808 ChromeCast Mirroring (LAN/Wi-Fi) Max 1920x10805 HT-VOYAGER2 USB Dongle 1920x10808 | 3840x21605 1=at23.98Hz,2=at24Hz,3=at25Hz,4=at29.97Hz,5=at30Hz, 6 = at 50 Hz, 7 = at 59.94 Hz, 8 = 60 Hz",
+        "labelEs": "Resoluciones de entrada",
+        "valueEs": "HDMI/USB-C (8 bits, YUV 4:4:4 / 4:2:2 o RGB, hasta HDCP 1.4) 640x4808 | 800x6008 | 1024x7688 | 1280x7688 | 1280x8008 | 1280x10248 | 1360x7688 | 1366x7688 | 1440x9008 | 1400x10508 | 1600x12008 | 1680x10508 | 1920x12008 | 720x4808 | 720x5766 | 1280x7205,6,8 | 1920x10802,3,5,6,8 | 3840x21605 Miracast (Wi-Fi) 640x4808 | 720x4808 | 720x5766 | 1280x7202,3,5,6,8 | 1920x10802,3,5,6,8 Airplay Mirroring (LAN/Wi-Fi) Máx. 1920x10808 ChromeCast Mirroring (LAN/Wi-Fi) Máx. 1920x10805 HT-VOYAGER2 USB Dongle 1920x10808 | 3840x21605 1=a 23,98Hz, 2=a 24Hz, 3=a 25Hz, 4=a 29,97Hz, 5=a 30Hz, 6 = a 50 Hz, 7 = a 59,94 Hz, 8 = 60 Hz"
+      },
+      {
+        "group": "Video",
+        "label": "Output Resolutions",
+        "value": "HDMI/USB-C (8-bit, YUV 4:4:4 / 4:2:2 or RGB, up to HDCP 2.2) 640x4808 | 800x6008 | 1024x7688 | 1280x7688 | 1280x8008 | 1280x10248 | 1360x7688 | 1440x9008 | 1600x12008 | 1680x10508 | 1920x12008 | 1920x21605 | 2560x14405,8 | 2560x16008 | 720x4808 | 720x5766 | 1280x7206,8 | 1920x10802,3,5,6,8 | 3840x21603,5,6,8 HDBT Out (8-bit, YUV 4:4:4 / 4:2:0* or RGB, up to HDCP 1.4) 640x4808 | 800x6008 | 1024x7688 | 1280x8008 | 1280x10248 | 1360x7688 | 1440x9008 | 1600x12008 | 1680x10508 | 1920x12008 | 720x4808 | 720x5766 | 1280x7206,8 | 1920x10802,3,5,6,8 | 3840x21603,5,6*,8* 1 = at 23.98 Hz, 2 = at 24 Hz, 3 = at 25 Hz, 4 = at 29.97 Hz, 5 = at 30Hz, 6 = at 50 Hz, 7 = at 59.94 Hz, 8 = 60 Hz",
+        "labelEs": "Resoluciones de salida",
+        "valueEs": "HDMI/USB-C (8 bits, YUV 4:4:4 / 4:2:2 o RGB, hasta HDCP 2.2) 640x4808 | 800x6008 | 1024x7688 | 1280x7688 | 1280x8008 | 1280x10248 | 1360x7688 | 1440x9008 | 1600x12008 | 1680x10508 | 1920x12008 | 1920x21605 | 2560x14405,8 | 2560x16008 | 720x4808 | 720x5766 | 1280x7206,8 | 1920x10802,3,5,6,8 | 3840x21603,5,6,8 HDBT Out (8 bits, YUV 4:4:4 / 4:2:0* o RGB, hasta HDCP 1.4) 640x4808 | 800x6008 | 1024x7688 | 1280x8008 | 1280x10248 | 1360x7688 | 1440x9008 | 1600x12008 | 1680x10508 | 1920x12008 | 720x4808 | 720x5766 | 1280x7206,8 | 1920x10802,3,5,6,8 | 3840x21603,5,6*,8* 1 = a 23,98 Hz, 2 = a 24 Hz, 3 = a 25 Hz, 4 = a 29,97 Hz, 5 = a 30Hz, 6 = a 50 Hz, 7 = a 59,94 Hz, 8 = 60 Hz"
+      },
+      {
+        "group": "Audio",
+        "label": "Input Audio Port",
+        "value": "1 x HDMI; 1 x USB-C In; 1 x LAN; 1 x Wi-Fi",
+        "labelEs": "Puerto de audio de entrada",
+        "valueEs": "1 x HDMI; 1 x USB-C In; 1 x LAN; 1 x Wi-Fi"
+      },
+      {
+        "group": "Audio",
+        "label": "Input Audio Signal",
+        "value": "RAW PCM 2.0, 16 bit, 32/44.1/48KHz sps",
+        "labelEs": "Señal de audio de entrada",
+        "valueEs": "RAW PCM 2.0, 16 bits, 32/44,1/48KHz sps"
+      },
+      {
+        "group": "Audio",
+        "label": "Output Audio Port",
+        "value": "1 x HDMI",
+        "labelEs": "Puerto de audio de salida",
+        "valueEs": "1 x HDMI"
+      },
+      {
+        "group": "Audio",
+        "label": "Output Audio Signal",
+        "value": "RAW PCM 2.0, 16 bit, 32/44.1/48KHz",
+        "labelEs": "Señal de audio de salida",
+        "valueEs": "RAW PCM 2.0, 16 bits, 32/44,1/48KHz"
+      },
+      {
+        "group": "Wi-Fi",
+        "label": "Standard",
+        "value": "IEEE 802.11 a/b/g/n/ac",
+        "labelEs": "Estándar",
+        "valueEs": "IEEE 802.11 a/b/g/n/ac"
+      },
+      {
+        "group": "Wi-Fi",
+        "label": "Frequency",
+        "value": "Dual bands, 2.4~2.4835GHz, 5.0~5.8GH",
+        "labelEs": "Frecuencia",
+        "valueEs": "Doble banda, 2,4~2,4835GHz, 5,0~5,8GHz"
+      },
+      {
+        "group": "Wi-Fi",
+        "label": "Throughput",
+        "value": "2T x 2R, up to 867Mbps",
+        "labelEs": "Velocidad de transferencia",
+        "valueEs": "2T x 2R, hasta 867Mbps"
+      },
+      {
+        "group": "Wi-Fi",
+        "label": "Security",
+        "value": "WEP, TKIP, AES, WPA, WPA2",
+        "labelEs": "Seguridad",
+        "valueEs": "WEP, TKIP, AES, WPA, WPA2"
+      },
+      {
+        "group": "Control",
+        "label": "Control Connector",
+        "value": "2 x RJ45, 10/100/1000Mbps Ethernet",
+        "labelEs": "Conector de control",
+        "valueEs": "2 x RJ45, Ethernet 10/100/1000Mbps"
+      },
+      {
+        "group": "Control",
+        "label": "Control Method",
+        "value": "LAN (Web UI & Telnet API)",
+        "labelEs": "Método de control",
+        "valueEs": "LAN (interfaz web y API Telnet)"
+      },
+      {
+        "group": "General",
+        "label": "Operating Temperature",
+        "value": "0 to + 45°C (32 to + 113°F)",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "0 a + 45°C (32 a + 113°F)"
+      },
+      {
+        "group": "General",
+        "label": "Storage Temperature",
+        "value": "-20 to +70°C (-4 to + 158°F)",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-20 a +70°C (-4 a + 158°F)"
+      },
+      {
+        "group": "General",
+        "label": "Humidity",
+        "value": "10% to 90%, non-condensing",
+        "labelEs": "Humedad",
+        "valueEs": "10% a 90%, sin condensación"
+      },
+      {
+        "group": "General",
+        "label": "ESD Protection",
+        "value": "Human-body Model: ±8kV (Air-gap discharge)/ ±4kV (Contact discharge)",
+        "labelEs": "Protección ESD",
+        "valueEs": "Modelo de cuerpo humano: ±8kV (descarga por aire)/ ±4kV (descarga por contacto)"
+      },
+      {
+        "group": "General",
+        "label": "Power Supply 12V 2A DC",
+        "value": "Power Consumption 12W (Max)",
+        "labelEs": "Fuente de alimentación 12V 2A DC",
+        "valueEs": "Consumo 12W (máx.)"
+      },
+      {
+        "group": "General",
+        "label": "Device Dimension (WxHx D)",
+        "value": "8.46” x 0.98” x 6.29” (215mm x 25mm x 160 mm)",
+        "labelEs": "Dimensiones del equipo (ancho × alto × profundidad)",
+        "valueEs": "8,46” x 0,98” x 6,29” (215mm x 25mm x 160 mm)"
+      },
+      {
+        "group": "General",
+        "label": "Net Weight",
+        "value": "1.75lbs. (0.79kg)",
+        "labelEs": "Peso neto",
+        "valueEs": "1,75 lb (0,79kg)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "HT-RANGER2 Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-RNGE-R1821%20(HT-RANGER2)/Spec%20Sheet/HT-RANGER2-Spec-Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "HT-RANGER2 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-RNGE-R1821%20(HT-RANGER2)/Manual/HT-RANGER2_Manual-2.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "HT-RANGER2 API",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-RNGE-R1821%20(HT-RANGER2)/API/HT-RANGER2_API-Commands.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "BYOD Deployment Guide (Atlona)",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-RNGE-R1821%20(HT-RANGER2)/Other/BYOD_IT_Deployment_Guide_Atlona.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/ht-ranger2",
+    "tangoPath": "VIDEO > SWITCHERS & MATRICES > SWITCHERS"
+  },
+  {
+    "sku": "HT-SATELLITE-BT",
+    "shortDescription": "Speakerphone portátil USB y Bluetooth con arreglo de micrófonos omnidireccional, audio full-duplex, cancelación de eco y batería de hasta 10 h. Para huddle rooms y salas chicas de hasta 6 personas.",
+    "longDescription": "El HT-SATELLITE-BT es un speakerphone USB/Bluetooth con arreglo de micrófonos omnidireccional, audio full-duplex, cancelación de eco y compatibilidad con plataformas de comunicaciones unificadas (UC).\n\nEs apto para huddle rooms y salas de reuniones pequeñas.",
+    "keyFeatures": [
+      "Conexión rápida y sencilla por USB o Bluetooth",
+      "Arreglo de micrófonos de captación omnidireccional, con cancelación automática de eco y reducción de ruido",
+      "Compatibilidad plug-and-play con Windows, macOS y Android, y con plataformas UC como Zoom, WebEx, Teams, etc.",
+      "Batería de larga duración (hasta 10 h)",
+      "Audio claro para hasta 6 participantes"
+    ],
+    "specifications": [
+      {
+        "group": "Audio",
+        "label": "Type",
+        "value": "Speaker and microphone combo",
+        "labelEs": "Tipo",
+        "valueEs": "Parlante y micrófono combinados"
+      },
+      {
+        "group": "Audio",
+        "label": "Speaker",
+        "value": "Integrated high-quality speaker",
+        "labelEs": "Parlante",
+        "valueEs": "Parlante integrado"
+      },
+      {
+        "group": "Audio",
+        "label": "Microphone",
+        "value": "Integrated professional microphone",
+        "labelEs": "Micrófono",
+        "valueEs": "Micrófono profesional integrado"
+      },
+      {
+        "group": "Audio",
+        "label": "Audio Processing",
+        "value": "Professional-grade speech processing",
+        "labelEs": "Procesamiento de audio",
+        "valueEs": "Procesamiento de voz de nivel profesional"
+      },
+      {
+        "group": "Conectividad",
+        "label": "USB",
+        "value": "USB connection to host computer",
+        "labelEs": "USB",
+        "valueEs": "Conexión USB a la computadora"
+      },
+      {
+        "group": "Conectividad",
+        "label": "Bluetooth",
+        "value": "Wireless Bluetooth connectivity",
+        "labelEs": "Bluetooth",
+        "valueEs": "Conectividad inalámbrica Bluetooth"
+      },
+      {
+        "group": "Conectividad",
+        "label": "Dual Mode",
+        "value": "Switch between USB and Bluetooth",
+        "labelEs": "Modo dual",
+        "valueEs": "Conmutación entre USB y Bluetooth"
+      },
+      {
+        "group": "Compatibilidad",
+        "label": "Conferencing Platforms",
+        "value": "Compatible with major video conferencing systems",
+        "labelEs": "Plataformas de conferencia",
+        "valueEs": "Compatible con los principales sistemas de videoconferencia"
+      },
+      {
+        "group": "Compatibilidad",
+        "label": "Operating Systems",
+        "value": "Windows, macOS, and Bluetooth-enabled devices",
+        "labelEs": "Sistemas operativos",
+        "valueEs": "Windows, macOS y dispositivos con Bluetooth"
+      },
+      {
+        "group": "Garantía",
+        "label": "Device",
+        "value": "To view the product warranty, visit: captivateav.com/warranty",
+        "labelEs": "Equipo",
+        "valueEs": "Para ver la garantía del producto, visite: captivateav.com/warranty"
+      }
+    ],
+    "documents": [
+      {
+        "name": "HT-SATELLITE-BT Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-SAT-M1501-BT%20(HT-SATELLITE-BT)/Manual/HT-Satellite-BT_manual_Nov_10-1.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "CP-SAT-M1501-BT Spec Sheet",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/CAPTIVATE/CP-SAT-M1501-BT%20(HT-SATELLITE-BT)/Spec%20Sheet/CP-SAT-M1501-BT_Spec_Sheet.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/ht-satellite-bt",
+    "tangoPath": "TELEPRESENCIA > TELEFONIA > EQUIPOS AC"
+  }
+]

@@ -9,6 +9,7 @@ import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import { SelectableRowControls } from "./catalog-multi-select";
+import { commercialTagFor } from "@/lib/commercial-tags";
 
 interface TableProps {
   items: CatalogProduct[];
@@ -16,17 +17,14 @@ interface TableProps {
   basePath?: string;
 }
 
-/**
- * Etiqueta comercial sobre la foto. Hoy: oferta (descuento). Acá se suman
- * liquidación, novedad, etc. cuando existan esos módulos: un solo lugar,
- * siempre en la misma esquina, para que el cliente aprenda a buscarla.
- */
-function promoTag(p: CatalogProduct): { label: string; className: string } | null {
-  if (p.pricing && p.pricing.discountPercent > 0 && !priceOnRequest(p)) {
-    return { label: `Oferta −${Math.round(p.pricing.discountPercent)}%`, className: "bg-[#b4232c] text-white" };
-  }
-  if (p.isDiscontinued) return { label: "Últimas unidades", className: "bg-foreground text-background" };
-  return null;
+/** Cartel comercial sobre la foto (ver lib/commercial-tags): siempre en la misma esquina. */
+function promoTag(p: CatalogProduct) {
+  return commercialTagFor({
+    commercialTag: p.commercialTag,
+    isDiscontinued: p.isDiscontinued,
+    discountPercent: p.pricing?.discountPercent ?? null,
+    priceOnRequest: priceOnRequest(p),
+  });
 }
 
 /**
@@ -72,7 +70,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
                 </span>
               )}
               {promo ? (
-                <span className={`absolute left-3 top-3 rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wide shadow-sm ${promo.className}`}>
+                <span title={promo.hint} className={`absolute left-3 top-3 rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wide shadow-sm ${promo.className}`}>
                   {promo.label}
                 </span>
               ) : null}

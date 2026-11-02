@@ -1,0 +1,411 @@
+[
+  {
+    "sku": "AT-HDVS-CAM-HDMI",
+    "shortDescription": "Cámara PTZ para videoconferencia y captura de clases con salida HDMI 1080p a 60 Hz, USB 2.0 para video y control (1080p a 30 Hz) y streaming H.264/H.265 por IP.",
+    "longDescription": "La Atlona AT-HDVS-CAM-HDMI es una cámara PTZ de nivel empresarial diseñada para videoconferencia y otras aplicaciones, como captura de clases y educación a distancia. Tiene salida HDMI e interfaz USB 2.0 para video y control de la cámara, con salida de video simultánea por ambas interfaces. Por USB se integra sin inconvenientes con la serie Omega™ para formar un sistema de conferencias completo y automatizado que incluye extensión de AV y USB.\n\nLa salida HDMI es ideal para usar con OmniStream™ en distribución de AV sobre IP, así como con un sistema de grabación de video o un códec de videoconferencia tradicional.\n\nLa HDVS-CAM-HDMI ofrece imágenes de alto rendimiento y calidad profesional, con resoluciones de video de hasta 1080p a 60 Hz por la interfaz HDMI y 1080p a 30 Hz por USB 2.0, enfoque automático rápido y preciso, y un mecanismo de paneo e inclinación rápido y silencioso. También permite streaming H.264 o H.265 por IP con soporte para los protocolos RTMP y RTSP.\n\nEsta cámara PTZ es ideal para una amplia variedad de salas de reunión chicas y medianas, aulas, salas de capacitación y muchos otros ambientes.",
+    "keyFeatures": [],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Signal",
+        "value": "USB",
+        "labelEs": "Señal",
+        "valueEs": "USB"
+      },
+      {
+        "group": "Video",
+        "label": "HD",
+        "value": "1920x1080p@60/59.97/50/30/29.97/25 Hz; 1920x1080i@60/59.94/50 Hz; 1280x720p@60/59.94/50 Hz",
+        "labelEs": "HD",
+        "valueEs": "1920x1080p@60/59.97/50/30/29.97/25 Hz; 1920x1080i@60/59.94/50 Hz; 1280x720p@60/59.94/50 Hz"
+      },
+      {
+        "group": "Video",
+        "label": "Color Space",
+        "value": "YUV, RGB",
+        "labelEs": "Espacio de color",
+        "valueEs": "YUV, RGB"
+      },
+      {
+        "group": "Video",
+        "label": "Chroma Subsampling",
+        "value": "4:4:4, 4:2:2, 4:2:0",
+        "labelEs": "Submuestreo de croma",
+        "valueEs": "4:4:4, 4:2:2, 4:2:0"
+      },
+      {
+        "group": "Streaming",
+        "label": "Video Compression",
+        "value": "H.264 / H.265",
+        "labelEs": "Compresión de video",
+        "valueEs": "H.264 / H.265"
+      },
+      {
+        "group": "Streaming",
+        "label": "Protocol",
+        "value": "TCP, UDP, RTMP, RTSP",
+        "labelEs": "Protocolo",
+        "valueEs": "TCP, UDP, RTMP, RTSP"
+      },
+      {
+        "group": "Streaming",
+        "label": "Bitrate",
+        "value": "46 kbps - 40960 kbps",
+        "labelEs": "Tasa de bits",
+        "valueEs": "46 kbps - 40960 kbps"
+      },
+      {
+        "group": "Streaming",
+        "label": "Compression Profiles",
+        "value": "BP, MP, HP",
+        "labelEs": "Perfiles de compresión",
+        "valueEs": "BP, MP, HP"
+      },
+      {
+        "group": "Streaming",
+        "label": "Bitrate Control",
+        "value": "VBR",
+        "labelEs": "Control de tasa de bits",
+        "valueEs": "VBR"
+      },
+      {
+        "group": "Streaming",
+        "label": "Multi-Stream",
+        "value": "Main Stream / Sub Stream (simultaneous stream output) (1) Tested using VLC media player connected to the camera.",
+        "labelEs": "Multistream",
+        "valueEs": "Stream principal / substream (salida simultánea de streams) (1) Probado con el reproductor VLC conectado a la cámara."
+      },
+      {
+        "group": "Streaming",
+        "label": "Latency",
+        "value": "175 ms",
+        "labelEs": "Latencia",
+        "valueEs": "175 ms"
+      },
+      {
+        "group": "Cámara",
+        "label": "Sensor",
+        "value": "1/2.8\" HD CMOS",
+        "labelEs": "Sensor",
+        "valueEs": "CMOS HD de 1/2,8\""
+      },
+      {
+        "group": "Cámara",
+        "label": "Effective Pixels",
+        "value": "16:9, 2.07 MP",
+        "labelEs": "Píxeles efectivos",
+        "valueEs": "16:9, 2,07 MP"
+      },
+      {
+        "group": "Cámara",
+        "label": "Optical Zoom",
+        "value": "f = 4.7 ~ 47 mm",
+        "labelEs": "Zoom óptico",
+        "valueEs": "f = 4,7 a 47 mm"
+      },
+      {
+        "group": "Cámara",
+        "label": "View Angle",
+        "value": "6.43° (telephoto), 60.9° (wide-angle)",
+        "labelEs": "Ángulo de visión",
+        "valueEs": "6,43° (teleobjetivo), 60,9° (gran angular)"
+      },
+      {
+        "group": "Cámara",
+        "label": "Av",
+        "value": "f/1.6 - f/3.0",
+        "labelEs": "Av",
+        "valueEs": "f/1.6 - f/3.0"
+      },
+      {
+        "group": "Cámara",
+        "label": "Digital Zoom",
+        "value": "10X",
+        "labelEs": "Zoom digital",
+        "valueEs": "10X"
+      },
+      {
+        "group": "Cámara",
+        "label": "Minimum Illumination",
+        "value": "0.5 lm (f/1.8 with AGC On)",
+        "labelEs": "Iluminación mínima",
+        "valueEs": "0,5 lm (f/1.8 con AGC activado)"
+      },
+      {
+        "group": "Cámara",
+        "label": "DNR",
+        "value": "2D / 3D",
+        "labelEs": "DNR",
+        "valueEs": "2D / 3D"
+      },
+      {
+        "group": "Cámara",
+        "label": "White Balance",
+        "value": "Auto / Manual / One Push / 3000 K / 4000 K / 5000 K / 6500 K",
+        "labelEs": "Balance de blancos",
+        "valueEs": "Automático / Manual / One Push / 3000 K / 4000 K / 5000 K / 6500 K"
+      },
+      {
+        "group": "Cámara",
+        "label": "Focus",
+        "value": "Auto / Manual",
+        "labelEs": "Enfoque",
+        "valueEs": "Automático / Manual"
+      },
+      {
+        "group": "Cámara",
+        "label": "Aperture",
+        "value": "Auto / Manual",
+        "labelEs": "Apertura",
+        "valueEs": "Automática / Manual"
+      },
+      {
+        "group": "Cámara",
+        "label": "Electronic Shutter",
+        "value": "Auto / Manual",
+        "labelEs": "Obturador electrónico",
+        "valueEs": "Automático / Manual"
+      },
+      {
+        "group": "Cámara",
+        "label": "BLC",
+        "value": "ON / OFF",
+        "labelEs": "BLC",
+        "valueEs": "Activado / Desactivado"
+      },
+      {
+        "group": "Cámara",
+        "label": "WDR",
+        "value": "Off / Dynamic Level Adjustment",
+        "labelEs": "WDR",
+        "valueEs": "Desactivado / ajuste dinámico de nivel"
+      },
+      {
+        "group": "Cámara",
+        "label": "Video Adjustment",
+        "value": "Brightness, Color, Saturation, Contrast, Sharpness, B/W Mode, Gamma Curve",
+        "labelEs": "Ajustes de video",
+        "valueEs": "Brillo, color, saturación, contraste, nitidez, modo blanco y negro, curva gamma"
+      },
+      {
+        "group": "Cámara",
+        "label": "SNR",
+        "value": "> 55 dB",
+        "labelEs": "Relación señal/ruido",
+        "valueEs": "> 55 dB"
+      },
+      {
+        "group": "PTZ",
+        "label": "Pan Rotation",
+        "value": "± 170°",
+        "labelEs": "Giro horizontal (pan)",
+        "valueEs": "± 170°"
+      },
+      {
+        "group": "PTZ",
+        "label": "Tilt Rotation",
+        "value": "-30° ~ +90°",
+        "labelEs": "Giro vertical (tilt)",
+        "valueEs": "-30° a +90°"
+      },
+      {
+        "group": "PTZ",
+        "label": "Pan Control Speed",
+        "value": "0.1 - 180° / sec",
+        "labelEs": "Velocidad de pan",
+        "valueEs": "0,1 - 180° / s"
+      },
+      {
+        "group": "PTZ",
+        "label": "Tilt Control Speed",
+        "value": "0.1 - 80° / sec",
+        "labelEs": "Velocidad de tilt",
+        "valueEs": "0,1 - 80° / s"
+      },
+      {
+        "group": "PTZ",
+        "label": "Preset Speed",
+        "value": "Pan: 60° / sec, Tilt: 30° / sec",
+        "labelEs": "Velocidad de presets",
+        "valueEs": "Pan: 60° / s, tilt: 30° / s"
+      },
+      {
+        "group": "PTZ",
+        "label": "Preset Number",
+        "value": "255 (10 presets using the included IR remote control)",
+        "labelEs": "Cantidad de presets",
+        "valueEs": "255 (10 presets desde el control remoto IR incluido)"
+      },
+      {
+        "group": "Conectores",
+        "label": "HDMI OUT",
+        "value": "1 - Type A, 19-pin, female",
+        "labelEs": "HDMI OUT",
+        "valueEs": "1 × tipo A, hembra de 19 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "USB",
+        "value": "1 x USB, Type A",
+        "labelEs": "USB",
+        "valueEs": "1 × USB tipo A"
+      },
+      {
+        "group": "Conectores",
+        "label": "LAN",
+        "value": "1 x RJ45, 100Base-T",
+        "labelEs": "LAN",
+        "valueEs": "1 × RJ45, 100Base-T"
+      },
+      {
+        "group": "Conectores",
+        "label": "RS-232",
+        "value": "2 x 9-pin DIN",
+        "labelEs": "RS-232",
+        "valueEs": "2 × DIN de 9 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "12VDC",
+        "value": "1 x HEC3800",
+        "labelEs": "12VDC",
+        "valueEs": "1 × HEC3800"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Operating",
+        "value": "14 to 122 °F (-10 to 50 °C)",
+        "labelEs": "Funcionamiento",
+        "valueEs": "14 a 122 °F (-10 a 50 °C)"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Storage",
+        "value": "-14 to 140 °F (-10 to 60 °C)",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-14 a 140 °F (-10 a 60 °C)"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Operating Humidity (RH)",
+        "value": "20% to 80%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "20 % a 80 %, sin condensación"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Storage Humidity (RH)",
+        "value": "20% to 95%, non-condensing",
+        "labelEs": "Humedad de almacenamiento (HR)",
+        "valueEs": "20 % a 95 %, sin condensación"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "12 W",
+        "labelEs": "Consumo",
+        "valueEs": "12 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "BTU/h",
+        "value": "40.9",
+        "labelEs": "BTU/h",
+        "valueEs": "40,9"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Supply",
+        "value": "Input: 110 - 220 V AC, 50/60 Hz; Output: 12 V DC, 1 A",
+        "labelEs": "Alimentación",
+        "valueEs": "Entrada: 110 - 220 V CA, 50/60 Hz; salida: 12 V CC, 1 A"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Unit",
+        "value": "6.59 x 5.90 x 5.90 in (167.5 x 150 x 150 mm)",
+        "labelEs": "Equipo",
+        "valueEs": "6,59 × 5,90 × 5,90 in (167,5 × 150 × 150 mm)"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Power Supply (AT-PS-122-NL)",
+        "value": "1.26 x 1.97 x 3.7 in (32.05 x 50 x 94 mm)",
+        "labelEs": "Fuente de alimentación (AT-PS-122-NL)",
+        "valueEs": "1,26 × 1,97 × 3,7 in (32,05 × 50 × 94 mm)"
+      },
+      {
+        "group": "Peso",
+        "label": "Device",
+        "value": "3.08 lb (1.4 kg)",
+        "labelEs": "Equipo",
+        "valueEs": "3,08 lb (1,4 kg)"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, FCC"
+      },
+      {
+        "group": "Garantía",
+        "label": "Device",
+        "value": "To view the product warranty, use the following link: https://atlona.com/warranty",
+        "labelEs": "Equipo",
+        "valueEs": "Para ver la garantía del producto, use el siguiente enlace: https://atlona.com/warranty"
+      },
+      {
+        "group": "Accesorios",
+        "label": "AT-HDVS-CAM-CMNT",
+        "value": "Ceiling Mount Kit for AT-HDVS-CAM",
+        "labelEs": "AT-HDVS-CAM-CMNT",
+        "valueEs": "Kit de montaje en techo para AT-HDVS-CAM"
+      },
+      {
+        "group": "Accesorios",
+        "label": "AT-LC-H2H-1M",
+        "value": "LinkConnect 1 Meter HDMI to HDMI Cable",
+        "labelEs": "AT-LC-H2H-1M",
+        "valueEs": "Cable HDMI a HDMI LinkConnect de 1 metro"
+      },
+      {
+        "group": "Accesorios",
+        "label": "AT-LC-H2H-2M",
+        "value": "LinkConnect 2 Meter HDMI to HDMI Cable",
+        "labelEs": "AT-LC-H2H-2M",
+        "valueEs": "Cable HDMI a HDMI LinkConnect de 2 metros"
+      },
+      {
+        "group": "Accesorios",
+        "label": "AT-LC-H2H-3M",
+        "value": "LinkConnect 3 Meter HDMI to HDMI Cable",
+        "labelEs": "AT-LC-H2H-3M",
+        "valueEs": "Cable HDMI a HDMI LinkConnect de 3 metros"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-HDVS-CAM-HDMI Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-HDVS-CAM-HDMI_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-HDVS-CAM-HDMI Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-HDVS-CAM-HDMI.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-HDVS-CAM API",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-HDVS-CAM_API.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-hdvs-cam-hdmi",
+    "tangoPath": "VIDEO > CAMARAS > CAMARAS PTZ",
+    "originalName": "PTZ Camera with HDMI Output and USB",
+    "images": [
+      "https://images.prismic.io/hallresearch/agJE7aYofJOwHGaG_AT-HDVS-CAMf-1600x742-1.png?auto=format,compress"
+    ]
+  }
+]

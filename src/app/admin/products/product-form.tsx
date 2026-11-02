@@ -1,5 +1,6 @@
 "use client";
 
+import { COMMERCIAL_TAGS } from "@/lib/commercial-tags";
 import { CategoryTreePicker } from "@/components/admin/category-tree-picker";
 import type { CategoryNode } from "@/lib/category-tree";
 import { useEffect, useState, useTransition } from "react";
@@ -52,6 +53,8 @@ interface Props {
     coefVtaFob: number | null;
     stockStatus: string;
     stockQuantity: number | null;
+    /** Cartel para el cliente (A_PEDIDO, LIQUIDACION…); null = automático. */
+    commercialTag?: string | null;
     isCustomizable: boolean;
     isCrestronHomeCompatible: boolean;
     kind: "PRINCIPAL" | "ACCESORIO";
@@ -647,6 +650,18 @@ export function ProductForm({ product, brands, distributors, categories, familie
               defaultValue={product?.stockQuantity ?? ""}
             />
             <FieldStamp at={fieldUpdatedAt?.stockQuantity} />
+          </div>
+          <div>
+            <Label htmlFor="commercialTag">Cartel para el cliente</Label>
+            <Select id="commercialTag" name="commercialTag" defaultValue={product?.commercialTag || ""}>
+              <option value="">Automático (oferta si hay descuento)</option>
+              {COMMERCIAL_TAGS.map((tag) => (
+                <option key={tag.key} value={tag.key}>
+                  {tag.label}
+                </option>
+              ))}
+            </Select>
+            <p className="mt-1 text-xs text-muted-foreground">Sale sobre la foto en el catálogo y en la ficha.</p>
           </div>
         </div>
       </div>

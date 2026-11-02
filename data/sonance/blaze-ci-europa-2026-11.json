@@ -1,0 +1,3132 @@
+[
+  {
+    "sku": "CI2-BK",
+    "supplierSku": "BGM-888-005",
+    "listModel": "CI2",
+    "color": "Negro",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance Ci2 2.5\" passive, 2-way, full-range loudspeaker, Black",
+    "shortDescription": "Parlante pasivo de superficie de 2 vías con woofer de 2,5\" y tweeter de 0,75\", gabinete triangular de ABS IP64 para esquinas, paredes o techos. Para música funcional en cafeterías, hoteles y comercios.",
+    "longDescription": "Ci2 es un parlante full-range de 2 vías ultracompacto. Su tweeter, acoplado a una guía de onda, tiene una dispersión muy uniforme (100° x 100°), por lo que no necesita orientarse: ubicado en una esquina cubre todo el ambiente. La guía de onda además controla la dispersión y aumenta la sensibilidad.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes. Dos gabinetes pueden acoplarse para ampliar la cobertura a 180°. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nEstá indicado para música funcional en cafeterías, hoteles y comercios. Para reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Woofer de medios-graves de 2,5\" y tweeter de domo de seda de 0,75\" con guía de onda",
+      "Dispersión de 100° x 100°",
+      "Gabinete triangular de ABS con grado de protección IP64, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje sin soportes en esquinas, paredes o techos; también puede colgarse del techo",
+      "Conexión de cable oculta y bornes a presión",
+      "Dos unidades acopladas cubren 180°",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: negro (RAL9005)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-005",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-005"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "0.75\" silk dome tweeter",
+        "labelEs": "Tweeter",
+        "valueEs": "Domo de seda de 0,75\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "2.5\" low-mid driver",
+        "labelEs": "Woofer",
+        "valueEs": "Medios-graves de 2,5\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "140 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "140 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "84 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "84 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "99 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "99 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "105 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "105 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "8 Ω @ 15 kHz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "8 Ω a 15 kHz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "15 - 30 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "15 - 30 W / 8 Ω"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP64",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP64"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Push terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A presión, en el frente (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners, or hanging from ceiling; without brackets; can be coupled",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas, o colgado del techo; sin soportes; acoplable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "Black (RAL9005)",
+        "labelEs": "Color",
+        "valueEs": "Negro (RAL9005)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "180.5 x 129 x 84 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "180,5 x 129 x 84 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "0.75 kg",
+        "labelEs": "Peso",
+        "valueEs": "0,75 kg"
+      }
+    ],
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/vd75zpzuhcwbdff1k2xo.png",
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/dz8eieseicj0j2dfjjdn.png"
+    ],
+    "documents": [
+      {
+        "name": "Ci2 - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/waurgyxks4joqxzvoiho/Ci2%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci2 - Manual",
+        "url": "https://images.salsify.com/images/zfzharbqo9pkfkxbdwdy/Ci2%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci2 - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/z6zwfvn9zqlodmjcuwhi/Ci2_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-005",
+    "coo": null,
+    "widthCm": 12.9,
+    "heightCm": 18.05,
+    "depthCm": 8.4,
+    "weightKg": 0.75,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "CI2-WH",
+    "supplierSku": "BGM-888-006",
+    "listModel": "CI2",
+    "color": "Blanco",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance Ci2 2.5\" passive, 2-way, full-range loudspeaker, White",
+    "shortDescription": "Parlante pasivo de superficie de 2 vías con woofer de 2,5\" y tweeter de 0,75\", gabinete triangular de ABS IP64 para esquinas, paredes o techos. Para música funcional en cafeterías, hoteles y comercios.",
+    "longDescription": "Ci2 es un parlante full-range de 2 vías ultracompacto. Su tweeter, acoplado a una guía de onda, tiene una dispersión muy uniforme (100° x 100°), por lo que no necesita orientarse: ubicado en una esquina cubre todo el ambiente. La guía de onda además controla la dispersión y aumenta la sensibilidad.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes. Dos gabinetes pueden acoplarse para ampliar la cobertura a 180°. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nEstá indicado para música funcional en cafeterías, hoteles y comercios. Para reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Woofer de medios-graves de 2,5\" y tweeter de domo de seda de 0,75\" con guía de onda",
+      "Dispersión de 100° x 100°",
+      "Gabinete triangular de ABS con grado de protección IP64, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje sin soportes en esquinas, paredes o techos; también puede colgarse del techo",
+      "Conexión de cable oculta y bornes a presión",
+      "Dos unidades acopladas cubren 180°",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: blanco (RAL9010)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-006",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-006"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "0.75\" silk dome tweeter",
+        "labelEs": "Tweeter",
+        "valueEs": "Domo de seda de 0,75\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "2.5\" low-mid driver",
+        "labelEs": "Woofer",
+        "valueEs": "Medios-graves de 2,5\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "140 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "140 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "84 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "84 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "99 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "99 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "105 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "105 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "8 Ω @ 15 kHz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "8 Ω a 15 kHz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "15 - 30 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "15 - 30 W / 8 Ω"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP64",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP64"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Push terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A presión, en el frente (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners, or hanging from ceiling; without brackets; can be coupled",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas, o colgado del techo; sin soportes; acoplable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "White (RAL9010)",
+        "labelEs": "Color",
+        "valueEs": "Blanco (RAL9010)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "180.5 x 129 x 84 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "180,5 x 129 x 84 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "0.75 kg",
+        "labelEs": "Peso",
+        "valueEs": "0,75 kg"
+      }
+    ],
+    "images": [],
+    "documents": [
+      {
+        "name": "Ci2 - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/waurgyxks4joqxzvoiho/Ci2%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci2 - Manual",
+        "url": "https://images.salsify.com/images/zfzharbqo9pkfkxbdwdy/Ci2%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci2 - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/z6zwfvn9zqlodmjcuwhi/Ci2_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-005",
+    "coo": null,
+    "widthCm": 12.9,
+    "heightCm": 18.05,
+    "depthCm": 8.4,
+    "weightKg": 0.75,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "Ci4-BK",
+    "supplierSku": "BGM-888-007",
+    "listModel": "Ci4",
+    "color": "Negro",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance Ci4 4\" passive, 2-way, full-range loudspeaker, Black",
+    "shortDescription": "Parlante pasivo de superficie de 2 vías con woofer de 4\", radiador pasivo y tweeter de 1\", gabinete triangular de ABS IP65 para esquinas, paredes o techos. Para música funcional comercial en interior y exterior.",
+    "longDescription": "Ci4 es un parlante full-range de 2 vías compacto, de salida media y respuesta en graves extendida gracias a su radiador pasivo. Su dispersión amplia y uniforme (100° x 100°) permite cubrir un ambiente con relativamente pocas unidades, por lo que está indicado para instalaciones comerciales en interior y exterior.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes, o bien sobre dos soportes deslizantes ocultos. Los gabinetes pueden acoplarse para ampliar la cobertura a 180° o 270°. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nEl tweeter cuenta con un circuito limitador conmutable que lo protege de sobrecargas. Esta versión trabaja solo a 8 Ω; la variante Ci4V agrega el modo de alta impedancia de 70/100 V. Es una opción para música funcional en instalaciones comerciales como cafeterías, hoteles y comercios.\n\nPara reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Woofer de 4\" con radiador pasivo de 4\" y tweeter de domo de seda de 1\" con guía de onda",
+      "Dispersión de 100° x 100°",
+      "Circuito limitador conmutable para protección del tweeter",
+      "Gabinete triangular de ABS con grado de protección IP65, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje sin soportes o con soportes deslizantes ocultos, en esquinas, paredes o techos; también puede colgarse del techo",
+      "Conexión de cable oculta y bornes a tornillo",
+      "Las unidades pueden acoplarse para cubrir 180° o 270°",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: negro (RAL9005)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-007",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-007"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "1\" silk dome tweeter",
+        "labelEs": "Tweeter",
+        "valueEs": "Domo de seda de 1\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "4\" woofer + 4\" passive radiator",
+        "labelEs": "Woofer",
+        "valueEs": "4\" + radiador pasivo de 4\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "60 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "60 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "86 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "86 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "105 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "105 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "111 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "111 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "7 Ω @ 240 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "7 Ω a 240 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "30 - 60 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "30 - 60 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Tweeter Protection",
+        "value": "Switchable limiting circuit",
+        "labelEs": "Protección del tweeter",
+        "valueEs": "Circuito limitador conmutable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP65",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP65"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, en el frente (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners, or hanging from ceiling; without brackets or with hidden sliders; can be coupled",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas, o colgado del techo; sin soportes o con soportes deslizantes ocultos; acoplable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "Black (RAL9005)",
+        "labelEs": "Color",
+        "valueEs": "Negro (RAL9005)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "400 x 190 x 125 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "400 x 190 x 125 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "2.7 kg",
+        "labelEs": "Peso",
+        "valueEs": "2,7 kg"
+      }
+    ],
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/h3zfpf4nlyl0jl43gbmc.png",
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/u512fhnvacqn4zmf2e7x.png"
+    ],
+    "documents": [
+      {
+        "name": "Ci4 / Ci4V - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/yoihlvrdbym2gmvrtvk1/Ci4_Ci4-V%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci4 / Ci4V - Manual",
+        "url": "https://images.salsify.com/images/urgjizktp89lqcgwptxv/Ci4_Ci4-V%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci4 / Ci4V - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/mvyln4gsrps66dtxgiss/Ci4_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-007",
+    "coo": null,
+    "widthCm": 19,
+    "heightCm": 40,
+    "depthCm": 12.5,
+    "weightKg": 2.7,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "Ci4-WH",
+    "supplierSku": "BGM-888-008",
+    "listModel": "Ci4",
+    "color": "Blanco",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance Ci4 4\" passive, 2-way, full-range loudspeaker, White",
+    "shortDescription": "Parlante pasivo de superficie de 2 vías con woofer de 4\", radiador pasivo y tweeter de 1\", gabinete triangular de ABS IP65 para esquinas, paredes o techos. Para música funcional comercial en interior y exterior.",
+    "longDescription": "Ci4 es un parlante full-range de 2 vías compacto, de salida media y respuesta en graves extendida gracias a su radiador pasivo. Su dispersión amplia y uniforme (100° x 100°) permite cubrir un ambiente con relativamente pocas unidades, por lo que está indicado para instalaciones comerciales en interior y exterior.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes, o bien sobre dos soportes deslizantes ocultos. Los gabinetes pueden acoplarse para ampliar la cobertura a 180° o 270°. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nEl tweeter cuenta con un circuito limitador conmutable que lo protege de sobrecargas. Esta versión trabaja solo a 8 Ω; la variante Ci4V agrega el modo de alta impedancia de 70/100 V. Es una opción para música funcional en instalaciones comerciales como cafeterías, hoteles y comercios.\n\nPara reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Woofer de 4\" con radiador pasivo de 4\" y tweeter de domo de seda de 1\" con guía de onda",
+      "Dispersión de 100° x 100°",
+      "Circuito limitador conmutable para protección del tweeter",
+      "Gabinete triangular de ABS con grado de protección IP65, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje sin soportes o con soportes deslizantes ocultos, en esquinas, paredes o techos; también puede colgarse del techo",
+      "Conexión de cable oculta y bornes a tornillo",
+      "Las unidades pueden acoplarse para cubrir 180° o 270°",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: blanco (RAL9010)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-008",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-008"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "1\" silk dome tweeter",
+        "labelEs": "Tweeter",
+        "valueEs": "Domo de seda de 1\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "4\" woofer + 4\" passive radiator",
+        "labelEs": "Woofer",
+        "valueEs": "4\" + radiador pasivo de 4\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "60 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "60 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "86 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "86 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "105 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "105 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "111 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "111 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "7 Ω @ 240 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "7 Ω a 240 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "30 - 60 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "30 - 60 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Tweeter Protection",
+        "value": "Switchable limiting circuit",
+        "labelEs": "Protección del tweeter",
+        "valueEs": "Circuito limitador conmutable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP65",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP65"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, en el frente (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners, or hanging from ceiling; without brackets or with hidden sliders; can be coupled",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas, o colgado del techo; sin soportes o con soportes deslizantes ocultos; acoplable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "White (RAL9010)",
+        "labelEs": "Color",
+        "valueEs": "Blanco (RAL9010)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "400 x 190 x 125 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "400 x 190 x 125 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "2.7 kg",
+        "labelEs": "Peso",
+        "valueEs": "2,7 kg"
+      }
+    ],
+    "images": [],
+    "documents": [
+      {
+        "name": "Ci4 / Ci4V - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/yoihlvrdbym2gmvrtvk1/Ci4_Ci4-V%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci4 / Ci4V - Manual",
+        "url": "https://images.salsify.com/images/urgjizktp89lqcgwptxv/Ci4_Ci4-V%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci4 / Ci4V - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/mvyln4gsrps66dtxgiss/Ci4_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-007",
+    "coo": null,
+    "widthCm": 19,
+    "heightCm": 40,
+    "depthCm": 12.5,
+    "weightKg": 2.7,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "Ci4V-BK",
+    "supplierSku": "BGM-888-009",
+    "listModel": "Ci4V",
+    "color": "Negro",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance Ci4V 4\" passive, 2-way, full-range loudspeaker w/ switchable high-impedance mode, Black",
+    "shortDescription": "Parlante pasivo de superficie de 2 vías con woofer de 4\", radiador pasivo y tweeter de 1\", conmutable 8 Ω / 70-100 V, gabinete triangular de ABS IP65. Para música funcional comercial en interior y exterior.",
+    "longDescription": "Ci4V es un parlante full-range de 2 vías compacto, de salida media y respuesta en graves extendida gracias a su radiador pasivo. Su dispersión amplia y uniforme (100° x 100°) permite cubrir un ambiente con relativamente pocas unidades, por lo que está indicado para instalaciones comerciales en interior y exterior.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes, o bien sobre dos soportes deslizantes ocultos. Los gabinetes pueden acoplarse para ampliar la cobertura a 180° o 270°. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nEl tweeter cuenta con un circuito limitador conmutable que lo protege de sobrecargas. La entrada se conmuta entre 8 Ω y línea distribuida de 70/100 V mediante un transformador incorporado de 15 W; el selector de derivaciones está en el frente del gabinete. Es una opción para música funcional en instalaciones comerciales como cafeterías, hoteles y comercios.\n\nPara reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Woofer de 4\" con radiador pasivo de 4\" y tweeter de domo de seda de 1\" con guía de onda",
+      "Dispersión de 100° x 100°",
+      "Circuito limitador conmutable para protección del tweeter",
+      "Modo conmutable 8 Ω o 70/100 V (transformador de 15 W)",
+      "Gabinete triangular de ABS con grado de protección IP65, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje sin soportes o con soportes deslizantes ocultos, en esquinas, paredes o techos; también puede colgarse del techo",
+      "Conexión de cable oculta y bornes a tornillo",
+      "Las unidades pueden acoplarse para cubrir 180° o 270°",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: negro (RAL9005)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-009",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-009"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "1\" silk dome tweeter",
+        "labelEs": "Tweeter",
+        "valueEs": "Domo de seda de 1\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "4\" woofer + 4\" passive radiator",
+        "labelEs": "Woofer",
+        "valueEs": "4\" + radiador pasivo de 4\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "60 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "60 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "86 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "86 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "105 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "105 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "111 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "111 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "7 Ω @ 240 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "7 Ω a 240 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "25 - 50 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "25 - 50 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Input Mode",
+        "value": "Switchable 8 Ω / 70 V / 100 V",
+        "labelEs": "Modo de entrada",
+        "valueEs": "Conmutable 8 Ω / 70 V / 100 V"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (70 V)",
+        "value": "3.75, 7.5, 15 W",
+        "labelEs": "Derivaciones del transformador (70 V)",
+        "valueEs": "3,75, 7,5, 15 W"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (100 V)",
+        "value": "7.5, 15 W",
+        "labelEs": "Derivaciones del transformador (100 V)",
+        "valueEs": "7,5, 15 W"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Tweeter Protection",
+        "value": "Switchable limiting circuit",
+        "labelEs": "Protección del tweeter",
+        "valueEs": "Circuito limitador conmutable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP65",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP65"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, en el frente (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners, or hanging from ceiling; without brackets or with hidden sliders; can be coupled",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas, o colgado del techo; sin soportes o con soportes deslizantes ocultos; acoplable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "Black (RAL9005)",
+        "labelEs": "Color",
+        "valueEs": "Negro (RAL9005)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "400 x 190 x 125 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "400 x 190 x 125 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "3.15 kg",
+        "labelEs": "Peso",
+        "valueEs": "3,15 kg"
+      }
+    ],
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/ijrbsemh1kojucflk2dn.png",
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/xozmlvakdcvskyjckw1p.png"
+    ],
+    "documents": [
+      {
+        "name": "Ci4 / Ci4V - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/yoihlvrdbym2gmvrtvk1/Ci4_Ci4-V%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci4 / Ci4V - Manual",
+        "url": "https://images.salsify.com/images/urgjizktp89lqcgwptxv/Ci4_Ci4-V%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci4 / Ci4V - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/mvyln4gsrps66dtxgiss/Ci4_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-009",
+    "coo": null,
+    "widthCm": 19,
+    "heightCm": 40,
+    "depthCm": 12.5,
+    "weightKg": 3.15,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "Ci4V-WH",
+    "supplierSku": "BGM-888-010",
+    "listModel": "Ci4V",
+    "color": "Blanco",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance Ci4V 4\" passive, 2-way, full-range loudspeaker w/ switchable high-impedance mode, White",
+    "shortDescription": "Parlante pasivo de superficie de 2 vías con woofer de 4\", radiador pasivo y tweeter de 1\", conmutable 8 Ω / 70-100 V, gabinete triangular de ABS IP65. Para música funcional comercial en interior y exterior.",
+    "longDescription": "Ci4V es un parlante full-range de 2 vías compacto, de salida media y respuesta en graves extendida gracias a su radiador pasivo. Su dispersión amplia y uniforme (100° x 100°) permite cubrir un ambiente con relativamente pocas unidades, por lo que está indicado para instalaciones comerciales en interior y exterior.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes, o bien sobre dos soportes deslizantes ocultos. Los gabinetes pueden acoplarse para ampliar la cobertura a 180° o 270°. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nEl tweeter cuenta con un circuito limitador conmutable que lo protege de sobrecargas. La entrada se conmuta entre 8 Ω y línea distribuida de 70/100 V mediante un transformador incorporado de 15 W; el selector de derivaciones está en el frente del gabinete. Es una opción para música funcional en instalaciones comerciales como cafeterías, hoteles y comercios.\n\nPara reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Woofer de 4\" con radiador pasivo de 4\" y tweeter de domo de seda de 1\" con guía de onda",
+      "Dispersión de 100° x 100°",
+      "Circuito limitador conmutable para protección del tweeter",
+      "Modo conmutable 8 Ω o 70/100 V (transformador de 15 W)",
+      "Gabinete triangular de ABS con grado de protección IP65, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje sin soportes o con soportes deslizantes ocultos, en esquinas, paredes o techos; también puede colgarse del techo",
+      "Conexión de cable oculta y bornes a tornillo",
+      "Las unidades pueden acoplarse para cubrir 180° o 270°",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: blanco (RAL9010)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-010",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-010"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "1\" silk dome tweeter",
+        "labelEs": "Tweeter",
+        "valueEs": "Domo de seda de 1\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "4\" woofer + 4\" passive radiator",
+        "labelEs": "Woofer",
+        "valueEs": "4\" + radiador pasivo de 4\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "60 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "60 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "86 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "86 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "105 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "105 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "111 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "111 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "7 Ω @ 240 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "7 Ω a 240 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "25 - 50 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "25 - 50 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Input Mode",
+        "value": "Switchable 8 Ω / 70 V / 100 V",
+        "labelEs": "Modo de entrada",
+        "valueEs": "Conmutable 8 Ω / 70 V / 100 V"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (70 V)",
+        "value": "3.75, 7.5, 15 W",
+        "labelEs": "Derivaciones del transformador (70 V)",
+        "valueEs": "3,75, 7,5, 15 W"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (100 V)",
+        "value": "7.5, 15 W",
+        "labelEs": "Derivaciones del transformador (100 V)",
+        "valueEs": "7,5, 15 W"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Tweeter Protection",
+        "value": "Switchable limiting circuit",
+        "labelEs": "Protección del tweeter",
+        "valueEs": "Circuito limitador conmutable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP65",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP65"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, en el frente (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners, or hanging from ceiling; without brackets or with hidden sliders; can be coupled",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas, o colgado del techo; sin soportes o con soportes deslizantes ocultos; acoplable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "White (RAL9010)",
+        "labelEs": "Color",
+        "valueEs": "Blanco (RAL9010)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "400 x 190 x 125 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "400 x 190 x 125 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "3.15 kg",
+        "labelEs": "Peso",
+        "valueEs": "3,15 kg"
+      }
+    ],
+    "images": [],
+    "documents": [
+      {
+        "name": "Ci4 / Ci4V - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/yoihlvrdbym2gmvrtvk1/Ci4_Ci4-V%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci4 / Ci4V - Manual",
+        "url": "https://images.salsify.com/images/urgjizktp89lqcgwptxv/Ci4_Ci4-V%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci4 / Ci4V - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/mvyln4gsrps66dtxgiss/Ci4_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-009",
+    "coo": null,
+    "widthCm": 19,
+    "heightCm": 40,
+    "depthCm": 12.5,
+    "weightKg": 3.15,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "Ci5-BK",
+    "supplierSku": "BGM-888-011",
+    "listModel": "Ci5",
+    "color": "Negro",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance Ci5 5.25\" passive, 2-way, full-range loudspeaker, Black",
+    "shortDescription": "Parlante pasivo de superficie de 2 vías con woofer de 5,25\", radiador pasivo y tweeter de 1\", gabinete triangular de ABS IP65 para esquinas, paredes o techos. Para bares, hoteles y comercios, en interior o exterior.",
+    "longDescription": "Ci5 es un parlante full-range de 2 vías compacto, de salida media y respuesta en graves extendida gracias a su radiador pasivo. Su dispersión amplia y uniforme (100° x 100°) permite cubrir un ambiente con relativamente pocas unidades, por lo que está indicado para instalaciones comerciales en interior y exterior.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes, o bien sobre dos soportes deslizantes ocultos. Los gabinetes pueden acoplarse para ampliar la cobertura a 180° o 270°. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nEl tweeter cuenta con un circuito limitador conmutable que lo protege de sobrecargas. Esta versión trabaja solo a 8 Ω; la variante Ci5V agrega el modo de alta impedancia de 70/100 V. Está pensado para instalaciones comerciales medianas, como bares, hoteles y comercios.\n\nPara reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Woofer de 5,25\" con radiador pasivo de 5,25\" y tweeter de domo de seda de 1\" con guía de onda",
+      "Dispersión de 100° x 100°",
+      "Circuito limitador conmutable para protección del tweeter",
+      "Gabinete triangular de ABS con grado de protección IP65, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje sin soportes o con soportes deslizantes ocultos, en esquinas, paredes o techos; también puede colgarse del techo",
+      "Conexión de cable oculta y bornes a tornillo",
+      "Las unidades pueden acoplarse para cubrir 180° o 270°",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: negro (RAL9005)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-011",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-011"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "1\" silk dome tweeter",
+        "labelEs": "Tweeter",
+        "valueEs": "Domo de seda de 1\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "5.25\" woofer + 5.25\" passive radiator",
+        "labelEs": "Woofer",
+        "valueEs": "5,25\" + radiador pasivo de 5,25\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "55 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "55 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "88 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "88 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "107 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "107 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "113 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "113 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "7 Ω @ 205 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "7 Ω a 205 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "50 - 100 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "50 - 100 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Tweeter Protection",
+        "value": "Switchable limiting circuit",
+        "labelEs": "Protección del tweeter",
+        "valueEs": "Circuito limitador conmutable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP65",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP65"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, en el frente (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners, or hanging from ceiling; without brackets or with hidden sliders; can be coupled",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas, o colgado del techo; sin soportes o con soportes deslizantes ocultos; acoplable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "Black (RAL9005)",
+        "labelEs": "Color",
+        "valueEs": "Negro (RAL9005)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "450 x 210 x 139 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "450 x 210 x 139 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "2.85 kg",
+        "labelEs": "Peso",
+        "valueEs": "2,85 kg"
+      }
+    ],
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/ko885okosox9dfxccjh0.png",
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/xwncxpipmyhdvd4atqtd.png"
+    ],
+    "documents": [
+      {
+        "name": "Ci5 / Ci5V - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/ytpbial2robiighx1yi1/Ci5_Ci5-V%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci5 / Ci5V - Manual",
+        "url": "https://images.salsify.com/images/ozzillcclxnfa5zb1vdm/Ci5_Ci5-V%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci5 / Ci5V - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/wiwdsm82daq8lrguyuhc/Ci5_Ci5V_Blaze%20By%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-011",
+    "coo": null,
+    "widthCm": 21,
+    "heightCm": 45,
+    "depthCm": 13.9,
+    "weightKg": 2.85,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "Ci5-WH",
+    "supplierSku": "BGM-888-012",
+    "listModel": "Ci5",
+    "color": "Blanco",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance Ci5 5.25\" passive, 2-way, full-range loudspeaker, White",
+    "shortDescription": "Parlante pasivo de superficie de 2 vías con woofer de 5,25\", radiador pasivo y tweeter de 1\", gabinete triangular de ABS IP65 para esquinas, paredes o techos. Para bares, hoteles y comercios, en interior o exterior.",
+    "longDescription": "Ci5 es un parlante full-range de 2 vías compacto, de salida media y respuesta en graves extendida gracias a su radiador pasivo. Su dispersión amplia y uniforme (100° x 100°) permite cubrir un ambiente con relativamente pocas unidades, por lo que está indicado para instalaciones comerciales en interior y exterior.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes, o bien sobre dos soportes deslizantes ocultos. Los gabinetes pueden acoplarse para ampliar la cobertura a 180° o 270°. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nEl tweeter cuenta con un circuito limitador conmutable que lo protege de sobrecargas. Esta versión trabaja solo a 8 Ω; la variante Ci5V agrega el modo de alta impedancia de 70/100 V. Está pensado para instalaciones comerciales medianas, como bares, hoteles y comercios.\n\nPara reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Woofer de 5,25\" con radiador pasivo de 5,25\" y tweeter de domo de seda de 1\" con guía de onda",
+      "Dispersión de 100° x 100°",
+      "Circuito limitador conmutable para protección del tweeter",
+      "Gabinete triangular de ABS con grado de protección IP65, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje sin soportes o con soportes deslizantes ocultos, en esquinas, paredes o techos; también puede colgarse del techo",
+      "Conexión de cable oculta y bornes a tornillo",
+      "Las unidades pueden acoplarse para cubrir 180° o 270°",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: blanco (RAL9010)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-012",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-012"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "1\" silk dome tweeter",
+        "labelEs": "Tweeter",
+        "valueEs": "Domo de seda de 1\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "5.25\" woofer + 5.25\" passive radiator",
+        "labelEs": "Woofer",
+        "valueEs": "5,25\" + radiador pasivo de 5,25\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "55 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "55 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "88 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "88 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "107 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "107 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "113 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "113 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "7 Ω @ 205 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "7 Ω a 205 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "50 - 100 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "50 - 100 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Tweeter Protection",
+        "value": "Switchable limiting circuit",
+        "labelEs": "Protección del tweeter",
+        "valueEs": "Circuito limitador conmutable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP65",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP65"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, en el frente (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners, or hanging from ceiling; without brackets or with hidden sliders; can be coupled",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas, o colgado del techo; sin soportes o con soportes deslizantes ocultos; acoplable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "White (RAL9010)",
+        "labelEs": "Color",
+        "valueEs": "Blanco (RAL9010)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "450 x 210 x 139 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "450 x 210 x 139 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "2.85 kg",
+        "labelEs": "Peso",
+        "valueEs": "2,85 kg"
+      }
+    ],
+    "images": [],
+    "documents": [
+      {
+        "name": "Ci5 / Ci5V - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/ytpbial2robiighx1yi1/Ci5_Ci5-V%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci5 / Ci5V - Manual",
+        "url": "https://images.salsify.com/images/ozzillcclxnfa5zb1vdm/Ci5_Ci5-V%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci5 / Ci5V - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/wiwdsm82daq8lrguyuhc/Ci5_Ci5V_Blaze%20By%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-011",
+    "coo": null,
+    "widthCm": 21,
+    "heightCm": 45,
+    "depthCm": 13.9,
+    "weightKg": 2.85,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "Ci5V-BK",
+    "supplierSku": "BGM-888-013",
+    "listModel": "Ci5V",
+    "color": "Negro",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance Ci5V 5.25\" passive, 2-way, full-range loudspeaker w/ switchable high-impedance mode, Black",
+    "shortDescription": "Parlante pasivo de superficie de 2 vías con woofer de 5,25\", radiador pasivo y tweeter de 1\", conmutable 8 Ω / 70-100 V, gabinete triangular de ABS IP65. Para bares, hoteles y comercios, en interior o exterior.",
+    "longDescription": "Ci5V es un parlante full-range de 2 vías compacto, de salida media y respuesta en graves extendida gracias a su radiador pasivo. Su dispersión amplia y uniforme (100° x 100°) permite cubrir un ambiente con relativamente pocas unidades, por lo que está indicado para instalaciones comerciales en interior y exterior.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes, o bien sobre dos soportes deslizantes ocultos. Los gabinetes pueden acoplarse para ampliar la cobertura a 180°, 270° o 360°. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nEl tweeter cuenta con un circuito limitador conmutable que lo protege de sobrecargas. La entrada se conmuta entre 8 Ω y línea distribuida de 70/100 V mediante un transformador incorporado de 30 W; el selector de derivaciones está en el frente del gabinete. Está pensado para instalaciones comerciales medianas, como bares, hoteles y comercios.\n\nPara reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Woofer de 5,25\" con radiador pasivo de 5,25\" y tweeter de domo de seda de 1\" con guía de onda",
+      "Dispersión de 100° x 100°",
+      "Circuito limitador conmutable para protección del tweeter",
+      "Modo conmutable 8 Ω o 70/100 V (transformador de 30 W)",
+      "Gabinete triangular de ABS con grado de protección IP65, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje sin soportes o con soportes deslizantes ocultos, en esquinas, paredes o techos; también puede colgarse del techo",
+      "Conexión de cable oculta y bornes a tornillo",
+      "Las unidades pueden acoplarse para cubrir 180°, 270° o 360°",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: negro (RAL9005)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-013",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-013"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "1\" silk dome tweeter",
+        "labelEs": "Tweeter",
+        "valueEs": "Domo de seda de 1\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "5.25\" woofer + 5.25\" passive radiator",
+        "labelEs": "Woofer",
+        "valueEs": "5,25\" + radiador pasivo de 5,25\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "55 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "55 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "88 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "88 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "107 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "107 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "113 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "113 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "7 Ω @ 205 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "7 Ω a 205 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "45 - 90 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "45 - 90 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Input Mode",
+        "value": "Switchable 8 Ω / 70 V / 100 V",
+        "labelEs": "Modo de entrada",
+        "valueEs": "Conmutable 8 Ω / 70 V / 100 V"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (70 V)",
+        "value": "3.75, 7.5, 15, 30 W",
+        "labelEs": "Derivaciones del transformador (70 V)",
+        "valueEs": "3,75, 7,5, 15, 30 W"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (100 V)",
+        "value": "7.5, 15, 30 W",
+        "labelEs": "Derivaciones del transformador (100 V)",
+        "valueEs": "7,5, 15, 30 W"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Tweeter Protection",
+        "value": "Switchable limiting circuit",
+        "labelEs": "Protección del tweeter",
+        "valueEs": "Circuito limitador conmutable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP65",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP65"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, en el frente (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners, or hanging from ceiling; without brackets or with hidden sliders; can be coupled",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas, o colgado del techo; sin soportes o con soportes deslizantes ocultos; acoplable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "Black (RAL9005)",
+        "labelEs": "Color",
+        "valueEs": "Negro (RAL9005)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "450 x 210 x 139 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "450 x 210 x 139 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "3.45 kg",
+        "labelEs": "Peso",
+        "valueEs": "3,45 kg"
+      }
+    ],
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/mxykawks7p3flyw8keyr.png",
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/lsrhudptbdxto3xoasyb.png"
+    ],
+    "documents": [
+      {
+        "name": "Ci5 / Ci5V - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/ytpbial2robiighx1yi1/Ci5_Ci5-V%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci5 / Ci5V - Manual",
+        "url": "https://images.salsify.com/images/ozzillcclxnfa5zb1vdm/Ci5_Ci5-V%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci5 / Ci5V - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/wiwdsm82daq8lrguyuhc/Ci5_Ci5V_Blaze%20By%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-013",
+    "coo": null,
+    "widthCm": 21,
+    "heightCm": 45,
+    "depthCm": 13.9,
+    "weightKg": 3.45,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "Ci5V-WH",
+    "supplierSku": "BGM-888-014",
+    "listModel": "Ci5V",
+    "color": "Blanco",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance Ci5V 5.25\" passive, 2-way, full-range loudspeaker w/ switchable high-impedance mode, White",
+    "shortDescription": "Parlante pasivo de superficie de 2 vías con woofer de 5,25\", radiador pasivo y tweeter de 1\", conmutable 8 Ω / 70-100 V, gabinete triangular de ABS IP65. Para bares, hoteles y comercios, en interior o exterior.",
+    "longDescription": "Ci5V es un parlante full-range de 2 vías compacto, de salida media y respuesta en graves extendida gracias a su radiador pasivo. Su dispersión amplia y uniforme (100° x 100°) permite cubrir un ambiente con relativamente pocas unidades, por lo que está indicado para instalaciones comerciales en interior y exterior.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes, o bien sobre dos soportes deslizantes ocultos. Los gabinetes pueden acoplarse para ampliar la cobertura a 180°, 270° o 360°. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nEl tweeter cuenta con un circuito limitador conmutable que lo protege de sobrecargas. La entrada se conmuta entre 8 Ω y línea distribuida de 70/100 V mediante un transformador incorporado de 30 W; el selector de derivaciones está en el frente del gabinete. Está pensado para instalaciones comerciales medianas, como bares, hoteles y comercios.\n\nPara reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Woofer de 5,25\" con radiador pasivo de 5,25\" y tweeter de domo de seda de 1\" con guía de onda",
+      "Dispersión de 100° x 100°",
+      "Circuito limitador conmutable para protección del tweeter",
+      "Modo conmutable 8 Ω o 70/100 V (transformador de 30 W)",
+      "Gabinete triangular de ABS con grado de protección IP65, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje sin soportes o con soportes deslizantes ocultos, en esquinas, paredes o techos; también puede colgarse del techo",
+      "Conexión de cable oculta y bornes a tornillo",
+      "Las unidades pueden acoplarse para cubrir 180°, 270° o 360°",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: blanco (RAL9010)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-014",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-014"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "1\" silk dome tweeter",
+        "labelEs": "Tweeter",
+        "valueEs": "Domo de seda de 1\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "5.25\" woofer + 5.25\" passive radiator",
+        "labelEs": "Woofer",
+        "valueEs": "5,25\" + radiador pasivo de 5,25\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "55 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "55 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "88 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "88 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "107 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "107 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "113 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "113 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "7 Ω @ 205 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "7 Ω a 205 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "45 - 90 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "45 - 90 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Input Mode",
+        "value": "Switchable 8 Ω / 70 V / 100 V",
+        "labelEs": "Modo de entrada",
+        "valueEs": "Conmutable 8 Ω / 70 V / 100 V"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (70 V)",
+        "value": "3.75, 7.5, 15, 30 W",
+        "labelEs": "Derivaciones del transformador (70 V)",
+        "valueEs": "3,75, 7,5, 15, 30 W"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (100 V)",
+        "value": "7.5, 15, 30 W",
+        "labelEs": "Derivaciones del transformador (100 V)",
+        "valueEs": "7,5, 15, 30 W"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Tweeter Protection",
+        "value": "Switchable limiting circuit",
+        "labelEs": "Protección del tweeter",
+        "valueEs": "Circuito limitador conmutable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP65",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP65"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, en el frente (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners, or hanging from ceiling; without brackets or with hidden sliders; can be coupled",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas, o colgado del techo; sin soportes o con soportes deslizantes ocultos; acoplable"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "White (RAL9010)",
+        "labelEs": "Color",
+        "valueEs": "Blanco (RAL9010)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "450 x 210 x 139 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "450 x 210 x 139 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "3.45 kg",
+        "labelEs": "Peso",
+        "valueEs": "3,45 kg"
+      }
+    ],
+    "images": [],
+    "documents": [
+      {
+        "name": "Ci5 / Ci5V - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/ytpbial2robiighx1yi1/Ci5_Ci5-V%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci5 / Ci5V - Manual",
+        "url": "https://images.salsify.com/images/ozzillcclxnfa5zb1vdm/Ci5_Ci5-V%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "Ci5 / Ci5V - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/wiwdsm82daq8lrguyuhc/Ci5_Ci5V_Blaze%20By%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-013",
+    "coo": null,
+    "widthCm": 21,
+    "heightCm": 45,
+    "depthCm": 13.9,
+    "weightKg": 3.45,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "Ci6X-V-BK",
+    "supplierSku": "BGM-888-019",
+    "listModel": "Ci6X-V",
+    "color": "Negro",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance CiX6-V 6.5\" passive, coaxial, full-range loudspeaker w/ switchable high-impedance mode, Black",
+    "shortDescription": "Parlante pasivo coaxial de superficie con woofer de 6,5\" y driver de compresión de 1\", conmutable 8 Ω / 70-100 V, gabinete triangular de ABS IP55. Para hotelería, bares, templos y comercios.",
+    "longDescription": "CiX6-V es un parlante full-range compacto de diseño coaxial, de alta salida y respuesta completa. Su patrón de cobertura simétrico (100° x 100°) permite cubrir un ambiente con relativamente pocas unidades, por lo que está indicado para instalaciones comerciales en interior y exterior.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes externos, o bien sobre los dos soportes deslizantes incluidos. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nPuede trabajar a 8 Ω o en línea distribuida de 70/100 V mediante un transformador incorporado de 60 W. Está pensado para instalaciones comerciales medianas que requieren mayor nivel, para música funcional de fondo o de primer plano moderado: hotelería, restaurantes, bares, lounges, templos y comercios.\n\nPara reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Diseño coaxial: woofer de 6,5\" y driver de compresión de 1\"",
+      "Puerto de graves sintonizado",
+      "Dispersión de 100° x 100°",
+      "Modo conmutable 8 Ω o 70/100 V (transformador de 60 W)",
+      "Gabinete triangular de ABS con grado de protección IP55, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje con los soportes deslizantes incluidos o directo a pared, en esquinas, paredes o techos",
+      "Conexión de cable oculta y bornes a tornillo",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: negro (RAL9005)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-019",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-019"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "1\" compression driver",
+        "labelEs": "Driver de agudos",
+        "valueEs": "Driver de compresión de 1\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "Coaxial design 6.5\" woofer",
+        "labelEs": "Woofer",
+        "valueEs": "Coaxial de 6,5\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Bass Loading",
+        "value": "Tuned bass port",
+        "labelEs": "Carga de graves",
+        "valueEs": "Puerto sintonizado (bass reflex)"
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "65 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "65 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "92 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "92 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "114 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "114 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "120 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "120 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "100 - 200 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "100 - 200 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Input Mode",
+        "value": "Switchable 8 Ω / 70 V / 100 V",
+        "labelEs": "Modo de entrada",
+        "valueEs": "Conmutable 8 Ω / 70 V / 100 V"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (70 V)",
+        "value": "3.75, 7.5, 15, 30 W",
+        "labelEs": "Derivaciones del transformador (70 V)",
+        "valueEs": "3,75, 7,5, 15, 30 W"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (100 V)",
+        "value": "7.5, 15, 30, 60 W",
+        "labelEs": "Derivaciones del transformador (100 V)",
+        "valueEs": "7,5, 15, 30, 60 W"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP55",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP55"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners; with included slider brackets or direct to wall",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas; con los soportes deslizantes incluidos o directo a pared"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "Black (RAL9005)",
+        "labelEs": "Color",
+        "valueEs": "Negro (RAL9005)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "420 x 267 x 190 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "420 x 267 x 190 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "5.3 kg",
+        "labelEs": "Peso",
+        "valueEs": "5,3 kg"
+      }
+    ],
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/s7zqwdyoa2zg2hpra6f6.png",
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/mgdr3gecv15wqfmfsqny.png",
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/rxxsczv07vqbxkv7ztvc.png",
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/ig1stpla1aljfdyudyqx.png"
+    ],
+    "documents": [
+      {
+        "name": "CiX6-V - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/ef9aaocufuwiz8y0xcy5/CiX6-V%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "CiX6-V - Manual",
+        "url": "https://images.salsify.com/images/jkf2rcy3egakiajtfah5/CiX6-V%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "CiX6-V - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/drhbb8nnm48ksyatxker/CiX6-V_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-019",
+    "coo": null,
+    "widthCm": 26.7,
+    "heightCm": 42,
+    "depthCm": 19,
+    "weightKg": 5.3,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "Ci6X-V-WH",
+    "supplierSku": "BGM-888-020",
+    "listModel": "Ci6X-V",
+    "color": "Blanco",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance CiX6-V 6.5\" passive, coaxial, full-range loudspeaker w/ switchable high-impedance mode, White",
+    "shortDescription": "Parlante pasivo coaxial de superficie con woofer de 6,5\" y driver de compresión de 1\", conmutable 8 Ω / 70-100 V, gabinete triangular de ABS IP55. Para hotelería, bares, templos y comercios.",
+    "longDescription": "CiX6-V es un parlante full-range compacto de diseño coaxial, de alta salida y respuesta completa. Su patrón de cobertura simétrico (100° x 100°) permite cubrir un ambiente con relativamente pocas unidades, por lo que está indicado para instalaciones comerciales en interior y exterior.\n\nEl diseño triangular patentado permite una instalación rápida: los puntos de fijación integrados permiten montarlo al ras en esquinas o sobre paredes y techos sin soportes externos, o bien sobre los dos soportes deslizantes incluidos. La bornera queda oculta detrás de la rejilla y el cable entra por la parte trasera del gabinete, de modo que no queda a la vista ni en montaje vertical ni horizontal. Los puntos de fijación también quedan ocultos detrás de la rejilla, como medida antirrobo.\n\nPuede trabajar a 8 Ω o en línea distribuida de 70/100 V mediante un transformador incorporado de 60 W. Está pensado para instalaciones comerciales medianas que requieren mayor nivel, para música funcional de fondo o de primer plano moderado: hotelería, restaurantes, bares, lounges, templos y comercios.\n\nPara reforzar los graves en interiores puede combinarse con los subwoofers C8S y C12S.",
+    "keyFeatures": [
+      "Diseño coaxial: woofer de 6,5\" y driver de compresión de 1\"",
+      "Puerto de graves sintonizado",
+      "Dispersión de 100° x 100°",
+      "Modo conmutable 8 Ω o 70/100 V (transformador de 60 W)",
+      "Gabinete triangular de ABS con grado de protección IP55, apto para interior y exterior",
+      "Rejilla metálica",
+      "Montaje con los soportes deslizantes incluidos o directo a pared, en esquinas, paredes o techos",
+      "Conexión de cable oculta y bornes a tornillo",
+      "Compatible con los subwoofers C8S y C12S de Blaze Audio",
+      "Color: blanco (RAL9016)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-020",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-020"
+      },
+      {
+        "group": "Acústica",
+        "label": "HF Driver",
+        "value": "1\" compression driver",
+        "labelEs": "Driver de agudos",
+        "valueEs": "Driver de compresión de 1\""
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "Coaxial design 6.5\" woofer",
+        "labelEs": "Woofer",
+        "valueEs": "Coaxial de 6,5\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Bass Loading",
+        "value": "Tuned bass port",
+        "labelEs": "Carga de graves",
+        "valueEs": "Puerto sintonizado (bass reflex)"
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "65 Hz - 20 kHz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "65 Hz - 20 kHz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "92 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "92 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "114 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "114 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "120 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "120 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Coverage (-6 dB)",
+        "value": "100° vertical / 100° horizontal",
+        "labelEs": "Cobertura (-6 dB)",
+        "valueEs": "100° vertical / 100° horizontal"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "100 - 200 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "100 - 200 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Input Mode",
+        "value": "Switchable 8 Ω / 70 V / 100 V",
+        "labelEs": "Modo de entrada",
+        "valueEs": "Conmutable 8 Ω / 70 V / 100 V"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (70 V)",
+        "value": "3.75, 7.5, 15, 30 W",
+        "labelEs": "Derivaciones del transformador (70 V)",
+        "valueEs": "3,75, 7,5, 15, 30 W"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Transformer Taps (100 V)",
+        "value": "7.5, 15, 30, 60 W",
+        "labelEs": "Derivaciones del transformador (100 V)",
+        "valueEs": "7,5, 15, 30, 60 W"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Triangular ABS cabinet",
+        "labelEs": "Gabinete",
+        "valueEs": "ABS, triangular"
+      },
+      {
+        "group": "Construcción",
+        "label": "Grille",
+        "value": "Perforated steel",
+        "labelEs": "Rejilla",
+        "valueEs": "Acero perforado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "IP55",
+        "labelEs": "Grado de protección",
+        "valueEs": "IP55"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo (ocultos detrás de la rejilla)"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "Indoors or outdoors; walls/ceilings including corners; with included slider brackets or direct to wall",
+        "labelEs": "Montaje",
+        "valueEs": "Interior o exterior; paredes o techos, incluidas esquinas; con los soportes deslizantes incluidos o directo a pared"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "White (RAL9016)",
+        "labelEs": "Color",
+        "valueEs": "Blanco (RAL9016)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions (H x W x D)",
+        "value": "420 x 267 x 190 mm",
+        "labelEs": "Dimensiones (alto x ancho x profundidad)",
+        "valueEs": "420 x 267 x 190 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "5.3 kg",
+        "labelEs": "Peso",
+        "valueEs": "5,3 kg"
+      }
+    ],
+    "images": [],
+    "documents": [
+      {
+        "name": "CiX6-V - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/ef9aaocufuwiz8y0xcy5/CiX6-V%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "CiX6-V - Manual",
+        "url": "https://images.salsify.com/images/jkf2rcy3egakiajtfah5/CiX6-V%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "CiX6-V - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/drhbb8nnm48ksyatxker/CiX6-V_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-019",
+    "coo": null,
+    "widthCm": 26.7,
+    "heightCm": 42,
+    "depthCm": 19,
+    "weightKg": 5.3,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  },
+  {
+    "sku": "C8S-BK",
+    "supplierSku": "BGM-888-015",
+    "listModel": "C8S",
+    "color": "Negro",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance C8S 8\" passive, shallow on-wall subwoofer, Black",
+    "shortDescription": "Subwoofer pasivo de pared de bajo perfil con woofer de 8\" de doble bobina, radiador pasivo y crossover incorporado para los satélites. Para reforzar graves de la serie Ci en interiores comerciales.",
+    "longDescription": "C8S es un subwoofer de pared compacto y de poca profundidad. Los parlantes quedan orientados hacia la pared y el sonido se refleja hacia el ambiente, de modo que el equipo se integra con discreción y los drivers quedan totalmente protegidos.\n\nIncorpora un woofer de 8\" de doble bobina y un radiador pasivo que extiende la respuesta en graves por debajo de 34 Hz. El crossover incorporado, con bornes reforzados, permite conectar los cables de los satélites directamente desde el C8S (pasa bajos de 1.er orden para el woofer y pasa altos de 2.º orden para los satélites, a 240 Hz).\n\nTiene un sistema de montaje integrado con patas desmontables: puede instalarse en la pared con los drivers hacia adentro o, quitando las patas, apoyarse sobre su frente con los drivers hacia arriba, ideal para ubicarlo debajo de un sillón u otro mueble. Mide 16 cm de profundidad (19 cm con el soporte de pared) y ofrece un nivel alto para su tamaño, con extensión real en sub-graves.\n\nEstá diseñado para usarse junto con los parlantes de la serie Ci de Blaze Audio. Uso exclusivo en interiores.",
+    "keyFeatures": [
+      "Woofer de 8\" de doble bobina y radiador pasivo de 8\"",
+      "Diseño reflectivo: los drivers miran a la pared y quedan protegidos",
+      "Crossover incorporado para conectar los satélites desde el subwoofer (corte a 240 Hz)",
+      "Gabinete de MDF de 18 mm recubierto con Plasti Dip",
+      "Bornes a tornillo reforzados",
+      "Montaje en pared, en piso o debajo de un sillón; patas desmontables",
+      "16 cm de profundidad (19 cm con soporte de pared)",
+      "Uso en interiores",
+      "Color: negro (RAL9005)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-015",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-015"
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "8\" woofer with dual voice coil, 8\" passive radiator",
+        "labelEs": "Woofer",
+        "valueEs": "8\" de doble bobina + radiador pasivo de 8\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "30 - 240 Hz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "30 - 240 Hz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "88 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "88 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "108 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "108 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "114 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "114 dB"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "6.5 Ω @ 240 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "6,5 Ω a 240 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "50 - 150 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "50 - 150 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Built-in Crossover",
+        "value": "1st order low pass (woofer) / 2nd order high pass (top-box) @ 240 Hz",
+        "labelEs": "Crossover incorporado",
+        "valueEs": "Pasa bajos de 1.er orden (woofer) / pasa altos de 2.º orden (satélites) a 240 Hz"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "18 mm MDF, Plasti Dip coated",
+        "labelEs": "Gabinete",
+        "valueEs": "MDF de 18 mm recubierto con Plasti Dip"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Heavy duty screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, reforzados"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "Indoor use only",
+        "labelEs": "Grado de protección",
+        "valueEs": "Solo para interiores"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "On wall, on floor, or below sofa",
+        "labelEs": "Montaje",
+        "valueEs": "En pared, en piso o debajo de un sillón"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "Matt black (RAL9005)",
+        "labelEs": "Color",
+        "valueEs": "Negro mate (RAL9005)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions with wall mount (H x W x D)",
+        "value": "530 x 374 x 190 mm",
+        "labelEs": "Dimensiones con soporte de pared (alto x ancho x profundidad)",
+        "valueEs": "530 x 374 x 190 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "10.7 kg",
+        "labelEs": "Peso",
+        "valueEs": "10,7 kg"
+      }
+    ],
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/rntbv1fsbhkcmpbme2gv.png",
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/v54t8hvm6dkheiyhivdv.png"
+    ],
+    "documents": [
+      {
+        "name": "C8S - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/owmxordubyisboflsrbe/C8S%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "C8S - Manual",
+        "url": "https://images.salsify.com/images/vliztls3tcqajtctlquy/C8S%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "C8S - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/jdepjgncbh50lsyq37t0/C8S_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-015",
+    "coo": null,
+    "widthCm": 37.4,
+    "heightCm": 53,
+    "depthCm": 19,
+    "weightKg": 10.7,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > SUBLOW PRO"
+  },
+  {
+    "sku": "C8S-WH",
+    "supplierSku": "BGM-888-016",
+    "listModel": "C8S",
+    "color": "Blanco",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance C8S 8\" passive, shallow on-wall subwoofer, White",
+    "shortDescription": "Subwoofer pasivo de pared de bajo perfil con woofer de 8\" de doble bobina, radiador pasivo y crossover incorporado para los satélites. Para reforzar graves de la serie Ci en interiores comerciales.",
+    "longDescription": "C8S es un subwoofer de pared compacto y de poca profundidad. Los parlantes quedan orientados hacia la pared y el sonido se refleja hacia el ambiente, de modo que el equipo se integra con discreción y los drivers quedan totalmente protegidos.\n\nIncorpora un woofer de 8\" de doble bobina y un radiador pasivo que extiende la respuesta en graves por debajo de 34 Hz. El crossover incorporado, con bornes reforzados, permite conectar los cables de los satélites directamente desde el C8S (pasa bajos de 1.er orden para el woofer y pasa altos de 2.º orden para los satélites, a 240 Hz).\n\nTiene un sistema de montaje integrado con patas desmontables: puede instalarse en la pared con los drivers hacia adentro o, quitando las patas, apoyarse sobre su frente con los drivers hacia arriba, ideal para ubicarlo debajo de un sillón u otro mueble. Mide 16 cm de profundidad (19 cm con el soporte de pared) y ofrece un nivel alto para su tamaño, con extensión real en sub-graves.\n\nEstá diseñado para usarse junto con los parlantes de la serie Ci de Blaze Audio. Uso exclusivo en interiores.",
+    "keyFeatures": [
+      "Woofer de 8\" de doble bobina y radiador pasivo de 8\"",
+      "Diseño reflectivo: los drivers miran a la pared y quedan protegidos",
+      "Crossover incorporado para conectar los satélites desde el subwoofer (corte a 240 Hz)",
+      "Gabinete de MDF de 18 mm recubierto con Plasti Dip",
+      "Bornes a tornillo reforzados",
+      "Montaje en pared, en piso o debajo de un sillón; patas desmontables",
+      "16 cm de profundidad (19 cm con soporte de pared)",
+      "Uso en interiores",
+      "Color: blanco (RAL9010)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-016",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-016"
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "8\" woofer with dual voice coil, 8\" passive radiator",
+        "labelEs": "Woofer",
+        "valueEs": "8\" de doble bobina + radiador pasivo de 8\""
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "30 - 240 Hz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "30 - 240 Hz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "88 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "88 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "108 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "108 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "114 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "114 dB"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "6.5 Ω @ 240 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "6,5 Ω a 240 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "50 - 150 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "50 - 150 W / 8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Built-in Crossover",
+        "value": "1st order low pass (woofer) / 2nd order high pass (top-box) @ 240 Hz",
+        "labelEs": "Crossover incorporado",
+        "valueEs": "Pasa bajos de 1.er orden (woofer) / pasa altos de 2.º orden (satélites) a 240 Hz"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "18 mm MDF, Plasti Dip coated",
+        "labelEs": "Gabinete",
+        "valueEs": "MDF de 18 mm recubierto con Plasti Dip"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Heavy duty screw terminals",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, reforzados"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "Indoor use only",
+        "labelEs": "Grado de protección",
+        "valueEs": "Solo para interiores"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "On wall, on floor, or below sofa",
+        "labelEs": "Montaje",
+        "valueEs": "En pared, en piso o debajo de un sillón"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "Matt white (RAL9010)",
+        "labelEs": "Color",
+        "valueEs": "Blanco mate (RAL9010)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions with wall mount (H x W x D)",
+        "value": "530 x 374 x 190 mm",
+        "labelEs": "Dimensiones con soporte de pared (alto x ancho x profundidad)",
+        "valueEs": "530 x 374 x 190 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "10.7 kg",
+        "labelEs": "Peso",
+        "valueEs": "10,7 kg"
+      }
+    ],
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/wntukzxi7w0z4ocwke9m.png"
+    ],
+    "documents": [
+      {
+        "name": "C8S - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/owmxordubyisboflsrbe/C8S%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "C8S - Manual",
+        "url": "https://images.salsify.com/images/vliztls3tcqajtctlquy/C8S%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "C8S - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/jdepjgncbh50lsyq37t0/C8S_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-015",
+    "coo": null,
+    "widthCm": 37.4,
+    "heightCm": 53,
+    "depthCm": 19,
+    "weightKg": 10.7,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > SUBLOW PRO"
+  },
+  {
+    "sku": "C12S-BK",
+    "supplierSku": "BGM-888-033",
+    "listModel": "C12S",
+    "color": "Negro",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance C12S 12\" passive, shallow on-wall subwoofer, Black",
+    "shortDescription": "Subwoofer pasivo de pared o piso de bajo perfil con woofer de 12\" de largo recorrido y carga bass reflex. Para refuerzo de graves en instalaciones comerciales, junto con las series Ci y CBL.",
+    "longDescription": "C12S es un subwoofer de poca profundidad para aplicaciones que requieren un nivel alto en un formato discreto. Pensado para uso en interiores y aplicaciones de nivel medio, su gabinete de MDF aloja un woofer de 12\" con un motor de alta eficiencia y cono reforzado con fibra de carbono.\n\nLa bobina de 75 mm usa un soporte de fibra de vidrio de alta resistencia con bobinado en las caras exterior e interior, lo que da un empuje uniforme y muy baja distorsión. Los canales de refrigeración del chasis reducen la compresión de potencia y mejoran la dinámica.\n\nEl gabinete puede colgarse en la pared o apoyarse en el piso, con el woofer protegido del entorno. Los bornes a tornillo admiten cable de hasta 4 mm², que puede llevarse desde la parte trasera hasta el frente del gabinete.\n\nC12S está disponible en negro y blanco y puede usarse junto con las series de parlantes Ci y CBL de Blaze Audio en instalaciones comerciales.",
+    "keyFeatures": [
+      "Woofer de 12\" de largo recorrido y poca profundidad, con cono reforzado con fibra de carbono",
+      "Bobina de 75 mm con soporte de fibra de vidrio",
+      "Carga bass reflex",
+      "Diseño reflectivo para pared: sin drivers ni bornes a la vista una vez montado",
+      "Gabinete de MDF de 18 mm pintado",
+      "Bornes a tornillo reforzados para cable de hasta 4 mm²",
+      "Montaje en pared o apoyado en el piso; el soporte de pared funciona también como patas",
+      "Uso en interiores",
+      "Color: negro (RAL790-5)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-033",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-033"
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "12\" shallow long throw subwoofer, bass reflex design",
+        "labelEs": "Woofer",
+        "valueEs": "12\" de largo recorrido y poca profundidad, carga bass reflex"
+      },
+      {
+        "group": "Acústica",
+        "label": "Voice Coil",
+        "value": "75 mm (3\")",
+        "labelEs": "Bobina",
+        "valueEs": "75 mm (3\")"
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "45 - 600 Hz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "45 - 600 Hz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "95 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "95 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "120 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "120 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "126 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "126 dB"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "6.5 Ω @ 235 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "6,5 Ω a 235 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "300 - 600 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "300 - 600 W / 8 Ω"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Painted 18 mm MDF",
+        "labelEs": "Gabinete",
+        "valueEs": "MDF de 18 mm pintado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Heavy duty screw terminals (up to 4 mm² cable)",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, reforzados (cable de hasta 4 mm²)"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "Indoor use only",
+        "labelEs": "Grado de protección",
+        "valueEs": "Solo para interiores"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "On wall or on floor",
+        "labelEs": "Montaje",
+        "valueEs": "En pared o apoyado en el piso"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "Matt black (RAL790-5)",
+        "labelEs": "Color",
+        "valueEs": "Negro mate (RAL790-5)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions with wall mount (H x W x D)",
+        "value": "649 x 445 x 220 mm",
+        "labelEs": "Dimensiones con soporte de pared (alto x ancho x profundidad)",
+        "valueEs": "649 x 445 x 220 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "23 kg",
+        "labelEs": "Peso",
+        "valueEs": "23 kg"
+      }
+    ],
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/f81mmdcwrudzz6qh8rbr.png",
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/ijtsc4top6qexwggu1cy.png"
+    ],
+    "documents": [
+      {
+        "name": "C12S - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/pk0qaadea7sr0lduzwjm/C12S%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "C12S - Manual",
+        "url": "https://images.salsify.com/images/ikkhirgcxqaxnmetlpvy/C12S%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "C12S - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/s4oa9m4lvrdgqsvhyxlt/C12S_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-033",
+    "coo": null,
+    "widthCm": 44.5,
+    "heightCm": 64.9,
+    "depthCm": 22,
+    "weightKg": 23,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > SUBLOW PRO"
+  },
+  {
+    "sku": "C12S-WH",
+    "supplierSku": "BGM-888-034",
+    "listModel": "C12S",
+    "color": "Blanco",
+    "fobUsd": null,
+    "originalName": "Blaze by Sonance C12S 12\" passive, shallow on-wall subwoofer, White",
+    "shortDescription": "Subwoofer pasivo de pared o piso de bajo perfil con woofer de 12\" de largo recorrido y carga bass reflex. Para refuerzo de graves en instalaciones comerciales, junto con las series Ci y CBL.",
+    "longDescription": "C12S es un subwoofer de poca profundidad para aplicaciones que requieren un nivel alto en un formato discreto. Pensado para uso en interiores y aplicaciones de nivel medio, su gabinete de MDF aloja un woofer de 12\" con un motor de alta eficiencia y cono reforzado con fibra de carbono.\n\nLa bobina de 75 mm usa un soporte de fibra de vidrio de alta resistencia con bobinado en las caras exterior e interior, lo que da un empuje uniforme y muy baja distorsión. Los canales de refrigeración del chasis reducen la compresión de potencia y mejoran la dinámica.\n\nEl gabinete puede colgarse en la pared o apoyarse en el piso, con el woofer protegido del entorno. Los bornes a tornillo admiten cable de hasta 4 mm², que puede llevarse desde la parte trasera hasta el frente del gabinete.\n\nC12S está disponible en negro y blanco y puede usarse junto con las series de parlantes Ci y CBL de Blaze Audio en instalaciones comerciales.",
+    "keyFeatures": [
+      "Woofer de 12\" de largo recorrido y poca profundidad, con cono reforzado con fibra de carbono",
+      "Bobina de 75 mm con soporte de fibra de vidrio",
+      "Carga bass reflex",
+      "Diseño reflectivo para pared: sin drivers ni bornes a la vista una vez montado",
+      "Gabinete de MDF de 18 mm pintado",
+      "Bornes a tornillo reforzados para cable de hasta 4 mm²",
+      "Montaje en pared o apoyado en el piso; el soporte de pared funciona también como patas",
+      "Uso en interiores",
+      "Color: blanco (RAL9016)"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "SKU",
+        "value": "BGM-888-034",
+        "labelEs": "Código del fabricante",
+        "valueEs": "BGM-888-034"
+      },
+      {
+        "group": "Acústica",
+        "label": "LF Driver",
+        "value": "12\" shallow long throw subwoofer, bass reflex design",
+        "labelEs": "Woofer",
+        "valueEs": "12\" de largo recorrido y poca profundidad, carga bass reflex"
+      },
+      {
+        "group": "Acústica",
+        "label": "Voice Coil",
+        "value": "75 mm (3\")",
+        "labelEs": "Bobina",
+        "valueEs": "75 mm (3\")"
+      },
+      {
+        "group": "Acústica",
+        "label": "Frequency Response",
+        "value": "45 - 600 Hz",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "45 - 600 Hz"
+      },
+      {
+        "group": "Acústica",
+        "label": "Sensitivity (1 W / 1 m)",
+        "value": "95 dB",
+        "labelEs": "Sensibilidad (1 W / 1 m)",
+        "valueEs": "95 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Long Term)",
+        "value": "120 dB",
+        "labelEs": "SPL máximo (continuo)",
+        "valueEs": "120 dB"
+      },
+      {
+        "group": "Acústica",
+        "label": "Maximum SPL (Peak)",
+        "value": "126 dB",
+        "labelEs": "SPL máximo (pico)",
+        "valueEs": "126 dB"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Nominal Impedance",
+        "value": "8 Ω",
+        "labelEs": "Impedancia nominal",
+        "valueEs": "8 Ω"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Minimum Impedance",
+        "value": "6.5 Ω @ 235 Hz",
+        "labelEs": "Impedancia mínima",
+        "valueEs": "6,5 Ω a 235 Hz"
+      },
+      {
+        "group": "Eléctrica",
+        "label": "Recommended Power Range",
+        "value": "300 - 600 W / 8 Ω",
+        "labelEs": "Potencia de amplificador recomendada",
+        "valueEs": "300 - 600 W / 8 Ω"
+      },
+      {
+        "group": "Construcción",
+        "label": "Enclosure",
+        "value": "Painted 18 mm MDF",
+        "labelEs": "Gabinete",
+        "valueEs": "MDF de 18 mm pintado"
+      },
+      {
+        "group": "Construcción",
+        "label": "Terminals",
+        "value": "Heavy duty screw terminals (up to 4 mm² cable)",
+        "labelEs": "Bornes",
+        "valueEs": "A tornillo, reforzados (cable de hasta 4 mm²)"
+      },
+      {
+        "group": "Construcción",
+        "label": "Ingress Protection",
+        "value": "Indoor use only",
+        "labelEs": "Grado de protección",
+        "valueEs": "Solo para interiores"
+      },
+      {
+        "group": "Instalación",
+        "label": "Mounting",
+        "value": "On wall or on floor",
+        "labelEs": "Montaje",
+        "valueEs": "En pared o apoyado en el piso"
+      },
+      {
+        "group": "Construcción",
+        "label": "Colour",
+        "value": "Matt white (RAL9016)",
+        "labelEs": "Color",
+        "valueEs": "Blanco mate (RAL9016)"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Dimensions with wall mount (H x W x D)",
+        "value": "649 x 445 x 220 mm",
+        "labelEs": "Dimensiones con soporte de pared (alto x ancho x profundidad)",
+        "valueEs": "649 x 445 x 220 mm"
+      },
+      {
+        "group": "Dimensiones y peso",
+        "label": "Weight",
+        "value": "23 kg",
+        "labelEs": "Peso",
+        "valueEs": "23 kg"
+      }
+    ],
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0796/0408/9136/files/vpa9uzr3phthccu8by16.png"
+    ],
+    "documents": [
+      {
+        "name": "C12S - Hoja de datos (Data Sheet)",
+        "url": "https://images.salsify.com/images/pk0qaadea7sr0lduzwjm/C12S%20Blaze%20by%20Sonance%20Data%20Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "C12S - Manual",
+        "url": "https://images.salsify.com/images/ikkhirgcxqaxnmetlpvy/C12S%20Blaze%20by%20Sonance%20Manual.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "C12S - Planos mecánicos (Mechanical Drawings)",
+        "url": "https://images.salsify.com/images/s4oa9m4lvrdgqsvhyxlt/C12S_Blaze%20by%20Sonance_Mechanical%20Drawings.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://sonance.com/products/bgm-888-033",
+    "coo": null,
+    "widthCm": 44.5,
+    "heightCm": 64.9,
+    "depthCm": 22,
+    "weightKg": 23,
+    "kind": "PRINCIPAL",
+    "accessoryRequiredWithPrimary": false,
+    "accessoryFor": [],
+    "line": "Ci",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > SUBLOW PRO"
+  }
+]

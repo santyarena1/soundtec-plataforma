@@ -21,6 +21,7 @@ import {
 import { filterCustomerBadges } from "@/lib/manufacturer-promo";
 
 interface SpecItem {
+  group?: string;
   label?: string;
   name?: string;
   value?: string;
@@ -113,11 +114,20 @@ export function ProductRichInfo(props: ProductRichInfoProps) {
               .filter(Boolean)
               .join(" · ")
           : "");
-      return { label: String(label).trim(), value: String(value).trim() };
+      return { group: String(s.group ?? "").trim(), label: String(label).trim(), value: String(value).trim() };
     })
     .filter((r) => r.label.length > 0 && r.value.length > 0);
 
-  const visibleSpecs = showAllSpecs ? normalizedSpecs : normalizedSpecs.slice(0, 8);
+  // Agrupadas como en la ficha del fabricante (Video, Audio, Alimentación…). Se ven las
+  // primeras SPECS_PREVIEW; el resto con «Ver todas».
+  const SPECS_PREVIEW = 14;
+  const visibleSpecs = showAllSpecs ? normalizedSpecs : normalizedSpecs.slice(0, SPECS_PREVIEW);
+  const specGroups: Array<{ name: string; rows: typeof normalizedSpecs }> = [];
+  for (const row of visibleSpecs) {
+    const last = specGroups[specGroups.length - 1];
+    if (last && last.name === row.group) last.rows.push(row);
+    else specGroups.push({ name: row.group, rows: [row] });
+  }
 
   const hasDimensions = props.widthCm != null || props.heightCm != null || props.depthCm != null;
   const hasIdentifiers = props.modelNumber || props.manufacturerItem || props.productLine;
@@ -279,18 +289,24 @@ export function ProductRichInfo(props: ProductRichInfoProps) {
               Especificaciones técnicas
               <Badge tone="muted">{normalizedSpecs.length}</Badge>
             </CardTitle>
-            <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
-              {visibleSpecs.map((s, i) => (
-                <div
-                  key={i}
-                  className="flex items-baseline justify-between gap-3 border-b border-border/40 pb-1.5 text-sm"
-                >
-                  <span className="text-muted-foreground">{s.label}</span>
-                  <span className="font-medium text-right break-words max-w-[60%]">{s.value}</span>
+            <div className="space-y-4">
+              {specGroups.map((group, gi) => (
+                <div key={`${group.name}-${gi}`}>
+                  {group.name ? (
+                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-primary">{group.name}</p>
+                  ) : null}
+                  <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                    {group.rows.map((row, i) => (
+                      <div key={i} className="flex items-baseline justify-between gap-3 border-b border-border/40 pb-1.5 text-sm">
+                        <span className="text-muted-foreground">{row.label}</span>
+                        <span className="max-w-[60%] break-words text-right font-medium">{row.value}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
-            {normalizedSpecs.length > 8 ? (
+            {normalizedSpecs.length > SPECS_PREVIEW ? (
               <button
                 type="button"
                 onClick={() => setShowAllSpecs((v) => !v)}

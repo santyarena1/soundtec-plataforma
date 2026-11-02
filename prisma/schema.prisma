@@ -344,6 +344,8 @@ model Product {
 
   // Enriquecimiento desde el sitio del fabricante (crestron.com)
   isDiscontinued     Boolean   @default(false)
+  /// Cartel para el cliente sobre la foto (A_PEDIDO, LIQUIDACION…, ver lib/commercial-tags). null = el automático.
+  commercialTag      String?
   regulatoryModel    String? // modelo regulatorio (ej. "M201903003")
   keyFeatures        Json? // string[] — bullets de "Key Features"
   sourceCategoryPath String? // ruta de categoría del fabricante (ej. "Control and Management > Control System > Rack Mount")

@@ -2579,4 +2579,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "En el catálogo público la misma vista invita a ingresar para ver precios, con el botón Ver ficha." },
     ],
   },
+  {
+    id: "ship-2026-11-02-fichas-hall-sonance",
+    version: "2.28.0",
+    releasedAt: "2026-11-02T20:00:00.000Z",
+    summary: "Fichas completas en castellano para Atlona, Javelin, Hall Tech, Gain Audio y Captivate; Blaze by Sonance Ci de Europa cargados; cartel A pedido para el cliente.",
+    items: [
+      { kind: "MEJORA", text: "231 productos de hallresearch.com (Atlona, Javelin, Hall Tech, Gain Audio, Captivate) ahora tienen descripción, características y especificaciones técnicas en castellano, documentos y rubro de Tango. Antes no tenían ninguna especificación." },
+      { kind: "NUEVO", text: "Blaze by Sonance serie Ci de Europa (Ci2, Ci4, Ci4V, Ci5, Ci5V, CiX6-V, C8S y C12S, en negro y blanco, con sus códigos BGM) con ficha completa, «Consultá precio» y el cartel A pedido." },
+      { kind: "NUEVO", text: "AT-HDVS-CAM-HDMI (Captivate, negra) cargada con su ficha y el cartel Últimas unidades." },
+      { kind: "NUEVO", text: "Cartel para el cliente por producto (A pedido, Liquidación, Últimas unidades, Novedad): se elige en la ficha, en Disponibilidad, y sale sobre la foto en el catálogo y en la ficha del portal." },
+      { kind: "MEJORA", text: "Ficha del portal: las especificaciones salen agrupadas como en la web del fabricante (Video, Audio, Alimentación…) y se suma «Características destacadas» cuando están en castellano." },
+    ],
+  },
 ];

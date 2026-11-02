@@ -1,0 +1,3115 @@
+[
+  {
+    "sku": "AT-GAIN-M240",
+    "shortDescription": "Amplificador mezclador de 240 W con DSP: 2 × 120 W en baja impedancia o 1 × 240 W en 70/100 V, con cuatro entradas mic/línea configurables, ducking, EQ y control remoto.",
+    "longDescription": "Amplificador mezclador profesional de 240 W con entradas flexibles y control por DSP. El AT-GAIN-M240 de Gain Audio entrega 2 × 120 W en baja impedancia o 1 × 240 W en sistemas de 70/100 V, con canales de micrófono/línea configurables, ducking, EQ y opciones de control remoto.\n\nSus cuatro entradas configurables admiten micrófonos y fuentes de nivel de línea, lo que reduce la necesidad de equipos de mezcla básicos por separado.\n\nEl amplificador puede alimentar parlantes estándar de 4 u 8 Ω o un sistema distribuido de 70/100 V, lo que da flexibilidad para distintos tipos de salas.",
+    "keyFeatures": [],
+    "specifications": [
+      {
+        "group": "Entradas",
+        "label": "Mic / Line",
+        "value": "4 analog inputs, configurable individually as microphone or line level Microphone Input Level: −50 dBV (typical) Consumer Line Level: −10 dBV Professional Line Level: +4 dBV",
+        "labelEs": "Mic / línea",
+        "valueEs": "4 entradas analógicas, configurables individualmente como nivel de micrófono o de línea Nivel de entrada de micrófono: −50 dBV (típico) Nivel de línea doméstico: −10 dBV Nivel de línea profesional: +4 dBV"
+      },
+      {
+        "group": "Entradas",
+        "label": "Dante",
+        "value": "2 channels using AT-GAIN-NET (optional module)",
+        "labelEs": "Dante",
+        "valueEs": "2 canales mediante AT-GAIN-NET (módulo opcional)"
+      },
+      {
+        "group": "Entradas",
+        "label": "Impedance",
+        "value": "> 20 kΩ",
+        "labelEs": "Impedancia",
+        "valueEs": "> 20 kΩ"
+      },
+      {
+        "group": "Entradas",
+        "label": "Signal Detection Threshold",
+        "value": "≤ 1 Vrms (−60 dBV) at 1 kHz",
+        "labelEs": "Umbral de detección de señal",
+        "valueEs": "≤ 1 Vrms (−60 dBV) a 1 kHz"
+      },
+      {
+        "group": "Entradas",
+        "label": "Phantom Power",
+        "value": "+48 VDC, 10 mA (available when input is set to mic level)",
+        "labelEs": "Alimentación phantom",
+        "valueEs": "+48 VDC, 10 mA (disponible cuando la entrada está en nivel de micrófono)"
+      },
+      {
+        "group": "Salidas",
+        "label": "Type",
+        "value": "Class D",
+        "labelEs": "Tipo",
+        "valueEs": "Clase D"
+      },
+      {
+        "group": "Salidas",
+        "label": "Modes",
+        "value": "Stereo (4/8 Ω) or Mono 70V/100V",
+        "labelEs": "Modos",
+        "valueEs": "Estéreo (4/8 Ω) o mono 70V/100V"
+      },
+      {
+        "group": "Salidas",
+        "label": "Impedance",
+        "value": "< 10 kΩ",
+        "labelEs": "Impedancia",
+        "valueEs": "< 10 kΩ"
+      },
+      {
+        "group": "Salidas",
+        "label": "Line-Level",
+        "value": "Stereo, unpowered",
+        "labelEs": "Nivel de línea",
+        "valueEs": "Estéreo, sin amplificar"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "Power",
+        "value": "2 × 120 W @ 4/8 Ω; 1 × 240 W @ 70V or 100V (mono)",
+        "labelEs": "Alimentación",
+        "valueEs": "2 × 120 W @ 4/8 Ω; 1 × 240 W @ 70V o 100V (mono)"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "Frequency Response",
+        "value": "Low Impedance: 20 Hz – 20 kHz (±1 dB) High Impedance: 200 Hz – 12 kHz (±1 dB), 80 Hz – 20 kHz (±3 dB)",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "Baja impedancia: 20 Hz – 20 kHz (±1 dB) Alta impedancia: 200 Hz – 12 kHz (±1 dB), 80 Hz – 20 kHz (±3 dB)"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "THD+N",
+        "value": "0.1% @ 1 kHz, 3 dB below full output, 8 Ω 0.3% from 100 Hz to 16 kHz, 3 dB below full output, 4/8 Ω",
+        "labelEs": "THD+N",
+        "valueEs": "0,1% @ 1 kHz, 3 dB por debajo de la potencia máxima, 8 Ω 0,3% de 100 Hz a 16 kHz, 3 dB por debajo de la potencia máxima, 4/8 Ω"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "SNR",
+        "value": "> 85 dB",
+        "labelEs": "SNR",
+        "valueEs": "> 85 dB"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "CMRR",
+        "value": "> 75 dB @ 60 Hz, 1 kHz, 10 kHz",
+        "labelEs": "CMRR",
+        "valueEs": "> 75 dB @ 60 Hz, 1 kHz, 10 kHz"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "Power",
+        "value": "2 × 120 W @ 4/8 Ω; 1 × 240 W @ 70V or 100V (mono)",
+        "labelEs": "Alimentación",
+        "valueEs": "2 × 120 W @ 4/8 Ω; 1 × 240 W @ 70V o 100V (mono)"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "Frequency Response",
+        "value": "Low Impedance: 20 Hz – 20 kHz (±1 dB) High Impedance: 200 Hz – 12 kHz (±1 dB), 80 Hz – 20 kHz (±3 dB)",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "Baja impedancia: 20 Hz – 20 kHz (±1 dB) Alta impedancia: 200 Hz – 12 kHz (±1 dB), 80 Hz – 20 kHz (±3 dB)"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "THD+N",
+        "value": "0.1% @ 1 kHz, 3 dB below full output, 8 Ω 0.3% from 100 Hz to 16 kHz, 3 dB below full output, 4/8 Ω",
+        "labelEs": "THD+N",
+        "valueEs": "0,1% @ 1 kHz, 3 dB por debajo de la potencia máxima, 8 Ω 0,3% de 100 Hz a 16 kHz, 3 dB por debajo de la potencia máxima, 4/8 Ω"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "SNR",
+        "value": "> 85 dB",
+        "labelEs": "SNR",
+        "valueEs": "> 85 dB"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "CMRR",
+        "value": "> 75 dB @ 60 Hz, 1 kHz, 10 kHz",
+        "labelEs": "CMRR",
+        "valueEs": "> 75 dB @ 60 Hz, 1 kHz, 10 kHz"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Port",
+        "value": "1 x RJ45",
+        "labelEs": "Puerto",
+        "valueEs": "1 x RJ45"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Standards and Protocols",
+        "value": "HTTP, HTTPS, mDNS",
+        "labelEs": "Estándares y protocolos",
+        "valueEs": "HTTP, HTTPS, mDNS"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Speeds",
+        "value": "10/100/1000 Mbps",
+        "labelEs": "Velocidades",
+        "valueEs": "10/100/1000 Mbps"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Addressing",
+        "value": "DHCP, Static",
+        "labelEs": "Direccionamiento",
+        "valueEs": "DHCP, estática"
+      },
+      {
+        "group": "RS-232",
+        "label": "Port",
+        "value": "1 x 8-pin captive screw, TX, RX, GND",
+        "labelEs": "Puerto",
+        "valueEs": "1 x tornillo cautivo de 8 pines, TX, RX, GND"
+      },
+      {
+        "group": "RS-232",
+        "label": "Use",
+        "value": "Device control and configuration",
+        "labelEs": "Uso",
+        "valueEs": "Control y configuración del dispositivo"
+      },
+      {
+        "group": "RS-232",
+        "label": "Baud Rates",
+        "value": "9600, 19200, 38400, 57600, 115200",
+        "labelEs": "Velocidades en baudios",
+        "valueEs": "9600, 19200, 38400, 57600, 115200"
+      },
+      {
+        "group": "RS-232",
+        "label": "Data Flow",
+        "value": "Bidirectional",
+        "labelEs": "Flujo de datos",
+        "valueEs": "Bidireccional"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Buttons IP MODE, RESET MODE",
+        "value": "2 x momentary, tact-type, recessed 1 x 4-position slide switch",
+        "labelEs": "Botones: IP MODE, RESET MODE",
+        "valueEs": "2 x pulsador momentáneo, tipo táctil, embutido 1 x selector deslizante de 4 posiciones"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Indicators PWR, MUTE MIC / LINE IN (1 – 4) NET IN (5 – 6) IP MODE, RESET VOL LEVEL",
+        "value": "2 x LED, green 4 x LED, green 2 x LED, green 2 x LED, green 1 x 10-segment LED level meter (green, yellow, red)",
+        "labelEs": "Indicadores: PWR, MUTE, MIC / LINE IN (1 – 4), NET IN (5 – 6), IP MODE, RESET, VOL LEVEL",
+        "valueEs": "2 x LED, verde 4 x LED, verde 2 x LED, verde 2 x LED, verde 1 x vúmetro LED de 10 segmentos (verde, amarillo, rojo)"
+      },
+      {
+        "group": "Conectores",
+        "label": "MIC/LINE IN",
+        "value": "2 x 6-pin captive screw",
+        "labelEs": "MIC/LINE IN",
+        "valueEs": "2 x tornillo cautivo de 6 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "4/8 Ω OUT",
+        "value": "1 x 4-pin, 5.08 mm lock-down screw connector",
+        "labelEs": "4/8 Ω OUT",
+        "valueEs": "1 x conector de tornillo con traba de 4 pines, 5,08 mm"
+      },
+      {
+        "group": "Conectores",
+        "label": "70V / 100V OUT",
+        "value": "1 x 2-pin, 5.08 mm lock-down screw connector",
+        "labelEs": "70V / 100V OUT",
+        "valueEs": "1 x conector de tornillo con traba de 2 pines, 5,08 mm"
+      },
+      {
+        "group": "Conectores",
+        "label": "LINE OUT",
+        "value": "1 x 6-pin captive screw",
+        "labelEs": "LINE OUT",
+        "valueEs": "1 x tornillo cautivo de 6 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "TRIGGER/CTRL/RS-232",
+        "value": "1 x 8-pin captive screw",
+        "labelEs": "TRIGGER/CTRL/RS-232",
+        "valueEs": "1 x tornillo cautivo de 8 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "LAN",
+        "value": "1 x RJ45",
+        "labelEs": "LAN",
+        "valueEs": "1 x RJ45"
+      },
+      {
+        "group": "Conectores",
+        "label": "FW",
+        "value": "1 x USB type C, female",
+        "labelEs": "FW",
+        "valueEs": "1 x USB tipo C, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "PWR",
+        "value": "1 x IEC",
+        "labelEs": "PWR",
+        "valueEs": "1 x IEC"
+      },
+      {
+        "group": "Conectores",
+        "label": "MIC/LINE IN",
+        "value": "2 x 6-pin captive screw",
+        "labelEs": "MIC/LINE IN",
+        "valueEs": "2 x tornillo cautivo de 6 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "4/8 Ω OUT",
+        "value": "1 x 4-pin, 5.08 mm lock-down screw connector",
+        "labelEs": "4/8 Ω OUT",
+        "valueEs": "1 x conector de tornillo con traba de 4 pines, 5,08 mm"
+      },
+      {
+        "group": "Conectores",
+        "label": "70V / 100V OUT",
+        "value": "1 x 2-pin, 5.08 mm lock-down screw connector",
+        "labelEs": "70V / 100V OUT",
+        "valueEs": "1 x conector de tornillo con traba de 2 pines, 5,08 mm"
+      },
+      {
+        "group": "Conectores",
+        "label": "LINE OUT",
+        "value": "1 x 6-pin captive screw",
+        "labelEs": "LINE OUT",
+        "valueEs": "1 x tornillo cautivo de 6 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "TRIGGER/CTRL/RS-232",
+        "value": "1 x 8-pin captive screw",
+        "labelEs": "TRIGGER/CTRL/RS-232",
+        "valueEs": "1 x tornillo cautivo de 8 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "LAN",
+        "value": "1 x RJ45",
+        "labelEs": "LAN",
+        "valueEs": "1 x RJ45"
+      },
+      {
+        "group": "Conectores",
+        "label": "FW",
+        "value": "1 x USB type C, female",
+        "labelEs": "FW",
+        "valueEs": "1 x USB tipo C, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "PWR",
+        "value": "1 x IEC",
+        "labelEs": "PWR",
+        "valueEs": "1 x IEC"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Low Power Mode",
+        "value": "0.5 W",
+        "labelEs": "Modo de bajo consumo",
+        "valueEs": "0.5 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Network Standby Mode",
+        "value": "2 W",
+        "labelEs": "Modo de espera en red",
+        "valueEs": "2 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Auto-Standby Timer",
+        "value": "Configurable from 1 to 1440 minutes",
+        "labelEs": "Temporizador de espera automática",
+        "valueEs": "Configurable de 1 a 1440 minutos"
+      },
+      {
+        "group": "Alimentación",
+        "label": "BTU/h",
+        "value": "12.3 (idle) 67.9 (maximum power)",
+        "labelEs": "BTU/h",
+        "valueEs": "12,3 (en reposo) 67,9 (potencia máxima)"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Supply",
+        "value": "100 – 240 V AC, 50/60 Hz",
+        "labelEs": "Alimentación",
+        "valueEs": "100 – 240 V AC, 50/60 Hz"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Idle Power (5 min after power on)",
+        "value": "28.82W",
+        "labelEs": "Consumo en reposo (5 min después del encendido)",
+        "valueEs": "28.82W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Under Load",
+        "value": "4Ω-1W 31.51W 4Ω-1/8 power 65.7W 4Ω-1/3 power 124.15W 4Ω-full power 315.92W 8Ω-1W 30.27W 8Ω-1/8 power 62.09W 8Ω-1/3 power 118.20W 8Ω-full power 297.98W",
+        "labelEs": "Con carga",
+        "valueEs": "4Ω-1W 31,51W 4Ω-1/8 de potencia 65,7W 4Ω-1/3 de potencia 124,15W 4Ω-potencia máxima 315,92W 8Ω-1W 30,27W 8Ω-1/8 de potencia 62,09W 8Ω-1/3 de potencia 118,20W 8Ω-potencia máxima 297,98W"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Unit",
+        "value": "1.75 x 8.875 x 13 44 x 225 x 330",
+        "labelEs": "Equipo",
+        "valueEs": "1.75 x 8.875 x 13 44 x 225 x 330"
+      },
+      {
+        "group": "Peso",
+        "label": "Device",
+        "value": "6.94 3.15",
+        "labelEs": "Equipo",
+        "valueEs": "6.94 3.15"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, RoHS, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, RoHS, FCC"
+      },
+      {
+        "group": "Normativas",
+        "label": "NDAA-889",
+        "value": "Yes",
+        "labelEs": "NDAA-889",
+        "valueEs": "Sí"
+      },
+      {
+        "group": "Normativas",
+        "label": "TAA",
+        "value": "No",
+        "labelEs": "TAA",
+        "valueEs": "No"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-GAIN-M240 Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-GAIN-M240_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-M120-M240 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1443%20(AT-GAIN-M120)/Manual/AT-GAIN-M120_M240.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-M120-M240 API",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1543%20(AT-GAIN-M240)/API/AT-GAIN-M120_M240_API.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-gain-m240",
+    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA"
+  },
+  {
+    "sku": "HT-SATELLITE-CM",
+    "shortDescription": "Micrófono de techo cableado para el DSP Osiris: arreglo de 3 micrófonos MEMS omnidireccional con alcance de 3 a 5 m, encadenable por cable de categoría.",
+    "longDescription": "Los micrófonos de techo se interconectan con cable de categoría y se pueden encadenar para facilitar la instalación: un cable vuelve al controlador y otro va al micrófono siguiente. Todo el procesamiento de señal de AEC y niveles lo hace el procesamiento de audio incorporado del DSP Osiris.",
+    "keyFeatures": [
+      "Arreglo de 3 micrófonos MEMS configurado como micrófono omnidireccional, con alcance de 3 a 5 m",
+      "Botón de mute/unmute integrado bajo la tela, que se ilumina al activarse",
+      "Comparte automáticamente con los micrófonos conectados la cancelación de eco inteligente (AEC), la reducción de ruido de fondo y el control automático de ganancia",
+      "Dimensiones: Φ100 × 27,5 mm",
+      "Instalación embutida en techo (altura de piso a techo menor de 3 m)",
+      "Opción de instalación con caño colgante (altura de piso a techo mayor de 3 m)",
+      "Admite hasta cuatro niveles de encadenamiento, con una longitud total de cable de hasta 50 m"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "HT-SATELLITE / OSIRIS DSP1 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-OSIRIS-DSP1_Manual-1.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/ht-satellite-cm",
+    "tangoPath": "SONIDO > MICROFONOS > MICROFONOS COLGANTES"
+  },
+  {
+    "sku": "SPK-IC6-BRKT",
+    "shortDescription": "Bracket para el parlante de embutir en techo SPK-IC6 (tweeter de domo de titanio de 1″ y woofer de grafito de 6,5″), que se vende por separado del parlante.",
+    "longDescription": "El SPK-IC6 es un parlante de embutir en techo con certificación contra incendio (fire rated), con tweeter de domo de titanio de 1″ y woofer de cono de grafito de 6,5″ con suspensión de goma. El bracket se vende por separado.",
+    "keyFeatures": [],
+    "specifications": [],
+    "documents": [],
+    "vendorProductUrl": "https://hallresearch.com/product/spk-ic6-brkt",
+    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS P/BAFLES"
+  },
+  {
+    "sku": "AMP-4840",
+    "shortDescription": "Amplificador Clase D compacto mono/estéreo de 2 × 20 W en 4 Ω o 40 W en puente, con mezcla de micrófono balanceado con phantom de 48 V y control por botones, IR y RS-232.",
+    "longDescription": "El AMP-4840 es un amplificador de audio mono/estéreo compacto, económico y de bajo consumo (Clase D) con 3 entradas: 2 de línea y 1 de micrófono balanceado.\n\nEl AMP-4840-E incluye el adaptador de alimentación europeo.",
+    "keyFeatures": [
+      "Potencia: 2 × 20 W en 4 Ω, 2 × 10 W en 8 Ω o 1 × 40 W en 8 Ω en modo puente",
+      "Dos entradas de audio estéreo, seleccionables por botón, control remoto IR y RS-232",
+      "Volumen, graves y agudos controlables por botones, control remoto IR y RS-232",
+      "El puerto MIC admite señales balanceadas o no balanceadas",
+      "Salida de audio de línea por jack de 3,5 mm con volumen controlable",
+      "Selector de mezcla mono que suma los canales izquierdo y derecho para salidas mono",
+      "La entrada de micrófono se puede mezclar con la entrada de línea, con control independiente de cada una",
+      "La entrada MIC admite alimentación phantom de 48 V, micrófonos dinámicos e inalámbricos",
+      "Silenciamiento automático de ruido: detecta audio en las entradas y silencia la salida cuando no hay señal",
+      "Sin ventiladores"
+    ],
+    "specifications": [
+      {
+        "group": "General",
+        "label": "Rated Output",
+        "value": "2 x 20 w @ 4 or 2 x 10 w @ 8",
+        "labelEs": "Potencia nominal",
+        "valueEs": "2 × 20 W @ 4 Ω o 2 × 10 W @ 8 Ω"
+      },
+      {
+        "group": "General",
+        "label": "Gain",
+        "value": "32 dB",
+        "labelEs": "Ganancia",
+        "valueEs": "32 dB"
+      },
+      {
+        "group": "General",
+        "label": "Frequency Range",
+        "value": "20 Hz to 20Khz",
+        "labelEs": "Rango de frecuencia",
+        "valueEs": "20 Hz a 20 kHz"
+      },
+      {
+        "group": "General",
+        "label": "Signal/Noise Radio",
+        "value": "20Hz to 20KHz",
+        "labelEs": "Relación señal/ruido",
+        "valueEs": "20 Hz a 20 kHz"
+      },
+      {
+        "group": "General",
+        "label": "Total Harmonic Distortion",
+        "value": "80dB (at max output)",
+        "labelEs": "Distorsión armónica total",
+        "valueEs": "80 dB (a máxima potencia)"
+      },
+      {
+        "group": "General",
+        "label": "Input Impedance",
+        "value": "> 10 Kohm",
+        "labelEs": "Impedancia de entrada",
+        "valueEs": "> 10 kΩ"
+      },
+      {
+        "group": "General",
+        "label": "Output Impedance",
+        "value": "3.5 mm Loop Out: 50 ohm; Speaker Out: 4-8 ohm - Amplified",
+        "labelEs": "Impedancia de salida",
+        "valueEs": "Salida loop de 3,5 mm: 50 Ω; salida de parlantes: 4-8 Ω, amplificada"
+      },
+      {
+        "group": "General",
+        "label": "Stereo Channel Separation",
+        "value": ">75 dB from 20 Hz to 20 KHz",
+        "labelEs": "Separación de canales estéreo",
+        "valueEs": ">75 dB de 20 Hz a 20 kHz"
+      },
+      {
+        "group": "General",
+        "label": "CMRR",
+        "value": ">70 dB from 20 Hz to 20 KHz",
+        "labelEs": "CMRR",
+        "valueEs": ">70 dB de 20 Hz a 20 kHz"
+      },
+      {
+        "group": "General",
+        "label": "Operating Temperature",
+        "value": "0°C to 40°C (32°F to 104)",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "0 °C a 40 °C (32 °F a 104 °F)"
+      },
+      {
+        "group": "General",
+        "label": "Humidity",
+        "value": "20 to 90% non-condensing",
+        "labelEs": "Humedad",
+        "valueEs": "20 % a 90 %, sin condensación"
+      },
+      {
+        "group": "General",
+        "label": "Power",
+        "value": "Max Consumption: 40 watts; Idle Consumption: 4 watts",
+        "labelEs": "Consumo",
+        "valueEs": "Consumo máximo: 40 W; consumo en reposo: 4 W"
+      },
+      {
+        "group": "General",
+        "label": "Power Supply",
+        "value": "Input: 100 VAC to 240 VAC, 47-63 Hz; Output: 24 VDC / 5A",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "Entrada: 100 a 240 V CA, 47-63 Hz; salida: 24 V CC / 5 A"
+      },
+      {
+        "group": "General",
+        "label": "Dimensions",
+        "value": "Model: 3.78\" (96 mm) W x 3.43\" (87 mm) D x 1.5\" (38 mm) H",
+        "labelEs": "Dimensiones",
+        "valueEs": "Equipo: 3,78\" (96 mm) ancho × 3,43\" (87 mm) profundidad × 1,5\" (38 mm) alto"
+      },
+      {
+        "group": "General",
+        "label": "Weight",
+        "value": "Model: 0.66 lbs (0.3 kg); Shipping: 1.95 lbs (0.88 kg)",
+        "labelEs": "Peso",
+        "valueEs": "Equipo: 0,66 lb (0,3 kg); con embalaje: 1,95 lb (0,88 kg)"
+      },
+      {
+        "group": "General",
+        "label": "Certifications",
+        "value": "Unit: CE, FCC, RoHS; Power Supply: cULus",
+        "labelEs": "Certificaciones",
+        "valueEs": "Equipo: CE, FCC, RoHS; fuente de alimentación: cULus"
+      },
+      {
+        "group": "Kit de control remoto IR opcional",
+        "label": "AMP-4840 Optional IR Remote Kit",
+        "value": "The IR Remote can be ordered separately (P/N AMP-4840-REMOTE)",
+        "labelEs": "Kit de control remoto IR opcional para AMP-4840",
+        "valueEs": "El control remoto IR se pide por separado (P/N AMP-4840-REMOTE)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AMP-4840 Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/AMP-4840_Specsheet_Nov_18.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AMP-4840 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/AMP-4840_Product_Manual_Jan_6.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/amp-4840",
+    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA"
+  },
+  {
+    "sku": "AT-GAIN-60",
+    "shortDescription": "Amplificador Clase D de 60 W para instalaciones AV: 2 × 30 W en 4/8 Ω o 1 × 60 W en 24, 70 o 100 V. Control por TCP/IP y RS-232, enfriamiento por convección y apto plenum.",
+    "longDescription": "El Gain Audio AT-GAIN-60 es un amplificador de audio Clase D de 60 W para instalaciones AV profesionales. Entrega salida estéreo o mono en puente, admite audio distribuido de 24 V, 70 V y 100 V, y también parlantes convencionales de 4 Ω/8 Ω.\n\nEstá preparado para montaje en cielorraso o en gabinete, con ventilación apta plenum, control por red mediante TCP/IP o RS-232, certificación ENERGY STAR y enfriamiento por convección. Se usa en aulas, salas de reunión chicas, templos y cualquier espacio que necesite refuerzo sonoro confiable sin equipos voluminosos.",
+    "keyFeatures": [
+      "Funcionamiento seleccionable en baja o alta impedancia",
+      "2 × 30 W en 4 u 8 Ω",
+      "1 × 60 W en 24, 70 o 100 V",
+      "Entradas de audio balanceadas y no balanceadas seleccionables",
+      "Diseño de amplificador Clase D eficiente",
+      "Certificación ENERGY STAR",
+      "Enfriamiento por convección, sin ventiladores",
+      "Certificación plenum UL 2043: permite instalarlo sobre cielorrasos suspendidos comerciales",
+      "Standby automático configurable entre 5 y 25 minutos de inactividad para reducir el consumo",
+      "Control de nivel de entrada en el panel trasero",
+      "Circuitos de protección integrados que se activan automáticamente ante recorte, cortocircuito, sobrecarga térmica y otras condiciones",
+      "Controles de tono de graves y agudos",
+      "Control por TCP/IP y RS-232 de volumen, silencio y controles de tono",
+      "Ideal para control por IP desde el sistema de control Atlona Velocity",
+      "Botones en el panel frontal para selección de entrada, silencio y volumen",
+      "LED de estado en el panel frontal para encendido, entrada seleccionada, silencio y nivel de volumen",
+      "Gabinete compacto, montable en rack",
+      "Bandeja de rack opcional AT-RACK-1RU, recomendada para instalación en rack",
+      "Incluye guía de instalación, conectores de tornillo cautivo y fuente de alimentación universal externa"
+    ],
+    "specifications": [
+      {
+        "group": "Señal de entrada",
+        "label": "Analog",
+        "value": "Balanced: 20 kΩ, unbalanced: 10 kΩ",
+        "labelEs": "Analógico",
+        "valueEs": "Balanceada: 20 kΩ, no balanceada: 10 kΩ"
+      },
+      {
+        "group": "Señal de entrada",
+        "label": "Gain",
+        "value": "Adjustable, -22 dB to 0 dB",
+        "labelEs": "Ganancia",
+        "valueEs": "Ajustable, -22 dB a 0 dB"
+      },
+      {
+        "group": "Señal de entrada",
+        "label": "CMRR",
+        "value": "49 dB / 67 dB",
+        "labelEs": "CMRR",
+        "valueEs": "49 dB / 67 dB"
+      },
+      {
+        "group": "Señal de entrada",
+        "label": "Wake Up Threshold",
+        "value": "0 dBV = 2.218 dBu, available on Rev B and above",
+        "labelEs": "Umbral de activación",
+        "valueEs": "0 dBV = 2,218 dBu, disponible desde la Rev B"
+      },
+      {
+        "group": "Señal de salida",
+        "label": "Distributed speakers (mono)",
+        "value": "24 V / 70 V / 100 V",
+        "labelEs": "Parlantes distribuidos (mono)",
+        "valueEs": "24 V / 70 V / 100 V"
+      },
+      {
+        "group": "Señal de salida",
+        "label": "Program speakers (stereo)",
+        "value": "4 Ω / 8 Ω, line-level",
+        "labelEs": "Parlantes de programa (estéreo)",
+        "valueEs": "4 Ω / 8 Ω, nivel de línea"
+      },
+      {
+        "group": "Señal de salida",
+        "label": "Power",
+        "value": "24 V = 60 W 70 V = 60 W 100 V = 60 W 4 / 8 Ω = 30 W per channel",
+        "labelEs": "Alimentación",
+        "valueEs": "24 V = 60 W 70 V = 60 W 100 V = 60 W 4 / 8 Ω = 30 W por canal"
+      },
+      {
+        "group": "Procesamiento de audio",
+        "label": "Audio Formats",
+        "value": "24-bit uncompressed, selectable at 44.1, 48, 88.2, and 96 kHz sampling rate",
+        "labelEs": "Formatos de audio",
+        "valueEs": "24 bits sin compresión, frecuencia de muestreo seleccionable de 44,1, 48, 88,2 y 96 kHz"
+      },
+      {
+        "group": "Procesamiento de audio",
+        "label": "Signal Processing",
+        "value": "Volume, Auto on/off signal sensing, 80Hz HPF",
+        "labelEs": "Procesamiento de señal",
+        "valueEs": "Volumen, encendido/apagado automático por detección de señal, HPF de 80Hz"
+      },
+      {
+        "group": "Procesamiento de audio",
+        "label": "2-band EQ",
+        "value": "Bass / Treble, adjustable: -10 to +10 dB",
+        "labelEs": "Ecualizador de 2 bandas",
+        "valueEs": "Graves / agudos, ajustables: -10 a +10 dB"
+      },
+      {
+        "group": "Rendimiento de audio",
+        "label": "Frequency Response",
+        "value": "20Hz – 20kHz, ±0.2 / -2 dB @ 4 Ω load",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "20Hz – 20kHz, ±0,2 / -2 dB @ carga de 4 Ω"
+      },
+      {
+        "group": "Rendimiento de audio",
+        "label": "THD + N",
+        "value": "< 0.1% @ 1kHZ, 3 dB below clipping",
+        "labelEs": "THD + N",
+        "valueEs": "< 0,1% @ 1kHZ, 3 dB por debajo del recorte"
+      },
+      {
+        "group": "Rendimiento de audio",
+        "label": "SNR",
+        "value": "> 95 dBA WTD",
+        "labelEs": "SNR",
+        "valueEs": "> 95 dBA ponderado"
+      },
+      {
+        "group": "Rendimiento de audio",
+        "label": "Damping Factor",
+        "value": "< 48 @ 8 Ω",
+        "labelEs": "Factor de amortiguamiento",
+        "valueEs": "< 48 @ 8 Ω"
+      },
+      {
+        "group": "Rendimiento de audio",
+        "label": "Amplifier Type",
+        "value": "Class D",
+        "labelEs": "Tipo de amplificador",
+        "valueEs": "Clase D"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Operating",
+        "value": "32 to 122 0 to 50",
+        "labelEs": "Funcionamiento",
+        "valueEs": "32 a 122 0 a 50"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Storage",
+        "value": "-40 to 158 -40 to 70",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-40 a 158 -40 a 70"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Humidity (RH)",
+        "value": "90%, non-condensing",
+        "labelEs": "Humedad (HR)",
+        "valueEs": "90%, sin condensación"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Standby Mode",
+        "value": "Powers down after 5 – 25 minutes (adjustable) of no signal; complies with ENERGY STAR power consumption limits of < 0.5W in standby mode",
+        "labelEs": "Modo de espera",
+        "valueEs": "Se apaga tras 5 – 25 minutos (ajustable) sin señal; cumple los límites de consumo ENERGY STAR de < 0,5W en modo de espera"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "60W (max.)",
+        "labelEs": "Consumo",
+        "valueEs": "60W (máx.)"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Standby Consumption",
+        "value": "< 1.2W",
+        "labelEs": "Consumo en espera",
+        "valueEs": "< 1.2W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Supply",
+        "value": "100 – 240 VAC, 50/60Hz, 60W/td>",
+        "labelEs": "Alimentación",
+        "valueEs": "100 – 240 VAC, 50/60Hz, 60W"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "LAN",
+        "value": "1 – RJ45",
+        "labelEs": "LAN",
+        "valueEs": "1 – RJ45"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "AUDIO IN 1",
+        "value": "1 – 5-pin captive screw, balanced: 10 kΩ",
+        "labelEs": "AUDIO IN 1",
+        "valueEs": "1 – tornillo cautivo de 5 pines, balanceada: 10 kΩ"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "AUDIO IN 2",
+        "value": "2 – RCA-type, female, unbalanced: 20 kΩ",
+        "labelEs": "AUDIO IN 2",
+        "valueEs": "2 – tipo RCA, hembra, no balanceada: 20 kΩ"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "4 / 8 Ω OUT",
+        "value": "1 – 4-pin, 5.08 mm lock-down screw connector",
+        "labelEs": "4 / 8 Ω OUT",
+        "valueEs": "1 – conector de tornillo con traba de 4 pines, 5,08 mm"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "24 / 70 / 100V",
+        "value": "1 – 2-pin, 5.08 mm lock-down screw connector",
+        "labelEs": "24 / 70 / 100V",
+        "valueEs": "1 – conector de tornillo con traba de 2 pines, 5,08 mm"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "Power",
+        "value": "1 – Barrel, locking",
+        "labelEs": "Alimentación",
+        "valueEs": "1 – barril, con traba"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "INPUT GAIN",
+        "value": "1 – Rotary pot",
+        "labelEs": "INPUT GAIN",
+        "valueEs": "1 – potenciómetro rotativo"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "MODE",
+        "value": "1 – Slider switch, 5-pole, 24V / 70V / 100V / 8 Ω / 4 Ω",
+        "labelEs": "MODE",
+        "valueEs": "1 – selector deslizante, 5 posiciones, 24V / 70V / 100V / 8 Ω / 4 Ω"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "RESET",
+        "value": "1 – Push button, tact-type",
+        "labelEs": "RESET",
+        "valueEs": "1 – pulsador, tipo táctil"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "INPUT",
+        "value": "1 – Push button, tact-type",
+        "labelEs": "INPUT",
+        "valueEs": "1 – pulsador, tipo táctil"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "MUTE",
+        "value": "1 – Push button, tact-type",
+        "labelEs": "MUTE",
+        "valueEs": "1 – pulsador, tipo táctil"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "VOL",
+        "value": "2 – Push buttons, tact-type",
+        "labelEs": "VOL",
+        "valueEs": "2 – pulsadores, tipo táctil"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "PWR",
+        "value": "1 – LED indicator, green",
+        "labelEs": "PWR",
+        "valueEs": "1 – indicador LED, verde"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "1 / 2 Input Indicators",
+        "value": "2 – LED indicators, green",
+        "labelEs": "Indicadores de entrada 1 / 2",
+        "valueEs": "2 – indicadores LED, verdes"
+      },
+      {
+        "group": "Conectores, controles e indicadores",
+        "label": "Mute Indicator",
+        "value": "1 – LED indicator, red",
+        "labelEs": "Indicador de silencio",
+        "valueEs": "1 – indicador LED, rojo"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "H x W x D",
+        "value": "1.69 x 5.00 x 7.95 43 x 127 x 202",
+        "labelEs": "Alto × ancho × profundidad",
+        "valueEs": "1.69 x 5.00 x 7.95 43 x 127 x 202"
+      },
+      {
+        "group": "Peso",
+        "label": "Device",
+        "value": "3.15 1.43",
+        "labelEs": "Equipo",
+        "valueEs": "3.15 1.43"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, RoHS, WEEE, FCC, ENERGY STAR®",
+        "labelEs": "Equipo",
+        "valueEs": "CE, RoHS, WEEE, FCC, ENERGY STAR®"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-GAIN-60 Specifications",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1322%20(AT-GAIN-60)/Spec%20Sheet/AT-GAIN-60_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-60 Installation Guide",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1322%20(AT-GAIN-60)/Installation%20Guide/AT-GAIN-60_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-60 Manual",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1322%20(AT-GAIN-60)/Manual/AT-GAIN-60.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-60 API",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1322%20(AT-GAIN-60)/API/AT-GAIN-60_API.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "GAIN-60",
+        "url": "https://atlona.com/pdf/cad/AT-GAIN-60.dwg",
+        "fileType": "dwg"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-gain-60",
+    "tangoPath": "SONIDO > AMPLIFICADORES > UNIDADES DE POTENCIA"
+  },
+  {
+    "sku": "AT-GAIN-M120",
+    "shortDescription": "Amplificador mezclador comercial de 120 W con DSP, cuatro entradas de micrófono/línea, salida en baja impedancia (4/8 Ω) o 70/100 V, control por IP/RS-232 y tarjeta opcional Dante/AES67.",
+    "longDescription": "Amplificador mezclador comercial profesional de 120 W con DSP, salida flexible en baja o alta impedancia, soporte opcional de audio en red Dante/AES67, control por IP/RS-232 y formato para montaje en rack, pensado para sistemas AV.\n\nMezcla el audio que la sala realmente usa: sus cuatro entradas configurables admiten micrófonos y fuentes de nivel de línea, lo que reduce la necesidad de equipos de mezcla básicos por separado.\n\nPermite sumar audio en red fácilmente con una tarjeta puente de audio opcional que recibe dos canales de Dante, AES67 o audio de encoders Atlona OmniStream por su interfaz de red. Además, el amplificador puede crear rutas desde y hacia dispositivos Dante disponibles mediante comandos de API, sin necesidad de Dante Controller.\n\nFunciona con distintos diseños de parlantes: puede alimentar parlantes estándar de 4 u 8 Ω o un sistema distribuido de 70/100 V, lo que da flexibilidad para distintos tipos de sala.",
+    "keyFeatures": [],
+    "specifications": [
+      {
+        "group": "Entradas",
+        "label": "Mic / Line",
+        "value": "4 analog inputs, configurable individually as microphone or line level Microphone Input Level: −50 dBV (typical) Consumer Line Level: −10 dBV Professional Line Level: +4 dBV",
+        "labelEs": "Mic / línea",
+        "valueEs": "4 entradas analógicas, configurables individualmente como nivel de micrófono o de línea Nivel de entrada de micrófono: −50 dBV (típico) Nivel de línea doméstico: −10 dBV Nivel de línea profesional: +4 dBV"
+      },
+      {
+        "group": "Entradas",
+        "label": "Dante",
+        "value": "2 channels using AT-GAIN-NET (optional module)",
+        "labelEs": "Dante",
+        "valueEs": "2 canales mediante AT-GAIN-NET (módulo opcional)"
+      },
+      {
+        "group": "Entradas",
+        "label": "Impedance",
+        "value": "> 20 kΩ",
+        "labelEs": "Impedancia",
+        "valueEs": "> 20 kΩ"
+      },
+      {
+        "group": "Entradas",
+        "label": "Signal Detection Threshold",
+        "value": "≤ 1 Vrms (−60 dBV) at 1 kHz",
+        "labelEs": "Umbral de detección de señal",
+        "valueEs": "≤ 1 Vrms (−60 dBV) a 1 kHz"
+      },
+      {
+        "group": "Entradas",
+        "label": "Phantom Power",
+        "value": "+48 VDC, 10 mA (available when input is set to mic level)",
+        "labelEs": "Alimentación phantom",
+        "valueEs": "+48 VDC, 10 mA (disponible cuando la entrada está en nivel de micrófono)"
+      },
+      {
+        "group": "Salidas",
+        "label": "Type",
+        "value": "Class D",
+        "labelEs": "Tipo",
+        "valueEs": "Clase D"
+      },
+      {
+        "group": "Salidas",
+        "label": "Modes",
+        "value": "Stereo (4/8 Ω) or Mono 70V/100V",
+        "labelEs": "Modos",
+        "valueEs": "Estéreo (4/8 Ω) o mono 70V/100V"
+      },
+      {
+        "group": "Salidas",
+        "label": "Impedance",
+        "value": "< 10 kΩ",
+        "labelEs": "Impedancia",
+        "valueEs": "< 10 kΩ"
+      },
+      {
+        "group": "Salidas",
+        "label": "Line-Level",
+        "value": "Stereo, unpowered",
+        "labelEs": "Nivel de línea",
+        "valueEs": "Estéreo, sin amplificar"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "Power",
+        "value": "2 × 60 W @ 4/8 Ω; 1 × 120 W @ 70V or 100V (mono)",
+        "labelEs": "Alimentación",
+        "valueEs": "2 × 60 W @ 4/8 Ω; 1 × 120 W @ 70V o 100V (mono)"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "Frequency Response",
+        "value": "Low Impedance: 20 Hz – 20 kHz (±1 dB) High Impedance: 200 Hz – 12 kHz (±1 dB), 80 Hz – 20 kHz (±3 dB)",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "Baja impedancia: 20 Hz – 20 kHz (±1 dB) Alta impedancia: 200 Hz – 12 kHz (±1 dB), 80 Hz – 20 kHz (±3 dB)"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "THD+N",
+        "value": "0.1% @ 1 kHz, 3 dB below full output, 8 Ω 0.3% from 100 Hz to 16 kHz, 3 dB below full output, 4/8 Ω",
+        "labelEs": "THD+N",
+        "valueEs": "0,1% @ 1 kHz, 3 dB por debajo de la potencia máxima, 8 Ω 0,3% de 100 Hz a 16 kHz, 3 dB por debajo de la potencia máxima, 4/8 Ω"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "SNR",
+        "value": "> 85 dB",
+        "labelEs": "SNR",
+        "valueEs": "> 85 dB"
+      },
+      {
+        "group": "Rendimiento del amplificador",
+        "label": "CMRR",
+        "value": "> 75 dB @ 60 Hz, 1 kHz, 10 kHz",
+        "labelEs": "CMRR",
+        "valueEs": "> 75 dB @ 60 Hz, 1 kHz, 10 kHz"
+      },
+      {
+        "group": "Procesamiento de señal",
+        "label": "High-Pass Filter",
+        "value": "Butterworth, selectable slopes: 6/12/18/24/30 dB/oct",
+        "labelEs": "Filtro pasa altos",
+        "valueEs": "Butterworth, pendientes seleccionables: 6/12/18/24/30 dB/oct"
+      },
+      {
+        "group": "Procesamiento de señal",
+        "label": "Low-Pass Filter",
+        "value": "Butterworth, selectable slopes: 6/12/18/24/30 dB/oct",
+        "labelEs": "Filtro pasa bajos",
+        "valueEs": "Butterworth, pendientes seleccionables: 6/12/18/24/30 dB/oct"
+      },
+      {
+        "group": "Procesamiento de señal",
+        "label": "5-Band Parametric EQ",
+        "value": "Center Frequency: 20 Hz – 20 kHz Q Factor: 1 – 15 Gain: −36 dB to +12 dB",
+        "labelEs": "Ecualizador paramétrico de 5 bandas",
+        "valueEs": "Frecuencia central: 20 Hz – 20 kHz Factor Q: 1 – 15 Ganancia: −36 dB a +12 dB"
+      },
+      {
+        "group": "Procesamiento de señal",
+        "label": "Delay",
+        "value": "0 – 30 ms (adjustable in 0.1 ms steps)",
+        "labelEs": "Retardo",
+        "valueEs": "0 – 30 ms (ajustable en pasos de 0,1 ms)"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Port",
+        "value": "1 x RJ45",
+        "labelEs": "Puerto",
+        "valueEs": "1 x RJ45"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Standards and Protocols",
+        "value": "HTTP, HTTPS, mDNS",
+        "labelEs": "Estándares y protocolos",
+        "valueEs": "HTTP, HTTPS, mDNS"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Speeds",
+        "value": "10/100/1000 Mbps",
+        "labelEs": "Velocidades",
+        "valueEs": "10/100/1000 Mbps"
+      },
+      {
+        "group": "Ethernet",
+        "label": "Addressing",
+        "value": "DHCP, Static",
+        "labelEs": "Direccionamiento",
+        "valueEs": "DHCP, estática"
+      },
+      {
+        "group": "RS-232",
+        "label": "Port",
+        "value": "1 x 8-pin captive screw, TX, RX, GND",
+        "labelEs": "Puerto",
+        "valueEs": "1 x tornillo cautivo de 8 pines, TX, RX, GND"
+      },
+      {
+        "group": "RS-232",
+        "label": "Use",
+        "value": "Device control and configuration",
+        "labelEs": "Uso",
+        "valueEs": "Control y configuración del dispositivo"
+      },
+      {
+        "group": "RS-232",
+        "label": "Baud Rates",
+        "value": "9600, 19200, 38400, 57600, 115200",
+        "labelEs": "Velocidades en baudios",
+        "valueEs": "9600, 19200, 38400, 57600, 115200"
+      },
+      {
+        "group": "RS-232",
+        "label": "Data Flow",
+        "value": "Bidirectional",
+        "labelEs": "Flujo de datos",
+        "valueEs": "Bidireccional"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Buttons IP MODE, RESET MODE",
+        "value": "2 x momentary, tact-type, recessed 1 x 4-position slide switch",
+        "labelEs": "Botones: IP MODE, RESET MODE",
+        "valueEs": "2 x pulsador momentáneo, tipo táctil, embutido 1 x selector deslizante de 4 posiciones"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Indicators PWR, MUTE MIC / LINE IN (1-4) NET IN (5-6) IP MODE, RESET VOL LEVEL",
+        "value": "2 x LED, green 4 x LED, green 2 x LED, green 2 x LED, green 1 x 10-segment LED level meter (green, yellow, red)",
+        "labelEs": "Indicadores: PWR, MUTE, MIC / LINE IN (1-4), NET IN (5-6), IP MODE, RESET, VOL LEVEL",
+        "valueEs": "2 x LED, verde 4 x LED, verde 2 x LED, verde 2 x LED, verde 1 x vúmetro LED de 10 segmentos (verde, amarillo, rojo)"
+      },
+      {
+        "group": "Conectores",
+        "label": "MIC/LINE IN",
+        "value": "2 x 6-pin captive screw",
+        "labelEs": "MIC/LINE IN",
+        "valueEs": "2 x tornillo cautivo de 6 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "4/8 Ω OUT",
+        "value": "1 x 4-pin, 5.08 mm lock-down screw connector",
+        "labelEs": "4/8 Ω OUT",
+        "valueEs": "1 x conector de tornillo con traba de 4 pines, 5,08 mm"
+      },
+      {
+        "group": "Conectores",
+        "label": "70V / 100V OUT",
+        "value": "1 x 2-pin, 5.08 mm lock-down screw connector",
+        "labelEs": "70V / 100V OUT",
+        "valueEs": "1 x conector de tornillo con traba de 2 pines, 5,08 mm"
+      },
+      {
+        "group": "Conectores",
+        "label": "LINE OUT",
+        "value": "1 x 6-pin captive screw",
+        "labelEs": "LINE OUT",
+        "valueEs": "1 x tornillo cautivo de 6 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "TRIGGER/CTRL/RS-232",
+        "value": "1 x 8-pin captive screw",
+        "labelEs": "TRIGGER/CTRL/RS-232",
+        "valueEs": "1 x tornillo cautivo de 8 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "LAN",
+        "value": "1 x RJ45",
+        "labelEs": "LAN",
+        "valueEs": "1 x RJ45"
+      },
+      {
+        "group": "Conectores",
+        "label": "FW",
+        "value": "1 x USB type C, female",
+        "labelEs": "FW",
+        "valueEs": "1 x USB tipo C, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "PWR",
+        "value": "1 x IEC",
+        "labelEs": "PWR",
+        "valueEs": "1 x IEC"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Temperature",
+        "value": "+32 to +122 0 to +50",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "+32 a +122 0 a +50"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Storage Temperature",
+        "value": "−4 to +140 −20 to +60",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "−4 a +140 −20 a +60"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Humidity (RH)",
+        "value": "20% to 90%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "20% a 90%, sin condensación"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Low Power Mode",
+        "value": "0.5 W",
+        "labelEs": "Modo de bajo consumo",
+        "valueEs": "0.5 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Network Standby Mode",
+        "value": "2 W",
+        "labelEs": "Modo de espera en red",
+        "valueEs": "2 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Auto-Standby Timer",
+        "value": "Configurable from 1 to 1440 minutes",
+        "labelEs": "Temporizador de espera automática",
+        "valueEs": "Configurable de 1 a 1440 minutos"
+      },
+      {
+        "group": "Alimentación",
+        "label": "BTU/h",
+        "value": "12.3 (idle) 67.9 (maximum power)",
+        "labelEs": "BTU/h",
+        "valueEs": "12,3 (en reposo) 67,9 (potencia máxima)"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Supply",
+        "value": "100 – 240 V AC, 50/60 Hz",
+        "labelEs": "Alimentación",
+        "valueEs": "100 – 240 V AC, 50/60 Hz"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Idle Power (5 min after power on)",
+        "value": "21.76W",
+        "labelEs": "Consumo en reposo (5 min después del encendido)",
+        "valueEs": "21.76W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Under Load",
+        "value": "4Ω-1W 24.21W 4Ω-1/8 power 38.98W 4Ω-1/3 power 69.91W 4Ω-full power 165.57W 8Ω-1W 23.82W 8Ω-1/8 power 37.94W 8Ω-1/3 power 64.52W 8Ω-full power 154.82W",
+        "labelEs": "Con carga",
+        "valueEs": "4Ω-1W 24,21W 4Ω-1/8 de potencia 38,98W 4Ω-1/3 de potencia 69,91W 4Ω-potencia máxima 165,57W 8Ω-1W 23,82W 8Ω-1/8 de potencia 37,94W 8Ω-1/3 de potencia 64,52W 8Ω-potencia máxima 154,82W"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Unit",
+        "value": "1.75 x 8.875 x 13 44 x 225 x 330",
+        "labelEs": "Equipo",
+        "valueEs": "1.75 x 8.875 x 13 44 x 225 x 330"
+      },
+      {
+        "group": "Peso",
+        "label": "Device",
+        "value": "6.94 3.15",
+        "labelEs": "Equipo",
+        "valueEs": "6.94 3.15"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, RoHS, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, RoHS, FCC"
+      },
+      {
+        "group": "Normativas",
+        "label": "NDAA-889",
+        "value": "Yes",
+        "labelEs": "NDAA-889",
+        "valueEs": "Sí"
+      },
+      {
+        "group": "Normativas",
+        "label": "TAA",
+        "value": "No",
+        "labelEs": "TAA",
+        "valueEs": "No"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-GAIN-M120 Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-GAIN-M120_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-M120-M240 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1443%20(AT-GAIN-M120)/Manual/AT-GAIN-M120_M240.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-M120-M240 API",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-GAIN-A1443%20(AT-GAIN-M120)/API/AT-GAIN-M120_M240_API.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-gain-m120",
+    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA"
+  },
+  {
+    "sku": "AT-GAIN-M50-LZ",
+    "shortDescription": "Amplificador mezclador compacto de 50 W para aulas y salas: 2 × 25 W o 1 × 50 W en puente sobre 4/8 Ω, dos entradas, ducking y prioridad, control RS-232 y gabinete apto plenum.",
+    "longDescription": "El Gain Audio AT-GAIN-M50-LZ es un amplificador mezclador compacto de 50 W, diseñado para instalaciones AV comerciales y educativas que necesitan un audio confiable en espacios chicos y medianos. Entrega 25 W por canal en 4 u 8 Ω e incluye un mezclador de dos entradas con entradas de micrófono y de nivel de línea, además de control de ducking y prioridad para gestionar automáticamente las fuentes durante presentaciones o avisos.\n\nCon control por RS-232, el AT-GAIN-M50-LZ se integra fácilmente con sistemas de control AV, y su chasis apto plenum con enfriamiento por convección permite instalarlo de forma discreta en cielorrasos o gabinetes de equipos. Ideal para aulas, salas de reunión y sistemas AV corporativos.\n\nEs un amplificador mezclador de dos entradas pensado para aplicaciones educativas y comerciales en baja impedancia. Tiene dos entradas de audio estéreo no balanceadas con control de nivel independiente y entrega dos canales de 25 W cada uno en 4 u 8 Ω, o un único canal de 50 W.",
+    "keyFeatures": [
+      "Amplificador mezclador de dos entradas",
+      "Salida de 2 × 25 W (estéreo) o 1 × 50 W (en puente) en 4/8 Ω",
+      "Atenúa (ducking) el audio de la entrada 1 cuando detecta señal en la entrada 2",
+      "Silencio del audio por PA sense o cierre de contacto",
+      "Control RS-232 para integración con sistemas de control",
+      "Gabinete compacto apto plenum",
+      "Placa de pared de control de volumen AT-GAIN-VOL opcional"
+    ],
+    "specifications": [
+      {
+        "group": "Señal de entrada",
+        "label": "RCA",
+        "value": "3.162 Vrms unbalanced, < 0.1% THD",
+        "labelEs": "RCA",
+        "valueEs": "3,162 Vrms no balanceada, < 0,1% THD"
+      },
+      {
+        "group": "Señal de entrada",
+        "label": "3.5 mm stereo jack",
+        "value": "1 Vrms unbalanced, < 0.1% THD",
+        "labelEs": "Jack estéreo de 3,5 mm",
+        "valueEs": "1 Vrms no balanceada, < 0,1% THD"
+      },
+      {
+        "group": "Señal de salida",
+        "label": "Nominal",
+        "value": "0.316 Vrms balanced, 20 Hz – 20 kHz, < 150 Ω",
+        "labelEs": "Nominal",
+        "valueEs": "0,316 Vrms balanceada, 20 Hz – 20 kHz, < 150 Ω"
+      },
+      {
+        "group": "Señal de salida",
+        "label": "Maximum",
+        "value": "3.162 Vrms balanced, 20 Hz – 20 kHz, < 150 Ω",
+        "labelEs": "Máximo",
+        "valueEs": "3,162 Vrms balanceada, 20 Hz – 20 kHz, < 150 Ω"
+      },
+      {
+        "group": "Amplificador",
+        "label": "Type",
+        "value": "Class D",
+        "labelEs": "Tipo",
+        "valueEs": "Clase D"
+      },
+      {
+        "group": "Amplificador",
+        "label": "Frequency Response",
+        "value": "20 Hz – 20 kHz, ±2 dB",
+        "labelEs": "Respuesta en frecuencia",
+        "valueEs": "20 Hz – 20 kHz, ±2 dB"
+      },
+      {
+        "group": "Amplificador",
+        "label": "THD+N",
+        "value": "< 0.1% @ 1kHz and < 0.3% @ 100 Hz - 16 kHz",
+        "labelEs": "THD+N",
+        "valueEs": "< 0,1% @ 1kHz y < 0,3% @ 100 Hz - 16 kHz"
+      },
+      {
+        "group": "Amplificador",
+        "label": "IMD (ITU-R)",
+        "value": "< 1%, 100 Hz - 15 kHz",
+        "labelEs": "IMD (ITU-R)",
+        "valueEs": "< 1%, 100 Hz - 15 kHz"
+      },
+      {
+        "group": "Amplificador",
+        "label": "Crosstalk",
+        "value": "-80 dB, 20 Hz – 20 kHz, +4 dBU, channel-to-channel",
+        "labelEs": "Diafonía",
+        "valueEs": "-80 dB, 20 Hz – 20 kHz, +4 dBU, entre canales"
+      },
+      {
+        "group": "RS-232",
+        "label": "Port",
+        "value": "2 x 3-pin captive screw",
+        "labelEs": "Puerto",
+        "valueEs": "2 x tornillo cautivo de 3 pines"
+      },
+      {
+        "group": "RS-232",
+        "label": "Use",
+        "value": "Unit and external device control and configuration",
+        "labelEs": "Uso",
+        "valueEs": "Control y configuración de la unidad y de dispositivos externos"
+      },
+      {
+        "group": "RS-232",
+        "label": "Baud Rates",
+        "value": "9600, 19200, 38400, 57600, 115200",
+        "labelEs": "Velocidades en baudios",
+        "valueEs": "9600, 19200, 38400, 57600, 115200"
+      },
+      {
+        "group": "RS-232",
+        "label": "Data Flow",
+        "value": "Bidirectional",
+        "labelEs": "Flujo de datos",
+        "valueEs": "Bidireccional"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Buttons: PORT, LEVEL+ / LEVEL-, MUTE, DUCKING",
+        "value": "5 x momentary, tact-type",
+        "labelEs": "Botones: PORT, LEVEL+ / LEVEL-, MUTE, DUCKING",
+        "valueEs": "5 x pulsador momentáneo, tipo táctil"
+      },
+      {
+        "group": "Botones e indicadores",
+        "label": "Indicators: PWR, IN1, IN2, OUT",
+        "value": "4 x LED, green",
+        "labelEs": "Indicadores: PWR, IN1, IN2, OUT",
+        "valueEs": "4 x LED, verde"
+      },
+      {
+        "group": "Conectores",
+        "label": "INPUT",
+        "value": "2 x RCA-type, female, unbalanced: 20 kΩ 1 x 3.5 mm mini-stereo",
+        "labelEs": "INPUT",
+        "valueEs": "2 x tipo RCA, hembra, no balanceada: 20 kΩ 1 x mini estéreo de 3,5 mm"
+      },
+      {
+        "group": "Conectores",
+        "label": "OUTPUT",
+        "value": "1 x 4-pin, 5.08 mm lock-down screw connector",
+        "labelEs": "OUTPUT",
+        "valueEs": "1 x conector de tornillo con traba de 4 pines, 5,08 mm"
+      },
+      {
+        "group": "Conectores",
+        "label": "CTRL / RS-232",
+        "value": "2 x 3-pin captive screw",
+        "labelEs": "CTRL / RS-232",
+        "valueEs": "2 x tornillo cautivo de 3 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "TRIGGER",
+        "value": "1 x 2-pin captive screw",
+        "labelEs": "TRIGGER",
+        "valueEs": "1 x tornillo cautivo de 2 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "LOOP",
+        "value": "1 x 3.5 mm mini stereo",
+        "labelEs": "LOOP",
+        "valueEs": "1 x mini estéreo de 3,5 mm"
+      },
+      {
+        "group": "Conectores",
+        "label": "PA SENSE 25V – 100V",
+        "value": "1 x 2-pin captive screw",
+        "labelEs": "PA SENSE 25V – 100V",
+        "valueEs": "1 x tornillo cautivo de 2 pines"
+      },
+      {
+        "group": "Conectores",
+        "label": "HUB",
+        "value": "1 x USB type C, female",
+        "labelEs": "HUB",
+        "valueEs": "1 x USB tipo C, hembra"
+      },
+      {
+        "group": "Conectores",
+        "label": "DC 24V / 3A",
+        "value": "1 x 4-pin DIN",
+        "labelEs": "DC 24V / 3A",
+        "valueEs": "1 x DIN de 4 pines"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Temperature",
+        "value": "+32 to +122 0 to +50",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "+32 a +122 0 a +50"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Storage Temperature",
+        "value": "-4 to +140 -20 to +60",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-4 a +140 -20 a +60"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Humidity (RH)",
+        "value": "20% to 90%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "20% a 90%, sin condensación"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Standby Mode",
+        "value": "Powers down after 5 – 25 minutes (adjustable) of no signal; complies with ErP power consumption limits of < 0.5W in standby mode",
+        "labelEs": "Modo de espera",
+        "valueEs": "Se apaga tras 5 – 25 minutos (ajustable) sin señal; cumple los límites de consumo ErP de < 0,5W en modo de espera"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Idle Consumption",
+        "value": "3.6 W",
+        "labelEs": "Consumo en reposo",
+        "valueEs": "3.6 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Maximum Power",
+        "value": "64.3 W",
+        "labelEs": "Potencia máxima",
+        "valueEs": "64.3 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "BTU/h",
+        "value": "12.3 (idle) 67.9 (maximum power)",
+        "labelEs": "BTU/h",
+        "valueEs": "12,3 (en reposo) 67,9 (potencia máxima)"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Supply",
+        "value": "100 – 240 V AC, 50/60 Hz Output: 24 V / 3 A DC",
+        "labelEs": "Alimentación",
+        "valueEs": "100 – 240 V AC, 50/60 Hz Salida: 24 V / 3 A DC"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Unit",
+        "value": "1.02 x 8.62 x 5.98 26 x 219 x 152",
+        "labelEs": "Equipo",
+        "valueEs": "1.02 x 8.62 x 5.98 26 x 219 x 152"
+      },
+      {
+        "group": "Dimensiones (alto × ancho × profundidad)",
+        "label": "Power Supply (AT-PS-243-D4)",
+        "value": "1.42 x 1.81 x 4.41 36 x 46 x 112",
+        "labelEs": "Fuente de alimentación (AT-PS-243-D4)",
+        "valueEs": "1.42 x 1.81 x 4.41 36 x 46 x 112"
+      },
+      {
+        "group": "Peso",
+        "label": "Device",
+        "value": "1.93 0.88",
+        "labelEs": "Equipo",
+        "valueEs": "1.93 0.88"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, RoHS, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, RoHS, FCC"
+      },
+      {
+        "group": "Certificación",
+        "label": "Power Supply",
+        "value": "CE, FCC, UL, CUL, TUV-GS, CB, PSE, CCC",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "CE, FCC, UL, CUL, TUV-GS, CB, PSE, CCC"
+      },
+      {
+        "group": "Normativas",
+        "label": "NDAA-889",
+        "value": "Yes",
+        "labelEs": "NDAA-889",
+        "valueEs": "Sí"
+      },
+      {
+        "group": "Normativas",
+        "label": "TAA",
+        "value": "Yes",
+        "labelEs": "TAA",
+        "valueEs": "Sí"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-GAIN-M50-LZ Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-GAIN-M50-LZ_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-M50-LZ Manual and Installation Guide",
+        "url": "https://atlona.com/pdf/manuals/AT-GAIN-M50-LZ_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-M50-LZ API",
+        "url": "https://atlona.com/pdf/AT-GAIN-M50-LZ_API.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "GAIN-M50-LZ (dwg)",
+        "url": "https://atlona.com/pdf/cad/AT-GAIN-M50-LZ.dwg",
+        "fileType": "dwg"
+      },
+      {
+        "name": "GAIN-M50-LZ (pdf)",
+        "url": "https://atlona.com/pdf/cad/AT-GAIN-M50-LZ.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-gain-m50-lz",
+    "tangoPath": "SONIDO > AMPLIFICADORES > AMPLIFICADORES PA"
+  },
+  {
+    "sku": "AT-GAIN-NET",
+    "shortDescription": "Tarjeta de interfaz de audio en red Dante/AES67 para los amplificadores mezcladores Gain serie M: recibe dos canales de audio sobre IP desde encoders OmniStream u otros equipos compatibles.",
+    "longDescription": "El Gain Audio AT-GAIN-NET es una tarjeta compacta de interfaz de audio en red que se integra con amplificadores Atlona compatibles para agregar soporte de los formatos de audio sobre IP Dante y AES67. Al convertir un amplificador AV estándar en un punto de audio conectado a la red, permite el enrutamiento multicanal, la gestión de zonas y la distribución de audio en todo el sistema, todo controlable por Ethernet.\n\nPensada para entornos profesionales (educación, hotelería, corporativo), simplifica la implementación de sistemas de audio escalables y flexibles donde el cableado tradicional sería una limitación.",
+    "keyFeatures": [
+      "Tarjeta de interfaz de audio en red AES67/Dante para el amplificador mezclador serie M",
+      "Recibe audio de dos canales sobre IP desde encoders AV OmniStream o equipos de audio compatibles",
+      "Instalación en campo simple, plug-and-play",
+      "La configuración del enrutamiento de audio sobre IP AES67/Dante requiere el software Dante Controller"
+    ],
+    "specifications": [
+      {
+        "group": "Audio",
+        "label": "Format",
+        "value": "AES67, Dante",
+        "labelEs": "Formato",
+        "valueEs": "AES67, Dante"
+      },
+      {
+        "group": "Audio",
+        "label": "Networked channels",
+        "value": "2 inputs",
+        "labelEs": "Canales en red",
+        "valueEs": "2 entradas"
+      },
+      {
+        "group": "Red",
+        "label": "Port",
+        "value": "1 x RJ45",
+        "labelEs": "Puerto",
+        "valueEs": "1 × RJ45"
+      },
+      {
+        "group": "Red",
+        "label": "Standards and Protocols",
+        "value": "Dante, AES67, mDNS, PTP, SAP, TFTP",
+        "labelEs": "Estándares y protocolos",
+        "valueEs": "Dante, AES67, mDNS, PTP, SAP, TFTP"
+      },
+      {
+        "group": "Red",
+        "label": "Speeds",
+        "value": "100 Mbps",
+        "labelEs": "Velocidades",
+        "valueEs": "100 Mbps"
+      },
+      {
+        "group": "Conectores",
+        "label": "Network Audio",
+        "value": "1 - RJ45",
+        "labelEs": "Audio en red",
+        "valueEs": "1 RJ45"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Operating",
+        "value": "32 to 122 °F (0 to 50 °C)",
+        "labelEs": "Funcionamiento",
+        "valueEs": "32 a 122 °F (0 a 50 °C)"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Storage",
+        "value": "-40 to 158 °F (-40 to 70 °C)",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-40 a 158 °F (-40 a 70 °C)"
+      },
+      {
+        "group": "Temperatura",
+        "label": "Humidity (RH)",
+        "value": "90% RH, non-condensing",
+        "labelEs": "Humedad (HR)",
+        "valueEs": "90 % HR, sin condensación"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "0.5 W",
+        "labelEs": "Consumo",
+        "valueEs": "0,5 W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Supply",
+        "value": "AT-GAIN-120",
+        "labelEs": "Alimentación",
+        "valueEs": "AT-GAIN-120"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "H x W x D",
+        "value": "0.71 x 2.24 x 4.8 in (18 x 57 x 122 mm)",
+        "labelEs": "Alto × ancho × profundidad",
+        "valueEs": "0,71 × 2,24 × 4,8 in (18 × 57 × 122 mm)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-GAIN-NET Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-GAIN-NET_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-NET Installation Guide",
+        "url": "https://atlona.com/pdf/manuals/AT-GAIN-NET_G.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-gain-net",
+    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS ESPECIFICOS"
+  },
+  {
+    "sku": "AT-GAIN-VOL",
+    "shortDescription": "Control de volumen de pared de un módulo para los amplificadores mezcladores Gain: regula el nivel de audio desde silencio hasta el máximo cuando no hay sistema de control, con conexión de tornillo cautivo de 3 pines.",
+    "longDescription": "El Gain Audio AT-GAIN-VOL es un control de volumen de pared de un módulo que permite ajustar de forma sencilla el nivel de audio de los amplificadores Gain Audio compatibles y de sistemas AV. Tiene una perilla rotativa y un conector de tornillo cautivo de 3 pines para un cableado seguro hacia circuitos de parlante o de nivel de línea.\n\nSe integra en aulas, salas de directorio o salas de reunión chicas; su formato discreto mantiene el control simple con la calidad que se espera en una instalación comercial.",
+    "keyFeatures": [
+      "Placa de pared de control de volumen para usar con los amplificadores mezcladores Gain",
+      "Ofrece control manual de nivel de audio del amplificador cuando no se usa un sistema de control",
+      "Rango de control de volumen desde sin audio (silencio) hasta el nivel de salida máximo",
+      "Conexión de tornillo cautivo de 3 pines para conectarse al amplificador",
+      "Caja estadounidense de un módulo para aberturas de placas de pared",
+      "Incluye frente blanco, placa de pared Decora blanca, frente negro, placa de pared Decora negra y conector de tornillo cautivo"
+    ],
+    "specifications": [
+      {
+        "group": "Conectores",
+        "label": "Control",
+        "value": "1 x 3-pin, 3.5 mm, Euroblock",
+        "labelEs": "Control",
+        "valueEs": "1 x Euroblock de 3 pines, 3,5 mm"
+      },
+      {
+        "group": "Cableado",
+        "label": "Distance",
+        "value": "200 60",
+        "labelEs": "Distancia",
+        "valueEs": "200 60"
+      },
+      {
+        "group": "Cableado",
+        "label": "Gauge (AWG)",
+        "value": "28-16",
+        "labelEs": "Calibre (AWG)",
+        "valueEs": "28-16"
+      },
+      {
+        "group": "Controles",
+        "label": "Volume Knob",
+        "value": "1 x Potentiometer, logarithmic, 10 kΩ",
+        "labelEs": "Perilla de volumen",
+        "valueEs": "1 x potenciómetro logarítmico, 10 kΩ"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Temperature",
+        "value": "+32 to +122 0 to +50",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "+32 a +122 0 a +50"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Storage Temperature",
+        "value": "-4 to +140 -20 to +60",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-4 a +140 -20 a +60"
+      },
+      {
+        "group": "Ambiente",
+        "label": "Operating Humidity (RH)",
+        "value": "20% to 90%, non-condensing",
+        "labelEs": "Humedad de funcionamiento (HR)",
+        "valueEs": "20% a 90%, sin condensación"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "Unit",
+        "value": "1-Gang",
+        "labelEs": "Equipo",
+        "valueEs": "1 módulo (1-Gang)"
+      },
+      {
+        "group": "Peso",
+        "label": "Device",
+        "value": "0.97 0.44",
+        "labelEs": "Equipo",
+        "valueEs": "0.97 0.44"
+      },
+      {
+        "group": "Certificación",
+        "label": "Device",
+        "value": "CE, RoHS, FCC",
+        "labelEs": "Equipo",
+        "valueEs": "CE, RoHS, FCC"
+      },
+      {
+        "group": "Normativas",
+        "label": "NDAA-889",
+        "value": "Yes",
+        "labelEs": "NDAA-889",
+        "valueEs": "Sí"
+      },
+      {
+        "group": "Normativas",
+        "label": "TAA",
+        "value": "Yes",
+        "labelEs": "TAA",
+        "valueEs": "Sí"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-GAIN-VOL Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-GAIN-VOL_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-VOL Manual and Installation Guide",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/hr/pdf/AT-GAIN-VOL_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-GAIN-VOL (dwg)",
+        "url": "https://atlona.com/pdf/cad/AT-GAIN-VOL.dwg",
+        "fileType": "dwg"
+      },
+      {
+        "name": "AT-GAIN-VOL (pdf)",
+        "url": "https://atlona.com/pdf/cad/AT-GAIN-VOL.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-gain-vol",
+    "tangoPath": "SONIDO > ACCESORIOS > ATENUADORES"
+  },
+  {
+    "sku": "AT-HDR-M2C",
+    "shortDescription": "Conversor de audio que extrae audio de fuentes HDMI y reduce a estéreo (downmix) PCM multicanal, Dolby y DTS, con salidas HDMI, TOSLINK y analógica. Paso de 4K60 4:4:4 con HDR y HDCP 2.2. Discontinuado.",
+    "longDescription": "El Gain Audio AT-HDR-M2C es un conversor de audio para extraer y reducir a estéreo (downmix) audio PCM multicanal, Dolby y DTS desde fuentes HDMI. Forma parte de la línea de productos de integración 4K HDR de Atlona.\n\nTiene una entrada HDMI con paso (pass-through) y entrega el audio estéreo reducido por una salida HDMI separada, además de salidas de audio analógico no balanceado y digital TOSLINK.\n\nProducto discontinuado.",
+    "keyFeatures": [
+      "Desembebido de audio HDMI y reducción a estéreo (downmix) de audio multicanal",
+      "Reduce a audio estéreo los formatos PCM multicanal, Dolby y DTS",
+      "Capacidad 4K/UHD a 60 Hz con muestreo de croma 4:4:4, más soporte de formatos HDR",
+      "Compatible con HDCP 2.2",
+      "Entrega el audio reducido por salidas HDMI, de audio digital TOSLINK y de audio analógico",
+      "Ajustes de volumen y tono",
+      "Gestión de EDID",
+      "Configuración intuitiva mediante interfaz gráfica en el servidor web integrado"
+    ],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Signal Type",
+        "value": "HDCP",
+        "labelEs": "Tipo de señal",
+        "valueEs": "HDCP"
+      },
+      {
+        "group": "Video",
+        "label": "Pixel Clock",
+        "value": "300MHz",
+        "labelEs": "Reloj de píxeles",
+        "valueEs": "300MHz"
+      },
+      {
+        "group": "Video",
+        "label": "UHD/HD/SD",
+        "value": "4096×2160@60/50/30/25/24Hz 3840×2160@60/50/30/25/24Hz 2048x1080p 1920x1080p@60/59.94/50/30/29.97/25/24/23.98Hz 1920x1080i@60/59.94/50Hz 1280x720p@60/59.94/50Hz 720x576p 720x576i 640x480p 640x480i",
+        "labelEs": "UHD/HD/SD",
+        "valueEs": "4096×2160@60/50/30/25/24Hz 3840×2160@60/50/30/25/24Hz 2048x1080p 1920x1080p@60/59.94/50/30/29.97/25/24/23.98Hz 1920x1080i@60/59.94/50Hz 1280x720p@60/59.94/50Hz 720x576p 720x576i 640x480p 640x480i"
+      },
+      {
+        "group": "Video",
+        "label": "VESA",
+        "value": "1920×1200 1680×1050 1600×1200 1440×900 1400×1050 1366×768 1360×768 1280×1024 1280×800 1152×768 1024×768 800×600 640×480",
+        "labelEs": "VESA",
+        "valueEs": "1920×1200 1680×1050 1600×1200 1440×900 1400×1050 1366×768 1360×768 1280×1024 1280×800 1152×768 1024×768 800×600 640×480"
+      },
+      {
+        "group": "Video",
+        "label": "Color Space",
+        "value": "YUV, RGB",
+        "labelEs": "Espacio de color",
+        "valueEs": "YUV, RGB"
+      },
+      {
+        "group": "Video",
+        "label": "Chroma Subsampling",
+        "value": "4:4:4, 4:2:2, 4:2:0",
+        "labelEs": "Submuestreo de croma",
+        "valueEs": "4:4:4, 4:2:2, 4:2:0"
+      },
+      {
+        "group": "Video",
+        "label": "Color Depth",
+        "value": "8-bit, 10-bit, 12-bit",
+        "labelEs": "Profundidad de color",
+        "valueEs": "8 bits, 10 bits, 12 bits"
+      },
+      {
+        "group": "Audio",
+        "label": "Analog",
+        "value": "PCM 2Ch (De-embedded)",
+        "labelEs": "Analógico",
+        "valueEs": "PCM 2 canales (desembebido)"
+      },
+      {
+        "group": "Audio",
+        "label": "Optical Output",
+        "value": "PCM 2Ch (De-embedded)",
+        "labelEs": "Salida óptica",
+        "valueEs": "PCM 2 canales (desembebido)"
+      },
+      {
+        "group": "Audio",
+        "label": "HDMI Output",
+        "value": "PCM 2Ch, LPCM 5.1, LPCM 7.1, Dolby® Digital, DTS® 5.1, Dolby Digital Plus™, Dolby TrueHD, DTS-HD Master Audio™",
+        "labelEs": "Salida HDMI",
+        "valueEs": "PCM 2 canales, LPCM 5.1, LPCM 7.1, Dolby® Digital, DTS® 5.1, Dolby Digital Plus™, Dolby TrueHD, DTS-HD Master Audio™"
+      },
+      {
+        "group": "Audio",
+        "label": "HDMI – PCM 2",
+        "value": "PCM 2Ch",
+        "labelEs": "HDMI – PCM 2",
+        "valueEs": "PCM 2 canales"
+      },
+      {
+        "group": "Audio",
+        "label": "Sample Rate",
+        "value": "32kHz, 44.1kHz, 48kHz, 88.2kHz, 96kHz, 176.4kHz, 192kHz",
+        "labelEs": "Frecuencia de muestreo",
+        "valueEs": "32kHz, 44,1kHz, 48kHz, 88,2kHz, 96kHz, 176,4kHz, 192kHz"
+      },
+      {
+        "group": "Audio",
+        "label": "Bit Rate",
+        "value": "up to 24-bit",
+        "labelEs": "Tasa de bits",
+        "valueEs": "hasta 24 bits"
+      },
+      {
+        "group": "Audio",
+        "label": "THD+N",
+        "value": "< 0.05% @ 1 kHz at maximum level",
+        "labelEs": "THD+N",
+        "valueEs": "< 0,05% @ 1 kHz a nivel máximo"
+      },
+      {
+        "group": "Audio",
+        "label": "SNR",
+        "value": "110.009dB",
+        "labelEs": "SNR",
+        "valueEs": "110,009dB"
+      },
+      {
+        "group": "Audio",
+        "label": "Frequency Range",
+        "value": "20Hz to 20kHz",
+        "labelEs": "Rango de frecuencia",
+        "valueEs": "20Hz a 20kHz"
+      },
+      {
+        "group": "Audio",
+        "label": "Bass",
+        "value": "+12dB to -15dB @ 20Hz – 20kHz",
+        "labelEs": "Graves",
+        "valueEs": "+12dB a -15dB @ 20Hz – 20kHz"
+      },
+      {
+        "group": "Audio",
+        "label": "Treble",
+        "value": "+12dB to -15dB @ 20Hz – 20kHz",
+        "labelEs": "Agudos",
+        "valueEs": "+12dB a -15dB @ 20Hz – 20kHz"
+      },
+      {
+        "group": "Señal",
+        "label": "Bandwidth",
+        "value": "18 Gbps",
+        "labelEs": "Ancho de banda",
+        "valueEs": "18 Gbps"
+      },
+      {
+        "group": "Señal",
+        "label": "CEC",
+        "value": "Not Supported",
+        "labelEs": "CEC",
+        "valueEs": "No compatible"
+      },
+      {
+        "group": "Señal",
+        "label": "HDCP",
+        "value": "2.2-compliant",
+        "labelEs": "HDCP",
+        "valueEs": "Compatible con 2.2"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "6.6W",
+        "labelEs": "Consumo",
+        "valueEs": "6.6W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "BTU/h",
+        "value": "22.5",
+        "labelEs": "BTU/h",
+        "valueEs": "22.5"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Supply",
+        "value": "Input: AC 100~240 VAC 50/60Hz Output: DC 5V 4A",
+        "labelEs": "Alimentación",
+        "valueEs": "Entrada: AC 100~240 VAC 50/60Hz Salida: DC 5V 4A"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Storage",
+        "value": "-4°F to 140°F (-20°C to 60°C) / 20 to 90% non-condensing",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-4°F a 140°F (-20°C a 60°C) / 20 a 90%, sin condensación"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Operating",
+        "value": "+32 to +122 °F (0 to +50 °C) / 20 to 90% non-condensing",
+        "labelEs": "Funcionamiento",
+        "valueEs": "+32 a +122 °F (0 a +50 °C) / 20 a 90%, sin condensación"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "Device",
+        "value": "Inches: 1.02 x 4.29 x 5.00 Millimeter: 26 x 109 x 127",
+        "labelEs": "Equipo",
+        "valueEs": "Pulgadas: 1,02 x 4,29 x 5,00 Milímetros: 26 x 109 x 127"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "Power Supply",
+        "value": "Inches: 1.2 x 2 x 3.2 Millimeter: 30.4 x 50.8 x 81.2",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "Pulgadas: 1,2 x 2 x 3,2 Milímetros: 30,4 x 50,8 x 81,2"
+      },
+      {
+        "group": "Peso",
+        "label": "Device",
+        "value": "0.8 lb (0.36 Kg)",
+        "labelEs": "Equipo",
+        "valueEs": "0,8 lb (0,36 kg)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "AT-HDR-M2C Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-HDR-M2C_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-HDR-M2C Manual",
+        "url": "https://atlona.com/pdf/manuals/AT-HDR-M2C.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-HDR-M2C Installation Guide",
+        "url": "https://atlona.com/pdf/AT-HDR-M2C_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-HDR-M2C API",
+        "url": "https://atlona.com/pdf/AT-HDR-M2C_M2C-QUAD_API.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-HDR-M2C",
+        "url": "https://atlona.com/pdf/cad/AT-HDR-M2C.dwg",
+        "fileType": "dwg"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/at-hdr-m2c",
+    "tangoPath": "SONIDO > PROCESADORES > CONVERSORES E INTERFASES"
+  },
+  {
+    "sku": "GN-MISC-H1512",
+    "shortDescription": "Conversor que extrae audio de fuentes HDMI y reduce PCM multicanal, Dolby y DTS a estéreo, con salidas HDMI, TOSLINK y analógica. Paso de 4K60 4:4:4 con HDR y HDCP 2.2.",
+    "longDescription": "El Gain Audio GN-MISC-H1512 es un conversor de audio que extrae y reduce a estéreo (downmix) el audio PCM multicanal, Dolby y DTS de fuentes HDMI. Forma parte de la amplia familia de productos de integración 4K HDR de Atlona.\n\nTiene una entrada HDMI con paso de señal y entrega el audio estéreo reducido por una salida HDMI independiente, además de salidas de audio analógico no balanceado y de audio digital TOSLINK.",
+    "keyFeatures": [
+      "Desembebido de audio HDMI y downmix de audio multicanal",
+      "Reduce a estéreo los formatos PCM multicanal, Dolby y DTS",
+      "Capacidad 4K/UHD a 60 Hz con muestreo de croma 4:4:4 y compatibilidad con formatos HDR",
+      "Cumple con HDCP 2.2",
+      "Entrega el audio reducido a las salidas HDMI, de audio digital TOSLINK y de audio analógico",
+      "Ajustes de volumen y tono",
+      "Gestión de EDID",
+      "Configuración intuitiva por interfaz gráfica desde el servidor web integrado"
+    ],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Signal Type",
+        "value": "HDCP",
+        "labelEs": "Tipo de señal",
+        "valueEs": "HDCP"
+      },
+      {
+        "group": "Video",
+        "label": "Pixel Clock",
+        "value": "300MHz",
+        "labelEs": "Reloj de píxeles",
+        "valueEs": "300MHz"
+      },
+      {
+        "group": "Video",
+        "label": "UHD/HD/SD",
+        "value": "4096×2160@60/50/30/25/24Hz 3840×2160@60/50/30/25/24Hz 2048x1080p 1920x1080p@60/59.94/50/30/29.97/25/24/23.98Hz 1920x1080i@60/59.94/50Hz 1280x720p@60/59.94/50Hz 720x576p 720x576i 640x480p 640x480i",
+        "labelEs": "UHD/HD/SD",
+        "valueEs": "4096×2160@60/50/30/25/24Hz 3840×2160@60/50/30/25/24Hz 2048x1080p 1920x1080p@60/59.94/50/30/29.97/25/24/23.98Hz 1920x1080i@60/59.94/50Hz 1280x720p@60/59.94/50Hz 720x576p 720x576i 640x480p 640x480i"
+      },
+      {
+        "group": "Video",
+        "label": "VESA",
+        "value": "1920×1200 1680×1050 1600×1200 1440×900 1400×1050 1366×768 1360×768 1280×1024 1280×800 1152×768 1024×768 800×600 640×480",
+        "labelEs": "VESA",
+        "valueEs": "1920×1200 1680×1050 1600×1200 1440×900 1400×1050 1366×768 1360×768 1280×1024 1280×800 1152×768 1024×768 800×600 640×480"
+      },
+      {
+        "group": "Video",
+        "label": "Color Space",
+        "value": "YUV, RGB",
+        "labelEs": "Espacio de color",
+        "valueEs": "YUV, RGB"
+      },
+      {
+        "group": "Video",
+        "label": "Chroma Subsampling",
+        "value": "4:4:4, 4:2:2, 4:2:0",
+        "labelEs": "Submuestreo de croma",
+        "valueEs": "4:4:4, 4:2:2, 4:2:0"
+      },
+      {
+        "group": "Video",
+        "label": "Color Depth",
+        "value": "8-bit, 10-bit, 12-bit",
+        "labelEs": "Profundidad de color",
+        "valueEs": "8 bits, 10 bits, 12 bits"
+      },
+      {
+        "group": "Audio",
+        "label": "Analog",
+        "value": "PCM 2Ch (De-embedded)",
+        "labelEs": "Analógico",
+        "valueEs": "PCM 2 canales (desembebido)"
+      },
+      {
+        "group": "Audio",
+        "label": "Optical Output",
+        "value": "PCM 2Ch (De-embedded)",
+        "labelEs": "Salida óptica",
+        "valueEs": "PCM 2 canales (desembebido)"
+      },
+      {
+        "group": "Audio",
+        "label": "HDMI Output",
+        "value": "PCM 2Ch, LPCM 5.1, LPCM 7.1, Dolby® Digital, DTS® 5.1, Dolby Digital Plus™, Dolby TrueHD, DTS-HD Master Audio™",
+        "labelEs": "Salida HDMI",
+        "valueEs": "PCM 2 canales, LPCM 5.1, LPCM 7.1, Dolby® Digital, DTS® 5.1, Dolby Digital Plus™, Dolby TrueHD, DTS-HD Master Audio™"
+      },
+      {
+        "group": "Audio",
+        "label": "HDMI – PCM 2",
+        "value": "PCM 2Ch",
+        "labelEs": "HDMI – PCM 2",
+        "valueEs": "PCM 2 canales"
+      },
+      {
+        "group": "Audio",
+        "label": "Sample Rate",
+        "value": "32kHz, 44.1kHz, 48kHz, 88.2kHz, 96kHz, 176.4kHz, 192kHz",
+        "labelEs": "Frecuencia de muestreo",
+        "valueEs": "32kHz, 44,1kHz, 48kHz, 88,2kHz, 96kHz, 176,4kHz, 192kHz"
+      },
+      {
+        "group": "Audio",
+        "label": "Bit Rate",
+        "value": "up to 24-bit",
+        "labelEs": "Tasa de bits",
+        "valueEs": "hasta 24 bits"
+      },
+      {
+        "group": "Audio",
+        "label": "THD+N",
+        "value": "< 0.05% @ 1 kHz at maximum level",
+        "labelEs": "THD+N",
+        "valueEs": "< 0,05% @ 1 kHz a nivel máximo"
+      },
+      {
+        "group": "Audio",
+        "label": "SNR",
+        "value": "110.009dB",
+        "labelEs": "SNR",
+        "valueEs": "110,009dB"
+      },
+      {
+        "group": "Audio",
+        "label": "Frequency Range",
+        "value": "20Hz to 20kHz",
+        "labelEs": "Rango de frecuencia",
+        "valueEs": "20Hz a 20kHz"
+      },
+      {
+        "group": "Audio",
+        "label": "Bass",
+        "value": "+12dB to -15dB @ 20Hz – 20kHz",
+        "labelEs": "Graves",
+        "valueEs": "+12dB a -15dB @ 20Hz – 20kHz"
+      },
+      {
+        "group": "Audio",
+        "label": "Treble",
+        "value": "+12dB to -15dB @ 20Hz – 20kHz",
+        "labelEs": "Agudos",
+        "valueEs": "+12dB a -15dB @ 20Hz – 20kHz"
+      },
+      {
+        "group": "Señal",
+        "label": "Bandwidth",
+        "value": "18 Gbps",
+        "labelEs": "Ancho de banda",
+        "valueEs": "18 Gbps"
+      },
+      {
+        "group": "Señal",
+        "label": "CEC",
+        "value": "Not Supported",
+        "labelEs": "CEC",
+        "valueEs": "No compatible"
+      },
+      {
+        "group": "Señal",
+        "label": "HDCP",
+        "value": "2.2-compliant",
+        "labelEs": "HDCP",
+        "valueEs": "Compatible con 2.2"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Consumption",
+        "value": "6.6W",
+        "labelEs": "Consumo",
+        "valueEs": "6.6W"
+      },
+      {
+        "group": "Alimentación",
+        "label": "BTU/h",
+        "value": "22.5",
+        "labelEs": "BTU/h",
+        "valueEs": "22.5"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Supply",
+        "value": "Input: AC 100~240 VAC 50/60Hz Output: DC 5V 4A",
+        "labelEs": "Alimentación",
+        "valueEs": "Entrada: AC 100~240 VAC 50/60Hz Salida: DC 5V 4A"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Storage",
+        "value": "-4°F to 140°F (-20°C to 60°C) / 20 to 90% non-condensing",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-4°F a 140°F (-20°C a 60°C) / 20 a 90%, sin condensación"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Operating",
+        "value": "+32 to +122 °F (0 to +50 °C) / 20 to 90% non-condensing",
+        "labelEs": "Funcionamiento",
+        "valueEs": "+32 a +122 °F (0 a +50 °C) / 20 a 90%, sin condensación"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "Device",
+        "value": "Inches: 1.02 x 4.29 x 5.00 Millimeter: 26 x 109 x 127",
+        "labelEs": "Equipo",
+        "valueEs": "Pulgadas: 1,02 x 4,29 x 5,00 Milímetros: 26 x 109 x 127"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "Power Supply",
+        "value": "Inches: 1.2 x 2 x 3.2 Millimeter: 30.4 x 50.8 x 81.2",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "Pulgadas: 1,2 x 2 x 3,2 Milímetros: 30,4 x 50,8 x 81,2"
+      },
+      {
+        "group": "Peso",
+        "label": "Device",
+        "value": "0.8 lb (0.36 Kg)",
+        "labelEs": "Equipo",
+        "valueEs": "0,8 lb (0,36 kg)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "GN-MISC-H1512 Specifications",
+        "url": "https://atlona.com/pdf/data_sheet/AT-HDR-M2C_Spec.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "GN-MISC-H1512 Manual",
+        "url": "https://atlona.com/pdf/manuals/AT-HDR-M2C.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "GN-MISC-H1512 Installation Guide",
+        "url": "https://atlona.com/pdf/AT-HDR-M2C_G.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "GN-MISC-H1512 API",
+        "url": "https://atlona.com/pdf/AT-HDR-M2C_M2C-QUAD_API.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "AT-HDR-M2C",
+        "url": "https://atlona.com/pdf/cad/AT-HDR-M2C.dwg",
+        "fileType": "dwg"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/gn-misc-h1512",
+    "tangoPath": "SONIDO > PROCESADORES > CONVERSORES E INTERFASES"
+  },
+  {
+    "sku": "GN-MISC-H1522",
+    "shortDescription": "Insertor/extractor de audio HDMI 2.0b de 18 Gbps (4K60 4:4:4, HDR, HDCP 2.2): extrae audio analógico y digital, embebe audio en la salida HDMI y gestiona EDID. Control por RS-232.",
+    "longDescription": "El Gain HDMI Audio Embedder/De-Embedder es un insertor/extractor de audio HDMI 2.0 con gestión de EDID y compatibilidad con HDMI 2.0b de 18 Gbps (4K@60 4:4:4, HDR, HDCP 2.2).\n\nExtrae el audio de la señal HDMI, embebe audio analógico o digital en la salida HDMI e incluso puede generar una salida HDMI solo de audio. Pensado para instalaciones AV profesionales.",
+    "keyFeatures": [
+      "Admite 4K/60 4:4:4, HDR, HDCP 2.2 y 1.4",
+      "Extrae el audio analógico L/R y el digital embebidos en la entrada HDMI",
+      "Embebe audio analógico L/R o digital en la salida HDMI",
+      "Genera una salida HDMI con audio embebido sin entrada HDMI",
+      "Puede pasar o emular el EDID",
+      "Entrada digital configurable para silenciar el audio y/o el video",
+      "Ancho de banda de 18 Gbps para compatibilidad con HDMI 2.0b",
+      "Retrocompatible con las especificaciones HDMI 1.4 y DVI",
+      "Admite audio digital multicanal y audio analógico de 2 canales",
+      "Gestión de EDID",
+      "Controlable por RS-232"
+    ],
+    "specifications": [
+      {
+        "group": "Video",
+        "label": "Standards",
+        "value": "DVI (single link) HDMI 1.4 and 2.0b video specifications including 12 bit color depth, 3D video HDCP 2.2",
+        "labelEs": "Estándares",
+        "valueEs": "DVI (single link) Especificaciones de video HDMI 1.4 y 2.0b, incluida profundidad de color de 12 bits, video 3D HDCP 2.2"
+      },
+      {
+        "group": "Video",
+        "label": "Connectors",
+        "value": "(1) HDMI Input (1) HDMI Output",
+        "labelEs": "Conectores",
+        "valueEs": "(1) entrada HDMI (1) salida HDMI"
+      },
+      {
+        "group": "Video",
+        "label": "Resolutions",
+        "value": "DVI signal – VGA (640×480) thru WUXGA (1920×1200) HDTV signal 480p through 4K 60 Hz 4:4:4",
+        "labelEs": "Resoluciones",
+        "valueEs": "Señal DVI – VGA (640×480) a WUXGA (1920×1200) Señal HDTV: 480p a 4K 60 Hz 4:4:4"
+      },
+      {
+        "group": "Audio",
+        "label": "Formats",
+        "value": "LPCM 2–6CH Audio (32, 44.1 and 48 KHz sample rate) Digital Audio multi-channel 2.1, 5.1, 7.1",
+        "labelEs": "Formatos",
+        "valueEs": "Audio LPCM de 2–6 canales (frecuencia de muestreo de 32, 44,1 y 48 kHz) Audio digital multicanal 2.1, 5.1, 7.1"
+      },
+      {
+        "group": "Otras señales",
+        "label": "RS-232",
+        "value": "(1) RX, TX and GND on Terminal Strip RS-232 Baud Rate: 115200, N, 8, 1",
+        "labelEs": "RS-232",
+        "valueEs": "(1) RX, TX y GND en bornera RS-232 Velocidad: 115200, N, 8, 1"
+      },
+      {
+        "group": "Otras señales",
+        "label": "Digital Input",
+        "value": "Dry Contact, connect to ground to trigger configured action",
+        "labelEs": "Entrada digital",
+        "valueEs": "Contacto seco; conectar a masa para disparar la acción configurada"
+      },
+      {
+        "group": "Alimentación",
+        "label": "Value",
+        "value": "100 VAC to 240 VAC, 47-63 Hz, External; 5 VDC 1.0 ADC",
+        "labelEs": "Valor",
+        "valueEs": "100 VAC a 240 VAC, 47-63 Hz, externa; 5 VDC 1,0 A DC"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Storage",
+        "value": "-40 to +158 °F (-40 to +70 °C) / 10% to 90%, non-condensing",
+        "labelEs": "Almacenamiento",
+        "valueEs": "-40 a +158 °F (-40 a +70 °C) / 10% a 90%, sin condensación"
+      },
+      {
+        "group": "Temperatura / humedad",
+        "label": "Operating",
+        "value": "+32 to +122 °F (0 to +50 °C) / 10% to 90%, non-condensing",
+        "labelEs": "Funcionamiento",
+        "valueEs": "+32 a +122 °F (0 a +50 °C) / 10% a 90%, sin condensación"
+      },
+      {
+        "group": "Consumo de corriente",
+        "label": "Value",
+        "value": "@5 VDC – 85 mADC (typical), 200 mADC ( fully loaded)",
+        "labelEs": "Valor",
+        "valueEs": "@5 VDC – 85 mA DC (típico), 200 mA DC (a plena carga)"
+      },
+      {
+        "group": "Refrigeración",
+        "label": "Value",
+        "value": "Convection",
+        "labelEs": "Valor",
+        "valueEs": "Convección"
+      },
+      {
+        "group": "Tipo de gabinete",
+        "label": "Value",
+        "value": "Metal",
+        "labelEs": "Valor",
+        "valueEs": "Metal"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "Model",
+        "value": "0.9″ H x 4.47″ W x 2.53″ D (23 mm H x 114 mm W x 64 mm D)",
+        "labelEs": "Modelo",
+        "valueEs": "0,9″ alto x 4,47″ ancho x 2,53″ prof. (23 mm alto x 114 mm ancho x 64 mm prof.)"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "Shipping",
+        "value": "4.0″ H x 10.0″ W x 8″ D (101.6 mm H x 254 mm W x 203.2 mm D)",
+        "labelEs": "Con embalaje",
+        "valueEs": "4,0″ alto x 10,0″ ancho x 8″ prof. (101,6 mm alto x 254 mm ancho x 203,2 mm prof.)"
+      },
+      {
+        "group": "Peso",
+        "label": "Model Only",
+        "value": "HD-AUD-IO – 0.5 lb (0.227 Kg)",
+        "labelEs": "Solo el equipo",
+        "valueEs": "HD-AUD-IO – 0,5 lb (0,227 kg)"
+      },
+      {
+        "group": "Peso",
+        "label": "Shipping",
+        "value": "HD-AUD-IO – 1.6 lb (0.726 Kg)",
+        "labelEs": "Con embalaje",
+        "valueEs": "HD-AUD-IO – 1,6 lb (0,726 kg)"
+      },
+      {
+        "group": "Seguridad",
+        "label": "Value",
+        "value": "CE",
+        "labelEs": "Valor",
+        "valueEs": "CE"
+      },
+      {
+        "group": "EMI/EMC",
+        "label": "Value",
+        "value": "CE, FCC Class A",
+        "labelEs": "Valor",
+        "valueEs": "CE, FCC Clase A"
+      },
+      {
+        "group": "MTBF",
+        "label": "Value",
+        "value": "90,000 hours (estimate)",
+        "labelEs": "Valor",
+        "valueEs": "90.000 horas (estimado)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "GN-MISC-H1522 Specifications",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-MISC-H1522%20(HD-AUD-IO)/Spec%20Sheet/GN-MISC-H1522_Spec_Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "HD-AUD-IO Manual",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-MISC-H1522%20(HD-AUD-IO)/Manual/HD-AUD-IO-Manual.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/gn-misc-h1522",
+    "tangoPath": "SONIDO > PROCESADORES > CONVERSORES E INTERFASES"
+  },
+  {
+    "sku": "GN-OSIR-M1501-CM",
+    "shortDescription": "Micrófono de techo de expansión para el sistema Osiris: arreglo de 3 cápsulas MEMS omnidireccional con alcance de 3 a 5 m, conexión en cadena por cable de categoría y botón de mute iluminado.",
+    "longDescription": "Los micrófonos de techo se interconectan con cable de categoría y pueden conectarse en cadena para facilitar la instalación, con un cable hacia el controlador y otro hacia el micrófono siguiente.\n\nTodo el procesamiento de señal de cancelación de eco (AEC) y de niveles se realiza en el procesamiento de audio integrado del DSP Osiris.",
+    "keyFeatures": [
+      "Arreglo de 3 micrófonos MEMS configurado como micrófono omnidireccional con un alcance de 3 a 5 metros",
+      "Botón de mute/unmute integrado bajo la tela, que se ilumina al activarse",
+      "Comparte automáticamente con los micrófonos conectados la AEC inteligente, la reducción de ruido de fondo y el control automático de ganancia",
+      "Dimensiones: Φ100×27,5 mm",
+      "Instalación embutida en techo (altura de piso a techo menor de 3 m)",
+      "Opción de instalación con barral colgante (altura de piso a techo mayor de 3 m)",
+      "Admite hasta cuatro niveles de conexión en cascada, con un largo total de cable que no supere los 50 m"
+    ],
+    "specifications": [
+      {
+        "group": "Conectividad",
+        "label": "Interface",
+        "value": "CAT6 connection to GN-OSIR-Z1199 DSP",
+        "labelEs": "Interfaz",
+        "valueEs": "Conexión CAT6 al DSP GN-OSIR-Z1199"
+      },
+      {
+        "group": "Características mecánicas",
+        "label": "Mounting",
+        "value": "Ceiling-mounted; compatible with GN-OSIR-Y1501-MT telescoping pole",
+        "labelEs": "Montaje",
+        "valueEs": "En techo; compatible con el caño telescópico GN-OSIR-Y1501-MT"
+      },
+      {
+        "group": "Normativas",
+        "label": "Certifications",
+        "value": "CE",
+        "labelEs": "Certificaciones",
+        "valueEs": "CE"
+      },
+      {
+        "group": "Normativas",
+        "label": "Warranty",
+        "value": "3 years",
+        "labelEs": "Garantía",
+        "valueEs": "3 años"
+      }
+    ],
+    "documents": [
+      {
+        "name": "GN-OSIR-M1501-CM Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-OSIR-M1501-CM%20(HT-SATELLITE-CM)/Spec%20Sheet/GN-OSIR-M1501-CM_Spec_Sheet.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/gn-osir-m1501-cm",
+    "tangoPath": "SONIDO > MICROFONOS > MICROFONOS COLGANTES"
+  },
+  {
+    "sku": "HT-COMALERT-KIT",
+    "shortDescription": "Sistema de dos micrófonos inalámbricos tipo lavalier de 2,4 GHz con base de carga, receptor de doble canal y botón de pánico para alertas de emergencia. Para aulas y salas de reuniones.",
+    "longDescription": "El HT-COMALERT-KIT es un sistema de micrófonos inalámbricos tipo lavalier con base de carga, receptor de doble canal, función de botón de pánico e integración con alertas de emergencia.\n\nEstá diseñado para aulas, salas de reuniones e instalaciones AV que deben cumplir requisitos de seguridad.",
+    "keyFeatures": [
+      "Micrófono inalámbrico: transmite en dos canales distintos de forma automática",
+      "Micrófono inalámbrico: batería recargable con 8 horas de uso continuo, que se recarga en aproximadamente 1 hora",
+      "Micrófono inalámbrico: el nivel de mezcla se controla con los botones de volumen del propio micrófono",
+      "Micrófono inalámbrico: el diseño de cordón magnético hace más cómodo y práctico llevar el micrófono",
+      "Micrófono inalámbrico: alcance de más de 100 ft con línea de visión",
+      "Micrófono inalámbrico: alarma de alcance automática integrada; el micrófono avisa cuando se aleja 100 ft del receptor",
+      "Micrófono inalámbrico: frecuencia inalámbrica de 2,4 GHz",
+      "Micrófono inalámbrico: el botón de pánico puede trabajar con MICBOX para enviar comandos personalizados a equipos externos",
+      "Micrófono inalámbrico: baja latencia de audio (≤50 ms)",
+      "Micrófono inalámbrico: admite reducción de ruido y cancelación de eco",
+      "Base de carga: puede cargar dos micrófonos al mismo tiempo",
+      "Base de carga: tiene un cable de carga USB-C integrado que requiere un cargador USB-C de 10 W como mínimo",
+      "Base de carga: un indicador muestra el estado de carga de los micrófonos",
+      "Base de carga: la base metálica sostiene el cargador en el ángulo correcto",
+      "Receptor inalámbrico: se alimenta desde el controlador ComAlert™ o desde un adaptador USB-C si no se usa el controlador",
+      "Receptor inalámbrico: puede recibir dos micrófonos inalámbricos distintos en simultáneo, una vez emparejado cada uno con el receptor",
+      "Receptor inalámbrico: entrega salidas analógicas de cualquiera de los micrófonos o de una mezcla de ambos; los niveles de mezcla dependen del volumen configurado en cada micrófono",
+      "Receptor inalámbrico: el mensaje S.O.S. se transmite por la interfaz USB-C"
+    ],
+    "specifications": [
+      {
+        "group": "Frecuencia inalámbrica",
+        "label": "Value",
+        "value": "2.4GHz",
+        "labelEs": "Valor",
+        "valueEs": "2,4GHz"
+      },
+      {
+        "group": "Cantidad de bandas de frecuencia RF",
+        "label": "Value",
+        "value": "2402M ~ 2480M, 1M per channel",
+        "labelEs": "Valor",
+        "valueEs": "2402M ~ 2480M, 1M por canal"
+      },
+      {
+        "group": "Diversidad",
+        "label": "Value",
+        "value": "Frequency division system",
+        "labelEs": "Valor",
+        "valueEs": "Sistema por división de frecuencia"
+      },
+      {
+        "group": "Alcance inalámbrico máximo (punto a punto)",
+        "label": "Value",
+        "value": "100ft (30m) line-of-sight",
+        "labelEs": "Valor",
+        "valueEs": "100ft (30m) con línea de visión directa"
+      },
+      {
+        "group": "Rango dinámico",
+        "label": "Value",
+        "value": "100 dB",
+        "labelEs": "Valor",
+        "valueEs": "100 dB"
+      },
+      {
+        "group": "Relación señal/ruido",
+        "label": "Value",
+        "value": ">53dB",
+        "labelEs": "Valor",
+        "valueEs": ">53dB"
+      },
+      {
+        "group": "Máximo de transmisores por banda",
+        "label": "Value",
+        "value": "2",
+        "labelEs": "Valor",
+        "valueEs": "2"
+      },
+      {
+        "group": "Grabador integrado",
+        "label": "Value",
+        "value": "No",
+        "labelEs": "Valor",
+        "valueEs": "No"
+      },
+      {
+        "group": "Compatibilidad USB",
+        "label": "Value",
+        "value": "USB 2.0 Full Speed, Max 12 Mbps",
+        "labelEs": "Valor",
+        "valueEs": "USB 2.0 Full Speed, máx. 12 Mbps"
+      },
+      {
+        "group": "Temperatura de funcionamiento",
+        "label": "Value",
+        "value": "0°C ~ 50°C (32°F to 122°F), 10% to 90%, non-condensing",
+        "labelEs": "Valor",
+        "valueEs": "0°C ~ 50°C (32°F a 122°F), 10% a 90%, sin condensación"
+      },
+      {
+        "group": "Temperatura de almacenamiento",
+        "label": "Value",
+        "value": "-20°C ~ 70°C (-4°F to 158°F), 10% to 90%, non-condensing",
+        "labelEs": "Valor",
+        "valueEs": "-20°C ~ 70°C (-4°F a 158°F), 10% a 90%, sin condensación"
+      },
+      {
+        "group": "Certificaciones",
+        "label": "Value",
+        "value": "FCC (Class B), CE (Class B), RoHS (CE), ICES-003 62368-1",
+        "labelEs": "Valor",
+        "valueEs": "FCC (Clase B), CE (Clase B), RoHS (CE), ICES-003 62368-1"
+      },
+      {
+        "group": "Dimensiones WM (ancho × alto × profundidad)",
+        "label": "Value",
+        "value": "2.57” x 1.12” x 0.58” (65.3mm x 28.4mm x 14.7mm)",
+        "labelEs": "Valor",
+        "valueEs": "2,57” x 1,12” x 0,58” (65,3mm x 28,4mm x 14,7mm)"
+      },
+      {
+        "group": "Peso neto WM",
+        "label": "Value",
+        "value": "0.11 lbs. (0.05kg)",
+        "labelEs": "Valor",
+        "valueEs": "0,11 lb (0,05kg)"
+      },
+      {
+        "group": "Dimensiones WR (ancho × alto × profundidad)",
+        "label": "Value",
+        "value": "2.83″ x 0.51″ x 2.09″ (72mm x 13mm x 53mm)",
+        "labelEs": "Valor",
+        "valueEs": "2,83″ x 0,51″ x 2,09″ (72mm x 13mm x 53mm)"
+      },
+      {
+        "group": "Peso neto WM",
+        "label": "Value",
+        "value": "0.22 lbs. (0.1kg)",
+        "labelEs": "Valor",
+        "valueEs": "0,22 lb (0,1kg)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "ComAlert Kit Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-COMALERT_Manual-2.0.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "ComAlert Specifications",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-ComAlert-Spec-Sheet.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/ht-comalert-kit",
+    "tangoPath": "SONIDO > SISTEMAS INALAMBRICOS > MICROFONOS INALAMBRICOS"
+  },
+  {
+    "sku": "HT-OSIRIS-DSP1",
+    "shortDescription": "Controlador de micrófonos con DSP para sistemas de captación de sonido en aulas y salas de reuniones: mezcla, AEC, reducción de ruido y control automático de ganancia, con interfaz web y envío de alertas.",
+    "longDescription": "El controlador de micrófonos HT-OSIRIS-DSP1 es el equipo central de procesamiento de audio para sistemas de captación de sonido ampliada en aulas, salas de reuniones y otros espacios.\n\nSe conecta con los micrófonos de techo Osiris y con los micrófonos inalámbricos ComAlert™, y también puede conectarse a sistemas externos mediante interfaces físicas. Tiene interfaz web para controlar la unidad y configurarla fácilmente. Puede enviar mensajes de alerta a sistemas de seguridad y emergencia, y brinda mezcla y control DSP de todos los micrófonos conectados.",
+    "keyFeatures": [
+      "Controles DSP avanzados y fáciles de usar",
+      "AEC (cancelación de eco acústico)",
+      "Reducción de ruido de fondo",
+      "Control automático de ganancia para que todos los participantes sientan que están en la misma sala",
+      "Admite diversos escenarios de uso y se integra fácilmente con equipos o sistemas host",
+      "Interfaz web fácil de usar para configuración y control"
+    ],
+    "specifications": [
+      {
+        "group": "Audio",
+        "label": "Input",
+        "value": "1 x RJ45 (Ceiling Mic); 1 x USB Type B (HOST) or 1 x 3.5mm TRS (AEC REF); 1 x 3.5mm TRS (WL IN) or 1 x USB Type-C (WIRELESS RECEIVER)",
+        "labelEs": "Entrada",
+        "valueEs": "1 × RJ45 (micrófono de techo); 1 × USB tipo B (HOST) o 1 × TRS de 3,5 mm (AEC REF); 1 × TRS de 3,5 mm (WL IN) o 1 × USB Type-C (receptor inalámbrico)"
+      },
+      {
+        "group": "Audio",
+        "label": "Output",
+        "value": "1 x USB Type-B (HOST) or 1 3.5mm TRS (AEC OUT); 1 x 3.5mm TRS (LINE OUT)",
+        "labelEs": "Salida",
+        "valueEs": "1 × USB tipo B (HOST) o 1 × TRS de 3,5 mm (AEC OUT); 1 × TRS de 3,5 mm (LINE OUT)"
+      },
+      {
+        "group": "Comunicación y control",
+        "label": "Control Method",
+        "value": "1 x RJ-45 (LAN) – Web UI",
+        "labelEs": "Método de control",
+        "valueEs": "1 × RJ-45 (LAN): interfaz web"
+      },
+      {
+        "group": "Comunicación y control",
+        "label": "S.O.S.",
+        "value": "1 x RJ-45 (LAN) – Ethernet: TCP or Telnet; 1 x 3-Pin Phoenix – RS-232; 1 x 2-Pin Phoenix – Contact Closure / Voltage Out; 1 x 2-Pin Phoenix – Contact Closure / Voltage In",
+        "labelEs": "S.O.S.",
+        "valueEs": "1 × RJ-45 (LAN): Ethernet, TCP o Telnet; 1 × Phoenix de 3 pines: RS-232; 1 × Phoenix de 2 pines: cierre de contacto / salida de tensión; 1 × Phoenix de 2 pines: cierre de contacto / entrada de tensión"
+      },
+      {
+        "group": "General",
+        "label": "Operating Temperature",
+        "value": "0°C ~ 40°C (32°F to 104°F), 10% to 90%, non-condensing",
+        "labelEs": "Temperatura de funcionamiento",
+        "valueEs": "0 °C a 40 °C (32 °F a 104 °F), 10 % a 90 %, sin condensación"
+      },
+      {
+        "group": "General",
+        "label": "Storage Temperature",
+        "value": "-20°C ~ 60°C (-4°F to 140°F), 10% to 90%, non-condensing",
+        "labelEs": "Temperatura de almacenamiento",
+        "valueEs": "-20 °C a 60 °C (-4 °F a 140 °F), 10 % a 90 %, sin condensación"
+      },
+      {
+        "group": "General",
+        "label": "Power Supply",
+        "value": "DC 12V 2A",
+        "labelEs": "Fuente de alimentación",
+        "valueEs": "12 V CC, 2 A"
+      },
+      {
+        "group": "General",
+        "label": "Power Consumption (Max)",
+        "value": "10.1W (Max)",
+        "labelEs": "Consumo (máx.)",
+        "valueEs": "10,1 W (máx.)"
+      },
+      {
+        "group": "General",
+        "label": "Dimension (Width x Heigh x Depth)",
+        "value": "8.46\" x 0.98\" x 4.73\" (215mm x 25mm x 120.2mm)",
+        "labelEs": "Dimensiones (ancho × alto × profundidad)",
+        "valueEs": "8,46\" × 0,98\" × 4,73\" (215 mm × 25 mm × 120,2 mm)"
+      },
+      {
+        "group": "General",
+        "label": "Net Weight",
+        "value": "1.52 lbs. (0.69 kgs)",
+        "labelEs": "Peso neto",
+        "valueEs": "1,52 lb (0,69 kg)"
+      }
+    ],
+    "documents": [
+      {
+        "name": "HT-OSIRIS-DSP1 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-OSIR-Z1199%20(HT-OSIRIS-DSP1)/Manual/HT-OSIRIS-DSP1_Manual-1.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "HT-OSIRIS-DSP1 Spec Sheet",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/HT-OSIRIS-DSP1-Spec-Sheet.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "HT-OSIRIS-DSP1 API",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-OSIR-Z1199%20(HT-OSIRIS-DSP1)/API/HT-OSIRIS_API-Commands.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/ht-osiris-dsp1",
+    "tangoPath": "SONIDO > PROCESADORES > PROCESADORES DSP"
+  },
+  {
+    "sku": "HT-SATELLITE-CM-MNT",
+    "shortDescription": "Barral telescópico de aleación de aluminio de 20 a 40 cm (8\" a 16\") para colgar el micrófono de techo Osiris en salas de techo abierto o alto, con el cable Cat6 oculto en su interior.",
+    "longDescription": "El HT-SATELLITE-CM-MNT es un barral de extensión telescópico de aleación de aluminio (20-40 cm / 8-16″) diseñado para montar el micrófono de techo Osiris en salas con techo abierto o alto.\n\nEl barral hueco oculta el cableado Cat6, para una instalación prolija y profesional.",
+    "keyFeatures": [
+      "Barral telescópico de aleación de aluminio",
+      "Se extiende desde aproximadamente 8\" hasta 16\" (20 a 40 cm)",
+      "Aloja los cables y evita que queden a la vista"
+    ],
+    "specifications": [],
+    "documents": [
+      {
+        "name": "HT-SATELLITE-CM-MNT Manual",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-OSIR-Y1501-MT%20(HT-SATELLITE-CM-MNT)/Manual/HT-SATELLITE-CM-MNT.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/ht-satellite-cm-mnt",
+    "tangoPath": "SONIDO > ACCESORIOS > ACCESORIOS P/MICROFONOS"
+  },
+  {
+    "sku": "SPK-IC6",
+    "shortDescription": "Parlante de embutir en techo de 6\" con caja trasera ignífuga, tweeter de domo de titanio, woofer de 6,5\" y derivaciones para 8 Ω, 70 V y 100 V, para aulas y salas comerciales.",
+    "longDescription": "Este parlante de embutir en techo de 6\" tiene caja trasera ignífuga, tweeter de domo de titanio de 1\", driver de cono de grafito de 6,5\", derivaciones seleccionables para sistemas de 8 Ω, 70 V o 100 V y rejilla magnética.\n\nEstá diseñado para aulas, salas de conferencias e instalaciones AV comerciales.",
+    "keyFeatures": [
+      "Tweeter de domo de titanio",
+      "Cono de grafito",
+      "Sensibilidad de hasta 86 dB",
+      "Derivaciones para 8 Ω, 70 V y 100 V",
+      "Rejilla magnética",
+      "Caja trasera ignífuga"
+    ],
+    "specifications": [
+      {
+        "group": "Tweeter",
+        "label": "Value",
+        "value": "1″ (25mm) Titanium dome",
+        "labelEs": "Valor",
+        "valueEs": "Domo de titanio de 1″ (25mm)"
+      },
+      {
+        "group": "Woofer",
+        "label": "Value",
+        "value": "6.5″ (165 mm) Graphite Cone, Rubber Surround",
+        "labelEs": "Valor",
+        "valueEs": "Cono de grafito de 6,5″ (165 mm), suspensión de goma"
+      },
+      {
+        "group": "Rango de frecuencia (+/-3)",
+        "label": "Value",
+        "value": "65 Hz -20KHZ",
+        "labelEs": "Valor",
+        "valueEs": "65 Hz - 20KHz"
+      },
+      {
+        "group": "Potencia admisible RMS",
+        "label": "Value",
+        "value": "80 W program , 40 W ( IEEE 219 )",
+        "labelEs": "Valor",
+        "valueEs": "80 W programa, 40 W (IEEE 219)"
+      },
+      {
+        "group": "Sensibilidad",
+        "label": "Value",
+        "value": "86 dB",
+        "labelEs": "Valor",
+        "valueEs": "86 dB"
+      },
+      {
+        "group": "Derivaciones",
+        "label": "Value",
+        "value": "8? ,0,40W,20W,10W,5W",
+        "labelEs": "Valor",
+        "valueEs": "8? ,0,40W,20W,10W,5W"
+      },
+      {
+        "group": "Impedancia",
+        "label": "Value",
+        "value": "8 ohms",
+        "labelEs": "Valor",
+        "valueEs": "8 ohms"
+      },
+      {
+        "group": "Terminación",
+        "label": "Value",
+        "value": "Standard pressed connector",
+        "labelEs": "Valor",
+        "valueEs": "Conector a presión estándar"
+      },
+      {
+        "group": "Accesorios incluidos",
+        "label": "Value",
+        "value": "Cut Out template grille",
+        "labelEs": "Valor",
+        "valueEs": "Plantilla de corte y rejilla"
+      },
+      {
+        "group": "Dimensiones (alto × profundidad)",
+        "label": "Value",
+        "value": "9.01″ x 10.11″ (236 x 257mm)",
+        "labelEs": "Valor",
+        "valueEs": "9,01″ x 10,11″ (236 x 257mm)"
+      },
+      {
+        "group": "Diámetro de calado",
+        "label": "Value",
+        "value": "8.85″ (225mm)",
+        "labelEs": "Valor",
+        "valueEs": "8,85″ (225mm)"
+      },
+      {
+        "group": "Certificaciones",
+        "label": "Value",
+        "value": "CE",
+        "labelEs": "Valor",
+        "valueEs": "CE"
+      },
+      {
+        "group": "Fijación",
+        "label": "Value",
+        "value": "Low-profile grille",
+        "labelEs": "Valor",
+        "valueEs": "Rejilla de bajo perfil"
+      },
+      {
+        "group": "Material",
+        "label": "Value",
+        "value": "ABS+iron",
+        "labelEs": "Valor",
+        "valueEs": "ABS + hierro"
+      }
+    ],
+    "documents": [
+      {
+        "name": "SPK-IC6 Specification",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/SPK-IC6_SpecSheet_July_11.pdf",
+        "fileType": "pdf"
+      },
+      {
+        "name": "SPK-IC6 Manual",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/SPK-IC6_Manual_July_15.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/spk-ic6",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES DE EMBUTIR"
+  },
+  {
+    "sku": "SPK-OW6",
+    "shortDescription": "Parlante de superficie para pared de 6\", 40 W, con derivaciones para 8 Ω, 70 V y 100 V, gabinete de ABS, soportes regulables y terminación blanca.",
+    "longDescription": "Los parlantes Gain Audio ofrecen versatilidad y practicidad. El SPK-OW6 es un parlante de montaje en superficie de 40 W que incluye derivaciones para sistemas de audio de 8 Ω, 100 V y 70 V, con terminación blanca.",
+    "keyFeatures": [
+      "Muy buena cobertura sonora, con agudos inteligibles y graves potentes",
+      "Gabinete resistente de ABS",
+      "Diseño que combina con la decoración del ambiente",
+      "Derivaciones para 8 Ω, 70 V y 100 V",
+      "Instalación sencilla y configuración de potencia simple",
+      "Soportes de instalación regulables"
+    ],
+    "specifications": [
+      {
+        "group": "Potencia a 100V",
+        "label": "Value",
+        "value": "40W",
+        "labelEs": "Valor",
+        "valueEs": "40W"
+      },
+      {
+        "group": "Potencia a 70V",
+        "label": "Value",
+        "value": "20W",
+        "labelEs": "Valor",
+        "valueEs": "20W"
+      },
+      {
+        "group": "SPL (1W/1M)",
+        "label": "Value",
+        "value": "88dB",
+        "labelEs": "Valor",
+        "valueEs": "88dB"
+      },
+      {
+        "group": "Respuesta en frecuencia 7",
+        "label": "Value",
+        "value": "70Hz-20KHz",
+        "labelEs": "Valor",
+        "valueEs": "70Hz-20KHz"
+      },
+      {
+        "group": "Ángulo de dispersión",
+        "label": "Value",
+        "value": "90°",
+        "labelEs": "Valor",
+        "valueEs": "90°"
+      },
+      {
+        "group": "Dimensiones",
+        "label": "Value",
+        "value": "300mm x 216mm x 195mm",
+        "labelEs": "Valor",
+        "valueEs": "300mm x 216mm x 195mm"
+      },
+      {
+        "group": "Instalación",
+        "label": "Value",
+        "value": "Wall Mounted",
+        "labelEs": "Valor",
+        "valueEs": "Montaje en pared"
+      },
+      {
+        "group": "Material del gabinete",
+        "label": "Value",
+        "value": "ABS",
+        "labelEs": "Valor",
+        "valueEs": "ABS"
+      },
+      {
+        "group": "Peso",
+        "label": "Value",
+        "value": "3.3kg",
+        "labelEs": "Valor",
+        "valueEs": "3,3kg"
+      },
+      {
+        "group": "Acabado",
+        "label": "Value",
+        "value": "White",
+        "labelEs": "Valor",
+        "valueEs": "Blanco"
+      },
+      {
+        "group": "Parlantes",
+        "label": "Value",
+        "value": "1.5x1(Treble) 6x1 (Bass)",
+        "labelEs": "Valor",
+        "valueEs": "1,5x1 (agudos) 6x1 (graves)"
+      },
+      {
+        "group": "SPL (1W/1M)",
+        "label": "Value",
+        "value": "88dB",
+        "labelEs": "Valor",
+        "valueEs": "88dB"
+      }
+    ],
+    "documents": [
+      {
+        "name": "SPK-OW6 Specification",
+        "url": "https://storage.googleapis.com/atlonacloudcdn/website_hall/uploads/SPK-OW6_SpecSheet_Aug_2_reduced_size.docx",
+        "fileType": "docx"
+      },
+      {
+        "name": "SPK-OW6 Manual",
+        "url": "https://cdn.cloud.atlona.com/website_hall/uploads/Website%20-%20Product%20Documentation/GAIN%20AUDIO/GN-TONE-S1122-SM%20(SPK-OW6)/Manual/SPK-OW6_Manual_July_14-1.pdf",
+        "fileType": "pdf"
+      }
+    ],
+    "vendorProductUrl": "https://hallresearch.com/product/spk-ow6",
+    "tangoPath": "SONIDO > BAFLES PASIVOS > BAFLES COMPACTOS"
+  }
+]

@@ -9,6 +9,7 @@ import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
 import { SelectableCard } from "./catalog-multi-select";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
+import { commercialTagFor } from "@/lib/commercial-tags";
 
 interface GridProps {
   items: CatalogProduct[];
@@ -63,11 +64,20 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                   <FavoriteButton productId={p.id} isFavorite={p.isFavorite} />
                 </div>
               ) : null}
-              {p.pricing && p.pricing.discountPercent > 0 && !priceOnRequest(p) ? (
-                <span className="absolute left-2 top-2 rounded-md bg-success px-2 py-0.5 text-[11px] font-semibold text-success-foreground">
-                  -{p.pricing.discountPercent.toFixed(0)}%
-                </span>
-              ) : null}
+              {(() => {
+                // Cartel comercial (A pedido, liquidación, oferta…): abajo a la izquierda de la foto.
+                const tag = commercialTagFor({
+                  commercialTag: p.commercialTag,
+                  isDiscontinued: p.isDiscontinued,
+                  discountPercent: p.pricing?.discountPercent ?? null,
+                  priceOnRequest: priceOnRequest(p),
+                });
+                return tag ? (
+                  <span title={tag.hint} className={`absolute bottom-2 left-2 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide shadow-sm ${tag.className}`}>
+                    {tag.label}
+                  </span>
+                ) : null;
+              })()}
             </div>
 
             <div className="flex flex-1 flex-col p-3.5">

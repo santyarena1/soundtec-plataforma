@@ -83,6 +83,8 @@ export interface CatalogProduct {
   /** Sin precio cargado (o marcado "a consultar"): se muestra "Precio a consultar". */
   requiresQuote: boolean;
   isDiscontinued: boolean;
+  /** Cartel comercial elegido en el panel (A_PEDIDO, LIQUIDACION…); null = automático. */
+  commercialTag: string | null;
   stockStatus: string;
   stockQuantity: number | null;
   isCustomizable: boolean;
@@ -353,6 +355,7 @@ async function mapProductsToCatalogItems(
     primaryImage: p.images[0]?.url ?? null,
     requiresQuote: p.requiresQuote,
     isDiscontinued: p.isDiscontinued,
+    commercialTag: p.commercialTag,
     stockStatus: p.stockStatus,
     stockQuantity: p.stockQuantity,
     isCustomizable: p.isCustomizable,
