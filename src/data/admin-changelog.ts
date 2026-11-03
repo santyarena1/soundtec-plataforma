@@ -2613,4 +2613,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Fotos oficiales del fabricante para 12 productos que no tenían (Sonance SonAmp, IPORT, Phase Technology, rejillas SoundTube, Atlona)." },
     ],
   },
+  {
+    id: "ship-2026-11-03-formularios",
+    version: "2.29.0",
+    releasedAt: "2026-11-03T15:00:00.000Z",
+    summary: "Formularios propios (tipo Typeform) en Ventas › Formularios: una pregunta por pantalla, enlace único y respuestas ordenadas con Excel.",
+    items: [
+      { kind: "NUEVO", text: "Ventas › Formularios: se crean formularios para eventos, inscripciones o encuestas y se comparten con un enlace único (quien no lo tiene no puede entrar; se puede generar uno nuevo y el viejo deja de andar)." },
+      { kind: "NUEVO", text: "Preguntas de texto, email, teléfono, número, fecha, opción única, varias opciones, desplegable, sí/no, escala y aceptación; pantallas de texto con enlaces, imagen tipo diapositiva, video de YouTube/Vimeo o subido y mapa de Google Maps." },
+      { kind: "NUEVO", text: "Quien responde ve una pregunta por pantalla con fundido entre preguntas, el logo de Soundtec, barra de progreso, fondo claro u oscuro y teclas (Enter para avanzar, letras para elegir opciones). Bienvenida y cierre personalizables." },
+      { kind: "NUEVO", text: "Respuestas en el panel: resumen con barras por opción, tabla con una columna por pregunta y descarga a Excel. Borrador, abierto, cerrado o cierre automático por fecha; vista previa sin enviar." },
+    ],
+  },
 ];

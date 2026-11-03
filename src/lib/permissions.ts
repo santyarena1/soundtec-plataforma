@@ -68,7 +68,8 @@ export type PermissionScope =
   | "quotes.issue"
   | "quotes.submit_review"
   | "quotes.approve"
-  | "quotes.manage_library";
+  | "quotes.manage_library"
+  | "forms.manage";
 
 export type PriceAccess = "full" | "sale" | "none";
 
@@ -165,6 +166,7 @@ export const PERMISSION_GROUPS: Array<{
       { scope: "account_requests.create", label: "Pedir el alta de una empresa nueva", help: "La solicitud la aprueba un administrador." },
       { scope: "account_requests.review", label: "Aprobar o rechazar altas" },
       { scope: "leads.view", label: "Ver leads del catálogo y del asistente" },
+      { scope: "forms.manage", label: "Formularios: crear, compartir y ver respuestas", help: "Formularios de eventos, inscripciones y encuestas que se comparten por enlace." },
     ],
   },
   {

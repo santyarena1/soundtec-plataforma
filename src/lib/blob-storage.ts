@@ -21,7 +21,7 @@ export const BLOB_UPLOAD_FAILED = "No se pudo guardar el archivo en el almacenam
 export const blobAccess = (): "public" | "private" => (process.env.BLOB_ACCESS === "public" ? "public" : "private");
 
 /** Prefijos que se pueden leer por /api/files (nada fuera de lo que sube el sistema). */
-export const SERVABLE_PREFIXES = ["quotes/", "products/"] as const;
+export const SERVABLE_PREFIXES = ["quotes/", "products/", "forms/"] as const;
 
 function appOrigin(): string {
   const raw = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "";

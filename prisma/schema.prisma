@@ -2361,3 +2361,67 @@ model QuoteService {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
+
+// ---------------------------------------------
+// Formularios (tipo Typeform): se comparten por un enlace secreto (/f/[token]).
+// ---------------------------------------------
+
+enum FormStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+model Form {
+  id           String         @id @default(cuid())
+  title        String
+  /// Nota interna (no la ve quien responde).
+  internalNote String?        @db.Text
+  /// Enlace secreto: /f/{token}. Regenerarlo invalida el anterior.
+  token        String         @unique
+  status       FormStatus     @default(DRAFT)
+  closesAt     DateTime?
+  /// Pantalla de bienvenida, de cierre y opciones (ver lib/forms/types).
+  settings     Json?
+  createdById  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  blocks       FormBlock[]
+  responses    FormResponse[]
+
+  @@index([status])
+}
+
+model FormBlock {
+  id        String   @id @default(cuid())
+  formId    String
+  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  /// Tipo de bloque: short_text, long_text, email, phone, number, date, single_choice, multi_choice, dropdown, yes_no, scale, consent, statement, image, video, map.
+  type      String
+  title     String   @default("")
+  /// Texto con formato (HTML saneado): enlaces, negrita, listas.
+  body      String   @default("") @db.Text
+  required  Boolean  @default(false)
+  /// Opciones, medios y límites según el tipo (ver lib/forms/types).
+  config    Json?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([formId, sortOrder])
+}
+
+model FormResponse {
+  id          String   @id @default(cuid())
+  formId      String
+  form        Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  /// { [blockId]: valor } tal como se respondió.
+  answers     Json
+  /// Copia de las preguntas al momento de responder (título y tipo), para que editar el formulario no desordene lo recibido.
+  snapshot    Json
+  ipHash      String?
+  userAgent   String?
+  submittedAt DateTime @default(now())
+
+  @@index([formId, submittedAt])
+}

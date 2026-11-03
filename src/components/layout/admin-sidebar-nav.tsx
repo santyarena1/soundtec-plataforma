@@ -32,6 +32,7 @@ import {
   UserPlus,
   ChevronRight,
   ClipboardCheck,
+  ClipboardList,
   PackageSearch,
   RefreshCw,
   ScrollText,
@@ -83,6 +84,7 @@ const groups: NavGroup[] = [
       { href: "/admin/clients", label: "Clientes", icon: Users, anyScope: ["clients.view", "clients.view_all"], tourId: "nav-link-clients" },
       { href: "/admin/account-requests", label: "Solicitudes de cuenta", icon: UserPlus, anyScope: ["account_requests.create", "account_requests.review"], badgeKey: "accountRequests", tourId: "nav-link-account-requests" },
       { href: "/admin/leads", label: "Interesados", icon: QrCode, scope: "leads.view", alsoActive: ["/admin/assistant/leads"] },
+      { href: "/admin/forms", label: "Formularios", icon: ClipboardList, scope: "forms.manage" },
     ],
   },
   {

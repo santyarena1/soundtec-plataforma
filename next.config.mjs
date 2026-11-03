@@ -18,7 +18,7 @@ const csp = [
   "font-src 'self' data:",
   "media-src 'self' blob: https:",
   "connect-src 'self' https: blob: data:",
-  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
+  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.google.com https://maps.google.com",
   "worker-src 'self' blob:",
   "frame-ancestors 'self'",
   "object-src 'none'",
