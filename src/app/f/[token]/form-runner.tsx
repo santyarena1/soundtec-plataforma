@@ -363,7 +363,7 @@ function BlockScreen({
         {block.title ? <h2 className="mb-6 text-3xl font-semibold tracking-tight sm:text-4xl">{block.title}</h2> : null}
         <div className="mx-auto aspect-video w-full max-w-4xl overflow-hidden rounded-2xl bg-black shadow-2xl">
           {embed ? (
-            <iframe src={embed} title={block.title || "Video"} className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+            <iframe src={embed} title={block.title || "Video"} referrerPolicy="strict-origin-when-cross-origin" className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
           ) : c.mediaUrl ? (
             <video src={c.mediaUrl} controls playsInline className="h-full w-full" />
           ) : null}
