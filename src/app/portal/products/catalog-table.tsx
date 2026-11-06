@@ -89,7 +89,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
                   </span>
                 ) : null}
               </div>
-              <Link href={href} className="text-xl font-semibold leading-tight text-foreground hover:text-primary sm:text-[1.375rem]">
+              <Link href={href} className="text-[1.375rem] font-semibold leading-tight text-foreground hover:text-primary sm:text-2xl">
                 {productTitle(p)}
               </Link>
               {subtitle ? <p className="line-clamp-3 max-w-[62ch] text-[15px] leading-relaxed text-foreground/75">{subtitle}</p> : null}
@@ -123,13 +123,13 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Precio USD</p>
                     {onRequest ? (
-                      <p className="mt-1 text-xl font-semibold text-foreground">Consultá precio</p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">Consultá precio</p>
                     ) : (
                       <>
                         {p.pricing!.priceBeforeDiscountUsd && p.pricing!.discountPercent > 0 ? (
                           <p className="mt-1 text-sm tabular-nums text-muted-foreground line-through">{formatUsd(p.pricing!.priceBeforeDiscountUsd)}</p>
                         ) : null}
-                        <p className="text-[1.75rem] font-bold leading-tight tabular-nums text-foreground">{formatUsd(p.pricing!.finalPriceUsd)}</p>
+                        <p className="mt-0.5 text-lg font-semibold leading-tight tabular-nums text-foreground sm:text-xl">{formatUsd(p.pricing!.finalPriceUsd)}</p>
                         <p className="text-xs text-muted-foreground">+ IVA</p>
                       </>
                     )}

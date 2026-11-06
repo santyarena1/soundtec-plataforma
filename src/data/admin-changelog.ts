@@ -2635,4 +2635,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Descarga en PDF vectorial (para imprenta, se amplía sin perder nitidez), SVG y PNG." },
     ],
   },
+  {
+    id: "ship-2026-11-05-lista-precio",
+    version: "2.30.1",
+    releasedAt: "2026-11-05T23:00:00.000Z",
+    summary: "Catálogo en lista: el nombre del producto se ve más grande que el precio.",
+    items: [{ kind: "MEJORA", text: "Portal, vista Lista: el modelo pasa a ser lo más destacado de cada fila y el precio queda un poco más chico." }],
+  },
 ];
