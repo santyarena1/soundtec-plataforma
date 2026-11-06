@@ -2625,4 +2625,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Respuestas en el panel: resumen con barras por opción, tabla con una columna por pregunta y descarga a Excel. Borrador, abierto, cerrado o cierre automático por fecha; vista previa sin enviar." },
     ],
   },
+  {
+    id: "ship-2026-11-05-qr-catalogo",
+    version: "2.30.0",
+    releasedAt: "2026-11-05T22:00:00.000Z",
+    summary: "QR permanente del catálogo en Eventos y QR: sin vencimiento, lleva directo a elegir marca y se descarga en PDF vectorial.",
+    items: [
+      { kind: "NUEVO", text: "Configuración › Eventos y QR: QR permanente del catálogo. No depende de ningún evento ni vence; lleva directo a la pantalla de marcas del catálogo sin precios, sin pedir el mail." },
+      { kind: "NUEVO", text: "Descarga en PDF vectorial (para imprenta, se amplía sin perder nitidez), SVG y PNG." },
+    ],
+  },
 ];
