@@ -80,11 +80,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
+  // El sitio es solo claro: sin esto, Chrome en Android con el modo oscuro del teléfono
+  // «oscurece» las páginas por su cuenta (fondos negros en formularios, catálogo y portal).
+  colorScheme: "only light",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={inter.variable} suppressHydrationWarning>
+    <html lang="es" className={inter.variable} style={{ colorScheme: "only light" }} suppressHydrationWarning>
       <body className="min-h-dvh bg-background text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>

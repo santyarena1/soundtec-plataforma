@@ -2729,4 +2729,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Si el logo de una marca no carga, se muestra su nombre en lugar de la imagen rota." },
     ],
   },
+  {
+    id: "ship-2026-11-11-solo-claro-android",
+    version: "2.33.3",
+    releasedAt: "2026-11-11T08:00:00.000Z",
+    summary: "Formularios y portal: el modo oscuro del celular (Android) ya no los pone con fondo negro.",
+    items: [{ kind: "FIX", text: "Chrome en Android y el navegador de WhatsApp oscurecían solos las páginas cuando el teléfono está en modo oscuro. Ahora el sitio se declara solo claro y se ve como fue diseñado." }],
+  },
 ];
