@@ -2673,4 +2673,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Vista previa: se puede avanzar entre pantallas sin completar lo obligatorio, para revisar cómo queda." },
     ],
   },
+  {
+    id: "ship-2026-11-10-formularios-red",
+    version: "2.32.1",
+    releasedAt: "2026-11-11T03:00:00.000Z",
+    summary: "Formularios: las partículas del fondo ahora forman una red fina de puntos unidos por líneas.",
+    items: [{ kind: "MEJORA", text: "Partículas sutiles: puntos chicos en azul Soundtec que se mueven despacio y se unen con líneas finas cuando están cerca, en lugar de puntos sueltos." }],
+  },
 ];

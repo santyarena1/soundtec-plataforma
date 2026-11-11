@@ -2,16 +2,19 @@
 
 import { useEffect, useRef } from "react";
 
-/** Cantidad por cada 100.000 px² de pantalla (≈ 50 en una notebook, ≈ 15 en un celular). */
-const DENSITY = 4;
-const MAX_PARTICLES = 70;
-const SPEED = 0.12;
+/** Cantidad por cada 100.000 px² de pantalla (≈ 55 en una notebook, ≈ 15 en un celular). */
+const DENSITY = 4.5;
+const MAX_PARTICLES = 80;
+const SPEED = 0.18;
+/** Distancia máxima (px) a la que dos puntos se unen con una línea. */
+const LINK_DISTANCE = 150;
 
-type Particle = { x: number; y: number; r: number; vx: number; vy: number; alpha: number; phase: number };
+type Particle = { x: number; y: number; vx: number; vy: number; r: number };
 
 /**
- * Fondo de partículas muy sutiles en el azul Soundtec: puntos chicos que flotan
- * despacio y titilan apenas. Quietas si la persona pidió reducir el movimiento.
+ * Fondo tipo red en el azul Soundtec: puntos chicos que se mueven despacio y se
+ * unen con líneas finas cuando están cerca (más tenues cuanto más lejos).
+ * Queda quieta si la persona pidió reducir el movimiento.
  */
 export function FormParticles({ dark }: { dark: boolean }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
@@ -22,7 +25,8 @@ export function FormParticles({ dark }: { dark: boolean }) {
     if (!canvas || !ctx) return;
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const color = dark ? "127, 176, 255" : "47, 111, 214";
-    const maxAlpha = dark ? 0.4 : 0.38;
+    const dotAlpha = dark ? 0.55 : 0.45;
+    const lineAlpha = dark ? 0.28 : 0.2;
     let particles: Particle[] = [];
     let width = 0;
     let height = 0;
@@ -36,41 +40,54 @@ export function FormParticles({ dark }: { dark: boolean }) {
       canvas.height = height * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const count = Math.min(MAX_PARTICLES, Math.round(((width * height) / 100_000) * DENSITY));
-      particles = Array.from({ length: count }, () => ({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        r: 1 + Math.random() * 2.2,
-        vx: (Math.random() - 0.5) * SPEED,
-        vy: -SPEED * (0.3 + Math.random() * 0.7),
-        alpha: 0.35 + Math.random() * 0.65,
-        phase: Math.random() * Math.PI * 2,
-      }));
+      particles = Array.from({ length: count }, () => {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = SPEED * (0.4 + Math.random() * 0.6);
+        return { x: Math.random() * width, y: Math.random() * height, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, r: 1 + Math.random() * 0.9 };
+      });
     };
 
-    const draw = (t: number) => {
-      ctx.clearRect(0, 0, width, height);
+    const step = () => {
       for (const p of particles) {
-        if (!still) {
-          p.x += p.vx;
-          p.y += p.vy;
-          if (p.y < -4) p.y = height + 4;
-          if (p.x < -4) p.x = width + 4;
-          if (p.x > width + 4) p.x = -4;
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
+      }
+    };
+
+    const draw = () => {
+      if (!still) step();
+      ctx.clearRect(0, 0, width, height);
+      ctx.lineWidth = 0.8;
+      for (let i = 0; i < particles.length; i++) {
+        const a = particles[i];
+        for (let j = i + 1; j < particles.length; j++) {
+          const b = particles[j];
+          const dist = Math.hypot(a.x - b.x, a.y - b.y);
+          if (dist > LINK_DISTANCE) continue;
+          ctx.strokeStyle = `rgba(${color}, ${((1 - dist / LINK_DISTANCE) * lineAlpha).toFixed(3)})`;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
         }
-        const twinkle = still ? 1 : 0.6 + 0.4 * Math.sin(t / 1800 + p.phase);
+      }
+      ctx.fillStyle = `rgba(${color}, ${dotAlpha})`;
+      for (const p of particles) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${color}, ${(p.alpha * twinkle * maxAlpha).toFixed(3)})`;
         ctx.fill();
       }
       if (!still) frame = window.requestAnimationFrame(draw);
     };
 
     resize();
-    draw(0);
+    draw();
     const onResize = () => {
+      window.cancelAnimationFrame(frame);
       resize();
-      if (still) draw(0);
+      draw();
     };
     window.addEventListener("resize", onResize);
     return () => {
