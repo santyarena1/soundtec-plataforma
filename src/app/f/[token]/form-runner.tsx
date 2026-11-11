@@ -174,15 +174,18 @@ export function FormRunner({
       </div>
 
       <header className="relative z-20 flex items-center justify-between px-5 pt-6 sm:px-10">
-        {/* Con logo propio, en la bienvenida va grande y centrado (no se repite arriba). */}
-        {customLogo && step.kind === "welcome" ? (
-          <span />
-        ) : (
-          <span className={`inline-flex items-center rounded-lg px-3 py-2 ${dark ? "bg-white" : ""}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={headerLogo} alt={customLogo ? title : "Soundtec"} className={customLogo ? "h-12 w-auto max-w-[240px] object-contain sm:h-16 sm:max-w-[340px]" : "h-11 w-auto sm:h-14"} />
-          </span>
-        )}
+        {/* Con logo propio, en la bienvenida el logo va grande al centro y arriba queda el
+            título; desde la primera pregunta el título se va y el logo pasa a esta esquina. */}
+        <div className="flex min-h-16 items-center transition-opacity ease-out sm:min-h-20" style={{ opacity: visible ? 1 : 0, transitionDuration: `${FADE_MS}ms` }}>
+          {customLogo && step.kind === "welcome" ? (
+            <p className="max-w-[70vw] px-3 text-base font-semibold tracking-tight sm:text-xl">{settings.welcomeTitle || title}</p>
+          ) : (
+            <span className={`inline-flex items-center rounded-lg px-3 py-2 ${dark ? "bg-white" : ""}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={headerLogo} alt={customLogo ? title : "Soundtec"} className={customLogo ? "h-12 w-auto max-w-[240px] object-contain sm:h-16 sm:max-w-[340px]" : "h-11 w-auto sm:h-14"} />
+            </span>
+          )}
+        </div>
         {preview ? <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">Vista previa: no se envía ni pide obligatorios</span> : null}
       </header>
 
@@ -195,7 +198,7 @@ export function FormRunner({
             <Screen
               heroLogo={customLogo ? headerLogo : undefined}
               heroLogoOnDark={dark}
-              title={customLogo ? settings.welcomeTitle ?? "" : settings.welcomeTitle || title}
+              title={customLogo ? "" : settings.welcomeTitle || title}
               body={settings.welcomeBody}
               imageUrl={settings.welcomeImageUrl}
               proseClass={theme.prose}

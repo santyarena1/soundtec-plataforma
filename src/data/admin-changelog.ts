@@ -2680,4 +2680,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Formularios: las partículas del fondo ahora forman una red fina de puntos unidos por líneas.",
     items: [{ kind: "MEJORA", text: "Partículas sutiles: puntos chicos en azul Soundtec que se mueven despacio y se unen con líneas finas cuando están cerca, en lugar de puntos sueltos." }],
   },
+  {
+    id: "ship-2026-11-10-formularios-titulo-arriba",
+    version: "2.32.2",
+    releasedAt: "2026-11-11T03:30:00.000Z",
+    summary: "Formularios con logo propio: en la bienvenida el logo va al centro y el título arriba a la izquierda; después el logo pasa a esa esquina.",
+    items: [{ kind: "MEJORA", text: "Bienvenida con logo propio: logo grande al centro y el título arriba a la izquierda. Desde la primera pregunta el título se va con un fundido y en su lugar queda el logo." }],
+  },
 ];

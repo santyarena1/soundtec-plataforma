@@ -388,7 +388,7 @@ export function FormBuilder({
                 label="Logo del formulario (opcional)"
                 value={settings.logoUrl ?? ""}
                 onChange={(url) => patchSettings({ logoUrl: url })}
-                hint="Reemplaza al logo de Soundtec arriba en todas las pantallas y sale grande y centrado en la bienvenida. Si ya incluye el título del evento, podés dejar el título vacío. Con fondo oscuro va sobre un recuadro blanco."
+                hint="En la bienvenida sale grande al centro y el título queda arriba a la izquierda. Desde la primera pregunta el título se va y el logo pasa a esa esquina, en lugar del de Soundtec. Usá un PNG sin fondo."
               />
             </div>
             <SettingsScreen
