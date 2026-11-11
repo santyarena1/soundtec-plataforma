@@ -1,9 +1,10 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
-import { BLOCK_LABELS, isQuestionType, mapEmbedUrl, videoEmbedUrl, type BlockConfig, type BlockType } from "@/lib/forms/types";
+import { BLOCK_LABELS, isQuestionType, videoEmbedUrl, type BlockConfig, type BlockType } from "@/lib/forms/types";
 import { FormRichEditor } from "../form-rich-editor";
 import { MediaField } from "./media-field";
+import { AgendaEditor, MapLinkField } from "./event-editors";
 import type { FormBrandOption } from "@/lib/forms/public";
 
 export type EditableBlock = {
@@ -184,18 +185,12 @@ export function BlockEditor({
         </div>
       ) : null}
 
-      {block.type === "map" ? (
-        <div className="space-y-4">
-          <div>
-            <label className={label}>Dirección o enlace de Google Maps</label>
-            <input autoComplete="off" value={c.mapQuery ?? ""} onChange={(e) => setConfig({ mapQuery: e.target.value })} className={field} placeholder="Av. Alicia Moreau de Justo 1150, CABA" />
-            <p className="mt-1 text-xs text-muted-foreground">Con la dirección se muestra el mapa. Si pegás un enlace de Google Maps con el lugar, también funciona.</p>
-          </div>
-          <div>
-            <label className={label}>Enlace del botón «Abrir en Google Maps» (opcional)</label>
-            <input autoComplete="off" value={c.mapLink ?? ""} onChange={(e) => setConfig({ mapLink: e.target.value })} className={field} placeholder="https://maps.app.goo.gl/…" />
-          </div>
-          {mapEmbedUrl(c.mapQuery) ? <iframe src={mapEmbedUrl(c.mapQuery)!} title="Vista del mapa" className="h-56 w-full rounded-lg border border-border" loading="lazy" /> : null}
+      {block.type === "map" ? <MapLinkField value={c.mapQuery ?? ""} resolved={c.mapResolved} onChange={(mapQuery) => setConfig({ mapQuery, mapResolved: undefined })} /> : null}
+
+      {block.type === "agenda" ? (
+        <div>
+          <span className={label}>Horarios</span>
+          <AgendaEditor items={c.agenda ?? []} onChange={(agenda) => setConfig({ agenda })} />
         </div>
       ) : null}
 

@@ -2694,4 +2694,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Formularios: la imagen de la bienvenida funciona como logo del formulario; queda un solo campo para el logo.",
     items: [{ kind: "FIX", text: "Si el logo se había subido como imagen de la bienvenida, ahora también sale grande al centro con el título arriba a la izquierda y pasa a la esquina desde la primera pregunta. En el editor queda solo «Logo del formulario»." }],
   },
+  {
+    id: "ship-2026-11-11-formularios-evento",
+    version: "2.33.0",
+    releasedAt: "2026-11-11T05:00:00.000Z",
+    summary: "Formularios para eventos: mapa con Cómo llegar desde el enlace de Google Maps, pantalla de confirmación con info útil y programa, y quien ya respondió vuelve directo a esa pantalla.",
+    items: [
+      { kind: "NUEVO", text: "Mapa: se pega el enlace de Compartir de Google Maps (maps.app.goo.gl) o una dirección y se ve el mapa con el pin, con los botones Cómo llegar y Abrir en Google Maps." },
+      { kind: "NUEVO", text: "Pantalla de confirmación: además del título y el texto, información útil (fecha, horario, dirección, estacionamiento…), mapa con Cómo llegar y programa del evento con horarios." },
+      { kind: "NUEVO", text: "Quien ya respondió y vuelve a abrir el enlace ve directo la confirmación con la info del evento, incluso con el formulario cerrado. Tiene un enlace para completar de nuevo." },
+      { kind: "NUEVO", text: "Pantalla Programa: los horarios del evento como una línea de tiempo, para mostrar antes de enviar." },
+    ],
+  },
 ];

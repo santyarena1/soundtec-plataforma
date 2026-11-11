@@ -25,6 +25,7 @@ import type { FormBrandOption } from "@/lib/forms/public";
 import { CONTACT_PRESET, ICONS, flatten, toScreens, type Screen } from "./screens";
 import { ScreenEditor } from "./screen-editor";
 import { TypeMenu } from "./type-menu";
+import { AgendaEditor, InfoEditor, MapLinkField } from "./event-editors";
 
 type Status = "DRAFT" | "OPEN" | "CLOSED";
 type Selected = "welcome" | "end" | string;
@@ -375,7 +376,7 @@ export function FormBuilder({
             </button>
             {addOpen ? <TypeMenu mode="screen" onPick={addScreen} onContact={addContactScreen} onClose={() => setAddOpen(false)} /> : null}
           </div>
-          <ScreenItem active={selected === "end"} onClick={() => setSelected("end")} icon={Flag} label="Cierre" sub={settings.endTitle || "Pantalla final"} />
+          <ScreenItem active={selected === "end"} onClick={() => setSelected("end")} icon={Flag} label="Confirmación" sub={settings.endTitle || "Al enviar y si vuelve a entrar"} />
         </aside>
 
         {/* Editor de la pantalla elegida */}
@@ -402,15 +403,35 @@ export function FormBuilder({
             />
             </div>
           ) : selected === "end" ? (
-            <SettingsScreen
-              formId={form.id}
-              heading="Pantalla de cierre"
-              hint="Se muestra cuando la persona envía sus respuestas."
-              title={settings.endTitle ?? ""}
-              body={settings.endBody ?? ""}
-              imageUrl={settings.endImageUrl ?? ""}
-              onChange={(p) => patchSettings({ endTitle: p.title, endBody: p.body, endImageUrl: p.imageUrl })}
-            />
+            <div className="space-y-8">
+              <SettingsScreen
+                formId={form.id}
+                heading="Pantalla de confirmación"
+                hint="Se muestra al enviar y es lo que ve quien ya respondió cuando vuelve a abrir el enlace (aunque el formulario ya esté cerrado). Ideal para la info del evento."
+                title={settings.endTitle ?? ""}
+                body={settings.endBody ?? ""}
+                imageUrl={settings.endImageUrl ?? ""}
+                onChange={(p) => patchSettings({ endTitle: p.title, endBody: p.body, endImageUrl: p.imageUrl })}
+              />
+              <section className="space-y-3 border-t border-border pt-6">
+                <div>
+                  <h3 className="font-semibold">Información útil</h3>
+                  <p className="text-sm text-muted-foreground">Dirección, fecha, horario, estacionamiento… Se muestra en dos columnas.</p>
+                </div>
+                <InfoEditor items={settings.endInfo ?? []} onChange={(endInfo) => patchSettings({ endInfo })} />
+              </section>
+              <section className="space-y-3 border-t border-border pt-6">
+                <h3 className="font-semibold">Mapa y «Cómo llegar»</h3>
+                <MapLinkField heading="Enlace de Google Maps o dirección (opcional)" value={settings.endMapQuery ?? ""} resolved={settings.endMapResolved} onChange={(endMapQuery) => patchSettings({ endMapQuery, endMapResolved: undefined })} />
+              </section>
+              <section className="space-y-3 border-t border-border pt-6">
+                <div>
+                  <h3 className="font-semibold">Programa del evento</h3>
+                  <p className="text-sm text-muted-foreground">Los horarios de lo que va a pasar. Si lo querés mostrar también antes de enviar, sumá una pantalla «Programa».</p>
+                </div>
+                <AgendaEditor items={settings.endAgenda ?? []} onChange={(endAgenda) => patchSettings({ endAgenda })} />
+              </section>
+            </div>
           ) : currentScreen ? (
             <ScreenEditor
               key={currentScreen.id}

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { loadPublicForm } from "@/lib/forms/public";
+import { formDoneCookie } from "@/lib/forms/types";
 import { getCurrentPermissions, getSessionUser } from "@/lib/auth-helpers";
 import { isPanelRole, permissionsHave } from "@/lib/permissions";
 import { FormRunner } from "./form-runner";
@@ -41,8 +43,10 @@ export default async function PublicFormPage({
   const preview = sp.previa === "1" && (await canPreview());
   const form = await loadPublicForm(token, { preview });
   if (!form) notFound();
+  // Quien ya respondió ve la confirmación (con la info del evento) aunque el formulario ya esté cerrado.
+  const alreadyDone = !preview && (await cookies()).get(formDoneCookie(form.id))?.value === "1";
 
-  if (!form.open) {
+  if (!form.open && !alreadyDone) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-white px-6 text-center text-[#13233a]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -53,5 +57,5 @@ export default async function PublicFormPage({
     );
   }
 
-  return <FormRunner token={form.token} title={form.title} logoUrl={LOGO} settings={form.settings} blocks={form.blocks} preview={preview} />;
+  return <FormRunner token={form.token} title={form.title} logoUrl={LOGO} settings={form.settings} blocks={form.blocks} preview={preview} alreadyDone={alreadyDone} canRestart={form.open} />;
 }

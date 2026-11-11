@@ -1,5 +1,6 @@
 import {
   AlignLeft,
+  CalendarClock,
   CalendarDays,
   CheckSquare,
   ChevronDown,
@@ -39,10 +40,11 @@ export const ICONS: Record<BlockType, typeof Type> = {
   image: ImageIcon,
   video: Video,
   map: MapPin,
+  agenda: CalendarClock,
 };
 
 /** Imagen, video y mapa ocupan la pantalla entera: no se les suman campos. */
-const FULL_SCREEN: BlockType[] = ["image", "video", "map"];
+const FULL_SCREEN: BlockType[] = ["image", "video", "map", "agenda"];
 
 export type Screen = { id: string; blocks: EditableBlock[] };
 

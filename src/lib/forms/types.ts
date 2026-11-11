@@ -21,7 +21,7 @@ export const QUESTION_TYPES = [
   "brand_choice",
 ] as const;
 
-export const CONTENT_TYPES = ["statement", "image", "video", "map"] as const;
+export const CONTENT_TYPES = ["statement", "image", "video", "map", "agenda"] as const;
 
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 export type ContentType = (typeof CONTENT_TYPES)[number];
@@ -52,8 +52,17 @@ export const BLOCK_LABELS: Record<BlockType, { label: string; hint: string; grou
   statement: { label: "Pantalla de texto", hint: "Título y texto, sin respuesta", group: "Contenido" },
   image: { label: "Imagen", hint: "Una imagen a pantalla completa (tipo diapositiva)", group: "Contenido" },
   video: { label: "Video", hint: "YouTube, Vimeo o archivo subido", group: "Contenido" },
-  map: { label: "Mapa", hint: "Ubicación de Google Maps", group: "Contenido" },
+  map: { label: "Mapa", hint: "Enlace de Google Maps, con «Cómo llegar»", group: "Contenido" },
+  agenda: { label: "Programa", hint: "Horarios de lo que pasa en el evento", group: "Contenido" },
 };
+
+/** Un momento del programa del evento: hora, qué pasa y un detalle opcional. */
+export const agendaItemSchema = z.object({ time: z.string().max(20), title: z.string().max(200), detail: z.string().max(500).optional() });
+export type AgendaItem = z.infer<typeof agendaItemSchema>;
+
+/** Un dato útil de la pantalla de cierre (Dirección, Fecha, Horario, Estacionamiento…). */
+export const infoItemSchema = z.object({ label: z.string().max(60), value: z.string().max(300) });
+export type InfoItem = z.infer<typeof infoItemSchema>;
 
 /** Configuración de cada bloque (JSON en FormBlock.config). Todo opcional. */
 export const blockConfigSchema = z
@@ -81,6 +90,10 @@ export const blockConfigSchema = z
     /** Mapa: dirección o enlace de Google Maps. */
     mapQuery: z.string().max(1000).optional(),
     mapLink: z.string().max(2000).optional(),
+    /** Enlace corto de Google Maps ya resuelto al guardar (para mostrar el mapa). */
+    mapResolved: z.string().max(4000).optional(),
+    /** Programa: horarios del evento. */
+    agenda: z.array(agendaItemSchema).max(40).optional(),
     /** Imagen que acompaña a una pregunta (al costado). */
     sideImageUrl: z.string().max(2000).optional(),
     /** Va en la misma pantalla que el bloque anterior (varios campos juntos). */
@@ -111,6 +124,11 @@ export const formSettingsSchema = z
     endTitle: z.string().max(200).optional(),
     endBody: z.string().max(20000).optional(),
     endImageUrl: z.string().max(2000).optional(),
+    /** Cierre: datos útiles, mapa con «Cómo llegar» y programa del evento. */
+    endInfo: z.array(infoItemSchema).max(12).optional(),
+    endMapQuery: z.string().max(1000).optional(),
+    endMapResolved: z.string().max(4000).optional(),
+    endAgenda: z.array(agendaItemSchema).max(40).optional(),
     /** Mails que reciben aviso de cada respuesta (cuando esté Resend). */
     notifyEmails: z.array(z.string().email()).max(20).optional(),
     /** Fondo: blanco liso, blanco con degradé azul, gris claro u oscuro (azul Soundtec). */
@@ -137,6 +155,11 @@ export type PublicBlock = {
   required: boolean;
   config: BlockConfig;
 };
+
+/** Cookie que marca que este navegador ya respondió el formulario. */
+export function formDoneCookie(formId: string): string {
+  return `form_done_${formId}`;
+}
 
 export type AnswerValue = string | number | boolean | string[] | null;
 
@@ -226,16 +249,40 @@ export function videoEmbedUrl(url: string | undefined | null): string | null {
   return null;
 }
 
-/** Dirección o enlace de Google Maps → URL de embed (sin clave de API). */
-export function mapEmbedUrl(query: string | undefined | null): string | null {
+/**
+ * Lugar a partir de una dirección o un enlace de Google Maps (ya resuelto si era
+ * corto): primero el pin exacto del enlace, después el nombre del lugar, el
+ * parámetro q y por último el centro del mapa.
+ */
+export function mapPlace(query: string | undefined | null): string | null {
   const q = (query ?? "").trim();
   if (!q) return null;
-  // Un enlace con coordenadas: se usan las coordenadas.
-  const coords = q.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (!/^https?:\/\//i.test(q)) return q;
+  const pin = q.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (pin) return `${pin[1]},${pin[2]}`;
   const place = q.match(/\/place\/([^/@?]+)/);
-  const term = coords ? `${coords[1]},${coords[2]}` : place ? decodeURIComponent(place[1].replace(/\+/g, " ")) : /^https?:\/\//i.test(q) ? null : q;
-  if (!term) return null;
-  return `https://www.google.com/maps?q=${encodeURIComponent(term)}&output=embed`;
+  if (place) return decodeURIComponent(place[1].replace(/\+/g, " "));
+  try {
+    const params = new URL(q).searchParams;
+    const param = params.get("q") ?? params.get("query") ?? params.get("destination");
+    if (param) return param;
+  } catch {
+    return null;
+  }
+  const center = q.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  return center ? `${center[1]},${center[2]}` : null;
+}
+
+/** Dirección o enlace de Google Maps → URL de embed (sin clave de API). */
+export function mapEmbedUrl(query: string | undefined | null): string | null {
+  const place = mapPlace(query);
+  return place ? `https://www.google.com/maps?q=${encodeURIComponent(place)}&output=embed` : null;
+}
+
+/** «Cómo llegar»: abre Google Maps con el recorrido hasta el lugar desde donde esté la persona. */
+export function mapDirectionsUrl(query: string | undefined | null): string | null {
+  const place = mapPlace(query);
+  return place ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place)}` : null;
 }
 
 /** Enlace para abrir el mapa en Google Maps. */

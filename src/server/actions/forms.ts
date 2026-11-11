@@ -8,6 +8,7 @@ import { requireStaff } from "@/lib/auth-helpers";
 import { BLOB_NOT_CONFIGURED, BLOB_UPLOAD_FAILED, isBlobConfigured, uploadFile } from "@/lib/blob-storage";
 import { BLOCK_LABELS, blockConfigSchema, formSettingsSchema, isBlockType, type BlockConfig, type BlockType } from "@/lib/forms/types";
 import { sanitizeFormHtml } from "@/lib/forms/sanitize";
+import { resolveMapsLink } from "@/lib/forms/maps-resolve";
 
 /**
  * Formularios tipo Typeform del panel (Ventas › Formularios). Se comparten por
@@ -42,6 +43,7 @@ const DEFAULT_CONFIG: Partial<Record<BlockType, BlockConfig>> = {
   image: { buttonLabel: "Continuar" },
   video: { buttonLabel: "Continuar" },
   map: { buttonLabel: "Continuar" },
+  agenda: { buttonLabel: "Continuar", agenda: [{ time: "19:00", title: "Acreditación" }, { time: "19:30", title: "Presentación" }, { time: "20:30", title: "Demo en vivo" }] },
 };
 
 const DEFAULT_TITLE: Partial<Record<BlockType, string>> = {
@@ -51,6 +53,7 @@ const DEFAULT_TITLE: Partial<Record<BlockType, string>> = {
   consent: "Acepto que Soundtec me contacte por este evento.",
   statement: "Título de la pantalla",
   map: "¿Dónde es?",
+  agenda: "Programa",
   brand_choice: "¿Qué marcas de Soundtec conocés?",
 };
 
@@ -97,6 +100,9 @@ export async function updateForm(input: { formId: string; title?: string; intern
     const parsed = formSettingsSchema.safeParse({ ...((form.settings as object) ?? {}), ...((input.settings as object) ?? {}) });
     if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
     const s = parsed.data;
+    // Enlace corto de Google Maps: se resuelve una vez al guardar para poder mostrar el mapa.
+    const changedMap = (input.settings as { endMapQuery?: string }).endMapQuery;
+    if (changedMap !== undefined) s.endMapResolved = await resolveMapsLink(changedMap);
     data.settings = {
       ...s,
       ...(s.welcomeBody !== undefined ? { welcomeBody: sanitizeFormHtml(s.welcomeBody) } : {}),
@@ -222,6 +228,8 @@ export async function updateFormBlock(input: { blockId: string; title?: string; 
     if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
     const config = parsed.data;
     if (config.options) config.options = config.options.map((o) => o.trim()).filter(Boolean);
+    const changedMap = (input.config as { mapQuery?: string }).mapQuery;
+    if (changedMap !== undefined) config.mapResolved = await resolveMapsLink(changedMap);
     data.config = config as Prisma.InputJsonValue;
   }
   await prisma.formBlock.update({ where: { id: block.id }, data });

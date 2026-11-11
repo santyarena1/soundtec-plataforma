@@ -1,12 +1,12 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { clientIp, hashIp } from "@/services/ai-assistant/rate-limit";
 import { loadPublicForm } from "@/lib/forms/public";
-import { isQuestionType, validateAnswer, type AnswerValue } from "@/lib/forms/types";
+import { formDoneCookie, isQuestionType, validateAnswer, type AnswerValue } from "@/lib/forms/types";
 
 export type SubmitFormResult =
   | { ok: true }
@@ -47,6 +47,14 @@ export async function submitFormResponse(input: { token: string; answers: Record
       ipHash,
       userAgent: requestHeaders.get("user-agent")?.slice(0, 300) ?? null,
     },
+  });
+  // Si vuelve a abrir el enlace desde este navegador, ve directo la pantalla de confirmación.
+  (await cookies()).set(formDoneCookie(form.id), "1", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/f",
+    maxAge: 60 * 60 * 24 * 365,
   });
   return { ok: true };
 }

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { isBlockType, readConfig, readSettings, type FormSettings, type PublicBlock } from "@/lib/forms/types";
 import { sanitizeFormHtml } from "@/lib/forms/sanitize";
 import { listVisibleCatalogBrands } from "@/lib/catalog";
+import { resolveMapsLink } from "@/lib/forms/maps-resolve";
 
 export type FormBrandOption = { id: string; name: string; logoUrl: string | null };
 
@@ -40,6 +41,19 @@ export async function loadPublicForm(token: string, options?: { preview?: boolea
   const settings = readSettings(form.settings);
   // Bloques «Marcas»: las opciones salen del catálogo (las elegidas en el editor, o todas).
   const brands = form.blocks.some((b) => b.type === "brand_choice") ? await listFormBrands() : [];
+  const blocks = await Promise.all(
+    form.blocks
+      .filter((b) => isBlockType(b.type))
+      .map(async (b) => ({
+        id: b.id,
+        type: b.type as PublicBlock["type"],
+        title: b.title,
+        body: sanitizeFormHtml(b.body),
+        required: b.required,
+        config: await withResolvedMap(withBrandOptions(b.type, readConfig(b.config), brands)),
+      }))
+  );
+  const endMapResolved = settings.endMapResolved || (await resolveMapsLink(settings.endMapQuery));
   return {
     id: form.id,
     title: form.title,
@@ -48,17 +62,9 @@ export async function loadPublicForm(token: string, options?: { preview?: boolea
       ...settings,
       welcomeBody: sanitizeFormHtml(settings.welcomeBody),
       endBody: sanitizeFormHtml(settings.endBody),
+      endMapResolved,
     },
-    blocks: form.blocks
-      .filter((b) => isBlockType(b.type))
-      .map((b) => ({
-        id: b.id,
-        type: b.type as PublicBlock["type"],
-        title: b.title,
-        body: sanitizeFormHtml(b.body),
-        required: b.required,
-        config: withBrandOptions(b.type, readConfig(b.config), brands),
-      })),
+    blocks,
     open,
     closedReason,
   };
@@ -72,4 +78,11 @@ function withBrandOptions(type: string, config: PublicBlock["config"], brands: F
     options: chosen.map((b) => b.name),
     brandLogos: Object.fromEntries(chosen.filter((b) => b.logoUrl).map((b) => [b.name, b.logoUrl as string])),
   };
+}
+
+/** Mapas guardados como enlace corto antes de resolverlos al guardar: se resuelven al mostrar. */
+async function withResolvedMap(config: PublicBlock["config"]): Promise<PublicBlock["config"]> {
+  if (config.mapResolved || !config.mapQuery) return config;
+  const resolved = await resolveMapsLink(config.mapQuery);
+  return resolved ? { ...config, mapResolved: resolved } : config;
 }

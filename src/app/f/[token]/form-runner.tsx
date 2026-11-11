@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { ArrowRight, Check, ChevronDown, ChevronUp, ExternalLink, Loader2, MapPin } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { formTheme, type FormTheme } from "./form-theme";
 import { FormParticles } from "./form-particles";
+import { AgendaList, InfoList, MapPanel } from "./event-info";
 import { submitFormResponse } from "@/server/actions/form-submit";
 import {
   OTHER_PREFIX,
   isQuestionType,
-  mapEmbedUrl,
   mapOpenUrl,
   validateAnswer,
   videoEmbedUrl,
@@ -35,6 +35,8 @@ export function FormRunner({
   settings,
   blocks,
   preview = false,
+  alreadyDone = false,
+  canRestart = true,
 }: {
   token: string;
   title: string;
@@ -43,6 +45,10 @@ export function FormRunner({
   blocks: PublicBlock[];
   /** Vista previa del panel: no envía. */
   preview?: boolean;
+  /** Ya respondió desde este navegador: arranca en la pantalla de confirmación. */
+  alreadyDone?: boolean;
+  /** Falso si el formulario ya cerró: se ve la confirmación pero no se puede responder de nuevo. */
+  canRestart?: boolean;
 }) {
   const theme = formTheme(settings);
   const dark = theme.dark;
@@ -64,7 +70,8 @@ export function FormRunner({
     return list;
   }, [blocks, settings.welcomeTitle, settings.welcomeBody, settings.welcomeImageUrl]);
 
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() => (alreadyDone ? steps.length - 1 : 0));
+  const [restarted, setRestarted] = useState(false);
   const [visible, setVisible] = useState(true);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
@@ -214,11 +221,19 @@ export function FormRunner({
           ) : null}
 
           {step.kind === "end" ? (
-            <Screen title={settings.endTitle || "¡Gracias!"} body={settings.endBody} imageUrl={settings.endImageUrl} proseClass={theme.prose} mutedClass={theme.muted} big>
-              <span className={`mt-2 inline-flex h-14 w-14 items-center justify-center rounded-full ${theme.bar} text-white shadow-lg`}>
-                <Check className="h-7 w-7" />
-              </span>
-            </Screen>
+            <EndScreen
+              settings={settings}
+              theme={theme}
+              alreadyDone={alreadyDone && !restarted}
+              onRestart={
+                alreadyDone && !restarted && !preview && canRestart
+                  ? () => {
+                      setRestarted(true);
+                      goTo(0);
+                    }
+                  : undefined
+              }
+            />
           ) : null}
 
           {step.kind === "block" && step.items.length === 1 ? (
@@ -264,6 +279,78 @@ export function FormRunner({
           </button>
         </nav>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Pantalla de cierre / confirmación. Con datos útiles, mapa o programa pasa a ser
+ * una ficha del evento; es lo que ve quien ya respondió cuando vuelve al enlace.
+ */
+function EndScreen({ settings, theme, alreadyDone, onRestart }: { settings: FormSettings; theme: FormTheme; alreadyDone: boolean; onRestart?: () => void }) {
+  const info = (settings.endInfo ?? []).filter((i) => i.label.trim() || i.value.trim());
+  const agenda = (settings.endAgenda ?? []).filter((i) => i.time.trim() || i.title.trim());
+  const mapQuery = settings.endMapResolved || settings.endMapQuery || "";
+  const hasExtras = info.length > 0 || agenda.length > 0 || Boolean(mapQuery);
+  const header = (
+    <>
+      <span className={`inline-flex h-14 w-14 items-center justify-center rounded-full ${theme.bar} text-white shadow-lg`}>
+        <Check className="h-7 w-7" />
+      </span>
+      {alreadyDone ? <p className={`mt-5 text-sm font-semibold uppercase tracking-[0.14em] ${theme.muted}`}>Ya recibimos tus respuestas</p> : null}
+      <h1 className={`${alreadyDone ? "mt-2" : "mt-5"} text-4xl font-semibold leading-[1.1] tracking-tight sm:text-6xl`}>{settings.endTitle || "¡Gracias!"}</h1>
+      <RichBody html={settings.endBody} className={`mt-5 ${theme.prose} ${theme.muted}`} />
+    </>
+  );
+  const restart = onRestart ? (
+    <button type="button" onClick={onRestart} className={`mt-8 text-sm underline underline-offset-4 ${theme.muted}`}>
+      ¿No sos vos o querés cambiar algo? Completar de nuevo
+    </button>
+  ) : null;
+
+  if (!hasExtras) {
+    return (
+      <div className={`grid items-center gap-10 ${settings.endImageUrl ? "lg:grid-cols-2" : ""}`}>
+        <div className={settings.endImageUrl ? "" : "mx-auto max-w-3xl text-center"}>
+          {header}
+          {restart}
+        </div>
+        {settings.endImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={settings.endImageUrl} alt="" className="max-h-[65vh] w-full rounded-2xl object-cover shadow-2xl" />
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-6">
+      <div className="max-w-3xl">{header}</div>
+      <div className={`mt-12 grid gap-12 ${mapQuery && (info.length || agenda.length) ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]" : ""}`}>
+        {info.length || agenda.length ? (
+          <div className="space-y-12">
+            {info.length ? (
+              <section>
+                <h2 className="mb-5 text-xl font-semibold">Información útil</h2>
+                <InfoList items={info} theme={theme} />
+              </section>
+            ) : null}
+            {agenda.length ? (
+              <section>
+                <h2 className="mb-5 text-xl font-semibold">Programa</h2>
+                <AgendaList items={agenda} theme={theme} />
+              </section>
+            ) : null}
+          </div>
+        ) : null}
+        {mapQuery ? (
+          <section>
+            <h2 className="mb-5 text-xl font-semibold">Cómo llegar</h2>
+            <MapPanel query={mapQuery} openUrl={/^https?:\/\//i.test(settings.endMapQuery ?? "") ? settings.endMapQuery : null} theme={theme} />
+          </section>
+        ) : null}
+      </div>
+      {restart}
     </div>
   );
 }
@@ -400,23 +487,27 @@ function BlockScreen({
   }
 
   if (block.type === "map") {
-    const embed = mapEmbedUrl(c.mapQuery);
-    const open = mapOpenUrl(block);
     return (
       <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <div>
           <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-5xl">{block.title}</h2>
           <RichBody html={block.body} className={`mt-5 ${theme.prose} ${theme.muted}`} />
-          {open ? (
-            <a href={open} target="_blank" rel="noopener noreferrer" className={`mt-6 inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 font-semibold ${theme.choice}`}>
-              <MapPin className="h-4 w-4" /> Abrir en Google Maps <ExternalLink className="h-4 w-4 opacity-60" />
-            </a>
-          ) : null}
           {button}
         </div>
-        {embed ? (
-          <iframe src={embed} title="Mapa" loading="lazy" referrerPolicy="no-referrer-when-downgrade" className="h-[50vh] min-h-[320px] w-full rounded-2xl border-0 shadow-2xl" />
-        ) : null}
+        <MapPanel query={c.mapResolved || c.mapQuery || ""} openUrl={mapOpenUrl(block)} theme={theme} tall />
+      </div>
+    );
+  }
+
+  if (block.type === "agenda") {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-5xl">{block.title}</h2>
+        <RichBody html={block.body} className={`mt-4 ${theme.prose} ${theme.muted}`} />
+        <div className="mt-8">
+          <AgendaList items={c.agenda ?? []} theme={theme} />
+        </div>
+        {button}
       </div>
     );
   }
