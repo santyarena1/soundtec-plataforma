@@ -18,6 +18,7 @@ export const QUESTION_TYPES = [
   "yes_no",
   "scale",
   "consent",
+  "brand_choice",
 ] as const;
 
 export const CONTENT_TYPES = ["statement", "image", "video", "map"] as const;
@@ -47,6 +48,7 @@ export const BLOCK_LABELS: Record<BlockType, { label: string; hint: string; grou
   yes_no: { label: "Sí / No", hint: "Respuesta rápida", group: "Opciones" },
   scale: { label: "Escala", hint: "Del 1 al 10 (o el rango que elijas)", group: "Opciones" },
   consent: { label: "Aceptación", hint: "Casilla «Acepto…»", group: "Opciones" },
+  brand_choice: { label: "Marcas", hint: "Logos de las marcas para elegir", group: "Opciones" },
   statement: { label: "Pantalla de texto", hint: "Título y texto, sin respuesta", group: "Contenido" },
   image: { label: "Imagen", hint: "Una imagen a pantalla completa (tipo diapositiva)", group: "Contenido" },
   video: { label: "Video", hint: "YouTube, Vimeo o archivo subido", group: "Contenido" },
@@ -81,6 +83,12 @@ export const blockConfigSchema = z
     mapLink: z.string().max(2000).optional(),
     /** Imagen que acompaña a una pregunta (al costado). */
     sideImageUrl: z.string().max(2000).optional(),
+    /** Va en la misma pantalla que el bloque anterior (varios campos juntos). */
+    groupWithPrevious: z.boolean().optional(),
+    /** Marcas: ids de las marcas a mostrar (vacío = todas las del catálogo). */
+    brandIds: z.array(z.string().max(60)).max(200).optional(),
+    /** Marcas: logos por nombre (lo completa el servidor al mostrar el formulario; no se guarda). */
+    brandLogos: z.record(z.string(), z.string()).optional(),
   })
   .partial();
 
@@ -97,14 +105,18 @@ export const formSettingsSchema = z
     welcomeTitle: z.string().max(200).optional(),
     welcomeBody: z.string().max(20000).optional(),
     welcomeImageUrl: z.string().max(2000).optional(),
+    /** Logo propio del formulario: reemplaza al de Soundtec arriba y va grande en la bienvenida. */
+    logoUrl: z.string().max(2000).optional(),
     welcomeButton: z.string().max(60).optional(),
     endTitle: z.string().max(200).optional(),
     endBody: z.string().max(20000).optional(),
     endImageUrl: z.string().max(2000).optional(),
     /** Mails que reciben aviso de cada respuesta (cuando esté Resend). */
     notifyEmails: z.array(z.string().email()).max(20).optional(),
-    /** Fondo: claro (blanco) u oscuro (azul Soundtec). */
-    theme: z.enum(["light", "dark"]).optional(),
+    /** Fondo: blanco liso, blanco con degradé azul, gris claro u oscuro (azul Soundtec). */
+    theme: z.enum(["white", "light", "gray", "dark"]).optional(),
+    /** Color de botones, selección y barra de progreso. */
+    accent: z.enum(["blue", "black"]).optional(),
   })
   .partial();
 
@@ -169,7 +181,8 @@ export function validateAnswer(block: PublicBlock, raw: unknown): { ok: true; va
       if (c.allowOther && text.startsWith(OTHER_PREFIX) && text.length > OTHER_PREFIX.length) return { ok: true, value: text.slice(0, 500) };
       return { ok: false, error: "Elegí una de las opciones." };
     }
-    case "multi_choice": {
+    case "multi_choice":
+    case "brand_choice": {
       const list = (Array.isArray(raw) ? raw : []).map((v) => String(v).trim()).filter(Boolean);
       const options = c.options ?? [];
       const valid = list.every((v) => options.includes(v) || (c.allowOther && v.startsWith(OTHER_PREFIX)));

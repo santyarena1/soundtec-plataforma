@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 import { BLOCK_LABELS, isQuestionType, mapEmbedUrl, videoEmbedUrl, type BlockConfig, type BlockType } from "@/lib/forms/types";
 import { FormRichEditor } from "../form-rich-editor";
 import { MediaField } from "./media-field";
+import type { FormBrandOption } from "@/lib/forms/public";
 
 export type EditableBlock = {
   id: string;
@@ -25,11 +26,25 @@ const SWITCHABLE: BlockType[][] = [
   ["single_choice", "multi_choice", "dropdown"],
 ];
 
-export function BlockEditor({ formId, block, onPatch }: { formId: string; block: EditableBlock; onPatch: (patch: BlockPatch) => void }) {
+export function BlockEditor({
+  formId,
+  block,
+  brands,
+  canGroup,
+  onPatch,
+}: {
+  formId: string;
+  block: EditableBlock;
+  brands: FormBrandOption[];
+  /** Falso en el primer bloque: no hay pantalla anterior a la cual sumarse. */
+  canGroup: boolean;
+  onPatch: (patch: BlockPatch) => void;
+}) {
   const c = block.config;
   const isQuestion = isQuestionType(block.type);
   const setConfig = (patch: BlockConfig) => onPatch({ config: { ...c, ...patch } });
   const switchable = SWITCHABLE.find((group) => group.includes(block.type));
+  const groupable = canGroup && (isQuestion || block.type === "statement");
 
   return (
     <div className="space-y-5">
@@ -49,6 +64,12 @@ export function BlockEditor({ formId, block, onPatch }: { formId: string; block:
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
               <input type="checkbox" checked={block.required} onChange={(e) => onPatch({ required: e.target.checked })} className="h-4 w-4 accent-primary" />
               Obligatoria
+            </label>
+          ) : null}
+          {groupable ? (
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium" title="Junta este campo con el anterior en una sola pantalla (por ejemplo nombre, empresa, mail y celular).">
+              <input type="checkbox" checked={Boolean(c.groupWithPrevious)} onChange={(e) => setConfig({ groupWithPrevious: e.target.checked || undefined })} className="h-4 w-4 accent-primary" />
+              En la misma pantalla que la anterior
             </label>
           ) : null}
         </div>
@@ -126,6 +147,8 @@ export function BlockEditor({ formId, block, onPatch }: { formId: string; block:
         </OptionsEditor>
       ) : null}
 
+      {block.type === "brand_choice" ? <BrandPicker brands={brands} config={c} onChange={setConfig} /> : null}
+
       {block.type === "scale" ? (
         <div className="grid gap-4 sm:grid-cols-4">
           <div>
@@ -183,7 +206,7 @@ export function BlockEditor({ formId, block, onPatch }: { formId: string; block:
         </div>
       ) : null}
 
-      {isQuestion ? (
+      {isQuestion && c.groupWithPrevious ? null : isQuestion ? (
         <MediaField
           formId={formId}
           label="Imagen al costado de la pregunta (opcional)"
@@ -244,6 +267,53 @@ function OptionsEditor({ options, onChange, children }: { options: string[]; onC
         <Plus className="h-4 w-4" /> Agregar opción
       </button>
       {children}
+    </div>
+  );
+}
+
+/** Marcas que se muestran como logos para tildar. Sin ninguna marcada, salen todas las del catálogo. */
+function BrandPicker({ brands, config, onChange }: { brands: FormBrandOption[]; config: BlockConfig; onChange: (patch: BlockConfig) => void }) {
+  const chosen = config.brandIds ?? [];
+  const toggle = (id: string) => onChange({ brandIds: chosen.includes(id) ? chosen.filter((b) => b !== id) : [...chosen, id] });
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className={label}>Marcas a mostrar</span>
+        <span className="text-xs text-muted-foreground">
+          {chosen.length ? `${chosen.length} elegidas` : `Todas (${brands.length})`} ·{" "}
+          <button type="button" onClick={() => onChange({ brandIds: [] })} className="font-medium text-primary hover:underline">
+            usar todas
+          </button>
+        </span>
+      </div>
+      <div className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-border p-2 sm:grid-cols-3">
+        {brands.map((b) => {
+          const on = chosen.includes(b.id);
+          return (
+            <button
+              key={b.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => toggle(b.id)}
+              className={`flex h-14 items-center gap-2 rounded-md border bg-white px-2 text-left text-xs font-medium transition ${on ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/40"}`}
+            >
+              {b.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={b.logoUrl} alt="" className="h-8 w-16 shrink-0 object-contain" loading="lazy" />
+              ) : null}
+              <span className="min-w-0 truncate">{b.name}</span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted-foreground">Sin ninguna marcada se muestran todas las marcas visibles del catálogo, con su logo. Las respuestas llegan con el nombre de cada marca.</p>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        Elegir entre
+        <input type="number" min={0} value={config.minChoices ?? ""} onChange={(e) => onChange({ minChoices: e.target.value ? Number(e.target.value) : undefined })} className="h-9 w-16 rounded-md border border-border px-2" aria-label="Mínimo de marcas" />
+        y
+        <input type="number" min={0} value={config.maxChoices ?? ""} onChange={(e) => onChange({ maxChoices: e.target.value ? Number(e.target.value) : undefined })} className="h-9 w-16 rounded-md border border-border px-2" aria-label="Máximo de marcas" />
+        marcas (vacío = sin límite)
+      </div>
     </div>
   );
 }

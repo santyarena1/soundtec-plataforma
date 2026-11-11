@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { isBlockType, readConfig, readSettings } from "@/lib/forms/types";
+import { listFormBrands } from "@/lib/forms/public";
 import { FormBuilder } from "./form-builder";
 import type { EditableBlock } from "./block-editor";
 
@@ -22,6 +23,8 @@ export default async function FormEditorPage({ params }: { params: Promise<{ id:
     .filter((b) => isBlockType(b.type))
     .map((b) => ({ id: b.id, type: b.type as EditableBlock["type"], title: b.title, body: b.body, required: b.required, config: readConfig(b.config) }));
 
+  const brands = await listFormBrands();
+
   return (
     <div className="space-y-4">
       <Link href="/admin/forms" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
@@ -38,6 +41,7 @@ export default async function FormEditorPage({ params }: { params: Promise<{ id:
         }}
         initialBlocks={blocks}
         responseCount={form._count.responses}
+        brands={brands}
       />
     </div>
   );

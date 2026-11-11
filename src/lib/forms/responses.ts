@@ -41,7 +41,7 @@ export async function loadFormResponses(formId: string): Promise<FormResponsesDa
   });
 
   const summaries = columns
-    .filter((c) => !c.removed && ["single_choice", "multi_choice", "dropdown", "yes_no", "scale"].includes(c.type))
+    .filter((c) => !c.removed && ["single_choice", "multi_choice", "dropdown", "yes_no", "scale", "brand_choice"].includes(c.type))
     .map((column) => {
       const block = form.blocks.find((b) => b.id === column.id)!;
       const config = readConfig(block.config);

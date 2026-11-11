@@ -46,7 +46,7 @@ export default async function PublicFormPage({
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-white px-6 text-center text-[#13233a]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={LOGO} alt="Soundtec" className="h-14 w-auto" />
+        <img src={form.settings.logoUrl || LOGO} alt={form.title} className="h-14 w-auto max-w-[280px] object-contain" />
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{form.title}</h1>
         <p className="max-w-md text-lg text-[#13233a]/70">{form.closedReason}</p>
       </div>

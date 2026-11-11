@@ -28,6 +28,7 @@ import {
   RefreshCw,
   SlidersHorizontal,
   Sparkles,
+  Tags,
   ThumbsUp,
   Trash2,
   Type,
@@ -48,6 +49,7 @@ import {
 import { FormRichEditor } from "../form-rich-editor";
 import { BlockEditor, type BlockPatch, type EditableBlock } from "./block-editor";
 import { MediaField } from "./media-field";
+import type { FormBrandOption } from "@/lib/forms/public";
 
 const ICONS: Record<BlockType, typeof Type> = {
   short_text: Type,
@@ -62,6 +64,7 @@ const ICONS: Record<BlockType, typeof Type> = {
   yes_no: ThumbsUp,
   scale: SlidersHorizontal,
   consent: CheckSquare,
+  brand_choice: Tags,
   statement: MessageSquareText,
   image: ImageIcon,
   video: Video,
@@ -75,10 +78,13 @@ export function FormBuilder({
   form,
   initialBlocks,
   responseCount,
+  brands,
 }: {
   form: { id: string; title: string; token: string; status: Status; closesAt: string | null; settings: FormSettings };
   initialBlocks: EditableBlock[];
   responseCount: number;
+  /** Marcas del catálogo, para los bloques «Marcas». */
+  brands: FormBrandOption[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -267,9 +273,24 @@ export function FormBuilder({
         <div className="mt-3 flex flex-wrap items-center gap-4 border-t border-border pt-3 text-sm">
           <label className="flex items-center gap-2">
             Fondo
-            <select value={settings.theme ?? "light"} onChange={(e) => patchSettings({ theme: e.target.value as "light" | "dark" })} className="h-9 rounded-md border border-border bg-white px-2">
-              <option value="light">Claro (blanco)</option>
+            <select value={settings.theme ?? "light"} onChange={(e) => patchSettings({ theme: e.target.value as NonNullable<FormSettings["theme"]> })} className="h-9 rounded-md border border-border bg-white px-2">
+              <option value="white">Blanco liso</option>
+              <option value="light">Blanco con degradé azul</option>
+              <option value="gray">Gris claro</option>
               <option value="dark">Oscuro (azul Soundtec)</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
+            Botones y detalles
+            <select
+              value={settings.accent ?? "blue"}
+              disabled={settings.theme === "dark"}
+              title={settings.theme === "dark" ? "Con fondo oscuro los botones van en blanco" : undefined}
+              onChange={(e) => patchSettings({ accent: e.target.value as NonNullable<FormSettings["accent"]> })}
+              className="h-9 rounded-md border border-border bg-white px-2 disabled:opacity-50"
+            >
+              <option value="blue">Azul Soundtec</option>
+              <option value="black">Negro</option>
             </select>
           </label>
           <label className="flex items-center gap-2">
@@ -295,6 +316,7 @@ export function FormBuilder({
             {blocks.map((b, i) => {
               const Icon = ICONS[b.type];
               const n = isQuestionType(b.type) ? ++questionNumber : null;
+              const joined = i > 0 && Boolean(b.config.groupWithPrevious);
               return (
                 <li
                   key={b.id}
@@ -302,7 +324,7 @@ export function FormBuilder({
                   onDragStart={() => (dragId.current = b.id)}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => dropOn(b.id)}
-                  className={`group flex items-center gap-2 rounded-lg border px-2 py-2 transition ${selected === b.id ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:border-primary/30"}`}
+                  className={`group flex items-center gap-2 rounded-lg border px-2 py-2 transition ${joined ? "-mt-1 ml-4 border-l-4 border-l-primary/40" : ""} ${selected === b.id ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:border-primary/30"}`}
                 >
                   <button type="button" onClick={() => setSelected(b.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                     <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${isQuestionType(b.type) ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-800"}`}>
@@ -314,7 +336,10 @@ export function FormBuilder({
                         {b.title || BLOCK_LABELS[b.type].label}
                         {b.required ? <span className="text-primary"> *</span> : null}
                       </span>
-                      <span className="block text-[11px] text-muted-foreground">{BLOCK_LABELS[b.type].label}</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {BLOCK_LABELS[b.type].label}
+                        {joined ? " · misma pantalla" : ""}
+                      </span>
                     </span>
                   </button>
                   <span className="flex shrink-0 flex-col opacity-60 group-hover:opacity-100">
@@ -366,6 +391,16 @@ export function FormBuilder({
         {/* Editor de la pantalla elegida */}
         <section className="min-w-0 rounded-xl border border-border bg-card p-5 shadow-sm">
           {selected === "welcome" ? (
+            <div className="space-y-6">
+            <div className="rounded-lg border border-border bg-secondary/20 p-4">
+              <MediaField
+                formId={form.id}
+                label="Logo del formulario (opcional)"
+                value={settings.logoUrl ?? ""}
+                onChange={(url) => patchSettings({ logoUrl: url })}
+                hint="Reemplaza al logo de Soundtec arriba en todas las pantallas y sale grande y centrado en la bienvenida. Si ya incluye el título del evento, podés dejar el título vacío. Con fondo oscuro va sobre un recuadro blanco."
+              />
+            </div>
             <SettingsScreen
               formId={form.id}
               heading="Pantalla de bienvenida"
@@ -376,6 +411,7 @@ export function FormBuilder({
               button={settings.welcomeButton ?? ""}
               onChange={(p) => patchSettings({ welcomeTitle: p.title, welcomeBody: p.body, welcomeImageUrl: p.imageUrl, welcomeButton: p.button })}
             />
+            </div>
           ) : selected === "end" ? (
             <SettingsScreen
               formId={form.id}
@@ -388,7 +424,7 @@ export function FormBuilder({
             />
           ) : current ? (
             <>
-              <BlockEditor formId={form.id} block={current} onPatch={(patch) => patchBlock(current.id, patch)} />
+              <BlockEditor formId={form.id} block={current} brands={brands} canGroup={blocks[0]?.id !== current.id} onPatch={(patch) => patchBlock(current.id, patch)} />
               <div className="mt-6 flex flex-wrap gap-2 border-t border-border pt-4">
                 <button type="button" disabled={pending} onClick={() => structural(() => duplicateFormBlock({ blockId: current.id }), (r) => setSelected(String(r.blockId)))} className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm hover:bg-secondary">
                   <CopyPlus className="h-4 w-4" /> Duplicar

@@ -51,6 +51,7 @@ const DEFAULT_TITLE: Partial<Record<BlockType, string>> = {
   consent: "Acepto que Soundtec me contacte por este evento.",
   statement: "Título de la pantalla",
   map: "¿Dónde es?",
+  brand_choice: "¿Qué marcas de Soundtec conocés?",
 };
 
 export async function createForm(input: { title: string }): Promise<Result<{ formId: string }>> {

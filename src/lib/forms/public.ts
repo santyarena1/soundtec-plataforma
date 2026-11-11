@@ -1,6 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { isBlockType, readConfig, readSettings, type FormSettings, type PublicBlock } from "@/lib/forms/types";
 import { sanitizeFormHtml } from "@/lib/forms/sanitize";
+import { listVisibleCatalogBrands } from "@/lib/catalog";
+
+export type FormBrandOption = { id: string; name: string; logoUrl: string | null };
+
+/** Marcas del catálogo público (con logo), para los bloques «Marcas». */
+export async function listFormBrands(): Promise<FormBrandOption[]> {
+  const { brands } = await listVisibleCatalogBrands({ commercialClientId: null, userId: null, isAdmin: false, publicMode: true });
+  return brands.map((b) => ({ id: b.id, name: b.name, logoUrl: b.logoUrl }));
+}
 
 export type PublicForm = {
   id: string;
@@ -29,6 +38,8 @@ export async function loadPublicForm(token: string, options?: { preview?: boolea
       ? "Este formulario todavía no está abierto."
       : "Este formulario ya no recibe respuestas.";
   const settings = readSettings(form.settings);
+  // Bloques «Marcas»: las opciones salen del catálogo (las elegidas en el editor, o todas).
+  const brands = form.blocks.some((b) => b.type === "brand_choice") ? await listFormBrands() : [];
   return {
     id: form.id,
     title: form.title,
@@ -46,9 +57,19 @@ export async function loadPublicForm(token: string, options?: { preview?: boolea
         title: b.title,
         body: sanitizeFormHtml(b.body),
         required: b.required,
-        config: readConfig(b.config),
+        config: withBrandOptions(b.type, readConfig(b.config), brands),
       })),
     open,
     closedReason,
+  };
+}
+
+function withBrandOptions(type: string, config: PublicBlock["config"], brands: FormBrandOption[]): PublicBlock["config"] {
+  if (type !== "brand_choice") return config;
+  const chosen = config.brandIds?.length ? brands.filter((b) => config.brandIds!.includes(b.id)) : brands;
+  return {
+    ...config,
+    options: chosen.map((b) => b.name),
+    brandLogos: Object.fromEntries(chosen.filter((b) => b.logoUrl).map((b) => [b.name, b.logoUrl as string])),
   };
 }

@@ -2642,4 +2642,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Catálogo en lista: el nombre del producto se ve más grande que el precio.",
     items: [{ kind: "MEJORA", text: "Portal, vista Lista: el modelo pasa a ser lo más destacado de cada fila y el precio queda un poco más chico." }],
   },
+  {
+    id: "ship-2026-11-10-formularios-diseno",
+    version: "2.31.0",
+    releasedAt: "2026-11-10T23:30:00.000Z",
+    summary: "Formularios: logo propio por formulario, más fondos y colores, varios campos en una misma pantalla y pregunta de marcas con logos.",
+    items: [
+      { kind: "NUEVO", text: "Logo del formulario (en la bienvenida): reemplaza al de Soundtec arriba y sale grande y centrado al abrir el enlace. Sirve para eventos con su propia identidad." },
+      { kind: "NUEVO", text: "Fondo blanco liso, blanco con degradé azul, gris claro u oscuro; botones y detalles en azul Soundtec o en negro." },
+      { kind: "NUEVO", text: "En la misma pantalla que la anterior: tildándolo, varias preguntas se muestran juntas (por ejemplo nombre, cargo, mail, celular y empresa). Una pantalla de texto antes hace de título. Si falta algo, el aviso aparece debajo de ese campo." },
+      { kind: "NUEVO", text: "Pregunta Marcas: muestra los logos de las marcas del catálogo para tocar las que conoce (todas o las que elijas). La respuesta llega con el nombre de cada marca y suma en el resumen." },
+    ],
+  },
 ];

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ArrowRight, Check, ChevronDown, ChevronUp, ExternalLink, Loader2, MapPin } from "lucide-react";
+import { formTheme, type FormTheme } from "./form-theme";
 import { submitFormResponse } from "@/server/actions/form-submit";
 import {
   OTHER_PREFIX,
@@ -15,7 +16,9 @@ import {
   type PublicBlock,
 } from "@/lib/forms/types";
 
-type Step = { kind: "welcome" } | { kind: "block"; block: PublicBlock; number: number | null } | { kind: "end" };
+type StepItem = { block: PublicBlock; number: number | null };
+/** Una pantalla puede juntar varios bloques («En la misma pantalla que la anterior»). */
+type Step = { kind: "welcome" } | { kind: "block"; items: StepItem[] } | { kind: "end" };
 
 const FADE_MS = 420;
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -40,12 +43,20 @@ export function FormRunner({
   /** Vista previa del panel: no envía. */
   preview?: boolean;
 }) {
-  const dark = settings.theme === "dark";
+  const theme = formTheme(settings);
+  const dark = theme.dark;
+  const customLogo = Boolean(settings.logoUrl);
+  const headerLogo = settings.logoUrl || logoUrl;
   const steps = useMemo<Step[]>(() => {
     let n = 0;
     const list: Step[] = [];
     if (settings.welcomeTitle || settings.welcomeBody || settings.welcomeImageUrl) list.push({ kind: "welcome" });
-    for (const block of blocks) list.push({ kind: "block", block, number: isQuestionType(block.type) ? ++n : null });
+    for (const block of blocks) {
+      const item = { block, number: isQuestionType(block.type) ? ++n : null };
+      const prev = list[list.length - 1];
+      if (block.config.groupWithPrevious && prev?.kind === "block") prev.items.push(item);
+      else list.push({ kind: "block", items: [item] });
+    }
     list.push({ kind: "end" });
     return list;
   }, [blocks, settings.welcomeTitle, settings.welcomeBody, settings.welcomeImageUrl]);
@@ -57,6 +68,8 @@ export function FormRunner({
   // Copia sincrónica: al elegir una opción se avanza enseguida y el estado todavía no se actualizó.
   const answersRef = useRef<Record<string, AnswerValue>>({});
   const [error, setError] = useState<string | null>(null);
+  // En una pantalla con varios campos, el error se muestra debajo del campo que falló.
+  const [errorBlockId, setErrorBlockId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [hp, setHp] = useState("");
   const busy = useRef(false);
@@ -76,6 +89,7 @@ export function FormRunner({
       window.setTimeout(() => {
         setIndex(next);
         setError(null);
+        setErrorBlockId(null);
         setVisible(true);
         window.setTimeout(() => (busy.current = false), FADE_MS);
       }, FADE_MS);
@@ -92,20 +106,28 @@ export function FormRunner({
     const result = await submitFormResponse({ token, answers: answersRef.current, hp });
     setSending(false);
     if (!result.ok) {
-      setError(result.error);
-      const target = result.blockId ? steps.findIndex((s) => s.kind === "block" && s.block.id === result.blockId) : -1;
+      const target = result.blockId ? steps.findIndex((s) => s.kind === "block" && s.items.some((i) => i.block.id === result.blockId)) : -1;
       if (target >= 0 && target !== index) goTo(target);
+      // Después del fundido (goTo limpia el error al cambiar de pantalla).
+      window.setTimeout(() => {
+        setError(result.error);
+        setErrorBlockId(result.blockId ?? null);
+      }, target >= 0 && target !== index ? FADE_MS * 2 + 20 : 0);
       return;
     }
     goTo(steps.length - 1);
   }, [goTo, hp, index, preview, steps, token]);
 
   const next = useCallback(() => {
-    if (step.kind === "block" && isQuestionType(step.block.type)) {
-      const check = validateAnswer(step.block, answersRef.current[step.block.id]);
-      if (!check.ok) {
-        setError(check.error);
-        return;
+    if (step.kind === "block") {
+      for (const { block } of step.items) {
+        if (!isQuestionType(block.type)) continue;
+        const check = validateAnswer(block, answersRef.current[block.id]);
+        if (!check.ok) {
+          setError(check.error);
+          setErrorBlockId(block.id);
+          return;
+        }
       }
     }
     if (index >= lastQuestionIndex) {
@@ -119,6 +141,7 @@ export function FormRunner({
     answersRef.current = { ...answersRef.current, [blockId]: value };
     setAnswers(answersRef.current);
     setError(null);
+    setErrorBlockId(null);
   };
 
   // Teclado: Enter avanza; flechas arriba/abajo (fuera de un campo) navegan.
@@ -137,30 +160,6 @@ export function FormRunner({
     return () => window.removeEventListener("keydown", onKey);
   }, [goTo, index, next, step.kind]);
 
-  const theme = dark
-    ? {
-        page: "bg-[#13233a] text-white",
-        glow: "from-[#2f5f9e]/45 via-transparent to-transparent",
-        muted: "text-white/70",
-        input: "border-white/40 text-white placeholder:text-white/35 focus:border-white",
-        choice: "border-white/25 bg-white/5 hover:bg-white/10",
-        choiceOn: "border-white bg-white/20",
-        key: "border-white/40 text-white/80",
-        button: "bg-white text-[#13233a] hover:bg-white/90",
-        prose: "prose-invert",
-      }
-    : {
-        page: "bg-white text-[#13233a]",
-        glow: "from-[#dbe7f7] via-transparent to-transparent",
-        muted: "text-[#13233a]/65",
-        input: "border-[#13233a]/30 text-[#13233a] placeholder:text-[#13233a]/30 focus:border-[#1e3553]",
-        choice: "border-[#1e3553]/20 bg-[#1e3553]/[0.03] hover:bg-[#1e3553]/[0.08]",
-        choiceOn: "border-[#1e3553] bg-[#1e3553]/10",
-        key: "border-[#1e3553]/35 text-[#1e3553]",
-        button: "bg-[#1e3553] text-white hover:bg-[#16283f]",
-        prose: "",
-      };
-
   const motion = visible ? "opacity-100 translate-y-0 blur-0" : `opacity-0 blur-[2px] ${direction === 1 ? "-translate-y-6" : "translate-y-6"}`;
 
   return (
@@ -168,14 +167,19 @@ export function FormRunner({
       {/* Fondo: un resplandor suave arriba, en el azul de la marca. */}
       <div className={`pointer-events-none absolute inset-x-0 top-0 h-[60vh] bg-gradient-to-b ${theme.glow}`} aria-hidden />
       <div className="fixed inset-x-0 top-0 z-30 h-1 bg-black/5">
-        <div className="h-full bg-[#2f6fd6] transition-[width] duration-700 ease-out" style={{ width: `${progress}%` }} />
+        <div className={`h-full ${theme.bar} transition-[width] duration-700 ease-out`} style={{ width: `${progress}%` }} />
       </div>
 
       <header className="relative z-20 flex items-center justify-between px-5 pt-6 sm:px-10">
-        <span className={`inline-flex items-center rounded-lg px-3 py-2 ${dark ? "bg-white" : ""}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logoUrl} alt="Soundtec" className="h-11 w-auto sm:h-14" />
-        </span>
+        {/* Con logo propio, en la bienvenida va grande y centrado (no se repite arriba). */}
+        {customLogo && step.kind === "welcome" ? (
+          <span />
+        ) : (
+          <span className={`inline-flex items-center rounded-lg px-3 py-2 ${dark ? "bg-white" : ""}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={headerLogo} alt={customLogo ? title : "Soundtec"} className={customLogo ? "h-12 w-auto max-w-[240px] object-contain sm:h-16 sm:max-w-[340px]" : "h-11 w-auto sm:h-14"} />
+          </span>
+        )}
         {preview ? <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">Vista previa: no se envía</span> : null}
       </header>
 
@@ -186,7 +190,9 @@ export function FormRunner({
         <div className={`mx-auto w-full max-w-5xl transition-all ease-out ${motion}`} style={{ transitionDuration: `${FADE_MS}ms` }}>
           {step.kind === "welcome" ? (
             <Screen
-              title={settings.welcomeTitle || title}
+              heroLogo={customLogo ? headerLogo : undefined}
+              heroLogoOnDark={dark}
+              title={customLogo ? settings.welcomeTitle ?? "" : settings.welcomeTitle || title}
               body={settings.welcomeBody}
               imageUrl={settings.welcomeImageUrl}
               proseClass={theme.prose}
@@ -202,21 +208,36 @@ export function FormRunner({
 
           {step.kind === "end" ? (
             <Screen title={settings.endTitle || "¡Gracias!"} body={settings.endBody} imageUrl={settings.endImageUrl} proseClass={theme.prose} mutedClass={theme.muted} big>
-              <span className="mt-2 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#2f6fd6] text-white shadow-lg">
+              <span className={`mt-2 inline-flex h-14 w-14 items-center justify-center rounded-full ${theme.bar} text-white shadow-lg`}>
                 <Check className="h-7 w-7" />
               </span>
             </Screen>
           ) : null}
 
-          {step.kind === "block" ? (
+          {step.kind === "block" && step.items.length === 1 ? (
             <BlockScreen
-              key={step.block.id}
-              block={step.block}
-              number={step.number}
-              value={answers[step.block.id] ?? null}
-              onChange={(v) => setAnswer(step.block.id, v)}
+              key={step.items[0].block.id}
+              block={step.items[0].block}
+              number={step.items[0].number}
+              value={answers[step.items[0].block.id] ?? null}
+              onChange={(v) => setAnswer(step.items[0].block.id, v)}
               onNext={next}
               error={error}
+              theme={theme}
+              isLast={index >= lastQuestionIndex}
+              sending={sending}
+            />
+          ) : null}
+
+          {step.kind === "block" && step.items.length > 1 ? (
+            <GroupScreen
+              key={step.items[0].block.id}
+              items={step.items}
+              answers={answers}
+              onChange={setAnswer}
+              onNext={next}
+              error={error}
+              errorBlockId={errorBlockId}
               theme={theme}
               isLast={index >= lastQuestionIndex}
               sending={sending}
@@ -271,7 +292,12 @@ function Screen({
   proseClass,
   mutedClass,
   big,
+  heroLogo,
+  heroLogoOnDark,
 }: {
+  /** Logo propio del formulario, grande y centrado arriba del título. */
+  heroLogo?: string;
+  heroLogoOnDark?: boolean;
   title: string;
   body?: string;
   imageUrl?: string;
@@ -283,7 +309,15 @@ function Screen({
   return (
     <div className={`grid items-center gap-10 ${imageUrl ? "lg:grid-cols-2" : ""}`}>
       <div className={imageUrl ? "" : "mx-auto max-w-3xl text-center"}>
-        <h1 className={`font-semibold leading-[1.1] tracking-tight ${big ? "text-4xl sm:text-6xl" : "text-3xl sm:text-5xl"}`}>{title}</h1>
+        {heroLogo ? (
+          <div className={`mb-8 flex ${imageUrl ? "" : "justify-center"}`}>
+            <span className={`inline-flex rounded-2xl ${heroLogoOnDark ? "bg-white px-6 py-4" : ""}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={heroLogo} alt={title || "Logo"} className="max-h-40 w-auto max-w-[min(560px,85vw)] object-contain" />
+            </span>
+          </div>
+        ) : null}
+        {title ? <h1 className={`font-semibold leading-[1.1] tracking-tight ${big ? "text-4xl sm:text-6xl" : "text-3xl sm:text-5xl"}`}>{title}</h1> : null}
         <RichBody html={body} className={`mt-6 ${proseClass} ${mutedClass}`} />
         {children}
       </div>
@@ -294,8 +328,6 @@ function Screen({
     </div>
   );
 }
-
-type Theme = { muted: string; input: string; choice: string; choiceOn: string; key: string; button: string; prose: string };
 
 function BlockScreen({
   block,
@@ -314,27 +346,13 @@ function BlockScreen({
   onChange: (value: AnswerValue) => void;
   onNext: () => void;
   error: string | null;
-  theme: Theme;
+  theme: FormTheme;
   isLast: boolean;
   sending: boolean;
 }) {
   const c = block.config;
   const isQuestion = isQuestionType(block.type);
-  const buttonText = sending ? "Enviando…" : isLast ? "Enviar" : c.buttonLabel || (isQuestion ? "OK" : "Continuar");
-  const button = (
-    <div className="mt-8 flex flex-wrap items-center gap-4">
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={sending}
-        className={`inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-semibold shadow-md transition hover:-translate-y-0.5 disabled:opacity-60 ${theme.button}`}
-      >
-        {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : isLast ? null : <Check className="h-4 w-4" />}
-        {buttonText}
-      </button>
-      {block.type !== "long_text" ? <span className={`hidden text-sm sm:inline ${theme.muted}`}>o presioná <b>Enter ↵</b></span> : <span className={`hidden text-sm sm:inline ${theme.muted}`}><b>Shift + Enter</b> para un salto de línea</span>}
-    </div>
-  );
+  const button = <NextButton onNext={onNext} sending={sending} isLast={isLast} label={c.buttonLabel || (isQuestion ? "OK" : "Continuar")} theme={theme} multiline={block.type === "long_text"} />;
   const errorBox = error ? (
     <p role="alert" className="mt-4 inline-flex animate-[shake_.35s] rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white">
       {error}
@@ -407,7 +425,7 @@ function BlockScreen({
       ) : null}
       <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-[2.6rem]">
         {block.title}
-        {block.required && isQuestion ? <span className="ml-1 text-[#2f6fd6]">*</span> : null}
+        {block.required && isQuestion ? <span className={`ml-1 ${theme.mark}`}>*</span> : null}
       </h2>
       <RichBody html={block.body} className={`mt-4 ${theme.prose} ${theme.muted}`} />
       {isQuestion ? <div className="mt-8"><QuestionInput block={block} value={value} onChange={onChange} onNext={onNext} theme={theme} /></div> : null}
@@ -425,32 +443,188 @@ function BlockScreen({
   );
 }
 
+function NextButton({
+  onNext,
+  sending,
+  isLast,
+  label,
+  theme,
+  multiline,
+}: {
+  onNext: () => void;
+  sending: boolean;
+  isLast: boolean;
+  label: string;
+  theme: FormTheme;
+  multiline?: boolean;
+}) {
+  return (
+    <div className="mt-8 flex flex-wrap items-center gap-4">
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={sending}
+        className={`inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-semibold shadow-md transition hover:-translate-y-0.5 disabled:opacity-60 ${theme.button}`}
+      >
+        {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : isLast ? null : <Check className="h-4 w-4" />}
+        {sending ? "Enviando…" : isLast ? "Enviar" : label}
+      </button>
+      {multiline ? (
+        <span className={`hidden text-sm sm:inline ${theme.muted}`}>
+          <b>Shift + Enter</b> para un salto de línea
+        </span>
+      ) : (
+        <span className={`hidden text-sm sm:inline ${theme.muted}`}>
+          o presioná <b>Enter ↵</b>
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Pantalla con varios campos juntos (p. ej. nombre, empresa, mail y celular).
+ * Si arranca con una pantalla de texto, esa hace de encabezado.
+ */
+function GroupScreen({
+  items,
+  answers,
+  onChange,
+  onNext,
+  error,
+  errorBlockId,
+  theme,
+  isLast,
+  sending,
+}: {
+  items: StepItem[];
+  answers: Record<string, AnswerValue>;
+  onChange: (blockId: string, value: AnswerValue) => void;
+  onNext: () => void;
+  error: string | null;
+  errorBlockId: string | null;
+  theme: FormTheme;
+  isLast: boolean;
+  sending: boolean;
+}) {
+  const head = !isQuestionType(items[0].block.type) ? items[0].block : null;
+  const fields = head ? items.slice(1) : items;
+  const firstQuestion = fields.find((f) => isQuestionType(f.block.type))?.block.id;
+  const looseError = error && !fields.some((f) => f.block.id === errorBlockId) ? error : null;
+  const lastField = fields[fields.length - 1]?.block;
+  return (
+    <div className="mx-auto max-w-3xl">
+      {head ? (
+        <>
+          <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-[2.4rem]">{head.title}</h2>
+          <RichBody html={head.body} className={`mt-3 ${theme.prose} ${theme.muted}`} />
+        </>
+      ) : null}
+      <div className={`${head ? "mt-8" : ""} space-y-7`}>
+        {fields.map(({ block }) =>
+          isQuestionType(block.type) ? (
+            <div key={block.id}>
+              <label className="block text-lg font-semibold leading-snug sm:text-xl">
+                {block.title}
+                {block.required ? <span className={`ml-1 ${theme.mark}`}>*</span> : null}
+              </label>
+              <RichBody html={block.body} className={`mt-1 !text-base ${theme.prose} ${theme.muted}`} />
+              <div className="mt-3">
+                <QuestionInput block={block} value={answers[block.id] ?? null} onChange={(v) => onChange(block.id, v)} onNext={onNext} theme={theme} grouped focus={block.id === firstQuestion} />
+              </div>
+              {error && errorBlockId === block.id ? <ErrorNote message={error} /> : null}
+            </div>
+          ) : (
+            <div key={block.id}>
+              {block.title ? <p className="text-lg font-semibold">{block.title}</p> : null}
+              <RichBody html={block.body} className={`!text-base ${theme.prose} ${theme.muted}`} />
+            </div>
+          )
+        )}
+      </div>
+      {looseError ? <ErrorNote message={looseError} /> : null}
+      <NextButton onNext={onNext} sending={sending} isLast={isLast} label={lastField?.config.buttonLabel || "Continuar"} theme={theme} />
+    </div>
+  );
+}
+
+function ErrorNote({ message }: { message: string }) {
+  return (
+    <p role="alert" className="mt-3 inline-flex animate-[shake_.35s] rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white">
+      {message}
+    </p>
+  );
+}
+
+/** Grilla de logos de marcas para tildar (varias). Sin logo, se muestra el nombre. */
+function BrandGrid({ options, logos, selected, onToggle, theme }: { options: string[]; logos: Record<string, string>; selected: string[]; onToggle: (name: string) => void; theme: FormTheme }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {options.map((name) => {
+        const on = selected.includes(name);
+        return (
+          <button
+            key={name}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onToggle(name)}
+            className={`relative flex h-24 items-center justify-center rounded-xl border border-black/10 bg-white p-4 text-neutral-900 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${on ? theme.tileOn : ""}`}
+          >
+            {logos[name] ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logos[name]} alt={name} className={`max-h-12 max-w-full object-contain transition ${on ? "" : "opacity-80 grayscale"}`} />
+            ) : (
+              <span className="text-base font-semibold">{name}</span>
+            )}
+            {on ? (
+              <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-neutral-950 text-white">
+                <Check className="h-4 w-4" />
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function QuestionInput({
   block,
   value,
   onChange,
   onNext,
   theme,
+  grouped = false,
+  focus = true,
 }: {
   block: PublicBlock;
   value: AnswerValue;
   onChange: (value: AnswerValue) => void;
   onNext: () => void;
-  theme: Theme;
+  theme: FormTheme;
+  /** Dentro de una pantalla con varios campos: letra más chica y sin avanzar solo al elegir. */
+  grouped?: boolean;
+  focus?: boolean;
 }) {
   const c = block.config;
-  const autoFocus = useCallback((el: HTMLInputElement | HTMLTextAreaElement | null) => {
-    if (el && window.matchMedia("(min-width: 768px)").matches) window.setTimeout(() => el.focus({ preventScroll: true }), 80);
-  }, []);
-  const lineInput = `w-full border-0 border-b-2 bg-transparent pb-2 text-2xl outline-none transition sm:text-3xl ${theme.input}`;
+  const autoFocus = useCallback(
+    (el: HTMLInputElement | HTMLTextAreaElement | null) => {
+      if (focus && el && window.matchMedia("(min-width: 768px)").matches) window.setTimeout(() => el.focus({ preventScroll: true }), 80);
+    },
+    [focus]
+  );
+  const lineInput = `w-full border-0 border-b-2 bg-transparent pb-2 outline-none transition ${grouped ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl"} ${theme.input}`;
+  const advance = () => {
+    if (!grouped) window.setTimeout(onNext, 380);
+  };
 
   const choose = (option: string) => {
-    if (block.type === "multi_choice") {
+    if (block.type === "multi_choice" || block.type === "brand_choice") {
       const list = Array.isArray(value) ? value : [];
       onChange(list.includes(option) ? list.filter((o) => o !== option) : [...list, option]);
     } else {
       onChange(option);
-      window.setTimeout(onNext, 380);
+      advance();
     }
   };
 
@@ -569,7 +743,7 @@ function QuestionInput({
                 type="button"
                 onClick={() => {
                   onChange(n);
-                  window.setTimeout(onNext, 380);
+                  advance();
                 }}
                 className={`h-14 min-w-[3.5rem] flex-1 rounded-xl border-2 text-xl font-semibold transition ${value === n ? theme.choiceOn : theme.choice}`}
               >
@@ -583,6 +757,15 @@ function QuestionInput({
               <span>{c.maxLabel}</span>
             </div>
           ) : null}
+        </div>
+      );
+    }
+    case "brand_choice": {
+      const selected = Array.isArray(value) ? value : [];
+      return (
+        <div>
+          <p className={`-mt-2 mb-3 text-sm ${theme.muted}`}>Tocá las que quieras.</p>
+          <BrandGrid options={c.options ?? []} logos={c.brandLogos ?? {}} selected={selected} onToggle={choose} theme={theme} />
         </div>
       );
     }
