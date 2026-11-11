@@ -2791,4 +2791,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Tarjetas de enlaces más livianas para que WhatsApp siempre las muestre.",
     items: [{ kind: "FIX", text: "Las tarjetas de vista previa pasan a JPEG (unas 3 veces más livianas): WhatsApp no muestra las imágenes de vista previa pesadas." }],
   },
+  {
+    id: "ship-2026-11-11-tarjetas-enlaces-portal",
+    version: "2.36.3",
+    releasedAt: "2026-11-11T19:00:00.000Z",
+    summary: "Los enlaces de productos del portal (/portal/products/…) ahora muestran la tarjeta al pegarlos en WhatsApp.",
+    items: [{ kind: "FIX", text: "WhatsApp y las redes no seguían la redirección del portal a la ficha pública y quedaban sin vista previa. Ahora reciben la ficha en la misma dirección; las personas siguen viendo todo igual." }],
+  },
 ];

@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
+const PREVIEW_BOTS =
+  /facebookexternalhit|facebot|whatsapp|twitterbot|linkedinbot|slackbot|slack-imgproxy|telegrambot|discordbot|skypeuripreview|pinterest|redditbot|applebot|embedly|iframely|vkshare|google-inspectiontool|googlebot|bingbot/i;
+
+function isPreviewBot(userAgent: string | null): boolean {
+  return Boolean(userAgent && PREVIEW_BOTS.test(userAgent));
+}
+
 export default auth((req) => {
   // Server Actions POST al URL de la página. Un 302 acá hace que
   // `await action()` resuelva a undefined y el cliente reviente en `.error`.
@@ -28,6 +35,14 @@ export default auth((req) => {
   const hasAdminScope =
     perms?.fullAccess === true ||
     (Array.isArray(perms?.scopes) && perms.scopes.some((s) => !s.startsWith("portal.")));
+
+  // Lectores de vista previa (WhatsApp, Facebook, X, LinkedIn, Telegram…): no siempre siguen
+  // redirecciones, así que en la misma dirección se les sirve la página pública que tiene la tarjeta.
+  if (!isLogged && isPreviewBot(req.headers.get("user-agent")) && (pathname.startsWith("/portal") || pathname.startsWith("/admin"))) {
+    const product = pathname.match(/^\/portal\/products\/([^/]+)\/?$/);
+    const target = new URL(product ? `/catalogo/${product[1]}` : pathname.startsWith("/portal/products") ? "/catalogo" : "/login", req.nextUrl);
+    return NextResponse.rewrite(target);
+  }
 
   if (pathname.startsWith("/admin")) {
     if (!isLogged) {
