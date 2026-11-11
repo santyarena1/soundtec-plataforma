@@ -120,7 +120,8 @@ export function FormRunner({
   }, [goTo, hp, index, preview, steps, token]);
 
   const next = useCallback(() => {
-    if (step.kind === "block") {
+    // En la vista previa se puede recorrer todo sin completar lo obligatorio.
+    if (step.kind === "block" && !preview) {
       for (const { block } of step.items) {
         if (!isQuestionType(block.type)) continue;
         const check = validateAnswer(block, answersRef.current[block.id]);
@@ -136,7 +137,7 @@ export function FormRunner({
       return;
     }
     goTo(index + 1);
-  }, [goTo, index, lastQuestionIndex, step, submit]);
+  }, [goTo, index, lastQuestionIndex, preview, step, submit]);
 
   const setAnswer = (blockId: string, value: AnswerValue) => {
     answersRef.current = { ...answersRef.current, [blockId]: value };
@@ -182,7 +183,7 @@ export function FormRunner({
             <img src={headerLogo} alt={customLogo ? title : "Soundtec"} className={customLogo ? "h-12 w-auto max-w-[240px] object-contain sm:h-16 sm:max-w-[340px]" : "h-11 w-auto sm:h-14"} />
           </span>
         )}
-        {preview ? <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">Vista previa: no se envía</span> : null}
+        {preview ? <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">Vista previa: no se envía ni pide obligatorios</span> : null}
       </header>
 
       {/* Campo trampa para bots: invisible para personas. */}

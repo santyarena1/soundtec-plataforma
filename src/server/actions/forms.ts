@@ -163,28 +163,46 @@ export async function deleteForm(input: { formId: string }): Promise<Result> {
   return { ok: true };
 }
 
-export async function addFormBlock(input: { formId: string; type: string; afterBlockId?: string | null }): Promise<Result<{ blockId: string }>> {
+export type NewFormBlock = { type: string; title?: string; required?: boolean; config?: BlockConfig };
+
+/** Agrega uno o varios bloques seguidos (p. ej. una pantalla de datos de contacto entera). */
+export async function addFormBlocks(input: { formId: string; afterBlockId?: string | null; blocks: NewFormBlock[] }): Promise<Result<{ blockIds: string[] }>> {
   await guard();
-  if (!isBlockType(input.type)) return { ok: false, error: "Tipo de bloque desconocido." };
+  if (!input.blocks.length || input.blocks.length > 20) return { ok: false, error: "Cantidad de bloques inválida." };
+  const items: Array<{ type: BlockType; title: string; required: boolean; config: BlockConfig }> = [];
+  for (const b of input.blocks) {
+    if (!isBlockType(b.type)) return { ok: false, error: "Tipo de bloque desconocido." };
+    const config = blockConfigSchema.safeParse({ ...(DEFAULT_CONFIG[b.type] ?? {}), ...(b.config ?? {}) });
+    if (!config.success) return { ok: false, error: "Configuración inválida." };
+    items.push({ type: b.type, title: (b.title ?? DEFAULT_TITLE[b.type] ?? BLOCK_LABELS[b.type].label).slice(0, 500), required: Boolean(b.required), config: config.data });
+  }
   const blocks = await prisma.formBlock.findMany({ where: { formId: input.formId }, orderBy: { sortOrder: "asc" }, select: { id: true } });
-  const index = input.afterBlockId ? blocks.findIndex((b) => b.id === input.afterBlockId) + 1 : blocks.length;
-  const block = await prisma.$transaction(async (tx) => {
-    const created = await tx.formBlock.create({
-      data: {
-        formId: input.formId,
-        type: input.type,
-        title: DEFAULT_TITLE[input.type as BlockType] ?? BLOCK_LABELS[input.type as BlockType].label,
-        config: (DEFAULT_CONFIG[input.type as BlockType] ?? {}) as Prisma.InputJsonValue,
-        sortOrder: index,
-      },
-      select: { id: true },
-    });
-    const order = [...blocks.slice(0, index).map((b) => b.id), created.id, ...blocks.slice(index).map((b) => b.id)];
+  const found = input.afterBlockId ? blocks.findIndex((b) => b.id === input.afterBlockId) : -1;
+  const index = found >= 0 ? found + 1 : blocks.length;
+  const created = await prisma.$transaction(async (tx) => {
+    const ids: string[] = [];
+    for (const item of items) {
+      const row = await tx.formBlock.create({
+        data: { formId: input.formId, type: item.type, title: item.title, required: item.required, config: item.config as Prisma.InputJsonValue, sortOrder: index + ids.length },
+        select: { id: true },
+      });
+      ids.push(row.id);
+    }
+    const order = [...blocks.slice(0, index).map((b) => b.id), ...ids, ...blocks.slice(index).map((b) => b.id)];
     await Promise.all(order.map((id, i) => tx.formBlock.update({ where: { id }, data: { sortOrder: i } })));
-    return created;
+    return ids;
   });
   revalidate(input.formId);
-  return { ok: true, blockId: block.id };
+  return { ok: true, blockIds: created };
+}
+
+export async function addFormBlock(input: { formId: string; type: string; afterBlockId?: string | null; groupWithPrevious?: boolean }): Promise<Result<{ blockId: string }>> {
+  const result = await addFormBlocks({
+    formId: input.formId,
+    afterBlockId: input.afterBlockId,
+    blocks: [{ type: input.type, config: input.groupWithPrevious ? { groupWithPrevious: true } : undefined }],
+  });
+  return result.ok ? { ok: true, blockId: result.blockIds[0] } : result;
 }
 
 export async function updateFormBlock(input: { blockId: string; title?: string; body?: string; required?: boolean; config?: unknown; type?: string }): Promise<Result> {
@@ -229,7 +247,8 @@ export async function duplicateFormBlock(input: { blockId: string }): Promise<Re
   if (!added.ok) return added;
   await prisma.formBlock.update({
     where: { id: added.blockId },
-    data: { title: src.title, body: src.body, required: src.required, config: (src.config ?? undefined) as Prisma.InputJsonValue | undefined },
+    // La copia queda en la misma pantalla que el original, justo debajo.
+    data: { title: src.title, body: src.body, required: src.required, config: { ...((src.config ?? {}) as object), groupWithPrevious: true } as Prisma.InputJsonValue },
   });
   revalidate(src.formId);
   return added;

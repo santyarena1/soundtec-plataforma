@@ -30,21 +30,20 @@ export function BlockEditor({
   formId,
   block,
   brands,
-  canGroup,
+  shared,
   onPatch,
 }: {
   formId: string;
   block: EditableBlock;
   brands: FormBrandOption[];
-  /** Falso en el primer bloque: no hay pantalla anterior a la cual sumarse. */
-  canGroup: boolean;
+  /** La pantalla tiene varios campos: sin imagen al costado ni botón propio. */
+  shared: boolean;
   onPatch: (patch: BlockPatch) => void;
 }) {
   const c = block.config;
   const isQuestion = isQuestionType(block.type);
   const setConfig = (patch: BlockConfig) => onPatch({ config: { ...c, ...patch } });
   const switchable = SWITCHABLE.find((group) => group.includes(block.type));
-  const groupable = canGroup && (isQuestion || block.type === "statement");
 
   return (
     <div className="space-y-5">
@@ -62,14 +61,8 @@ export function BlockEditor({
           ) : null}
           {isQuestion ? (
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-              <input type="checkbox" checked={block.required} onChange={(e) => onPatch({ required: e.target.checked })} className="h-4 w-4 accent-primary" />
+              <input autoComplete="off" type="checkbox" checked={block.required} onChange={(e) => onPatch({ required: e.target.checked })} className="h-4 w-4 accent-primary" />
               Obligatoria
-            </label>
-          ) : null}
-          {groupable ? (
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium" title="Junta este campo con el anterior en una sola pantalla (por ejemplo nombre, empresa, mail y celular).">
-              <input type="checkbox" checked={Boolean(c.groupWithPrevious)} onChange={(e) => setConfig({ groupWithPrevious: e.target.checked || undefined })} className="h-4 w-4 accent-primary" />
-              En la misma pantalla que la anterior
             </label>
           ) : null}
         </div>
@@ -79,7 +72,7 @@ export function BlockEditor({
         <label className={label} htmlFor={`title-${block.id}`}>
           {isQuestion ? "Pregunta" : "Título"}
         </label>
-        <input
+        <input autoComplete="off"
           id={`title-${block.id}`}
           value={block.title}
           onChange={(e) => onPatch({ title: e.target.value })}
@@ -104,23 +97,23 @@ export function BlockEditor({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={label}>Texto de ejemplo dentro del campo</label>
-            <input value={c.placeholder ?? ""} onChange={(e) => setConfig({ placeholder: e.target.value })} className={field} placeholder="Escribí tu respuesta…" />
+            <input autoComplete="off" value={c.placeholder ?? ""} onChange={(e) => setConfig({ placeholder: e.target.value })} className={field} placeholder="Escribí tu respuesta…" />
           </div>
           {block.type === "long_text" ? (
             <div>
               <label className={label}>Máximo de caracteres</label>
-              <input type="number" min={1} value={c.maxLength ?? ""} onChange={(e) => setConfig({ maxLength: e.target.value ? Number(e.target.value) : undefined })} className={field} placeholder="5000" />
+              <input autoComplete="off" type="number" min={1} value={c.maxLength ?? ""} onChange={(e) => setConfig({ maxLength: e.target.value ? Number(e.target.value) : undefined })} className={field} placeholder="5000" />
             </div>
           ) : null}
           {block.type === "number" ? (
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className={label}>Mínimo</label>
-                <input type="number" value={c.min ?? ""} onChange={(e) => setConfig({ min: e.target.value === "" ? undefined : Number(e.target.value) })} className={field} />
+                <input autoComplete="off" type="number" value={c.min ?? ""} onChange={(e) => setConfig({ min: e.target.value === "" ? undefined : Number(e.target.value) })} className={field} />
               </div>
               <div>
                 <label className={label}>Máximo</label>
-                <input type="number" value={c.max ?? ""} onChange={(e) => setConfig({ max: e.target.value === "" ? undefined : Number(e.target.value) })} className={field} />
+                <input autoComplete="off" type="number" value={c.max ?? ""} onChange={(e) => setConfig({ max: e.target.value === "" ? undefined : Number(e.target.value) })} className={field} />
               </div>
             </div>
           ) : null}
@@ -131,16 +124,16 @@ export function BlockEditor({
         <OptionsEditor options={c.options ?? []} onChange={(options) => setConfig({ options })}>
           {block.type !== "dropdown" ? (
             <label className="flex cursor-pointer items-center gap-2 text-sm">
-              <input type="checkbox" checked={Boolean(c.allowOther)} onChange={(e) => setConfig({ allowOther: e.target.checked })} className="h-4 w-4 accent-primary" />
+              <input autoComplete="off" type="checkbox" checked={Boolean(c.allowOther)} onChange={(e) => setConfig({ allowOther: e.target.checked })} className="h-4 w-4 accent-primary" />
               Sumar «Otra» con texto libre
             </label>
           ) : null}
           {block.type === "multi_choice" ? (
             <div className="flex flex-wrap items-center gap-2 text-sm">
               Elegir entre
-              <input type="number" min={0} value={c.minChoices ?? ""} onChange={(e) => setConfig({ minChoices: e.target.value ? Number(e.target.value) : undefined })} className="h-9 w-16 rounded-md border border-border px-2" aria-label="Mínimo de opciones" />
+              <input autoComplete="off" type="number" min={0} value={c.minChoices ?? ""} onChange={(e) => setConfig({ minChoices: e.target.value ? Number(e.target.value) : undefined })} className="h-9 w-16 rounded-md border border-border px-2" aria-label="Mínimo de opciones" />
               y
-              <input type="number" min={0} value={c.maxChoices ?? ""} onChange={(e) => setConfig({ maxChoices: e.target.value ? Number(e.target.value) : undefined })} className="h-9 w-16 rounded-md border border-border px-2" aria-label="Máximo de opciones" />
+              <input autoComplete="off" type="number" min={0} value={c.maxChoices ?? ""} onChange={(e) => setConfig({ maxChoices: e.target.value ? Number(e.target.value) : undefined })} className="h-9 w-16 rounded-md border border-border px-2" aria-label="Máximo de opciones" />
               opciones (vacío = sin límite)
             </div>
           ) : null}
@@ -153,19 +146,19 @@ export function BlockEditor({
         <div className="grid gap-4 sm:grid-cols-4">
           <div>
             <label className={label}>Desde</label>
-            <input type="number" value={c.min ?? 1} onChange={(e) => setConfig({ min: Number(e.target.value) })} className={field} />
+            <input autoComplete="off" type="number" value={c.min ?? 1} onChange={(e) => setConfig({ min: Number(e.target.value) })} className={field} />
           </div>
           <div>
             <label className={label}>Hasta</label>
-            <input type="number" value={c.max ?? 10} onChange={(e) => setConfig({ max: Number(e.target.value) })} className={field} />
+            <input autoComplete="off" type="number" value={c.max ?? 10} onChange={(e) => setConfig({ max: Number(e.target.value) })} className={field} />
           </div>
           <div>
             <label className={label}>Texto del mínimo</label>
-            <input value={c.minLabel ?? ""} onChange={(e) => setConfig({ minLabel: e.target.value })} className={field} placeholder="Nada" />
+            <input autoComplete="off" value={c.minLabel ?? ""} onChange={(e) => setConfig({ minLabel: e.target.value })} className={field} placeholder="Nada" />
           </div>
           <div>
             <label className={label}>Texto del máximo</label>
-            <input value={c.maxLabel ?? ""} onChange={(e) => setConfig({ maxLabel: e.target.value })} className={field} placeholder="Mucho" />
+            <input autoComplete="off" value={c.maxLabel ?? ""} onChange={(e) => setConfig({ maxLabel: e.target.value })} className={field} placeholder="Mucho" />
           </div>
         </div>
       ) : null}
@@ -175,7 +168,7 @@ export function BlockEditor({
           <MediaField formId={formId} label="Imagen" value={c.mediaUrl ?? ""} onChange={(url) => setConfig({ mediaUrl: url })} hint="Se ve grande, como una diapositiva. Ideal 1920 × 1080." />
           <div>
             <label className={label}>Descripción de la imagen (accesibilidad)</label>
-            <input value={c.mediaAlt ?? ""} onChange={(e) => setConfig({ mediaAlt: e.target.value })} className={field} />
+            <input autoComplete="off" value={c.mediaAlt ?? ""} onChange={(e) => setConfig({ mediaAlt: e.target.value })} className={field} />
           </div>
         </div>
       ) : null}
@@ -184,7 +177,7 @@ export function BlockEditor({
         <div className="space-y-4">
           <div>
             <label className={label}>Enlace de YouTube o Vimeo</label>
-            <input value={c.videoUrl ?? ""} onChange={(e) => setConfig({ videoUrl: e.target.value })} className={field} placeholder="https://www.youtube.com/watch?v=…" />
+            <input autoComplete="off" value={c.videoUrl ?? ""} onChange={(e) => setConfig({ videoUrl: e.target.value })} className={field} placeholder="https://www.youtube.com/watch?v=…" />
             {c.videoUrl && !videoEmbedUrl(c.videoUrl) ? <p className="mt-1 text-xs text-destructive">No reconozco ese enlace: pegá el de YouTube o Vimeo.</p> : null}
           </div>
           {!c.videoUrl ? <MediaField formId={formId} label="…o subí el video" accept="video" value={c.mediaUrl ?? ""} onChange={(url) => setConfig({ mediaUrl: url })} hint="MP4 de hasta 45 MB. Para videos largos conviene YouTube." /> : null}
@@ -195,18 +188,18 @@ export function BlockEditor({
         <div className="space-y-4">
           <div>
             <label className={label}>Dirección o enlace de Google Maps</label>
-            <input value={c.mapQuery ?? ""} onChange={(e) => setConfig({ mapQuery: e.target.value })} className={field} placeholder="Av. Alicia Moreau de Justo 1150, CABA" />
+            <input autoComplete="off" value={c.mapQuery ?? ""} onChange={(e) => setConfig({ mapQuery: e.target.value })} className={field} placeholder="Av. Alicia Moreau de Justo 1150, CABA" />
             <p className="mt-1 text-xs text-muted-foreground">Con la dirección se muestra el mapa. Si pegás un enlace de Google Maps con el lugar, también funciona.</p>
           </div>
           <div>
             <label className={label}>Enlace del botón «Abrir en Google Maps» (opcional)</label>
-            <input value={c.mapLink ?? ""} onChange={(e) => setConfig({ mapLink: e.target.value })} className={field} placeholder="https://maps.app.goo.gl/…" />
+            <input autoComplete="off" value={c.mapLink ?? ""} onChange={(e) => setConfig({ mapLink: e.target.value })} className={field} placeholder="https://maps.app.goo.gl/…" />
           </div>
           {mapEmbedUrl(c.mapQuery) ? <iframe src={mapEmbedUrl(c.mapQuery)!} title="Vista del mapa" className="h-56 w-full rounded-lg border border-border" loading="lazy" /> : null}
         </div>
       ) : null}
 
-      {isQuestion && c.groupWithPrevious ? null : isQuestion ? (
+      {shared ? null : isQuestion ? (
         <MediaField
           formId={formId}
           label="Imagen al costado de la pregunta (opcional)"
@@ -217,7 +210,7 @@ export function BlockEditor({
       ) : (
         <div className="max-w-xs">
           <label className={label}>Texto del botón</label>
-          <input value={c.buttonLabel ?? ""} onChange={(e) => setConfig({ buttonLabel: e.target.value })} className={field} placeholder="Continuar" />
+          <input autoComplete="off" value={c.buttonLabel ?? ""} onChange={(e) => setConfig({ buttonLabel: e.target.value })} className={field} placeholder="Continuar" />
         </div>
       )}
     </div>
@@ -239,7 +232,7 @@ function OptionsEditor({ options, onChange, children }: { options: string[]; onC
         {options.map((option, i) => (
           <li key={i} className="flex items-center gap-2">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border text-xs font-bold text-muted-foreground">{String.fromCharCode(65 + i)}</span>
-            <input
+            <input autoComplete="off"
               value={option}
               onChange={(e) => onChange(options.map((o, k) => (k === i ? e.target.value : o)))}
               onKeyDown={(e) => {
@@ -309,9 +302,9 @@ function BrandPicker({ brands, config, onChange }: { brands: FormBrandOption[]; 
       <p className="text-xs text-muted-foreground">Sin ninguna marcada se muestran todas las marcas visibles del catálogo, con su logo. Las respuestas llegan con el nombre de cada marca.</p>
       <div className="flex flex-wrap items-center gap-2 text-sm">
         Elegir entre
-        <input type="number" min={0} value={config.minChoices ?? ""} onChange={(e) => onChange({ minChoices: e.target.value ? Number(e.target.value) : undefined })} className="h-9 w-16 rounded-md border border-border px-2" aria-label="Mínimo de marcas" />
+        <input autoComplete="off" type="number" min={0} value={config.minChoices ?? ""} onChange={(e) => onChange({ minChoices: e.target.value ? Number(e.target.value) : undefined })} className="h-9 w-16 rounded-md border border-border px-2" aria-label="Mínimo de marcas" />
         y
-        <input type="number" min={0} value={config.maxChoices ?? ""} onChange={(e) => onChange({ maxChoices: e.target.value ? Number(e.target.value) : undefined })} className="h-9 w-16 rounded-md border border-border px-2" aria-label="Máximo de marcas" />
+        <input autoComplete="off" type="number" min={0} value={config.maxChoices ?? ""} onChange={(e) => onChange({ maxChoices: e.target.value ? Number(e.target.value) : undefined })} className="h-9 w-16 rounded-md border border-border px-2" aria-label="Máximo de marcas" />
         marcas (vacío = sin límite)
       </div>
     </div>

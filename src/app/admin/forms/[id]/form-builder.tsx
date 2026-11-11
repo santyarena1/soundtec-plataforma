@@ -4,40 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import {
-  AlignLeft,
-  ArrowDown,
-  ArrowUp,
-  CalendarDays,
-  CheckSquare,
-  ChevronDown,
-  CircleDot,
-  Copy,
-  CopyPlus,
-  ExternalLink,
-  Eye,
-  Flag,
-  Hash,
-  Image as ImageIcon,
-  ListChecks,
-  Mail,
-  MapPin,
-  MessageSquareText,
-  Phone,
-  Plus,
-  RefreshCw,
-  SlidersHorizontal,
-  Sparkles,
-  Tags,
-  ThumbsUp,
-  Trash2,
-  Type,
-  Video,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eye, Flag, Layers, MessageSquareText, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
-import { BLOCK_LABELS, CONTENT_TYPES, QUESTION_TYPES, isQuestionType, type BlockType, type FormSettings } from "@/lib/forms/types";
+import { BLOCK_LABELS, isQuestionType, type BlockType, type FormSettings } from "@/lib/forms/types";
 import {
   addFormBlock,
+  addFormBlocks,
   deleteFormBlock,
   duplicateFormBlock,
   regenerateFormToken,
@@ -47,29 +19,12 @@ import {
   updateFormBlock,
 } from "@/server/actions/forms";
 import { FormRichEditor } from "../form-rich-editor";
-import { BlockEditor, type BlockPatch, type EditableBlock } from "./block-editor";
+import type { BlockPatch, EditableBlock } from "./block-editor";
 import { MediaField } from "./media-field";
 import type { FormBrandOption } from "@/lib/forms/public";
-
-const ICONS: Record<BlockType, typeof Type> = {
-  short_text: Type,
-  long_text: AlignLeft,
-  email: Mail,
-  phone: Phone,
-  number: Hash,
-  date: CalendarDays,
-  single_choice: CircleDot,
-  multi_choice: ListChecks,
-  dropdown: ChevronDown,
-  yes_no: ThumbsUp,
-  scale: SlidersHorizontal,
-  consent: CheckSquare,
-  brand_choice: Tags,
-  statement: MessageSquareText,
-  image: ImageIcon,
-  video: Video,
-  map: MapPin,
-};
+import { CONTACT_PRESET, ICONS, flatten, toScreens, type Screen } from "./screens";
+import { ScreenEditor } from "./screen-editor";
+import { TypeMenu } from "./type-menu";
 
 type Status = "DRAFT" | "OPEN" | "CLOSED";
 type Selected = "welcome" | "end" | string;
@@ -99,7 +54,14 @@ export function FormBuilder({
 
   useEffect(() => setOrigin(window.location.origin), []);
   // Cuando el servidor devuelve otra estructura (agregar, borrar, ordenar), se toma esa.
-  useEffect(() => setBlocks(initialBlocks), [initialBlocks]);
+  // Si solo volvió lo guardado mientras se escribe, se conserva lo local: si no, el
+  // guardado automático pisaba las letras tipeadas después de mandarlo.
+  useEffect(() => {
+    setBlocks((prev) => {
+      const same = prev.length === initialBlocks.length && prev.every((b, i) => b.id === initialBlocks[i].id && b.type === initialBlocks[i].type);
+      return same ? prev : initialBlocks;
+    });
+  }, [initialBlocks]);
 
   // Guardado automático: cambios por bloque y de la configuración, agrupados.
   const pendingBlocks = useRef(new Map<string, BlockPatch>());
@@ -134,11 +96,14 @@ export function FormBuilder({
 
   useEffect(() => () => void flush(), [flush]);
 
+  function queueBlock(id: string, patch: BlockPatch) {
+    pendingBlocks.current.set(id, { ...(pendingBlocks.current.get(id) ?? {}), ...patch });
+    schedule();
+  }
+
   function patchBlock(id: string, patch: BlockPatch) {
     setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch, config: patch.config ?? b.config } : b)));
-    const merged = { ...(pendingBlocks.current.get(id) ?? {}), ...patch };
-    pendingBlocks.current.set(id, merged);
-    schedule();
+    queueBlock(id, patch);
   }
 
   function patchSettings(patch: FormSettings) {
@@ -157,36 +122,102 @@ export function FormBuilder({
     });
   }
 
-  function addBlock(type: BlockType) {
+  const screens = toScreens(blocks);
+  const currentScreen = screens.find((sc) => sc.blocks.some((b) => b.id === selected)) ?? null;
+  const lastBlockId = (currentScreen ?? screens[screens.length - 1])?.blocks.at(-1)?.id ?? null;
+
+  /**
+   * Aplica una nueva estructura de pantallas: corrige la marca «misma pantalla» de
+   * cada bloque según su lugar y guarda el orden (o corre otra acción en su lugar).
+   */
+  function restructure(next: EditableBlock[][], action?: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) {
+    const { ids, grouped } = flatten(next);
+    const flat = next.flat().map((b) => {
+      const want = grouped.get(b.id) ?? false;
+      if (Boolean(b.config.groupWithPrevious) === want) return b;
+      const config = { ...b.config, groupWithPrevious: want || undefined };
+      queueBlock(b.id, { config });
+      return { ...b, config };
+    });
+    setBlocks(flat);
+    structural(action ?? (() => reorderFormBlocks({ formId: form.id, blockIds: ids })), after);
+  }
+
+  function addScreen(type: BlockType) {
     setAddOpen(false);
-    const after = selected !== "welcome" && selected !== "end" ? selected : blocks[blocks.length - 1]?.id ?? null;
-    structural(() => addFormBlock({ formId: form.id, type, afterBlockId: after }), (r) => setSelected(String(r.blockId)));
+    structural(() => addFormBlock({ formId: form.id, type, afterBlockId: lastBlockId }), (r) => setSelected(String(r.blockId)));
   }
 
-  function moveBlock(id: string, delta: -1 | 1) {
-    const i = blocks.findIndex((b) => b.id === id);
+  function addContactScreen() {
+    setAddOpen(false);
+    structural(() => addFormBlocks({ formId: form.id, afterBlockId: lastBlockId, blocks: CONTACT_PRESET }), (r) => setSelected(String((r.blockIds as string[])[1])));
+  }
+
+  function addField(screen: Screen, type: BlockType) {
+    structural(() => addFormBlock({ formId: form.id, type, afterBlockId: screen.blocks.at(-1)!.id, groupWithPrevious: true }), (r) => setSelected(String(r.blockId)));
+  }
+
+  function moveScreen(id: string, delta: -1 | 1) {
+    const list = screens.map((sc) => sc.blocks);
+    const i = screens.findIndex((sc) => sc.id === id);
     const j = i + delta;
-    if (i < 0 || j < 0 || j >= blocks.length) return;
-    const next = [...blocks];
-    [next[i], next[j]] = [next[j], next[i]];
-    setBlocks(next);
-    structural(() => reorderFormBlocks({ formId: form.id, blockIds: next.map((b) => b.id) }));
+    if (i < 0 || j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    restructure(list);
   }
 
-  function dropOn(targetId: string) {
+  function dropScreen(targetId: string) {
     const from = dragId.current;
     dragId.current = null;
     if (!from || from === targetId) return;
-    const next = blocks.filter((b) => b.id !== from);
-    const at = next.findIndex((b) => b.id === targetId);
-    next.splice(at, 0, blocks.find((b) => b.id === from)!);
-    setBlocks(next);
-    structural(() => reorderFormBlocks({ formId: form.id, blockIds: next.map((b) => b.id) }));
+    const moving = screens.find((sc) => sc.id === from)!;
+    const rest = screens.filter((sc) => sc.id !== from);
+    const at = rest.findIndex((sc) => sc.id === targetId);
+    rest.splice(at, 0, moving);
+    restructure(rest.map((sc) => sc.blocks));
+  }
+
+  function moveField(screen: Screen, blockId: string, delta: -1 | 1) {
+    const fields = [...screen.blocks];
+    const i = fields.findIndex((b) => b.id === blockId);
+    const j = i + delta;
+    if (i < 0 || j < 0 || j >= fields.length) return;
+    [fields[i], fields[j]] = [fields[j], fields[i]];
+    restructure(screens.map((sc) => (sc.id === screen.id ? fields : sc.blocks)));
+  }
+
+  async function deleteField(screen: Screen, blockId: string) {
+    const ok = await confirmDialog({ message: "¿Quitar este campo? Las respuestas ya recibidas no se pierden.", confirmLabel: "Quitar", tone: "danger" });
+    if (!ok) return;
+    const fields = screen.blocks.filter((b) => b.id !== blockId);
+    const next = screens.map((sc) => (sc.id === screen.id ? fields : sc.blocks)).filter((list) => list.length);
+    restructure(next, () => deleteFormBlock({ blockId }), () => setSelected(fields[0]?.id ?? "welcome"));
+  }
+
+  async function deleteScreen(screen: Screen) {
+    const ok = await confirmDialog({
+      message:
+        screen.blocks.length > 1
+          ? `¿Quitar la pantalla con sus ${screen.blocks.length} campos? Las respuestas ya recibidas no se pierden.`
+          : "¿Quitar esta pantalla? Las respuestas ya recibidas no se pierden.",
+      confirmLabel: "Quitar pantalla",
+      tone: "danger",
+    });
+    if (!ok) return;
+    const i = screens.findIndex((sc) => sc.id === screen.id);
+    structural(
+      async () => {
+        for (const b of screen.blocks) {
+          const r = await deleteFormBlock({ blockId: b.id });
+          if (!r.ok) return r;
+        }
+        return { ok: true };
+      },
+      () => setSelected(screens[i + 1]?.id ?? screens[i - 1]?.id ?? "welcome")
+    );
   }
 
   const url = origin ? `${origin}/f/${form.token}` : `/f/${form.token}`;
-  const current = blocks.find((b) => b.id === selected) ?? null;
-  let questionNumber = 0;
 
   const statusButton = (value: Status, labelText: string, tone: string) => (
     <button
@@ -208,7 +239,7 @@ export function FormBuilder({
       {/* Encabezado: título, estado, enlace y accesos. */}
       <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
-          <input
+          <input autoComplete="off"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={() => {
@@ -294,12 +325,12 @@ export function FormBuilder({
             </select>
           </label>
           <label className="flex cursor-pointer items-center gap-2">
-            <input type="checkbox" checked={Boolean(settings.particles)} onChange={(e) => patchSettings({ particles: e.target.checked })} className="h-4 w-4 accent-primary" />
+            <input autoComplete="off" type="checkbox" checked={Boolean(settings.particles)} onChange={(e) => patchSettings({ particles: e.target.checked })} className="h-4 w-4 accent-primary" />
             Partículas sutiles
           </label>
           <label className="flex items-center gap-2">
             Cierra solo el
-            <input
+            <input autoComplete="off"
               type="datetime-local"
               defaultValue={form.closesAt ? form.closesAt.slice(0, 16) : ""}
               onBlur={(e) => {
@@ -317,46 +348,21 @@ export function FormBuilder({
         <aside className="space-y-2 lg:sticky lg:top-4 lg:self-start">
           <ScreenItem active={selected === "welcome"} onClick={() => setSelected("welcome")} icon={Sparkles} label="Bienvenida" sub={settings.welcomeTitle || "Pantalla de inicio"} />
           <ol className="space-y-1.5">
-            {blocks.map((b, i) => {
-              const Icon = ICONS[b.type];
-              const n = isQuestionType(b.type) ? ++questionNumber : null;
-              const joined = i > 0 && Boolean(b.config.groupWithPrevious);
-              return (
-                <li
-                  key={b.id}
-                  draggable
-                  onDragStart={() => (dragId.current = b.id)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => dropOn(b.id)}
-                  className={`group flex items-center gap-2 rounded-lg border px-2 py-2 transition ${joined ? "-mt-1 ml-4 border-l-4 border-l-primary/40" : ""} ${selected === b.id ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:border-primary/30"}`}
-                >
-                  <button type="button" onClick={() => setSelected(b.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${isQuestionType(b.type) ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-800"}`}>
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">
-                        {n != null ? `${n}. ` : ""}
-                        {b.title || BLOCK_LABELS[b.type].label}
-                        {b.required ? <span className="text-primary"> *</span> : null}
-                      </span>
-                      <span className="block text-[11px] text-muted-foreground">
-                        {BLOCK_LABELS[b.type].label}
-                        {joined ? " · misma pantalla" : ""}
-                      </span>
-                    </span>
-                  </button>
-                  <span className="flex shrink-0 flex-col opacity-60 group-hover:opacity-100">
-                    <button type="button" disabled={i === 0 || pending} onClick={() => moveBlock(b.id, -1)} className="rounded p-0.5 hover:bg-secondary disabled:opacity-30" aria-label="Subir">
-                      <ArrowUp className="h-3.5 w-3.5" />
-                    </button>
-                    <button type="button" disabled={i === blocks.length - 1 || pending} onClick={() => moveBlock(b.id, 1)} className="rounded p-0.5 hover:bg-secondary disabled:opacity-30" aria-label="Bajar">
-                      <ArrowDown className="h-3.5 w-3.5" />
-                    </button>
-                  </span>
-                </li>
-              );
-            })}
+            {screens.map((sc, i) => (
+              <ScreenRow
+                key={sc.id}
+                screen={sc}
+                number={i + 1}
+                active={currentScreen?.id === sc.id}
+                pending={pending}
+                first={i === 0}
+                last={i === screens.length - 1}
+                onSelect={() => setSelected(sc.blocks.find((b) => isQuestionType(b.type))?.id ?? sc.id)}
+                onMove={(d) => moveScreen(sc.id, d)}
+                onDragStart={() => (dragId.current = sc.id)}
+                onDrop={() => dropScreen(sc.id)}
+              />
+            ))}
           </ol>
           <div className="relative">
             <button
@@ -365,29 +371,9 @@ export function FormBuilder({
               disabled={pending}
               className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/30 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary/5"
             >
-              <Plus className="h-4 w-4" /> Agregar pregunta o contenido
+              <Plus className="h-4 w-4" /> Nueva pantalla
             </button>
-            {addOpen ? (
-              <div className="absolute left-0 right-0 z-20 mt-2 max-h-[60vh] overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-xl">
-                {(["Preguntas", "Opciones", "Contenido"] as const).map((group) => (
-                  <div key={group} className="mb-1">
-                    <p className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{group}</p>
-                    {[...QUESTION_TYPES, ...CONTENT_TYPES]
-                      .filter((t) => BLOCK_LABELS[t].group === group)
-                      .map((t) => {
-                        const Icon = ICONS[t];
-                        return (
-                          <button key={t} type="button" onClick={() => addBlock(t)} className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-secondary">
-                            <Icon className="h-4 w-4 text-primary" />
-                            <span className="text-sm font-medium">{BLOCK_LABELS[t].label}</span>
-                            <span className="ml-auto truncate text-[11px] text-muted-foreground">{BLOCK_LABELS[t].hint}</span>
-                          </button>
-                        );
-                      })}
-                  </div>
-                ))}
-              </div>
-            ) : null}
+            {addOpen ? <TypeMenu mode="screen" onPick={addScreen} onContact={addContactScreen} onClose={() => setAddOpen(false)} /> : null}
           </div>
           <ScreenItem active={selected === "end"} onClick={() => setSelected("end")} icon={Flag} label="Cierre" sub={settings.endTitle || "Pantalla final"} />
         </aside>
@@ -426,33 +412,26 @@ export function FormBuilder({
               imageUrl={settings.endImageUrl ?? ""}
               onChange={(p) => patchSettings({ endTitle: p.title, endBody: p.body, endImageUrl: p.imageUrl })}
             />
-          ) : current ? (
-            <>
-              <BlockEditor formId={form.id} block={current} brands={brands} canGroup={blocks[0]?.id !== current.id} onPatch={(patch) => patchBlock(current.id, patch)} />
-              <div className="mt-6 flex flex-wrap gap-2 border-t border-border pt-4">
-                <button type="button" disabled={pending} onClick={() => structural(() => duplicateFormBlock({ blockId: current.id }), (r) => setSelected(String(r.blockId)))} className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm hover:bg-secondary">
-                  <CopyPlus className="h-4 w-4" /> Duplicar
-                </button>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={async () => {
-                    const ok = await confirmDialog({ message: "¿Quitar este bloque? Las respuestas ya recibidas no se pierden.", confirmLabel: "Quitar", tone: "danger" });
-                    if (!ok) return;
-                    const i = blocks.findIndex((b) => b.id === current.id);
-                    structural(() => deleteFormBlock({ blockId: current.id }), () => setSelected(blocks[i + 1]?.id ?? blocks[i - 1]?.id ?? "welcome"));
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" /> Quitar
-                </button>
-                <Link href={`/f/${form.token}?previa=1`} target="_blank" className="ml-auto inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-secondary">
-                  Ver cómo queda <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            </>
+          ) : currentScreen ? (
+            <ScreenEditor
+              key={currentScreen.id}
+              formId={form.id}
+              token={form.token}
+              screen={currentScreen}
+              number={screens.indexOf(currentScreen) + 1}
+              selectedBlockId={selected}
+              brands={brands}
+              pending={pending}
+              onSelectBlock={setSelected}
+              onPatch={patchBlock}
+              onAddField={(type) => addField(currentScreen, type)}
+              onMoveField={(id, d) => moveField(currentScreen, id, d)}
+              onDuplicate={(id) => structural(() => duplicateFormBlock({ blockId: id }), (r) => setSelected(String(r.blockId)))}
+              onDeleteField={(id) => void deleteField(currentScreen, id)}
+              onDeleteScreen={() => void deleteScreen(currentScreen)}
+            />
           ) : (
-            <p className="py-10 text-center text-sm text-muted-foreground">Elegí una pantalla de la izquierda o agregá una pregunta.</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">{pending ? "Cargando…" : "Elegí una pantalla de la izquierda o agregá una nueva."}</p>
           )}
         </section>
       </div>
@@ -460,7 +439,71 @@ export function FormBuilder({
   );
 }
 
-function ScreenItem({ active, onClick, icon: Icon, label, sub }: { active: boolean; onClick: () => void; icon: typeof Type; label: string; sub: string }) {
+function ScreenRow({
+  screen,
+  number,
+  active,
+  pending,
+  first,
+  last,
+  onSelect,
+  onMove,
+  onDragStart,
+  onDrop,
+}: {
+  screen: Screen;
+  number: number;
+  active: boolean;
+  pending: boolean;
+  first: boolean;
+  last: boolean;
+  onSelect: () => void;
+  onMove: (delta: -1 | 1) => void;
+  onDragStart: () => void;
+  onDrop: () => void;
+}) {
+  const head = screen.blocks[0];
+  const many = screen.blocks.length > 1;
+  const Icon = many ? Layers : ICONS[head.type];
+  const question = isQuestionType(head.type) || many;
+  const fieldNames = screen.blocks
+    .filter((b) => isQuestionType(b.type))
+    .map((b) => b.title)
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(", ");
+  return (
+    <li
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={onDrop}
+      className={`group flex items-center gap-2 rounded-lg border px-2 py-2 transition ${active ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:border-primary/30"}`}
+    >
+      <button type="button" onClick={onSelect} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${question ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-800"}`}>
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium">
+            {number}. {head.title || BLOCK_LABELS[head.type].label}
+          </span>
+          <span className="block truncate text-[11px] text-muted-foreground">{many ? `${screen.blocks.length} campos · ${fieldNames}` : BLOCK_LABELS[head.type].label}</span>
+        </span>
+      </button>
+      <span className="flex shrink-0 flex-col opacity-60 group-hover:opacity-100">
+        <button type="button" disabled={first || pending} onClick={() => onMove(-1)} className="rounded p-0.5 hover:bg-secondary disabled:opacity-30" aria-label="Subir pantalla">
+          <ArrowUp className="h-3.5 w-3.5" />
+        </button>
+        <button type="button" disabled={last || pending} onClick={() => onMove(1)} className="rounded p-0.5 hover:bg-secondary disabled:opacity-30" aria-label="Bajar pantalla">
+          <ArrowDown className="h-3.5 w-3.5" />
+        </button>
+      </span>
+    </li>
+  );
+}
+
+function ScreenItem({ active, onClick, icon: Icon, label, sub }: { active: boolean; onClick: () => void; icon: typeof Flag; label: string; sub: string }) {
   return (
     <button
       type="button"
@@ -507,7 +550,7 @@ function SettingsScreen({
       </div>
       <div>
         <label className="mb-1.5 block text-sm font-medium">Título</label>
-        <input value={title} onChange={(e) => set({ title: e.target.value })} className="h-12 w-full rounded-md border border-border bg-white px-3 text-base font-semibold outline-none focus:border-primary/60" />
+        <input autoComplete="off" value={title} onChange={(e) => set({ title: e.target.value })} className="h-12 w-full rounded-md border border-border bg-white px-3 text-base font-semibold outline-none focus:border-primary/60" />
       </div>
       <div>
         <span className="mb-1.5 block text-sm font-medium">Texto</span>
@@ -517,7 +560,7 @@ function SettingsScreen({
       {button !== undefined ? (
         <div className="max-w-xs">
           <label className="mb-1.5 block text-sm font-medium">Texto del botón</label>
-          <input value={button} onChange={(e) => set({ button: e.target.value })} placeholder="Comenzar" className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary/60" />
+          <input autoComplete="off" value={button} onChange={(e) => set({ button: e.target.value })} placeholder="Comenzar" className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary/60" />
         </div>
       ) : null}
     </div>

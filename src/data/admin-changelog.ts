@@ -2661,4 +2661,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Formularios: opción de partículas muy sutiles en azul Soundtec sobre el fondo.",
     items: [{ kind: "MEJORA", text: "Editor del formulario, junto al fondo: casilla Partículas sutiles. Puntos chicos que flotan despacio; quedan quietos si el dispositivo pide menos movimiento." }],
   },
+  {
+    id: "ship-2026-11-10-formularios-editor-pantallas",
+    version: "2.32.0",
+    releasedAt: "2026-11-11T02:30:00.000Z",
+    summary: "Formularios: el editor se arma por pantallas, como Typeform. Cada pantalla tiene sus campos y un botón para agregar más.",
+    items: [
+      { kind: "MEJORA", text: "A la izquierda, la lista de pantallas con Nueva pantalla. Al elegir una, a la derecha se ven sus campos uno debajo del otro, con Agregar campo a esta pantalla, subir, bajar, duplicar y quitar." },
+      { kind: "NUEVO", text: "Atajo Datos de contacto: arma de una la pantalla con nombre, cargo, email, celular y empresa." },
+      { kind: "FIX", text: "Al escribir en el editor ya no se borran letras mientras se guarda solo, ni aparece el autocompletado del navegador." },
+      { kind: "MEJORA", text: "Vista previa: se puede avanzar entre pantallas sin completar lo obligatorio, para revisar cómo queda." },
+    ],
+  },
 ];
