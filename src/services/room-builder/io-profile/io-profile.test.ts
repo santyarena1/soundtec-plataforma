@@ -100,3 +100,77 @@ test("cita armada con celdas de la tabla: vale si cada tramo está en la ficha",
   assert.ok(evidenceFound("Analog Inputs: 4 channels Ch 1 - 4: RCA Unbalanced", src));
   assert.ok(!evidenceFound("Analog Inputs: 8 channels Ch 1 - 8: XLR", src));
 });
+
+test("amplificador: por canal a 8/4 Ω, puenteado aparte y carga mínima", () => {
+  const src = "Output Power: 150 Watts per channel at 8 Ohms, 300 Watts per channel at 4 Ohms, 500 Watts at 8 Ohms bridged. Minimum load: 2 Ohms per channel";
+  const v = validateExtraction(
+    {
+      capabilities: {
+        ampWattsPerChannel: { value: { "8 Ohms": 150, "4 ohms": "300 W" }, evidence: "150 Watts per channel at 8 Ohms, 300 Watts per channel at 4 Ohms" },
+        ampBridgedWatts: { value: { "8 Ohms": 500 }, evidence: "500 Watts at 8 Ohms bridged" },
+        minLoadOhms: { value: "2 Ohms", evidence: "Minimum load: 2 Ohms per channel" },
+      },
+    },
+    src,
+  );
+  assert.deepEqual(v.data.capabilities.ampWattsPerChannel?.value, { "8Ω": 150, "4Ω": 300 });
+  assert.deepEqual(v.data.capabilities.ampBridgedWatts?.value, { "8Ω": 500 });
+  assert.equal(v.data.capabilities.minLoadOhms?.value, 2);
+});
+
+test("amplificador: el valor puenteado cargado como por canal se descarta", () => {
+  const src = "150 W/ch @ 8 ohms; 500 W @ 8 ohms bridged";
+  const v = validateExtraction(
+    {
+      capabilities: {
+        ampWattsPerChannel: { value: { "8 ohms": 500 }, evidence: "500 W @ 8 ohms bridged" },
+        ampBridgedWatts: { value: { "8 ohms": 500 }, evidence: "500 W @ 8 ohms bridged" },
+      },
+    },
+    src,
+  );
+  assert.equal(v.data.capabilities.ampWattsPerChannel, undefined);
+  assert.deepEqual(v.data.capabilities.ampBridgedWatts?.value, { "8Ω": 500 });
+  assert.ok(v.rejected.some((r) => /puenteado/.test(r.what)));
+});
+
+test("parlante: impedancia, taps 70/100 V, potencia, sensibilidad y cobertura", () => {
+  const src = "Nominal Impedance: 8 ohms. 70V Taps: 32W, 16W, 8W, 4W. 100V Taps: 32W, 16W, 8W. Power Handling: 60 W RMS, 120 W Program. Sensitivity (1W/1m): 87 dB. Coverage: 110° conical. Dispersion 90° x 60°";
+  const v = validateExtraction(
+    {
+      capabilities: {
+        impedanceOhms: { value: "8 ohms", evidence: "Nominal Impedance: 8 ohms" },
+        transformerTaps: { value: { "70V": ["32W", 16, 8, 4, "foo"], "100 V": "32W, 16W, 8W", "25V": [2] }, evidence: "70V Taps: 32W, 16W, 8W, 4W. 100V Taps: 32W, 16W, 8W" },
+        speakerPowerWatts: { value: { RMS: 60, program: "120 W", otro: 5 }, evidence: "Power Handling: 60 W RMS, 120 W Program" },
+        sensitivityDb: { value: "87 dB", evidence: "Sensitivity (1W/1m): 87 dB" },
+        coverageDeg: { value: "110°", evidence: "Coverage: 110° conical" },
+      },
+    },
+    src,
+  );
+  const c = v.data.capabilities;
+  assert.equal(c.impedanceOhms?.value, 8);
+  assert.deepEqual(c.transformerTaps?.value, { "70V": [32, 16, 8, 4], "100V": [32, 16, 8] });
+  assert.deepEqual(c.speakerPowerWatts?.value, { continuous: 60, program: 120 });
+  assert.equal(c.sensitivityDb?.value, 87);
+  assert.deepEqual(c.coverageDeg?.value, { horizontal: 110, vertical: 110 });
+  const w = validateExtraction({ capabilities: { coverageDeg: { value: "90° x 60°", evidence: "Dispersion 90° x 60°" } } }, src);
+  assert.deepEqual(w.data.capabilities.coverageDeg?.value, { horizontal: 90, vertical: 60 });
+});
+
+test("parlante: valores fuera de rango o sin cita no entran", () => {
+  const src = "Sensitivity: 87 dB";
+  const v = validateExtraction(
+    {
+      capabilities: {
+        sensitivityDb: { value: 250, evidence: "Sensitivity: 87 dB" },
+        impedanceOhms: { value: 8, evidence: "Impedance 8 ohm nominal" },
+        transformerTaps: { value: { "25V": [2] }, evidence: "Sensitivity: 87 dB" },
+      },
+    },
+    src,
+  );
+  assert.equal(v.data.capabilities.sensitivityDb, undefined);
+  assert.equal(v.data.capabilities.impedanceOhms, undefined);
+  assert.equal(v.data.capabilities.transformerTaps, undefined);
+});

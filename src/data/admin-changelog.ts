@@ -2829,4 +2829,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Productos: diámetro de corte de parlantes y altura en unidades de rack." },
     ],
   },
+  {
+    id: "ship-2026-11-12-fichas-audio-campos",
+    version: "2.37.1",
+    releasedAt: "2026-11-12T00:30:00.000Z",
+    summary: "Fichas de conexiones: nuevos datos de amplificadores y parlantes para calcular bien la amplificación.",
+    items: [
+      { kind: "NUEVO", text: "Amplificadores: potencia puenteada separada de la potencia por canal y carga mínima en ohms. Se descarta un valor por canal que coincide con el puenteado (error que inflaba la potencia)." },
+      { kind: "NUEVO", text: "Parlantes: impedancia, taps de 70/100 V, potencia, sensibilidad y ángulo de cobertura, leídos de la ficha con cita." },
+    ],
+  },
 ];

@@ -13,10 +13,13 @@ import {
   isDirection,
   isIoSignal,
   normalizeForMatch,
+  type Coverage,
   type Evidenced,
   type IoCapabilities,
   type IoPort,
   type IoProfileData,
+  type SpeakerPower,
+  type TransformerTaps,
   type WirelessLink,
   WIRELESS_PROTOCOLS,
 } from "./types";
@@ -53,6 +56,11 @@ CAPACIDADES en "capabilities" (cada una { "value": ..., "evidence": "cita textua
 - "maxVideo": resolución/frecuencia máxima ("4K60 4:4:4"); "hdcp": versión ("2.3"); "usbVersion": ("USB 3.0").
 - "ampChannels": canales de amplificación; "ampWattsPerChannel": objeto carga→W, p. ej. {"8Ω": 100, "4Ω": 150, "70V": 150}.
 - "lineVoltage": "low-z" | "70v" | "100v" | "both" (amplificadores y parlantes).
+- "ampBridgedWatts": potencia PUENTEADA (bridged / BTL / puenteado) por carga, {"8Ω": 500}. NUNCA la pongas en "ampWattsPerChannel".
+- "minLoadOhms": carga mínima por canal que admite el amplificador (Ω).
+- Parlantes: "impedanceOhms" (impedancia nominal, Ω); "transformerTaps" ({"70V": [8, 4, 2], "100V": [8, 4]}, en W);
+  "speakerPowerWatts" ({"continuous": 60, "program": 120, "peak": 240}); "sensitivityDb" (dB 1W/1m);
+  "coverageDeg" ({"horizontal": 90, "vertical": 90}; si es cónica, los dos iguales).
 - "controlProtocols": lista entre ["RS-232", "IP", "IR", "CEC", "Cresnet", "USB", "Relay"] según cómo se lo controla.
 - "wireless": lista de { "protocol", "role", "capacity" } con TODA conexión inalámbrica que declare la ficha:
   · protocol: "wifi" | "bluetooth" | "infinet" (Crestron infiNET EX) | "zum-mesh" (Crestron Zūm Mesh: teclados y sensores Zūm a su bridge) | "zigbee" | "zwave" | "rf-mic" (micrófono inalámbrico UHF/VHF/2.4 GHz) | "dect" | "airplay" | "chromecast" | "wireless-presentation" (ClickShare, AirMedia, Solstice: botón/app a base) | "ir-remote" (control remoto IR).
@@ -89,6 +97,71 @@ const MAX_CHANNELS = 1024;
 const POE_STANDARDS = ["802.3af", "802.3at", "802.3bt", "PoE", "PoE+", "PoE++"];
 const CONTROL = ["RS-232", "IP", "IR", "CEC", "Cresnet", "USB", "Relay"];
 const LINE_VOLTAGE = ["low-z", "70v", "100v", "both"];
+const MAX_TAPS = 12;
+
+/** Número dentro de un rango ("90°", "8 ohms", "87,5 dB" → número). */
+const num = (v: unknown, min: number, max: number): number | null => {
+  if (v == null || v === "") return null;
+  const n = typeof v === "number" ? v : Number(String(v).replace(",", ".").replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) && n >= min && n <= max ? n : null;
+};
+
+/** Objeto carga→W ("8 ohms": "125W") con claves normalizadas ("8Ω", "70V"). */
+function wattsByLoad(v: unknown): Record<string, number> | null {
+  if (!v || typeof v !== "object") return null;
+  const out: Record<string, number> = {};
+  for (const [k, w] of Object.entries(v as Record<string, unknown>)) {
+    const n = num(w, 0.1, 5000);
+    const key = loadKey(k);
+    if (key && n != null) out[key] = n;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/** Taps de transformador por tensión de línea, en W de mayor a menor. */
+function tapsOf(v: unknown): TransformerTaps | null {
+  if (!v || typeof v !== "object") return null;
+  const out: TransformerTaps = {};
+  for (const [k, list] of Object.entries(v as Record<string, unknown>)) {
+    const key = loadKey(k);
+    if (key !== "70V" && key !== "100V") continue;
+    const items = Array.isArray(list) ? list : typeof list === "string" ? list.split(/[,/;]/) : [list];
+    const watts = [...new Set(items.map((x) => num(x, 0.1, 1000)).filter((x): x is number => x != null))].sort((a, b) => b - a).slice(0, MAX_TAPS);
+    if (watts.length) out[key] = watts;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+function speakerPowerOf(v: unknown): SpeakerPower | null {
+  if (!v || typeof v !== "object") return null;
+  const out: SpeakerPower = {};
+  for (const [k, w] of Object.entries(v as Record<string, unknown>)) {
+    const s = k.toLowerCase();
+    const key = /peak|pico/.test(s) ? "peak" : /program|music/.test(s) ? "program" : /contin|rms|aes|nominal|pink/.test(s) ? "continuous" : null;
+    const n = num(w, 0.1, 10000);
+    if (key && n != null) out[key] = n;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/** 90 / "90°" (cónico) · "90 x 60" · { horizontal, vertical }. */
+function coverageOf(v: unknown): Coverage | null {
+  if (typeof v === "number" || (typeof v === "string" && /^\s*\d+(\.\d+)?\s*°?\s*$/.test(v))) {
+    const n = num(v, 1, 360);
+    return n == null ? null : { horizontal: n, vertical: n };
+  }
+  if (typeof v === "string") {
+    const m = v.match(/(\d+(?:\.\d+)?)\s*°?\s*[x×]\s*(\d+(?:\.\d+)?)/i);
+    const h = m ? num(m[1], 1, 360) : null;
+    const vert = m ? num(m[2], 1, 360) : null;
+    return h != null && vert != null ? { horizontal: h, vertical: vert } : null;
+  }
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const h = num(o.horizontal ?? o.h, 1, 360);
+  const vert = num(o.vertical ?? o.v ?? o.horizontal ?? o.h, 1, 360);
+  return h != null && vert != null ? { horizontal: h, vertical: vert } : null;
+}
 
 const int = (v: unknown, max: number): number | null => {
   const n = Number(v);
@@ -214,17 +287,27 @@ export function validateExtraction(raw: RawExtraction, sourceText: string): Vali
   take("hdcp", (v) => str(v, 10));
   take("usbVersion", (v) => str(v, 20));
   take("ampChannels", (v) => int(v, 64));
-  take("ampWattsPerChannel", (v) => {
-    if (!v || typeof v !== "object") return null;
-    const out: Record<string, number> = {};
-    for (const [k, w] of Object.entries(v as Record<string, unknown>)) {
-      const n = typeof w === "number" ? w : Number(String(w).replace(/[^0-9.]/g, ""));
-      const key = loadKey(k);
-      if (key && Number.isFinite(n) && n > 0 && n <= 5000) out[key] = n;
-    }
-    return Object.keys(out).length ? out : null;
-  });
+  take("ampWattsPerChannel", (v) => wattsByLoad(v));
   take("lineVoltage", (v) => lineVoltageOf(v));
+  take("ampBridgedWatts", (v) => wattsByLoad(v));
+  take("minLoadOhms", (v) => num(v, 0.5, 64));
+  take("impedanceOhms", (v) => num(v, 0.5, 64));
+  take("transformerTaps", (v) => tapsOf(v));
+  take("speakerPowerWatts", (v) => speakerPowerOf(v));
+  take("sensitivityDb", (v) => num(v, 60, 130));
+  take("coverageDeg", (v) => coverageOf(v));
+  // El puenteado no es potencia por canal: si la misma carga trae el mismo valor en los dos, se saca del por canal.
+  const perCh = capabilities.ampWattsPerChannel;
+  const bridged = capabilities.ampBridgedWatts?.value;
+  if (perCh && bridged) {
+    const clash = Object.keys(perCh.value).filter((k) => bridged[k] === perCh.value[k]);
+    if (clash.length) {
+      rejected.push({ what: `ampWattsPerChannel ${clash.join(", ")} (es el valor puenteado)`, evidence: perCh.evidence });
+      const rest = Object.fromEntries(Object.entries(perCh.value).filter(([k]) => !clash.includes(k)));
+      if (Object.keys(rest).length) capabilities.ampWattsPerChannel = { ...perCh, value: rest };
+      else delete capabilities.ampWattsPerChannel;
+    }
+  }
   take("wireless", (v) => {
     const list = (Array.isArray(v) ? v : [])
       .map((x) => {

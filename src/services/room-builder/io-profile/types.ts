@@ -92,11 +92,33 @@ export type IoCapabilities = {
   ampWattsPerChannel?: Evidenced<Record<string, number>>;
   /** low-z | 70v | 100v | both */
   lineVoltage?: Evidenced<string>;
+  /**
+   * Amplificador: potencia por salida PUENTEADA (dos canales juntos: bridged / BTL, o modo
+   * Hi-Z que ocupa un par de canales), según carga ("8Ω": 500, "70V": 250). Nunca va en
+   * ampWattsPerChannel: si 70V/100V solo está acá, esa salida usa la mitad de los canales.
+   */
+  ampBridgedWatts?: Evidenced<Record<string, number>>;
+  /** Amplificador: carga mínima por canal (Ω) que admite. */
+  minLoadOhms?: Evidenced<number>;
+  /** Parlante: impedancia nominal en baja impedancia (Ω). */
+  impedanceOhms?: Evidenced<number>;
+  /** Parlante: taps del transformador en W por tensión de línea ({ "70V": [8, 4, 2], "100V": [8, 4] }). */
+  transformerTaps?: Evidenced<TransformerTaps>;
+  /** Parlante: potencia que admite (W) — continua (RMS/AES), de programa y pico, según declare la ficha. */
+  speakerPowerWatts?: Evidenced<SpeakerPower>;
+  /** Parlante: sensibilidad en dB SPL (1 W / 1 m). */
+  sensitivityDb?: Evidenced<number>;
+  /** Parlante: ángulo de cobertura/dispersión en grados (cónico: horizontal = vertical). */
+  coverageDeg?: Evidenced<Coverage>;
   /** RS-232, IP, IR, CEC, Cresnet… (cómo se controla el equipo). */
   controlProtocols?: Evidenced<string[]>;
   /** Conexiones inalámbricas que usa (protocolo y su papel). */
   wireless?: Evidenced<WirelessLink[]>;
 };
+
+export type TransformerTaps = Partial<Record<"70V" | "100V", number[]>>;
+export type SpeakerPower = Partial<Record<"continuous" | "program" | "peak", number>>;
+export type Coverage = { horizontal: number; vertical: number };
 
 /** Protocolos inalámbricos del sistema AV. */
 export const WIRELESS_PROTOCOLS = ["wifi", "bluetooth", "infinet", "zum-mesh", "zigbee", "zwave", "rf-mic", "dect", "airplay", "chromecast", "wireless-presentation", "ir-remote"] as const;
