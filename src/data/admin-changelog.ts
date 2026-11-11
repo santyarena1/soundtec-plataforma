@@ -2750,4 +2750,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Quien responde desde su enlace personal ve la confirmación desde cualquier dispositivo cuando vuelve a entrar." },
     ],
   },
+  {
+    id: "ship-2026-11-11-formularios-vista-previa-enlace",
+    version: "2.35.0",
+    releasedAt: "2026-11-11T14:00:00.000Z",
+    summary: "Formularios: al compartir el enlace por WhatsApp o redes aparece una tarjeta con el logo del evento, la fecha y el lugar.",
+    items: [
+      { kind: "NUEVO", text: "Vista previa del enlace: imagen con la red de puntos de los formularios y el logo del evento grande, con fecha, horario y lugar (de Información útil de la confirmación). Sin logo propio, va el de Soundtec con el título." },
+      { kind: "NUEVO", text: "El título y la descripción de la tarjeta salen del formulario: el título de la bienvenida y los datos del evento (o el texto de bienvenida)." },
+      { kind: "MEJORA", text: "Cuando se edita el formulario, la tarjeta se actualiza sola en los enlaces que se compartan desde ese momento." },
+    ],
+  },
 ];

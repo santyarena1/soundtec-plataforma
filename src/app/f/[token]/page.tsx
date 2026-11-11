@@ -3,7 +3,8 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { loadPublicForm } from "@/lib/forms/public";
 import { prisma } from "@/lib/prisma";
-import { formDoneCookie } from "@/lib/forms/types";
+import { formDoneCookie, readSettings } from "@/lib/forms/types";
+import { appUrl } from "@/lib/app-url";
 import { getCurrentPermissions, getSessionUser } from "@/lib/auth-helpers";
 import { isPanelRole, permissionsHave } from "@/lib/permissions";
 import { FormRunner } from "./form-runner";
@@ -30,17 +31,44 @@ async function openInvite(formId: string, code: string | undefined) {
   return invite;
 }
 
-/** Formulario público por enlace secreto: no se indexa ni se lista en ningún lado. */
+/**
+ * Formulario público por enlace secreto: no se indexa ni se lista en ningún lado.
+ * Lo que sí lleva es la vista previa al compartirlo (WhatsApp, redes): título,
+ * fecha y lugar, y la imagen con el logo del evento sobre la red de puntos.
+ */
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params;
-  // Solo el título: armar el formulario entero (marcas, mapas) acá duplicaba el trabajo de la página.
-  const form = /^[A-Za-z0-9_-]{16,64}$/.test(token) ? await prisma.form.findUnique({ where: { token }, select: { title: true } }) : null;
+  // Solo lo necesario: armar el formulario entero (marcas, mapas) acá duplicaba el trabajo de la página.
+  const form = /^[A-Za-z0-9_-]{16,64}$/.test(token) ? await prisma.form.findUnique({ where: { token }, select: { title: true, settings: true, updatedAt: true } }) : null;
+  if (!form) return { title: { absolute: "Soundtec" }, robots: { index: false, follow: false, nocache: true } };
+  const settings = readSettings(form.settings);
+  const title = settings.welcomeTitle?.trim() || form.title;
+  const details = (settings.endInfo ?? [])
+    .filter((d) => /^(fecha|d[ií]a|horario|hora|lugar|sal[oó]n|sede|direcci[oó]n)$/i.test(d.label.trim()) && d.value.trim())
+    .map((d) => d.value.trim())
+    .join(" · ");
+  const intro = (settings.welcomeBody ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const description = (details || intro || "Completá el formulario de Soundtec.").slice(0, 200);
+  // ?v= cambia cuando se edita el formulario: WhatsApp guarda la imagen por URL y así toma la nueva.
+  const image = `${appUrl()}/api/forms/og/${token}?v=${form.updatedAt.getTime().toString(36)}`;
   return {
-    title: form ? `${form.title} · Soundtec` : "Soundtec",
+    title: { absolute: `${title} · Soundtec` },
+    description,
     robots: { index: false, follow: false, nocache: true },
     referrer: "no-referrer",
+    openGraph: {
+      type: "website",
+      siteName: "Soundtec",
+      locale: "es_AR",
+      title,
+      description,
+      url: `${appUrl()}/f/${token}`,
+      images: [{ url: image, width: 1200, height: 630, alt: title }],
+    },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
   };
 }
+
 
 /** ?previa=1 con sesión del equipo (permiso de formularios): se ve aunque esté en borrador y no envía. */
 async function canPreview(): Promise<boolean> {
