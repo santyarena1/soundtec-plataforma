@@ -2761,4 +2761,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Cuando se edita el formulario, la tarjeta se actualiza sola en los enlaces que se compartan desde ese momento." },
     ],
   },
+  {
+    id: "ship-2026-11-11-tarjetas-enlaces-todo-el-sitio",
+    version: "2.36.0",
+    releasedAt: "2026-11-11T16:00:00.000Z",
+    summary: "Cualquier enlace del sitio que se pegue en WhatsApp o redes muestra una tarjeta con la estética de Soundtec: red de puntos, logo y marcas.",
+    items: [
+      { kind: "NUEVO", text: "Productos: foto en un recuadro blanco, logo de la marca, nombre y descripción, sin precio. También los enlaces del portal, que para quien no inició sesión abren la ficha pública." },
+      { kind: "NUEVO", text: "Catálogo filtrado por marca: el logo de la marca grande y cuántos productos tiene. Catálogo general, consultas, expo y pedido de cuenta con su propia tarjeta." },
+      { kind: "NUEVO", text: "Listas de precios compartidas: el nombre de la lista con el logo de Soundtec (nunca precios)." },
+      { kind: "NUEVO", text: "Todo lo demás (portal, panel, inicio) muestra la tarjeta general: logo de Soundtec y una fila con las marcas principales." },
+      { kind: "MEJORA", text: "Las tarjetas usan la tipografía del sitio y se renuevan solas cuando cambia el producto, la lista o el formulario." },
+    ],
+  },
 ];

@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { ExpoExperience } from "@/components/expo/expo-experience";
 import type { ChatProduct } from "@/components/expo/types";
+import { ogMeta, siteCardUrl } from "@/lib/og/meta";
+
+export const metadata = {
+  title: "Soundtec en la expo",
+  ...ogMeta({ title: "Soundtec en la expo", description: "Conocé nuestras marcas y sus productos con ficha técnica.", image: siteCardUrl("expo") }),
+};
 
 export const dynamic = "force-dynamic";
 

@@ -4,6 +4,7 @@ import { isCatalogModeOn } from "@/lib/catalog-mode";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { ogImageUrl, ogMeta } from "@/lib/og/meta";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
@@ -31,12 +32,17 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const product = await prisma.product.findFirst({
     where: { id, isActive: true },
-    select: { normalizedName: true, shortDescription: true, brand: { select: { name: true } } },
+    select: { normalizedName: true, modelNumber: true, originalName: true, shortDescription: true, updatedAt: true, brand: { select: { name: true } } },
   });
   if (!product) return { title: "Producto" };
+  const name = productTitle(product);
+  const title = `${name}${product.brand?.name ? ` · ${product.brand.name}` : ""}`;
+  const description = productSubtitle(product) ?? "Ficha técnica en el catálogo de Soundtec.";
   return {
-    title: `${product.normalizedName}${product.brand?.name ? ` · ${product.brand.name}` : ""}`,
-    description: product.shortDescription ?? undefined,
+    title,
+    description,
+    // Tarjeta al pegar el enlace: foto, logo de la marca y nombre (nunca el precio).
+    ...ogMeta({ title, description, image: ogImageUrl(`/api/og/product/${id}`, product.updatedAt), path: `/catalogo/${id}` }),
   };
 }
 

@@ -4,9 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCatalogBrands } from "@/lib/catalog-brands";
 import { BrandInquiryForm } from "./inquiry-form";
+import { ogMeta, siteCardUrl } from "@/lib/og/meta";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Consultá disponibilidad" };
+export const metadata = {
+  title: "Consultá disponibilidad",
+  ...ogMeta({ title: "Consultá disponibilidad · Soundtec", description: "Contanos qué necesitás y te respondemos con disponibilidad y precios.", image: siteCardUrl("consultar") }),
+};
 
 /**
  * Marca oficial que todavía no tiene productos en el catálogo: se invita a

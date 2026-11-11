@@ -17,11 +17,35 @@ import { AssistantEntry } from "@/components/expo/assistant-entry";
 import { VISITOR_COOKIE, QR_COOKIE } from "@/lib/expo/visitor-cookies";
 import { findLiveQr, recordVisit } from "@/server/expo/visits";
 import { ArrowRight, Package } from "lucide-react";
+import type { Metadata } from "next";
+import { ogImageUrl, ogMeta, siteCardUrl } from "@/lib/og/meta";
 import { RememberCatalog } from "@/components/catalog/catalog-memory";
 
 export const dynamic = "force-dynamic";
 
 const BASE_PATH = "/catalogo";
+
+/** Vista previa al pegar el enlace: la de la marca si viene filtrado por una, o la del catálogo. */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+  const sp = await searchParams;
+  const rawBrand = Array.isArray(sp.brand) ? sp.brand[0] : sp.brand;
+  const brandId = sp.crestron === "1" ? CRESTRON_HOME_ID : rawBrand?.split(",")[0];
+  const brand = brandId ? (await getCatalogBrands().catch(() => [])).find((b) => b.id === brandId) : undefined;
+  if (brand) {
+    return {
+      title: `${brand.name} · Catálogo`,
+      ...ogMeta({
+        title: `${brand.name} en Soundtec`,
+        description: `${brand.count.toLocaleString("es-AR")} productos con ficha técnica.`,
+        image: ogImageUrl(`/api/og/brand/${brand.id}`, "2"),
+      }),
+    };
+  }
+  return {
+    title: "Catálogo",
+    ...ogMeta({ title: "Catálogo Soundtec", description: "Todas nuestras marcas, con la ficha técnica de cada producto.", image: siteCardUrl("catalogo") }),
+  };
+}
 
 /**
  * Catálogo público: cualquiera puede explorar productos y fichas técnicas.

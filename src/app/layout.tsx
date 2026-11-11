@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { getSetting } from "@/lib/settings";
+import { ogMeta, siteCardUrl } from "@/lib/og/meta";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -26,25 +27,18 @@ function resolveMetadataBase(): URL | undefined {
 
 export async function generateMetadata(): Promise<Metadata> {
   let appName = "Soundtec";
-  let logoUrl = "";
   try {
-    const [name, logo] = await Promise.all([
-      getSetting("app.name", "Soundtec"),
-      getSetting("branding.logo_url", ""),
-    ]);
-    appName = name || "Soundtec";
-    logoUrl = logo || "";
+    appName = (await getSetting("app.name", "Soundtec")) || "Soundtec";
   } catch {
     // fallback silencioso si la DB no está disponible
   }
 
   // Nunca usar el logo de marca (puede ser data: de hasta ~500KB) como page icon:
   // inflaba el HTML de todas las páginas. Íconos fijos en /public.
-  // Vista previa al compartir links: el logo cargado (si es una URL) o el logo de Soundtec.
-  const ogImage =
-    logoUrl && /^https?:\/\//i.test(logoUrl)
-      ? [logoUrl]
-      : [{ url: "/icon-512.png", width: 512, height: 512, alt: appName }];
+  // Vista previa al pegar un enlace (WhatsApp, redes): la tarjeta general con la red de puntos,
+  // el logo y las marcas. Las páginas con tarjeta propia (producto, marca, lista, formulario) la reemplazan.
+  const ogImage = siteCardUrl("home");
+  const ogDescription = "Audio, video, control y automatización para proyectos integrados. Catálogo con ficha técnica de todas nuestras marcas.";
   const metadataBase = resolveMetadataBase();
 
   return {
@@ -64,14 +58,7 @@ export async function generateMetadata(): Promise<Metadata> {
       shortcut: "/favicon.ico",
       apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
     },
-    openGraph: {
-      title: appName,
-      description:
-        "Portal de clientes y herramientas profesionales para proyectos audiovisuales integrados.",
-      type: "website",
-      locale: "es_AR",
-      images: ogImage,
-    },
+    ...ogMeta({ title: `${appName} — Soluciones audiovisuales profesionales`, description: ogDescription, image: ogImage }),
   };
 }
 

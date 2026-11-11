@@ -10,11 +10,19 @@ import { headers } from "next/headers";
 import { createHash } from "crypto";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { ogImageUrl, ogMeta } from "@/lib/og/meta";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params; const list = await prisma.shareablePriceList.findUnique({ where: { shareSlug: slug }, select: { name: true } });
-  return { title: list?.name || "Lista de precios", robots: { index: false, follow: false } };
+  const { slug } = await params;
+  const list = await prisma.shareablePriceList.findUnique({ where: { shareSlug: slug }, select: { name: true, description: true, updatedAt: true } });
+  if (!list) return { title: "Lista de precios", robots: { index: false, follow: false } };
+  return {
+    title: list.name,
+    robots: { index: false, follow: false },
+    // Tarjeta al pegar el enlace: nombre de la lista con la estética del sitio, sin precios.
+    ...ogMeta({ title: list.name, description: list.description || "Preparada por el equipo de Soundtec.", image: ogImageUrl(`/api/og/list/${slug}`, list.updatedAt) }),
+  };
 }
 
 export default async function PublicShareListPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string }> }) {

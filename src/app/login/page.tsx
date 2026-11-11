@@ -4,8 +4,13 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { getEquipmentBrands, totalProducts } from "@/lib/catalog-brands";
+import { ogMeta, siteCardUrl } from "@/lib/og/meta";
 
-export const metadata = { title: "Acceso al portal" };
+// Los enlaces del portal y del panel, para quien no inició sesión (como WhatsApp al armar la vista previa), llegan acá.
+export const metadata = {
+  title: "Acceso al portal",
+  ...ogMeta({ title: "Portal de clientes Soundtec", description: "Precios, pedidos y cotizaciones. Ingresá con tu cuenta.", image: siteCardUrl("portal") }),
+};
 
 const SESSION_NOTICES: Record<string, string> = {
   clave: "Tu clave quedó guardada. Ingresá con la nueva.",
