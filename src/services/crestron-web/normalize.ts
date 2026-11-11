@@ -34,6 +34,16 @@ function escapeHtml(value: string): string {
 /** "1.74 in. (44 mm)" → 4.4 ; "17.03 in (433 mm)" → 43.3 */
 export function parseLengthCm(value: string | undefined): number | undefined {
   if (!value) return undefined;
+  const fromInches = inchesToCm(value);
+  const metric = metricLengthCm(value);
+  if (metric === undefined) return fromInches;
+  // La web de Crestron a veces se equivoca de unidad («1.72 in (44 cm)»):
+  // si la medida métrica no coincide con las pulgadas, valen las pulgadas.
+  if (fromInches !== undefined && Math.abs(metric - fromInches) / fromInches > 0.2) return fromInches;
+  return metric;
+}
+
+function metricLengthCm(value: string): number | undefined {
   const mm = value.match(/([\d.,]+)\s*mm/i);
   if (mm) {
     const n = Number(mm[1].replace(",", "."));
@@ -44,6 +54,10 @@ export function parseLengthCm(value: string | undefined): number | undefined {
     const n = Number(cm[1].replace(",", "."));
     if (Number.isFinite(n) && n > 0) return Math.round(n * 100) / 100;
   }
+  return undefined;
+}
+
+function inchesToCm(value: string): number | undefined {
   const inch = value.match(/([\d.,]+)\s*(?:in\b|in\.|inch|")/i);
   if (inch) {
     const n = Number(inch[1].replace(",", "."));

@@ -2816,4 +2816,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "El cable UTP Crestron DM-CBL-ULTRA ya no se cotiza como si fuera un HDMI." },
     ],
   },
+  {
+    id: "ship-2026-11-11-room-builder-laminas-enlace",
+    version: "2.37.0",
+    releasedAt: "2026-11-11T23:30:00.000Z",
+    summary: "Room Builder: láminas técnicas PDF en A3 y enlace de solo lectura para el cliente. Medidas reales de 1.651 productos en la base.",
+    items: [
+      { kind: "NUEVO", text: "Láminas PDF en A3 con cartela (logo, proyecto, cliente, escala, fecha, revisión): plano a escala normalizada con barra, diagrama de conexiones, planilla de cables con totales, etiquetas para imprimir (dos por cable) y lista de equipos sin precios con el origen de cada dato. Usan el cableado hecho a mano cuando existe." },
+      { kind: "NUEVO", text: "Proyecto completo: láminas de toda la obra (planta general, cada ambiente, planilla y equipos) desde la vista técnica." },
+      { kind: "NUEVO", text: "Enlace para el cliente: solo lectura, sin cuenta, vence a los 7, 30 o 90 días, se puede renovar o desactivar y cuenta las visitas. Muestra plano, diagrama y equipos (sin precios) y deja descargar las láminas." },
+      { kind: "FIX", text: "La sincronización con el portal de Sonance ya no escribe medidas de relleno de 1 cm, y las de Crestron toman las pulgadas cuando los centímetros de la web están mal (equipos de rack de 44 cm)." },
+      { kind: "NUEVO", text: "Productos: diámetro de corte de parlantes y altura en unidades de rack." },
+    ],
+  },
 ];

@@ -1,5 +1,6 @@
 import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { applySyncFieldPolicy } from "./field-policy";
+import { realDimensionsCm } from "./dimensions";
 import { Prisma, type ProductRelationKind } from "@prisma/client";
 import { slugify } from "@/lib/utils";
 import {
@@ -293,9 +294,8 @@ export async function applyNormalizedProduct(
     badges: n.badges && n.badges.length > 0 ? jsonValue(n.badges) : undefined,
     weight: finite(n.weight),
     volume: finite(n.volume),
-    widthCm: finite(n.widthCm),
-    heightCm: finite(n.heightCm),
-    depthCm: finite(n.depthCm),
+    // Relleno 1×1×1 del proveedor = sin dato (ver sync/dimensions).
+    ...realDimensionsCm({ widthCm: finite(n.widthCm), heightCm: finite(n.heightCm), depthCm: finite(n.depthCm) }),
     urlSlug: nonEmpty(n.urlSlug),
     vendorProductUrl: nonEmpty(n.vendorProductUrl),
     videoUrl: nonEmpty(n.videoUrl),

@@ -3,12 +3,14 @@
 /**
  * Plano técnico del proyecto completo: el diagrama de señal de todos los
  * ambientes y el rack central como una sola instalación, la planilla de
- * cables de obra y los equipos y materiales totales. Exporta CSV.
+ * cables de obra y los equipos y materiales totales. Exporta CSV y las
+ * láminas técnicas en PDF.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, Loader2, Wand2 } from "lucide-react";
+import { Download, FileText, Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
+import { downloadFileName } from "@/lib/content-disposition";
 import type { DiagramPositions } from "@/services/room-builder/wiring/diagram-layout";
 import type { ProjectTechnical } from "@/services/room-builder/project-technical";
 import { TechnicalDiagram } from "./technical-diagram";
@@ -69,6 +71,29 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
     void load();
   }, [load]);
 
+  /** Láminas técnicas A3 de todo el proyecto (planta general, cada ambiente, planilla, etiquetas y equipos). */
+  const [sheetsBusy, setSheetsBusy] = useState(false);
+  const downloadSheets = useCallback(async () => {
+    setSheetsBusy(true);
+    try {
+      const res = await fetch(`/api/admin/room-builder/projects/${hubId}/proposal-pdf`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ snapshots: [] }) });
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.error ?? "No se pudieron generar las láminas");
+      }
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(await res.blob());
+      a.download = downloadFileName(res, `Laminas_${projectName.replace(/[^\w\-]+/g, "_")}.pdf`);
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast.success("Láminas descargadas");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudieron generar las láminas");
+    } finally {
+      setSheetsBusy(false);
+    }
+  }, [hubId, projectName]);
+
   // Ambientes sin cables trazados: se resuelven solos al abrir (una vez).
   const [autoRan, setAutoRan] = useState(false);
   useEffect(() => {
@@ -105,6 +130,15 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
           <span>
             <b>{data.rooms.length}</b> ambientes · <b>{totals.equipment}</b> equipos · <b>{totals.cables}</b> cables · <b>{totals.meters.toFixed(0)} m</b>
           </span>
+          <button
+            type="button"
+            onClick={() => void downloadSheets()}
+            disabled={sheetsBusy}
+            title="Láminas técnicas A3 del proyecto: planta general, plano y diagrama de cada ambiente, planilla y etiquetas de cables, equipos"
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#1e3553] bg-white px-2.5 py-1.5 font-semibold text-[#1e3553] disabled:opacity-50"
+          >
+            {sheetsBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />} Láminas PDF
+          </button>
           <button type="button" onClick={resolveAll} disabled={resolving} className="inline-flex items-center gap-1.5 rounded-md bg-[#1e3553] px-2.5 py-1.5 font-semibold text-white disabled:opacity-50">
             {resolving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />} Resolver y trazar todo el proyecto
           </button>

@@ -64,8 +64,12 @@ async function launchBrowser(): Promise<Browser> {
   }
 }
 
-/** Renderiza HTML tipográfico a PDF A4 (mismo motor visual que Vista / Word). */
-export async function htmlToPdf(html: string): Promise<Uint8Array> {
+/**
+ * Renderiza HTML tipográfico a PDF A4 (mismo motor visual que Vista / Word).
+ * `margin: "none"`: el HTML trae su propia hoja (@page con tamaño y márgenes),
+ * como las láminas A3 del Room Builder.
+ */
+export async function htmlToPdf(html: string, opts: { margin?: "default" | "none" } = {}): Promise<Uint8Array> {
   const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
@@ -74,7 +78,7 @@ export async function htmlToPdf(html: string): Promise<Uint8Array> {
       format: "A4",
       printBackground: true,
       preferCSSPageSize: true,
-      margin: { top: "10mm", right: "10mm", bottom: "12mm", left: "10mm" },
+      margin: opts.margin === "none" ? { top: "0", right: "0", bottom: "0", left: "0" } : { top: "10mm", right: "10mm", bottom: "12mm", left: "10mm" },
     });
     return new Uint8Array(bytes);
   } finally {

@@ -31,10 +31,39 @@ async function exec(sql: string) {
   await prisma.$executeRawUnsafe(sql);
 }
 
+async function columnExists(table: string, column: string): Promise<boolean> {
+  const rows = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = ${table} AND column_name = ${column}
+    ) AS "exists"
+  `;
+  return Boolean(rows[0]?.exists);
+}
+
+/**
+ * Columnas agregadas a RoomProject después de crear la tabla. Se consulta
+ * antes de alterar: ALTER TABLE toma un bloqueo exclusivo aunque la columna ya exista.
+ */
+async function ensureRoomProjectColumns(): Promise<void> {
+  if (await columnExists("RoomProject", "shareViews")) return;
+  // Enlace de solo lectura para el cliente (/p/[token]).
+  await exec(`
+    ALTER TABLE "RoomProject"
+      ADD COLUMN IF NOT EXISTS "shareToken" TEXT,
+      ADD COLUMN IF NOT EXISTS "shareExpiresAt" TIMESTAMP(3),
+      ADD COLUMN IF NOT EXISTS "shareCreatedAt" TIMESTAMP(3),
+      ADD COLUMN IF NOT EXISTS "shareViews" INTEGER NOT NULL DEFAULT 0
+  `);
+  await exec(`CREATE UNIQUE INDEX IF NOT EXISTS "RoomProject_shareToken_key" ON "RoomProject"("shareToken")`);
+}
+
 async function runEnsure(): Promise<void> {
   const hasProfile = await tableExists("ProductDesignProfile");
   const hasProject = await tableExists("RoomProject");
   const hasDevice = await tableExists("RoomProjectDevice");
+  if (hasProject) await ensureRoomProjectColumns();
   if (hasProfile && hasProject && hasDevice) return;
 
   if (!hasProfile) {

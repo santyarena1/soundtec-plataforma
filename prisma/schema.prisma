@@ -338,6 +338,10 @@ model Product {
   widthCm  Decimal? @db.Decimal(10, 2)
   heightCm Decimal? @db.Decimal(10, 2)
   depthCm  Decimal? @db.Decimal(10, 2)
+  /// Diámetro de corte/empotrado (parlantes de techo/pared redondos), en cm. Fuente: ficha oficial.
+  cutoutDiameterCm Decimal? @db.Decimal(10, 2)
+  /// Alto en unidades de rack (1 = 1U; 1U media-rack también es 1). null = no va en rack o sin dato.
+  rackUnits        Int?
 
   // Flags extra
   requiresQuote Boolean @default(false)
@@ -2023,6 +2027,13 @@ model RoomProject {
   notes       String?        @db.Text
   /// Imagen del plano (tabla aparte: no viaja con cada lectura del proyecto).
   planImage   RoomPlanImage?
+
+  /// Enlace de solo lectura para el cliente (/p/[token]). Renovar cambia el token; desactivar lo borra.
+  shareToken     String?   @unique
+  shareExpiresAt DateTime?
+  shareCreatedAt DateTime?
+  /// Visitas al enlace vigente (se reinicia al renovar).
+  shareViews     Int       @default(0)
 
   parentId String?
   parent   RoomProject?  @relation("RoomProjectTree", fields: [parentId], references: [id], onDelete: Cascade)

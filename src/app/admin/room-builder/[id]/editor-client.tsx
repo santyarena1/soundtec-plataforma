@@ -30,6 +30,8 @@ import { ProjectSystemPanel } from "@/components/room-builder/plan/project-syste
 import { useCabling } from "@/components/room-builder/cabling/use-cabling";
 import { TechnicalPlan } from "@/components/room-builder/technical/technical-plan";
 import { ProjectTechnicalView } from "@/components/room-builder/technical/project-technical";
+import { ClientLinkButton } from "@/components/room-builder/share/client-link-button";
+import { downloadFileName } from "@/lib/content-disposition";
 import type { SnapshotFn } from "@/components/room-builder/three/snapshot-bridge";
 
 /** Tiempo para que la cámara llegue a la vista antes de capturarla (ms). */
@@ -444,10 +446,10 @@ export function RoomBuilderEditor({
       const blob = await res.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `Propuesta_${project.name.replace(/[^\w\-]+/g, "_")}.pdf`;
+      a.download = downloadFileName(res, `Laminas_${project.name.replace(/[^\w\-]+/g, "_")}.pdf`);
       a.click();
       URL.revokeObjectURL(a.href);
-      toast.success("Propuesta descargada");
+      toast.success("Láminas descargadas");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo generar la propuesta");
     } finally {
@@ -529,19 +531,22 @@ export function RoomBuilderEditor({
               Proyecto con {project.children.length} ambientes
             </p>
           </div>
-          <button
-            type="button"
-            onClick={createQuote}
-            disabled={pending}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#1e3553] px-4 py-2 text-sm font-semibold text-white"
-          >
-            {pending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileSpreadsheet className="h-4 w-4" />
-            )}
-            Generar cotización agregada
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <ClientLinkButton projectId={project.id} />
+            <button
+              type="button"
+              onClick={createQuote}
+              disabled={pending}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#1e3553] px-4 py-2 text-sm font-semibold text-white"
+            >
+              {pending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
+              Generar cotización agregada
+            </button>
+          </div>
         </header>
 
         <div className="flex rounded-lg border border-slate-300 bg-slate-50 p-0.5 w-fit" role="tablist" aria-label="Vista del proyecto">
@@ -656,11 +661,12 @@ export function RoomBuilderEditor({
               onClick={() => void downloadProposal()}
               disabled={proposalBusy}
               className="inline-flex items-center gap-1.5 rounded-md border border-[#1e3553] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#1e3553] disabled:opacity-60"
-              title="Propuesta técnica en PDF: vistas 3D, plano con cotas, equipos, cableado y diagrama de conexiones"
+              title="Láminas técnicas A3: plano a escala, diagrama de conexiones, planilla y etiquetas de cables, equipos y vistas 3D"
             >
               {proposalBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-              Propuesta PDF
+              Láminas PDF
             </button>
+            <ClientLinkButton projectId={project.id} compact />
           </div>
         </header>
 

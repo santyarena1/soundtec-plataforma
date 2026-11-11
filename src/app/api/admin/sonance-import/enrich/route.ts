@@ -17,6 +17,7 @@ import { translateBatchCached } from "@/services/translation-cache";
 import { revalidatePath } from "next/cache";
 import { changedScalarFields, mergeFieldTimestamps } from "@/lib/field-timestamps";
 import { mergeSourceMetadata } from "@/services/sync/source-metadata";
+import { realDimensionsCm } from "@/services/sync/dimensions";
 
 const CACHED_PAYLOAD_KEY = "sonance.sync_preview"; // enrich consume el preview (con items + skus)
 
@@ -393,9 +394,11 @@ export async function POST(req: NextRequest) {
       ) productUpdate.availabilityType = detail.availability.messageType;
       if (detail.badges && detail.badges.length > 0) productUpdate.badges = detail.badges as unknown as object;
       if (shippingWeight !== undefined && shippingWeight > 0) productUpdate.weight = shippingWeight;
-      if (shippingHeight !== undefined) productUpdate.heightCm = shippingHeight;
-      if (shippingWidth !== undefined) productUpdate.widthCm = shippingWidth;
-      if (shippingLength !== undefined) productUpdate.depthCm = shippingLength;
+      // shipping* = 1 es relleno del portal: no se escribe (ver sync/dimensions).
+      const dims = realDimensionsCm({ widthCm: shippingWidth, heightCm: shippingHeight, depthCm: shippingLength });
+      if (dims.heightCm !== undefined) productUpdate.heightCm = dims.heightCm;
+      if (dims.widthCm !== undefined) productUpdate.widthCm = dims.widthCm;
+      if (dims.depthCm !== undefined) productUpdate.depthCm = dims.depthCm;
       if (detail.urlSegment?.trim()) productUpdate.urlSlug = detail.urlSegment;
       const vendorProductUrl = detail.productDetailUrl?.trim() || detail.canonicalUrl?.trim();
       if (vendorProductUrl) productUpdate.vendorProductUrl = vendorProductUrl;

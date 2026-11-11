@@ -66,7 +66,7 @@ export type ProjectTechnical = {
 };
 
 /** Código corto del ambiente para las etiquetas de obra ("Living" → "LIV"). */
-const roomCode = (name: string) => name.normalize("NFD").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "AMB";
+export const roomCode = (name: string) => name.normalize("NFD").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "AMB";
 
 /** Conectores a armar en obra por tipo de cable (cables armados de fábrica no suman). */
 const FIELD_CONNECTORS: Partial<Record<string, string>> = { lan: "Ficha RJ-45", dante: "Ficha RJ-45", hdbaset: "Ficha RJ-45 blindada (HDBaseT)", rs232: "Bornera Phoenix / DB9", "analog-audio": "Conector Phoenix / XLR", mic: "Conector XLR / Phoenix" };
