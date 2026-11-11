@@ -2798,4 +2798,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Los enlaces de productos del portal (/portal/products/…) ahora muestran la tarjeta al pegarlos en WhatsApp.",
     items: [{ kind: "FIX", text: "WhatsApp y las redes no seguían la redirección del portal a la ficha pública y quedaban sin vista previa. Ahora reciben la ficha en la misma dirección; las personas siguen viendo todo igual." }],
   },
+  {
+    id: "ship-2026-11-11-catalogo-sin-bienvenida",
+    version: "2.36.4",
+    releasedAt: "2026-11-11T20:00:00.000Z",
+    summary: "El catálogo ya no muestra la pantalla de bienvenida que pedía los datos al entrar.",
+    items: [{ kind: "MEJORA", text: "Quien entra al catálogo por un enlace o directo va al catálogo sin pantalla de por medio. Solo se pide el contacto al llegar por el QR de un evento activo (Configuración › Eventos y QR)." }],
+  },
 ];

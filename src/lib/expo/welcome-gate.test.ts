@@ -23,8 +23,8 @@ describe("decideWelcome", () => {
     assert.equal(decideWelcome({ hasLead: false, skipped: false, qrEventLive: true }), "REQUIRED"));
   it("obligatoria aunque haya salteado antes, si ahora vino por QR vigente", () =>
     assert.equal(decideWelcome({ hasLead: false, skipped: true, qrEventLive: true }), "REQUIRED"));
-  it("opcional sin QR vigente", () =>
-    assert.equal(decideWelcome({ hasLead: false, skipped: false, qrEventLive: false }), "OPTIONAL"));
+  it("no se muestra sin QR vigente (entrada por enlace o directa)", () =>
+    assert.equal(decideWelcome({ hasLead: false, skipped: false, qrEventLive: false }), "NONE"));
   it("no muestra si salteó y no hay QR vigente", () =>
     assert.equal(decideWelcome({ hasLead: false, skipped: true, qrEventLive: false }), "NONE"));
 });
