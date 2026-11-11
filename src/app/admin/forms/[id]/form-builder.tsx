@@ -293,6 +293,10 @@ export function FormBuilder({
               <option value="black">Negro</option>
             </select>
           </label>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="checkbox" checked={Boolean(settings.particles)} onChange={(e) => patchSettings({ particles: e.target.checked })} className="h-4 w-4 accent-primary" />
+            Partículas sutiles
+          </label>
           <label className="flex items-center gap-2">
             Cierra solo el
             <input

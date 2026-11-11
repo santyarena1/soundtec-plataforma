@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ArrowRight, Check, ChevronDown, ChevronUp, ExternalLink, Loader2, MapPin } from "lucide-react";
 import { formTheme, type FormTheme } from "./form-theme";
+import { FormParticles } from "./form-particles";
 import { submitFormResponse } from "@/server/actions/form-submit";
 import {
   OTHER_PREFIX,
@@ -166,6 +167,7 @@ export function FormRunner({
     <div className={`relative min-h-[100dvh] overflow-hidden ${theme.page}`}>
       {/* Fondo: un resplandor suave arriba, en el azul de la marca. */}
       <div className={`pointer-events-none absolute inset-x-0 top-0 h-[60vh] bg-gradient-to-b ${theme.glow}`} aria-hidden />
+      {settings.particles ? <FormParticles dark={dark} /> : null}
       <div className="fixed inset-x-0 top-0 z-30 h-1 bg-black/5">
         <div className={`h-full ${theme.bar} transition-[width] duration-700 ease-out`} style={{ width: `${progress}%` }} />
       </div>

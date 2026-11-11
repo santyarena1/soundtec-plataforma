@@ -2654,4 +2654,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Pregunta Marcas: muestra los logos de las marcas del catálogo para tocar las que conoce (todas o las que elijas). La respuesta llega con el nombre de cada marca y suma en el resumen." },
     ],
   },
+  {
+    id: "ship-2026-11-10-formularios-particulas",
+    version: "2.31.1",
+    releasedAt: "2026-11-11T01:30:00.000Z",
+    summary: "Formularios: opción de partículas muy sutiles en azul Soundtec sobre el fondo.",
+    items: [{ kind: "MEJORA", text: "Editor del formulario, junto al fondo: casilla Partículas sutiles. Puntos chicos que flotan despacio; quedan quietos si el dispositivo pide menos movimiento." }],
+  },
 ];

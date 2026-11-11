@@ -117,6 +117,8 @@ export const formSettingsSchema = z
     theme: z.enum(["white", "light", "gray", "dark"]).optional(),
     /** Color de botones, selección y barra de progreso. */
     accent: z.enum(["blue", "black"]).optional(),
+    /** Partículas muy sutiles en azul Soundtec sobre el fondo. */
+    particles: z.boolean().optional(),
   })
   .partial();
 
