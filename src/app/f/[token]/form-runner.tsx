@@ -46,8 +46,10 @@ export function FormRunner({
 }) {
   const theme = formTheme(settings);
   const dark = theme.dark;
-  const customLogo = Boolean(settings.logoUrl);
-  const headerLogo = settings.logoUrl || logoUrl;
+  // La imagen de la bienvenida también cuenta como logo del formulario (antes eran dos campos).
+  const formLogo = settings.logoUrl || settings.welcomeImageUrl;
+  const customLogo = Boolean(formLogo);
+  const headerLogo = formLogo || logoUrl;
   const steps = useMemo<Step[]>(() => {
     let n = 0;
     const list: Step[] = [];
@@ -200,7 +202,6 @@ export function FormRunner({
               heroLogoOnDark={dark}
               title={customLogo ? "" : settings.welcomeTitle || title}
               body={settings.welcomeBody}
-              imageUrl={settings.welcomeImageUrl}
               proseClass={theme.prose}
               mutedClass={theme.muted}
               big

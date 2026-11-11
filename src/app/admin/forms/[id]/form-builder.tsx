@@ -386,8 +386,8 @@ export function FormBuilder({
               <MediaField
                 formId={form.id}
                 label="Logo del formulario (opcional)"
-                value={settings.logoUrl ?? ""}
-                onChange={(url) => patchSettings({ logoUrl: url })}
+                value={settings.logoUrl || settings.welcomeImageUrl || ""}
+                onChange={(url) => patchSettings({ logoUrl: url, welcomeImageUrl: "" })}
                 hint="En la bienvenida sale grande al centro y el título queda arriba a la izquierda. Desde la primera pregunta el título se va y el logo pasa a esa esquina, en lugar del de Soundtec. Usá un PNG sin fondo."
               />
             </div>
@@ -397,9 +397,8 @@ export function FormBuilder({
               hint="Es lo primero que se ve al abrir el enlace. Si la dejás vacía, el formulario arranca directo en la primera pregunta."
               title={settings.welcomeTitle ?? ""}
               body={settings.welcomeBody ?? ""}
-              imageUrl={settings.welcomeImageUrl ?? ""}
               button={settings.welcomeButton ?? ""}
-              onChange={(p) => patchSettings({ welcomeTitle: p.title, welcomeBody: p.body, welcomeImageUrl: p.imageUrl, welcomeButton: p.button })}
+              onChange={(p) => patchSettings({ welcomeTitle: p.title, welcomeBody: p.body, welcomeButton: p.button })}
             />
             </div>
           ) : selected === "end" ? (
@@ -536,12 +535,13 @@ function SettingsScreen({
   hint: string;
   title: string;
   body: string;
-  imageUrl: string;
+  /** Sin imagen en la bienvenida: ahí la imagen es el logo del formulario. */
+  imageUrl?: string;
   button?: string;
-  onChange: (patch: { title: string; body: string; imageUrl: string; button?: string }) => void;
+  onChange: (patch: { title: string; body: string; imageUrl?: string; button?: string }) => void;
 }) {
   const state = { title, body, imageUrl, button };
-  const set = (patch: Partial<typeof state>) => onChange({ ...state, ...patch } as { title: string; body: string; imageUrl: string; button?: string });
+  const set = (patch: Partial<typeof state>) => onChange({ ...state, ...patch } as { title: string; body: string; imageUrl?: string; button?: string });
   return (
     <div className="space-y-5">
       <div>
@@ -556,7 +556,7 @@ function SettingsScreen({
         <span className="mb-1.5 block text-sm font-medium">Texto</span>
         <FormRichEditor key={heading} value={body} onChange={(html) => set({ body: html })} placeholder="Contá de qué se trata, la fecha, el lugar…" />
       </div>
-      <MediaField formId={formId} label="Imagen (opcional)" value={imageUrl} onChange={(url) => set({ imageUrl: url })} hint="Se ve al costado del texto en pantallas grandes." />
+      {imageUrl !== undefined ? <MediaField formId={formId} label="Imagen (opcional)" value={imageUrl} onChange={(url) => set({ imageUrl: url })} hint="Se ve al costado del texto en pantallas grandes." /> : null}
       {button !== undefined ? (
         <div className="max-w-xs">
           <label className="mb-1.5 block text-sm font-medium">Texto del botón</label>

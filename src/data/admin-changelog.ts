@@ -2687,4 +2687,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Formularios con logo propio: en la bienvenida el logo va al centro y el título arriba a la izquierda; después el logo pasa a esa esquina.",
     items: [{ kind: "MEJORA", text: "Bienvenida con logo propio: logo grande al centro y el título arriba a la izquierda. Desde la primera pregunta el título se va con un fundido y en su lugar queda el logo." }],
   },
+  {
+    id: "ship-2026-11-10-formularios-logo-unico",
+    version: "2.32.3",
+    releasedAt: "2026-11-11T04:00:00.000Z",
+    summary: "Formularios: la imagen de la bienvenida funciona como logo del formulario; queda un solo campo para el logo.",
+    items: [{ kind: "FIX", text: "Si el logo se había subido como imagen de la bienvenida, ahora también sale grande al centro con el título arriba a la izquierda y pasa a la esquina desde la primera pregunta. En el editor queda solo «Logo del formulario»." }],
+  },
 ];
