@@ -5,13 +5,16 @@ import { appUrl } from "@/lib/app-url";
 export type SiteCardPage = "home" | "catalogo" | "portal" | "expo" | "consultar" | "solicitar";
 
 /** URL absoluta de una tarjeta (WhatsApp necesita la dirección completa). `v` invalida la caché al cambiar el contenido. */
+/** Sube cuando cambia el diseño de las tarjetas: WhatsApp y el CDN las guardan por URL. */
+const DESIGN_VERSION = "3";
+
 export function ogImageUrl(path: string, version?: string | number | Date): string {
   const v = version instanceof Date ? version.getTime().toString(36) : version;
-  return `${appUrl()}${path}${v != null ? `${path.includes("?") ? "&" : "?"}v=${v}` : ""}`;
+  return `${appUrl()}${path}${path.includes("?") ? "&" : "?"}v=${v != null ? `${v}.` : ""}${DESIGN_VERSION}`;
 }
 
 export function siteCardUrl(page: SiteCardPage): string {
-  return ogImageUrl(`/api/og/site/${page}`, "2");
+  return ogImageUrl(`/api/og/site/${page}`);
 }
 
 /**

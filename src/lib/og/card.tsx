@@ -22,13 +22,13 @@ export const SOUNDTEC_LOGO_PATH = "/landing/logo_soundtec.png";
 
 export type CardImage = { src: string; width: number; height: number };
 
-type Font = { name: string; data: ArrayBuffer; weight: 400 | 700 | 800; style: "normal" };
+type Font = { name: string; data: ArrayBuffer; weight: 400 | 600 | 700; style: "normal" };
 let fontCache: Font[] | null = null;
 
 /** Inter servida por el propio sitio (/fonts): las funciones de Vercel no tienen tipografías del sistema. */
 async function loadFonts(origin: string): Promise<Font[]> {
   if (fontCache) return fontCache;
-  const weights = [400, 700, 800] as const;
+  const weights = [400, 600, 700] as const;
   const fonts = await Promise.all(
     weights.map(async (weight) => {
       const res = await fetch(new URL(`/fonts/inter-${weight}.woff`, origin));
@@ -71,6 +71,12 @@ export async function cardImage(bytes: Buffer | null, box: { width: number; heig
   }
 }
 
+/** Texto todo en mayúsculas (muchos nombres de producto vienen así): necesita más aire entre letras. */
+function isAllCaps(text: string): boolean {
+  const letters = text.replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ]/g, "");
+  return letters.length > 3 && letters === letters.toUpperCase();
+}
+
 function clip(text: string | undefined | null, max: number): string {
   const t = (text ?? "").replace(/\s+/g, " ").trim();
   return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
@@ -103,16 +109,16 @@ export type ProductCard = {
 function Hero({ card }: { card: HeroCard }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", padding: "48px 80px" }}>
-      {card.eyebrow ? <div style={{ display: "flex", fontSize: 22, fontWeight: 700, letterSpacing: 6, color: "#6b7280", marginBottom: 22 }}>{card.eyebrow.toUpperCase()}</div> : null}
+      {card.eyebrow ? <div style={{ display: "flex", fontSize: 19, fontWeight: 600, letterSpacing: 5, color: "#6b7280", marginBottom: 24 }}>{card.eyebrow.toUpperCase()}</div> : null}
       {card.logo ? <img src={card.logo.src} width={card.logo.width} height={card.logo.height} alt="" /> : null}
       {card.title ? (
-        <div style={{ display: "flex", marginTop: card.logo ? 30 : 0, fontSize: card.logo ? 54 : 70, fontWeight: 800, letterSpacing: -1.5, color: "#0a0a0a", textAlign: "center", lineHeight: 1.1, maxWidth: 1040 }}>
+        <div style={{ display: "flex", marginTop: card.logo ? 30 : 0, fontSize: card.logo ? 46 : 62, fontWeight: 600, letterSpacing: -0.6, color: "#0f172a", textAlign: "center", lineHeight: 1.15, maxWidth: 1000 }}>
           {clip(card.title, 70)}
         </div>
       ) : null}
-      {card.subtitle ? <div style={{ display: "flex", marginTop: 16, fontSize: 30, color: "#4b5563", textAlign: "center", maxWidth: 980 }}>{clip(card.subtitle, 90)}</div> : null}
+      {card.subtitle ? <div style={{ display: "flex", marginTop: 14, fontSize: 27, color: "#64748b", textAlign: "center", lineHeight: 1.4, maxWidth: 940 }}>{clip(card.subtitle, 90)}</div> : null}
       {card.details?.length ? (
-        <div style={{ display: "flex", alignItems: "center", marginTop: 30, fontSize: 32, color: "#1f2937" }}>
+        <div style={{ display: "flex", alignItems: "center", marginTop: 30, fontSize: 29, fontWeight: 600, color: "#1e293b" }}>
           {card.details.slice(0, 3).map((d, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center" }}>
               {i > 0 ? <div style={{ display: "flex", width: 10, height: 10, borderRadius: 10, background: BLUE, margin: "0 22px" }} /> : null}
@@ -133,6 +139,8 @@ function Hero({ card }: { card: HeroCard }) {
 }
 
 function Product({ card }: { card: ProductCard }) {
+  const titleCaps = isAllCaps(card.title);
+  const subtitleCaps = isAllCaps(card.subtitle ?? "");
   return (
     <div style={{ display: "flex", alignItems: "center", width: "100%", height: "100%", padding: "56px 64px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 500, height: 500, flexShrink: 0, background: "#ffffff", borderRadius: 32, border: "1px solid #e5e7eb", boxShadow: "0 24px 60px rgba(15,23,42,0.12)" }}>
@@ -142,12 +150,12 @@ function Product({ card }: { card: ProductCard }) {
         {card.brandLogo ? (
           <img src={card.brandLogo.src} width={card.brandLogo.width} height={card.brandLogo.height} alt="" />
         ) : card.brandName ? (
-          <div style={{ display: "flex", fontSize: 24, fontWeight: 700, letterSpacing: 5, color: BLUE }}>{card.brandName.toUpperCase()}</div>
+          <div style={{ display: "flex", fontSize: 20, fontWeight: 600, letterSpacing: 5, color: BLUE }}>{card.brandName.toUpperCase()}</div>
         ) : null}
-        <div style={{ display: "flex", marginTop: 26, fontSize: 50, fontWeight: 800, letterSpacing: -1, lineHeight: 1.1, color: "#0a0a0a" }}>{clip(card.title, 80)}</div>
-        {card.subtitle ? <div style={{ display: "flex", marginTop: 18, fontSize: 26, lineHeight: 1.35, color: "#4b5563" }}>{clip(card.subtitle, 120)}</div> : null}
+        <div style={{ display: "flex", marginTop: 28, fontSize: titleCaps ? 38 : 44, fontWeight: 600, letterSpacing: titleCaps ? 1 : -0.5, lineHeight: 1.18, color: "#0f172a" }}>{clip(card.title, 80)}</div>
+        {card.subtitle ? <div style={{ display: "flex", marginTop: 16, fontSize: subtitleCaps ? 20 : 24, letterSpacing: subtitleCaps ? 0.8 : 0, lineHeight: 1.45, color: "#64748b" }}>{clip(card.subtitle, 120)}</div> : null}
         <div style={{ display: "flex", alignItems: "center", marginTop: 36 }}>
-          <div style={{ display: "flex", padding: "14px 28px", background: "#0a0a0a", color: "#ffffff", borderRadius: 999, fontSize: 24, fontWeight: 700 }}>Ver ficha técnica →</div>
+          <div style={{ display: "flex", padding: "14px 28px", background: "#0a0a0a", color: "#ffffff", borderRadius: 999, fontSize: 21, fontWeight: 600, letterSpacing: 0.2 }}>Ver ficha técnica →</div>
           {card.mark ? <img src={card.mark.src} width={card.mark.width} height={card.mark.height} alt="" style={{ marginLeft: 28 }} /> : null}
         </div>
       </div>

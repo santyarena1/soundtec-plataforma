@@ -37,7 +37,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
       ...ogMeta({
         title: `${brand.name} en Soundtec`,
         description: `${brand.count.toLocaleString("es-AR")} productos con ficha técnica.`,
-        image: ogImageUrl(`/api/og/brand/${brand.id}`, "2"),
+        image: ogImageUrl(`/api/og/brand/${brand.id}`),
       }),
     };
   }

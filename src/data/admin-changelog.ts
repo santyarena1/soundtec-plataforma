@@ -2774,4 +2774,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Las tarjetas usan la tipografía del sitio y se renuevan solas cuando cambia el producto, la lista o el formulario." },
     ],
   },
+  {
+    id: "ship-2026-11-11-tipografia-tarjetas-mail",
+    version: "2.36.1",
+    releasedAt: "2026-11-11T17:00:00.000Z",
+    summary: "Tarjetas de enlaces y mail de invitación: tipografía más fina y prolija.",
+    items: [
+      { kind: "MEJORA", text: "Tarjetas al compartir enlaces: títulos en Inter semi negrita con espaciado normal (antes extra negrita y apretados); los nombres en mayúsculas llevan más aire entre letras." },
+      { kind: "MEJORA", text: "Mail de invitación: Inter donde el programa de mail la muestra y, si no, Segoe UI, Roboto o Helvetica, en lugar de Arial en negrita extra." },
+    ],
+  },
 ];

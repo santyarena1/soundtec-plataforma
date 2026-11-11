@@ -5,6 +5,7 @@ import { loadPublicForm } from "@/lib/forms/public";
 import { prisma } from "@/lib/prisma";
 import { formDoneCookie, readSettings } from "@/lib/forms/types";
 import { appUrl } from "@/lib/app-url";
+import { ogImageUrl } from "@/lib/og/meta";
 import { getCurrentPermissions, getSessionUser } from "@/lib/auth-helpers";
 import { isPanelRole, permissionsHave } from "@/lib/permissions";
 import { FormRunner } from "./form-runner";
@@ -50,7 +51,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   const intro = (settings.welcomeBody ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   const description = (details || intro || "Completá el formulario de Soundtec.").slice(0, 200);
   // ?v= cambia cuando se edita el formulario: WhatsApp guarda la imagen por URL y así toma la nueva.
-  const image = `${appUrl()}/api/forms/og/${token}?v=${form.updatedAt.getTime().toString(36)}`;
+  const image = ogImageUrl(`/api/forms/og/${token}`, form.updatedAt);
   return {
     title: { absolute: `${title} · Soundtec` },
     description,
