@@ -2719,4 +2719,14 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Confirmación: los campos de Información útil y Programa se salían de la caja." },
     ],
   },
+  {
+    id: "ship-2026-11-11-formularios-marcas-6-columnas",
+    version: "2.33.2",
+    releasedAt: "2026-11-11T07:00:00.000Z",
+    summary: "Formularios: la pregunta de marcas entra entera en la pantalla de la compu, sin scroll.",
+    items: [
+      { kind: "MEJORA", text: "Pregunta Marcas en escritorio: 6 columnas y tarjetas más bajas, así las marcas entran sin hacer scroll (también en notebooks chicas)." },
+      { kind: "FIX", text: "Si el logo de una marca no carga, se muestra su nombre en lugar de la imagen rota." },
+    ],
+  },
 ];

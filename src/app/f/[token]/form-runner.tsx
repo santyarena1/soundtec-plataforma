@@ -542,7 +542,8 @@ function BlockScreen({
       {button}
     </div>
   );
-  if (!side) return <div className="mx-auto max-w-3xl">{content}</div>;
+  // Marcas: área más ancha (6 columnas en escritorio) para que entren todas sin scroll.
+  if (!side) return <div className={`mx-auto ${block.type === "brand_choice" ? "max-w-6xl" : "max-w-3xl"}`}>{content}</div>;
   return (
     <div className="grid items-center gap-10 lg:grid-cols-2">
       {content}
@@ -667,8 +668,10 @@ function ErrorNote({ message }: { message: string }) {
 
 /** Grilla de logos de marcas para tildar (varias). Sin logo, se muestra el nombre. */
 function BrandGrid({ options, logos, selected, onToggle, theme }: { options: string[]; logos: Record<string, string>; selected: string[]; onToggle: (name: string) => void; theme: FormTheme }) {
+  // Logos que no cargan: se muestra el nombre de la marca en lugar de la imagen rota.
+  const [broken, setBroken] = useState<string[]>([]);
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-6">
       {options.map((name) => {
         const on = selected.includes(name);
         return (
@@ -677,11 +680,16 @@ function BrandGrid({ options, logos, selected, onToggle, theme }: { options: str
             type="button"
             aria-pressed={on}
             onClick={() => onToggle(name)}
-            className={`relative flex h-24 items-center justify-center rounded-xl border border-black/10 bg-white p-4 text-neutral-900 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${on ? theme.tileOn : ""}`}
+            className={`relative flex h-20 items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-3 text-neutral-900 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${on ? theme.tileOn : ""}`}
           >
-            {logos[name] ? (
+            {logos[name] && !broken.includes(name) ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={logos[name]} alt={name} className={`max-h-12 max-w-full object-contain transition ${on ? "" : "opacity-80 grayscale"}`} />
+              <img
+                src={logos[name]}
+                alt={name}
+                onError={() => setBroken((prev) => [...prev, name])}
+                className={`max-h-10 max-w-full object-contain transition ${on ? "" : "opacity-80 grayscale"}`}
+              />
             ) : (
               <span className="text-base font-semibold">{name}</span>
             )}
