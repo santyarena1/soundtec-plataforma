@@ -37,6 +37,7 @@ export function FormRunner({
   preview = false,
   alreadyDone = false,
   canRestart = true,
+  invite,
 }: {
   token: string;
   title: string;
@@ -49,6 +50,8 @@ export function FormRunner({
   alreadyDone?: boolean;
   /** Falso si el formulario ya cerró: se ve la confirmación pero no se puede responder de nuevo. */
   canRestart?: boolean;
+  /** Invitado por mail (enlace personal): sus datos vienen completados y la respuesta queda vinculada. */
+  invite?: { code: string; email: string; name: string; company: string };
 }) {
   const theme = formTheme(settings);
   const dark = theme.dark;
@@ -75,9 +78,10 @@ export function FormRunner({
   const [restarted, setRestarted] = useState(false);
   const [visible, setVisible] = useState(true);
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
+  const initialAnswers = useMemo(() => prefillFromInvite(blocks, invite), [blocks, invite]);
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>(initialAnswers);
   // Copia sincrónica: al elegir una opción se avanza enseguida y el estado todavía no se actualizó.
-  const answersRef = useRef<Record<string, AnswerValue>>({});
+  const answersRef = useRef<Record<string, AnswerValue>>(initialAnswers);
   const [error, setError] = useState<string | null>(null);
   // En una pantalla con varios campos, el error se muestra debajo del campo que falló.
   const [errorBlockId, setErrorBlockId] = useState<string | null>(null);
@@ -114,7 +118,7 @@ export function FormRunner({
       return;
     }
     setSending(true);
-    const result = await submitFormResponse({ token, answers: answersRef.current, hp });
+    const result = await submitFormResponse({ token, answers: answersRef.current, hp, inviteCode: invite?.code });
     setSending(false);
     if (!result.ok) {
       const target = result.blockId ? steps.findIndex((s) => s.kind === "block" && s.items.some((i) => i.block.id === result.blockId)) : -1;
@@ -364,6 +368,18 @@ function EndScreen({ settings, theme, alreadyDone, onRestart }: { settings: Form
       {restart}
     </div>
   );
+}
+
+/** Campos que se completan solos con los datos del invitado: email, nombre y empresa (por el título de la pregunta). */
+function prefillFromInvite(blocks: PublicBlock[], invite?: { email: string; name: string; company: string }): Record<string, AnswerValue> {
+  if (!invite) return {};
+  const values: Record<string, AnswerValue> = {};
+  for (const block of blocks) {
+    if (block.type === "email" && invite.email) values[block.id] = invite.email;
+    else if (block.type === "short_text" && invite.name && /nombre|apellido/i.test(block.title)) values[block.id] = invite.name;
+    else if (block.type === "short_text" && invite.company && /empresa|compa[nñ][ií]a|estudio/i.test(block.title)) values[block.id] = invite.company;
+  }
+  return values;
 }
 
 function PrimaryButton({ children, onClick, className, disabled }: { children: React.ReactNode; onClick: () => void; className: string; disabled?: boolean }) {

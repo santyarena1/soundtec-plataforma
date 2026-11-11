@@ -135,6 +135,10 @@ export const formSettingsSchema = z
     theme: z.enum(["white", "light", "gray", "dark"]).optional(),
     /** Color de botones, selección y barra de progreso. */
     accent: z.enum(["blue", "black"]).optional(),
+    /** Invitación por mail: asunto, texto ({nombre} y {empresa} se reemplazan) y botón. */
+    inviteSubject: z.string().max(200).optional(),
+    inviteMessage: z.string().max(5000).optional(),
+    inviteButton: z.string().max(60).optional(),
     /** Partículas muy sutiles en azul Soundtec sobre el fondo. */
     particles: z.boolean().optional(),
   })

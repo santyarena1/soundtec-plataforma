@@ -10,6 +10,7 @@ import type { ComponentType } from "react";
 import {
   FileSpreadsheet,
   KeyRound,
+  Mail,
   Palette,
   Percent,
   QrCode,
@@ -99,6 +100,13 @@ export const SETTINGS_GROUPS: SettingsSectionGroup[] = [
         label: "Integraciones y claves",
         description: "API keys de OpenAI, Serper y los demás proveedores externos.",
         icon: KeyRound,
+        scope: "api_keys.manage",
+      },
+      {
+        href: "/admin/settings/correo",
+        label: "Correo de envío",
+        description: "Cuenta de mail que manda las invitaciones de formularios y lee sus respuestas.",
+        icon: Mail,
         scope: "api_keys.manage",
       },
       {

@@ -2388,6 +2388,7 @@ model Form {
   updatedAt    DateTime       @updatedAt
   blocks       FormBlock[]
   responses    FormResponse[]
+  invites      FormInvite[]
 
   @@index([status])
 }
@@ -2421,7 +2422,37 @@ model FormResponse {
   snapshot    Json
   ipHash      String?
   userAgent   String?
+  /// Invitado que respondió desde su enlace personal (si vino por mail).
+  inviteId    String?
   submittedAt DateTime @default(now())
 
   @@index([formId, submittedAt])
+}
+
+/// Persona invitada por mail a un formulario (importada de un Excel). Cada una
+/// tiene su enlace personal /f/{token}?i={code}: así se sabe quién abrió y quién respondió.
+model FormInvite {
+  id           String    @id @default(cuid())
+  formId       String
+  form         Form      @relation(fields: [formId], references: [id], onDelete: Cascade)
+  email        String
+  name         String?
+  company      String?
+  code         String    @unique
+  /// PENDING (sin enviar), SENT, FAILED (no salió), BOUNCED (rebotó).
+  status       String    @default("PENDING")
+  sentAt       DateTime?
+  sendCount    Int       @default(0)
+  lastError    String?
+  openedAt     DateTime?
+  respondedAt  DateTime?
+  responseId   String?
+  /// Respuesta por mail (leída de la casilla).
+  repliedAt    DateTime?
+  replySnippet String?   @db.Text
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([formId, email])
+  @@index([formId, status])
 }

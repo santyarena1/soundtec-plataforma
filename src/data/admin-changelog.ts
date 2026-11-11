@@ -2736,4 +2736,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Formularios y portal: el modo oscuro del celular (Android) ya no los pone con fondo negro.",
     items: [{ kind: "FIX", text: "Chrome en Android y el navegador de WhatsApp oscurecían solos las páginas cuando el teléfono está en modo oscuro. Ahora el sitio se declara solo claro y se ve como fue diseñado." }],
   },
+  {
+    id: "ship-2026-11-11-formularios-invitados-mail",
+    version: "2.34.0",
+    releasedAt: "2026-11-11T09:00:00.000Z",
+    summary: "Formularios: invitaciones por mail desde una cuenta propia (comercial@), con lista desde Excel, enlace personal y seguimiento de quién abrió y quién respondió.",
+    items: [
+      { kind: "NUEVO", text: "Configuración › Correo de envío: se carga la cuenta (por ejemplo comercial@soundtec.com.ar) y su contraseña, que queda cifrada. Botón para probar la conexión de envío y de lectura." },
+      { kind: "NUEVO", text: "En cada formulario, Invitados por mail: subís el Excel (toma Email/Correo, Nombre y Apellido, Empresa) o pegás los mails, escribís el mail con {nombre} y {empresa} y lo ves tal cual le llega." },
+      { kind: "NUEVO", text: "El mail tiene la estética de los formularios: encabezado con la red de puntos y el logo del evento, título, datos del evento (los de Información útil) y botón." },
+      { kind: "NUEVO", text: "Sale en tandas para no pasar el límite del correo y queda una copia en Enviados. Cada persona recibe su enlace personal: trae sus datos completados y se ve quién abrió y quién respondió." },
+      { kind: "NUEVO", text: "Recordar a los que faltan, Revisar casilla (marca rebotes y muestra las respuestas por mail) y descarga de la lista con el estado de cada uno." },
+      { kind: "MEJORA", text: "Quien responde desde su enlace personal ve la confirmación desde cualquier dispositivo cuando vuelve a entrar." },
+    ],
+  },
 ];

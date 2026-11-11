@@ -17,6 +17,19 @@ function closedLogo(url: string | undefined): string {
   return url ? `/api/forms/logo?u=${encodeURIComponent(url)}` : LOGO;
 }
 
+/** Invitado del enlace personal (?i=…): se anota la primera vez que lo abre. */
+async function openInvite(formId: string, code: string | undefined) {
+  if (!code || !/^[A-Za-z0-9_-]{8,40}$/.test(code)) return null;
+  const invite = await prisma.formInvite.findFirst({
+    where: { formId, code },
+    select: { id: true, code: true, email: true, name: true, company: true, openedAt: true, respondedAt: true },
+  });
+  if (invite && !invite.openedAt) {
+    await prisma.formInvite.update({ where: { id: invite.id }, data: { openedAt: new Date() } }).catch((error) => console.error("[forms] No se pudo anotar la apertura", error));
+  }
+  return invite;
+}
+
 /** Formulario público por enlace secreto: no se indexa ni se lista en ningún lado. */
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params;
@@ -37,20 +50,16 @@ async function canPreview(): Promise<boolean> {
   return permissions.fullAccess || permissionsHave(permissions, "forms.manage");
 }
 
-export default async function PublicFormPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ token: string }>;
-  searchParams?: Promise<{ previa?: string }>;
-}) {
+export default async function PublicFormPage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams?: Promise<{ previa?: string; i?: string }> }) {
   const { token } = await params;
   const sp = searchParams ? await searchParams : {};
   const preview = sp.previa === "1" && (await canPreview());
   const form = await loadPublicForm(token, { preview });
   if (!form) notFound();
+  const invite = preview ? null : await openInvite(form.id, sp.i);
   // Quien ya respondió ve la confirmación (con la info del evento) aunque el formulario ya esté cerrado.
-  const alreadyDone = !preview && (await cookies()).get(formDoneCookie(form.id))?.value === "1";
+  // Con su enlace personal se lo reconoce desde cualquier dispositivo; si no, por la cookie de este navegador.
+  const alreadyDone = !preview && (Boolean(invite?.respondedAt) || (await cookies()).get(formDoneCookie(form.id))?.value === "1");
 
   if (!form.open && !alreadyDone) {
     return (
@@ -63,5 +72,17 @@ export default async function PublicFormPage({
     );
   }
 
-  return <FormRunner token={form.token} title={form.title} logoUrl={LOGO} settings={form.settings} blocks={form.blocks} preview={preview} alreadyDone={alreadyDone} canRestart={form.open} />;
+  return (
+    <FormRunner
+      token={form.token}
+      title={form.title}
+      logoUrl={LOGO}
+      settings={form.settings}
+      blocks={form.blocks}
+      preview={preview}
+      alreadyDone={alreadyDone}
+      canRestart={form.open}
+      invite={invite ? { code: invite.code, email: invite.email, name: invite.name ?? "", company: invite.company ?? "" } : undefined}
+    />
+  );
 }

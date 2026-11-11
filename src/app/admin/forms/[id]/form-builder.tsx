@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Copy, Eye, Flag, Layers, MessageSquareText, Plus, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eye, Flag, Layers, Mail, MessageSquareText, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
 import { BLOCK_LABELS, isQuestionType, type BlockType, type FormSettings } from "@/lib/forms/types";
 import {
@@ -283,6 +283,9 @@ export function FormBuilder({
           </Link>
           <Link href={`/admin/forms/${form.id}/respuestas`} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-secondary">
             <MessageSquareText className="h-4 w-4" /> {responseCount} respuesta{responseCount === 1 ? "" : "s"}
+          </Link>
+          <Link href={`/admin/forms/${form.id}/invitados`} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-secondary">
+            <Mail className="h-4 w-4" /> Invitados por mail
           </Link>
           <button
             type="button"

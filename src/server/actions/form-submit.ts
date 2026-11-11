@@ -17,7 +17,7 @@ export type SubmitFormResult =
  * que esté abierto, cada respuesta con las mismas reglas que la pantalla, y
  * limita los envíos por IP. Guarda una copia de las preguntas con la respuesta.
  */
-export async function submitFormResponse(input: { token: string; answers: Record<string, unknown>; hp?: string }): Promise<SubmitFormResult> {
+export async function submitFormResponse(input: { token: string; answers: Record<string, unknown>; hp?: string; inviteCode?: string }): Promise<SubmitFormResult> {
   // Campo trampa: invisible para personas; si viene con algo es un bot (se descarta en silencio).
   if (input.hp) return { ok: true };
   const form = await loadPublicForm(input.token);
@@ -37,9 +37,13 @@ export async function submitFormResponse(input: { token: string; answers: Record
     answers[block.id] = result.value;
   }
 
-  await prisma.formResponse.create({
+  // Enlace personal de una invitación por mail: la respuesta queda vinculada a esa persona.
+  const invite = input.inviteCode && /^[A-Za-z0-9_-]{8,40}$/.test(input.inviteCode) ? await prisma.formInvite.findFirst({ where: { formId: form.id, code: input.inviteCode }, select: { id: true } }) : null;
+
+  const response = await prisma.formResponse.create({
     data: {
       formId: form.id,
+      inviteId: invite?.id ?? null,
       answers: answers as Prisma.InputJsonValue,
       snapshot: form.blocks
         .filter((b) => isQuestionType(b.type))
@@ -48,6 +52,9 @@ export async function submitFormResponse(input: { token: string; answers: Record
       userAgent: requestHeaders.get("user-agent")?.slice(0, 300) ?? null,
     },
   });
+  if (invite) {
+    await prisma.formInvite.update({ where: { id: invite.id }, data: { respondedAt: new Date(), responseId: response.id } });
+  }
   // Si vuelve a abrir el enlace desde este navegador, ve directo la pantalla de confirmación.
   (await cookies()).set(formDoneCookie(form.id), "1", {
     httpOnly: true,
