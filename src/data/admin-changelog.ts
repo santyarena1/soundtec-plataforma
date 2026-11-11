@@ -2784,4 +2784,11 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Mail de invitación: Inter donde el programa de mail la muestra y, si no, Segoe UI, Roboto o Helvetica, en lugar de Arial en negrita extra." },
     ],
   },
+  {
+    id: "ship-2026-11-11-tarjetas-jpeg",
+    version: "2.36.2",
+    releasedAt: "2026-11-11T18:00:00.000Z",
+    summary: "Tarjetas de enlaces más livianas para que WhatsApp siempre las muestre.",
+    items: [{ kind: "FIX", text: "Las tarjetas de vista previa pasan a JPEG (unas 3 veces más livianas): WhatsApp no muestra las imágenes de vista previa pesadas." }],
+  },
 ];

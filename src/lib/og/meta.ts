@@ -6,7 +6,7 @@ export type SiteCardPage = "home" | "catalogo" | "portal" | "expo" | "consultar"
 
 /** URL absoluta de una tarjeta (WhatsApp necesita la dirección completa). `v` invalida la caché al cambiar el contenido. */
 /** Sube cuando cambia el diseño de las tarjetas: WhatsApp y el CDN las guardan por URL. */
-const DESIGN_VERSION = "3";
+const DESIGN_VERSION = "4";
 
 export function ogImageUrl(path: string, version?: string | number | Date): string {
   const v = version instanceof Date ? version.getTime().toString(36) : version;
@@ -31,7 +31,7 @@ export function ogMeta(input: { title: string; description?: string; image: stri
       title: input.title,
       description: input.description,
       ...(input.path ? { url: `${appUrl()}${input.path}` } : {}),
-      images: [{ url: input.image, width: 1200, height: 630, alt: input.title }],
+      images: [{ url: input.image, width: 1200, height: 630, alt: input.title, type: "image/jpeg" }],
     },
     twitter: { card: "summary_large_image", title: input.title, description: input.description, images: [input.image] },
   };

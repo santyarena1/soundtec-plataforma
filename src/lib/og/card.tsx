@@ -163,7 +163,7 @@ function Product({ card }: { card: ProductCard }) {
   );
 }
 
-/** Arma la tarjeta y la devuelve como respuesta PNG (con caché de CDN). */
+/** Arma la tarjeta y la devuelve como respuesta JPEG (con caché de CDN). */
 export async function renderCard(card: HeroCard | ProductCard, options: { origin: string; seed: string; maxAge?: number }): Promise<Response> {
   const fonts = await loadFonts(options.origin);
   const background = await sharp(Buffer.from(networkSvg({ width: OG_WIDTH, height: OG_HEIGHT, points: 72, seed: options.seed, linkDistance: 185 }))).png().toBuffer();
@@ -183,10 +183,11 @@ export async function renderCard(card: HeroCard | ProductCard, options: { origin
     </div>,
     { width: OG_WIDTH, height: OG_HEIGHT, fonts }
   );
-  const png = await sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toBuffer();
+  // JPEG: pesa varias veces menos que PNG y WhatsApp descarta las imágenes de vista previa pesadas (~300 KB).
+  const jpeg = await sharp(Buffer.from(svg)).flatten({ background: "#ffffff" }).jpeg({ quality: 86, mozjpeg: true, chromaSubsampling: "4:4:4" }).toBuffer();
   const maxAge = options.maxAge ?? 3600;
-  return new Response(new Uint8Array(png), {
-    headers: { "Content-Type": "image/png", "Cache-Control": `public, max-age=${maxAge}, s-maxage=86400, stale-while-revalidate=604800` },
+  return new Response(new Uint8Array(jpeg), {
+    headers: { "Content-Type": "image/jpeg", "Cache-Control": `public, max-age=${maxAge}, s-maxage=86400, stale-while-revalidate=604800` },
   });
 }
 
