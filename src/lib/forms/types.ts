@@ -52,7 +52,7 @@ export const BLOCK_LABELS: Record<BlockType, { label: string; hint: string; grou
   statement: { label: "Pantalla de texto", hint: "Título y texto, sin respuesta", group: "Contenido" },
   image: { label: "Imagen", hint: "Una imagen a pantalla completa (tipo diapositiva)", group: "Contenido" },
   video: { label: "Video", hint: "YouTube, Vimeo o archivo subido", group: "Contenido" },
-  map: { label: "Mapa", hint: "Enlace de Google Maps, con «Cómo llegar»", group: "Contenido" },
+  map: { label: "Mapa", hint: "Ubicación desde un enlace de Google Maps", group: "Contenido" },
   agenda: { label: "Programa", hint: "Horarios de lo que pasa en el evento", group: "Contenido" },
 };
 

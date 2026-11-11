@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { ExternalLink, MapPin, Navigation } from "lucide-react";
 import { mapDirectionsUrl, mapEmbedUrl, type AgendaItem, type InfoItem } from "@/lib/forms/types";
 import type { FormTheme } from "./form-theme";
@@ -39,20 +42,25 @@ export function AgendaList({ items, theme }: { items: AgendaItem[]; theme: FormT
 }
 
 /** Mapa embebido con «Cómo llegar» (recorrido desde donde esté la persona) y «Abrir en Google Maps». */
-export function MapPanel({ query, openUrl, theme, tall }: { query: string; openUrl?: string | null; theme: FormTheme; tall?: boolean }) {
+export function MapPanel({
+  query,
+  openUrl,
+  theme,
+  tall,
+  directions: withDirections = true,
+}: {
+  query: string;
+  openUrl?: string | null;
+  theme: FormTheme;
+  tall?: boolean;
+  /** En la pantalla de mapa del formulario va sin «Cómo llegar», para que no se vayan antes de enviar. */
+  directions?: boolean;
+}) {
   const embed = mapEmbedUrl(query);
-  const directions = mapDirectionsUrl(query);
+  const directions = withDirections ? mapDirectionsUrl(query) : null;
   return (
     <div>
-      {embed ? (
-        <iframe
-          src={embed}
-          title="Mapa"
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          className={`w-full rounded-2xl border-0 shadow-2xl ${tall ? "h-[50vh] min-h-[320px]" : "h-72"}`}
-        />
-      ) : null}
+      {embed ? <MapFrame src={embed} tall={tall} dark={theme.dark} /> : null}
       <div className="mt-4 flex flex-wrap gap-3">
         {directions ? (
           <a href={directions} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold shadow-md transition hover:-translate-y-0.5 ${theme.button}`}>
@@ -67,4 +75,36 @@ export function MapPanel({ query, openUrl, theme, tall }: { query: string; openU
       </div>
     </div>
   );
+}
+
+/** Mapa de Google con un aviso mientras carga (en lugar de un recuadro en blanco). */
+function MapFrame({ src, tall, dark }: { src: string; tall?: boolean; dark: boolean }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className={`relative w-full overflow-hidden rounded-2xl shadow-2xl ${tall ? "h-[50vh] min-h-[320px]" : "h-72"} ${dark ? "bg-white/5" : "bg-black/[0.04]"}`}>
+      {!loaded ? (
+        <div className={`absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm ${dark ? "text-white/60" : "text-black/45"}`}>
+          <MapPin className="h-6 w-6 animate-bounce" />
+          Cargando mapa…
+        </div>
+      ) : null}
+      <iframe
+        src={src}
+        title="Mapa"
+        referrerPolicy="no-referrer-when-downgrade"
+        onLoad={() => setLoaded(true)}
+        className={`absolute inset-0 h-full w-full border-0 transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
+      />
+    </div>
+  );
+}
+
+/**
+ * Precarga invisible del mapa que viene: así, al llegar a esa pantalla, Google
+ * ya tiene su código y las imágenes en caché y el mapa aparece mucho antes.
+ */
+export function MapPreload({ query }: { query: string }) {
+  const src = mapEmbedUrl(query);
+  if (!src) return null;
+  return <iframe src={src} title="" aria-hidden tabIndex={-1} className="pointer-events-none fixed -left-[9999px] top-0 h-[400px] w-[600px] opacity-0" />;
 }

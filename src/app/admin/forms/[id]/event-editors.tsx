@@ -1,9 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
+import { previewMapLink } from "@/server/actions/forms";
 import { mapEmbedUrl, type AgendaItem, type InfoItem } from "@/lib/forms/types";
 
-const field = "h-10 w-full rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary/60";
+/** Sin ancho: cada campo define el suyo (w-full con w-40 chocaban y se salían de la caja). */
+const base = "h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary/60";
+const field = `${base} w-full`;
 const label = "mb-1.5 block text-sm font-medium";
 
 function move<T>(list: T[], i: number, delta: -1 | 1): T[] {
@@ -40,8 +44,8 @@ export function InfoEditor({ items, onChange }: { items: InfoItem[]; onChange: (
     <div className="space-y-2">
       {items.map((item, i) => (
         <div key={i} className="flex items-start gap-2">
-          <input autoComplete="off" maxLength={60} value={item.label} onChange={(e) => set(i, { label: e.target.value })} placeholder="Dirección" className={`${field} w-40 shrink-0 font-medium`} aria-label={`Dato ${i + 1}: título`} />
-          <input autoComplete="off" maxLength={300} value={item.value} onChange={(e) => set(i, { value: e.target.value })} placeholder="Av. Alicia Moreau de Justo 1150, CABA" className={field} aria-label={`Dato ${i + 1}: valor`} />
+          <input autoComplete="off" maxLength={60} value={item.label} onChange={(e) => set(i, { label: e.target.value })} placeholder="Dirección" className={`${base} w-32 shrink-0 font-medium sm:w-40`} aria-label={`Dato ${i + 1}: título`} />
+          <input autoComplete="off" maxLength={300} value={item.value} onChange={(e) => set(i, { value: e.target.value })} placeholder="Av. Alicia Moreau de Justo 1150, CABA" className={`${base} min-w-0 flex-1`} aria-label={`Dato ${i + 1}: valor`} />
           <RowButtons first={i === 0} last={i === items.length - 1} onUp={() => onChange(move(items, i, -1))} onDown={() => onChange(move(items, i, 1))} onRemove={() => onChange(items.filter((_, k) => k !== i))} />
         </div>
       ))}
@@ -66,7 +70,7 @@ export function AgendaEditor({ items, onChange }: { items: AgendaItem[]; onChang
     <div className="space-y-2">
       {items.map((item, i) => (
         <div key={i} className="flex items-start gap-2">
-          <input autoComplete="off" maxLength={20} value={item.time} onChange={(e) => set(i, { time: e.target.value })} placeholder="19:30" className={`${field} w-24 shrink-0 text-center font-semibold tabular-nums`} aria-label={`Momento ${i + 1}: hora`} />
+          <input autoComplete="off" maxLength={20} value={item.time} onChange={(e) => set(i, { time: e.target.value })} placeholder="19:30" className={`${base} w-20 shrink-0 text-center font-semibold tabular-nums`} aria-label={`Momento ${i + 1}: hora`} />
           <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
             <input autoComplete="off" maxLength={200} value={item.title} onChange={(e) => set(i, { title: e.target.value })} placeholder="Demo en vivo" className={`${field} font-medium`} aria-label={`Momento ${i + 1}: qué pasa`} />
             <input autoComplete="off" maxLength={500} value={item.detail ?? ""} onChange={(e) => set(i, { detail: e.target.value || undefined })} placeholder="Detalle (opcional)" className={field} aria-label={`Momento ${i + 1}: detalle`} />
@@ -83,17 +87,33 @@ export function AgendaEditor({ items, onChange }: { items: AgendaItem[]; onChang
 
 /** Enlace de Google Maps (el de «Compartir») o una dirección, con vista previa del mapa. */
 export function MapLinkField({ value, resolved, onChange, heading = "Enlace de Google Maps o dirección" }: { value: string; resolved?: string; onChange: (value: string) => void; heading?: string }) {
-  const embed = mapEmbedUrl(resolved || value);
   const shortLink = /^https?:\/\/(maps\.app\.)?goo\.gl\//i.test(value.trim());
+  // Enlace corto recién pegado: se resuelve en el servidor para mostrar el mapa enseguida.
+  const [preview, setPreview] = useState<{ url: string; resolved: string | null } | null>(null);
+  useEffect(() => {
+    const url = value.trim();
+    if (!shortLink || resolved || preview?.url === url) return;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      const result = await previewMapLink({ url });
+      if (!cancelled) setPreview({ url, resolved: result.ok ? result.resolved : null });
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [value, shortLink, resolved, preview?.url]);
+  const previewResolved = preview?.url === value.trim() ? preview.resolved : null;
+  const embed = mapEmbedUrl(resolved || previewResolved || value);
   return (
     <div className="space-y-2">
       <label className={label}>{heading}</label>
       <input autoComplete="off" value={value} onChange={(e) => onChange(e.target.value)} className={field} placeholder="https://maps.app.goo.gl/…  o  Av. Alicia Moreau de Justo 1150, CABA" />
-      <p className="text-xs text-muted-foreground">En Google Maps: buscá el lugar → Compartir → Copiar vínculo, y pegalo acá. Se muestra el mapa con el botón «Cómo llegar».</p>
+      <p className="text-xs text-muted-foreground">En Google Maps: buscá el lugar → Compartir → Copiar vínculo, y pegalo acá. Se muestra el mapa con el lugar marcado.</p>
       {embed ? (
         <iframe src={embed} title="Vista del mapa" className="h-56 w-full rounded-lg border border-border" loading="lazy" />
-      ) : shortLink ? (
-        <p className="rounded-md bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">Enlace corto de Google Maps: el mapa se arma al guardar y se ve en el formulario y en la vista previa.</p>
+      ) : shortLink && preview?.url !== value.trim() ? (
+        <p className="rounded-md bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">Buscando el lugar en Google Maps…</p>
       ) : value.trim() ? (
         <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">No reconozco ese enlace. Pegá el de Compartir de Google Maps o escribí la dirección.</p>
       ) : null}

@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isBlockType, readConfig, readSettings, type FormSettings, type PublicBlock } from "@/lib/forms/types";
 import { sanitizeFormHtml } from "@/lib/forms/sanitize";
@@ -50,10 +51,10 @@ export async function loadPublicForm(token: string, options?: { preview?: boolea
         title: b.title,
         body: sanitizeFormHtml(b.body),
         required: b.required,
-        config: await withResolvedMap(withBrandOptions(b.type, readConfig(b.config), brands)),
+        config: await withResolvedMap(b.id, withBrandOptions(b.type, readConfig(b.config), brands)),
       }))
   );
-  const endMapResolved = settings.endMapResolved || (await resolveMapsLink(settings.endMapQuery));
+  const endMapResolved = settings.endMapResolved || (await resolveAndSaveEndMap(form.id, settings.endMapQuery));
   return {
     id: form.id,
     title: form.title,
@@ -80,9 +81,29 @@ function withBrandOptions(type: string, config: PublicBlock["config"], brands: F
   };
 }
 
-/** Mapas guardados como enlace corto antes de resolverlos al guardar: se resuelven al mostrar. */
-async function withResolvedMap(config: PublicBlock["config"]): Promise<PublicBlock["config"]> {
+/**
+ * Mapas con enlace corto que todavía no se resolvieron (guardados antes de que se
+ * resolvieran al guardar): se resuelven una vez al mostrar y se guarda el
+ * resultado, así las visitas siguientes no esperan a Google.
+ */
+async function withResolvedMap(blockId: string, config: PublicBlock["config"]): Promise<PublicBlock["config"]> {
   if (config.mapResolved || !config.mapQuery) return config;
   const resolved = await resolveMapsLink(config.mapQuery);
-  return resolved ? { ...config, mapResolved: resolved } : config;
+  if (!resolved) return config;
+  const next = { ...config, mapResolved: resolved };
+  await prisma.formBlock
+    .update({ where: { id: blockId }, data: { config: next as Prisma.InputJsonValue } }).catch((error) => console.error("[forms] No se pudo guardar el mapa resuelto", error));
+  return next;
+}
+
+async function resolveAndSaveEndMap(formId: string, query: string | undefined): Promise<string | undefined> {
+  const resolved = await resolveMapsLink(query);
+  if (!resolved) return undefined;
+  const form = await prisma.form.findUnique({ where: { id: formId }, select: { settings: true } });
+  if (form) {
+    await prisma.form
+      .update({ where: { id: formId }, data: { settings: { ...((form.settings as object) ?? {}), endMapResolved: resolved } as Prisma.InputJsonValue } })
+      .catch((error) => console.error("[forms] No se pudo guardar el mapa resuelto", error));
+  }
+  return resolved;
 }

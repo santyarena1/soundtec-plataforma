@@ -2706,4 +2706,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Pantalla Programa: los horarios del evento como una línea de tiempo, para mostrar antes de enviar." },
     ],
   },
+  {
+    id: "ship-2026-11-11-formularios-mapa-logo",
+    version: "2.33.1",
+    releasedAt: "2026-11-11T06:00:00.000Z",
+    summary: "Formularios: el mapa carga más rápido, el logo ya no muestra su fondo blanco y se arreglaron los campos de la confirmación.",
+    items: [
+      { kind: "MEJORA", text: "Mapa más rápido: el enlace de Google Maps se resuelve una sola vez y queda guardado, el mapa se precarga desde la pantalla anterior y mientras carga dice Cargando mapa." },
+      { kind: "MEJORA", text: "Logo del formulario sin el fondo blanco del JPG: sobre fondo gris o con partículas ya no se ve la caja; en fondo oscuro, si es negro, sale en blanco y sin recuadro." },
+      { kind: "MEJORA", text: "Editor: al pegar el enlace de Google Maps el mapa aparece enseguida." },
+      { kind: "MEJORA", text: "La pantalla Mapa del formulario ya no tiene Cómo llegar (queda solo en la confirmación), para que nadie se vaya antes de enviar." },
+      { kind: "FIX", text: "Confirmación: los campos de Información útil y Programa se salían de la caja." },
+    ],
+  },
 ];

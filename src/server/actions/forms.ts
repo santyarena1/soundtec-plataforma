@@ -306,3 +306,9 @@ export async function uploadFormMedia(formData: FormData): Promise<Result<{ url:
     return { ok: false, error: BLOB_UPLOAD_FAILED };
   }
 }
+
+/** Vista previa del editor: resuelve un enlace corto de Google Maps para mostrar el mapa al pegarlo. */
+export async function previewMapLink(input: { url: string }): Promise<Result<{ resolved: string | null }>> {
+  await guard();
+  return { ok: true, resolved: (await resolveMapsLink(input.url.slice(0, 1000))) ?? null };
+}

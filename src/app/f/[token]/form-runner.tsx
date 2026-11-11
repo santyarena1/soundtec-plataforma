@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent a
 import { ArrowRight, Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { formTheme, type FormTheme } from "./form-theme";
 import { FormParticles } from "./form-particles";
-import { AgendaList, InfoList, MapPanel } from "./event-info";
+import { AgendaList, InfoList, MapPanel, MapPreload } from "./event-info";
 import { submitFormResponse } from "@/server/actions/form-submit";
 import {
   OTHER_PREFIX,
@@ -55,7 +55,8 @@ export function FormRunner({
   // La imagen de la bienvenida también cuenta como logo del formulario (antes eran dos campos).
   const formLogo = settings.logoUrl || settings.welcomeImageUrl;
   const customLogo = Boolean(formLogo);
-  const headerLogo = formLogo || logoUrl;
+  // El logo propio pasa por /api/forms/logo, que le saca el fondo blanco (si era un JPG).
+  const headerLogo = formLogo ? `/api/forms/logo?u=${encodeURIComponent(formLogo)}${dark ? "&fondo=oscuro" : ""}` : logoUrl;
   const steps = useMemo<Step[]>(() => {
     let n = 0;
     const list: Step[] = [];
@@ -171,6 +172,15 @@ export function FormRunner({
     return () => window.removeEventListener("keydown", onKey);
   }, [goTo, index, next, step.kind]);
 
+  // El mapa de la pantalla siguiente (o de la confirmación) se precarga desde la anterior.
+  const nextStep = steps[index + 1];
+  const nextMapBlock = nextStep?.kind === "block" ? nextStep.items.find((i) => i.block.type === "map")?.block : undefined;
+  const upcomingMap = nextMapBlock
+    ? nextMapBlock.config.mapResolved || nextMapBlock.config.mapQuery || ""
+    : nextStep?.kind === "end"
+      ? settings.endMapResolved || settings.endMapQuery || ""
+      : "";
+
   const motion = visible ? "opacity-100 translate-y-0 blur-0" : `opacity-0 blur-[2px] ${direction === 1 ? "-translate-y-6" : "translate-y-6"}`;
 
   return (
@@ -178,6 +188,7 @@ export function FormRunner({
       {/* Fondo: un resplandor suave arriba, en el azul de la marca. */}
       <div className={`pointer-events-none absolute inset-x-0 top-0 h-[60vh] bg-gradient-to-b ${theme.glow}`} aria-hidden />
       {settings.particles ? <FormParticles dark={dark} /> : null}
+      {upcomingMap ? <MapPreload key={upcomingMap} query={upcomingMap} /> : null}
       <div className="fixed inset-x-0 top-0 z-30 h-1 bg-black/5">
         <div className={`h-full ${theme.bar} transition-[width] duration-700 ease-out`} style={{ width: `${progress}%` }} />
       </div>
@@ -189,7 +200,7 @@ export function FormRunner({
           {customLogo && step.kind === "welcome" ? (
             <p className="max-w-[70vw] px-3 text-base font-semibold tracking-tight sm:text-xl">{settings.welcomeTitle || title}</p>
           ) : (
-            <span className={`inline-flex items-center rounded-lg px-3 py-2 ${dark ? "bg-white" : ""}`}>
+            <span className={`inline-flex items-center rounded-lg px-3 py-2 ${dark && !customLogo ? "bg-white" : ""}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={headerLogo} alt={customLogo ? title : "Soundtec"} className={customLogo ? "h-12 w-auto max-w-[240px] object-contain sm:h-16 sm:max-w-[340px]" : "h-11 w-auto sm:h-14"} />
             </span>
@@ -206,7 +217,7 @@ export function FormRunner({
           {step.kind === "welcome" ? (
             <Screen
               heroLogo={customLogo ? headerLogo : undefined}
-              heroLogoOnDark={dark}
+              heroLogoOnDark={false}
               title={customLogo ? "" : settings.welcomeTitle || title}
               body={settings.welcomeBody}
               proseClass={theme.prose}
@@ -494,7 +505,7 @@ function BlockScreen({
           <RichBody html={block.body} className={`mt-5 ${theme.prose} ${theme.muted}`} />
           {button}
         </div>
-        <MapPanel query={c.mapResolved || c.mapQuery || ""} openUrl={mapOpenUrl(block)} theme={theme} tall />
+        <MapPanel query={c.mapResolved || c.mapQuery || ""} openUrl={mapOpenUrl(block)} theme={theme} tall directions={false} />
       </div>
     );
   }

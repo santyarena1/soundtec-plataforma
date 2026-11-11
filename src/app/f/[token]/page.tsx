@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { loadPublicForm } from "@/lib/forms/public";
+import { prisma } from "@/lib/prisma";
 import { formDoneCookie } from "@/lib/forms/types";
 import { getCurrentPermissions, getSessionUser } from "@/lib/auth-helpers";
 import { isPanelRole, permissionsHave } from "@/lib/permissions";
@@ -12,10 +13,15 @@ export const dynamic = "force-dynamic";
 /** Isologo de Soundtec (azul): el del encabezado de cotizaciones es una imagen ancha. */
 const LOGO = "/landing/logo_soundtec.png";
 
+function closedLogo(url: string | undefined): string {
+  return url ? `/api/forms/logo?u=${encodeURIComponent(url)}` : LOGO;
+}
+
 /** Formulario público por enlace secreto: no se indexa ni se lista en ningún lado. */
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params;
-  const form = await loadPublicForm(token);
+  // Solo el título: armar el formulario entero (marcas, mapas) acá duplicaba el trabajo de la página.
+  const form = /^[A-Za-z0-9_-]{16,64}$/.test(token) ? await prisma.form.findUnique({ where: { token }, select: { title: true } }) : null;
   return {
     title: form ? `${form.title} · Soundtec` : "Soundtec",
     robots: { index: false, follow: false, nocache: true },
@@ -50,7 +56,7 @@ export default async function PublicFormPage({
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-white px-6 text-center text-[#13233a]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={form.settings.logoUrl || form.settings.welcomeImageUrl || LOGO} alt={form.title} className="h-14 w-auto max-w-[280px] object-contain" />
+        <img src={closedLogo(form.settings.logoUrl || form.settings.welcomeImageUrl)} alt={form.title} className="h-14 w-auto max-w-[280px] object-contain" />
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{form.title}</h1>
         <p className="max-w-md text-lg text-[#13233a]/70">{form.closedReason}</p>
       </div>
