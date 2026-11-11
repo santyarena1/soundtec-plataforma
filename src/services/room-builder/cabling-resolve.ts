@@ -45,6 +45,15 @@ async function addSolution(projectId: string, scene: RoomScene, key: string, rea
   return { generic: key, name: quantity > 1 ? `${quantity} × ${template.name}` : template.name, reason };
 }
 
+/** Anota en la escena que esa falta ya se intentó resolver con un equipo. */
+async function rememberFix(projectId: string, key: string, reason: string): Promise<void> {
+  const fresh = parseScene((await getRoomProject(projectId))?.sceneJson);
+  if (!fresh) return;
+  const list = fresh.autoFixes ?? [];
+  if (list.some((a) => a.key === key && a.reason === reason)) return;
+  await updateRoomProjectScene(projectId, { ...fresh, autoFixes: [...list, { key, reason }] });
+}
+
 /** Reglas de integrador del ambiente (teclas por acceso, junto a la cama, control de cortinas, audio y TV). */
 async function applyRoomRules(projectId: string): Promise<ResolvedAddition[]> {
   const project = await getRoomProject(projectId);
@@ -150,10 +159,14 @@ export async function resolveAndWire(projectId: string): Promise<ResolveResult> 
       fixes.set(f.fix.generic, f);
     }
     if (!fixes.size) break;
+    const attempted = scene.autoFixes ?? [];
     for (const [key, f] of fixes) {
-      // Si esa misma falta ya se intentó resolver y sigue, no se insiste (es una decisión de diseño).
+      // Si esa misma falta ya se intentó resolver y sigue, no se insiste (es una decisión de diseño):
+      // ni en esta pasada ni en las siguientes aperturas del editor (antes sumaba un equipo cada vez).
       if (added.some((a) => a.generic === key && a.reason === f.title)) continue;
+      if (attempted.some((a) => a.key === key && a.reason === f.title)) continue;
       added.push(await addSolution(projectId, scene, key, f.title, f.fix?.near));
+      await rememberFix(projectId, key, f.title);
     }
   }
 

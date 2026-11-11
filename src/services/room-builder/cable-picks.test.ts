@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { classifyCable, lengthOf, pickCables, type CableProduct } from "./cable-picks";
+import { classifyCable, isCableProduct, lengthOf, pickCables, type CableProduct } from "./cable-picks";
 import type { CableLink, CablingPlan } from "./cabling";
 
 const link = (signal: CableLink["signal"], cableM: number, note?: string): CableLink => ({ id: `${signal}${cableM}${Math.random()}`, from: "a", to: "b", signal, fromPort: "", toPort: "", route: [], runM: cableM, cableM, ...(note ? { note } : {}) });
@@ -32,4 +32,20 @@ test("elige el cable armado más corto que alcanza, óptico en tramos largos, y 
   assert.equal(qty("h15o"), 1);
   assert.equal(qty("cat6"), 2);
   assert.ok(r.missing.some((m) => m.signal === "speaker"));
+});
+
+test("solo son cables los productos que lo son (no el parlante Blaze CBL523)", () => {
+  assert.equal(isCableProduct("CBL523-PAS-B", "speaker"), false);
+  assert.equal(isCableProduct("CBL523 U-Bracket Kit-B", "mount"), false);
+  assert.equal(isCableProduct("DM-CBL-ULTRA-PC-20", "cable"), true);
+  assert.equal(isCableProduct("Cable MLX-USB-C 160mm", null), true);
+  assert.equal(isCableProduct("CBL-8K-HD-6", null), true);
+  assert.equal(isCableProduct("Speaker cable kit amplifier", null), false);
+});
+
+test("un cable UTP de Crestron que menciona HDMI en la ficha sigue siendo UTP", () => {
+  const c = classifyCable({ id: "x", name: "DM-CBL-ULTRA-PC-20", brand: "Crestron", text: "CAT6A patch cord for HDMI over HDBaseT 20 ft", priceUsd: 10 });
+  assert.equal(c?.signal, "utp");
+  const h = classifyCable({ id: "y", name: "CBL-8K-HD-6", brand: "Crestron", text: "Ultra high speed cable", priceUsd: 10 });
+  assert.equal(h?.signal, "hdmi");
 });

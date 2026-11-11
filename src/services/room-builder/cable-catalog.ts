@@ -5,9 +5,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { salePricesFor } from "./sale-prices";
-import { classifyCable, type CableProduct } from "./cable-picks";
+import { classifyCable, isCableProduct, type CableProduct } from "./cable-picks";
 
 const MAX_CABLES = 800;
+
 
 export async function loadCableCatalog(): Promise<CableProduct[]> {
   const rows = await prisma.product.findMany({
@@ -26,13 +27,14 @@ export async function loadCableCatalog(): Promise<CableProduct[]> {
       shortDescription: true,
       specifications: true,
       brand: { select: { name: true } },
-      aiProfile: { select: { summaryEs: true, searchTextEs: true } },
+      aiProfile: { select: { summaryEs: true, searchTextEs: true, productType: true } },
     },
     take: MAX_CABLES,
   });
   const out: CableProduct[] = [];
   const sale = await salePricesFor(rows.map((p) => p.id));
   for (const p of rows) {
+    if (!isCableProduct(p.normalizedName, p.aiProfile?.productType ?? null)) continue;
     const specs = Array.isArray(p.specifications)
       ? (p.specifications as Array<Record<string, unknown>>).map((s) => `${String(s.label ?? "")} ${String(s.value ?? "")}`).join(" ")
       : "";

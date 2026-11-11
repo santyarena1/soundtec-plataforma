@@ -2805,4 +2805,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "El catálogo ya no muestra la pantalla de bienvenida que pedía los datos al entrar.",
     items: [{ kind: "MEJORA", text: "Quien entra al catálogo por un enlace o directo va al catálogo sin pantalla de por medio. Solo se pide el contacto al llegar por el QR de un evento activo (Configuración › Eventos y QR)." }],
   },
+  {
+    id: "ship-2026-11-11-room-builder-cotizacion-urgente",
+    version: "2.36.5",
+    releasedAt: "2026-11-11T22:00:00.000Z",
+    summary: "Room Builder: la cotización ya no suma parlantes en lugar de cable ni un procesador más cada vez que se abre el editor.",
+    items: [
+      { kind: "FIX", text: "El parlante Blaze CBL523 se tomaba como cable de parlante y se cotizaba por metro (en una sala de prueba sumaba unos USD 139.000). Ahora solo cuentan como cable los productos que lo son; si no hay cable de parlante en el catálogo, queda a completar." },
+      { kind: "FIX", text: "Cada vez que se abría el editor se agregaba otro procesador (DM-NAX-4ZSP) por la misma falta. Ahora el proyecto recuerda qué arreglos automáticos ya intentó y no los repite." },
+      { kind: "FIX", text: "El cable UTP Crestron DM-CBL-ULTRA ya no se cotiza como si fuera un HDMI." },
+    ],
+  },
 ];

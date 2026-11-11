@@ -88,10 +88,32 @@ export function pickCables(plan: CablingPlan, catalog: CableProduct[]): { lines:
 }
 
 /** Lee del nombre/ficha de un cable su tipo y largo (null si no es un cable reconocible). */
+/** Nombres que dicen que el producto ES un cable (no que lo menciona: "cable de parlante incluido"). */
+const CABLE_NAME = /\b(cable|cables|cord|patch|wire|bobina|rollo)\b|\bdm-cbl\b|-cbl-|\bcbl-/i;
+/** Equipos que nunca son cable aunque el código empiece con CBL o la ficha hable de cables. */
+const NOT_CABLE = /speaker|parlante|altavoz|loudspeaker|subwoofer|amplifier|amplificador|soundbar|monitor|display|pantalla|camera|c[aá]mara|switch|router|receiver|transmitter|extender/i;
+
+/**
+ * Solo productos que son cables: el tipo del perfil lo confirma, o el nombre lo dice y el tipo
+ * no es otra cosa. Antes bastaba "CBL" en el nombre y la ficha mencionando "speaker": así entraba
+ * el parlante Blaze CBL523-PAS-B como cable de parlante (y se cotizaba por metro).
+ */
+export function isCableProduct(name: string, productType: string | null): boolean {
+  const type = (productType ?? "").toLowerCase();
+  if (type === "cable") return true;
+  if (type && type !== "accessory" && type !== "other") return false;
+  return CABLE_NAME.test(name) && !NOT_CABLE.test(name);
+}
+
 export function classifyCable(input: { id: string; name: string; brand: string | null; text: string; priceUsd: number | null }): CableProduct | null {
   const t = `${input.name} ${input.text}`.toLowerCase();
   let signal: CableProduct["signal"] | null = null;
-  if (/hdmi/.test(t)) signal = "hdmi";
+  // El nombre manda: un cable UTP de Crestron (DM-CBL-ULTRA) menciona HDMI en la ficha porque
+  // lleva HDMI sobre HDBaseT, pero es cable de red, no un HDMI.
+  const name = input.name.toLowerCase();
+  if (/\bdm-cbl\b|\bcat ?6a?\b|\bcat ?5e\b|\butp\b|\bethernet\b/.test(name)) signal = "utp";
+  else if (/hdmi|\bhd-?\d|\b[48]k-hd\b/.test(name)) signal = "hdmi";
+  else if (/hdmi/.test(t)) signal = "hdmi";
   else if (/\busb\b|usb-?c/.test(t)) signal = "usb";
   else if (/cat ?6a?|cat ?5e|\butp\b|ethernet|rj-?45|\blan\b cable|dm cable|hdbaset/.test(t)) signal = "utp";
   else if (/speaker|parlante|altavoz|\b1[246] ?awg\b/.test(t)) signal = "speaker";

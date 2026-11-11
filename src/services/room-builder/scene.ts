@@ -83,6 +83,11 @@ export type RoomScene = {
   planFurniture?: FurnitureItem[] | null;
   /** Plano técnico: cables de puerto a puerto, con recorrido, tipo y etiqueta (editables a mano). */
   wiring?: SceneWiring | null;
+  /**
+   * Arreglos automáticos ya intentados (equipo agregado por una falta del cableado).
+   * Si la falta sigue, no se vuelve a agregar otro equipo cada vez que se abre el editor.
+   */
+  autoFixes?: Array<{ key: string; reason: string }> | null;
 };
 
 /**
