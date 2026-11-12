@@ -91,6 +91,8 @@ export function cablingForScene(scene: RoomScene, category: string, profile: Cab
     audio: { category },
     // Sin control ni videoconferencia relevados, la red de amplificador/DSP no obliga a un switch.
     networkOptional: Boolean(scene.brief && (scene.brief.control ?? "none") === "none" && !scene.brief.systems.includes("vc")),
+    // Del catálogo: AOC, USB activo y extensores que resuelven los tramos largos (se nombran en los avisos).
+    remedies: profile.remedies,
   };
   const first = planCabling({ ...input, nodes });
   // Del rack central entra solo lo que alimenta esta sala: el resto sirve a otros ambientes.

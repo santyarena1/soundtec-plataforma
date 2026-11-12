@@ -7,9 +7,11 @@
  */
 
 import { SIGNAL_INFO, portCount, type DeviceClass, type DevicePorts, type Signal } from "./device-ports";
-import { cableLengthM, UTP_MAX_M } from "./cable-length";
+import { cableLengthM } from "./cable-length";
 import { assignSpeakers, type AmpUnit, type ChannelLoad } from "./amp-assign";
 import { ampMinLoad, HIGHZ_MAX_LOAD_RATIO, speakerGauge, TYPICAL_MIN_LOAD_OHMS } from "./amp-load";
+import { audioPair, audioProblem, feedAudio, feedDisplays, hasAudioOut, lengthFindings, proprietaryLinks, type AddLink, type LinkCtx, type Ready } from "./cabling-links";
+import type { ReachCatalog } from "./signal-reach";
 
 export type Point3 = [number, number, number];
 
@@ -65,6 +67,8 @@ export type CablingInput = {
    * funcionar (PoE, Dante, códec, panel, streaming), se cablea todo como siempre.
    */
   networkOptional?: boolean;
+  /** Productos del catálogo que resuelven tramos largos (AOC, USB activo, extensor/receptor HDBaseT), para nombrarlos en los avisos. */
+  remedies?: ReachCatalog;
 };
 
 export type AudioOptions = { category?: string | null; tapW?: number | null };
@@ -81,15 +85,25 @@ export type CablingPlan = {
 };
 
 /** Señales que se arman con cable de rollo (se compra por metro). */
-const BULK: Signal[] = ["lan", "dante", "hdbaset", "speaker", "line", "rs232", "ir"];
-/** Largos máximos sin extensor. */
-const HDMI_MAX_M = 10;
-const USB_MAX_M = 5;
+const BULK: Signal[] = ["lan", "dante", "hdbaset", "speaker", "line", "digital", "cat", "rs232", "ir"];
+/**
+ * Equipos de pared o rack a menos de esto en planta (ej. el receptor o el códec detrás de la
+ * pantalla, dos equipos del mismo rack): el cable va directo por detrás, no por el cielorraso (m).
+ * Misma regla que el plano técnico (wiring/validate.ts).
+ */
+export const DIRECT_RUN_M = 1.5;
+const DIRECT_MOUNTS = new Set(["wall", "rack"]);
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Recorrido de un cable: sube (o baja por el piso hasta la pared y sube), cruza por el cielorraso y baja. */
 export function routeCable(a: CableNode, b: CableNode, dims: CablingInput["dims"]): Point3[] {
+  if (DIRECT_MOUNTS.has(a.mount) && DIRECT_MOUNTS.has(b.mount) && Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z) < DIRECT_RUN_M) {
+    // Tramo corto por detrás del equipo, a escuadra: vertical en la punta de origen y luego en planta.
+    const end: Point3 = [b.pos.x, b.pos.y, b.pos.z];
+    const path = dedupe([[a.pos.x, a.pos.y, a.pos.z], [a.pos.x, b.pos.y, a.pos.z], [b.pos.x, b.pos.y, a.pos.z], end]);
+    return path.length > 1 ? [...path.slice(0, -1), end] : [path[0]!, end];
+  }
   const ceil = Math.max(2.2, dims.heightM - 0.03);
   const toCeiling = (n: CableNode): Point3[] => {
     const p: Point3 = [n.pos.x, n.pos.y, n.pos.z];
@@ -213,7 +227,6 @@ function wirelessLinks(nodes: Array<CableNode & { ports: DevicePorts }>, links: 
 /** Calibre del cable de parlante por pérdida (< 0,5 dB): ver amp-load.ts. */
 export { speakerGauge } from "./amp-load";
 
-type AddLink = (from: Ready, to: Ready, signal: Signal, fromPort?: string, toPort?: string, note?: string) => CableLink;
 const fmtW = (n: number) => String(Math.round(n * 100) / 100).replace(".", ",");
 
 /**
@@ -264,8 +277,6 @@ function wireSpeakers(amps: Ready[], passive: Ready[], central: Ready | null, au
   return res.channels;
 }
 
-type Ready = CableNode & { ports: DevicePorts };
-
 /** Cableado completo de la sala. */
 export function planCabling(input: CablingInput): CablingPlan {
   const missing = input.nodes.filter((n) => !n.virtual && !n.ports);
@@ -273,7 +284,6 @@ export function planCabling(input: CablingInput): CablingPlan {
   const links: CableLink[] = [];
   const findings: CableFinding[] = [];
   const used = new Map<string, number>();
-  const label = (id: string) => nodes.find((n) => n.id === id)?.label ?? id;
 
   if (missing.length) {
     findings.push({
@@ -314,6 +324,7 @@ export function planCabling(input: CablingInput): CablingPlan {
   const of = (...cls: DeviceClass[]) => nodes.filter((n) => cls.includes(n.cls));
   const incompatible = (a: Ready, b: Ready, what: string, fix: string) =>
     findings.push({ id: `compat-${a.id}-${b.id}`, level: "error", title: `${what} sin señal en común`, detail: `${a.label} → ${b.label}: ${fix}` });
+  const ctx: LinkCtx = { add, findings, nodes, links, remedies: input.remedies ?? {}, cableM: (a, b, signal) => cableMeters(routeLength(routeCable(a, b, input.dims)), signal) };
 
   // Puntos fuera de la sala o sobre la mesa.
   const ceilY = Math.max(2.2, input.dims.heightM - 0.03);
@@ -401,20 +412,14 @@ export function planCabling(input: CablingInput): CablingPlan {
     }
   }
   if (codec) {
-    const outs = portCount(codec.ports, "outputs", "hdmi");
-    displays.forEach((d, k) => {
-      if (k >= outs) return;
-      if (portCount(d.ports, "inputs", "hdmi") > 0) add(codec, d, "hdmi", `Salida HDMI ${k + 1}`, "Entrada HDMI");
-      else incompatible(codec, d, "Codec y pantalla", "la pantalla no declara entrada HDMI.");
-    });
-    if (displays.length > outs) findings.push({ id: "video-outs", level: "error", title: "Salidas de video insuficientes", detail: `${codec.label} tiene ${outs} salida(s) HDMI y hay ${displays.length} pantallas: sumá un splitter o una matriz HDMI.` });
+    // HDMI a las pantallas cercanas; por HDBaseT (UTP + receptor junto a la pantalla) a las demás.
+    const feed = feedDisplays(ctx, codec, displays);
+    for (const d of feed.noHdmiIn) incompatible(codec, d, "Codec y pantalla", "la pantalla no declara entrada HDMI.");
+    if (feed.unfed.length) findings.push({ id: "video-outs", level: "error", title: "Salidas de video insuficientes", detail: `${codec.label} tiene ${feed.outs} salida(s) de video y hay ${displays.length} pantallas: sumá un splitter o una matriz HDMI.` });
   } else if (of("video-switch").length) {
     const vs = of("video-switch")[0]!;
-    const outs = portCount(vs.ports, "outputs", "hdmi") + portCount(vs.ports, "outputs", "hdbaset");
-    displays.forEach((d, k) => {
-      if (k >= outs) return;
-      if (portCount(d.ports, "inputs", "hdmi") > 0) add(vs, d, "hdmi", `Salida ${k + 1}`, "Entrada HDMI");
-    });
+    const feed = feedDisplays(ctx, vs, displays);
+    const outs = feed.outs;
     if (table && portCount(vs.ports, "inputs", "hdmi") > 0 && !links.some((l) => l.from === table.id)) add(table, vs, "hdmi", "HDMI notebook", "Entrada HDMI");
     // Las fuentes de la sala entran a la matriz.
     for (const src of of("source", "streamer").filter((s) => portCount(s.ports, "outputs", "hdmi") > 0)) {
@@ -451,14 +456,18 @@ export function planCabling(input: CablingInput): CablingPlan {
   for (const mic of of("mic")) {
     micDante += mic.ports.danteTx ?? 0;
     // Con DSP en la sala, un micrófono que también sale en analógico va al DSP (el USB es solo de configuración o para uso suelto).
-    const toDsp = Boolean(dsp && portCount(mic.ports, "outputs", "line") > 0 && portCount(dsp.ports, "inputs", "line") > 0);
+    // El nivel cuenta: un micrófono (nivel mic) solo entra en una entrada mic o mic/línea.
+    const toDsp = Boolean(dsp && audioPair(mic, dsp));
     if (portCount(mic.ports, "outputs", "usb") > 0 && !toDsp) {
       const target = codec ?? table;
       if (target) add(mic, target, "usb");
       else findings.push({ id: `mic-usb-${mic.id}`, level: "error", title: "Micrófono USB sin equipo que lo reciba", detail: `${mic.label}: no hay codec ni conexión de mesa con USB en la sala.` });
-    } else if (portCount(mic.ports, "outputs", "line") > 0) {
-      const target = [dsp, codec, central].find((t): t is Ready => Boolean(t && (t.virtual || portCount(t.ports, "inputs", "line") > 0))) ?? null;
-      if (target) add(mic, target, "line", "Salida de audio", "Entrada de micrófono/línea");
+    } else if (hasAudioOut(mic)) {
+      const candidates = [dsp, codec, central].filter((t): t is Ready => Boolean(t));
+      const target = candidates.find((t) => audioPair(mic, t)) ?? null;
+      const problem = candidates.map((t) => ({ t, p: audioProblem(mic, t) })).find((x) => x.p);
+      if (target) add(mic, target, audioPair(mic, target)!.signal, "Salida de audio", "Entrada de micrófono/línea");
+      else if (problem) findings.push({ id: `mic-${mic.id}`, level: "error", title: "Micrófono sin entrada compatible", detail: `${mic.label} → ${problem.t.label}: ${problem.p!.text}.`, ...(problem.p!.fix === "dsp" ? { fix: { generic: "dsp", label: "Sumar procesador de audio (DSP)", near: { x: mic.pos.x, z: mic.pos.z } } } : {}) });
       else findings.push({ id: `mic-${mic.id}`, level: "error", title: "Micrófono sin entrada que lo reciba", detail: `${mic.label} sale en audio analógico y ningún equipo de la sala declara entradas de audio.`, fix: { generic: "dsp", label: "Sumar procesador de audio (DSP)", near: { x: mic.pos.x, z: mic.pos.z } } });
     } else if (mic.ports.network > 0 && !dsp && !codec && !central) {
       findings.push({ id: `mic-net-${mic.id}`, level: "error", title: "Micrófono de red sin procesador", detail: `${mic.label} entrega audio por red: sumá un DSP o codec que lo reciba.`, fix: { generic: "dsp", label: "Sumar procesador de audio (DSP)", near: { x: mic.pos.x, z: mic.pos.z } } });
@@ -472,9 +481,12 @@ export function planCabling(input: CablingInput): CablingPlan {
   const passive = of("speaker", "subwoofer").filter((s) => portCount(s.ports, "inputs", "speaker") > 0);
   const amplification = wireSpeakers(amps, passive, central, input.audio ?? {}, add, findings);
   // Parlantes activos con entrada de línea.
-  for (const spk of of("speaker", "subwoofer").filter((s) => portCount(s.ports, "inputs", "line") > 0 && portCount(s.ports, "inputs", "speaker") === 0)) {
-    const src = [dsp, codec, ...of("streamer")].find((t): t is Ready => Boolean(t && portCount(t.ports, "outputs", "line") > 0)) ?? null;
-    if (src) add(src, spk, "line", "Salida de audio", "Entrada de línea");
+  const audioIn = (n: Ready) => portCount(n.ports, "inputs", "line") + portCount(n.ports, "inputs", "digital") > 0;
+  for (const spk of of("speaker", "subwoofer").filter((s) => audioIn(s) && portCount(s.ports, "inputs", "speaker") === 0)) {
+    const sources = [dsp, codec, ...of("streamer")].filter((t): t is Ready => Boolean(t && hasAudioOut(t)));
+    // Nivel y formato: directo si conectan; si no, con conversor (o el aviso con la solución).
+    const src = sources.find((t) => audioPair(t, spk)) ?? sources[0] ?? null;
+    if (src) feedAudio(ctx, src, spk, "Entrada de línea");
     else if (central) add(central, spk, "line", "Audio central", "Entrada de línea", "Tramo hasta la sala técnica aparte");
     else findings.push({ id: `spk-line-${spk.id}`, level: "error", title: "Parlante activo sin fuente de audio", detail: `${spk.label}: ningún DSP, codec o streamer de la sala declara salida de línea para alimentarlo.`, fix: { generic: "audio-streamer", label: "Sumar streamer de audio", near: { x: spk.pos.x, z: spk.pos.z } } });
   }
@@ -487,8 +499,10 @@ export function planCabling(input: CablingInput): CablingPlan {
     if (amp.id.startsWith("central:")) continue;
     if (isAvr(amp)) continue;
     if (dsp && amp.ports.danteRx && dsp.ports.danteTx) continue;
-    const src = [dsp, ...of("streamer"), codec].find((t): t is Ready => Boolean(t && portCount(t.ports, "outputs", "line") > 0)) ?? null;
-    if (src && portCount(amp.ports, "inputs", "line") > 0) add(src, amp, "line", "Salida de audio", "Entrada de línea");
+    const sources = [dsp, ...of("streamer"), codec].filter((t): t is Ready => Boolean(t && hasAudioOut(t)));
+    const src = sources.find((t) => audioPair(t, amp)) ?? sources[0] ?? null;
+    // Directo si el nivel/formato coincide; una fuente solo óptica pasa por un DAC (o avisa que falta).
+    if (src && audioIn(amp)) feedAudio(ctx, src, amp, "Entrada de línea");
     else if (!src) findings.push({ id: `amp-src-${amp.id}`, level: "warn", title: "Amplificador sin fuente de audio", detail: `${amp.label}: ningún DSP, streamer ni codec de la sala declara salida de audio para alimentarlo.`, fix: { generic: "audio-streamer", label: "Sumar streamer de audio", near: { x: amp.pos.x, z: amp.pos.z } } });
   }
 
@@ -530,7 +544,10 @@ export function planCabling(input: CablingInput): CablingPlan {
     if (d) add(base, d, "hdmi", "Salida HDMI", `Entrada HDMI ${(used.get(`${d.id}|in|hdmi`) ?? 0) + 1}`);
   }
 
-  // 8) Conexiones inalámbricas: cada cliente con su gateway / receptor / base, y su capacidad.
+  // 8) Enlaces UTP propietarios (Hall ULTRA, Osiris…): emisor ↔ receptor de la misma familia.
+  proprietaryLinks(ctx);
+
+  // 9) Conexiones inalámbricas: cada cliente con su gateway / receptor / base, y su capacidad.
   wirelessLinks(nodes, links, findings);
 
   // Red de seguridad: ningún equipo con conexiones queda suelto sin un aviso que lo nombre.
@@ -555,21 +572,8 @@ export function planCabling(input: CablingInput): CablingPlan {
     if (n > have) findings.push({ id: `ports-${key}`, level: "error", title: `Faltan puertos ${SIGNAL_INFO[signal].label}`, detail: `${node.label} declara ${have} ${side === "in" ? "entrada(s)" : "salida(s)"} ${SIGNAL_INFO[signal].label} y el diseño usa ${n}.` });
   }
 
-  // Validaciones de largo.
-  for (const l of links) {
-    if (l.signal === "hdmi" && l.cableM > HDMI_MAX_M) {
-      l.note = "Usar HDMI óptico (AOC) o extensor HDBaseT";
-      findings.push({ id: `len-${l.id}`, level: "warn", title: `HDMI de ${l.cableM} m`, detail: `${label(l.from)} → ${label(l.to)}: más de ${HDMI_MAX_M} m no es confiable en cobre. Usá HDMI óptico o un extensor HDBaseT.`, linkId: l.id });
-    }
-    if (l.signal === "usb" && l.cableM > USB_MAX_M) {
-      l.note = "Usar USB activo o extensor por UTP";
-      findings.push({ id: `len-${l.id}`, level: "warn", title: `USB de ${l.cableM} m`, detail: `${label(l.from)} → ${label(l.to)}: USB pasa de ${USB_MAX_M} m. Usá un cable activo o un extensor USB por UTP.`, linkId: l.id });
-    }
-    // Mismo criterio que el plano técnico: largo total del cable contra el canal UTP de 100 m.
-    if ((l.signal === "lan" || l.signal === "dante" || l.signal === "hdbaset") && l.cableM > UTP_MAX_M) {
-      findings.push({ id: `len-${l.id}`, level: "error", title: `Tramo de red de ${l.cableM} m`, detail: `Supera los ${UTP_MAX_M} m de un canal UTP: hace falta un switch intermedio o fibra.`, linkId: l.id });
-    }
-  }
+  // Validaciones de largo: alcance real de cada señal según las fichas (signal-reach.ts), con la solución.
+  lengthFindings(ctx);
 
   const totals = [...new Set(links.filter((l) => l.signal !== "wireless").map((l) => l.signal))].map((signal) => {
     const ls = links.filter((l) => l.signal === signal);

@@ -18,6 +18,12 @@ export type WirePort = {
   connector: string | null;
   /** De dónde sale: ficha del fabricante, equipo genérico o carga manual. */
   source: "datasheet" | "generic" | "manual";
+  /** Enlace UTP propietario: familia con la que empareja ("hall-ultra-4k"). */
+  family?: string | null;
+  /** Largo máximo del enlace según la ficha (m). */
+  maxLengthM?: number | null;
+  /** Cita de la ficha (sirve para reconocer el nivel de audio: "Mic/Line"). */
+  evidence?: string | null;
 };
 
 /** Punta de un cable: equipo, unidad (si hay varias) y puerto. */
@@ -49,10 +55,11 @@ export type Wire = {
  * el ambiente baja al rack del proyecto). Se dibuja con su posición.
  */
 export type VirtualEnd = {
-  /** "table" | "switch-new" | "central" (ids del motor automático). */
+  /** "table" | "switch-new" | "central" | "rx-new-N" (ids del motor automático). */
   id: string;
   label: string;
-  kind: "table" | "switch" | "rack";
+  /** extender: receptor HDBaseT a sumar detrás de una pantalla. */
+  kind: "table" | "switch" | "rack" | "extender";
   x: number;
   y: number;
   z: number;
@@ -104,4 +111,5 @@ export const WIRE_SIGNAL_STYLE: Record<IoSignal, { label: string; color: string 
   cresnet: { label: "Cresnet", color: "#1d4ed8" },
   fiber: { label: "Fibra óptica", color: "#c026d3" },
   wireless: { label: "Inalámbrico", color: "#a855f7" },
+  "cat-proprietary": { label: "Enlace UTP propietario", color: "#0e7490" },
 };

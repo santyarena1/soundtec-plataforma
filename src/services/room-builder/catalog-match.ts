@@ -110,6 +110,14 @@ const NEEDS: Record<string, { group: BrandGroup; score: (c: Candidate) => number
   "keypad-zigbee": { group: "control", score: (c) => (/\bKP|keypad|teclado/i.test(c.name) && radio(c, "zigbee", "client") ? 8 : 0) },
   "dimmer": { group: "control", score: (c) => (/DIM|dimmer/i.test(c.name) && !/BTN|ENGRAVED|BLANK|FP-|FACEPLATE|LCD/i.test(c.name) && (c.ports.length > 0 || c.caps.wireless) ? 6 : 0) },
   "handheld-remote": { group: "control", score: (c) => (/\bHR-\d|\bTSR-\d/i.test(c.name) && !/BTN|ENGRAVED|BLANK|DS\b|-DS-|CRADLE|DOCK/i.test(c.name) ? 7 + (radio(c, "infinet", "client") ? 1 : 0) : 0) },
+  // Receptor HDBaseT puro (entrada HDBaseT, salida HDMI): va detrás de la pantalla. Un switcher o una pantalla no cuentan.
+  "hdbaset-rx": { group: "video", score: (c) => (count(c, ["hdbaset"], "in") >= 1 && count(c, ["hdmi"], "out") >= 1 && count(c, ["hdbaset"], "out") === 0 && count(c, ["hdmi"], "in") === 0 ? 10 - Math.min(count(c, ["hdmi"], "out"), 4) / 4 : 0) },
+  // Transmisor HDBaseT (entrada HDMI, salida HDBaseT), sin ser una matriz.
+  "hdbaset-tx": { group: "video", score: (c) => (count(c, ["hdmi"], "in") >= 1 && count(c, ["hdmi"], "in") <= 2 && count(c, ["hdbaset"], "out") === 1 && count(c, ["hdbaset"], "in") === 0 ? 8 : 0) },
+  // Extensor USB por UTP (kit local + remoto).
+  "usb-extender": { group: "video", score: (c) => (/usb/i.test(c.name) && /extend|extensor|U22/i.test(`${c.name} ${c.productType ?? ""}`) && count(c, ["usb-a", "usb-b", "usb-c"], "out") > 0 ? 8 : 0) },
+  // Conversor DAC: entra audio digital, sale analógico; sin parlantes ni video.
+  "audio-dac": { group: "audio", score: (c) => (count(c, ["digital-audio"], "in") > 0 && count(c, ["analog-audio"], "out") > 0 && count(c, ["speaker"], "out") === 0 && count(c, ["hdmi"], "in") === 0 ? 8 : 0) },
   "touch-panel": { group: "control", score: (c) => (/TSW|TS-|touch|táctil/i.test(c.name) && count(c, ["lan"], "in") > 0 ? 6 : 0) },
 };
 

@@ -3,7 +3,7 @@ import type { RoomScene } from "./scene";
 import { applyBriefToSlots, type RoomBrief, type RoomDims } from "./brief";
 import { layoutExtraSlots } from "./slot-layout-extra";
 import { applySignalChain } from "./signal-chain";
-import { vcTable } from "./vc-table";
+import { codecBehindDisplay, vcTable } from "./vc-table";
 import { doorCentersOf, rackAnchor, type DoorPoint } from "./rack-place";
 
 type Dims = { widthM: number; depthM: number; heightM: number };
@@ -119,13 +119,14 @@ export function layoutSlotsForTemplate(
         pose: table.perpendicular ? pose(0, 0.76, table.z - table.d / 2 + 0.3, 180) : pose(tableW / 2 - 0.2, 0.76, 0.05, -15),
         defaultQty: 1,
       }),
+      // Detrás de la pantalla (VESA): HDMI y USB cortos. Con rack central lo reubica signal-chain.ts.
       slot({
         key: "codec",
         role: "codec",
         label: "Codec / compute",
         required: true,
-        mount: "rack",
-        pose: pose(a.leftX + 0.35, 0.45, a.backZ + 0.35, 0),
+        mount: "wall",
+        pose: codecBehindDisplay(pose(0, 1.4, a.frontZ, 180)),
         defaultQty: 1,
       }),
       slot({

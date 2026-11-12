@@ -4,10 +4,15 @@
  * puertos y no se cablea con suposiciones.
  */
 
+import { audioKindOf, type AudioKind } from "./audio-level";
 import type { Coverage, IoProfileData, IoSignal, SpeakerPower, TransformerTaps, WirelessLink } from "./io-profile/types";
 import type { SystemSpec } from "./system-specs";
 
-export const SIGNALS = ["hdmi", "usb", "lan", "dante", "hdbaset", "speaker", "line", "rs232", "ir", "wireless"] as const;
+/**
+ * line: audio analógico (nivel mic o línea, ver `level` de cada grupo) · digital: audio digital
+ * óptico/coaxial · cat: enlace UTP propietario de una familia (Hall ULTRA, Osiris…), no HDBaseT.
+ */
+export const SIGNALS = ["hdmi", "usb", "lan", "dante", "hdbaset", "speaker", "line", "digital", "cat", "rs232", "ir", "wireless"] as const;
 export type Signal = (typeof SIGNALS)[number];
 
 /** Nombre corto y color de cada señal (planos, 3D y diagrama). */
@@ -19,6 +24,8 @@ export const SIGNAL_INFO: Record<Signal, { label: string; color: string }> = {
   hdbaset: { label: "HDBaseT (UTP)", color: "#0891b2" },
   speaker: { label: "Parlante", color: "#ea580c" },
   line: { label: "Audio de línea", color: "#ca8a04" },
+  digital: { label: "Audio digital", color: "#a16207" },
+  cat: { label: "Enlace UTP propietario", color: "#0e7490" },
   rs232: { label: "RS-232", color: "#64748b" },
   ir: { label: "IR", color: "#94a3b8" },
   wireless: { label: "Inalámbrico", color: "#a855f7" },
@@ -27,7 +34,19 @@ export const SIGNAL_INFO: Record<Signal, { label: string; color: string }> = {
 /** Clase de equipo para el cableado (qué papel cumple en el sistema). */
 export type DeviceClass = "display" | "camera" | "mic" | "speaker" | "subwoofer" | "amp" | "dsp" | "codec" | "control" | "touch" | "switch" | "video-switch" | "streamer" | "source" | "other";
 
-export type PortGroup = { signal: Signal; count: number; label: string; /** Cita de la ficha. */ evidence?: string };
+export type PortGroup = {
+  signal: Signal;
+  count: number;
+  label: string;
+  /** Cita de la ficha. */
+  evidence?: string;
+  /** Audio: nivel (mic / línea / mic-línea) o formato digital (óptico / coaxial). */
+  level?: AudioKind | null;
+  /** Enlace propietario: familia con la que empareja. */
+  family?: string | null;
+  /** Largo máximo del enlace declarado en la ficha (m). */
+  maxLengthM?: number | null;
+};
 export type DevicePorts = {
   inputs: PortGroup[];
   outputs: PortGroup[];
@@ -60,6 +79,10 @@ export type DevicePorts = {
   sensitivityDb?: number | null;
   /** Parlante: cobertura en grados. */
   coverageDeg?: Coverage | null;
+  /** Video: resolución máxima, versión HDCP y versión USB según la ficha (definen el largo máximo de cada cable). */
+  maxVideo?: string | null;
+  hdcp?: string | null;
+  usbVersion?: string | null;
 };
 
 export type PortInput = {
@@ -116,7 +139,8 @@ const IO_TO_SIGNAL: Partial<Record<IoSignal, Signal>> = {
   hdbaset: "hdbaset",
   "analog-audio": "line",
   mic: "line",
-  "digital-audio": "line",
+  "digital-audio": "digital",
+  "cat-proprietary": "cat",
   speaker: "speaker",
   rs232: "rs232",
   ir: "ir",
@@ -135,7 +159,16 @@ export function devicePorts(io: IoProfileData | null | undefined): DevicePorts |
     }
     const signal = IO_TO_SIGNAL[p.signal];
     if (!signal) continue;
-    const group = { signal, count: p.count, label: p.label, evidence: p.evidence };
+    const level = audioKindOf(p);
+    const group: PortGroup = {
+      signal,
+      count: p.count,
+      label: p.label,
+      evidence: p.evidence,
+      ...(level ? { level } : {}),
+      ...(p.family ? { family: p.family } : {}),
+      ...(p.maxLengthM ? { maxLengthM: p.maxLengthM } : {}),
+    };
     if (p.direction === "in" || p.direction === "bidir") inputs.push(group);
     if (p.direction === "out" || p.direction === "bidir") outputs.push(group);
   }
@@ -161,6 +194,9 @@ export function devicePorts(io: IoProfileData | null | undefined): DevicePorts |
     speakerPowerWatts: c.speakerPowerWatts?.value ?? null,
     sensitivityDb: c.sensitivityDb?.value ?? null,
     coverageDeg: c.coverageDeg?.value ?? null,
+    maxVideo: c.maxVideo?.value ?? null,
+    hdcp: c.hdcp?.value ?? null,
+    usbVersion: c.usbVersion?.value ?? null,
   };
 }
 

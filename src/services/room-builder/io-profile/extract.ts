@@ -10,6 +10,7 @@ import { getOpenAiClient } from "@/services/openai";
 import {
   IO_SIGNALS,
   evidenceFound,
+  lengthCited,
   isDirection,
   isIoSignal,
   normalizeForMatch,
@@ -21,6 +22,7 @@ import {
   type SpeakerPower,
   type TransformerTaps,
   type WirelessLink,
+  validFamily,
   WIRELESS_PROTOCOLS,
 } from "./types";
 
@@ -40,6 +42,10 @@ QUÉ LISTAR en "ports" (un ítem por grupo de conectores iguales):
   · speaker: salidas de amplificador a parlantes (bornes, Phoenix de potencia). En un PARLANTE pasivo, su entrada de parlante (direction "in").
   · digital-audio: óptico TOSLINK, coaxial S/PDIF, AES3.
   · rs232, rs485, ir (salida IR o puerto IR), relay, gpio (E/S digitales, "I/O", "digital inputs"), cresnet, fiber, wireless (solo si conecta inalámbrico a otro equipo del sistema, p. ej. receptor de micrófono).
+  · cat-proprietary: RJ-45 de enlace PROPIETARIO entre emisor y receptor de una misma familia que la ficha NO declara HDBaseT
+    (p. ej. "RJ45 link output" de un extensor Hall ULTRA-4K, el CAT6 de un micrófono a su DSP propio). Lleva "family":
+    identificador de la familia en minúsculas con guiones ("hall-ultra-4k", "hall-ultra-v", "hall-gem-ex", "gain-osiris");
+    si la ficha dice que ese puerto acepta también otra familia, separadas por coma ("hall-ultra-v,hall-ultra-4k").
   · NO listes alimentación eléctrica, tierra, ranuras de seguridad ni botones.
 - "direction": "in" | "out" | "bidir" (USB-B de un dispositivo hacia la PC: "bidir"; RJ-45: "bidir").
 - "count": cuántos conectores de ese grupo ("HDMI IN 1-4" = 4; "(2) RS-232" = 2).
@@ -48,6 +54,8 @@ QUÉ LISTAR en "ports" (un ítem por grupo de conectores iguales):
 - "poe": "pd" si ese RJ-45 se alimenta por PoE; "pse" si da PoE a otros equipos; si no null.
 - "label": rótulo como figura en la ficha ("HDMI OUT", "COM 1-3", "Dante Primary").
 - "evidence": copiá TEXTUAL el fragmento de la ficha que lo declara (máximo 180 caracteres, sin cambiar palabras).
+- "maxLengthM" + "maxLengthEvidence": largo máximo del enlace en metros si la ficha lo declara para ese puerto
+  (HDBaseT, enlace propietario, USB por UTP), con la cita textual que dice ese largo ("up to 100m (328ft)"); si no, null.
 
 CAPACIDADES en "capabilities" (cada una { "value": ..., "evidence": "cita textual" }, o ausente si la ficha no lo dice):
 - "danteTx", "danteRx": canales Dante de transmisión/recepción (número).
@@ -214,6 +222,24 @@ function controlOf(x: unknown): string | null {
   return null;
 }
 
+/** Largo máximo de un enlace (m): mismo rango que un canal de fibra multimodo largo. */
+const MAX_LINK_M = 2000;
+
+/**
+ * Largo máximo declarado para un puerto: vale solo con una cita que esté en la ficha y que
+ * diga ese mismo largo (en metros o en pies). Si no, se descarta (el puerto queda).
+ */
+function portLength(r: Record<string, unknown>, source: string, rejected: ValidatedIo["rejected"], signal: string): Pick<IoPort, "maxLengthM" | "maxLengthEvidence"> {
+  const meters = num(r.maxLengthM, 0.5, MAX_LINK_M);
+  if (meters == null) return {};
+  const evidence = str(r.maxLengthEvidence, 240) ?? "";
+  if (!evidence || !evidenceFound(evidence, source) || !lengthCited(evidence, meters)) {
+    rejected.push({ what: `${signal} maxLengthM ${meters} sin cita que lo diga`, evidence });
+    return {};
+  }
+  return { maxLengthM: meters, maxLengthEvidence: evidence };
+}
+
 /** Filtra la salida del modelo: vocabulario cerrado y cita verificada en la ficha. */
 export function validateExtraction(raw: RawExtraction, sourceText: string): ValidatedIo {
   const source = normalizeForMatch(sourceText);
@@ -241,7 +267,15 @@ export function validateExtraction(raw: RawExtraction, sourceText: string): Vali
       rejected.push({ what: `${signal} ${String(r.label ?? "")} (cita repetida)`.trim(), evidence });
       continue;
     }
+    // Enlace propietario: sin familia no se sabe con qué empareja, no se guarda.
+    // Una o varias familias separadas por coma (un receptor que acepta dos líneas del fabricante).
+    const family = str(r.family, 170)?.toLowerCase().replace(/\s+/g, "") ?? null;
+    if (signal === "cat-proprietary" && (!family || !validFamily(family))) {
+      rejected.push({ what: `cat-proprietary ${String(r.label ?? "")} sin familia válida`.trim(), evidence });
+      continue;
+    }
     kept++;
+    const reach = portLength(r, source, rejected, signal);
     ports.push({
       signal,
       direction: r.direction,
@@ -251,6 +285,8 @@ export function validateExtraction(raw: RawExtraction, sourceText: string): Vali
       poe: r.poe === "pd" || r.poe === "pse" ? r.poe : null,
       label: str(r.label, 80) ?? signal,
       evidence,
+      ...(signal === "cat-proprietary" ? { family } : {}),
+      ...reach,
     });
   }
 

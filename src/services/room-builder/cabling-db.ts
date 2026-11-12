@@ -12,6 +12,8 @@ import type { IoProfileData } from "./io-profile/types";
 import { getRoomProject } from "./project-service";
 import { centralizedFor, defaultProjectSystem, normalizeProjectSystem } from "./project-system";
 import { parseScene, type RoomScene } from "./scene";
+import { reachCatalog } from "./reach-catalog";
+import type { ReachCatalog } from "./signal-reach";
 import { effectiveSpec, SPEC_PRODUCT_SELECT, type SpecProduct } from "./system-check-db";
 
 /** Estado de la ficha del equipo: lista para cablear, a revisar o sin leer. */
@@ -37,6 +39,8 @@ export type CablingProfile = {
   central: { label: string } | null;
   /** Equipos reales del rack central (amplificador, procesador, streaming…) con sus puertos de ficha. */
   centralDevices?: Array<DeviceCablingProfile & { key: string; quantity: number; /** Canales de parlante que le tocan a esta sala, por unidad. */ grants?: Array<{ unit: number; channels: number[] }> }>;
+  /** Productos del catálogo que resuelven tramos largos (AOC, USB activo, extensor/receptor HDBaseT). */
+  remedies?: ReachCatalog;
 };
 
 export async function cablingProfile(projectId: string): Promise<CablingProfile | null> {
@@ -79,7 +83,7 @@ export async function cablingProfile(projectId: string): Promise<CablingProfile 
       }
     }
   }
-  return { devices, central, centralDevices };
+  return { devices, central, centralDevices, remedies: await reachCatalog() };
 }
 
 /**

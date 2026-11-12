@@ -28,6 +28,8 @@ export const IO_SIGNALS = [
   "cresnet",
   "fiber",
   "wireless",
+  /** Enlace UTP propietario de una familia (no HDBaseT): solo empareja con la misma familia. */
+  "cat-proprietary",
 ] as const;
 export type IoSignal = (typeof IO_SIGNALS)[number];
 
@@ -54,6 +56,7 @@ export const IO_SIGNAL_LABEL: Record<IoSignal, string> = {
   cresnet: "Cresnet",
   fiber: "Fibra",
   wireless: "Inalámbrico",
+  "cat-proprietary": "Enlace UTP propietario",
 };
 
 export type IoDirection = "in" | "out" | "bidir";
@@ -72,7 +75,45 @@ export type IoPort = {
   label: string;
   /** Frase textual de la ficha que lo respalda. */
   evidence: string;
+  /**
+   * Enlace UTP propietario ("cat-proprietary"): familia del fabricante con la que empareja
+   * ("hall-ultra-4k"). Emisor y receptor de familias distintas no se conectan entre sí.
+   */
+  family?: string | null;
+  /** Largo máximo que declara la ficha para este puerto (m), con su cita (que tiene que decir ese largo). */
+  maxLengthM?: number | null;
+  maxLengthEvidence?: string | null;
 };
+
+/** Familia de enlace propietario: minúsculas, números y guiones ("hall-ultra-4k"). */
+export const FAMILY_ID = /^[a-z0-9][a-z0-9-]{1,39}$/;
+/** Familias por puerto: un receptor que acepta más de una ("hall-ultra-v,hall-ultra-4k"). */
+const MAX_FAMILIES = 4;
+
+export const familiesOf = (f: string | null | undefined): string[] => (f ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+export const validFamily = (f: string): boolean => {
+  const list = familiesOf(f);
+  return list.length > 0 && list.length <= MAX_FAMILIES && list.every((x) => FAMILY_ID.test(x));
+};
+/** ¿Dos puertos de enlace propietario se entienden? Comparten al menos una familia. */
+export const familiesMatch = (a: string | null | undefined, b: string | null | undefined): boolean => {
+  const fa = familiesOf(a);
+  return familiesOf(b).some((x) => fa.includes(x));
+};
+
+/**
+ * ¿La cita dice ese largo? Acepta metros ("100 m", "70 metros") y pies ("328 ft", "230'"),
+ * con un 6 % de tolerancia por el redondeo de la conversión.
+ */
+export function lengthCited(evidence: string, meters: number): boolean {
+  const re = /(\d+(?:[.,]\d+)?)\s*(mts?\b|metros?|meters?|metres?|m\b|ft\b|feet|foot|pies|')/gi;
+  for (const m of evidence.matchAll(re)) {
+    const n = Number(m[1]!.replace(",", "."));
+    const value = /^(ft|feet|foot|pies|')$/i.test(m[2]!) ? n * 0.3048 : n;
+    if (Math.abs(value - meters) <= meters * 0.06) return true;
+  }
+  return false;
+}
 
 export type Evidenced<T> = { value: T; evidence: string };
 

@@ -2853,4 +2853,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Asistente: paso Uso de la sala (personas, micrófono y presentación inalámbrica) y elección 5.1 / 7.1. Rack dentro de la sala y fuera del barrido de la puerta; mesa perpendicular a la pantalla." },
     ],
   },
+  {
+    id: "ship-2026-11-12-room-builder-senales",
+    version: "2.39.0",
+    releasedAt: "2026-11-12T08:00:00.000Z",
+    summary: "Room Builder: largos máximos según versión y resolución, HDBaseT con receptor, audio separado por nivel y enlaces propietarios de Hall.",
+    items: [
+      { kind: "MEJORA", text: "Largos máximos según la ficha: HDMI 4K60 5 m, 8K 3 m, 1080p 15 m; USB 2.0 5 m y USB 3 3 m; HDBaseT 4K 70 m (100 m si la ficha o el cable lo admiten). Al pasarse propone la solución (HDMI óptico, extensor HDBaseT, USB activo o extensor) con el producto del catálogo si existe." },
+      { kind: "FIX", text: "Las salidas HDBaseT de una matriz van por UTP a un receptor junto a la pantalla y de ahí un HDMI corto, en lugar de un HDMI de 15 m." },
+      { kind: "FIX", text: "Audio separado por nivel: micrófono, línea, óptico y coaxial. Ya no conecta un óptico a una entrada analógica ni un micrófono a una entrada de línea; si hace falta propone un conversor." },
+      { kind: "NUEVO", text: "Enlaces UTP propietarios (Hall ULTRA-4K, ULTRA-V, GEM-EX, U22, Osiris): emisor y receptor se emparejan solo dentro de su familia, con el largo máximo de la ficha." },
+      { kind: "MEJORA", text: "En salas sin rack central el códec va detrás de la pantalla (HDMI y USB cortos). Las etiquetas del plano y de las láminas ya no se enciman." },
+    ],
+  },
 ];

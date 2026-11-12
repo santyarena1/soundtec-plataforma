@@ -5,6 +5,7 @@
  */
 
 import type { CablingPlan } from "../cabling";
+import { RX_NEW_PREFIX } from "../cabling-links";
 import type { CablingProfile } from "../cabling-db";
 import { centralExit } from "../cabling-scene";
 import type { Signal } from "../device-ports";
@@ -15,7 +16,8 @@ import { physicalFamily } from "../sheets/sheet-model";
 import { expandIoPorts, portsFromSignals, signalFamily } from "./ports";
 import { EMPTY_WIRING, VIRTUAL_END_IDS, WIRE_SIGNAL_STYLE, type SceneWiring, type VirtualEnd, type Wire, type WireEnd, type WirePoint, type WirePort } from "./types";
 import type { ElectricalOf } from "./speaker-load";
-import { validateWires, wireLengthM, wireRunM, type WireIssue } from "./validate";
+import { validateWires, wireLengthM, wireMaxM, wireRunM, type ReachOf, type WireIssue } from "./validate";
+import type { ReachEnd } from "../signal-reach";
 
 /** Una unidad de equipo en la planta. */
 export type PlacedDevice = {
@@ -58,6 +60,8 @@ export type ModelWire = Wire & {
   /** Va al rack central (fuera de la sala). */
   remote: boolean;
   note: string | null;
+  /** Largo máximo de este cable según las fichas de sus puntas (null: la señal no tiene tope). */
+  maxM?: number | null;
 };
 
 export type WiringModel = {
@@ -91,8 +95,8 @@ function fallbackVirtual(id: string, scene: RoomScene, profile: CablingProfile |
   return null;
 }
 
-const VIRTUAL_SHORT: Record<VirtualEnd["kind"], string> = { table: "Conexión de mesa", switch: "Switch (a sumar)", rack: "Rack central" };
-const VIRTUAL_CLS: Record<VirtualEnd["kind"], string> = { table: "source", switch: "switch", rack: "other" };
+const VIRTUAL_SHORT: Record<VirtualEnd["kind"], string> = { table: "Conexión de mesa", switch: "Switch (a sumar)", rack: "Rack central", extender: "Receptor HDBaseT (a sumar)" };
+const VIRTUAL_CLS: Record<VirtualEnd["kind"], string> = { table: "source", switch: "switch", rack: "other", extender: "other" };
 
 /** "pending:out:lan:2" → puerto a confirmar (la ficha no lo declara). */
 function pendingPort(portId: string): WirePort | null {
@@ -180,8 +184,6 @@ export function buildWiringModel(scene: RoomScene, profile: CablingProfile | nul
     }
     return { runM: r2(run), lengthM: wireLengthM(run, w.signal), lengthKind, remote, note };
   };
-  const wires: ModelWire[] = wiring.wires.map((w) => ({ ...w, ...measure(w) }));
-  const lengthById = new Map(wires.map((w) => [w.id, w.lengthM]));
   // Datos eléctricos de ficha (sala y rack central): con ellos corre el control de carga de las salidas de parlante.
   const electricalOf: ElectricalOf = (id) => {
     const d = profile?.devices[id];
@@ -189,7 +191,18 @@ export function buildWiringModel(scene: RoomScene, profile: CablingProfile | nul
     const c = id.startsWith(CENTRAL_PREFIX) ? profile?.centralDevices?.find((x) => `${CENTRAL_PREFIX}${x.key}` === id) : undefined;
     return c ? { label: c.label, ports: c.ports } : null;
   };
-  issues.unshift(...validateWires(wiring.wires, (id) => ports[id] ?? null, (w) => lengthById.get(w.id) ?? 0, profile ? electricalOf : undefined, { category: opts.category ?? null }));
+  // Lo que dicen las fichas de cada punta (resolución, versión USB, largo del puerto): define el largo máximo del cable.
+  const reachOf: ReachOf = (w) => {
+    const end = (e: WireEnd): ReachEnd => {
+      const dev = electricalOf(e.deviceId)?.ports ?? null;
+      const port = (ports[e.deviceId] ?? []).find((q) => q.id === e.portId);
+      return { maxVideo: dev?.maxVideo ?? null, hdcp: dev?.hdcp ?? null, usbVersion: dev?.usbVersion ?? null, portMaxM: port?.maxLengthM ?? null, portText: port ? `${port.label} ${port.evidence ?? ""}`.trim() : null };
+    };
+    return { from: end(w.from), to: end(w.to) };
+  };
+  const wires: ModelWire[] = wiring.wires.map((w) => ({ ...w, ...measure(w), maxM: wireMaxM(w, reachOf) }));
+  const lengthById = new Map(wires.map((w) => [w.id, w.lengthM]));
+  issues.unshift(...validateWires(wiring.wires, (id) => ports[id] ?? null, (w) => lengthById.get(w.id) ?? 0, profile ? electricalOf : undefined, { category: opts.category ?? null }, { reachOf, remedies: profile?.remedies }));
   for (const w of wiring.wires) {
     if (!at(w.from) || !at(w.to)) issues.push({ wireId: w.id, level: "error", text: "Uno de los equipos del cable ya no está en la sala." });
   }
@@ -204,7 +217,9 @@ const ENGINE_TO_IO: Record<Signal, IoSignal[]> = {
   dante: ["dante", "lan"],
   hdbaset: ["hdbaset"],
   speaker: ["speaker"],
-  line: ["analog-audio", "mic", "digital-audio"],
+  line: ["analog-audio", "mic"],
+  digital: ["digital-audio"],
+  cat: ["cat-proprietary"],
   rs232: ["rs232"],
   ir: ["ir"],
   wireless: [],
@@ -223,12 +238,14 @@ function nodeEnd(nodeId: string): { deviceId: string; unit: number } | null {
 }
 
 const VIRTUAL_KIND: Record<string, VirtualEnd["kind"]> = { table: "table", "switch-new": "switch", central: "rack" };
+/** Tipo de punta virtual por id: las fijas y los receptores HDBaseT a sumar ("rx-new-1"…). */
+const virtualKind = (id: string): VirtualEnd["kind"] | undefined => VIRTUAL_KIND[id] ?? (id.startsWith(RX_NEW_PREFIX) ? "extender" : undefined);
 
 /** Puntas virtuales del plan (mesa, switch a sumar, rack central) con su posición. */
 function virtualEndsOf(plan: CablingPlan): Record<string, VirtualEnd> {
   const out: Record<string, VirtualEnd> = {};
   for (const n of plan.nodes) {
-    const kind = VIRTUAL_KIND[n.id];
+    const kind = virtualKind(n.id);
     if (!n.virtual || !kind) continue;
     out[n.id] = { id: n.id, label: n.label, kind, x: r2(n.pos.x), y: kind === "rack" ? CENTRAL_Y_M : r2(n.pos.y), z: r2(n.pos.z), mount: n.mount };
   }

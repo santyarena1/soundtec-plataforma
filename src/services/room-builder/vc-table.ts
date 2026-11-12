@@ -51,3 +51,21 @@ export function vcTable(dims: { widthM: number; depthM: number }, size: VcSize):
   const d = Math.min(n.width, Math.max(0.8, dims.depthM - TABLE_CLEARANCE_M * 2));
   return { perpendicular: false, x: 0, z: 0, w, d, headZ: d / 2, sideChairs: 0, endChairs: 0 };
 }
+
+/**
+ * El códec / PC de sala va detrás de la pantalla, en su mitad de abajo y corrido hacia un costado
+ * (montaje VESA o de pared): no ocupa el lugar de la barra/parlante que va bajo la pantalla.
+ */
+const CODEC_BELOW_DISPLAY_M = 0.3;
+const CODEC_ASIDE_M = 0.35;
+const CODEC_MIN_Y_M = 0.4;
+
+/**
+ * Lugar del códec / PC de sala cuando la sala no tiene rack central: detrás (o debajo) de la
+ * pantalla principal, así el HDMI a la pantalla y el USB a la cámara (arriba de la pantalla) son
+ * cortos. El resto del equipamiento de rack sigue en el mueble técnico (rack-place.ts).
+ */
+export function codecBehindDisplay(display: { x: number; y: number; z: number; rotY: number }): { x: number; y: number; z: number; rotY: number } {
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  return { x: r2(display.x + CODEC_ASIDE_M), y: r2(Math.max(CODEC_MIN_Y_M, display.y - CODEC_BELOW_DISPLAY_M)), z: display.z, rotY: display.rotY };
+}

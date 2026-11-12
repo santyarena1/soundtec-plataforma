@@ -154,7 +154,8 @@ const IO_TO_ENGINE: Partial<Record<IoSignal, Signal>> = {
   speaker: "speaker",
   "analog-audio": "line",
   mic: "line",
-  "digital-audio": "line",
+  "digital-audio": "digital",
+  "cat-proprietary": "cat",
   rs232: "rs232",
   ir: "ir",
 };
@@ -164,7 +165,7 @@ const IO_TO_ENGINE: Partial<Record<IoSignal, Signal>> = {
  * equivalente en el catálogo (DisplayPort, Cresnet, fibra…) se devuelven aparte
  * para informarlas, no se inventa un producto.
  */
-export function cableNeeds(cables: Array<Pick<ModelWire, "signal" | "lengthM" | "cableProductId">>): { needs: CableNeed[]; unmapped: CableTotal[] } {
+export function cableNeeds(cables: Array<Pick<ModelWire, "signal" | "lengthM" | "cableProductId"> & { maxM?: number | null }>): { needs: CableNeed[]; unmapped: CableTotal[] } {
   const needs: CableNeed[] = [];
   const other: Array<Pick<ModelWire, "signal" | "lengthM">> = [];
   for (const c of cables) {
@@ -173,7 +174,8 @@ export function cableNeeds(cables: Array<Pick<ModelWire, "signal" | "lengthM" | 
       other.push(c);
       continue;
     }
-    const max = MAX_RUN_M[c.signal];
+    // Tope según las fichas de las puntas (resolución, versión USB); sin ese dato, el de la señal.
+    const max = c.maxM !== undefined ? c.maxM : MAX_RUN_M[c.signal];
     needs.push({ signal, cableM: c.lengthM, long: max != null && c.lengthM > max, productId: c.cableProductId });
   }
   return { needs, unmapped: cableTotals(other) };

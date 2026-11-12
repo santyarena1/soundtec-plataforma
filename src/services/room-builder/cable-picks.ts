@@ -26,7 +26,8 @@ export type CableProduct = {
 export type CablePickLine = { product: CableProduct; quantity: number; signal: Signal; meters: number; note: string };
 export type CableMissing = { signal: Signal; count: number; meters: number; reason: string };
 
-const BULK_GROUP: Partial<Record<Signal, CableProduct["signal"]>> = { lan: "utp", dante: "utp", hdbaset: "utp", speaker: "speaker", line: "line", rs232: "rs232" };
+/** El enlace propietario (Hall, Osiris) va en cable UTP como la red y el HDBaseT. */
+const BULK_GROUP: Partial<Record<Signal, CableProduct["signal"]>> = { lan: "utp", dante: "utp", hdbaset: "utp", cat: "utp", speaker: "speaker", line: "line", rs232: "rs232" };
 const PATCH: Signal[] = ["hdmi", "usb"];
 
 /** Un cable a comprar: señal, largo final y si es un tramo largo (óptico/activo). */
@@ -86,7 +87,17 @@ export function pickCablesFor(needs: CableNeed[], catalog: CableProduct[]): { li
   const bulk = new Map<string, { group: CableProduct["signal"]; meters: number; count: number; signals: Set<Signal>; chosen: CableProduct | null }>();
   for (const l of needs) {
     const group = BULK_GROUP[l.signal];
-    if (!group) continue;
+    if (!group) {
+      // Sin cable equivalente en el catálogo (ej. audio digital óptico): se informa, no se inventa.
+      if (l.signal === "digital") {
+        const m = missing.find((x) => x.signal === l.signal);
+        if (m) {
+          m.count++;
+          m.meters += l.cableM;
+        } else missing.push({ signal: l.signal, count: 1, meters: l.cableM, reason: "No hay en el catálogo un cable de esta señal" });
+      }
+      continue;
+    }
     const picked = l.productId ? byId.get(l.productId) : undefined;
     const chosen = picked && picked.kind === "bulk" ? picked : null;
     const key = chosen ? `id:${chosen.id}` : group;

@@ -8,6 +8,7 @@
 
 import type { LengthKind, SheetPoint } from "./sheet-model";
 import { mmAtScale, scaleBarMeters } from "./scale";
+import { boxEdgeToward, placeLabels, textWidth } from "../label-layout";
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const f = (n: number) => n.toFixed(2);
@@ -120,27 +121,38 @@ function dimension(p: Pt, q: Pt, center: Pt, X: (x: number) => number, Y: (y: nu
 const DEFS = `<defs><marker id="tick" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M2,8 L8,2" stroke="#334155" stroke-width="1.6"/></marker></defs>`;
 
 /** Recorrido de un cable: color de la señal; punteado si el largo es estimado. */
-function cablePath(c: PlanCableInput, X: (x: number) => number, Y: (y: number) => number, showTag: boolean): string {
+function cablePath(c: PlanCableInput, X: (x: number) => number, Y: (y: number) => number): string {
   if (c.points.length < 2) return "";
   const pts = c.points.map((p) => `${f(X(p.x))},${f(Y(p.z))}`).join(" ");
   const dash = c.lengthKind === "estimated" ? ` stroke-dasharray="1.6 0.9"` : "";
-  const out = [`<polyline points="${pts}" fill="none" stroke="${c.color}" stroke-width="0.4" stroke-linejoin="round"${dash}/>`];
-  if (showTag) {
-    // Etiqueta en el medio del tramo más largo.
-    let best = 0;
-    let at = { x: c.points[0]!.x, z: c.points[0]!.z };
-    for (let i = 1; i < c.points.length; i++) {
-      const a = c.points[i - 1]!;
-      const b = c.points[i]!;
-      const d = Math.hypot(b.x - a.x, b.z - a.z);
-      if (d > best) {
-        best = d;
-        at = { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 };
-      }
-    }
-    out.push(`<text x="${f(X(at.x))}" y="${f(Y(at.z) - 0.6)}" font-size="1.7" fill="${c.color}" text-anchor="middle" stroke="#ffffff" stroke-width="0.5" paint-order="stroke">${esc(c.tag)}</text>`);
-  }
-  return out.join("");
+  return `<polyline points="${pts}" fill="none" stroke="${c.color}" stroke-width="0.4" stroke-linejoin="round"${dash}/>`;
+}
+
+/** Letra de las etiquetas de cable (mm de papel) y radio de la marca de equipo. */
+const TAG_FONT_MM = 1.7;
+const MARK_R_MM = 2.4;
+
+/**
+ * Etiquetas de los cables sin encimarse entre sí ni sobre las marcas de equipo: a lo largo
+ * de su recorrido; si no hay lugar, corridas con una línea guía (label-layout.ts).
+ */
+function cableTags(cables: PlanCableInput[], marks: Array<{ x: number; y: number }>, X: (x: number) => number, Y: (y: number) => number): string {
+  const list = cables.filter((c) => c.points.length >= 2 && c.tag);
+  const placed = placeLabels(
+    list.map((c, i) => ({ id: String(i), w: textWidth(c.tag, TAG_FONT_MM), h: TAG_FONT_MM * 1.15, path: c.points.map((p) => ({ x: X(p.x), y: Y(p.z) })) })),
+    marks.map((m) => ({ x: m.x, y: m.y, w: MARK_R_MM * 2, h: MARK_R_MM * 2 })),
+    { gap: 0.3 },
+  );
+  return placed
+    .map((t) => {
+      const c = list[Number(t.id)]!;
+      const leader = t.leader ? (() => {
+        const from = boxEdgeToward(t, t.leader!);
+        return `<line x1="${f(from.x)}" y1="${f(from.y)}" x2="${f(t.leader!.x)}" y2="${f(t.leader!.y)}" stroke="${c.color}" stroke-width="0.15" stroke-dasharray="0.6 0.4"/>`;
+      })() : "";
+      return `${leader}<text x="${f(t.x)}" y="${f(t.y + TAG_FONT_MM * 0.35)}" font-size="${TAG_FONT_MM}" fill="${c.color}" text-anchor="middle" stroke="#ffffff" stroke-width="0.5" paint-order="stroke">${esc(c.tag)}</text>`;
+    })
+    .join("");
 }
 
 /** Marca numerada de un equipo. */
@@ -205,14 +217,20 @@ export function scaledPlanSvg(input: ScaledPlanInput): string {
   for (const w of input.walls) out.push(dimension(w.a, w.b, center, X, Y, k));
   // Cables.
   const showTags = input.showTags ?? input.cables.length <= 40;
-  for (const c of input.cables) out.push(cablePath(c, X, Y, showTags));
+  for (const c of input.cables) out.push(cablePath(c, X, Y));
   // Rack central (salida de la sala).
   if (input.exit && input.devices.some((d) => d.remote)) out.push(rackMark(X(input.exit.x), Y(input.exit.z), "Hacia el rack central"));
   // Equipos numerados.
+  const marks: Array<{ x: number; y: number }> = [];
   for (const d of input.devices) {
     if (d.remote || !d.n) continue;
-    for (const u of d.units) out.push(deviceMark(d.n, d.role, X(u.x), Y(u.z)));
+    for (const u of d.units) {
+      marks.push({ x: X(u.x), y: Y(u.z) });
+      out.push(deviceMark(d.n, d.role, X(u.x), Y(u.z)));
+    }
   }
+  // Etiquetas de los cables al final: sin encimarse ni tapar las marcas de los equipos.
+  if (showTags) out.push(cableTags(input.cables, marks, X, Y));
   out.push(scaleBar(input.areaMm, input.scale));
   out.push(`</svg>`);
   return out.join("");

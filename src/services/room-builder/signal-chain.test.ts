@@ -106,7 +106,22 @@ test("rack: dentro de la sala, contra el fondo y fuera del barrido de la puerta"
   // Todo lo de rack de la sala va al mismo mueble.
   const slots = layoutSlotsForScene("vc-meeting-m", MEETING, brief({ systems: ["vc", "video", "control", "audio"], control: "crestron-pro", vcPlatform: "teams" }));
   const racks = slots.filter((s) => s.mount === "rack");
-  assert.ok(racks.length >= 4 && racks.every((s) => s.pose.x === racks[0]!.pose.x && s.pose.z === racks[0]!.pose.z));
+  assert.ok(racks.length >= 3 && racks.every((s) => s.pose.x === racks[0]!.pose.x && s.pose.z === racks[0]!.pose.z));
+});
+
+test("videoconferencia sin rack central: el códec va detrás de la pantalla; con rack central, en el mueble técnico", () => {
+  const vc = brief({ systems: ["vc", "video", "control", "audio"], control: "crestron-pro", vcPlatform: "teams" });
+  const slots = layoutSlotsForScene("vc-meeting-m", MEETING, vc);
+  const codec = slots.find((s) => s.role === "codec")!;
+  const display = slots.find((s) => s.role === "display")!;
+  assert.equal(codec.mount, "wall");
+  // Pegado a la pantalla (HDMI y USB cortos), en su mitad de abajo.
+  assert.ok(Math.hypot(codec.pose.x - display.pose.x, codec.pose.z - display.pose.z) < 0.5 && codec.pose.y < display.pose.y);
+  // El rack (DSP, amplificador…) sigue en su rincón: rack-place.ts manda.
+  const rack = rackAnchor(MEETING);
+  assert.ok(slots.filter((s) => s.mount === "rack").every((s) => s.pose.x === rack.x && s.pose.z === rack.z));
+  const central = layoutSlotsForScene("vc-meeting-m", MEETING, { ...vc, centralized: { audio: true, control: true } });
+  assert.equal(central.find((s) => s.role === "codec")!.mount, "rack");
 });
 
 test("mesa de reunión perpendicular a la pantalla, con la cabecera hacia ella", () => {

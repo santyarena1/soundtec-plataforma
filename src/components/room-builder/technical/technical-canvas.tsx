@@ -11,9 +11,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as
 import type { PlanFurnitureDraw, PlanWallDraw } from "@/services/room-builder/wiring/plan-geometry";
 import type { PlacedDevice, WiringModel } from "@/services/room-builder/wiring/model";
 import { WIRE_SIGNAL_STYLE, type WirePoint } from "@/services/room-builder/wiring/types";
+import { boxEdgeToward, placeLabels, textWidth, type Box } from "@/services/room-builder/label-layout";
 
 /** Unidades del dibujo por metro. */
 const S = 100;
+/** Tamaño de letra de los rótulos (unidades del dibujo). */
+const LABEL_FONT = 11;
 /** Margen alrededor de la sala (m). */
 const PAD_M = 1.4;
 const MIN_ZOOM_W = 150;
@@ -137,6 +140,34 @@ export function TechnicalCanvas(p: Props) {
 
   const selectedWire = p.selection?.kind === "wire" ? p.selection.id : null;
 
+  // Recorrido de cada cable en planta (con el quiebre que se está arrastrando).
+  const wirePath = (w: WiringModel["wires"][number]) => {
+    const a = placed(w.from.deviceId, w.from.unit);
+    const b = placed(w.to.deviceId, w.to.unit);
+    if (!a || !b) return null;
+    const pts = drag?.kind === "point" && drag.wireId === w.id ? drag.points : w.points;
+    return [deviceAt(a), ...pts, deviceAt(b)];
+  };
+  const deviceText = (d: PlacedDevice) => (d.short.length > 22 ? `${d.short.slice(0, 21)}…` : d.short);
+  const wireText = (w: WiringModel["wires"][number]) => `${p.wiresWithIssues.has(w.id) ? "⚠ " : ""}${w.label ?? ""} · ${w.lengthM.toFixed(1)} m`;
+  // Rótulos sin encimarse: los de equipo junto a su equipo; los de cable a lo largo de su recorrido
+  // (si no hay lugar, corridos con una línea guía). Los cuerpos de los equipos no se tapan.
+  const bodySize = (d: PlacedDevice) => Math.max(styleOf(d.role).w, styleOf(d.role).d) * S;
+  const bodyById = new Map(p.model.devices.map((d) => [`d:${d.deviceId}#${d.unit}`, bodySize(d)]));
+  const labels = new Map(
+    placeLabels(
+      [
+        ...p.model.devices.map((d) => ({ id: `d:${d.deviceId}#${d.unit}`, w: textWidth(deviceText(d), LABEL_FONT), h: LABEL_FONT + 3, path: [{ x: deviceAt(d).x * S, y: deviceAt(d).z * S }] })),
+        ...p.model.wires.flatMap((w) => {
+          const path = wirePath(w);
+          return path ? [{ id: `w:${w.id}`, w: textWidth(wireText(w), LABEL_FONT, 0.62), h: LABEL_FONT + 3, path: path.map((q) => ({ x: q.x * S, y: q.z * S })) }] : [];
+        }),
+      ],
+      p.model.devices.map((d) => ({ x: deviceAt(d).x * S, y: deviceAt(d).z * S, w: bodySize(d), h: bodySize(d) })),
+      { gap: 2, reach: (id) => bodyById.get(id) ?? 0 },
+    ).map((l) => [l.id, l]),
+  );
+
   return (
     <div className="relative h-full w-full select-none overflow-hidden bg-[#f8fafc]">
       <svg
@@ -176,12 +207,7 @@ export function TechnicalCanvas(p: Props) {
           const color = WIRE_SIGNAL_STYLE[w.signal].color;
           const selected = selectedWire === w.id;
           const warn = p.wiresWithIssues.has(w.id);
-          const longest = path.slice(1).reduce((best, q, i) => {
-            const l = Math.hypot(q.x - path[i]!.x, q.z - path[i]!.z);
-            return l > best.l ? { l, i } : best;
-          }, { l: -1, i: 0 });
-          const m0 = path[longest.i]!;
-          const m1 = path[longest.i + 1]!;
+          const tag = labels.get(`w:${w.id}`);
           return (
             <g key={w.id}>
               <polyline
@@ -198,10 +224,14 @@ export function TechnicalCanvas(p: Props) {
                 }}
               />
               <polyline points={path.map((q) => `${q.x * S},${q.z * S}`).join(" ")} fill="none" stroke={color} strokeWidth={selected ? 4.5 : 3} strokeLinejoin="round" strokeDasharray={w.origin === "auto" ? undefined : undefined} pointerEvents="none" />
-              <text x={((m0.x + m1.x) / 2) * S} y={((m0.z + m1.z) / 2) * S - 6} fontSize={11} textAnchor="middle" fill={warn ? "#b91c1c" : "#334155"} pointerEvents="none" fontFamily="ui-monospace,monospace">
-                {warn ? "⚠ " : ""}
-                {w.label ?? ""} · {w.lengthM.toFixed(1)} m
-              </text>
+              {tag ? (
+                <g pointerEvents="none">
+                  {tag.leader ? <LeaderLine box={tag} to={tag.leader} color={color} /> : null}
+                  <text x={tag.x} y={tag.y + LABEL_FONT * 0.35} fontSize={LABEL_FONT} textAnchor="middle" fill={warn ? "#b91c1c" : "#334155"} stroke="#ffffff" strokeWidth={3} paintOrder="stroke" fontFamily="ui-monospace,monospace">
+                    {wireText(w)}
+                  </text>
+                </g>
+              ) : null}
               {selected ? (
                 <>
                   {path.slice(1).map((q, i) => (
@@ -270,8 +300,20 @@ export function TechnicalCanvas(p: Props) {
               ) : (
                 <rect x={(-st.w / 2) * S} y={(-st.d / 2) * S} width={st.w * S} height={st.d * S} rx={3} fill={st.fill} stroke={selected || pending ? "#2563eb" : "#ffffff"} strokeWidth={selected || pending ? 4 : 2} strokeDasharray={d.remote ? "5 4" : undefined} />
               )}
-              <text y={(st.d / 2) * S + 14} fontSize={11} fontWeight={600} textAnchor="middle" fill="#0f172a" transform={`rotate(${d.rotY})`} fontFamily="ui-sans-serif,system-ui">
-                {d.short.length > 22 ? `${d.short.slice(0, 21)}…` : d.short}
+            </g>
+          );
+        })}
+
+        {/* Rótulos de los equipos (aparte: derechos y sin encimarse con los de los cables) */}
+        {p.model.devices.map((d) => {
+          const tag = labels.get(`d:${d.deviceId}#${d.unit}`);
+          if (!tag) return null;
+          const at = deviceAt(d);
+          return (
+            <g key={`label-${d.deviceId}#${d.unit}`} pointerEvents="none">
+              {tag.leader ? <LeaderLine box={tag} to={{ x: at.x * S, y: at.z * S }} color="#64748b" /> : null}
+              <text x={tag.x} y={tag.y + LABEL_FONT * 0.35} fontSize={LABEL_FONT} fontWeight={600} textAnchor="middle" fill="#0f172a" stroke="#f8fafc" strokeWidth={3} paintOrder="stroke" fontFamily="ui-sans-serif,system-ui">
+                {deviceText(d)}
               </text>
             </g>
           );
@@ -280,6 +322,12 @@ export function TechnicalCanvas(p: Props) {
       <div className="pointer-events-none absolute bottom-2 left-2 rounded bg-white/90 px-2 py-1 text-[10.5px] text-slate-500 shadow-sm">Rueda: acercar · arrastrar el fondo: mover · tocá un cable para editarlo</div>
     </div>
   );
+}
+
+/** Línea guía de un rótulo corrido hasta su cable o equipo. */
+function LeaderLine({ box, to, color }: { box: Box; to: { x: number; y: number }; color: string }) {
+  const from = boxEdgeToward(box, to);
+  return <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={color} strokeWidth={1} strokeDasharray="3 2" opacity={0.8} />;
 }
 
 /** Muro con huecos de puertas y ventanas, y su cota por fuera. */

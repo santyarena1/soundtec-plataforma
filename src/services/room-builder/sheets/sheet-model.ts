@@ -138,7 +138,8 @@ export function autoNotInManual(auto: LinkKey[], manual: LinkKey[]): number[] {
 export function physicalFamily(signal: string): string {
   if (signal === "usb" || signal.startsWith("usb-")) return "usb";
   if (signal === "lan" || signal === "dante") return "net";
-  if (signal === "line" || signal === "analog-audio" || signal === "mic" || signal === "digital-audio") return "audio";
+  if (signal === "line" || signal === "digital" || signal === "analog-audio" || signal === "mic" || signal === "digital-audio") return "audio";
+  if (signal === "cat" || signal === "cat-proprietary") return "cat";
   return signal;
 }
 

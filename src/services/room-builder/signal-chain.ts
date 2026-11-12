@@ -17,6 +17,7 @@
 
 import type { RoomBrief, RoomDims } from "./brief";
 import { rackAnchor } from "./rack-place";
+import { codecBehindDisplay } from "./vc-table";
 import type { Pose, RoomSlot } from "./types";
 
 const WALL = 0.08;
@@ -113,8 +114,13 @@ export function applySignalChain(slots: RoomSlot[], brief: RoomBrief, dims: Room
       next = next.filter((s) => s.role !== "codec");
     } else {
       const platform = brief.vcPlatform === "zoom" ? "Zoom Rooms" : "Microsoft Teams Rooms";
-      next = next.map((s) => (s.role === "codec" ? { ...s, label: `PC / códec de sala (${platform})`, required: true, mount: "rack", pose: rack } : s));
-      if (!next.some((s) => s.role === "codec")) add({ key: "codec", role: "codec", label: `PC / códec de sala (${platform})`, required: true, mount: "rack", pose: rack, defaultQty: 1 });
+      // Sin rack central: el códec / PC va detrás de la pantalla (VESA), con HDMI y USB cortos.
+      // Con rack central del proyecto queda en el mueble técnico, como el resto del equipamiento.
+      const display = next.find((s) => s.role === "display");
+      const centralRack = Boolean(brief.centralized?.audio || brief.centralized?.control);
+      const place = display && !centralRack ? { mount: "wall" as const, pose: codecBehindDisplay(display.pose) } : { mount: "rack" as const, pose: rack };
+      next = next.map((s) => (s.role === "codec" ? { ...s, label: `PC / códec de sala (${platform})`, required: true, ...place } : s));
+      if (!next.some((s) => s.role === "codec")) add({ key: "codec", role: "codec", label: `PC / códec de sala (${platform})`, required: true, ...place, defaultQty: 1 });
     }
     // Micrófonos de techo según la gente que entra (uno cada ~8 personas).
     if (brief.people) {
