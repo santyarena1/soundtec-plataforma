@@ -9,13 +9,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CablingPlan } from "@/services/room-builder/cabling";
 import type { CablingProfile } from "@/services/room-builder/cabling-db";
-import { cablingForScene } from "@/services/room-builder/cabling-scene";
-import { pickCables, type CableMissing, type CablePickLine, type CableProduct } from "@/services/room-builder/cable-picks";
+import { pickCablesFor, type CableMissing, type CablePickLine, type CableProduct } from "@/services/room-builder/cable-picks";
 import type { RoomScene } from "@/services/room-builder/scene";
+import { cableNeeds, roomCableList, type RoomCableList } from "@/services/room-builder/wiring/cable-list";
+import type { RackTrunk } from "@/services/room-builder/wiring/model";
 
 export type CablingState = {
   plan: CablingPlan | null;
   profile: CablingProfile | null;
+  /** Tramo de la salida de la sala al rack central del proyecto (si el ambiente baja a uno). */
+  trunk: RackTrunk | null;
+  /** La lista única de cables del ambiente (la misma de la cotización, la planilla y las láminas). */
+  cables: RoomCableList | null;
   /** Cables del catálogo elegidos para este cableado y los que no hay. */
   picks: { lines: CablePickLine[]; missing: CableMissing[] } | null;
   loading: boolean;
@@ -33,6 +38,7 @@ export type CablingState = {
 
 export function useCabling(projectId: string, scene: RoomScene, category: string): CablingState {
   const [profile, setProfile] = useState<CablingProfile | null>(null);
+  const [trunk, setTrunk] = useState<RackTrunk | null>(null);
   const [catalog, setCatalog] = useState<CableProduct[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [reading, setReading] = useState(false);
@@ -48,6 +54,7 @@ export function useCabling(projectId: string, scene: RoomScene, category: string
       const json = await res.json().catch(() => null);
       if (!json?.ok) throw new Error(json?.error ?? "No se pudo leer el cableado");
       setProfile(json.profile as CablingProfile);
+      setTrunk((json.trunk ?? null) as RackTrunk | null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo leer el cableado");
     } finally {
@@ -114,8 +121,9 @@ export function useCabling(projectId: string, scene: RoomScene, category: string
     }
   }, [projectId]);
 
-  const plan = useMemo(() => (profile ? cablingForScene(scene, category, profile) : null), [profile, scene, category]);
-  const picks = useMemo(() => (plan && catalog ? pickCables(plan, catalog) : null), [plan, catalog]);
+  const cables = useMemo(() => (profile ? roomCableList(scene, category, profile, trunk) : null), [profile, scene, category, trunk]);
+  const plan = cables?.plan ?? null;
+  const picks = useMemo(() => (cables && catalog ? pickCablesFor(cableNeeds(cables.cables).needs, catalog) : null), [cables, catalog]);
 
-  return { plan, profile, picks, loading, reading, error, readDatasheets, reload, completeEquipment, completing, catalog };
+  return { plan, profile, trunk, cables, picks, loading, reading, error, readDatasheets, reload, completeEquipment, completing, catalog };
 }

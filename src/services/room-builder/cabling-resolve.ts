@@ -104,7 +104,7 @@ async function fillEmptySlots(projectId: string): Promise<ResolvedAddition[]> {
   for (const d of scene.devices) {
     if (d.productId || d.generic) continue;
     const slot = scene.slots.find((s) => s.key === d.slotKey);
-    const key = genericForSlot(slot?.label ?? d.label, d.designRole);
+    const key = genericForSlot(slot?.label ?? d.label, d.designRole, slot?.mount);
     const template = key ? genericByKey(key) : null;
     if (!template) continue;
     // Primero un producto real del catálogo; el genérico solo si no hay.
@@ -156,6 +156,8 @@ export async function resolveAndWire(projectId: string): Promise<ResolveResult> 
       if (!f.fix || !genericByKey(f.fix.generic) || fixes.has(f.fix.generic) || count(f.fix.generic) >= MAX_SAME) continue;
       const cls = genericByKey(f.fix.generic)!.cls;
       if ((cls === "amp" || cls === "switch") && centralCls.has(cls)) continue;
+      // Un streamer de música solo si se pidió streaming: si no, la falta de fuente queda a la vista para decidirla.
+      if (f.fix.generic === "audio-streamer" && scene.brief && !scene.brief.audio?.streaming) continue;
       fixes.set(f.fix.generic, f);
     }
     if (!fixes.size) break;

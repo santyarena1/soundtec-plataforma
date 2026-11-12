@@ -40,3 +40,15 @@ test("canales necesarios: 2 parlantes de 8 Ω por canal si el amplificador banca
   assert.equal(channelsNeeded(4, 3, { minOhms: 4 }, 8), 3);
   assert.equal(channelsNeeded(0, 1, null, null), 0);
 });
+
+test("canales por carga real: 4 Ω en 4 Ω va de a uno; 16 Ω en 4 Ω, de a cuatro; 70 V por potencia", async () => {
+  const { lineChannelsNeeded, speakersPerChannel } = await import("./system-specs");
+  assert.equal(channelsNeeded(4, 1, { minOhms: 4 }, 4), 4, "4 parlantes de 4 Ω en un amplificador de 4 Ω: 4 canales");
+  assert.equal(channelsNeeded(4, 1, { minOhms: 2 }, 4), 2);
+  assert.equal(speakersPerChannel(4, 16), 4);
+  assert.equal(speakersPerChannel(4, 6), 1, "6 Ω × 2 = 3 Ω: no entra");
+  assert.equal(speakersPerChannel(4, null), 2, "sin dato: 8 Ω típico");
+  // 20 parlantes × 7,5 W = 150 W en canales de 60 W (48 W útiles): 4 líneas.
+  assert.equal(lineChannelsNeeded(20, 1, 7.5, 60), 4);
+  assert.equal(lineChannelsNeeded(20, 2, 7.5, null), 2, "sin potencia: una línea por zona");
+});

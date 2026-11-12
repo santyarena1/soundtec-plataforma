@@ -121,3 +121,26 @@ test("el plano calza en el piso: el centro de la sala cae en el centro del recua
   near(u.centerPx.x + -4 / u.mppX, 100);
   near(u.centerPx.y + -3 / u.mppZ, 100);
 });
+
+test("sala dibujada en una esquina de un plano con varios ambientes: centrada en su recuadro y sin espejar (calibración y plano usan la misma convención)", async () => {
+  const { polygonPxToRoomMeters } = await import("./plan-mode");
+  // Plano de 1000 × 800 px; la sala ocupa la esquina superior izquierda (200 × 150 px), 0,02 m/px → 4 × 3 m.
+  const px = [
+    { x: 50, y: 40 },
+    { x: 250, y: 40 },
+    { x: 250, y: 190 },
+    { x: 50, y: 190 },
+  ];
+  const fromCalibration = polygonPxToRoomMeters(px, 0.02);
+  assert.deepEqual(fromCalibration, [
+    { x: -2, y: -1.5 },
+    { x: 2, y: -1.5 },
+    { x: 2, y: 1.5 },
+    { x: -2, y: 1.5 },
+  ]);
+  // La esquina de arriba-izquierda del plano queda al fondo a la izquierda (-X, -Z), como en la sala 3D.
+  assert.ok(fromCalibration[0]!.x < 0 && fromCalibration[0]!.y < 0);
+  // Mismo resultado que el ambiente dibujado como recuadro sobre el plano (coordenadas 0..1 de la imagen).
+  const normalized = px.map((p) => ({ x: p.x / 1000, y: p.y / 800 }));
+  assert.deepEqual(polygonToRoomMeters(normalized, 4, 3), fromCalibration);
+});

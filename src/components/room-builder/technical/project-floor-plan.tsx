@@ -359,7 +359,8 @@ function RoomDetail({ room, onLevel }: { room: Placed; onLevel: (level: string) 
       </div>
       <div>
         <p className="mb-1 flex items-center gap-1 font-semibold text-slate-700">
-          <Cable className="h-3.5 w-3.5" /> Troncal al rack: {trunkTotal(room)} cables · {room.trunkMeters} m
+          <Cable className="h-3.5 w-3.5" /> Troncal al rack: {trunkTotal(room)} cables · {room.trunkEstimated ? "≈ " : ""}
+          {room.trunkMeters} m
         </p>
         {Object.entries(room.trunk).map(([s, k]) => (
           <div key={s} className="flex justify-between border-b border-slate-100 py-0.5">

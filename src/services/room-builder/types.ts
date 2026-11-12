@@ -122,6 +122,8 @@ export type RankCandidate = {
   dataCompleteness: number; // 0..1
   discontinued: boolean;
   brandBoost: number; // 0..1 extra comercial
+  /** Por qué su tipo o sus conexiones no cumplen el papel del lugar (ver role-fit.ts). */
+  fitReject?: string | null;
 };
 
 export type RankResult = RankCandidate & {

@@ -8,20 +8,19 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { cablingProfile, type CablingProfile } from "@/services/room-builder/cabling-db";
-import type { CablingPlan } from "@/services/room-builder/cabling";
-import { cablingForScene, centralExit } from "@/services/room-builder/cabling-scene";
-import { buildDiagram } from "@/services/room-builder/connection-diagram";
-import { SIGNAL_INFO } from "@/services/room-builder/device-ports";
+import type { CablingProfile } from "@/services/room-builder/cabling-db";
+import { centralExit } from "@/services/room-builder/cabling-scene";
+import { loadRoomCables } from "@/services/room-builder/cable-list-db";
 import { getRoomProject } from "@/services/room-builder/project-service";
-import { diagramSvg } from "@/services/room-builder/proposal-svg";
-import { parseScene, type RoomScene, type SceneDevice } from "@/services/room-builder/scene";
+import type { RoomScene, SceneDevice } from "@/services/room-builder/scene";
 import { layoutSceneDevices, sceneDims } from "@/services/room-builder/units";
+import type { RoomCable } from "@/services/room-builder/wiring/cable-list";
 import { blockKey, layoutDiagram } from "@/services/room-builder/wiring/diagram-layout";
-import { buildWiringModel, wiringOf, type WiringModel } from "@/services/room-builder/wiring/model";
+import { wiringOf, type WiringModel } from "@/services/room-builder/wiring/model";
 import { floorOf, planFurniture, planWalls } from "@/services/room-builder/wiring/plan-geometry";
-import { WIRE_SIGNAL_STYLE, type WirePort } from "@/services/room-builder/wiring/types";
-import { autoNotInManual, cableTag, nodeDevice, physicalFamily, type PortsSource, type SheetCable, type SheetDevice, type SheetWarning } from "@/services/room-builder/sheets/sheet-model";
+import type { TrunkContext } from "@/services/room-builder/wiring/rack-trunk";
+import type { WirePort } from "@/services/room-builder/wiring/types";
+import { cableTag, type PortsSource, type SheetCable, type SheetDevice, type SheetWarning } from "@/services/room-builder/sheets/sheet-model";
 import type { PlanWallInput } from "@/services/room-builder/sheets/plan-sheet-svg";
 import { diagramCuts, wiringDiagramSvg } from "@/services/room-builder/sheets/wiring-diagram-svg";
 
@@ -103,7 +102,7 @@ function roomDevices(scene: RoomScene, profile: CablingProfile | null, products:
 }
 
 /** Equipos del rack central que alimentan esta sala (numerados a continuación). */
-function centralDevices(ids: string[], profile: CablingProfile | null, products: Map<string, ProductInfo>, start: number): SheetDevice[] {
+function centralDevices(ids: string[], profile: CablingProfile | null, products: Map<string, ProductInfo>, start: number, labels: Map<string, string>): SheetDevice[] {
   return ids.map((id, i) => {
     const c = profile?.centralDevices?.find((x) => `central:${x.key}` === id);
     const p = c?.productId ? products.get(c.productId) : undefined;
@@ -112,7 +111,7 @@ function centralDevices(ids: string[], profile: CablingProfile | null, products:
       n: start + i,
       deviceId: id,
       brand: p?.brand ?? "",
-      model: p?.name ?? c?.label ?? id.replace(/^central:/, ""),
+      model: p?.name ?? c?.label ?? labels.get(id) ?? id.replace(/^central:/, ""),
       role: "processor",
       quantity: c?.quantity ?? 1,
       location: "Rack central (fuera de la sala)",
@@ -128,118 +127,87 @@ function centralDevices(ids: string[], profile: CablingProfile | null, products:
 
 const deviceText = (d: SheetDevice | undefined, fallback: string) => (d ? `${d.remote ? "R" : d.n} · ${d.model}` : fallback);
 
-/** Cables del plano técnico (manual), con el largo medido en el recorrido del plano. */
-function manualCables(model: WiringModel, devices: SheetDevice[], cableNames: Map<string, string>, prefix: string | null, exit: { x: number; z: number }): SheetCable[] {
+/**
+ * Cables de la lista única del ambiente (wiring/cable-list.ts): los mismos de
+ * la cotización y la planilla, con el largo final (troncal al rack incluida).
+ */
+function sheetCables(cables: RoomCable[], model: WiringModel, devices: SheetDevice[], cableNames: Map<string, string>, prefix: string | null, exit: { x: number; z: number }, proposal: boolean): SheetCable[] {
   const byId = new Map(devices.map((d) => [d.deviceId, d]));
   const placed = new Map(model.devices.map((d) => [blockKey(d.deviceId, d.unit), d]));
-  const portLabel = (deviceId: string, portId: string) => model.ports[deviceId]?.find((p) => p.id === portId)?.label ?? portId;
-  return model.wires.map((w, i) => {
+  return cables.map((w, i) => {
     const a = placed.get(blockKey(w.from.deviceId, w.from.unit));
     const b = placed.get(blockKey(w.to.deviceId, w.to.unit));
-    const remote = Boolean(a?.remote || b?.remote);
     const end = (p: typeof a) => (p ? (p.remote ? exit : { x: p.x, z: p.z }) : null);
     const pts = [end(a), ...w.points, end(b)].filter((p): p is { x: number; z: number } => Boolean(p));
     const unitSuffix = (deviceId: string, unit: number) => ((byId.get(deviceId)?.units.length ?? 1) > 1 ? ` (${unit + 1})` : "");
     return {
       tag: w.label ? (prefix ? `${prefix}-${w.label}` : w.label) : cableTag(i, prefix),
-      fromDevice: deviceText(byId.get(w.from.deviceId), a?.short ?? w.from.deviceId) + unitSuffix(w.from.deviceId, w.from.unit),
-      fromPort: portLabel(w.from.deviceId, w.from.portId),
-      toDevice: deviceText(byId.get(w.to.deviceId), b?.short ?? w.to.deviceId) + unitSuffix(w.to.deviceId, w.to.unit),
-      toPort: portLabel(w.to.deviceId, w.to.portId),
-      signal: WIRE_SIGNAL_STYLE[w.signal].label,
-      color: WIRE_SIGNAL_STYLE[w.signal].color,
+      fromDevice: byId.has(w.from.deviceId) ? deviceText(byId.get(w.from.deviceId), w.fromName) + unitSuffix(w.from.deviceId, w.from.unit) : w.fromName,
+      fromPort: w.fromPort,
+      toDevice: byId.has(w.to.deviceId) ? deviceText(byId.get(w.to.deviceId), w.toName) + unitSuffix(w.to.deviceId, w.to.unit) : w.toName,
+      toPort: w.toPort,
+      signal: w.signalLabel,
+      color: w.color,
       cable: w.cableProductId ? (cableNames.get(w.cableProductId) ?? null) : null,
       lengthM: Math.round(w.lengthM * 10) / 10,
-      lengthKind: w.lengthOverrideM != null ? "fixed" : remote ? "estimated" : "plan",
+      // La propuesta automática todavía no está confirmada en el plano técnico: sus largos son estimados.
+      lengthKind: proposal && w.lengthKind === "plan" ? "estimated" : w.lengthKind,
       points: pts.map((p) => ({ x: p.x, z: p.z })),
-      note: remote && w.lengthOverrideM == null ? "Medido hasta la salida de la sala: sumar el tramo hasta el rack" : null,
+      note: w.note,
     };
   });
 }
 
-/** Cables de la propuesta automática: largos estimados por el motor, sin cable del catálogo asignado. */
-function autoCables(plan: CablingPlan, devices: SheetDevice[], prefix: string | null): SheetCable[] {
-  const byId = new Map(devices.map((d) => [d.deviceId, d]));
-  const label = new Map(plan.nodes.map((n) => [n.id, n.label]));
-  return plan.links
-    .filter((l) => l.signal !== "wireless")
-    .map((l, i) => ({
-      tag: cableTag(i, prefix),
-      fromDevice: deviceText(byId.get(nodeDevice(l.from)), label.get(l.from) ?? l.from),
-      fromPort: l.fromPort,
-      toDevice: deviceText(byId.get(nodeDevice(l.to)), label.get(l.to) ?? l.to),
-      toPort: l.toPort,
-      signal: SIGNAL_INFO[l.signal].label,
-      color: SIGNAL_INFO[l.signal].color,
-      cable: null,
-      lengthM: l.cableM,
-      lengthKind: "estimated" as const,
-      points: l.route.map(([x, , z]) => ({ x, z })),
-      note: l.note ?? null,
-    }));
-}
-
 /** Láminas de una sala. `tagPrefix` antepone el código del ambiente a las etiquetas (juego del proyecto). */
-export async function loadRoomSheet(spaceId: string, opts: { tagPrefix?: string | null } = {}): Promise<RoomSheet> {
+export async function loadRoomSheet(spaceId: string, opts: { tagPrefix?: string | null; trunkCtx?: TrunkContext | null } = {}): Promise<RoomSheet> {
   const project = await getRoomProject(spaceId);
   if (!project || project.kind === "hub") throw new Error("Ambiente no encontrado");
-  const scene = parseScene(project.sceneJson);
-  if (!scene) throw new Error("Escena inválida");
   const prefix = opts.tagPrefix ?? null;
-  const profile = await cablingProfile(spaceId);
+  // La lista única de cables (la misma de la cotización y la planilla del proyecto).
+  const loaded = await loadRoomCables(project, opts.trunkCtx);
+  if (!loaded) throw new Error("Escena inválida");
+  const { scene, profile, list } = loaded;
   const wiring = wiringOf(scene);
-  const manual = wiring.wires.length > 0;
-  const model = buildWiringModel(scene, profile);
-  const plan = profile ? cablingForScene(scene, project.category, profile) : null;
+  const manual = list.source === "manual";
+  const { model, plan } = list;
 
   const hub = project.parentId ? await prisma.roomProject.findUnique({ where: { id: project.parentId }, select: { name: true, client: { select: { companyName: true } } } }) : null;
-  const centralIds = manual
-    ? [...new Set(model.devices.filter((d) => d.remote).map((d) => d.deviceId))]
-    : [...new Set((plan?.links ?? []).flatMap((l) => [l.from, l.to]).filter((id) => id.startsWith("central:")).map(nodeDevice))];
+  const centralIds = [...new Set(model.devices.filter((d) => d.remote).map((d) => d.deviceId))];
   const productIds = [
     ...scene.devices.map((d) => d.productId),
     ...(profile?.centralDevices ?? []).map((c) => c.productId),
-    ...wiring.wires.map((w) => w.cableProductId),
+    ...list.cables.map((w) => w.cableProductId),
   ].filter((id): id is string => Boolean(id));
   const products = await productInfo([...new Set(productIds)]);
   const cableNames = new Map([...products].map(([id, p]) => [id, p.name]));
 
   const local = roomDevices(scene, profile, products);
-  const devices = [...local, ...centralDevices(centralIds, profile, products, local.length + 1)];
+  const remoteLabels = new Map(model.devices.filter((d) => d.remote).map((d) => [d.deviceId, d.label]));
+  const devices = [...local, ...centralDevices(centralIds, profile, products, local.length + 1, remoteLabels)];
   const exit = centralIds.length ? centralExit(scene) : null;
-  const cables = manual ? manualCables(model, devices, cableNames, prefix, centralExit(scene)) : plan ? autoCables(plan, devices, prefix) : [];
+  const cables = sheetCables(list.cables, model, devices, cableNames, prefix, centralExit(scene), list.source === "auto");
 
   const warnings: SheetWarning[] = [];
   let diagram: SheetDiagram | null = null;
-  if (manual) {
+  const tagOf = new Map(list.cables.map((w, i) => [w.id, cables[i]!.tag]));
+  if (cables.length) {
     const numbers = Object.fromEntries(model.devices.map((d) => [blockKey(d.deviceId, d.unit), devices.find((x) => x.deviceId === d.deviceId)?.n ?? 0]));
-    const tags = Object.fromEntries(model.wires.map((w, i) => [w.id, cables[i]!.tag]));
-    diagram = wiringDiagramSvgSafe(model, wiring.diagram ?? {}, numbers, tags);
-    const tagOf = new Map(model.wires.map((w, i) => [w.id, cables[i]!.tag]));
-    for (const issue of model.issues) warnings.push({ level: issue.level, text: `${tagOf.get(issue.wireId) ?? "Cable"}: ${issue.text}` });
-    // Lo que el armado automático propone y el manual no tiene: se avisa, no se oculta.
-    if (plan) {
-      const autoLinks = plan.links.filter((l) => l.signal !== "wireless");
-      const missing = autoNotInManual(
-        autoLinks.map((l) => ({ a: nodeDevice(l.from), b: nodeDevice(l.to), family: physicalFamily(l.signal) })),
-        wiring.wires.map((w) => ({ a: w.from.deviceId, b: w.to.deviceId, family: physicalFamily(w.signal) })),
-      );
-      const label = new Map(plan.nodes.map((n) => [n.id, n.label]));
-      for (const i of missing) {
-        const l = autoLinks[i]!;
-        warnings.push({ level: "warn", text: `Cable del armado automático no presente en el cableado manual: ${label.get(l.from) ?? l.from} (${l.fromPort}) → ${label.get(l.to) ?? l.to} (${l.toPort}), ${SIGNAL_INFO[l.signal].label}.` });
-      }
-    }
+    diagram = wiringDiagramSvgSafe(model, wiring.diagram ?? {}, numbers, Object.fromEntries(tagOf));
+  }
+  for (const issue of model.issues) warnings.push({ level: issue.level, text: `${tagOf.get(issue.wireId) ?? "Cable"}: ${issue.text}` });
+  if (manual) {
+    // Lo que el armado automático propone y el plano técnico no tiene ya viene sumado en la lista,
+    // con su aviso por cable ("propuesto por el sistema"): no se oculta ni se omite de la planilla.
   } else if (plan && cables.length) {
-    const d = buildDiagram(plan);
-    diagram = { svg: diagramSvg(d), width: d.width, height: d.height, cuts: diagramCuts(d.blocks) };
-    warnings.push({ level: "info", text: "La sala no tiene cableado manual: conexiones y largos son la propuesta automática (estimados), a confirmar en el plano técnico." });
+    warnings.push({ level: "info", text: "La sala no tiene cableado trazado en el plano técnico: conexiones y largos son la propuesta automática (estimados), a confirmar en el plano técnico." });
     for (const f of plan.findings) if (f.level !== "info") warnings.push({ level: f.level, text: `${f.title}: ${f.detail}` });
   } else {
     warnings.push({ level: "warn", text: "La sala todavía no tiene cableado: falta trazarlo en el plano técnico." });
   }
   for (const d of devices) if (d.ports === "pendiente") warnings.push({ level: "warn", text: `${d.remote ? "R" : d.n} · ${d.model}: puertos pendientes (${(d.portsNote ?? "sin ficha").toLowerCase()}); sus conexiones no están confirmadas por el fabricante.` });
-  if (cables.some((c) => c.note?.startsWith("Medido hasta la salida"))) warnings.push({ level: "info", text: "Los tramos al rack central se miden hasta la salida de la sala: el largo final depende del recorrido hasta el rack." });
+  // Troncal al rack: una sola nota por sala (ya está sumada en cada cable, o falta el dato).
+  const trunkNote = list.cables.find((c) => c.remote && c.note)?.note;
+  if (trunkNote) warnings.push({ level: list.cables.some((c) => c.remote && c.lengthKind === "estimated") ? "warn" : "info", text: `Cables al rack central: ${trunkNote}` });
   const nodeLabel = new Map(plan?.nodes.map((n) => [n.id, n.label]) ?? []);
   for (const l of plan?.links.filter((x) => x.signal === "wireless") ?? []) warnings.push({ level: "info", text: `Enlace inalámbrico (sin cable): ${nodeLabel.get(l.from) ?? l.fromPort} → ${nodeLabel.get(l.to) ?? l.toPort}${l.protocol ? ` (${l.protocol})` : ""}.` });
 

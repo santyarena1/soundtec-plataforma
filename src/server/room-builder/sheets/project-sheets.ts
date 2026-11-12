@@ -7,7 +7,8 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { projectTechnical, roomCode, type ProjectFloor } from "@/services/room-builder/project-technical";
+import { trunkContext } from "@/services/room-builder/cable-list-db";
+import { projectTechnical, uniqueRoomCodes, type ProjectFloor } from "@/services/room-builder/project-technical";
 import { drawableArea, projectFloorExtent, projectFloorSvg, type FloorRoomInput, type ProjectFloorInput } from "@/services/room-builder/sheets/plan-sheet-svg";
 import { pickScale, scaleLabel } from "@/services/room-builder/sheets/scale";
 import type { SheetWarning } from "@/services/room-builder/sheets/sheet-model";
@@ -96,11 +97,11 @@ function floorPages(floor: ProjectFloor, imageHref: string | null): SheetPage[] 
     const scale = pickScale(ext, drawableArea(MAIN_AREA_MM));
     const svg = projectFloorSvg({ ...input, areaMm: MAIN_AREA_MM, scale: scale.denominator });
     const list = rooms
-      .map((r) => `<div class="leg"><span style="flex:1">${h(r.name)}</span><span class="muted">${r.devices.length} eq. · ${Object.values(r.trunk).reduce((a, n) => a + n, 0)} al rack${r.trunkMeters ? ` · ≈ ${r.trunkMeters} m` : ""}</span></div>`)
+      .map((r) => `<div class="leg"><span style="flex:1">${h(r.name)}</span><span class="muted">${r.devices.length} eq. · ${Object.values(r.trunk).reduce((a, n) => a + n, 0)} al rack${r.trunkMeters ? ` · ${r.trunkEstimated ? "≈ " : ""}${r.trunkMeters} m` : ""}</span></div>`)
       .join("");
     const notes = [
       planMode ? "Ambientes ubicados sobre el plano del cliente; la escala se deduce de las medidas de cada ambiente (aproximada)." : "Planta esquemática: cada ambiente está a escala, pero su ubicación relativa es indicativa (no hay plano del edificio).",
-      "Troncales al rack trazadas en recorrido ortogonal de referencia: el largo final depende del recorrido de obra.",
+      "Troncales al rack trazadas en recorrido ortogonal de referencia; sus metros ya están sumados en cada cable de la planilla (≈ = estimado, a confirmar en obra).",
       scale.normalized ? null : "La planta no entra a 1:100: se usó una escala mayor fuera de la serie normalizada.",
     ].filter(Boolean);
     return {
@@ -121,13 +122,15 @@ export async function projectSheetPages(hubId: string): Promise<{ pages: SheetPa
   const hub = await prisma.roomProject.findUnique({ where: { id: hubId }, select: { children: { select: { id: true, name: true }, orderBy: { createdAt: "asc" } } } });
   const children = hub?.children ?? [];
   const prefixes = uniqueRoomCodes(children.map((c) => c.name));
+  // Troncales al rack: la planta del proyecto se lee una vez para todos los ambientes.
+  const trunkCtx = await trunkContext(hubId);
   // La planta general y los ambientes se leen en paralelo (cada uno hace varias consultas).
   const [tech, rooms] = await Promise.all([
     projectTechnical(hubId),
     Promise.all(
       children.map((child, i) =>
         // Un ambiente con la escena rota no frena el juego: queda fuera y se avisa.
-        loadRoomSheet(child.id, { tagPrefix: prefixes[i] }).catch((error: unknown) => {
+        loadRoomSheet(child.id, { tagPrefix: prefixes[i], trunkCtx }).catch((error: unknown) => {
           console.error(`[room-builder/sheets] ambiente ${child.id}`, error);
           return emptyRoom(child.id, child.name);
         }),
@@ -157,20 +160,8 @@ export async function projectSheetPages(hubId: string): Promise<{ pages: SheetPa
   return { pages, rooms };
 }
 
-/**
- * Código de cada ambiente para las etiquetas, sin repetir: "Dormitorio
- * principal" y "Dormitorio 2" darían los dos "DOR" y habría dos cables con la
- * misma etiqueta en obra; el segundo pasa a "DOR2".
- */
-export function uniqueRoomCodes(names: string[]): string[] {
-  const used = new Map<string, number>();
-  return names.map((name) => {
-    const base = roomCode(name);
-    const n = (used.get(base) ?? 0) + 1;
-    used.set(base, n);
-    return n === 1 ? base : `${base}${n}`;
-  });
-}
+/** Misma regla de códigos de ambiente que la planilla del proyecto (DOR, DOR2…). */
+export { uniqueRoomCodes };
 
 /** Los avisos de los equipos del rack central se repiten en cada ambiente: van una sola vez. */
 function dedupe(list: SheetWarning[]): SheetWarning[] {

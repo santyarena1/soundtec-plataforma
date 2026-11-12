@@ -9,6 +9,7 @@
 import { prisma } from "@/lib/prisma";
 import type { BrandGroup } from "./brief";
 import type { IoCapabilities, IoPort, IoSignal } from "./io-profile/types";
+import { isAecDsp, isVoiceDsp } from "./role-fit";
 
 type Candidate = {
   id: string;
@@ -16,6 +17,8 @@ type Candidate = {
   brandSlug: string | null;
   brandName: string | null;
   productType: string | null;
+  /** Resumen de la ficha: capacidades que no son puertos (cancelación de eco). */
+  summary: string | null;
   ports: IoPort[];
   caps: IoCapabilities;
 };
@@ -32,7 +35,7 @@ async function candidates(): Promise<Candidate[]> {
       id: true,
       normalizedName: true,
       brand: { select: { slug: true, name: true } },
-      aiProfile: { select: { productType: true } },
+      aiProfile: { select: { productType: true, summaryEs: true } },
       ioProfile: { select: { ports: true, capabilities: true } },
     },
   });
@@ -42,6 +45,7 @@ async function candidates(): Promise<Candidate[]> {
     brandSlug: r.brand?.slug ?? null,
     brandName: r.brand?.name ?? null,
     productType: r.aiProfile?.productType ?? null,
+    summary: r.aiProfile?.summaryEs ?? null,
     ports: (Array.isArray(r.ioProfile?.ports) ? r.ioProfile!.ports : []) as unknown as IoPort[],
     caps: (r.ioProfile?.capabilities && typeof r.ioProfile.capabilities === "object" ? r.ioProfile.capabilities : {}) as unknown as IoCapabilities,
   }));
@@ -93,10 +97,13 @@ const NEEDS: Record<string, { group: BrandGroup; score: (c: Candidate) => number
   "poe-switch-24": { group: "control", score: (c) => (pse(c) >= 24 ? 10 - Math.min(pse(c), 48) / 20 : 0) },
   "matrix-4x4": { group: "video", score: (c) => (count(c, ["hdmi"], "in") >= 4 && count(c, ["hdmi", "hdbaset"], "out") >= 2 ? 10 - Math.abs(count(c, ["hdmi"], "in") - 4) / 4 : 0) },
   "matrix-8x8": { group: "video", score: (c) => (count(c, ["hdmi"], "in") >= 8 && count(c, ["hdmi", "hdbaset"], "out") >= 8 ? 10 : 0) },
-  dsp: {
-    group: "audio",
-    score: (c) => (count(c, ["speaker"], "out") === 0 && count(c, ["mic", "analog-audio", "dante"], "in") >= 4 && count(c, ["analog-audio", "dante"], "out") >= 2 && /dsp|processor|procesador|tesira|q-sys|core/i.test(`${c.name} ${c.productType}`) ? 8 : 0),
-  },
+  // DSP para micrófonos de sala de videoconferencia: entradas de micrófono/Dante Y cancelación de eco
+  // confirmada en la ficha. Un preamplificador o un streamer multizona (DM-NAX-4ZSP) no resuelve la falta.
+  dsp: { group: "audio", score: (c) => (isAecDsp(c) ? 8 + Math.min(count(c, ["mic", "dante"], "in"), 16) / 16 : 0) },
+  // Refuerzo de voz (aula sin videoconferencia): micrófonos a parlantes, sin cancelación de eco.
+  "dsp-voice": { group: "audio", score: (c) => (isVoiceDsp(c) ? 8 - Math.min(count(c, ["mic", "dante"], "in"), 24) / 24 : 0) },
+  // Receptor AV de cine: entradas HDMI, salida a la pantalla y al menos 5 canales.
+  "av-receiver": { group: "amplification", score: (c) => (count(c, ["hdmi"], "in") >= 2 && count(c, ["hdmi"], "out") >= 1 && (c.caps.ampChannels?.value ?? count(c, ["speaker"], "out")) >= 5 ? 8 : 0) },
   "control-processor": { group: "control", score: (c) => (count(c, ["rs232"], "out") + count(c, ["ir"], "out") >= 2 && count(c, ["lan"], "in") > 0 && /processor|control|MC4|CP4|PRO4|RMC/i.test(`${c.name} ${c.productType}`) ? 8 : 0) },
   "shade-motor": { group: "control", score: (c) => (/\b(shade|shades|cortina|cortinas|persiana|drape|roller shade)\b|motor de cortina/i.test(c.name) && !/controller|hvac|thermostat/i.test(c.name) && (c.ports.length > 0 || c.caps.wireless) ? 8 : 0) },
   "keypad-wired": { group: "control", score: (c) => (/\bKP|keypad|teclado|KPEX|KPCN|\bC2N-CB|CBD/i.test(c.name) && !/BTN|ENGRAVED|BLANK|FP-|FACEPLATE/i.test(c.name) && (c.ports.length > 0 || c.caps.wireless) ? 6 + (radio(c, "infinet", "client") ? 1 : 0) : 0) },

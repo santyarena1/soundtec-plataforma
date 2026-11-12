@@ -158,20 +158,34 @@ export function initialBrief(category: string, templateKey: string): RoomBrief {
       zones: 1,
       speakers: null,
       streaming: category === "residential" || category === "hotel" || category === "lobby" || category === "commercial",
+      layout: null,
     },
     video: { displays: 1, sizeIn: null },
+    people: null,
+    // En aulas el docente lleva micrófono inalámbrico salvo que se diga que no.
+    wirelessMic: TEACHING_CATEGORIES.has(category),
+    wirelessPresentation: false,
     brands: {},
     tier: "recomendado",
     notes: null,
   };
 }
 
-export type WizardStep = "ambiente" | "sistemas" | "control" | "audio" | "video" | "marcas" | "espacio" | "resumen";
+/** Ambientes donde se pregunta cómo se usa la sala (personas, micrófono, presentación). */
+const TEACHING_CATEGORIES = new Set(["classroom", "training"]);
+const USE_CATEGORIES = new Set(["videoconference", "classroom", "training", "event", "office"]);
+
+export function asksRoomUse(brief: RoomBrief, category: string | null | undefined): boolean {
+  return brief.systems.includes("vc") || USE_CATEGORIES.has(category ?? "");
+}
+
+export type WizardStep = "ambiente" | "sistemas" | "control" | "uso" | "audio" | "video" | "marcas" | "espacio" | "resumen";
 
 /** Pasos que aplican según lo elegido (se saltean los que no corresponden). */
-export function stepsFor(brief: RoomBrief): WizardStep[] {
+export function stepsFor(brief: RoomBrief, category: string | null = null): WizardStep[] {
   const steps: WizardStep[] = ["ambiente", "sistemas"];
   if (brief.systems.includes("control") || brief.systems.includes("vc")) steps.push("control");
+  if (asksRoomUse(brief, category)) steps.push("uso");
   if (brief.systems.includes("audio")) steps.push("audio");
   if (brief.systems.includes("video") || brief.systems.includes("vc")) steps.push("video");
   steps.push("marcas", "espacio", "resumen");
@@ -182,9 +196,18 @@ export const STEP_LABELS: Record<WizardStep, string> = {
   ambiente: "Ambiente",
   sistemas: "Sistemas",
   control: "Control",
+  uso: "Uso de la sala",
   audio: "Audio",
   video: "Video",
   marcas: "Marcas",
   espacio: "Espacio y nivel",
   resumen: "Resumen",
 };
+
+/** m² por persona para sugerir la cantidad de gente: aula ~1,9 m², reunión ~2,5 m², eventos ~1,2 m². */
+const M2_PER_PERSON: Record<string, number> = { classroom: 1.9, training: 1.9, videoconference: 2.5, office: 2.5, event: 1.2 };
+
+/** Personas sugeridas para el tamaño del ambiente. */
+export function suggestedPeople(category: string, areaM2: number): number {
+  return Math.max(2, Math.min(300, Math.round(areaM2 / (M2_PER_PERSON[category] ?? 2.5))));
+}

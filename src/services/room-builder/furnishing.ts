@@ -9,6 +9,7 @@
 
 import type { RoomScene } from "./scene";
 import { hotelGuestAnchors } from "./slot-layout";
+import { vcTable } from "./vc-table";
 import { pointInPolygon } from "./plan-polygon";
 import { layoutSceneDevices, sceneDims } from "./units";
 import { fitFurnitureToRoom } from "./furniture-fit";
@@ -136,7 +137,27 @@ const CREDENZA_BACK_M = 0.48;
 /** Silla y paso detrás de ella, desde el borde de la mesa (m). */
 const CHAIR_BEHIND_TABLE_M = 1.05;
 
-function videoconference({ widthM, depthM }: RoomDims, size: "S" | "M" | "L"): FurnitureItem[] {
+function videoconference(dims: RoomDims, size: "S" | "M" | "L"): FurnitureItem[] {
+  const { widthM, depthM } = dims;
+  // Mesa perpendicular a la pantalla, cabecera hacia ella (ver vc-table.ts); paralela solo si la sala no da el largo.
+  const t = vcTable(dims, size);
+  if (t.perpendicular) {
+    const sideX = t.w / 2 + 0.45;
+    const along = Array.from({ length: t.sideChairs }, (_, i) => t.z + (t.sideChairs === 1 ? 0 : (i / (t.sideChairs - 1) - 0.5) * (t.d - 0.6)));
+    const chairs = [
+      ...along.flatMap((z) => [
+        { x: -sideX, z, rotY: PI / 2 },
+        { x: sideX, z, rotY: -PI / 2 },
+      ]),
+      // La cabecera de la pantalla queda libre; la del fondo, una silla mirando a la pantalla.
+      ...Array.from({ length: t.endChairs }, () => ({ x: 0, z: t.z - t.d / 2 - 0.45, rotY: 0 })),
+    ];
+    return [
+      { id: "table", kind: "conference-table", group: "Mesa de reunión", x: t.x, z: t.z, rotY: 0, mount: "floor", w: t.w, d: t.d },
+      ...chairs.map((c, i): FurnitureItem => ({ id: `chair-${i}`, kind: "chair", group: "Sillas", x: c.x, z: c.z, rotY: c.rotY, mount: "floor" })),
+      { id: "av-panel", kind: "av-panel", group: "Panel de pared AV", x: 0, y: 1.35, z: depthM / 2 - 0.06, rotY: PI, mount: "wall", w: Math.min(widthM * 0.7, 3.2), h: 1.4 },
+    ];
+  }
   // La mesa se achica si la sala no da: siempre queda lugar para sillas y paso alrededor.
   const tableW = Math.min(size === "S" ? 1.6 : size === "M" ? 2.6 : 3.8, Math.max(1.2, widthM - TABLE_CLEARANCE_M * 2));
   const tableD = Math.min(size === "S" ? 0.9 : size === "M" ? 1.2 : 1.45, Math.max(0.8, depthM - TABLE_CLEARANCE_M * 2));

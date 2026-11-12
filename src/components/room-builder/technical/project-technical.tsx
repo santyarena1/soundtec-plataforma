@@ -212,7 +212,10 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
                     <td className="px-2 py-1">{r.to}</td>
                     <td className="px-2 py-1 text-slate-500">{r.toPort}</td>
                     <td className="px-2 py-1">{r.signal}</td>
-                    <td className="px-2 py-1 font-mono">{r.lengthM.toFixed(1)} m</td>
+                    <td className="px-2 py-1 font-mono" title={r.lengthKind === "estimated" ? "Largo estimado (ej. falta ubicar el rack central)" : undefined}>
+                      {r.lengthKind === "estimated" ? "≈ " : ""}
+                      {r.lengthM.toFixed(1)} m
+                    </td>
                     <td className="px-2 py-1 text-slate-500">{r.cable ?? "—"}</td>
                   </tr>
                 ))}

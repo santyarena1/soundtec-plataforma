@@ -5,15 +5,15 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { cablingProfile } from "./cabling-db";
 import type { CableLink } from "./cabling";
-import { cablingForScene } from "./cabling-scene";
-
+import { loadRoomCables, trunkContext } from "./cable-list-db";
 import { getRoomProject } from "./project-service";
 import { parseScene, type ProjectTechnicalSettings } from "./scene";
 import { centralExit } from "./cabling-scene";
-import { buildWiringModel, type PlacedDevice, type WiringModel } from "./wiring/model";
-import { WIRE_SIGNAL_STYLE, type Wire, type WirePort } from "./wiring/types";
+import { cableTotals } from "./wiring/cable-list";
+import type { LengthKind, ModelWire, PlacedDevice, WiringModel } from "./wiring/model";
+import type { WireIssue } from "./wiring/validate";
+import { WIRE_SIGNAL_STYLE, type WirePort } from "./wiring/types";
 
 const CENTRAL_PREFIX = "central:";
 
@@ -26,6 +26,8 @@ export type ScheduleRow = {
   toPort: string;
   signal: string;
   lengthM: number;
+  /** plan: medido; fixed: forzado a mano; estimated: falta un dato (ej. ubicar el rack). */
+  lengthKind: LengthKind;
   cable: string | null;
 };
 export type EquipmentRow = { room: string; name: string; brand: string | null; quantity: number; productId: string | null; generic: boolean; missing: string[] };
@@ -43,8 +45,10 @@ export type FloorRoom = {
   wires: Array<{ color: string; label: string | null; pts: Array<{ x: number; z: number }> }>;
   /** Cables que salen hacia el rack central, por tipo. */
   trunk: Record<string, number>;
-  /** Metros de cable del ambiente al rack. */
+  /** Metros de cable del ambiente al rack (tramo en la sala + troncal). */
   trunkMeters: number;
+  /** Algún cable al rack tiene el largo estimado (falta ubicar el rack o el ambiente). */
+  trunkEstimated: boolean;
   /** Posición guardada en la planta esquemática (px). */
   pos: { x: number; y: number } | null;
 };
@@ -68,6 +72,22 @@ export type ProjectTechnical = {
 /** Código corto del ambiente para las etiquetas de obra ("Living" → "LIV"). */
 export const roomCode = (name: string) => name.normalize("NFD").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "AMB";
 
+/**
+ * Código de cada ambiente para las etiquetas, sin repetir: "Dormitorio
+ * principal" y "Dormitorio 2" darían los dos "DOR" y habría dos cables con la
+ * misma etiqueta en obra; el segundo pasa a "DOR2". Lo usan la planilla, el CSV
+ * y las láminas (mismo orden de ambientes: por fecha de alta).
+ */
+export function uniqueRoomCodes(names: string[]): string[] {
+  const used = new Map<string, number>();
+  return names.map((name) => {
+    const base = roomCode(name);
+    const n = (used.get(base) ?? 0) + 1;
+    used.set(base, n);
+    return n === 1 ? base : `${base}${n}`;
+  });
+}
+
 /** Conectores a armar en obra por tipo de cable (cables armados de fábrica no suman). */
 const FIELD_CONNECTORS: Partial<Record<string, string>> = { lan: "Ficha RJ-45", dante: "Ficha RJ-45", hdbaset: "Ficha RJ-45 blindada (HDBaseT)", rs232: "Bornera Phoenix / DB9", "analog-audio": "Conector Phoenix / XLR", mic: "Conector XLR / Phoenix" };
 
@@ -77,7 +97,8 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
 
   const devices: PlacedDevice[] = [];
   const ports: Record<string, WirePort[]> = {};
-  const wires: Array<Wire & { lengthM: number }> = [];
+  const wires: ModelWire[] = [];
+  const issues: WireIssue[] = [];
   const schedule: ScheduleRow[] = [];
   const equipment: EquipmentRow[] = [];
   const rooms: ProjectTechnical["rooms"] = [];
@@ -90,18 +111,24 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
   const planImage = (hubSceneRaw.planImage ?? null) as ProjectFloor["image"];
   const floorRooms: FloorRoom[] = [];
 
+  // Códigos de ambiente sin repetir ("Dormitorio principal" y "Dormitorio 2" → DOR y DOR2), igual que las láminas.
+  const codes = new Map(hub.children.map((c, i) => [c.id, uniqueRoomCodes(hub.children.map((x) => x.name))[i]!]));
+  const trunkCtx = await trunkContext(hub.id);
+
   for (const child of hub.children) {
     const space = await getRoomProject(child.id);
-    const scene = space ? parseScene(space.sceneJson) : null;
-    if (!space || !scene) continue;
-    const profile = await cablingProfile(space.id);
-    const m = buildWiringModel(scene, profile);
-    if (profile) {
+    if (!space) continue;
+    // La lista única de cables del ambiente (la misma de la cotización y las láminas).
+    const loaded = await loadRoomCables(space, trunkCtx);
+    if (!loaded) continue;
+    const { scene, list } = loaded;
+    const m = list.model;
+    if (list.plan) {
       const nodeKey = (id: string) => (id.startsWith(CENTRAL_PREFIX) ? id : `${space.id}:${id}`);
-      for (const l of cablingForScene(scene, space.category, profile).links.filter((x) => x.signal === "wireless")) wireless.push({ ...l, id: `${space.id}:${l.id}`, from: nodeKey(l.from), to: nodeKey(l.to) });
+      for (const l of list.plan.links.filter((x) => x.signal === "wireless")) wireless.push({ ...l, id: `${space.id}:${l.id}`, from: nodeKey(l.from), to: nodeKey(l.to) });
     }
     const key = (deviceId: string) => (deviceId.startsWith(CENTRAL_PREFIX) ? deviceId : `${space.id}:${deviceId}`);
-    const code = roomCode(space.name);
+    const code = codes.get(space.id) ?? roomCode(space.name);
 
     for (const d of m.devices) {
       const k = key(d.deviceId);
@@ -113,24 +140,27 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
     }
     for (const [id, list] of Object.entries(m.ports)) ports[key(id)] = list;
 
-    const byDev = new Map(m.devices.map((d) => [`${d.deviceId}#${d.unit}`, d]));
-    const portLabel = (deviceId: string, portId: string) => m.ports[deviceId]?.find((p) => p.id === portId)?.label ?? portId;
-    for (const w of m.wires) {
+    for (const w of list.cables) {
       const label = w.label ? `${code}-${w.label}` : null;
-      wires.push({ ...w, id: `${space.id}:${w.id}`, label, from: { ...w.from, deviceId: key(w.from.deviceId) }, to: { ...w.to, deviceId: key(w.to.deviceId) } });
+      const { fromName, fromPort, toName, toPort, signalLabel, color, feeds, ...wire } = w;
+      void color;
+      void feeds;
+      wires.push({ ...wire, id: `${space.id}:${w.id}`, label, from: { ...w.from, deviceId: key(w.from.deviceId) }, to: { ...w.to, deviceId: key(w.to.deviceId) } });
       if (w.cableProductId) cableIds.add(w.cableProductId);
       schedule.push({
         room: space.name,
         label: label ?? "",
-        from: byDev.get(`${w.from.deviceId}#${w.from.unit}`)?.short ?? w.from.deviceId,
-        fromPort: portLabel(w.from.deviceId, w.from.portId),
-        to: byDev.get(`${w.to.deviceId}#${w.to.unit}`)?.short ?? w.to.deviceId,
-        toPort: portLabel(w.to.deviceId, w.to.portId),
-        signal: WIRE_SIGNAL_STYLE[w.signal].label,
+        from: fromName,
+        fromPort,
+        to: toName,
+        toPort,
+        signal: signalLabel,
         lengthM: Math.round(w.lengthM * 10) / 10,
+        lengthKind: w.lengthKind,
         cable: w.cableProductId,
       });
     }
+    for (const issue of m.issues) issues.push({ ...issue, wireId: `${space.id}:${issue.wireId}` });
 
     for (const d of scene.devices) {
       if (!d.productId && !d.generic) continue;
@@ -142,6 +172,7 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
     const pos = new Map(m.devices.map((d) => [`${d.deviceId}#${d.unit}`, d]));
     const trunk: Record<string, number> = {};
     let trunkMeters = 0;
+    let trunkEstimated = false;
     const exit = centralExit(scene);
     floorRooms.push({
       id: space.id,
@@ -155,15 +186,18 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
       wires: m.wires.map((w) => {
         const a = pos.get(`${w.from.deviceId}#${w.from.unit}`);
         const b = pos.get(`${w.to.deviceId}#${w.to.unit}`);
-        if (a?.remote || b?.remote) {
+        if (w.remote) {
+          // Metros completos del cable: tramo en la sala + troncal hasta el rack.
           trunk[WIRE_SIGNAL_STYLE[w.signal].label] = (trunk[WIRE_SIGNAL_STYLE[w.signal].label] ?? 0) + 1;
           trunkMeters += w.lengthM;
+          if (w.lengthKind === "estimated") trunkEstimated = true;
         }
         const ends = [a?.remote ? exit : a, ...w.points, b?.remote ? exit : b].filter((p): p is { x: number; z: number } => Boolean(p));
         return { color: WIRE_SIGNAL_STYLE[w.signal].color, label: w.label, pts: ends.map((p) => ({ x: p.x, z: p.z })) };
       }),
       trunk,
       trunkMeters: Math.round(trunkMeters),
+      trunkEstimated,
       pos: settings.roomPos?.[space.id] ?? null,
     });
   }
@@ -181,26 +215,21 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
     for (const r of schedule) if (r.cable) r.cable = names.get(r.cable) ?? r.cable;
   }
 
-  const mats = new Map<string, MaterialRow>();
+  // Materiales: mismos totales por señal que la pestaña Cableado y la cotización (cableTotals).
   const conns = new Map<string, number>();
   for (const w of wires) {
-    const label = WIRE_SIGNAL_STYLE[w.signal].label;
-    const row = mats.get(label) ?? { signal: label, cables: 0, meters: 0 };
-    row.cables++;
-    row.meters = Math.round((row.meters + w.lengthM) * 10) / 10;
-    mats.set(label, row);
     const c = FIELD_CONNECTORS[w.signal];
     if (c) conns.set(c, (conns.get(c) ?? 0) + 2);
   }
 
   return {
-    model: { devices, ports, wires, issues: [] },
+    model: { devices, ports, wires, issues },
     floor: { image: planImage, rack: settings.rack ?? null, rooms: floorRooms },
     wireless,
     rooms,
     schedule,
     equipment,
-    materials: [...mats.values()].sort((a, b) => b.meters - a.meters),
+    materials: cableTotals(wires).map((t) => ({ signal: t.label, cables: t.count, meters: t.meters })),
     connectors: [...conns].map(([name, quantity]) => ({ name, quantity })),
   };
 }

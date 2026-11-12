@@ -10,8 +10,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles } from "lucide-react";
 import type { BrandGroup, RoomBrief } from "@/services/room-builder/brief";
-import { applyBriefToSlots } from "@/services/room-builder/brief";
-import { layoutSlotsForTemplate } from "@/services/room-builder/slot-layout";
+import { layoutSlotsForScene } from "@/services/room-builder/slot-layout";
 import {
   AUDIO_USE_OPTIONS,
   CONTROL_OPTIONS,
@@ -23,6 +22,7 @@ import {
   VC_OPTIONS,
   initialBrief,
   stepsFor,
+  suggestedPeople,
   type SectorKey,
   type WizardStep,
 } from "./wizard-data";
@@ -33,6 +33,7 @@ import {
   EspacioStep,
   MarcasStep,
   SistemasStep,
+  UsoStep,
   VideoStep,
   type SpaceState,
   type TemplateOption,
@@ -69,7 +70,7 @@ export function RoomWizard() {
   }, []);
 
   const template = templates.find((t) => t.key === space.templateKey) ?? null;
-  const steps = stepsFor(brief);
+  const steps = stepsFor(brief, template?.category ?? null);
   const index = Math.max(0, steps.indexOf(step));
   const areaM2 = space.widthM * space.depthM;
 
@@ -78,7 +79,8 @@ export function RoomWizard() {
     if (!template) return [];
     const dims = { widthM: space.widthM, depthM: space.depthM, heightM: space.heightM };
     try {
-      return applyBriefToSlots(layoutSlotsForTemplate(template.key, dims.widthM, dims.depthM, dims.heightM), brief, dims);
+      // Lo mismo que se genera: plantilla + respuestas + cadena de señal completa.
+      return layoutSlotsForScene(template.key, dims, brief);
     } catch {
       return [];
     }
@@ -126,6 +128,9 @@ export function RoomWizard() {
         return;
       }
       toast.success("Ambiente generado con productos sugeridos");
+      // Lo que el catálogo no tiene queda como genérico (a completar): se avisa, no se reemplaza por otra categoría.
+      const generics = ((json.project.sceneJson?.devices ?? []) as Array<{ generic?: { name: string } | null }>).filter((d) => d.generic).map((d) => d.generic!.name);
+      if (generics.length) toast.info(`Sin producto válido en el catálogo (quedan como genéricos a completar): ${generics.join(" · ")}`, { duration: 9000 });
       window.location.href = `/admin/room-builder/${json.project.id}`;
     });
   }
@@ -172,6 +177,7 @@ export function RoomWizard() {
           {step === "ambiente" ? <AmbienteStep space={space} templates={templates} onSector={onSector} onTemplate={onTemplate} onSpace={onSpace} /> : null}
           {step === "sistemas" ? <SistemasStep brief={brief} update={update} /> : null}
           {step === "control" ? <ControlStep brief={brief} update={update} /> : null}
+          {step === "uso" ? <UsoStep brief={brief} update={update} suggestedPeople={suggestedPeople(template?.category ?? "", areaM2)} /> : null}
           {step === "audio" ? <AudioStep brief={brief} update={update} areaM2={areaM2} /> : null}
           {step === "video" ? <VideoStep brief={brief} update={update} /> : null}
           {step === "marcas" ? <MarcasStep brief={brief} update={update} brands={brands} /> : null}
@@ -248,6 +254,9 @@ function Resumen({ brief, space, preview }: { brief: RoomBrief; space: SpaceStat
   ];
   if (brief.systems.includes("control")) rows.push(["Control", label(CONTROL_OPTIONS, brief.control)]);
   if (brief.systems.includes("vc")) rows.push(["Videoconferencia", label(VC_OPTIONS, brief.vcPlatform)]);
+  if (brief.people) rows.push(["Personas", String(brief.people)]);
+  const extras = [brief.wirelessMic ? "micrófono inalámbrico" : null, brief.wirelessPresentation ? "presentación inalámbrica" : null].filter(Boolean);
+  if (extras.length) rows.push(["Uso", extras.join(", ")]);
   if (brief.audio && brief.systems.includes("audio")) {
     rows.push([
       "Audio",

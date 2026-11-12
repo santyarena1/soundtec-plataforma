@@ -4,6 +4,7 @@
  * es un error del motor, no del diseño de la sala.
  */
 
+import { HIGHZ_MAX_LOAD_RATIO } from "./amp-load";
 import { portCount } from "./device-ports";
 import type { CablingPlan } from "./cabling";
 
@@ -71,12 +72,8 @@ export function auditCabling(plan: CablingPlan, dims: { widthM: number; depthM: 
     const node = byId.get(id);
     if (!node || node.virtual || !node.ports) continue;
     const have = portCount(node.ports, side, signal);
-    // Salidas de parlante: varios parlantes por canal; el tope (2 en baja impedancia) se controla abajo por canal.
-    if (side === "outputs" && (signal as string) === "speaker") {
-      const lowZ = node.ports.lineVoltage !== "70v" && node.ports.lineVoltage !== "100v" && node.ports.lineVoltage !== "both";
-      if (lowZ && n > have * 2 && !plan.findings.some((f) => /canal|amplific/i.test(f.title))) v.push({ rule: "canal-sobrecargado-sin-aviso", detail: `${node.label}: ${n} parlantes en ${have} canales` });
-      continue;
-    }
+    // Salidas de parlante: varios parlantes por canal; la carga de cada canal se controla abajo (regla 5).
+    if (side === "outputs" && (signal as string) === "speaker") continue;
     if (n > have && !plan.findings.some((f) => f.id.startsWith("ports-") && f.detail.includes(node.label))) v.push({ rule: "puertos-excedidos-sin-aviso", detail: `${node.label}: ${n}/${have} ${signal}` });
   }
 
@@ -98,16 +95,22 @@ export function auditCabling(plan: CablingPlan, dims: { widthM: number; depthM: 
   // Equipos sin ficha: siempre listados.
   for (const m of plan.missing) if (!mentioned(m.label)) v.push({ rule: "sin-ficha-sin-aviso", detail: m.label });
 
-  // 5) Reglas de audio: baja impedancia hasta 2 parlantes por canal; 70/100 V con parlante de baja impedancia, avisado.
-  const perChannel = new Map<string, number>();
+  // 5) Reglas de audio: en baja impedancia la carga en paralelo del canal no baja de la carga mínima;
+  //    en 70/100 V los taps no pasan del 80 %; nunca dos modos en una salida; baja impedancia en 70 V, avisado.
+  for (const c of plan.amplification ?? []) {
+    if (c.mode === "low" && c.loadOhms != null && c.minLoadOhms != null && c.loadOhms < c.minLoadOhms - EPS) v.push({ rule: "canal-baja-z-sobrecargado", detail: `${c.ampLabel} canal ${c.channel}: ${c.loadOhms} Ω < ${c.minLoadOhms} Ω` });
+    if (c.mode === "high" && c.capacityW != null && c.tapW > c.capacityW * HIGHZ_MAX_LOAD_RATIO + EPS) v.push({ rule: "linea-70v-sobrecargada", detail: `${c.ampLabel} canal ${c.channel}: ${c.tapW} W de ${c.capacityW} W` });
+  }
+  const modes = new Map<string, Set<string>>();
   for (const l of plan.links.filter((x) => x.signal === "speaker")) {
     const amp = byId.get(l.from);
     if (!amp || amp.virtual || !amp.ports) continue;
     const highZ = ["70v", "100v", "both"].includes(amp.ports.lineVoltage ?? "");
     const k = `${l.from}|${l.fromPort}`;
-    const n = (perChannel.get(k) ?? 0) + 1;
-    perChannel.set(k, n);
-    if (!highZ && n > 2) v.push({ rule: "canal-baja-z-sobrecargado", detail: `${amp.label} ${l.fromPort}: ${n} parlantes` });
+    const m = modes.get(k) ?? new Set<string>();
+    m.add(/tap /.test(l.note ?? "") ? "high" : "low");
+    modes.set(k, m);
+    if (m.size > 1) v.push({ rule: "modos-mezclados-en-canal", detail: `${amp.label} ${l.fromPort}` });
     const spk = byId.get(l.to);
     if (highZ && amp.ports.lineVoltage !== "both" && spk?.ports?.lineVoltage === "low-z" && !mentioned(spk.label)) v.push({ rule: "baja-z-en-70v-sin-aviso", detail: `${spk.label}` });
   }

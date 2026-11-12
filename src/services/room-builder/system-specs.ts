@@ -122,9 +122,30 @@ export function deriveSystemSpec(input: SpecInput): SystemSpec {
   return base;
 }
 
-/** Canales que hacen falta para `speakers` parlantes. Con amplificador estable a 4 Ω van 2 de 8 Ω por canal. */
+/** Impedancia típica de un parlante cuando falta el dato (quien la usa debe avisar "dato estimado"). */
+export const TYPICAL_SPEAKER_OHMS = 8;
+
+/**
+ * Parlantes iguales que entran en paralelo en un canal sin bajar de la carga mínima del amplificador:
+ * Z/n ≥ mínima → n = ⌊Z / mínima⌋ (8 Ω en 4 Ω: 2; 4 Ω en 4 Ω: 1; 16 Ω en 4 Ω: 4). Sin carga mínima, 1.
+ */
+export function speakersPerChannel(minOhms: number | null, speakerOhms: number | null): number {
+  if (minOhms == null || minOhms <= 0) return 1;
+  return Math.max(1, Math.floor((speakerOhms ?? TYPICAL_SPEAKER_OHMS) / minOhms + 1e-9));
+}
+
+/** Canales que hacen falta para `speakers` parlantes de baja impedancia, por la carga en paralelo de cada canal. */
 export function channelsNeeded(speakers: number, zones: number, amp: Pick<SystemSpec, "minOhms"> | null, speakerOhms: number | null): number {
   if (speakers <= 0) return 0;
-  const perChannel = amp?.minOhms != null && amp.minOhms <= 4 && (speakerOhms ?? 8) >= 8 ? 2 : 1;
-  return Math.max(Math.ceil(speakers / perChannel), Math.max(1, zones));
+  return Math.max(Math.ceil(speakers / speakersPerChannel(amp?.minOhms ?? null, speakerOhms)), Math.max(1, zones));
+}
+
+/**
+ * Canales de una línea de 70/100 V: la suma de taps no pasa del 80 % de la potencia del canal.
+ * Sin potencia conocida, una línea por zona (y quien la usa avisa que no se verificó).
+ */
+export function lineChannelsNeeded(speakers: number, zones: number, tapW: number, channelWatts: number | null, maxLoadRatio = 0.8): number {
+  if (speakers <= 0) return 0;
+  const byPower = channelWatts && channelWatts > 0 ? Math.ceil((speakers * tapW) / (channelWatts * maxLoadRatio) - 1e-9) : 1;
+  return Math.max(byPower, Math.max(1, zones));
 }

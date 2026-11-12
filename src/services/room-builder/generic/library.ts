@@ -94,7 +94,8 @@ export const GENERIC_LIBRARY: GenericTemplate[] = [
   { key: "router", name: "Router / firewall", category: "Red", role: "other", cls: "other", mount: "rack", hint: "Router con WAN y puertos LAN.", ports: ports(["lan", "bidir", 1, "WAN", "RJ-45"], ["lan", "bidir", 4, "LAN 1-4", "RJ-45"]), capabilities: {} },
 
   // Conectividad
-  { key: "table-box", name: "Caja de conexión de mesa", category: "Conectividad", role: "other", cls: "other", mount: "table", hint: "Caja de mesa con HDMI, USB-C y red para la notebook.", ports: ports(["hdmi", "in", 1, "HDMI (notebook)", "HDMI Type A"], ["usb-c", "in", 1, "USB-C (notebook)", "USB-C"], ["hdmi", "out", 1, "HDMI hacia el sistema", "HDMI Type A"], ["lan", "bidir", 1, "LAN", "RJ-45"]), capabilities: {} },
+  // Fuente de la sala: la notebook entra acá y sale a la pantalla (en BYOD también trae el USB de cámara y audio).
+  { key: "table-box", name: "Caja de conexión de mesa", category: "Conectividad", role: "other", cls: "source", mount: "table", hint: "Caja de mesa con HDMI y USB-C para la notebook.", ports: ports(["hdmi", "in", 1, "HDMI (notebook)", "HDMI Type A"], ["usb-c", "in", 1, "USB-C (notebook)", "USB-C"], ["hdmi", "out", 1, "HDMI hacia el sistema", "HDMI Type A"], ["usb-a", "bidir", 1, "USB (cámara y audio de la sala)", "USB-A"]), capabilities: {} },
   { key: "wall-plate-hdmi", name: "Placa de pared HDMI + red", category: "Conectividad", role: "other", cls: "other", mount: "wall", hint: "Placa de pared con pasantes HDMI y RJ-45.", ports: ports(["hdmi", "bidir", 1, "HDMI pasante", "HDMI Type A"], ["lan", "bidir", 1, "RJ-45 pasante", "RJ-45"]), capabilities: {} },
 ];
 
@@ -102,6 +103,14 @@ export const genericByKey = (key: string) => GENERIC_LIBRARY.find((t) => t.key =
 
 /** Qué genérico cubre un lugar de la plantilla que quedó sin producto (por su nombre y su rol). */
 const SLOT_RULES: Array<[RegExp, string]> = [
+  // Cadena de señal (signal-chain.ts): van primero porque sus nombres también dicen "procesador" o "receptor".
+  [/micr[oó]fono inal[aá]mbrico|inal[aá]mbrico del docente/i, "wireless-mic"],
+  [/presentaci[oó]n inal[aá]mbrica/i, "wireless-presentation"],
+  [/conexi[oó]n de mesa|notebook/i, "table-box"],
+  [/cancelaci[oó]n de eco|refuerzo de voz|procesador de audio|\bdsp\b/i, "dsp"],
+  [/c[oó]dec|pc de sala|compute/i, "room-pc"],
+  [/receptor \/ procesador av|receptor av|\breceiver\b/i, "av-receiver"],
+  [/fuente de video/i, "media-player"],
   [/cortina|persiana|shade|blind|toldo/i, "shade-motor"],
   [/proyector|projector/i, "projector"],
   [/pantalla de proyecci/i, "projection-screen"],
@@ -127,11 +136,13 @@ const SLOT_RULES: Array<[RegExp, string]> = [
   [/reproductor|streaming|player|apple tv/i, "media-player"],
   [/mesa|conexi[oó]n de mesa|table/i, "table-box"],
 ];
-const ROLE_FALLBACK: Record<string, string> = { display: "tv", speaker: "ceiling-speaker", camera: "ptz-camera", mic: "ceiling-mic", touch: "touch-panel" };
+const ROLE_FALLBACK: Record<string, string> = { display: "tv", speaker: "ceiling-speaker", camera: "ptz-camera", mic: "ceiling-mic", touch: "touch-panel", codec: "room-pc" };
+/** Parlante de pared cuando el lugar es de pared (el nombre solo dice "parlantes"). */
+const BY_MOUNT: Record<string, Record<string, string>> = { wall: { "ceiling-speaker": "wall-speaker" } };
 
-export function genericForSlot(label: string, role: string): string | null {
-  for (const [re, key] of SLOT_RULES) if (re.test(label)) return key;
-  return ROLE_FALLBACK[role] ?? null;
+export function genericForSlot(label: string, role: string, mount?: string | null): string | null {
+  const key = SLOT_RULES.find(([re]) => re.test(label))?.[1] ?? ROLE_FALLBACK[role] ?? null;
+  return key && mount ? (BY_MOUNT[mount]?.[key] ?? key) : key;
 }
 
 /** Datos del genérico en el proyecto: lo que el usuario completa para cotizar. */

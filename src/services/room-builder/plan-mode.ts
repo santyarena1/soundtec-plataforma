@@ -39,16 +39,34 @@ export function computeMetersPerPixel(cal: PlanCalibration): number {
   return cal.realMeters / px;
 }
 
-export function pxToMeters(
-  px: { x: number; y: number },
-  imageWidthPx: number,
-  imageHeightPx: number,
-  metersPerPixel: number,
-): PlanPoint {
+/**
+ * Convención ÚNICA de coordenadas de sala (la misma de polygonToRoomMeters,
+ * cabling.ts y units.ts): centro de la caja del ambiente en (0,0), X a la
+ * derecha y la Y de la imagen hacia abajo = +Z (frente); la parte de arriba
+ * del plano queda al fondo (-Z), como se ve desde arriba. Sin espejar.
+ *
+ * Antes se centraba en el centro de la IMAGEN e invertía la Y: una sala
+ * dibujada en una esquina de un plano con varios ambientes quedaba corrida
+ * fuera de su recuadro y espejada.
+ */
+export function pxToMeters(px: { x: number; y: number }, centerPx: { x: number; y: number }, metersPerPixel: number): PlanPoint {
   return {
-    x: (px.x - imageWidthPx / 2) * metersPerPixel,
-    y: (imageHeightPx / 2 - px.y) * metersPerPixel, // Y imagen abajo → Z escena
+    x: (px.x - centerPx.x) * metersPerPixel,
+    y: (px.y - centerPx.y) * metersPerPixel,
   };
+}
+
+/** Polígono en píxeles de la imagen → piso de la sala en metros, centrado en su caja contenedora. */
+export function polygonPxToRoomMeters(polygonPx: Array<{ x: number; y: number }>, metersPerPixel: number): PlanPoint[] {
+  if (!polygonPx.length) return [];
+  const xs = polygonPx.map((p) => p.x);
+  const ys = polygonPx.map((p) => p.y);
+  const center = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  return polygonPx.map((p) => {
+    const m = pxToMeters(p, center, metersPerPixel);
+    return { x: r2(m.x), y: r2(m.y) };
+  });
 }
 
 export function boundsFromPolygon(poly: PlanPoint[]): {

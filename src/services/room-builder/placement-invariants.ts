@@ -9,6 +9,7 @@ import { clearanceBetween, footprint, occupiesFloor, overlaps, seatFaces } from 
 import { pointInPolygon } from "./plan-polygon";
 import type { RoomScene } from "./scene";
 import { layoutSceneDevices, sceneDims } from "./units";
+import { defaultDoors, doorCentersOf, inDoorSwing, rackAnchor } from "./rack-place";
 
 const SEAT_KINDS = new Set(["chair", "side-chair", "bar-stool"]);
 const SEAT_TABLES = new Set(["conference-table", "round-table", "desk", "bar-counter", "kitchen-counter", "control-console"]);
@@ -81,6 +82,13 @@ export function auditPlacement(scene: RoomScene, category: string): PlacementVio
     }
     if (u.mount === "table" && (u.y < 0.4 || u.y > 1.2)) v.push({ rule: "mesa-altura", detail: `${u.label} y=${u.y}` });
     if (u.mount === "floor" && u.y > 0.6) v.push({ rule: "piso-altura", detail: `${u.label} y=${u.y}` });
+  }
+  // El mueble técnico nunca en el barrido de una puerta (la del plano o la que dibuja el 3D sin plano).
+  // Se mira el lugar del mueble (los equipos se apilan en él); en una sala tan chica que ningún rincón queda libre, no aplica.
+  const doors = doorCentersOf(scene) ?? defaultDoors(scene);
+  const roomHasFreeCorner = !inDoorSwing(rackAnchor(scene, doors), doors);
+  for (const s of scene.slots) {
+    if (s.mount === "rack" && roomHasFreeCorner && scene.templateKey !== "hotel-guest-s" && inDoorSwing({ x: s.pose.x, z: s.pose.z }, doors)) v.push({ rule: "rack-en-la-puerta", detail: `${s.label} (${s.pose.x}, ${s.pose.z})` });
   }
   // Sin encimarse en la misma superficie.
   for (let i = 0; i < units.length; i++) {

@@ -13,6 +13,7 @@ import {
   type MountOption,
   type RankSortMode,
 } from "@/services/room-builder";
+import { fitContextFor } from "@/services/room-builder/role-fit";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,9 @@ export async function GET(
     preferredBrands: preferredBrandsForSlot(brief, effectiveRole, slot?.key ?? ""),
     // El lugar define el tipo puntual (teclado, subwoofer, exterior…), igual que al autocompletar.
     slotKey: slot?.key,
+    slotLabel: slot?.label,
+    // Los que no cumplen el papel del lugar (tipo o conexiones) quedan al final, con el motivo.
+    fit: fitContextFor({ brief, category: project.category, templateKey: project.templateKey, slotKey: slot?.key, slots: scene?.slots }),
   });
 
   return NextResponse.json({

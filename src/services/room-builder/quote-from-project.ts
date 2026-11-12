@@ -6,10 +6,10 @@ import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { createQuoteShell } from "@/server/actions/quotes";
 import { getRoomProject } from "./project-service";
 import { loadCableCatalog } from "./cable-catalog";
-import { pickCables, type CableProduct } from "./cable-picks";
-import { cablingProfile } from "./cabling-db";
-import { cablingForScene } from "./cabling-scene";
+import { pickCablesFor, type CableProduct } from "./cable-picks";
+import { loadRoomCables, trunkContext } from "./cable-list-db";
 import { parseScene } from "./scene";
+import { cableNeeds } from "./wiring/cable-list";
 import { genericMissing, type GenericInfo } from "./generic/library";
 
 type BomLine = {
@@ -53,15 +53,18 @@ export async function buildProjectBom(projectId: string): Promise<BomLine[]> {
         `${space.name} · ${device.slotKey ?? device.designRole ?? "slot"}`,
       );
     }
-    // Cableado del ambiente: los mismos cables y metros que muestra la pestaña Cableado.
-    const scene = parseScene(space.sceneJson);
-    const profile = scene ? await cablingProfile(space.id) : null;
-    if (scene && profile) {
+    // Cableado del ambiente: la lista única (plano técnico si está trazado; si no, la propuesta
+    // automática), la misma que muestran la pestaña Cableado, la planilla y las láminas.
+    const loaded = await loadRoomCables(space, trunkCtx);
+    if (loaded?.list.cables.length) {
       cableCatalog ??= await loadCableCatalog();
-      const { lines: cables } = pickCables(cablingForScene(scene, space.category, profile), cableCatalog);
+      const { lines: cables } = pickCablesFor(cableNeeds(loaded.list.cables).needs, cableCatalog);
       for (const c of cables) accumulateBom(lines, c.product.id, c.quantity * mult, `${space.name} · Cableado · ${c.note}`);
     }
   }
+
+  // Troncales al rack central: se miden una vez con la planta del proyecto.
+  const trunkCtx = project.kind === "hub" ? await trunkContext(project.id) : project.parent?.id ? await trunkContext(project.parent.id) : null;
 
   if (project.kind === "hub") {
     for (const child of project.children) {

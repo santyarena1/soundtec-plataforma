@@ -197,6 +197,60 @@ export function ControlStep({ brief, update }: { brief: RoomBrief; update: Updat
   );
 }
 
+/** Casilla de sí/no con explicación (lo que suma al diseño). */
+function Toggle({ checked, onChange, title, hint }: { checked: boolean; onChange: (v: boolean) => void; title: string; hint: string }) {
+  return (
+    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white p-3.5">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-[#1e3553]" />
+      <span>
+        <span className="block text-sm font-semibold text-slate-900">{title}</span>
+        <span className="block text-xs text-slate-500">{hint}</span>
+      </span>
+    </label>
+  );
+}
+
+/** Cómo se usa la sala: cuánta gente, micrófono inalámbrico y presentación sin cables. Cambia los equipos. */
+export function UsoStep({ brief, update, suggestedPeople }: { brief: RoomBrief; update: Update; suggestedPeople: number }) {
+  const vc = brief.systems.includes("vc");
+  return (
+    <div className="space-y-7">
+      <StepHeader title="Uso de la sala" subtitle="Con esto se eligen la cantidad de micrófonos, el procesador de audio y cómo se conecta quien presenta." />
+      <Section title="Personas" hint={`Sugerido para el tamaño: ${suggestedPeople}`}>
+        <div className="flex flex-wrap items-center gap-3">
+          <NumberStepper value={brief.people ?? suggestedPeople} min={1} max={300} onChange={(n) => update({ people: n })} />
+          {brief.people != null ? (
+            <button type="button" onClick={() => update({ people: null })} className="text-xs font-semibold text-[#1e3553] underline">
+              Usar sugerido
+            </button>
+          ) : (
+            <span className="text-xs text-slate-500">Automático</span>
+          )}
+        </div>
+      </Section>
+      <div className="grid gap-2.5">
+        <Toggle
+          checked={Boolean(brief.wirelessMic)}
+          onChange={(v) => update({ wirelessMic: v })}
+          title="Micrófono inalámbrico"
+          hint="Para quien presenta o da clase. Suma el receptor y un procesador de audio (DSP) que lo mezcla con el resto."
+        />
+        <Toggle
+          checked={Boolean(brief.wirelessPresentation)}
+          onChange={(v) => update({ wirelessPresentation: v })}
+          title="Presentación inalámbrica"
+          hint="Compartir la pantalla desde la notebook o el celular sin cables (base tipo AirMedia / ClickShare)."
+        />
+      </div>
+      {vc ? (
+        <p className="rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Videoconferencia: los micrófonos van a un DSP con cancelación de eco y la cámara al {brief.vcPlatform === "byod" ? "USB de la conexión de mesa (la notebook hace de códec)" : "PC / códec de la sala"}.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function AudioStep({ brief, update, areaM2 }: { brief: RoomBrief; update: Update; areaM2: number }) {
   const audio = brief.audio ?? { speakerStyle: "ceiling" as const, use: "music" as const, zones: 1, speakers: null, streaming: false };
   const set = (patch: Partial<typeof audio>) => update({ audio: { ...audio, ...patch } });
@@ -218,6 +272,21 @@ export function AudioStep({ brief, update, areaM2 }: { brief: RoomBrief; update:
           ))}
         </div>
       </Section>
+      {audio.use === "cinema" ? (
+        <Section title="Sonido envolvente" hint="Frontales L/C/R, envolventes y subwoofer con un receptor AV.">
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            {([null, "5.1", "7.1"] as const).map((k) => (
+              <OptionCard
+                key={k ?? "auto"}
+                selected={(audio.layout ?? null) === k}
+                onClick={() => set({ layout: k })}
+                label={k ?? "Automático"}
+                hint={k === "5.1" ? "3 al frente, 2 envolventes y sub" : k === "7.1" ? "Suma 2 traseros" : "Según el tamaño del ambiente"}
+              />
+            ))}
+          </div>
+        </Section>
+      ) : null}
       <div className="grid gap-6 sm:grid-cols-2">
         <Section title="Zonas" hint="Áreas con volumen y música independientes.">
           <NumberStepper value={audio.zones} min={1} max={24} onChange={(n) => set({ zones: n })} />
@@ -354,12 +423,13 @@ export function EspacioStep({
       </Section>
       <label className="block">
         <span className="text-sm font-semibold text-slate-800">Notas para el proyecto (opcional)</span>
+        <span className="mt-0.5 block text-xs text-slate-500">Quedan guardadas para el equipo; no cambian la selección automática. Lo que tiene que estar en la sala, marcalo en los pasos anteriores.</span>
         <textarea
           value={brief.notes ?? ""}
           onChange={(e) => update({ notes: e.target.value || null })}
           rows={3}
           maxLength={1000}
-          placeholder="Ej. el cliente quiere todo embutido; ya tiene una TV de 75”"
+          placeholder="Ej. horario de obra, contacto en el edificio, terminaciones"
           className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-[#1e3553] focus:outline-none focus:ring-2 focus:ring-[#1e3553]/15"
         />
       </label>

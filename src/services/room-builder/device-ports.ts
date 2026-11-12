@@ -4,7 +4,7 @@
  * puertos y no se cablea con suposiciones.
  */
 
-import type { IoProfileData, IoSignal, WirelessLink } from "./io-profile/types";
+import type { Coverage, IoProfileData, IoSignal, SpeakerPower, TransformerTaps, WirelessLink } from "./io-profile/types";
 import type { SystemSpec } from "./system-specs";
 
 export const SIGNALS = ["hdmi", "usb", "lan", "dante", "hdbaset", "speaker", "line", "rs232", "ir", "wireless"] as const;
@@ -44,6 +44,22 @@ export type DevicePorts = {
   lineVoltage?: string | null;
   /** Conexiones inalámbricas declaradas en la ficha. */
   wireless?: WirelessLink[];
+  /** Amplificador: potencia por canal según carga ("8Ω": 150, "4Ω": 300, "70V": 120). */
+  ampWattsPerChannel?: Record<string, number> | null;
+  /** Amplificador: potencia puenteada (par de canales) según carga o línea de 70/100 V. */
+  ampBridgedWatts?: Record<string, number> | null;
+  /** Amplificador: carga mínima por canal (Ω) declarada en la ficha. */
+  minLoadOhms?: number | null;
+  /** Parlante: impedancia nominal en baja impedancia (Ω). */
+  impedanceOhms?: number | null;
+  /** Parlante: taps del transformador en W por tensión de línea. */
+  transformerTaps?: TransformerTaps | null;
+  /** Parlante: potencia que admite (continua / programa / pico). */
+  speakerPowerWatts?: SpeakerPower | null;
+  /** Parlante: sensibilidad (dB SPL 1 W / 1 m). */
+  sensitivityDb?: number | null;
+  /** Parlante: cobertura en grados. */
+  coverageDeg?: Coverage | null;
 };
 
 export type PortInput = {
@@ -136,7 +152,22 @@ export function devicePorts(io: IoProfileData | null | undefined): DevicePorts |
     danteRx: c.danteRx?.value ?? null,
     lineVoltage: c.lineVoltage?.value ?? null,
     wireless: c.wireless?.value ?? [],
+    // Datos eléctricos de la ficha: el motor los usa para cargas, taps y calibres.
+    ampWattsPerChannel: c.ampWattsPerChannel?.value ?? null,
+    ampBridgedWatts: c.ampBridgedWatts?.value ?? null,
+    minLoadOhms: positive(c.minLoadOhms?.value),
+    impedanceOhms: positive(c.impedanceOhms?.value),
+    transformerTaps: c.transformerTaps?.value ?? null,
+    speakerPowerWatts: c.speakerPowerWatts?.value ?? null,
+    sensitivityDb: c.sensitivityDb?.value ?? null,
+    coverageDeg: c.coverageDeg?.value ?? null,
   };
+}
+
+/** Número positivo o null (un 0 o un texto en la ficha no vale como dato). */
+function positive(v: unknown): number | null {
+  const n = Number(v);
+  return v != null && Number.isFinite(n) && n > 0 ? n : null;
 }
 
 /** Cuántos puertos de una señal tiene el equipo de un lado. */

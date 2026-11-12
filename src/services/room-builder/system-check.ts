@@ -13,7 +13,8 @@
 
 import type { RoomBrief } from "./brief";
 import { findIntegration, METHOD_LABELS, PLATFORM_LABELS, type ControlPlatform, type IntegrationRule } from "./integrations";
-import { channelsNeeded, type SystemSpec } from "./system-specs";
+import { HIGHZ_MAX_LOAD_RATIO, targetTapW, TYPICAL_MIN_LOAD_OHMS } from "./amp-load";
+import { channelsNeeded, lineChannelsNeeded, TYPICAL_SPEAKER_OHMS, type SystemSpec } from "./system-specs";
 
 export type CheckProduct = { id: string; name: string; brandSlug: string | null; brandName: string | null };
 
@@ -64,6 +65,16 @@ function checkAudio(devices: CheckDevice[], brief: RoomBrief | null): Finding[] 
   const zones = brief?.audio?.zones ?? 1;
   const speakerSpec = speakers.find((d) => d.spec)?.spec ?? null;
   const findings: Finding[] = [];
+  // Carga real: impedancia en paralelo (baja impedancia) o suma de taps (70/100 V).
+  const speakerLine = speakers.some((d) => d.spec?.highImpedance);
+  const ohms = speakerSpec?.nominalOhms ?? null;
+  const tapW = targetTapW(null).watts;
+  const need = (amp: SystemSpec | null) =>
+    speakerLine ? lineChannelsNeeded(total, zones, tapW, amp?.wattsPerChannel ?? null, HIGHZ_MAX_LOAD_RATIO) : channelsNeeded(total, zones, { minOhms: amp?.minOhms ?? TYPICAL_MIN_LOAD_OHMS }, ohms);
+  const loadText = (perChannel: number, amp: SystemSpec | null) =>
+    speakerLine
+      ? `taps de ${tapW} W por parlante, hasta el ${Math.round(HIGHZ_MAX_LOAD_RATIO * 100)} % de cada canal`
+      : `${perChannel} parlante${perChannel > 1 ? "s" : ""} de ${ohms ?? TYPICAL_SPEAKER_OHMS} Ω por canal = ${Math.round(((ohms ?? TYPICAL_SPEAKER_OHMS) / perChannel) * 10) / 10} Ω, el amplificador admite ${amp?.minOhms ?? TYPICAL_MIN_LOAD_OHMS} Ω`;
 
   if (!amps.length && brief?.centralized?.audio) {
     return [
@@ -78,7 +89,8 @@ function checkAudio(devices: CheckDevice[], brief: RoomBrief | null): Finding[] 
   }
 
   if (!amps.length) {
-    const needed = channelsNeeded(total, zones, { minOhms: 4 }, speakerSpec?.nominalOhms ?? null);
+    const needed = need(null);
+    findings.push(...estimatedFinding(audioEstimates(speakerLine, ohms, tapW, null)));
     findings.push({
       id: "amp-missing",
       level: "error",
@@ -113,10 +125,11 @@ function checkAudio(devices: CheckDevice[], brief: RoomBrief | null): Finding[] 
   }
 
   const ampSpec = amps[0].spec as SystemSpec;
-  const needed = channelsNeeded(total, zones, ampSpec, speakerSpec?.nominalOhms ?? null);
+  const needed = need(ampSpec);
   const available = amps.reduce((n, a) => n + (a.spec?.channels ?? 0) * a.quantity, 0);
   const main = amps[0];
   const perChannel = Math.ceil(total / Math.max(1, needed));
+  findings.push(...estimatedFinding(audioEstimates(speakerLine, ohms, tapW, { spec: ampSpec, label: productLabel(main.product as CheckProduct) })));
 
   if (available < needed) {
     const missing = needed - available;
@@ -125,8 +138,8 @@ function checkAudio(devices: CheckDevice[], brief: RoomBrief | null): Finding[] 
       id: "amp-channels",
       level: "error",
       area: "audio",
-      title: `Faltan ${missing} canal${missing > 1 ? "es" : ""} de amplificación`,
-      detail: `${total} parlantes en ${zones} zona${zones > 1 ? "s" : ""} necesitan ${needed} canales${perChannel > 1 ? ` (${perChannel} parlantes de 8 Ω por canal)` : ""}; ${productLabel(main.product as CheckProduct)} da ${available}.`,
+      title: `${missing > 1 ? "Faltan" : "Falta"} ${missing} canal${missing > 1 ? "es" : ""} de amplificación`,
+      detail: `${total} parlantes en ${zones} zona${zones > 1 ? "s" : ""} necesitan ${needed} canales (${loadText(perChannel, ampSpec)}); ${productLabel(main.product as CheckProduct)} da ${available}.`,
       productId: main.product?.id,
       suggestion: {
         kind: "amplifier",
@@ -143,7 +156,7 @@ function checkAudio(devices: CheckDevice[], brief: RoomBrief | null): Finding[] 
       level: "ok",
       area: "audio",
       title: "Amplificación suficiente",
-      detail: `${available} canales para ${total} parlantes en ${zones} zona${zones > 1 ? "s" : ""}${perChannel > 1 ? `, ${perChannel} por canal (8 Ω en paralelo, el amplificador admite 4 Ω)` : ""}.`,
+      detail: `${available} canales para ${total} parlantes en ${zones} zona${zones > 1 ? "s" : ""} (${loadText(perChannel, ampSpec)}).`,
       productId: main.product?.id,
     });
   }
@@ -171,7 +184,6 @@ function checkAudio(devices: CheckDevice[], brief: RoomBrief | null): Finding[] 
     }
   }
 
-  const speakerLine = speakers.some((d) => d.spec?.highImpedance);
   const ampLine = amps.some((a) => a.spec?.highImpedance);
   if (speakerLine !== ampLine) {
     findings.push({
@@ -185,6 +197,29 @@ function checkAudio(devices: CheckDevice[], brief: RoomBrief | null): Finding[] 
     });
   }
   return findings;
+}
+
+/**
+ * Lo que el cálculo de amplificación tomó como típico porque no está en las especificaciones:
+ * se usa para poder seguir, pero queda a la vista como "dato estimado".
+ */
+function audioEstimates(speakerLine: boolean, ohms: number | null, tapW: number, amp: { spec: SystemSpec; label: string } | null): string[] {
+  const out: string[] = [];
+  if (speakerLine) {
+    out.push(`tap de ${tapW} W por parlante en la línea de 70/100 V (por defecto)`);
+    if (amp && amp.spec.wattsPerChannel == null) out.push(`potencia por canal de ${amp.label}: falta el dato, no se verificó el ${Math.round(HIGHZ_MAX_LOAD_RATIO * 100)} % de la línea`);
+    else if (amp) out.push(`potencia en línea de ${amp.label}: se toma ${amp.spec.wattsPerChannel} W por canal de la especificación`);
+    return out;
+  }
+  if (ohms == null) out.push(`impedancia de los parlantes: ${TYPICAL_SPEAKER_OHMS} Ω típico (falta el dato)`);
+  if (amp && amp.spec.minOhms == null) out.push(`carga mínima de ${amp.label}: ${TYPICAL_MIN_LOAD_OHMS} Ω típico (falta el dato)`);
+  else if (amp && amp.spec.source === "auto") out.push(`carga mínima de ${amp.label}: ${amp.spec.minOhms} Ω supuesta por el modelo (cargala en Especificaciones)`);
+  return out;
+}
+
+function estimatedFinding(estimates: string[]): Finding[] {
+  if (!estimates.length) return [];
+  return [{ id: "amp-estimated", level: "warn", area: "audio", title: "Amplificación con datos estimados", detail: `Sin verificar — ${estimates.map((e) => `dato estimado: ${e}`).join("; ")}.` }];
 }
 
 /** Equipos que se controlan (no los parlantes pasivos ni los muebles). */

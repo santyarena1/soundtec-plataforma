@@ -27,14 +27,46 @@ test("señales compatibles: USB entre sí, red con Dante, micrófono con audio a
   assert.ok(!signalsCompatible("hdmi", "usb-a"));
 });
 
-test("largo: subida y bajada por el cielorraso, tramos por los quiebres, terminación y reserva", () => {
+test("recorrido: subida y bajada por el cielorraso y tramos por los quiebres (sin reservas)", () => {
   // Equipo de pared a 1,5 m y otro a 2 m, 4 m en planta, techo de 2,7 m.
-  const len = wireRunM({ x: 0, y: 1.5, z: 0 }, { x: 4, y: 2, z: 0 }, [], 2.7);
-  // (4 + (2,65-1,5) + (2,65-2) + 0,6) × 1,1 = 7,04
-  assert.equal(len, 7);
-  // Rack y mesa (bajos): corre por el piso.
-  // (3 + 0,5 + 0,75 + 0,6) × 1,1 = 5,34
-  assert.equal(wireRunM({ x: 0, y: 0.5, z: 0 }, { x: 0, y: 0.75, z: 3 }, [], 2.7), 5.3);
+  // 4 + (2,65-1,5) + (2,65-2) = 5,8
+  assert.equal(wireRunM({ x: 0, y: 1.5, z: 0 }, { x: 4, y: 2, z: 0 }, [], 2.7), 5.8);
+  // Rack y mesa (bajos): corre por el piso. 3 + 0,5 + 0,75 = 4,25
+  assert.equal(wireRunM({ x: 0, y: 0.5, z: 0 }, { x: 0, y: 0.75, z: 3 }, [], 2.7), 4.25);
+});
+
+test("largo final: misma fórmula en el plano técnico y en el motor automático", async () => {
+  const { cableMeters } = await import("../cabling");
+  const { wireLengthM } = await import("./validate");
+  // Rollo: (5,8 + 1,2) × 1,1 = 7,7 → 8 m; armado: 5,8 + 1,2 = 7 → 7,5 m comercial.
+  assert.equal(wireLengthM(5.8, "lan"), 8);
+  assert.equal(wireLengthM(5.8, "hdmi"), 7.5);
+  for (const run of [0.4, 3.2, 5.8, 8.6, 12.3, 47]) {
+    assert.equal(wireLengthM(run, "lan"), cableMeters(run, "lan"), `UTP ${run} m`);
+    assert.equal(wireLengthM(run, "speaker"), cableMeters(run, "speaker"), `parlante ${run} m`);
+    assert.equal(wireLengthM(run, "hdmi"), cableMeters(run, "hdmi"), `HDMI ${run} m`);
+    assert.equal(wireLengthM(run, "usb-a"), cableMeters(run, "usb"), `USB ${run} m`);
+    assert.equal(wireLengthM(run, "analog-audio"), cableMeters(run, "line"), `audio ${run} m`);
+  }
+});
+
+test("UTP: el mismo límite (100 m sobre el largo total) y el mismo nivel en los dos lados", async () => {
+  const { planCabling } = await import("../cabling");
+  const ports: Record<string, WirePort[]> = {
+    a: expandIoPorts([io("lan", "bidir", 1, "LAN")]),
+    b: expandIoPorts([io("lan", "bidir", 1, "LAN")]),
+  };
+  const w: Wire = { id: "n", from: { deviceId: "a", unit: 0, portId: "bidir:lan:1" }, to: { deviceId: "b", unit: 0, portId: "bidir:lan:1" }, signal: "lan", cableProductId: null, label: null, points: [], lengthOverrideM: null, origin: "manual" };
+  assert.equal(validateWires([w], (id) => ports[id] ?? null, () => 99).length, 0, "99 m entra");
+  const over = validateWires([w], (id) => ports[id] ?? null, () => 101);
+  assert.equal(over[0]?.level, "error", "101 m es error en el plano técnico");
+  // Motor: un tramo cuyo cable final pasa de 100 m también es error.
+  const dev = (id: string, x: number) => ({ id, label: id, cls: "control" as const, ports: { inputs: [], outputs: [], network: 1 }, pos: { x, y: 2.5, z: 0 }, mount: "ceiling" });
+  const sw = { id: "sw", label: "Switch", cls: "switch" as const, ports: { inputs: [], outputs: [], network: 24 }, pos: { x: -60, y: 2.5, z: 0 }, mount: "ceiling" };
+  const plan = planCabling({ nodes: [sw, dev("far", 60)], dims: { widthM: 130, depthM: 10, heightM: 3 } });
+  const link = plan.links.find((l) => l.signal === "lan")!;
+  assert.ok(link.cableM > 100);
+  assert.ok(plan.findings.some((f) => f.level === "error" && f.linkId === link.id));
 });
 
 test("validación: señales distintas, dos entradas, puerto repetido y largo excedido", () => {
@@ -105,4 +137,41 @@ test("equipo sin ficha: puertos genéricos por enlace para cablear todos los par
   assert.equal(out.ports.amp!.length, 3);
   assert.equal(out.ports.amp![0]!.source, "generic");
   assert.equal(new Set(out.wires.map((w) => w.from.portId)).size, 3, "una salida por parlante");
+});
+
+test("salida de parlante cableada a mano: carga mínima, 80 % en 70 V, mezcla de modos y datos estimados", async () => {
+  const { devicePorts } = await import("../device-ports");
+  const caps = (c: Record<string, unknown>) => Object.fromEntries(Object.entries(c).map(([k, v]) => [k, { value: v, evidence: "x" }])) as never;
+  const sheet = (ports: unknown[], c: Record<string, unknown>) => devicePorts({ ports: ports as never, capabilities: caps(c) });
+  const ampIo = [io("speaker", "out", 2, "CH1-CH2")];
+  const spkIo = [io("speaker", "in", 1, "Entrada")];
+  const electrical: Record<string, { label: string; ports: ReturnType<typeof devicePorts> }> = {
+    amp: { label: "Amplificador 4 Ω", ports: sheet(ampIo, { lineVoltage: "both", ampWattsPerChannel: { "4Ω": 150, "70V": 60 }, minLoadOhms: 4 }) },
+    s4a: { label: "Parlante 4 Ω A", ports: sheet(spkIo, { lineVoltage: "low-z", impedanceOhms: 4 }) },
+    s4b: { label: "Parlante 4 Ω B", ports: sheet(spkIo, { lineVoltage: "low-z", impedanceOhms: 4 }) },
+    sx: { label: "Parlante sin dato", ports: sheet(spkIo, { lineVoltage: "low-z" }) },
+    ...Object.fromEntries(Array.from({ length: 8 }, (_, k) => [`l${k}`, { label: `Parlante 70V ${k + 1}`, ports: sheet(spkIo, { lineVoltage: "70v", transformerTaps: { "70V": [7.5] } }) }])),
+  };
+  const ports: Record<string, WirePort[]> = Object.fromEntries(Object.keys(electrical).map((id) => [id, expandIoPorts(id === "amp" ? ampIo : spkIo)]));
+  const ch1 = ports.amp![0]!.id;
+  const ch2 = ports.amp![1]!.id;
+  const w = (id: string, spk: string, ch: string): Wire => ({ id, from: { deviceId: "amp", unit: 0, portId: ch }, to: { deviceId: spk, unit: 0, portId: ports[spk]![0]!.id }, signal: "speaker", cableProductId: null, label: null, points: [], lengthOverrideM: null, origin: "manual" });
+  const check = (wires: Wire[]) => validateWires(wires, (id) => ports[id] ?? null, () => 5, (id) => electrical[id] ?? null, { tapW: 7.5 });
+
+  // Dos de 4 Ω en una salida de 4 Ω: 2 Ω, error en los dos cables.
+  const low = check([w("a", "s4a", ch1), w("b", "s4b", ch1)]);
+  assert.equal(low.filter((i) => i.level === "error" && /2 Ω y Amplificador 4 Ω admite 4 Ω/.test(i.text)).length, 2);
+  // Uno por salida: sin error.
+  assert.ok(!check([w("a", "s4a", ch1), w("b", "s4b", ch2)]).some((i) => i.level === "error"));
+  // 8 × 7,5 W = 60 W en una salida de 60 W en 70 V: pasa del 80 % (48 W).
+  const line = check(Array.from({ length: 8 }, (_, k) => w(`l${k}`, `l${k}`, ch1)));
+  assert.ok(line.some((i) => i.level === "error" && /60 W en 70V/.test(i.text)));
+  assert.ok(!check(Array.from({ length: 6 }, (_, k) => w(`l${k}`, `l${k}`, ch1))).some((i) => i.level === "error"), "6 × 7,5 = 45 W entra");
+  // Baja impedancia y 70 V en la misma salida.
+  assert.ok(check([w("a", "s4a", ch2), w("l", "l0", ch2)]).some((i) => /mezcla parlantes/.test(i.text)));
+  // Dato faltante: aviso visible, no error.
+  const est = check([w("x", "sx", ch1)]);
+  assert.ok(est.some((i) => i.level === "warn" && /Dato estimado .*impedancia de Parlante sin dato: 8 Ω típico/.test(i.text)));
+  // Sin datos eléctricos (llamada vieja) no cambia nada.
+  assert.equal(validateWires([w("a", "s4a", ch1), w("b", "s4b", ch1)], (id) => ports[id] ?? null, () => 5).length, 0);
 });

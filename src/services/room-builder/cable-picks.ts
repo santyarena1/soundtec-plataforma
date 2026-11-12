@@ -29,10 +29,26 @@ export type CableMissing = { signal: Signal; count: number; meters: number; reas
 const BULK_GROUP: Partial<Record<Signal, CableProduct["signal"]>> = { lan: "utp", dante: "utp", hdbaset: "utp", speaker: "speaker", line: "line", rs232: "rs232" };
 const PATCH: Signal[] = ["hdmi", "usb"];
 
-/** Elige los cables del catálogo para el cableado. */
+/** Un cable a comprar: señal, largo final y si es un tramo largo (óptico/activo). */
+export type CableNeed = { signal: Signal; cableM: number; long: boolean; /** Cable del catálogo elegido a mano para ese tramo. */ productId?: string | null };
+
+/** Elige los cables del catálogo para el cableado automático. */
 export function pickCables(plan: CablingPlan, catalog: CableProduct[]): { lines: CablePickLine[]; missing: CableMissing[] } {
+  return pickCablesFor(
+    plan.links.filter((l) => l.signal !== "wireless").map((l) => ({ signal: l.signal, cableM: l.cableM, long: Boolean(l.note) })),
+    catalog,
+  );
+}
+
+/**
+ * Elige los cables del catálogo para una lista de cables (la lista única del
+ * ambiente: wiring/cable-list.ts). Si un tramo ya tiene su cable elegido a mano
+ * y está en el catálogo, se respeta.
+ */
+export function pickCablesFor(needs: CableNeed[], catalog: CableProduct[]): { lines: CablePickLine[]; missing: CableMissing[] } {
   const lines: CablePickLine[] = [];
   const missing: CableMissing[] = [];
+  const byId = new Map(catalog.map((c) => [c.id, c]));
   const addLine = (product: CableProduct, quantity: number, signal: Signal, meters: number, note: string) => {
     const hit = lines.find((l) => l.product.id === product.id);
     if (hit) {
@@ -43,9 +59,14 @@ export function pickCables(plan: CablingPlan, catalog: CableProduct[]): { lines:
 
   // Cables armados: uno por conexión, el más corto que alcance (óptico/activo en tramos largos).
   for (const signal of PATCH) {
-    const links = plan.links.filter((l) => l.signal === signal);
+    const links = needs.filter((l) => l.signal === signal);
     for (const l of links) {
-      const long = Boolean(l.note);
+      const long = l.long;
+      const chosen = l.productId ? byId.get(l.productId) : undefined;
+      if (chosen && chosen.kind === "patch") {
+        addLine(chosen, 1, signal, l.cableM, `${signal.toUpperCase()}${chosen.lengthM ? ` ${chosen.lengthM} m` : ""} (elegido en el plano)`);
+        continue;
+      }
       const options = catalog
         .filter((c) => c.signal === signal && c.kind === "patch" && c.lengthM != null && c.lengthM >= l.cableM && (!long || c.extended))
         .sort((a, b) => (a.lengthM ?? 0) - (b.lengthM ?? 0) || (a.priceUsd ?? 1e9) - (b.priceUsd ?? 1e9));
@@ -61,21 +82,25 @@ export function pickCables(plan: CablingPlan, catalog: CableProduct[]): { lines:
     }
   }
 
-  // Rollos: se suman los metros por tipo de cable.
-  const bulk = new Map<CableProduct["signal"], { meters: number; count: number; signals: Set<Signal> }>();
-  for (const l of plan.links) {
+  // Rollos: se suman los metros por tipo de cable (o por el rollo elegido a mano en el plano).
+  const bulk = new Map<string, { group: CableProduct["signal"]; meters: number; count: number; signals: Set<Signal>; chosen: CableProduct | null }>();
+  for (const l of needs) {
     const group = BULK_GROUP[l.signal];
     if (!group) continue;
-    const b = bulk.get(group) ?? { meters: 0, count: 0, signals: new Set<Signal>() };
+    const picked = l.productId ? byId.get(l.productId) : undefined;
+    const chosen = picked && picked.kind === "bulk" ? picked : null;
+    const key = chosen ? `id:${chosen.id}` : group;
+    const b = bulk.get(key) ?? { group, meters: 0, count: 0, signals: new Set<Signal>(), chosen };
     b.meters += l.cableM;
     b.count++;
     b.signals.add(l.signal);
-    bulk.set(group, b);
+    bulk.set(key, b);
   }
-  for (const [group, b] of bulk) {
+  for (const b of bulk.values()) {
+    const group = b.group;
     const signal = [...b.signals][0]!;
     const reels = catalog.filter((c) => c.signal === group && c.kind === "bulk").sort((a, c) => (a.priceUsd ?? 1e9) - (c.priceUsd ?? 1e9));
-    const reel = reels.find((c) => c.lengthM != null) ?? reels[0];
+    const reel = b.chosen ?? reels.find((c) => c.lengthM != null) ?? reels[0];
     if (!reel) {
       missing.push({ signal, count: b.count, meters: Math.round(b.meters), reason: "No hay rollo de este cable en el catálogo" });
       continue;

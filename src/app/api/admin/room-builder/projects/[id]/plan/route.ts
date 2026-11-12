@@ -8,7 +8,7 @@ import {
   computeMetersPerPixel,
   getRoomProject,
   parseScene,
-  pxToMeters,
+  polygonPxToRoomMeters,
   rectangleFloor,
   resizeSceneMeters,
   updateRoomProjectScene,
@@ -129,14 +129,8 @@ export async function POST(
 
   let floorPolygon: PlanPoint[];
   if (parsed.data.polygonPx?.length) {
-    floorPolygon = parsed.data.polygonPx.map((p) =>
-      pxToMeters(
-        p,
-        parsed.data.imageWidthPx,
-        parsed.data.imageHeightPx,
-        mpp,
-      ),
-    );
+    // Misma convención que el resto: centrado en la caja de la sala, sin espejar (plan-mode.ts).
+    floorPolygon = polygonPxToRoomMeters(parsed.data.polygonPx, mpp);
   } else {
     floorPolygon = rectangleFloor(scene.widthM, scene.depthM);
   }

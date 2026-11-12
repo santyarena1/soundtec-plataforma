@@ -8,13 +8,12 @@
  */
 
 import { Cable, Eye, EyeOff, Loader2, Workflow } from "lucide-react";
-import { SIGNAL_INFO, type Signal } from "@/services/room-builder/device-ports";
-import type { CableLink } from "@/services/room-builder/cabling";
+import { cableTotals } from "@/services/room-builder/wiring/cable-list";
 import type { CablingState } from "./use-cabling";
 
 export function CablingPanel({ state, show3d, onShow3d, onOpenTechnical }: { state: CablingState; show3d: boolean; onShow3d: (v: boolean) => void; onOpenTechnical?: () => void }) {
-  const { plan } = state;
-  if (!plan) {
+  const { plan, cables } = state;
+  if (!plan || !cables) {
     return (
       <div className="flex items-center gap-2 p-4 text-sm text-slate-500">
         {state.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -22,10 +21,10 @@ export function CablingPanel({ state, show3d, onShow3d, onOpenTechnical }: { sta
       </div>
     );
   }
-  const bySignal = new Map<Signal, CableLink[]>();
-  for (const l of plan.links) bySignal.set(l.signal, [...(bySignal.get(l.signal) ?? []), l]);
-  const cabled = [...bySignal].filter(([s]) => s !== "wireless");
-  const wireless = bySignal.get("wireless") ?? [];
+  // Mismos cables y metros que el plano técnico, la planilla y la cotización (lista única del ambiente).
+  const totals = cableTotals(cables.cables);
+  const wireless = plan.links.filter((l) => l.signal === "wireless");
+  const estimated = cables.cables.some((c) => c.lengthKind === "estimated");
 
   return (
     <div className="space-y-3 p-3 text-sm">
@@ -47,17 +46,18 @@ export function CablingPanel({ state, show3d, onShow3d, onOpenTechnical }: { sta
         </button>
       ) : null}
       <p className="text-[11px] leading-snug text-slate-500">El plano técnico resuelve solo lo que falte (amplificación, fuentes, gateways, red) y traza cada cable de puerto a puerto. Todo queda editable.</p>
-      {cabled.length ? (
+      {totals.length ? (
         <div>
-          <p className="mb-1 text-xs font-semibold text-slate-700">Cables propuestos</p>
-          {cabled.map(([s, links]) => (
-            <div key={s} className="flex items-center justify-between border-b border-slate-100 py-1 text-xs">
+          <p className="mb-1 text-xs font-semibold text-slate-700">{cables.source === "manual" ? "Cables del plano técnico" : "Cables propuestos"}</p>
+          {totals.map((t) => (
+            <div key={t.label} className="flex items-center justify-between border-b border-slate-100 py-1 text-xs">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: SIGNAL_INFO[s].color }} /> {SIGNAL_INFO[s].label} × {links.length}
+                <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: t.color }} /> {t.label} × {t.count}
               </span>
-              <span className="font-mono">{links.reduce((a, l) => a + l.cableM, 0).toFixed(0)} m</span>
+              <span className="font-mono">{t.meters.toFixed(0)} m</span>
             </div>
           ))}
+          {estimated ? <p className="mt-1 text-[11px] text-amber-700">Algún largo es estimado (ej. falta ubicar el rack central en la planta del proyecto).</p> : null}
         </div>
       ) : null}
       {wireless.length ? <p className="text-xs text-slate-600">{wireless.length} enlace(s) inalámbrico(s).</p> : null}

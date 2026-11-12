@@ -2839,4 +2839,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Parlantes: impedancia, taps de 70/100 V, potencia, sensibilidad y ángulo de cobertura, leídos de la ficha con cita." },
     ],
   },
+  {
+    id: "ship-2026-11-12-room-builder-etapa2-motor",
+    version: "2.38.0",
+    releasedAt: "2026-11-12T03:00:00.000Z",
+    summary: "Room Builder: motor corregido. Amplificación con la carga real, una sola lista de cables y equipos elegidos por su ficha con la cadena de señal completa.",
+    items: [
+      { kind: "MEJORA", text: "Amplificación: reparte parlantes por canal con la impedancia real sin bajar de la carga mínima; en 70/100 V suma los taps y avisa si pasan el 80 % de la potencia; calibre de cable de parlante para perder menos de 0,5 dB. También controla la carga cuando se cablea a mano. Lo que falta en la ficha se marca como dato estimado." },
+      { kind: "FIX", text: "Ningún cable se pierde (mesa, switch a sumar, rack central) y la cotización, la pestaña Cableado, el plano técnico, la planilla y las láminas salen de una misma lista con los mismos metros. Una sola fórmula de largo; tramos completos hasta el rack." },
+      { kind: "FIX", text: "Una sala calibrada sobre un plano con varios ambientes ya no queda corrida ni espejada. Etiquetas de cable sin repetir entre ambientes con el mismo nombre." },
+      { kind: "MEJORA", text: "Elección por rol según la ficha: nada de gateways como procesador, pantallas de reserva como touch, amplificadores de home theater en salas ni monitores de cartelería como pantalla de sala. Si no hay producto válido va un genérico y se avisa." },
+      { kind: "NUEVO", text: "Cadena de señal completa: videoconferencia con códec, DSP con cancelación de eco y cámara al códec; aula con micrófono inalámbrico, refuerzo de voz y conexión de mesa; cine con receptor AV, parlantes L/C/R, envolventes y subwoofer." },
+      { kind: "NUEVO", text: "Asistente: paso Uso de la sala (personas, micrófono y presentación inalámbrica) y elección 5.1 / 7.1. Rack dentro de la sala y fuera del barrido de la puerta; mesa perpendicular a la pantalla." },
+    ],
+  },
 ];

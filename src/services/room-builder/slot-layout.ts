@@ -2,6 +2,9 @@ import type { Pose, RoomSlot } from "./types";
 import type { RoomScene } from "./scene";
 import { applyBriefToSlots, type RoomBrief, type RoomDims } from "./brief";
 import { layoutExtraSlots } from "./slot-layout-extra";
+import { applySignalChain } from "./signal-chain";
+import { vcTable } from "./vc-table";
+import { doorCentersOf, rackAnchor, type DoorPoint } from "./rack-place";
 
 type Dims = { widthM: number; depthM: number; heightM: number };
 
@@ -77,6 +80,7 @@ export function layoutSlotsForTemplate(
         ? "L"
         : "M";
     const tableW = size === "S" ? 1.6 : size === "M" ? 2.6 : 3.8;
+    const table = vcTable(d, size);
     return [
       slot({
         key: "display_main",
@@ -111,7 +115,8 @@ export function layoutSlotsForTemplate(
         label: "Touch de control",
         required: size !== "S",
         mount: "table",
-        pose: pose(tableW / 2 - 0.2, 0.76, 0.05, -15),
+        // Sobre la mesa: en la punta del fondo si es perpendicular a la pantalla; si no, en el costado.
+        pose: table.perpendicular ? pose(0, 0.76, table.z - table.d / 2 + 0.3, 180) : pose(tableW / 2 - 0.2, 0.76, 0.05, -15),
         defaultQty: 1,
       }),
       slot({
@@ -557,10 +562,21 @@ function poseInsideRoom(pose: { x: number; y: number; z: number }, scene: RoomSc
   );
 }
 
-/** Equipos de la plantilla para estas medidas, ajustados al relevamiento si lo hay. */
-export function layoutSlotsForScene(templateKey: string, dims: RoomDims, brief: RoomBrief | null): RoomSlot[] {
+/** Plantillas donde el procesador va en un mueble propio (placard de la habitación de hotel). */
+const OWN_RACK_TEMPLATES = new Set(["hotel-guest-s"]);
+
+/** Todo lo que va en rack, en el mismo mueble técnico: dentro de la sala y fuera del barrido de la puerta. */
+export function placeRackSlots(slots: RoomSlot[], dims: RoomDims, templateKey: string, doors: DoorPoint[] | null = null): RoomSlot[] {
+  if (OWN_RACK_TEMPLATES.has(templateKey)) return slots;
+  const rack = rackAnchor(dims, doors);
+  return slots.map((s) => (s.mount === "rack" ? { ...s, pose: { ...rack } } : s));
+}
+
+/** Equipos de la plantilla para estas medidas, ajustados al relevamiento (y su cadena de señal) si lo hay. */
+export function layoutSlotsForScene(templateKey: string, dims: RoomDims, brief: RoomBrief | null, doors: DoorPoint[] | null = null): RoomSlot[] {
   const base = layoutSlotsForTemplate(templateKey, dims.widthM, dims.depthM, dims.heightM);
-  return brief ? applyBriefToSlots(base, brief, dims) : base;
+  const slots = brief ? applySignalChain(applyBriefToSlots(base, brief, dims), brief, dims, templateKey) : base;
+  return placeRackSlots(slots, dims, templateKey, doors);
 }
 
 export function relayoutSceneAnchors(
@@ -571,7 +587,7 @@ export function relayoutSceneAnchors(
   changed: boolean;
 } {
   if (!scene.templateKey) return { scene, changed: false };
-  const nextSlots = layoutSlotsForScene(scene.templateKey, scene, scene.brief ?? null);
+  const nextSlots = layoutSlotsForScene(scene.templateKey, scene, scene.brief ?? null, doorCentersOf(scene));
   const byKey = new Map(nextSlots.map((s) => [s.key, s]));
   let changed = false;
 

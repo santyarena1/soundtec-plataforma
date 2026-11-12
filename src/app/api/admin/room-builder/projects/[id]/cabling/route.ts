@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireStaff } from "@/lib/auth-helpers";
 import { cablingProfile } from "@/services/room-builder/cabling-db";
+import { roomTrunk } from "@/services/room-builder/cable-list-db";
 import { resolveAndWire } from "@/services/room-builder/cabling-resolve";
 import { getRoomProject } from "@/services/room-builder/project-service";
 
@@ -13,7 +14,9 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   try {
     const profile = await cablingProfile(params.id);
     if (!profile) return NextResponse.json({ ok: false, error: "Proyecto no encontrado" }, { status: 404 });
-    return NextResponse.json({ ok: true, profile });
+    // Troncal hasta el rack central del proyecto (los cables al rack se miden completos).
+    const trunk = profile.central ? await roomTrunk(params.id) : null;
+    return NextResponse.json({ ok: true, profile, trunk });
   } catch (error) {
     console.error(`[room-builder/cabling] ${params.id}`, error);
     return NextResponse.json({ ok: false, error: "No se pudo leer el cableado" }, { status: 500 });

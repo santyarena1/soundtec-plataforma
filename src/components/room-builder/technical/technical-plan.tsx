@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import type { CablingState } from "../cabling/use-cabling";
 import type { RoomScene } from "@/services/room-builder/scene";
 import type { DeviceUnit } from "@/services/room-builder/units";
-import { autoWires, buildWiringModel, numberLabels, wiringOf, type PlacedDevice } from "@/services/room-builder/wiring/model";
+import { autoWires, buildWiringModel, linkKey, numberLabels, wiringOf, type PlacedDevice } from "@/services/room-builder/wiring/model";
 import { floorOf, planFurniture, planWalls } from "@/services/room-builder/wiring/plan-geometry";
 import { signalsCompatible } from "@/services/room-builder/wiring/ports";
 import { WIRE_SIGNAL_STYLE, type SceneWiring, type Wire, type WirePort } from "@/services/room-builder/wiring/types";
@@ -56,7 +56,8 @@ export function TechnicalPlan({
   const [from, setFrom] = useState<End | null>(null);
   const [picker, setPicker] = useState<Picker | null>(null);
 
-  const model = useMemo(() => buildWiringModel(scene, cabling.profile), [scene, cabling.profile]);
+  // Mismo modelo que la lista única de cables (incluye la troncal al rack central).
+  const model = useMemo(() => buildWiringModel(scene, cabling.profile, { trunk: cabling.trunk, category }), [scene, cabling.profile, cabling.trunk, category]);
   const floor = useMemo(() => floorOf(scene), [scene]);
   const walls = useMemo(() => planWalls(scene, category), [scene, category]);
   const furniture = useMemo(() => planFurniture(scene, category), [scene, category]);
@@ -127,11 +128,13 @@ export function TechnicalPlan({
     if (autoRan.current || !onResolve || !cabling.plan) return;
     const fixable = cabling.plan.findings.some((f) => f.fix);
     const emptySlots = scene.devices.some((d) => !d.productId && !d.generic);
-    if (!wiringOf(scene).wires.length || fixable || emptySlots) {
+    // Cables del plan que faltan en el guardado (ej. trazado con una versión que perdía la mesa o el switch nuevo).
+    const missingWires = (cabling.cables?.added ?? 0) > 0;
+    if (!wiringOf(scene).wires.length || fixable || emptySlots || missingWires) {
       autoRan.current = true;
       void runResolve();
     }
-  }, [cabling.plan, onResolve, runResolve, scene]);
+  }, [cabling.plan, cabling.cables, onResolve, runResolve, scene]);
 
   function moveDevice(d: PlacedDevice, x: number, z: number) {
     const dev = scene.devices.find((s) => s.id === d.deviceId);
@@ -218,7 +221,12 @@ export function TechnicalPlan({
           onSelect={setSelection}
           onUpdateWire={(id, patch) => setWiring((w) => ({ ...w, wires: w.wires.map((x) => (x.id === id ? { ...x, ...patch } : x)) }))}
           onDeleteWire={(id) => {
-            setWiring((w) => ({ ...w, wires: w.wires.filter((x) => x.id !== id) }));
+            // Queda anotado: el armado automático no lo vuelve a proponer y la cotización no lo suma.
+            setWiring((w) => {
+              const gone = w.wires.find((x) => x.id === id);
+              const dismissed = gone ? [...(w.dismissed ?? []), linkKey(gone.from.deviceId, gone.to.deviceId, gone.signal)] : w.dismissed;
+              return { ...w, wires: w.wires.filter((x) => x.id !== id), ...(dismissed ? { dismissed } : {}) };
+            });
             setSelection(null);
           }}
           onReverseWire={(id) => setWiring((w) => ({ ...w, wires: w.wires.map((x) => (x.id === id ? { ...x, from: x.to, to: x.from, points: [...x.points].reverse(), origin: "manual" } : x)) }))}

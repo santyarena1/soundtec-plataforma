@@ -11,6 +11,32 @@ import {
 import { ensureRoomBuilderSchema } from "./ensure-schema";
 import { rankForSlot, type SlotRequirements } from "./ranking";
 import type { DesignRole, MountOption, RankCandidate, RankSortMode } from "./types";
+import { roleFitReason, type FitContext, type FitProduct, type FitSlot } from "./role-fit";
+import type { IoCapabilities, IoPort } from "./io-profile/types";
+
+/** Cuántas fichas se miran para elegir solo (la selección por papel descarta muchas). */
+const FIT_POOL = 400;
+
+type FitSource = {
+  normalizedName: string;
+  brand: { slug: string } | null;
+  aiProfile: { productType: string | null; environment: string | null; mountTypes: string[]; summaryEs: string | null } | null;
+  ioProfile: { ports: unknown; capabilities: unknown } | null;
+};
+
+/** Lo que mira la selección por papel: tipo según la IA y puertos/capacidades de la ficha. */
+function fitProductOf(p: FitSource): FitProduct {
+  return {
+    name: p.normalizedName,
+    brandSlug: p.brand?.slug ?? null,
+    productType: p.aiProfile?.productType ?? null,
+    environment: p.aiProfile?.environment ?? null,
+    mountTypes: p.aiProfile?.mountTypes ?? [],
+    summary: p.aiProfile?.summaryEs ?? null,
+    ports: (Array.isArray(p.ioProfile?.ports) ? p.ioProfile!.ports : []) as IoPort[],
+    caps: (p.ioProfile?.capabilities && typeof p.ioProfile.capabilities === "object" ? p.ioProfile.capabilities : {}) as IoCapabilities,
+  };
+}
 
 function stockScore(status: string | null | undefined): number {
   switch (status) {
@@ -52,6 +78,10 @@ export type RankFromDbOptions = {
   preferredBrands?: string[];
   /** Lugar de la sala: algunos piden un tipo de equipo puntual (subwoofer, dimmer, motor de cortina). */
   slotKey?: string;
+  /** Nombre del lugar (distingue, p. ej., un DSP con cancelación de eco de uno de zonas). */
+  slotLabel?: string;
+  /** Lo relevado que decide qué productos sirven para el papel (control, plataforma, exterior). */
+  fit?: FitContext;
 };
 
 export type ProcessorKind = "amplifier" | "control";
@@ -102,6 +132,8 @@ export function slotProductFilter(slotKey: string | undefined, role: string): { 
   if (/keypad/i.test(slotKey)) return { where: { OR: nameHas(["-KP", "KPEX", "KPCN", "KPL", "keypad"]), NOT: { OR: nameHas(["TSW-", "TSS-", "TST-"]) } }, anyRole: true };
   // Parlantes de exterior: líneas para intemperie (pueden figurar con otro rol).
   if (role === "speaker" && /outdoor/i.test(slotKey)) return { where: { OR: [{ aiProfile: { environment: "outdoor" } }, ...nameHas(["outdoor", "patio", "landscape", "mariner", "garden"])], NOT: { OR: nameHas(["volume control"]) } }, anyRole: true };
+  // PC / códec de sala: los kits de videoconferencia figuran con otro rol de diseño.
+  if (role === "codec") return { where: { OR: nameHas(["UC-C", "UC-CX", "CCC-", "UC-ENGINE", "MTR", "Teams Rooms", "Zoom Rooms", "codec"]) }, anyRole: true };
   if (role === "speaker" && /sub/i.test(slotKey)) return { where: { OR: [{ aiProfile: { productType: "subwoofer" } }, ...nameHas(["subwoofer", " SUB", "-SUB"])] }, anyRole: false };
   if (role === "speaker") return { where: { NOT: { aiProfile: { productType: "subwoofer" } } }, anyRole: false };
   if (slotKey === "lighting_dimmer") return { where: { OR: [{ aiProfile: { productType: "lighting" } }, ...nameHas(["dimmer", "DIM", "lighting module"])] }, anyRole: true };
@@ -167,13 +199,16 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
           : {}),
       },
     },
-    take: Math.max(limit * 4, 80),
+    // Con la selección estricta por papel, muchos quedan afuera: se miran más para no perder los que sirven.
+    take: options.q ? Math.max(limit * 4, 80) : Math.max(limit * 4, FIT_POOL),
     orderBy: [{ completenessScore: "desc" }, { updatedAt: "desc" }],
     include: {
       product: {
         select: {
           id: true,
           normalizedName: true,
+          aiProfile: { select: { productType: true, environment: true, mountTypes: true, summaryEs: true } },
+          ioProfile: { select: { ports: true, capabilities: true, status: true } },
           supplierSku: true,
           modelNumber: true,
           baseCostUsd: true,
@@ -195,6 +230,9 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
   const seen = new Set<string>();
   const profiles = [...fromPreferred, ...general].filter((p) => (seen.has(p.productId) ? false : (seen.add(p.productId), true)));
   const preferredSet = new Set(preferred);
+
+  // El papel del lugar: el producto tiene que cumplirlo por su tipo y sus conexiones reales.
+  const fitSlot: FitSlot | null = options.slotKey ? { key: options.slotKey, role: options.role, mount: options.mount, label: options.slotLabel } : null;
 
   const roomDepth = options.roomDepthM ?? 5;
   const roomWidth = options.roomWidthM ?? 4;
@@ -247,13 +285,15 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
       // Dimmer o motor de cortina: cuenta para el lugar aunque su ficha tenga otro rol.
       designRole: special?.anyRole ? options.role : ((profile.designRole as DesignRole) ?? null),
       mountOptions: special?.anyRole ? [] : mounts,
-      priceUsd: Number(profile.product.baseCostUsd),
+      // Costo 0 = sin precio cargado (no "el más barato"): cuenta como dato faltante.
+      priceUsd: Number(profile.product.baseCostUsd) > 0 ? Number(profile.product.baseCostUsd) : null,
       stockScore: stockScore(profile.product.stockStatus),
       coverageFit,
       typologyFit: typologyFit(profile.roomCategories, options.projectCategory),
       dataCompleteness: profile.completenessScore,
       discontinued: profile.product.isDiscontinued,
       brandBoost: profile.product.brand?.slug === "crestron" ? 0.15 : 0.05,
+      fitReject: fitSlot ? roleFitReason(fitSlot, fitProductOf(profile.product), options.fit ?? {}) : null,
     };
   });
 

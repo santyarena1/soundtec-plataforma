@@ -48,7 +48,8 @@ export function layoutExtraSlots(templateKey: string, d: Dims): RoomSlot[] | nul
         { key: "speakers_front", role: "speaker", label: "Parlantes frontales (L-C-R)", required: true, mount: "wall", pose: pose(0, 1.1, frontZ, 180), defaultQty: 3 },
         { key: "speakers_surround", role: "speaker", label: "Parlantes envolventes", required: true, mount: "wall", pose: pose(leftX, 1.6, -d.depthM * 0.1, 90), defaultQty: 4 },
         { key: "subwoofer", role: "speaker", label: "Subwoofer", required: true, mount: "floor", pose: pose(d.widthM * 0.35, 0, frontZ - 0.3, 180), defaultQty: 1 },
-        { key: "processor", role: "processor", label: "Procesador de cine / receiver", required: true, mount: "rack", pose: rack, defaultQty: 1 },
+        // El receptor AV es la amplificación del cine (clave con "amp": no es el procesador de control).
+        { key: "amp_avr", role: "processor", label: "Receptor / procesador AV", required: true, mount: "rack", pose: rack, defaultQty: 1 },
       ];
     case "residential-outdoor-m":
       return [

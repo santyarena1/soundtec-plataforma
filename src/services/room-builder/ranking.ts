@@ -15,6 +15,9 @@ export function isCompatibleWithSlot(
   if (candidate.discontinued) {
     return { ok: false, reason: "Producto discontinuado" };
   }
+  if (candidate.fitReject) {
+    return { ok: false, reason: candidate.fitReject };
+  }
   if (!candidate.designRole) {
     return { ok: false, reason: "Sin rol de diseño" };
   }

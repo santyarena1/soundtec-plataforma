@@ -12,6 +12,7 @@ import { parseScene } from "./scene";
 import { defaultMountForRole, roleForProduct } from "./product-roles";
 import { MOUNT_OPTIONS, type DesignRole, type MountOption } from "./types";
 import { genericByKey } from "./generic/library";
+import { doorCentersOf, rackAnchor } from "./rack-place";
 
 /** Prefijo de los lugares creados a mano (la plantilla nunca los rearma). */
 export const CUSTOM_SLOT_PREFIX = "custom_";
@@ -90,9 +91,10 @@ export async function addCustomDevice(input: { projectId: string; productId: str
   const role = roleForProduct(product.designProfile?.designRole, product.aiProfile?.productType);
   const key = `${CUSTOM_SLOT_PREFIX}${Date.now().toString(36)}`;
   const qty = Math.max(1, Math.min(48, Math.round(input.quantity)));
-  const base = poseForMount(input.mount, { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM }, role);
+  const base = input.mount === "rack" ? rackAnchor(scene, doorCentersOf(scene)) : poseForMount(input.mount, { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM }, role);
   const clamp = (v: number, half: number) => Math.max(-half + 0.2, Math.min(half - 0.2, v));
-  const pose = input.near ? { ...base, x: clamp(input.near.x + 0.35, scene.widthM / 2), z: clamp(input.near.z + 0.2, scene.depthM / 2) } : base;
+  // Lo de rack va siempre al mueble técnico, no junto al equipo al que sirve.
+  const pose = input.near && input.mount !== "rack" ? { ...base, x: clamp(input.near.x + 0.35, scene.widthM / 2), z: clamp(input.near.z + 0.2, scene.depthM / 2) } : base;
   scene.slots.push({ key, role, label: product.normalizedName, required: false, mount: input.mount, pose, defaultQty: qty });
   scene.devices.push({ id: `slot-${key}`, slotKey: key, productId: null, designRole: role, label: product.normalizedName, quantity: qty, pose, coverage: null, ...(input.addedBy ? { addedBy: input.addedBy } : {}) });
   scene.selectedSlotKey = key;
@@ -127,10 +129,11 @@ export async function addGenericDevice(input: { projectId: string; key: string; 
   const key = `${CUSTOM_SLOT_PREFIX}${Date.now().toString(36)}`;
   const qty = Math.max(1, Math.min(48, Math.round(input.quantity)));
   const name = input.name?.trim().slice(0, 120) || template.name;
-  const base = poseForMount(mount, { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM }, template.role);
+  const base = mount === "rack" ? rackAnchor(scene, doorCentersOf(scene)) : poseForMount(mount, { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM }, template.role);
   // Junto al equipo al que sirve (un poco corrido para no taparlo), dentro de la sala.
+  // Lo de rack va siempre al mueble técnico (nunca al lado del micrófono, sobre la mesa).
   const clamp = (v: number, half: number) => Math.max(-half + 0.2, Math.min(half - 0.2, v));
-  const pose = input.near ? { ...base, x: clamp(input.near.x + 0.35, scene.widthM / 2), z: clamp(input.near.z + 0.2, scene.depthM / 2) } : base;
+  const pose = input.near && mount !== "rack" ? { ...base, x: clamp(input.near.x + 0.35, scene.widthM / 2), z: clamp(input.near.z + 0.2, scene.depthM / 2) } : base;
   scene.slots.push({ key, role: template.role, label: name, required: false, mount, pose, defaultQty: qty });
   scene.devices.push({ id: `slot-${key}`, slotKey: key, productId: null, designRole: template.role, label: name, productName: name, quantity: qty, pose, coverage: null, generic: { key: template.key, name, description: null, priceUsd: null }, ...(input.addedBy ? { addedBy: input.addedBy } : {}) });
   scene.selectedSlotKey = key;

@@ -11,6 +11,7 @@ import { useState } from "react";
 import { ArrowLeftRight, Cable, CheckCircle2, Plus, Spline, Trash2, TriangleAlert, Wand2 } from "lucide-react";
 import type { CableProduct } from "@/services/room-builder/cable-picks";
 import { IO_SIGNALS, type IoSignal } from "@/services/room-builder/io-profile/types";
+import { cableTotals } from "@/services/room-builder/wiring/cable-list";
 import type { WiringModel } from "@/services/room-builder/wiring/model";
 import { portsFromSignals, signalFamily, signalsCompatible } from "@/services/room-builder/wiring/ports";
 import { WIRE_SIGNAL_STYLE, type Wire, type WirePort } from "@/services/room-builder/wiring/types";
@@ -67,8 +68,9 @@ const portName = (model: WiringModel, id: string, portId: string) => model.ports
 function SummaryPanel(p: Props) {
   const errors = p.model.issues.filter((i) => i.level === "error");
   const warns = p.model.issues.filter((i) => i.level === "warn");
-  const bySignal = new Map<string, number>();
-  for (const w of p.model.wires) bySignal.set(WIRE_SIGNAL_STYLE[w.signal].label, (bySignal.get(WIRE_SIGNAL_STYLE[w.signal].label) ?? 0) + w.lengthM);
+  // Mismos totales que la pestaña Cableado, la planilla y la cotización.
+  const totals = cableTotals(p.model.wires);
+  const estimated = p.model.wires.filter((w) => w.lengthKind === "estimated");
   return (
     <div className="space-y-3 p-3 text-xs">
       <div className="grid grid-cols-2 gap-2">
@@ -118,20 +120,24 @@ function SummaryPanel(p: Props) {
             <IssueRow key={k} issue={i} onClick={() => p.onSelect({ kind: "wire", id: i.wireId })} />
           ))}
         </div>
-      ) : p.model.wires.length ? (
+      ) : p.model.wires.length && !p.review.length ? (
+        // Solo si de verdad no queda nada: ni avisos de cables ni puntos para revisar a mano.
         <p className="flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1.5 text-emerald-800">
           <CheckCircle2 className="h-3.5 w-3.5" /> Todos los cables tienen señal compatible y puertos libres.
         </p>
       ) : null}
-      {bySignal.size ? (
+      {totals.length ? (
         <div>
-          <p className="mb-1 font-semibold text-slate-700">Metros por señal</p>
-          {[...bySignal].map(([k, v]) => (
-            <div key={k} className="flex justify-between border-b border-slate-100 py-1">
-              <span>{k}</span>
-              <span className="font-mono">{v.toFixed(1)} m</span>
+          <p className="mb-1 font-semibold text-slate-700">Cables y metros por señal</p>
+          {totals.map((t) => (
+            <div key={t.label} className="flex justify-between border-b border-slate-100 py-1">
+              <span>
+                {t.label} × {t.count}
+              </span>
+              <span className="font-mono">{t.meters.toFixed(0)} m</span>
             </div>
           ))}
+          {estimated.length ? <p className="mt-1 text-[11px] text-amber-700">{estimated[0]!.note ?? `${estimated.length} cable(s) con largo estimado.`}</p> : null}
         </div>
       ) : null}
       <div>

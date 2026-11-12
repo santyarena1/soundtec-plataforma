@@ -43,11 +43,37 @@ export type Wire = {
   origin: "auto" | "manual";
 };
 
+/**
+ * Punta de cable que no es un producto de la sala: la conexión de mesa (caja
+ * de piso para la notebook), el switch que falta sumar o el rack central (si
+ * el ambiente baja al rack del proyecto). Se dibuja con su posición.
+ */
+export type VirtualEnd = {
+  /** "table" | "switch-new" | "central" (ids del motor automático). */
+  id: string;
+  label: string;
+  kind: "table" | "switch" | "rack";
+  x: number;
+  y: number;
+  z: number;
+  mount: string;
+};
+
+/** Ids de las puntas virtuales que propone el motor automático. */
+export const VIRTUAL_END_IDS = ["table", "switch-new", "central"] as const;
+
 export type SceneWiring = {
   version: 1;
   wires: Wire[];
   /** Puertos cargados a mano (equipos genéricos o sin ficha), por id de equipo. */
   ports: Record<string, WirePort[]>;
+  /** Puntas virtuales usadas por los cables (mesa, switch a sumar, rack central), por id. */
+  virtual?: Record<string, VirtualEnd>;
+  /**
+   * Cables que el usuario borró a mano ("equipoA|equipoB|familia", uno por
+   * cable): el armado automático no los vuelve a proponer ni la cotización los suma.
+   */
+  dismissed?: string[];
   /** Posiciones de los bloques en el diagrama de señal movidos a mano ("deviceId#unidad"). */
   diagram?: Record<string, { x: number; y: number }>;
 };

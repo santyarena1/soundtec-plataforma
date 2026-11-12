@@ -5,6 +5,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { channelsForSpeakers } from "./amp-load";
 import { genericByKey } from "./generic/library";
 import { devicePorts, deviceClass, type DeviceClass, type DevicePorts } from "./device-ports";
 import type { IoProfileData } from "./io-profile/types";
@@ -97,6 +98,8 @@ export async function ensureCentralAmpCapacity(hubId: string): Promise<{ added: 
   if (!ampDevs.length) return { added: 0, label: null };
   const outsOf = (id: string) => (profiles[id]?.ioPorts ?? []).filter((p) => p.signal === "speaker" && p.direction !== "in").reduce((a, p) => a + p.count, 0);
   const have = ampDevs.reduce((a, d) => a + outsOf(d.id) * Math.max(1, d.quantity || 1), 0);
+  // Se suman unidades del amplificador central principal (el de más canales); con su ficha se calcula la carga.
+  const main = [...ampDevs].sort((a, b) => outsOf(b.id) - outsOf(a.id))[0]!;
   let need = 0;
   for (const child of hub.children) {
     const space = await getRoomProject(child.id);
@@ -108,11 +111,9 @@ export async function ensureCentralAmpCapacity(hubId: string): Promise<{ added: 
       const x = p[d.id];
       return x && (x.cls === "speaker" || x.cls === "subwoofer") && (x.ports?.inputs ?? []).some((g) => g.signal === "speaker");
     });
-    need += Math.ceil(passive.reduce((a, d) => a + Math.max(1, d.quantity || 1), 0) / SPEAKERS_PER_CHANNEL);
+    need += roomSpeakerChannels(passive, p, profiles[main.id]?.ports ?? null, space?.category);
   }
   if (need <= have) return { added: 0, label: null };
-  // Se suman unidades del amplificador central principal (el de más canales).
-  const main = [...ampDevs].sort((a, b) => outsOf(b.id) - outsOf(a.id))[0]!;
   const per = Math.max(1, outsOf(main.id));
   const units = Math.ceil((need - have) / per);
   const { setCentralDevice } = await import("./project-system-db");
@@ -120,8 +121,17 @@ export async function ensureCentralAmpCapacity(hubId: string): Promise<{ added: 
   return { added: units, label: profiles[main.id]?.label ?? null };
 }
 
-/** Canales de parlante que pide un ambiente: los pasivos de a 2 por canal (baja impedancia). */
-const SPEAKERS_PER_CHANNEL = 2;
+/**
+ * Canales de parlante que pide un ambiente, por carga real (amp-load.ts): impedancia en paralelo
+ * contra la carga mínima del amplificador, o suma de taps contra el 80 % del canal en 70/100 V.
+ */
+function roomSpeakerChannels(passive: RoomScene["devices"], profiles: Record<string, DeviceCablingProfile>, amp: DevicePorts | null, category: string | null | undefined): number {
+  return channelsForSpeakers(
+    passive.map((d) => ({ ports: profiles[d.id]?.ports ?? null, quantity: Math.max(1, d.quantity || 1) })),
+    amp,
+    { category },
+  );
+}
 
 /**
  * Reparto de los canales de los amplificadores del rack central entre los ambientes del
@@ -146,7 +156,7 @@ async function centralChannelGrants(hubId: string, central: Array<DeviceCablingP
       const p = profiles[d.id];
       return p && (p.cls === "speaker" || p.cls === "subwoofer") && (p.ports?.inputs ?? []).some((g) => g.signal === "speaker");
     });
-    let need = Math.ceil(passive.reduce((a, d) => a + Math.max(1, d.quantity || 1), 0) / SPEAKERS_PER_CHANNEL);
+    let need = roomSpeakerChannels(passive, profiles, central.find((x) => x.cls === "amp")?.ports ?? null, space?.category);
     const mine: Array<{ key: string; unit: number; channels: number[] }> = [];
     for (const slot of pool) {
       if (need <= 0) break;

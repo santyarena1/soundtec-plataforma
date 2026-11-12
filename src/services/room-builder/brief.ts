@@ -7,12 +7,12 @@
  */
 
 import type { Pose, RankSortMode, RoomPlatform, RoomSlot } from "./types";
+import { rackAnchor } from "./rack-place";
 
 /** areaM2: superficie real si no es un rectángulo (forma libre desde el plano). */
 export type RoomDims = { widthM: number; depthM: number; heightM: number; areaM2?: number };
 
 const WALL_INSET_M = 0.08;
-const RACK_Y_M = 0.45;
 
 /**
  * Lugar por defecto de un equipo que la plantilla no trae, según dónde se
@@ -35,7 +35,8 @@ export function poseForMount(mount: RoomSlot["mount"], dims: RoomDims, role: str
       return { x: 0, y: 0.75, z: 0, rotY: 0 };
     case "rack":
     default:
-      return { x: left + 0.4, y: RACK_Y_M, z: back + 0.4, rotY: 0 };
+      // Rincón del fondo fuera del barrido de la puerta (ver rack-place.ts).
+      return rackAnchor(dims);
   }
 }
 
@@ -54,7 +55,12 @@ export type SpeakerStyle = (typeof SPEAKER_STYLES)[number];
 export const AUDIO_USES = ["background", "music", "cinema", "voice"] as const;
 export type AudioUse = (typeof AUDIO_USES)[number];
 
-export const BRIEF_TIERS = ["esencial", "recomendado", "premium"] as const;
+export const CINEMA_LAYOUTS = ["5.1", "7.1"] as const;
+export type CinemaLayout = (typeof CINEMA_LAYOUTS)[number];
+
+export const MAX_PEOPLE = 300;
+
+export const BRIEF_TIERS =["esencial", "recomendado", "premium"] as const;
 export type BriefTier = (typeof BRIEF_TIERS)[number];
 
 /** Categorías de marca que se pueden preferir. */
@@ -73,8 +79,16 @@ export type RoomBrief = {
     /** null = que lo calcule el sistema según el tamaño. */
     speakers: number | null;
     streaming: boolean;
+    /** Cine: formato del sonido envolvente (null = según el tamaño). */
+    layout?: CinemaLayout | null;
   } | null;
   video: { displays: number; sizeIn: number | null } | null;
+  /** Personas que usan la sala (reuniones, aulas); null = según el tamaño. */
+  people?: number | null;
+  /** Micrófono inalámbrico para quien presenta o da clase. */
+  wirelessMic?: boolean;
+  /** Compartir pantalla sin cables (base de presentación inalámbrica). */
+  wirelessPresentation?: boolean;
   /** slugs de marca preferidos por grupo (vacío = sin preferencia). */
   brands: Partial<Record<BrandGroup, string[]>>;
   tier: BriefTier;
@@ -244,7 +258,7 @@ export function applyBriefToSlots(slots: RoomSlot[], brief: RoomBrief, dims: Roo
       label: brief.control === "crestron-home" ? "Procesador Crestron Home" : "Procesador de control",
       required: true,
       mount: "rack",
-      pose: { ...poseForMount("rack", dims, "processor"), x: poseForMount("rack", dims, "processor").x + 0.6 },
+      pose: poseForMount("rack", dims, "processor"),
       defaultQty: 1,
     });
   }
@@ -343,8 +357,13 @@ export function normalizeBrief(raw: unknown): RoomBrief | null {
             zones: int(audioRaw.zones, 1, MAX_ZONES, 1),
             speakers: audioRaw.speakers == null || audioRaw.speakers === "" ? null : int(audioRaw.speakers, 1, MAX_SPEAKERS, 2),
             streaming: Boolean(audioRaw.streaming),
+            layout: CINEMA_LAYOUTS.includes(audioRaw.layout as CinemaLayout) ? (audioRaw.layout as CinemaLayout) : null,
           }
         : null,
+    people: r.people == null || r.people === "" ? null : int(r.people, 1, MAX_PEOPLE, 8),
+    // Sin respuesta: queda indefinido y decide el tipo de sala (en aulas va).
+    wirelessMic: r.wirelessMic == null ? undefined : Boolean(r.wirelessMic),
+    wirelessPresentation: r.wirelessPresentation == null ? undefined : Boolean(r.wirelessPresentation),
     video:
       (systems.includes("video") || systems.includes("vc")) && videoRaw
         ? {

@@ -87,6 +87,10 @@ export function cablingForScene(scene: RoomScene, category: string, profile: Cab
     dims: { widthM: scene.widthM, depthM: scene.depthM, heightM: scene.heightM },
     tableInput: table && hasConferencing ? { x: table.x, z: table.z, topY: TABLE_TOP_M } : null,
     central: profile.central ? { label: profile.central.label, exit: centralExit(scene) } : null,
+    // Tipo de sala: define el tap por defecto de los parlantes de 70/100 V.
+    audio: { category },
+    // Sin control ni videoconferencia relevados, la red de amplificador/DSP no obliga a un switch.
+    networkOptional: Boolean(scene.brief && (scene.brief.control ?? "none") === "none" && !scene.brief.systems.includes("vc")),
   };
   const first = planCabling({ ...input, nodes });
   // Del rack central entra solo lo que alimenta esta sala: el resto sirve a otros ambientes.
