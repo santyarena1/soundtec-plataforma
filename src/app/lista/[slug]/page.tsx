@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ShareListTable } from "./share-list-table";
 import { ShareListCta } from "./share-list-cta";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { createHash } from "crypto";
@@ -65,7 +66,7 @@ export default async function PublicShareListPage({ params, searchParams }: { pa
             <Badge tone="muted">Mostrando {Math.min((page - 1) * pageSize + items.length, total)} de {total}</Badge>
             {list.expiresAt ? <span>Válida hasta {formatDate(list.expiresAt)}</span> : null}
           </div>
-          <div className="mt-4"><ShareListCta mailto={mailto} productIds={items.map((i) => i.id)} canAdd={session?.user?.role === "CLIENT"} /></div>
+          <div className="mt-4"><ShareListCta mailto={mailto} productIds={items.map((i) => i.id)} canAdd={CUSTOMER_ORDERS_ENABLED && session?.user?.role === "CLIENT"} /></div>
         </div>
       </header>
 
@@ -88,7 +89,7 @@ export default async function PublicShareListPage({ params, searchParams }: { pa
         </p>
         {total > pageSize ? <div className="mt-4 flex justify-center gap-2">{page > 1 ? <Link className="text-sm text-accent" href={`?page=${page - 1}`}>Anterior</Link> : null}
           {page * pageSize < total ? <Link className="text-sm text-accent" href={`?page=${page + 1}`}>Siguiente</Link> : null}</div> : null}
-        <div className="mt-8 flex justify-center"><ShareListCta mailto={mailto} productIds={items.map((i) => i.id)} canAdd={session?.user?.role === "CLIENT"} /></div>
+        <div className="mt-8 flex justify-center"><ShareListCta mailto={mailto} productIds={items.map((i) => i.id)} canAdd={CUSTOMER_ORDERS_ENABLED && session?.user?.role === "CLIENT"} /></div>
       </main>
     </div>
   );

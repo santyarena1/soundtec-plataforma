@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -451,7 +452,13 @@ interface BundleAccessoryButtonProps {
   compact?: boolean;
 }
 
-export function BundleAddAccessoryButton({
+export function BundleAddAccessoryButton(props: BundleAccessoryButtonProps) {
+  // Pedidos apagados (src/lib/customer-orders.ts): no se arma nada para pedir.
+  if (!CUSTOMER_ORDERS_ENABLED) return null;
+  return <BundleAddAccessoryButtonInner {...props} />;
+}
+
+function BundleAddAccessoryButtonInner({
   productId,
   productName,
   unitPriceUsd,

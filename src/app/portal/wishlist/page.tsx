@@ -12,6 +12,7 @@ import { formatUsd } from "@/lib/utils";
 import { Heart, Trash2 } from "lucide-react";
 import { removeWishlistItem } from "@/server/actions/wishlist";
 import { createRequestDraft } from "@/server/actions/requests";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 
 export const metadata = { title: "Favoritos" };
@@ -73,11 +74,14 @@ export default async function WishlistPage() {
         title="Favoritos"
         description={`${wishlist.items.length} producto(s) marcados como favoritos.`}
         actions={
-          <form action={createRequestDraft}>
-            <input type="hidden" name="fromWishlistId" value={wishlist.id} />
-            <input type="hidden" name="type" value="QUOTE" />
-            <Button type="submit">Solicitar cotización con todos</Button>
-          </form>
+          // Pedidos apagados (src/lib/customer-orders.ts): sin «Solicitar cotización».
+          CUSTOMER_ORDERS_ENABLED ? (
+            <form action={createRequestDraft}>
+              <input type="hidden" name="fromWishlistId" value={wishlist.id} />
+              <input type="hidden" name="type" value="QUOTE" />
+              <Button type="submit">Solicitar cotización con todos</Button>
+            </form>
+          ) : undefined
         }
       />
 

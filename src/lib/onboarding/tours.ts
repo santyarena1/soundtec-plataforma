@@ -1,4 +1,5 @@
 import type { PermissionScope } from "@/lib/permissions";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 import type { OnboardingStep, OnboardingTour } from "./types";
 
 /**
@@ -744,10 +745,12 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
 export const PORTAL_ONBOARDING: OnboardingTour = {
   id: "portal",
   title: "Tutorial del portal",
-  subtitle: "Catálogo, favoritos y pedido",
+  // Los textos de pedidos dependen de src/lib/customer-orders.ts (pedidos del portal apagados por ahora).
+  subtitle: CUSTOMER_ORDERS_ENABLED ? "Catálogo, favoritos y pedido" : "Catálogo y favoritos",
   welcomeTitle: "Bienvenido al portal Soundtec",
-  welcomeBody:
-    "Desde acá consultás el catálogo, guardás favoritos y enviás tu pedido. Te mostramos el circuito; los clicks los hacés vos.",
+  welcomeBody: CUSTOMER_ORDERS_ENABLED
+    ? "Desde acá consultás el catálogo, guardás favoritos y enviás tu pedido. Te mostramos el circuito; los clicks los hacés vos."
+    : "Desde acá consultás el catálogo con los precios de tu cuenta y guardás favoritos. Te mostramos el circuito; los clicks los hacés vos.",
   steps: [
     {
       id: "portal-home",
@@ -778,10 +781,14 @@ export const PORTAL_ONBOARDING: OnboardingTour = {
       route: "/portal/products",
       target: "page-header",
       title: "Tu catálogo",
-      body: "Acá están los productos que podés consultar y pedir, con el precio que te corresponde.",
+      body: CUSTOMER_ORDERS_ENABLED
+        ? "Acá están los productos que podés consultar y pedir, con el precio que te corresponde."
+        : "Acá están los productos que podés consultar, con el precio que te corresponde.",
       bullets: [
         "Filtrá o buscá cuando lo necesites.",
-        "Abrí un producto para ver la ficha y agregarlo al carrito.",
+        CUSTOMER_ORDERS_ENABLED
+          ? "Abrí un producto para ver la ficha y agregarlo al carrito."
+          : "Abrí un producto para ver la ficha completa: fotos, especificaciones y accesorios.",
       ],
     },
     {
@@ -798,23 +805,38 @@ export const PORTAL_ONBOARDING: OnboardingTour = {
       route: "/portal/wishlist",
       target: "page-header",
       title: "Favoritos",
-      body: "Es tu selección personal para volver rápido. No envía nada a Soundtec hasta que armes un pedido.",
+      body: CUSTOMER_ORDERS_ENABLED
+        ? "Es tu selección personal para volver rápido. No envía nada a Soundtec hasta que armes un pedido."
+        : "Es tu selección personal para volver rápido. No le envía nada a Soundtec.",
     },
-    {
-      id: "portal-cart",
-      route: "/portal/wishlist",
-      target: "portal-cart",
-      title: "Carrito / borrador",
-      body: "Mientras cargás productos se arma un borrador. Cuando esté listo, lo enviás al equipo Soundtec.",
-      affects: "Al enviar, el pedido aparece en Admin → Pedidos.",
-    },
-    {
-      id: "portal-done",
-      route: "/portal",
-      title: "Ya podés pedir",
-      body: "Circuito listo. Empezá por el catálogo, agregá al carrito y enviá tu primer pedido.",
-      tip: "Si también usás el panel, «Modo admin» arriba a la derecha te lleva de vuelta.",
-    },
+    // El carrito (flotante del borrador) solo existe con los pedidos habilitados.
+    ...(CUSTOMER_ORDERS_ENABLED
+      ? [
+          {
+            id: "portal-cart",
+            route: "/portal/wishlist",
+            target: "portal-cart",
+            title: "Carrito / borrador",
+            body: "Mientras cargás productos se arma un borrador. Cuando esté listo, lo enviás al equipo Soundtec.",
+            affects: "Al enviar, el pedido aparece en Admin → Pedidos.",
+          },
+        ]
+      : []),
+    CUSTOMER_ORDERS_ENABLED
+      ? {
+          id: "portal-done",
+          route: "/portal",
+          title: "Ya podés pedir",
+          body: "Circuito listo. Empezá por el catálogo, agregá al carrito y enviá tu primer pedido.",
+          tip: "Si también usás el panel, «Modo admin» arriba a la derecha te lleva de vuelta.",
+        }
+      : {
+          id: "portal-done",
+          route: "/portal",
+          title: "Listo",
+          body: "Circuito listo. Empezá por el catálogo; para cotizar, escribile a tu vendedor de Soundtec.",
+          tip: "Si también usás el panel, «Modo admin» arriba a la derecha te lleva de vuelta.",
+        },
   ],
 };
 

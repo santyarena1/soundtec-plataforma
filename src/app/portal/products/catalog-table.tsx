@@ -9,6 +9,7 @@ import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
 import { SelectableRowControls } from "./catalog-multi-select";
 import { commercialTagFor } from "@/lib/commercial-tags";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 interface TableProps {
   items: CatalogProduct[];
@@ -111,7 +112,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
             <div className="flex flex-col justify-center gap-3 border-t border-border bg-secondary/30 p-5 sm:col-span-2 lg:col-span-1 lg:border-l lg:border-t-0 lg:p-6">
               {publicMode ? (
                 <>
-                  <p className="text-sm leading-relaxed text-muted-foreground">Ingresá con tu cuenta para ver precios y armar tu pedido.</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{CUSTOMER_ORDERS_ENABLED ? "Ingresá con tu cuenta para ver precios y armar tu pedido." : "Ingresá con tu cuenta para ver precios."}</p>
                   <Link
                     href={href}
                     className="inline-flex h-11 items-center justify-center gap-1.5 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"

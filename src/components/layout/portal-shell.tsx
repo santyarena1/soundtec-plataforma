@@ -11,6 +11,7 @@ import { getActiveDraftSummary } from "@/lib/draft-request";
 import { OnboardingHost } from "@/components/onboarding/onboarding-host";
 import { PortalOnboardingButton } from "@/components/onboarding/portal-onboarding-button";
 import { getOnboardingState } from "@/server/actions/onboarding";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 const navItems = [
   { href: "/portal", label: "Inicio", icon: LayoutDashboard },
@@ -29,7 +30,8 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
   if (!session?.user) redirect("/login?callbackUrl=/portal");
   const [appName, draftSummary, onboardingState] = await Promise.all([
     getSetting("app.name", "Soundtec"),
-    getActiveDraftSummary(session.user.id),
+    // Pedidos apagados (src/lib/customer-orders.ts): sin borrador ni flotante.
+    CUSTOMER_ORDERS_ENABLED ? getActiveDraftSummary(session.user.id) : null,
     getOnboardingState(),
   ]);
 
@@ -117,7 +119,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
         </div>
       </footer>
 
-      <DraftMiniCart draft={draftSummary} />
+      {CUSTOMER_ORDERS_ENABLED ? <DraftMiniCart draft={draftSummary} /> : null}
       <PortalBottomNav />
       <PortalToaster />
       <OnboardingHost surface="portal" initialState={onboardingState} />

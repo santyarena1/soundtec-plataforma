@@ -7,6 +7,7 @@ import { formatUsd } from "@/lib/utils";
 import { AddToDraftButton } from "../add-to-draft-button";
 import { BundleAddAccessoryButton, useProductBundle } from "./product-bundle";
 import { Package } from "lucide-react";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 export interface CompatibleAccessoryItem {
   relationId: string;
@@ -44,7 +45,9 @@ const VARIANT_LABELS: Record<RelationVariant, { title: string; subtitle: (parent
   ACCESSORY: {
     title: "Accesorios compatibles",
     subtitle: (parent) =>
-      `Productos vinculados a ${parent} desde administración. Podés sumarlos a tu pedido o ver su ficha.`,
+      CUSTOMER_ORDERS_ENABLED
+        ? `Productos vinculados a ${parent} desde administración. Podés sumarlos a tu pedido o ver su ficha.`
+        : `Productos vinculados a ${parent} desde administración. Abrí la ficha de cada uno para ver el detalle.`,
   },
   CROSS_SELL: {
     title: "Productos alternativos",
@@ -74,7 +77,7 @@ const VARIANT_LABELS: Record<RelationVariant, { title: string; subtitle: (parent
   COMPATIBLE: {
     title: "Compatible con",
     subtitle: (parent) =>
-      `Productos de nuestro catálogo que la ficha del fabricante menciona como compatibles con ${parent}. Podés sumarlos a tu pedido.`,
+      `Productos de nuestro catálogo que la ficha del fabricante menciona como compatibles con ${parent}.${CUSTOMER_ORDERS_ENABLED ? " Podés sumarlos a tu pedido." : ""}`,
   },
 };
 

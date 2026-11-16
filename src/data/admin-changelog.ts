@@ -2889,4 +2889,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Room Builder: un solo cálculo de largo mesa → códec, cadena completa a través de extensores Hall, kits UC con touch incluido y «Cambiar por otro» solo de la misma clase." },
     ],
   },
+  {
+    id: "ship-2026-11-16-pedidos-cliente-pausados",
+    version: "2.40.1",
+    releasedAt: "2026-11-16T23:30:00.000Z",
+    summary: "Pedidos desde el portal pausados para clientes: quedan como Próximamente.",
+    items: [
+      { kind: "MEJORA", text: "El cliente ya no ve ni usa pedidos en el portal (inicio, catálogo, ficha, favoritos y listas). Las direcciones de pedidos llevan al inicio. La gestión en Admin → Pedidos sigue igual. Se reactiva con CUSTOMER_ORDERS_ENABLED en src/lib/customer-orders.ts." },
+    ],
+  },
 ];

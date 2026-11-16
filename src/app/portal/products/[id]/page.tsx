@@ -23,6 +23,7 @@ import { AddToRequestPanel } from "./add-to-request-panel";
 import { ProductBundleProvider, BundleStagingPanel } from "./product-bundle";
 import { ProductGallery } from "./product-gallery";
 import { getOrCreateActiveDraft } from "@/lib/draft-request";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 import { AiContentNotice } from "./ai-content-notice";
 import { ProductConfigurator } from "./configurator";
 import { CompatibleAccessoriesSection } from "./compatible-accessories";
@@ -113,13 +114,16 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     prisma.wishlistItem.findFirst({
       where: { productId: product.id, wishlist: { userId: user.id } },
     }),
-    getOrCreateActiveDraft(user.id, { migrateLegacyCart: true }).then(async (d) => ({
-      id: d.id,
-      type: d.type,
-      itemCount: await prisma.customerRequestItem.count({
-        where: { requestId: d.id, isAdminSuggestion: false },
-      }),
-    })),
+    // Pedidos apagados (src/lib/customer-orders.ts): no se crea ni se lee el borrador.
+    CUSTOMER_ORDERS_ENABLED
+      ? getOrCreateActiveDraft(user.id, { migrateLegacyCart: true }).then(async (d) => ({
+          id: d.id,
+          type: d.type,
+          itemCount: await prisma.customerRequestItem.count({
+            where: { requestId: d.id, isAdminSuggestion: false },
+          }),
+        }))
+      : null,
     getGlobalMarginPercent(),
   ]);
 
@@ -282,7 +286,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           unitPriceUsd: product.requiresQuote ? 0 : pricing.finalPriceUsd,
           imageUrl: product.images[0]?.url ?? null,
         }}
-        draftRequestId={activeDraft.id}
+        draftRequestId={activeDraft?.id ?? ""}
       >
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
         <div className="min-w-0 lg:sticky lg:top-6">
@@ -333,7 +337,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               {product.requiresQuote || pricing.finalPriceUsd <= 0 ? (
                 <>
                   <p className="text-3xl font-semibold tracking-tight">Consultá precio</p>
-                  <p className="muted-text text-sm">Agregalo a un pedido y te pasamos el precio.</p>
+                  <p className="muted-text text-sm">
+                    {CUSTOMER_ORDERS_ENABLED
+                      ? "Agregalo a un pedido y te pasamos el precio."
+                      : "Pedíselo a tu vendedor de Soundtec y te pasamos el precio."}
+                  </p>
                 </>
               ) : (
                 <>
@@ -381,10 +389,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </CardContent>
           </Card>
 
-          <BundleStagingPanel
-            draftItemCount={activeDraft.itemCount}
-            draftRequestId={activeDraft.id}
-          />
+          {activeDraft ? (
+            <BundleStagingPanel draftItemCount={activeDraft.itemCount} draftRequestId={activeDraft.id} />
+          ) : null}
         </div>
       </div>
 
@@ -401,7 +408,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               priceDeltaUsd: o.priceDeltaUsd != null ? Number(o.priceDeltaUsd) : null,
               isRequired: o.isRequired,
             }))}
-            draftRequestId={activeDraft.id}
+            draftRequestId={activeDraft?.id ?? ""}
             accessoryContext={accessoryContext}
           />
         </div>

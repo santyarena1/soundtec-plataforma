@@ -8,6 +8,7 @@ import { CRESTRON_HOME_ID } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
 import { BrandBar } from "@/app/catalogo/brand-bar";
 import { getActiveDraftSummary } from "@/lib/draft-request";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 import { CatalogToolbar } from "./catalog-toolbar";
 import { CatalogLayout } from "./catalog-sidebar";
 import { CatalogGrid } from "./catalog-grid";
@@ -79,7 +80,8 @@ export default async function ProductsPage({
     brandsPromise,
     getCatalog(filters, ctx),
     catalogFilterMeta(filters),
-    getActiveDraftSummary(user.id),
+    // Pedidos apagados (src/lib/customer-orders.ts): sin «Mi pedido».
+    CUSTOMER_ORDERS_ENABLED ? getActiveDraftSummary(user.id) : null,
     listCatalogTopCategories(filters, ctx),
   ]);
   const brands = listed.brands;
@@ -132,7 +134,7 @@ export default async function ProductsPage({
 
       {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
 
-      <CatalogMultiSelectProvider productIds={items.map((i) => i.id)} canEditPrices={canEditPrices}>
+      <CatalogMultiSelectProvider productIds={items.map((i) => i.id)} canEditPrices={canEditPrices} canOrder={CUSTOMER_ORDERS_ENABLED}>
       <CatalogLayout state={urlState} meta={meta} total={total} toolbar={<CatalogToolbar state={urlState} />}>
         {items.length === 0 && comingSoonBrand ? null : items.length === 0 ? (
           <EmptyState

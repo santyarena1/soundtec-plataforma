@@ -3,12 +3,15 @@ import { requireUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { loadStoredQuotePdf } from "@/lib/quote-pdf-store";
 import { parseQuoteAttachments } from "@/lib/request-quote-link";
+import { CUSTOMER_ORDERS_DISABLED_MESSAGE, CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string; quoteId: string }> }) {
   const { id, quoteId } = await ctx.params;
   const user = await requireUser();
+  // Pedidos del portal apagados (src/lib/customer-orders.ts).
+  if (!CUSTOMER_ORDERS_ENABLED) return NextResponse.json({ error: CUSTOMER_ORDERS_DISABLED_MESSAGE }, { status: 403 });
   const request = await prisma.customerRequest.findFirst({
     where: { id, userId: user.id },
     include: { messages: { select: { attachments: true } } },

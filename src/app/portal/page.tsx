@@ -13,6 +13,7 @@ import { getVisibleProductsWhere } from "@/lib/catalog";
 import { brandHref, brandsWithLogos, getBrandsWithoutProducts, loadCrestronHomeSettings, withCrestronHome } from "@/lib/catalog-brands";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import { BrandCardCaption } from "@/app/catalogo/brand-grid";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 import {
   ArrowRight,
   Heart,
@@ -70,21 +71,26 @@ export default async function PortalDashboardPage() {
   ] = await Promise.all([
     prisma.product.count({ where: visible }),
     prisma.wishlistItem.count({ where: { wishlist: { userId: user.id } } }),
-    prisma.customerRequest.count({
-      where: { userId: user.id, status: { in: ["SENT", "IN_REVIEW", "ANSWERED"] } },
-    }),
-    prisma.customerRequest.findMany({
-      where: { userId: user.id, status: { not: "DRAFT" } },
-      orderBy: { updatedAt: "desc" },
-      take: RECENT_REQUESTS,
-      include: { _count: { select: { items: true } } },
-    }),
+    // Pedidos apagados (src/lib/customer-orders.ts): ni se consultan.
+    CUSTOMER_ORDERS_ENABLED
+      ? prisma.customerRequest.count({
+          where: { userId: user.id, status: { in: ["SENT", "IN_REVIEW", "ANSWERED"] } },
+        })
+      : 0,
+    CUSTOMER_ORDERS_ENABLED
+      ? prisma.customerRequest.findMany({
+          where: { userId: user.id, status: { not: "DRAFT" } },
+          orderBy: { updatedAt: "desc" },
+          take: RECENT_REQUESTS,
+          include: { _count: { select: { items: true } } },
+        })
+      : [],
     prisma.landingPost.findMany({
       where: { isPublished: true },
       orderBy: { publishedAt: "desc" },
       take: 3,
     }),
-    getActiveDraftSummary(user.id),
+    CUSTOMER_ORDERS_ENABLED ? getActiveDraftSummary(user.id) : null,
     prisma.product.groupBy({ by: ["brandId"], where: { AND: [visible, { brandId: { not: null } }] }, _count: { _all: true } }),
     prisma.product.findMany({
       where: { AND: [visible, { kind: "PRINCIPAL" }] },
@@ -191,7 +197,11 @@ export default async function PortalDashboardPage() {
           <dl className="grid min-w-0 grid-cols-3 gap-2 self-end sm:gap-3 lg:grid-cols-1">
             <HeroStat label="Productos" value={totalProducts.toLocaleString("es-AR")} href="/portal/products" />
             <HeroStat label="Favoritos" value={favorites.toLocaleString("es-AR")} href="/portal/wishlist" />
-            <HeroStat label="Pedidos" value={openRequests.toLocaleString("es-AR")} href="/portal/requests" />
+            {CUSTOMER_ORDERS_ENABLED ? (
+              <HeroStat label="Pedidos" value={openRequests.toLocaleString("es-AR")} href="/portal/requests" />
+            ) : (
+              <ComingSoonStat label="Pedidos" />
+            )}
           </dl>
         </div>
       </section>
@@ -303,6 +313,7 @@ export default async function PortalDashboardPage() {
 
       {/* Pedidos + novedades del equipo */}
       <div className="grid gap-6 lg:grid-cols-3">
+        {CUSTOMER_ORDERS_ENABLED ? (
         <Card className="lg:col-span-2">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -342,6 +353,9 @@ export default async function PortalDashboardPage() {
             </div>
           </CardContent>
         </Card>
+        ) : (
+          <OrdersComingSoonCard />
+        )}
 
         <Card>
           <CardContent className="p-6">
@@ -380,6 +394,41 @@ function HeroStat({ label, value, href }: { label: string; value: string; href: 
       <dt className="order-2 mt-1 text-[10px] font-medium uppercase leading-tight tracking-normal text-primary-foreground/60 sm:text-[11px] sm:tracking-wider">{label}</dt>
       <dd className="order-1 text-lg font-semibold leading-none tabular-nums sm:text-2xl">{value}</dd>
     </Link>
+  );
+}
+
+/** Lugar del contador de pedidos mientras la función está apagada: se ve, sin link. */
+function ComingSoonStat({ label }: { label: string }) {
+  return (
+    <div
+      aria-disabled="true"
+      title="Próximamente"
+      className="flex min-w-0 cursor-not-allowed flex-col overflow-hidden rounded-xl border border-dashed border-primary-foreground/15 px-1.5 py-2.5 text-center sm:px-4 sm:text-left"
+    >
+      <dt className="order-2 mt-1 text-[10px] font-medium uppercase leading-tight tracking-normal text-primary-foreground/50 sm:text-[11px] sm:tracking-wider">{label}</dt>
+      <dd className="order-1 text-[11px] font-semibold uppercase leading-tight tracking-wide text-primary-foreground/60 sm:text-sm">Próximamente</dd>
+    </div>
+  );
+}
+
+/** Reemplaza «Últimos pedidos» mientras los pedidos desde el portal están apagados. */
+function OrdersComingSoonCard() {
+  return (
+    <Card className="lg:col-span-2">
+      <CardContent className="flex h-full flex-col justify-center gap-3 p-6">
+        <div className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-muted-foreground">
+            <Send className="h-4 w-4" />
+            Pedidos
+          </CardTitle>
+          <Badge tone="muted">Próximamente</Badge>
+        </div>
+        <p className="muted-text max-w-xl">
+          Estamos terminando la sección para armar y enviar pedidos desde el portal. Mientras tanto, para cotizar
+          escribile a tu vendedor de Soundtec: el catálogo y los precios de tu cuenta ya los ves acá.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 

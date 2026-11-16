@@ -12,6 +12,7 @@ import { addToDraftRequest } from "@/server/actions/requests";
 import { AccessoryWarningBlock } from "@/components/portal/accessory-warning";
 import type { CompatiblePrimary } from "@/lib/accessory-context";
 import { showToast } from "@/components/portal/portal-toaster";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 interface Option {
   id: string;
@@ -145,7 +146,7 @@ export function ProductConfigurator({
     <Card>
       <CardContent className="space-y-4 p-5">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Configurar y agregar a tu pedido</h3>
+          <h3 className="font-semibold">{CUSTOMER_ORDERS_ENABLED ? "Configurar y agregar a tu pedido" : "Opciones del producto"}</h3>
           <Badge tone="accent">{options.length} opcionales</Badge>
         </div>
 
@@ -250,6 +251,8 @@ export function ProductConfigurator({
           </p>
         ) : null}
 
+        {/* Pedidos apagados (src/lib/customer-orders.ts): se ven las opciones, sin agregar. */}
+        {CUSTOMER_ORDERS_ENABLED ? (
         <div className="flex justify-end">
           <Button
             onClick={submit}
@@ -258,6 +261,7 @@ export function ProductConfigurator({
             {pending ? "Agregando…" : "Agregar configuración a mi pedido"}
           </Button>
         </div>
+        ) : null}
       </CardContent>
     </Card>
   );

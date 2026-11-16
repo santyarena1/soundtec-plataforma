@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CompatiblePrimary } from "@/lib/accessory-context";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 interface Props {
   message: string;
@@ -88,9 +89,11 @@ export function AccessoryInfoBanner({
               ))}
             </p>
           ) : null}
-          <p className="mt-2 text-xs text-muted-foreground">
-            Podés agregarlo a tu pedido igualmente; te pediremos confirmar la advertencia.
-          </p>
+          {CUSTOMER_ORDERS_ENABLED ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Podés agregarlo a tu pedido igualmente; te pediremos confirmar la advertencia.
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

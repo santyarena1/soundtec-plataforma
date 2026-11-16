@@ -8,6 +8,7 @@ import type { CompatiblePrimary } from "@/lib/accessory-context";
 import { Button } from "@/components/ui/button";
 import { Plus, Check, Loader2 } from "lucide-react";
 import { showToast } from "@/components/portal/portal-toaster";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 interface Props {
   productId: string;
@@ -16,7 +17,13 @@ interface Props {
   compact?: boolean;
 }
 
-export function AddToDraftButton({ productId, productName, quantity = 1, compact = false }: Props) {
+export function AddToDraftButton(props: Props) {
+  // Pedidos apagados (src/lib/customer-orders.ts): el botón no se muestra en ningún lado.
+  if (!CUSTOMER_ORDERS_ENABLED) return null;
+  return <AddToDraftButtonInner {...props} />;
+}
+
+function AddToDraftButtonInner({ productId, productName, quantity = 1, compact = false }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [justAdded, setJustAdded] = useState(false);

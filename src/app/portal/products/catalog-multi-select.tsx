@@ -11,9 +11,13 @@ interface Props {
   productIds: string[];
   /** Admin con márgenes y costos: puede editar precios desde el catálogo. */
   canEditPrices?: boolean;
+  /** Puede agregar la selección al pedido (src/lib/customer-orders.ts). */
+  canOrder?: boolean;
 }
 
-export function CatalogMultiSelectProvider({ children, productIds, canEditPrices = false }: Props) {
+export function CatalogMultiSelectProvider({ children, productIds, canEditPrices = false, canOrder = false }: Props) {
+  // Seleccionar solo sirve para pedir o para editar precios: si no hay ninguna de las dos, no hay casillas.
+  const selectable = canOrder || canEditPrices;
   const [editIds, setEditIds] = useState<string[] | null>(null);
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -55,7 +59,7 @@ export function CatalogMultiSelectProvider({ children, productIds, canEditPrices
   }
 
   return (
-    <MultiSelectContext.Provider value={{ selected, toggle, editPrices: canEditPrices ? (ids) => setEditIds(ids) : undefined }}>
+    <MultiSelectContext.Provider value={{ selectable, selected, toggle, editPrices: canEditPrices ? (ids) => setEditIds(ids) : undefined }}>
       {children}
       {editIds ? <PriceEditorModal productIds={editIds} open onClose={() => setEditIds(null)} /> : null}
       {selected.size > 0 && (
@@ -89,6 +93,7 @@ export function CatalogMultiSelectProvider({ children, productIds, canEditPrices
                 Editar precios
               </button>
             ) : null}
+            {canOrder ? (
             <button
               onClick={addAll}
               disabled={pending}
@@ -97,6 +102,7 @@ export function CatalogMultiSelectProvider({ children, productIds, canEditPrices
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
               Agregar a pedido
             </button>
+            ) : null}
           </div>
         </div>
       )}
@@ -107,6 +113,8 @@ export function CatalogMultiSelectProvider({ children, productIds, canEditPrices
 import { createContext, useContext } from "react";
 
 interface MultiSelectCtx {
+  /** Si es false, no se muestran casillas de selección. */
+  selectable: boolean;
   selected: Set<string>;
   toggle: (id: string) => void;
   /** Solo para quien puede editar precios. */
@@ -114,6 +122,7 @@ interface MultiSelectCtx {
 }
 
 const MultiSelectContext = createContext<MultiSelectCtx>({
+  selectable: false,
   selected: new Set(),
   toggle: () => {},
 });
@@ -124,8 +133,9 @@ export function useMultiSelect() {
 
 /** Casilla de selección y botón de precio para la vista tabla. */
 export function SelectableRowControls({ productId }: { productId: string }) {
-  const { selected, toggle, editPrices } = useMultiSelect();
+  const { selectable, selected, toggle, editPrices } = useMultiSelect();
   const isSelected = selected.has(productId);
+  if (!selectable) return null;
   return (
     <span className="inline-flex items-center gap-2">
       <input
@@ -157,8 +167,9 @@ export function SelectableCard({
   productId: string;
   children: React.ReactNode;
 }) {
-  const { selected, toggle, editPrices } = useMultiSelect();
+  const { selectable, selected, toggle, editPrices } = useMultiSelect();
   const isSelected = selected.has(productId);
+  if (!selectable) return <>{children}</>;
 
   return (
     <div className="group/selectable relative h-full">

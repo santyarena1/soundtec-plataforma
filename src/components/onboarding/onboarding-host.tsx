@@ -40,6 +40,7 @@ import type {
 } from "@/lib/onboarding/types";
 import { resetOnboarding, saveOnboardingState, setOnboardingHandoff } from "@/server/actions/onboarding";
 import { toast } from "sonner";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 type Phase = "idle" | "welcome" | "tour" | "handoff";
 
@@ -539,8 +540,8 @@ export function OnboardingHost({
             Continuá la guía
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Viniste desde el tutorial del panel. Acá podés recorrer la guía corta del portal (catálogo y
-            pedidos) o volver al admin para terminar el paseo del panel.
+            Viniste desde el tutorial del panel. Acá podés recorrer la guía corta del portal (catálogo
+            {CUSTOMER_ORDERS_ENABLED ? " y pedidos" : " y favoritos"}) o volver al admin para terminar el paseo del panel.
           </p>
           <div className="mt-5 flex flex-col gap-2">
             <Button type="button" onClick={() => dismissHandoff({ startPortal: true })} disabled={pending}>

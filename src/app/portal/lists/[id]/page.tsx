@@ -11,6 +11,7 @@ import { getGlobalMarginPercent } from "@/lib/settings";
 import { formatUsd } from "@/lib/utils";
 import { removeWishlistItem } from "@/server/actions/wishlist";
 import { createRequestDraft } from "@/server/actions/requests";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 export default async function ListDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -62,7 +63,7 @@ export default async function ListDetailPage({ params }: { params: Promise<{ id:
             <ButtonLink href="/portal/lists" variant="outline" size="sm">
               ← Volver
             </ButtonLink>
-            {list.items.length > 0 ? (
+            {CUSTOMER_ORDERS_ENABLED && list.items.length > 0 ? (
               <form action={createRequestDraft}>
                 <input type="hidden" name="fromWishlistId" value={list.id} />
                 <input type="hidden" name="type" value="QUOTE" />

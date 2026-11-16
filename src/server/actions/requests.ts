@@ -13,6 +13,7 @@ import { logClientActivity } from "@/server/crm/activity";
 import { accessoryAckNote, evaluateAccessoryPolicy } from "@/lib/accessory-context";
 import { getOrCreateActiveDraft } from "@/lib/draft-request";
 import { generateAndStoreQuotePdf } from "@/lib/quote-pdf-store";
+import { CUSTOMER_ORDERS_DISABLED_MESSAGE, CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 function revalidateDraftPaths(requestId: string) {
   revalidatePath("/portal/requests");
@@ -20,6 +21,13 @@ function revalidateDraftPaths(requestId: string) {
   revalidatePath("/portal/products");
   revalidatePath("/portal/cart");
 }
+
+/** Pedidos del portal apagados (ver src/lib/customer-orders.ts): las acciones del cliente se rechazan. */
+function assertCustomerOrdersEnabled(): void {
+  if (!CUSTOMER_ORDERS_ENABLED) throw new Error(CUSTOMER_ORDERS_DISABLED_MESSAGE);
+}
+
+const ORDERS_OFF = { ok: false as const, error: CUSTOMER_ORDERS_DISABLED_MESSAGE };
 
 async function assertVisible(productId: string, userId: string, role: string) {
   if (role !== "CLIENT") return true;
@@ -45,6 +53,7 @@ const createSchema = z.object({
 
 export async function createRequestDraft(formData: FormData): Promise<void> {
   const user = await requireUser();
+  assertCustomerOrdersEnabled();
   const parsed = createSchema.safeParse({
     type: formData.get("type") || "QUOTE",
     projectDescription: formData.get("projectDescription") || null,
@@ -155,6 +164,7 @@ type RequestItemResult = {
 /** Crear pedido nuevo con un producto (desde ficha / formulario cliente). */
 export async function createRequestWithProduct(formData: FormData): Promise<RequestItemResult> {
   const user = await requireUser();
+  if (!CUSTOMER_ORDERS_ENABLED) return ORDERS_OFF;
   const parsed = createSchema.safeParse({
     type: formData.get("type") || "QUOTE",
     projectDescription: formData.get("projectDescription") || null,
@@ -235,6 +245,7 @@ export async function addRequestItem(formData: FormData): Promise<{
   compatiblePrimaries?: { id: string; name: string }[];
 }> {
   const user = await requireUser();
+  if (!CUSTOMER_ORDERS_ENABLED) return ORDERS_OFF;
   const parsed = addItemSchema.safeParse({
     requestId: formData.get("requestId"),
     productId: formData.get("productId"),
@@ -337,6 +348,7 @@ export async function addToDraftRequest(formData: FormData): Promise<{
   };
 }> {
   const user = await requireUser();
+  if (!CUSTOMER_ORDERS_ENABLED) return ORDERS_OFF;
   const parsed = draftAddSchema.safeParse({
     productId: formData.get("productId"),
     quantity: formData.get("quantity") || 1,
@@ -454,6 +466,7 @@ export async function addItemsToDraftBundle(input: {
   unitsTotal: number;
 }> {
   const user = await requireUser();
+  if (!CUSTOMER_ORDERS_ENABLED) return { ...ORDERS_OFF, added: 0, itemsTotal: 0, unitsTotal: 0 };
   if (!input.items || input.items.length === 0) {
     return { ok: false, error: "Sin items para agregar.", added: 0, itemsTotal: 0, unitsTotal: 0 };
   }
@@ -543,6 +556,7 @@ export async function bulkAddToDraftSimple(
   productIds: string[]
 ): Promise<{ ok: boolean; added: number; error?: string }> {
   const user = await requireUser();
+  if (!CUSTOMER_ORDERS_ENABLED) return { ...ORDERS_OFF, added: 0 };
   if (!productIds.length) return { ok: false, added: 0, error: "Sin productos seleccionados." };
 
   const draft = await getOrCreateActiveDraft(user.id, { migrateLegacyCart: true });
@@ -572,6 +586,7 @@ export async function updateDraftItemQuantityForm(formData: FormData): Promise<v
 
 export async function updateDraftItemQuantity(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const user = await requireUser();
+  if (!CUSTOMER_ORDERS_ENABLED) return ORDERS_OFF;
   const itemId = String(formData.get("itemId") || "");
   const quantity = Number(formData.get("quantity") || 1);
   if (!itemId || quantity < 1) return { ok: false, error: "Datos inválidos." };
@@ -594,6 +609,7 @@ const sendSchema = z.object({
 
 export async function sendRequest(formData: FormData): Promise<void> {
   const user = await requireUser();
+  assertCustomerOrdersEnabled();
   const parsed = sendSchema.safeParse({
     requestId: formData.get("requestId"),
     projectDescription: formData.get("projectDescription") || null,
@@ -633,6 +649,7 @@ export async function postRequestMessage(formData: FormData): Promise<void> {
   if (!parsed.success) return;
 
   const isStaff = user.role !== "CLIENT";
+  if (!isStaff) assertCustomerOrdersEnabled();
   // Como equipo, escribir en el pedido de un cliente exige el permiso de responder pedidos.
   if (isStaff) await requireStaff("requests.respond");
   const request = await prisma.customerRequest.findFirst({
@@ -995,6 +1012,7 @@ export async function removeRequestItem(formData: FormData): Promise<{ ok: boole
   });
   if (!item) return { ok: false, error: "Ítem no encontrado" };
   const isStaff = user.role !== "CLIENT";
+  if (!isStaff && !CUSTOMER_ORDERS_ENABLED) return ORDERS_OFF;
   if (!isStaff && item.request.userId !== user.id) return { ok: false, error: "No autorizado" };
   await prisma.customerRequestItem.delete({ where: { id: itemId } });
   revalidatePath(`/admin/requests/${item.requestId}`);
