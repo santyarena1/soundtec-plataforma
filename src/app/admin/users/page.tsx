@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { UserFormModal } from "@/components/admin/user-form-modal";
 import { CustomRolesManager, type RoleSummary } from "@/components/admin/custom-roles-manager";
 import { formatDate } from "@/lib/utils";
+import { portalUserStatus } from "@/lib/clients/portal-status";
 import { USER_TYPE_LABEL, loadUserFormOptions } from "@/server/users-ui";
 import { ensureSystemRoles } from "@/server/system-roles";
 
@@ -68,7 +69,11 @@ export default async function Page({ searchParams }: { searchParams: { q?: strin
       : prisma.user.findMany({
           where,
           orderBy: view === "portal" ? [{ client: { companyName: "asc" } }, { name: "asc" }] : [{ role: "asc" }, { name: "asc" }],
-          include: { client: { select: { id: true, companyName: true } }, customRole: { select: { name: true, permissionsJson: true, isActive: true } } },
+          include: {
+            client: { select: { id: true, companyName: true } },
+            customRole: { select: { name: true, permissionsJson: true, isActive: true } },
+            activationTokens: { where: { usedAt: null }, orderBy: { createdAt: "desc" }, take: 1, select: { expiresAt: true } },
+          },
           take: 500,
         }),
     loadUserFormOptions(),
@@ -112,8 +117,12 @@ export default async function Page({ searchParams }: { searchParams: { q?: strin
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Usuarios y roles"
-        description="Quién entra a la plataforma: el equipo interno (cada uno con su rol) y las personas de cada empresa cliente."
+        title={seesTeam ? "Usuarios y roles" : "Accesos de tus clientes"}
+        description={
+          seesTeam
+            ? "Quién entra a la plataforma: el equipo interno (cada uno con su rol) y las personas de cada empresa cliente."
+            : "Las personas de tus empresas que entran al portal. También podés darles acceso desde la ficha de cada cliente."
+        }
         actions={
           canManage || canPortal ? (
             <div className="flex flex-wrap gap-2">
@@ -231,8 +240,17 @@ export default async function Page({ searchParams }: { searchParams: { q?: strin
                                 {PRICE_LABEL[price]}
                               </Badge>
                             ) : null}
-                            {!u.isActive ? <Badge tone="muted">Inactivo</Badge> : null}
-                            {u.mustChangePassword ? <Badge tone="warning">clave temporal</Badge> : null}
+                            {u.role === "CLIENT" ? (
+                              (() => {
+                                const st = portalUserStatus({ ...u, pendingToken: u.activationTokens[0] ?? null });
+                                return <Badge tone={st.tone} title={st.hint}>{st.label}</Badge>;
+                              })()
+                            ) : (
+                              <>
+                                {!u.isActive ? <Badge tone="muted">Inactivo</Badge> : null}
+                                {u.mustChangePassword ? <Badge tone="warning">clave temporal</Badge> : null}
+                              </>
+                            )}
                           </span>
                           <span className="mt-2 block text-[11px] text-muted-foreground">
                             {u.lastLoginAt ? `Último acceso ${formatDate(u.lastLoginAt)}` : "Todavía no entró"}

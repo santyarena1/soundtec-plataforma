@@ -20,6 +20,7 @@ import { ActivityForm } from "@/components/admin/activity-form";
 import { ActivityTimeline } from "@/components/admin/activity-timeline";
 import { ClientPricingPanel } from "@/components/admin/client-pricing-panel";
 import { formatDate, formatUsd } from "@/lib/utils";
+import { portalUserStatus } from "@/lib/clients/portal-status";
 
 async function createMovementForm(formData: FormData) {
   "use server";
@@ -63,7 +64,15 @@ export default async function Page({ params, searchParams }: { params: { id: str
         contacts: { orderBy: [{ isPrimary: "desc" }, { name: "asc" }] },
         portalUsers: {
           orderBy: { name: "asc" },
-          select: { id: true, name: true, email: true, lastLoginAt: true, isActive: true, mustChangePassword: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            lastLoginAt: true,
+            isActive: true,
+            mustChangePassword: true,
+            activationTokens: { where: { usedAt: null }, orderBy: { createdAt: "desc" }, take: 1, select: { expiresAt: true } },
+          },
         },
       },
     }),
@@ -337,6 +346,52 @@ export default async function Page({ params, searchParams }: { params: { id: str
 
           <Card>
             <CardContent className="space-y-3 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-semibold">Acceso al portal</h2>
+                {canPortal && client.isActive ? <CreatePortalAccess clientId={id} name="" email={null} blank triggerLabel="Dar acceso" /> : null}
+              </div>
+              {client.portalUsers.map((u) => {
+                const status = portalUserStatus({ ...u, pendingToken: u.activationTokens[0] ?? null });
+                return (
+                  <div key={u.id} className="rounded border p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-1">
+                      {can("users.view") || canPortal ? (
+                        <Link className="font-medium hover:underline" href={`/admin/users/${u.id}`}>
+                          {u.name}
+                        </Link>
+                      ) : (
+                        <span className="font-medium">{u.name}</span>
+                      )}
+                      <Badge tone={status.tone}>{status.label}</Badge>
+                    </div>
+                    <p className="break-all text-xs text-muted-foreground">{u.email}</p>
+                    {status.hint ? <p className="mt-0.5 text-xs text-muted-foreground">{status.hint}</p> : null}
+                    {canPortal ? (
+                      <div className="mt-2">
+                        <PortalUserActions
+                          id={u.id}
+                          clientId={id}
+                          isActive={u.isActive}
+                          email={u.email}
+                          name={u.name}
+                          invited={status.state === "invited" || status.state === "invite_expired"}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+              {!client.portalUsers.length ? (
+                <p className="text-sm text-muted-foreground">
+                  Nadie de esta empresa entra al portal todavía.
+                  {canPortal ? (client.isActive ? " Dale acceso a una persona y le llega el link para crear su clave." : " Activá la empresa para dar accesos.") : ""}
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="space-y-3 p-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold">Contactos</h2>
                 {canContacts ? <ContactFormModal clientId={id} /> : null}
@@ -357,7 +412,7 @@ export default async function Page({ params, searchParams }: { params: { id: str
                       <p className="text-sm">{c.email || "Sin email"}</p>
                       <p className="text-sm text-muted-foreground">{[c.phone, c.whatsapp && `WhatsApp ${c.whatsapp}`].filter(Boolean).join(" · ") || "Sin teléfono"}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-1">
-                        {hasAccess ? <Badge tone="success">Con acceso al portal</Badge> : canPortal ? <CreatePortalAccess clientId={id} name={c.name} email={c.email} phone={c.phone ?? c.whatsapp} /> : null}
+                        {hasAccess ? <Badge tone="muted">Usuario del portal</Badge> : canPortal ? <CreatePortalAccess clientId={id} name={c.name} email={c.email} phone={c.phone ?? c.whatsapp} /> : null}
                         {canContacts ? <ContactActions id={c.id} clientId={id} isPrimary={c.isPrimary} /> : null}
                       </div>
                     </div>
@@ -369,35 +424,6 @@ export default async function Page({ params, searchParams }: { params: { id: str
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="space-y-3 p-4">
-              <h2 className="font-semibold">Accesos al portal</h2>
-              {client.portalUsers.map((u) => (
-                <div key={u.id} className="rounded border p-3">
-                  <div className="flex flex-wrap items-center gap-1">
-                    {can("users.view") ? (
-                      <Link className="font-medium hover:underline" href={`/admin/users/${u.id}`}>
-                        {u.name}
-                      </Link>
-                    ) : (
-                      <span className="font-medium">{u.name}</span>
-                    )}
-                    {!u.isActive ? <Badge tone="muted">Inactivo</Badge> : null}
-                    {u.mustChangePassword ? <Badge tone="warning">clave temporal</Badge> : null}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {u.email} · {u.lastLoginAt ? `Último acceso ${formatDate(u.lastLoginAt)}` : "Nunca ingresó"}
-                  </p>
-                  {canPortal ? <PortalUserActions id={u.id} clientId={id} isActive={u.isActive} email={u.email} name={u.name} /> : null}
-                </div>
-              ))}
-              {!client.portalUsers.length ? (
-                <p className="text-sm text-muted-foreground">
-                  Todavía no tiene acceso al portal.{canPortal ? " Dáselo desde un contacto con email." : ""}
-                </p>
-              ) : null}
-            </CardContent>
-          </Card>
         </aside>
         <main>
           <Tabs syncParam="tab" defaultTab={searchParams.tab || "activity"} tabs={tabs} />

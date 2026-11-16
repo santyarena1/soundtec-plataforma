@@ -15,7 +15,7 @@ export default async function SolicitarCuentaPage() {
     <div className="mx-auto max-w-xl">
       <h1 className="text-2xl font-semibold">Solicitar cuenta de cliente</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Con tu cuenta vas a ver precios y podés armar cotizaciones. La revisamos y te avisamos.
+        Para integradores, instaladores, estudios y comercios del rubro. Con la cuenta ves los precios para tu empresa y armás pedidos y cotizaciones.
       </p>
       <AccountRequestForm prefill={prefill} />
     </div>

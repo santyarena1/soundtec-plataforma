@@ -2898,4 +2898,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "El cliente ya no ve ni usa pedidos en el portal (inicio, catálogo, ficha, favoritos y listas). Las direcciones de pedidos llevan al inicio. La gestión en Admin → Pedidos sigue igual. Se reactiva con CUSTOMER_ORDERS_ENABLED en src/lib/customer-orders.ts." },
     ],
   },
+  {
+    id: "ship-2026-11-16-clientes-y-accesos",
+    version: "2.41.0",
+    releasedAt: "2026-11-17T00:30:00.000Z",
+    summary: "Clientes y accesos al portal más simples: estado de cada persona, alta en un paso y solicitud de cuenta más clara.",
+    items: [
+      { kind: "NUEVO", text: "Estado de acceso de cada persona: Activo, Invitado, Invitación vencida, Clave temporal, Sin ingresar o Sin acceso. Se ve en el listado, la ficha y Usuarios." },
+      { kind: "MEJORA", text: "Listado de clientes con columna «Acceso al portal», contadores que filtran (invitados sin clave, solicitudes por revisar) y menos columnas." },
+      { kind: "MEJORA", text: "Alta de cliente en un paso: empresa, persona de contacto con acceso al portal y cómo recibe el acceso. Lo demás, opcional y plegado." },
+      { kind: "MEJORA", text: "Ficha del cliente: acceso al portal arriba, «Reenviar invitación», «Restablecer acceso», «Dar acceso» a alguien nuevo y «Quitar acceso» con confirmación." },
+      { kind: "MEJORA", text: "Solicitudes: se ve si la persona ya activó su cuenta, aviso cuando el mail ya tiene usuario y sin solicitudes duplicadas." },
+      { kind: "MEJORA", text: "Pedir cuenta: los pasos explicados, enlace para ingresar si ya tenés cuenta y pantalla final con a qué mail llega el link y qué sigue." },
+    ],
+  },
 ];

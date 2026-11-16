@@ -52,7 +52,7 @@ export type ClientEditorInitial = {
 };
 
 let keySeq = 0;
-const newContact = (primary = false): Contact => ({
+const newContact = (primary = false, portalAccess = false): Contact => ({
   key: `c${++keySeq}`,
   name: "",
   role: "",
@@ -61,7 +61,7 @@ const newContact = (primary = false): Contact => ({
   whatsapp: "",
   notes: "",
   isPrimary: primary,
-  portalAccess: false,
+  portalAccess,
 });
 
 /**
@@ -121,13 +121,17 @@ export function ClientEditor({
   const [discounts, setDiscounts] = useState<Discount[]>(
     (initial?.discounts ?? []).map((d) => ({ target: d.target, targetId: d.targetId, percent: String(d.percent) }))
   );
-  const [contacts, setContacts] = useState<Contact[]>(editing ? [] : [newContact(true)]);
+  // Lo normal al dar de alta es que el contacto principal entre al portal: viene marcado.
+  const [contacts, setContacts] = useState<Contact[]>(editing ? [] : [newContact(true, canPortal)]);
   const [accessMode, setAccessMode] = useState<AccessMode>("invite");
 
   const setC = (patch: Partial<typeof company>) => setCompany((c) => ({ ...c, ...patch }));
   const setContact = (key: string, patch: Partial<Contact>) =>
     setContacts((list) => list.map((c) => (c.key === key ? { ...c, ...patch } : patch.isPrimary ? { ...c, isPrimary: false } : c)));
   const anyAccess = contacts.some((c) => c.portalAccess);
+  const accessCount = contacts.filter((c) => c.portalAccess && c.name.trim() && c.email.trim()).length;
+  const inviteLabel = accessCount === 1 ? "Crear cliente y mandar invitación" : "Crear cliente y mandar " + accessCount + " invitaciones";
+  const submitLabel = editing ? "Guardar cambios" : !accessCount ? "Crear cliente" : accessMode === "invite" ? inviteLabel : "Crear cliente y generar clave";
 
   function payloadCompany() {
     return {
@@ -163,7 +167,7 @@ export function ClientEditor({
         commercial: canCommercial ? payloadCommercial() : undefined,
         contacts: contacts
           .filter((c) => c.name.trim())
-          .map((c) => ({ name: c.name, role: c.role || null, email: c.email || null, phone: c.phone || null, whatsapp: c.whatsapp || null, notes: c.notes || null, isPrimary: c.isPrimary, portalAccess: c.portalAccess })),
+          .map((c) => ({ name: c.name, role: c.role || null, email: c.email || null, phone: c.phone || null, whatsapp: c.whatsapp || null, notes: c.notes || null, isPrimary: c.isPrimary, portalAccess: c.portalAccess && Boolean(c.email.trim()) })),
         accessMode,
       });
       if (!r.ok) return setError(r.error);
@@ -199,15 +203,11 @@ export function ClientEditor({
         submit();
       }}
     >
-      <Section title="Empresa" help="Datos fiscales y comerciales. Solo la razón social es obligatoria.">
+      <Section title="Empresa" help={editing ? "Datos fiscales y comerciales. Solo la razón social es obligatoria." : "Solo la razón social es obligatoria. El resto lo podés completar después en la ficha."}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="sm:col-span-2">
             <Label required>Razón social</Label>
             <Input value={company.companyName} onChange={(e) => setC({ companyName: e.target.value })} required autoComplete="off" />
-          </div>
-          <div>
-            <Label>Nombre de fantasía</Label>
-            <Input value={company.tradeName} onChange={(e) => setC({ tradeName: e.target.value })} autoComplete="off" />
           </div>
           <div>
             <Label>CUIT</Label>
@@ -243,59 +243,16 @@ export function ClientEditor({
             </Select>
             {!canChooseOwner ? <FieldHint>Queda a tu cargo.</FieldHint> : null}
           </div>
-          <div>
-            <Label>Cómo llegó</Label>
-            <Input value={company.source} onChange={(e) => setC({ source: e.target.value })} placeholder="Ej. recomendación, expo, web" />
-          </div>
-          <div>
-            <Label>Sitio web</Label>
-            <Input value={company.website} onChange={(e) => setC({ website: e.target.value })} placeholder="https://" />
-          </div>
-          <div>
-            <Label>Etiquetas</Label>
-            <Input value={company.tags} onChange={(e) => setC({ tags: e.target.value })} placeholder="Separadas por coma" />
-          </div>
-        </div>
-      </Section>
-
-      <Section title="Dirección">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="sm:col-span-2">
-            <Label>Calle y número</Label>
-            <Input value={company.address} onChange={(e) => setC({ address: e.target.value })} autoComplete="off" />
-          </div>
-          <div>
-            <Label>Ciudad / localidad</Label>
-            <Input value={company.city} onChange={(e) => setC({ city: e.target.value })} autoComplete="off" />
-          </div>
-          <div>
-            <Label>Código postal</Label>
-            <Input value={company.postalCode} onChange={(e) => setC({ postalCode: e.target.value })} autoComplete="off" />
-          </div>
-          <div>
-            <Label>Provincia</Label>
-            <Select value={company.province} onChange={(e) => setC({ province: e.target.value })}>
-              <option value="">Sin definir</option>
-              {PROVINCES.map((p) => (
-                <option key={p}>{p}</option>
-              ))}
-              {company.province && !(PROVINCES as readonly string[]).includes(company.province) ? <option>{company.province}</option> : null}
-            </Select>
-          </div>
-          <div>
-            <Label>País</Label>
-            <Input value={company.country} onChange={(e) => setC({ country: e.target.value })} />
-          </div>
         </div>
       </Section>
 
       {!editing ? (
-        <Section title="Contactos" help="Las personas de la empresa. A cada una le podés dar acceso al portal (necesita email).">
+        <Section title={canPortal ? "Persona de contacto y acceso al portal" : "Persona de contacto"} help={canPortal ? "Con el email entra al portal: le llega un link para crear su clave." : "Quién atiende por la empresa."}>
           <div className="space-y-3">
             {contacts.map((c) => (
               <div key={c.key} className={`rounded-lg border p-3 ${c.isPrimary ? "border-primary/40 bg-primary/5" : "border-border"}`}>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                  <div className="lg:col-span-2">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
                     <Label>Nombre y apellido</Label>
                     <Input value={c.name} onChange={(e) => setContact(c.key, { name: e.target.value })} autoComplete="off" />
                   </div>
@@ -303,34 +260,29 @@ export function ClientEditor({
                     <Label>Cargo</Label>
                     <Input value={c.role} onChange={(e) => setContact(c.key, { role: e.target.value })} placeholder="Compras, técnico…" />
                   </div>
-                  <div className="lg:col-span-2">
+                  <div>
                     <Label>Email</Label>
                     <Input type="email" value={c.email} onChange={(e) => setContact(c.key, { email: e.target.value })} autoComplete="off" data-1p-ignore data-lpignore="true" />
                   </div>
                   <div>
-                    <Label>Teléfono</Label>
+                    <Label>Teléfono / WhatsApp</Label>
                     <Input value={c.phone} onChange={(e) => setContact(c.key, { phone: e.target.value })} inputMode="tel" autoComplete="off" />
-                  </div>
-                  <div>
-                    <Label>WhatsApp</Label>
-                    <Input value={c.whatsapp} onChange={(e) => setContact(c.key, { whatsapp: e.target.value })} inputMode="tel" autoComplete="off" />
-                  </div>
-                  <div className="lg:col-span-3">
-                    <Label>Notas</Label>
-                    <Input value={c.notes} onChange={(e) => setContact(c.key, { notes: e.target.value })} placeholder="Horarios, preferencias…" />
                   </div>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
-                  <label className="flex items-center gap-1.5">
-                    <input type="radio" checked={c.isPrimary} onChange={() => setContact(c.key, { isPrimary: true })} />
-                    <Star className="h-3.5 w-3.5" /> Contacto principal
-                  </label>
                   {canPortal ? (
-                    <label className="flex items-center gap-1.5">
+                    <label className="flex items-center gap-1.5 font-medium">
                       <input type="checkbox" checked={c.portalAccess} onChange={(e) => setContact(c.key, { portalAccess: e.target.checked })} />
-                      Darle acceso al portal
+                      Entra al portal
                     </label>
                   ) : null}
+                  {contacts.length > 1 ? (
+                    <label className="flex items-center gap-1.5">
+                      <input type="radio" checked={c.isPrimary} onChange={() => setContact(c.key, { isPrimary: true })} />
+                      <Star className="h-3.5 w-3.5" /> Contacto principal
+                    </label>
+                  ) : null}
+                  {c.portalAccess && c.name.trim() && !c.email.trim() ? <span className="text-xs text-warning">Falta el email: sin email no puede entrar.</span> : null}
                   {contacts.length > 1 ? (
                     <button type="button" className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive" onClick={() => setContacts((l) => l.filter((x) => x.key !== c.key))}>
                       <Trash2 className="h-3.5 w-3.5" /> Quitar
@@ -340,7 +292,7 @@ export function ClientEditor({
               </div>
             ))}
             <Button type="button" variant="outline" size="sm" onClick={() => setContacts((l) => [...l, newContact(l.length === 0)])}>
-              <Plus className="h-4 w-4" /> Agregar contacto
+              <Plus className="h-4 w-4" /> Agregar otra persona
             </Button>
             {anyAccess ? <AccessModePicker value={accessMode} onChange={setAccessMode} /> : null}
           </div>
@@ -411,20 +363,90 @@ export function ClientEditor({
         </Section>
       ) : null}
 
-      <Section title="Notas internas" help="Solo las ve el equipo.">
-        <Textarea value={company.notes} onChange={(e) => setC({ notes: e.target.value })} rows={3} />
-      </Section>
+      <MoreData open={editing}>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <Label>Nombre de fantasía</Label>
+            <Input value={company.tradeName} onChange={(e) => setC({ tradeName: e.target.value })} autoComplete="off" />
+          </div>
+          <div>
+            <Label>Cómo llegó</Label>
+            <Input value={company.source} onChange={(e) => setC({ source: e.target.value })} placeholder="Ej. recomendación, expo, web" />
+          </div>
+          <div>
+            <Label>Sitio web</Label>
+            <Input value={company.website} onChange={(e) => setC({ website: e.target.value })} placeholder="https://" />
+          </div>
+          <div>
+            <Label>Etiquetas</Label>
+            <Input value={company.tags} onChange={(e) => setC({ tags: e.target.value })} placeholder="Separadas por coma" />
+          </div>
+        </div>
+        <p className="pt-2 text-sm font-medium">Dirección</p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="sm:col-span-2">
+            <Label>Calle y número</Label>
+            <Input value={company.address} onChange={(e) => setC({ address: e.target.value })} autoComplete="off" />
+          </div>
+          <div>
+            <Label>Ciudad / localidad</Label>
+            <Input value={company.city} onChange={(e) => setC({ city: e.target.value })} autoComplete="off" />
+          </div>
+          <div>
+            <Label>Código postal</Label>
+            <Input value={company.postalCode} onChange={(e) => setC({ postalCode: e.target.value })} autoComplete="off" />
+          </div>
+          <div>
+            <Label>Provincia</Label>
+            <Select value={company.province} onChange={(e) => setC({ province: e.target.value })}>
+              <option value="">Sin definir</option>
+              {PROVINCES.map((p) => (
+                <option key={p}>{p}</option>
+              ))}
+              {company.province && !(PROVINCES as readonly string[]).includes(company.province) ? <option>{company.province}</option> : null}
+            </Select>
+          </div>
+          <div>
+            <Label>País</Label>
+            <Input value={company.country} onChange={(e) => setC({ country: e.target.value })} />
+          </div>
+        </div>
+        <div className="pt-2">
+          <Label>Notas internas</Label>
+          <Textarea value={company.notes} onChange={(e) => setC({ notes: e.target.value })} rows={3} placeholder="Solo las ve el equipo." />
+        </div>
+      </MoreData>
 
       {error ? <p className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p> : null}
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={pending}>
-          {pending ? "Guardando…" : editing ? "Guardar cambios" : "Crear cliente"}
+          {pending ? "Guardando…" : submitLabel}
         </Button>
         <Link href={initial ? `/admin/clients/${initial.id}` : "/admin/clients"} className="text-sm text-muted-foreground hover:underline">
           Cancelar
         </Link>
       </div>
     </form>
+  );
+}
+
+/** Datos que casi nunca hacen falta en el alta: plegados al crear, abiertos al editar. */
+function MoreData({ open, children }: { open: boolean; children: React.ReactNode }) {
+  if (open) return <Section title="Más datos">{children}</Section>;
+  return (
+    <Card>
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5">
+          <span>
+            <span className="block font-semibold">Más datos (opcional)</span>
+            <span className="text-xs text-muted-foreground">Nombre de fantasía, web, dirección, etiquetas y notas internas.</span>
+          </span>
+          <span className="text-sm text-primary group-open:hidden">Mostrar</span>
+          <span className="hidden text-sm text-primary group-open:inline">Ocultar</span>
+        </summary>
+        <div className="space-y-3 px-5 pb-5">{children}</div>
+      </details>
+    </Card>
   );
 }
 

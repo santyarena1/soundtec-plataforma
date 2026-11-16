@@ -40,6 +40,13 @@ export async function submitAccountRequest(formData: FormData): Promise<SubmitRe
   const byMail = await consumeRateLimit(`acct:mail:${data.email}`, 3, WINDOW_MS);
   if (!byIp.ok || !byMail.ok) return { ok: false, error: "Ya recibimos tu pedido. Si necesitás algo más, escribinos." };
 
+  // Ese mail ya entra al portal: no tiene sentido otra solicitud (el admin no podría aprobarla).
+  if (await prisma.user.findUnique({ where: { email: data.email }, select: { id: true } })) {
+    return { ok: false, error: "Ese mail ya tiene cuenta. Ingresá con tu clave; si no la recordás, escribinos.", fieldErrors: { email: "Ya tiene cuenta" } };
+  }
+  // Doble envío: la solicitud ya está en revisión, no se duplica ni se vuelve a avisar.
+  if (await prisma.accountRequest.findFirst({ where: { email: data.email, status: "PENDING" }, select: { id: true } })) return { ok: true };
+
   const store = await cookies();
   const visitorId = store.get(VISITOR_COOKIE)?.value;
   // Solo se atribuye al QR si su evento está vigente.

@@ -18,7 +18,7 @@ export default async function NewClientPage() {
       </Link>
       <PageHeader
         title="Nuevo cliente"
-        description="Cargá la empresa completa de una vez: datos, dirección, contactos con acceso al portal y condiciones comerciales."
+        description="La empresa y la persona que va a entrar al portal, en un solo paso. Lo demás se completa después en la ficha."
       />
       <ClientEditor
         {...options}

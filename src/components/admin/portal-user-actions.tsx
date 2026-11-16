@@ -10,7 +10,22 @@ import { createPortalUserForClient, resetPortalUserPassword, togglePortalUserAct
 import type { AccessMode, AccessResult } from "@/server/user-access";
 
 /** Darle acceso al portal a un contacto de la empresa. */
-export function CreatePortalAccess({ clientId, name, email, phone }: { clientId: string; name: string; email: string | null; phone?: string | null }) {
+export function CreatePortalAccess({
+  clientId,
+  name,
+  email,
+  phone,
+  triggerLabel = "Dar acceso al portal",
+  blank = false,
+}: {
+  clientId: string;
+  name: string;
+  email: string | null;
+  phone?: string | null;
+  triggerLabel?: string;
+  /** Alta de una persona nueva (sin contacto cargado): los campos arrancan vacíos. */
+  blank?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string>();
   const [mode, setMode] = useState<AccessMode>("invite");
@@ -19,8 +34,8 @@ export function CreatePortalAccess({ clientId, name, email, phone }: { clientId:
   const router = useRouter();
   return (
     <>
-      <Button size="sm" variant="ghost" disabled={!email} title={email ? "" : "Cargale un email al contacto primero"} onClick={() => setOpen(true)}>
-        Dar acceso al portal
+      <Button size="sm" variant={blank ? "outline" : "ghost"} disabled={!blank && !email} title={blank || email ? "" : "Cargale un email al contacto primero"} onClick={() => setOpen(true)}>
+        {triggerLabel}
       </Button>
       <Modal
         open={open}
@@ -28,7 +43,7 @@ export function CreatePortalAccess({ clientId, name, email, phone }: { clientId:
           setOpen(false);
           setResult(undefined);
         }}
-        title="Acceso al portal"
+        title={blank ? "Dar acceso a otra persona" : "Acceso al portal"}
         size="md"
       >
         {result ? (
@@ -51,15 +66,15 @@ export function CreatePortalAccess({ clientId, name, email, phone }: { clientId:
             }}
           >
             <input type="hidden" name="clientId" value={clientId} />
-            {phone ? <input type="hidden" name="phone" value={phone} /> : null}
+            {phone && !blank ? <input type="hidden" name="phone" value={phone} /> : null}
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <Label>Nombre</Label>
-                <Input name="name" defaultValue={name} autoComplete="off" />
+                <Label required>Nombre y apellido</Label>
+                <Input name="name" defaultValue={name} autoComplete="off" required />
               </div>
               <div>
-                <Label>Email (será su usuario)</Label>
-                <Input name="email" type="email" defaultValue={email ?? ""} autoComplete="off" data-1p-ignore data-lpignore="true" />
+                <Label required>Email (con este entra)</Label>
+                <Input name="email" type="email" defaultValue={email ?? ""} autoComplete="off" required data-1p-ignore data-lpignore="true" />
               </div>
             </div>
             <AccessModePicker value={mode} onChange={setMode} />
@@ -74,8 +89,23 @@ export function CreatePortalAccess({ clientId, name, email, phone }: { clientId:
   );
 }
 
-/** Acciones sobre un usuario del portal de la empresa: nuevo acceso y activar/desactivar. */
-export function PortalUserActions({ id, clientId, isActive, email, name }: { id: string; clientId: string; isActive: boolean; email: string; name: string }) {
+/** Acciones sobre un usuario del portal de la empresa: reenviar invitación / restablecer acceso y activar/desactivar. */
+export function PortalUserActions({
+  id,
+  clientId,
+  isActive,
+  email,
+  name,
+  invited = false,
+}: {
+  id: string;
+  clientId: string;
+  isActive: boolean;
+  email: string;
+  name: string;
+  /** Todavía no creó su clave: la acción principal es reenviar la invitación. */
+  invited?: boolean;
+}) {
   const [error, setError] = useState<string>();
   const [resetOpen, setResetOpen] = useState(false);
   const [mode, setMode] = useState<AccessMode>("invite");
@@ -90,23 +120,26 @@ export function PortalUserActions({ id, clientId, isActive, email, name }: { id:
   }
   return (
     <>
-      <div className="flex gap-1">
+      <div className="flex flex-wrap gap-1">
+        {isActive ? (
+          <Button size="sm" variant="outline" disabled={pending} onClick={() => setResetOpen(true)}>
+            {invited ? "Reenviar invitación" : "Restablecer acceso"}
+          </Button>
+        ) : null}
         <Button
           size="sm"
           variant="ghost"
           disabled={pending}
-          onClick={() =>
+          onClick={() => {
+            if (isActive && !window.confirm(`${name} no va a poder entrar más al portal. ¿Seguimos?`)) return;
             start(async () => {
               const r = await togglePortalUserActive(data());
               if (!r.ok) setError(r.error);
               router.refresh();
-            })
-          }
+            });
+          }}
         >
-          {isActive ? "Desactivar" : "Activar"}
-        </Button>
-        <Button size="sm" variant="ghost" disabled={pending} onClick={() => setResetOpen(true)}>
-          Nuevo acceso
+          {isActive ? "Quitar acceso" : "Devolver acceso"}
         </Button>
       </div>
       {error ? <FieldError message={error} /> : null}
@@ -114,16 +147,19 @@ export function PortalUserActions({ id, clientId, isActive, email, name }: { id:
         open={resetOpen}
         onClose={() => {
           setResetOpen(false);
+          if (access) router.refresh();
           setAccess(undefined);
         }}
-        title="Nuevo acceso al portal"
+        title={invited ? "Reenviar invitación" : "Restablecer acceso"}
         size="md"
       >
         {access ? (
           <AccessReveal access={access} email={email} name={name} />
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Su clave actual deja de servir y se cierran sus sesiones.</p>
+            <p className="text-sm text-muted-foreground">
+              {invited ? "El link anterior deja de servir. El nuevo vence en 72 horas." : "Su clave actual deja de servir y se cierran sus sesiones abiertas."}
+            </p>
             <AccessModePicker value={mode} onChange={setMode} />
             <Button
               disabled={pending}
