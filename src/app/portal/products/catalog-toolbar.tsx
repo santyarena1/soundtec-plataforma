@@ -1,40 +1,73 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input, Select } from "@/components/ui/input";
 import { LayoutGrid, Loader2, Search, Table2 } from "lucide-react";
 import type { CatalogUrlState } from "@/lib/catalog-url";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useCatalogNavigation } from "./use-catalog-navigation";
 
+/**
+ * Espera para buscar mientras se escribe. Con 350 ms la búsqueda salía a mitad
+ * de un modelo largo («AT-HDVS-CAM-HD…») y la respuesta pisaba lo que se
+ * seguía tipeando. Enter busca al instante.
+ */
+const SEARCH_DEBOUNCE_MS = 1200;
+
 export function CatalogToolbar({ state, publicMode = false }: { state: CatalogUrlState; publicMode?: boolean }) {
   const { push, isPending, params } = useCatalogNavigation();
   const [search, setSearch] = useState(state.search || "");
-  const debouncedSearch = useDebouncedValue(search, 350);
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Lo último que se mandó a buscar: Enter y el fin de la espera no repiten la misma búsqueda.
+  const lastSent = useRef((state.search || "").trim());
+  void publicMode;
 
+  // La URL cambió desde afuera (pastilla «×», «Borrar todo», atrás): se copia al
+  // campo, salvo mientras se está escribiendo, para no pisar lo tipeado.
   useEffect(() => {
+    lastSent.current = (state.search || "").trim();
+    if (document.activeElement === inputRef.current) return;
     setSearch(state.search || "");
   }, [state.search]);
 
-  useEffect(() => {
+  function submit(value: string) {
     const urlQ = (params.get("q") || "").trim();
-    const nextQ = debouncedSearch.trim();
-    if (nextQ === urlQ) return;
+    const nextQ = value.trim();
+    if (nextQ === urlQ || nextQ === lastSent.current) return;
+    lastSent.current = nextQ;
     push({ search: nextQ });
-  }, [debouncedSearch, params, push]);
+  }
+
+  useEffect(() => {
+    submit(debouncedSearch);
+    // Solo cuando termina la espera; `params` cambia con cada navegación.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <div className="relative flex-1">
+      <form
+        role="search"
+        className="relative flex-1"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit(search);
+        }}
+      >
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
+          ref={inputRef}
+          type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar en el catálogo..."
+          placeholder="Buscar por modelo, marca o palabra clave…"
           className="h-11 pl-9 shadow-sm"
           aria-label="Buscar productos"
+          enterKeyHint="search"
+          autoComplete="off"
         />
-      </div>
+      </form>
 
       <div className="flex flex-wrap items-center gap-2">
         <Select

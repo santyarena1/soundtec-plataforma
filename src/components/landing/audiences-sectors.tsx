@@ -1,10 +1,10 @@
-import { Building2, HardHat, Home, PenTool } from "lucide-react";
+import { HardHat, Home, PenTool, Store } from "lucide-react";
 
 const AUDIENCES = [
   {
     icon: HardHat,
     title: "Integradores e instaladores AV",
-    text: "Presupuestá obras completas con precio, stock y compatibilidad verificada. Reutilizá listas por proyecto.",
+    text: "Presupuestá obras completas con precio y compatibilidad verificada, y armá el pedido desde el catálogo.",
   },
   {
     icon: Home,
@@ -17,9 +17,9 @@ const AUDIENCES = [
     text: "Fichas técnicas, CAD y Revit para especificar en planos y pliegos con información oficial del fabricante.",
   },
   {
-    icon: Building2,
-    title: "Empresas y organismos",
-    text: "Salas de reunión, auditorios y edificios: pedí cotización de equipamiento con seguimiento y trazabilidad.",
+    icon: Store,
+    title: "Comercios especializados",
+    text: "Comercios especializados de audio, video, iluminación y sistemas de control para ofrecer a sus clientes.",
   },
 ] as const;
 
@@ -66,8 +66,9 @@ export function AudiencesAndSectors() {
             Audio, video, iluminación, videoconferencia y control inteligente.
           </h3>
           <p className="muted-text mt-3">
-            Soundtec es integrador y distribuidor: diseñamos, proveemos, instalamos y damos soporte. El portal es la
-            puerta de entrada a ese mismo equipo.
+            Soundtec es distribuidor de valor agregado para profesionales del sector. Te ayudamos con el diseño, la
+            provisión, la instalación y el soporte necesarios. Este portal está para ayudarte a ser parte de este
+            ecosistema.
           </p>
           <ul className="mt-6 flex flex-wrap gap-2">
             {SECTORS.map((sector) => (

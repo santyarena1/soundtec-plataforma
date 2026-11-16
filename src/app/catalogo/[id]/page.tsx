@@ -3,6 +3,7 @@ import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display"
 import { isCatalogModeOn } from "@/lib/catalog-mode";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { customerHiddenCategoryIds } from "@/lib/customer-hidden-categories";
 import type { Metadata } from "next";
 import { ogImageUrl, ogMeta } from "@/lib/og/meta";
 import { prisma } from "@/lib/prisma";
@@ -77,6 +78,8 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
     auth().catch(() => null),
   ]);
   if (!product) notFound();
+  // Rubros que solo ve el equipo (Indumentaria): no tienen ficha pública.
+  if (product.categoryId && (await customerHiddenCategoryIds()).includes(product.categoryId)) notFound();
   // En modo catálogo (vendedor mostrándolo) se ve como un visitante: sin atajos al portal.
   const isLogged = !!session?.user && !isCatalogModeOn();
   const viewerRole = (session?.user as { role?: string } | undefined)?.role;
@@ -132,7 +135,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
                   <div>
                     <p className="font-semibold">Precio y disponibilidad para clientes</p>
                     <p className="text-sm text-muted-foreground">
-                      Estás logueado: abrí este producto en tu portal para ver tu precio y el stock.
+                      Estás logueado: abrí este producto en tu portal para ver tu precio.
                     </p>
                   </div>
                 </div>

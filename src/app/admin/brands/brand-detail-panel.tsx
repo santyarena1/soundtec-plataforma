@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, X } from "lucide-react";
 import { upsertBrand } from "@/server/actions/admin-catalog";
 import { LogoEditor } from "./logo-editor";
+import { CategoryOrderEditor } from "./category-order-editor";
 
 interface Product {
   id: string;
@@ -83,6 +84,8 @@ export function BrandDetailPanel({ brand }: { brand: Brand }) {
               </form>
 
               <LogoEditor brandId={brand.id} brandName={brand.name} logoSrc={brand.logoUrl} />
+
+              <CategoryOrderEditor brandId={brand.id} brandName={brand.name} />
 
               {/* Productos de la marca */}
               <div>

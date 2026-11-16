@@ -8,16 +8,18 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, FileText, Loader2, Wand2 } from "lucide-react";
+import { Download, Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadFileName } from "@/lib/content-disposition";
 import type { DiagramPositions } from "@/services/room-builder/wiring/diagram-layout";
 import type { ProjectTechnical } from "@/services/room-builder/project-technical";
+import { DeliverablesMenu, type SheetDownloadOptions } from "../deliverables/deliverables-menu";
 import { TechnicalDiagram } from "./technical-diagram";
 import { ProjectFloorPlan } from "./project-floor-plan";
+import { RackView } from "./rack-view";
 import type { TechSelection } from "./technical-canvas";
 
-type Tab = "planta" | "diagrama" | "planilla" | "materiales";
+type Tab = "planta" | "diagrama" | "planilla" | "materiales" | "rack";
 
 function csv(rows: Array<Array<string | number | null>>): string {
   return rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
@@ -73,10 +75,10 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
 
   /** Láminas técnicas A3 de todo el proyecto (planta general, cada ambiente, planilla, etiquetas y equipos). */
   const [sheetsBusy, setSheetsBusy] = useState(false);
-  const downloadSheets = useCallback(async () => {
+  const downloadSheets = useCallback(async (opts?: SheetDownloadOptions) => {
     setSheetsBusy(true);
     try {
-      const res = await fetch(`/api/admin/room-builder/projects/${hubId}/proposal-pdf`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ snapshots: [] }) });
+      const res = await fetch(`/api/admin/room-builder/projects/${hubId}/proposal-pdf`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ snapshots: [], ...opts }) });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
         throw new Error(json?.error ?? "No se pudieron generar las láminas");
@@ -120,7 +122,7 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex rounded-lg border border-slate-300 bg-white p-0.5" role="tablist">
-          {([["planta", "Planta del proyecto"], ["diagrama", "Diagrama general"], ["planilla", "Planilla de cables"], ["materiales", "Equipos y materiales"]] as const).map(([k, label]) => (
+          {([["planta", "Planta del proyecto"], ["diagrama", "Diagrama general"], ["planilla", "Planilla de cables"], ["materiales", "Equipos y materiales"], ["rack", "Rack"]] as const).map(([k, label]) => (
             <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`rounded-md px-3 py-1 text-xs font-semibold ${tab === k ? "bg-[#1e3553] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
               {label}
             </button>
@@ -130,15 +132,8 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
           <span>
             <b>{data.rooms.length}</b> ambientes · <b>{totals.equipment}</b> equipos · <b>{totals.cables}</b> cables · <b>{totals.meters.toFixed(0)} m</b>
           </span>
-          <button
-            type="button"
-            onClick={() => void downloadSheets()}
-            disabled={sheetsBusy}
-            title="Láminas técnicas A3 del proyecto: planta general, plano y diagrama de cada ambiente, planilla y etiquetas de cables, equipos"
-            className="inline-flex items-center gap-1.5 rounded-md border border-[#1e3553] bg-white px-2.5 py-1.5 font-semibold text-[#1e3553] disabled:opacity-50"
-          >
-            {sheetsBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />} Láminas PDF
-          </button>
+          {/* Láminas del proyecto (A3 / Tabloid / ARCH D), revisiones, CSV y PNG. */}
+          <DeliverablesMenu projectId={hubId} busy={sheetsBusy} onDownloadSheets={downloadSheets} />
           <button type="button" onClick={resolveAll} disabled={resolving} className="inline-flex items-center gap-1.5 rounded-md bg-[#1e3553] px-2.5 py-1.5 font-semibold text-white disabled:opacity-50">
             {resolving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />} Resolver y trazar todo el proyecto
           </button>
@@ -224,6 +219,8 @@ export function ProjectTechnicalView({ hubId, projectName }: { hubId: string; pr
           </div>
         </div>
       ) : null}
+
+      {tab === "rack" ? <RackView projectId={hubId} /> : null}
 
       {tab === "materiales" ? (
         <div className="grid gap-3 lg:grid-cols-[2fr_1fr]">

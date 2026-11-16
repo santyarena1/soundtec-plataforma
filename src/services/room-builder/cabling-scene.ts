@@ -88,7 +88,8 @@ export function cablingForScene(scene: RoomScene, category: string, profile: Cab
     tableInput: table && hasConferencing ? { x: table.x, z: table.z, topY: TABLE_TOP_M } : null,
     central: profile.central ? { label: profile.central.label, exit: centralExit(scene) } : null,
     // Tipo de sala: define el tap por defecto de los parlantes de 70/100 V.
-    audio: { category },
+    // El tap fijado en el mapa de sonido (o por la grilla sugerida) manda sobre el típico.
+    audio: { category, tapW: scene.acoustics?.tapW ?? null },
     // Sin control ni videoconferencia relevados, la red de amplificador/DSP no obliga a un switch.
     networkOptional: Boolean(scene.brief && (scene.brief.control ?? "none") === "none" && !scene.brief.systems.includes("vc")),
     // Del catálogo: AOC, USB activo y extensores que resuelven los tramos largos (se nombran en los avisos).

@@ -39,7 +39,7 @@ export function expandIoPorts(groups: IoPort[]): WirePort[] {
         direction: g.direction,
         label,
         connector: g.connector,
-        source: "datasheet",
+        source: g.manual ? "manual" : "datasheet",
         ...(g.family ? { family: g.family } : {}),
         ...(g.maxLengthM ? { maxLengthM: g.maxLengthM } : {}),
         ...(g.evidence ? { evidence: g.evidence } : {}),

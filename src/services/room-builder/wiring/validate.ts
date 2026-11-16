@@ -6,7 +6,7 @@
  * (signal-reach.ts: resolución del HDMI, versión de USB, HDBaseT 4K o 1080p).
  */
 
-import { cableLengthM, isPatchIo } from "../cable-length";
+import { cableLengthM, cableRunM, isPatchIo, type RunEnd } from "../cable-length";
 import type { IoSignal } from "../io-profile/types";
 import { reachFor, remedyFor, type ReachCatalog, type ReachEnd } from "../signal-reach";
 import { portsMismatch } from "./ports";
@@ -29,27 +29,21 @@ export type ReachOf = (w: Wire) => { from: ReachEnd; to: ReachEnd } | null;
 /** Salidas que admiten varios cables (parlantes en paralelo / línea de 70 V). */
 const SHARED_OUTPUT: Partial<Record<IoSignal, true>> = { speaker: true };
 
-export type PlacedEnd = { x: number; y: number; z: number };
+/** Punta de un cable: posición y montaje (la caja de piso de la mesa baja al piso antes de subir). */
+export type PlacedEnd = RunEnd;
 
-/** Altura por la que corre el cable: cielorraso, salvo que las dos puntas estén bajas (piso / mesa / rack). */
-const LOW_END_M = 1.3;
-/** Equipos a menos de esto en planta (receptor o códec detrás de la pantalla): el cable va directo (igual que cabling.ts). */
-const DIRECT_RUN_M = 1.5;
 /**
  * Recorrido medido (m): bajada/subida en cada punta y tramos en planta por los
- * quiebres. Sin reservas: el largo a comprar sale de cableLengthM (cable-length.ts),
- * la misma fórmula que usa el motor automático.
+ * quiebres, con la MISMA geometría que el motor automático (cable-length.ts
+ * cableRunM: tramo directo por detrás, piso/zócalo si las dos puntas están
+ * bajas, caja de piso que baja y sube por la pared). Sin reservas: el largo a
+ * comprar sale de cableLengthM.
  */
 export function wireRunM(a: PlacedEnd, b: PlacedEnd, points: WirePoint[], heightM: number): number {
   const path = [{ x: a.x, z: a.z }, ...points, { x: b.x, z: b.z }];
   let flat = 0;
   for (let i = 1; i < path.length; i++) flat += Math.hypot(path[i]!.x - path[i - 1]!.x, path[i]!.z - path[i - 1]!.z);
-  // Tramo corto por detrás de los equipos: la diferencia de altura y la planta, sin subir al cielorraso.
-  if (flat < DIRECT_RUN_M) return Math.round((flat + Math.abs(a.y - b.y)) * 100) / 100;
-  const low = a.y < LOW_END_M && b.y < LOW_END_M;
-  const runY = low ? 0 : Math.max(2, heightM - 0.05);
-  const vertical = Math.abs(runY - a.y) + Math.abs(runY - b.y);
-  return Math.round((flat + vertical) * 100) / 100;
+  return Math.round(cableRunM(a, b, flat, heightM) * 100) / 100;
 }
 
 /** Largo final de un cable del plano técnico para su recorrido (armado: comercial; rollo: +10 %). */
@@ -104,6 +98,8 @@ export function validateWires(
       if (other && !(SHARED_OUTPUT[port.signal] && port.direction !== "in")) issues.push({ wireId: w.id, level: "error", text: `${port.label} ya está usado por otro cable.` });
       used.set(key, w.id);
     }
+    const manual = [a, b].filter((p) => p.source === "manual" && !p.id.startsWith("pending:"));
+    if (manual.length) issues.push({ wireId: w.id, level: "warn", text: `Puerto cargado a mano, sin ficha: ${manual.map((p) => p.label).join(" y ")} — no verificado contra la ficha del fabricante; confirmar en obra.` });
     lengthIssue(w, a, b, lengthOf(w), options, issues);
   }
   return issues;

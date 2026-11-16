@@ -20,9 +20,13 @@ import { wiringOf, type WiringModel } from "@/services/room-builder/wiring/model
 import { floorOf, planFurniture, planWalls } from "@/services/room-builder/wiring/plan-geometry";
 import type { TrunkContext } from "@/services/room-builder/wiring/rack-trunk";
 import type { WirePort } from "@/services/room-builder/wiring/types";
-import { cableTag, type PortsSource, type SheetCable, type SheetDevice, type SheetWarning } from "@/services/room-builder/sheets/sheet-model";
+import { type PortsSource, type SheetCable, type SheetDevice, type SheetWarning } from "@/services/room-builder/sheets/sheet-model";
 import type { PlanWallInput } from "@/services/room-builder/sheets/plan-sheet-svg";
 import { diagramCuts, wiringDiagramSvg } from "@/services/room-builder/sheets/wiring-diagram-svg";
+import { assignF501Ids } from "@/services/room-builder/sheets/f501";
+import { signalFamily } from "@/services/room-builder/wiring/ports";
+import { roomCode, uniqueRoomCodes } from "@/services/room-builder/project-technical";
+import { discasLine, sceneDisplaySizing } from "@/services/room-builder/discas";
 
 const MOUNT_LABEL: Record<string, string> = { wall: "Pared", ceiling: "Cielorraso", table: "Mesa", rack: "Rack", floor: "Piso" };
 const ROLE_LABEL: Record<string, string> = { display: "Pantalla", camera: "Cámara", mic: "Micrófono", speaker: "Parlante", touch: "Panel / teclado", codec: "Codec", processor: "Procesador", other: "Equipo" };
@@ -66,6 +70,7 @@ async function productInfo(ids: string[]): Promise<Map<string, ProductInfo>> {
 /** Origen de los puertos de un equipo de la sala, como lo lee un integrador. */
 function portsSource(device: SceneDevice, profile: CablingProfile | null, override: WirePort[] | undefined): { ports: PortsSource; note: string | null } {
   if (device.generic) return { ports: "generico", note: "Equipo genérico: modelo a definir" };
+  if (device.manualPorts?.length) return { ports: "pendiente", note: "Puertos cargados a mano, sin ficha" };
   if (override?.some((p) => p.source !== "datasheet")) return { ports: "pendiente", note: override.some((p) => p.source === "manual") ? "Puertos cargados a mano" : "Puertos genéricos hasta validar la ficha" };
   const state = profile?.devices[device.id]?.datasheet ?? "missing";
   if (state === "ok" || state === "none") return { ports: "ficha", note: state === "none" ? "Sin conexiones según ficha" : null };
@@ -134,6 +139,8 @@ const deviceText = (d: SheetDevice | undefined, fallback: string) => (d ? `${d.r
 function sheetCables(cables: RoomCable[], model: WiringModel, devices: SheetDevice[], cableNames: Map<string, string>, prefix: string | null, exit: { x: number; z: number }, proposal: boolean): SheetCable[] {
   const byId = new Map(devices.map((d) => [d.deviceId, d]));
   const placed = new Map(model.devices.map((d) => [blockKey(d.deviceId, d.unit), d]));
+  // ID F501 (SALA-SEÑAL-NNN): el mismo en planilla, plano, diagrama y etiquetas.
+  const ids = assignF501Ids(cables.map((w) => ({ label: w.label, signal: signalFamily(w.signal) })), prefix);
   return cables.map((w, i) => {
     const a = placed.get(blockKey(w.from.deviceId, w.from.unit));
     const b = placed.get(blockKey(w.to.deviceId, w.to.unit));
@@ -141,7 +148,7 @@ function sheetCables(cables: RoomCable[], model: WiringModel, devices: SheetDevi
     const pts = [end(a), ...w.points, end(b)].filter((p): p is { x: number; z: number } => Boolean(p));
     const unitSuffix = (deviceId: string, unit: number) => ((byId.get(deviceId)?.units.length ?? 1) > 1 ? ` (${unit + 1})` : "");
     return {
-      tag: w.label ? (prefix ? `${prefix}-${w.label}` : w.label) : cableTag(i, prefix),
+      tag: ids[i]!,
       fromDevice: byId.has(w.from.deviceId) ? deviceText(byId.get(w.from.deviceId), w.fromName) + unitSuffix(w.from.deviceId, w.from.unit) : w.fromName,
       fromPort: w.fromPort,
       toDevice: byId.has(w.to.deviceId) ? deviceText(byId.get(w.to.deviceId), w.toName) + unitSuffix(w.to.deviceId, w.to.unit) : w.toName,
@@ -162,7 +169,8 @@ function sheetCables(cables: RoomCable[], model: WiringModel, devices: SheetDevi
 export async function loadRoomSheet(spaceId: string, opts: { tagPrefix?: string | null; trunkCtx?: TrunkContext | null } = {}): Promise<RoomSheet> {
   const project = await getRoomProject(spaceId);
   if (!project || project.kind === "hub") throw new Error("Ambiente no encontrado");
-  const prefix = opts.tagPrefix ?? null;
+  // Código del ambiente para los ID F501: el que le da el juego del proyecto o, suelto, el mismo que tendría ahí.
+  const prefix = opts.tagPrefix !== undefined ? opts.tagPrefix : await roomCodeOf(project.id, project.name, project.parentId);
   // La lista única de cables (la misma de la cotización y la planilla del proyecto).
   const loaded = await loadRoomCables(project, opts.trunkCtx);
   if (!loaded) throw new Error("Escena inválida");
@@ -208,6 +216,9 @@ export async function loadRoomSheet(spaceId: string, opts: { tagPrefix?: string 
   // Troncal al rack: una sola nota por sala (ya está sumada en cada cable, o falta el dato).
   const trunkNote = list.cables.find((c) => c.remote && c.note)?.note;
   if (trunkNote) warnings.push({ level: list.cables.some((c) => c.remote && c.lengthKind === "estimated") ? "warn" : "info", text: `Cables al rack central: ${trunkNote}` });
+  // Tamaño de pantalla (AVIXA V202 DISCAS): una línea con la distancia real al último espectador.
+  const sizing = sceneDisplaySizing(scene, project.category);
+  if (sizing) warnings.push({ level: sizing.current && !sizing.current.enough ? "warn" : "info", text: discasLine(sizing) });
   const nodeLabel = new Map(plan?.nodes.map((n) => [n.id, n.label]) ?? []);
   for (const l of plan?.links.filter((x) => x.signal === "wireless") ?? []) warnings.push({ level: "info", text: `Enlace inalámbrico (sin cable): ${nodeLabel.get(l.from) ?? l.fromPort} → ${nodeLabel.get(l.to) ?? l.toPort}${l.protocol ? ` (${l.protocol})` : ""}.` });
 
@@ -228,6 +239,14 @@ export async function loadRoomSheet(spaceId: string, opts: { tagPrefix?: string 
     diagram,
     warnings,
   };
+}
+
+/** Código del ambiente entre sus hermanos (mismo orden que la planilla del proyecto: por fecha de alta). */
+async function roomCodeOf(id: string, name: string, parentId: string | null): Promise<string> {
+  if (!parentId) return roomCode(name);
+  const siblings = await prisma.roomProject.findMany({ where: { parentId }, select: { id: true, name: true }, orderBy: { createdAt: "asc" } });
+  const i = siblings.findIndex((s) => s.id === id);
+  return i >= 0 ? uniqueRoomCodes(siblings.map((s) => s.name))[i]! : roomCode(name);
 }
 
 /** Diagrama del cableado manual con los números de equipo y las etiquetas de las láminas. */

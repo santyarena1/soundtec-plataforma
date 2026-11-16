@@ -38,14 +38,25 @@ export function BrandGrid({
             ) : (
               <span className="text-center text-base font-bold tracking-wide">{brand.name}</span>
             )}
-            {brand.count > 0 || brand.query ? (
-              <span className="text-[11px] text-muted-foreground">{brand.count.toLocaleString("es-AR")} productos</span>
-            ) : (
-              <span className="text-[11px] font-medium text-primary">Consultá disponibilidad</span>
-            )}
+            <BrandCardCaption brand={brand} />
           </Link>
         ))}
       </div>
     </section>
   );
+}
+
+/** Pie de la tarjeta de marca: cantidad, «Próximamente» (Admin → Marcas) o la consulta si no tiene productos. */
+export function BrandCardCaption({ brand }: { brand: CatalogBrand }) {
+  if (brand.comingSoon) {
+    return (
+      <span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary-foreground">
+        Próximamente
+      </span>
+    );
+  }
+  if (brand.count > 0 || brand.query) {
+    return <span className="text-[11px] text-muted-foreground">{brand.count.toLocaleString("es-AR")} productos</span>;
+  }
+  return <span className="text-[11px] font-medium text-primary">Consultá disponibilidad</span>;
 }

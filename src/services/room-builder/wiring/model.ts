@@ -69,9 +69,19 @@ export type WiringModel = {
   ports: Record<string, WirePort[]>;
   wires: ModelWire[];
   issues: WireIssue[];
+  /** Equipos con puertos cargados a mano en el proyecto (sus puertos salen de ficha + a mano). */
+  manualDevices?: string[];
+  /** Las fichas todavía no cargaron: los cables no se validan (evita avisos falsos al abrir). */
+  pending?: boolean;
 };
 
-export type WiringModelOptions = { trunk?: RackTrunk | null; /** Tipo de sala (para el control de carga de parlantes). */ category?: string | null };
+export type WiringModelOptions = {
+  trunk?: RackTrunk | null;
+  /** Tipo de sala (para el control de carga de parlantes). */
+  category?: string | null;
+  /** Las fichas (perfil de cableado) todavía están cargando: no se valida hasta tenerlas. */
+  pending?: boolean;
+};
 
 const CENTRAL_PREFIX = "central:";
 /** Separación entre equipos del rack central dibujados en la salida (m). */
@@ -113,6 +123,7 @@ export function buildWiringModel(scene: RoomScene, profile: CablingProfile | nul
   const wiring = wiringOf(scene);
   const devices: PlacedDevice[] = [];
   const ports: Record<string, WirePort[]> = {};
+  const manualDevices: string[] = [];
 
   for (const { device } of layoutSceneDevices(scene.devices, slots, dims)) {
     // Un lugar sin producto ni genérico todavía no es un equipo: no se dibuja ni se cablea.
@@ -125,7 +136,9 @@ export function buildWiringModel(scene: RoomScene, profile: CablingProfile | nul
       devices.push({ deviceId: device.id, unit: k, label: info?.label ?? device.label, short, x: u.pose.x, y: u.pose.y, z: u.pose.z, rotY: u.pose.rotY, mount: slots.get(device.slotKey)?.mount ?? "wall", remote: false, role: device.designRole, cls: info?.cls });
     }
     const fromSheet = info?.ioPorts?.length ? expandIoPorts(info.ioPorts) : [];
-    ports[device.id] = wiring.ports[device.id] ?? (info?.sourceKind === "generic" ? fromSheet.map((q) => ({ ...q, source: "generic" as const })) : fromSheet);
+    // Con puertos cargados a mano en el proyecto mandan ficha + a mano (no los provisorios guardados en el cableado).
+    if (device.manualPorts?.length) manualDevices.push(device.id);
+    ports[device.id] = (device.manualPorts?.length ? null : wiring.ports[device.id]) ?? (info?.sourceKind === "generic" ? fromSheet.map((q) => ({ ...q, source: "generic" as const })) : fromSheet);
   }
   if (profile?.central && profile.centralDevices?.length) {
     const exit = centralExit(scene);
@@ -202,11 +215,12 @@ export function buildWiringModel(scene: RoomScene, profile: CablingProfile | nul
   };
   const wires: ModelWire[] = wiring.wires.map((w) => ({ ...w, ...measure(w), maxM: wireMaxM(w, reachOf) }));
   const lengthById = new Map(wires.map((w) => [w.id, w.lengthM]));
+  if (opts.pending) return { devices, ports, wires, issues: [], manualDevices, pending: true };
   issues.unshift(...validateWires(wiring.wires, (id) => ports[id] ?? null, (w) => lengthById.get(w.id) ?? 0, profile ? electricalOf : undefined, { category: opts.category ?? null }, { reachOf, remedies: profile?.remedies }));
   for (const w of wiring.wires) {
     if (!at(w.from) || !at(w.to)) issues.push({ wireId: w.id, level: "error", text: "Uno de los equipos del cable ya no está en la sala." });
   }
-  return { devices, ports, wires, issues };
+  return { devices, ports, wires, issues, manualDevices };
 }
 
 /** Señales del motor automático → señales de ficha que pueden ocupar ese cable. */
@@ -270,7 +284,10 @@ export function autoWires(plan: CablingPlan, model: WiringModel, current: SceneW
   // Puertos de las puntas virtuales: los del plan actual (la cantidad cambia con los equipos),
   // sin perder los que ya usan cables guardados.
   const virtualPorts = Object.fromEntries(Object.entries(generic).filter(([id]) => virtual[id]).map(([id, list]) => [id, unionPorts(list, current.ports[id])]));
-  const ports = { ...generic, ...current.ports, ...virtualPorts };
+  // Los provisorios guardados de un equipo que ahora tiene puertos a mano no tapan a los reales.
+  const manualSet = new Set(model.manualDevices ?? []);
+  const savedPorts = Object.fromEntries(Object.entries(current.ports).filter(([id]) => !manualSet.has(id)));
+  const ports = { ...generic, ...savedPorts, ...virtualPorts };
   // Cables que el usuario borró a mano: no se vuelven a proponer (uno por cada borrado).
   const dismissed = new Map<string, number>();
   for (const k of current.dismissed ?? []) dismissed.set(k, (dismissed.get(k) ?? 0) + 1);
@@ -318,7 +335,7 @@ export function autoWires(plan: CablingPlan, model: WiringModel, current: SceneW
   }
   const used = new Set(wires.flatMap((w) => [w.from.deviceId, w.to.deviceId]));
   const keepVirtual = Object.fromEntries(Object.entries({ ...current.virtual, ...virtual }).filter(([id]) => used.has(id)));
-  return { ...current, ports, ...(Object.keys(keepVirtual).length ? { virtual: keepVirtual } : {}), wires: numberLabels(wires) };
+  return { ...current, ports: Object.fromEntries(Object.entries(ports).filter(([id]) => !manualSet.has(id))), ...(Object.keys(keepVirtual).length ? { virtual: keepVirtual } : {}), wires: numberLabels(wires) };
 }
 
 /**

@@ -744,10 +744,10 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
 export const PORTAL_ONBOARDING: OnboardingTour = {
   id: "portal",
   title: "Tutorial del portal",
-  subtitle: "Catálogo, listas y pedidos",
+  subtitle: "Catálogo, favoritos y pedido",
   welcomeTitle: "Bienvenido al portal Soundtec",
   welcomeBody:
-    "Desde acá consultás el catálogo, armás listas y enviás pedidos. Te mostramos el circuito; los clicks los hacés vos.",
+    "Desde acá consultás el catálogo, guardás favoritos y enviás tu pedido. Te mostramos el circuito; los clicks los hacés vos.",
   steps: [
     {
       id: "portal-home",
@@ -761,7 +761,7 @@ export const PORTAL_ONBOARDING: OnboardingTour = {
       route: "/portal",
       target: "portal-nav",
       title: "Navegación",
-      body: "Catálogo, Favoritos, Mis listas y Mis pedidos. En el celular también están en la barra inferior.",
+      body: "Catálogo y Favoritos. Mis listas y Mis pedidos dicen «Próximamente»: se habilitan más adelante. En el celular están en la barra inferior.",
       tip: "Para cambiar de sección, tocá el ítem del menú (no hace falta que el tutorial lo haga por vos).",
     },
     {
@@ -801,44 +801,12 @@ export const PORTAL_ONBOARDING: OnboardingTour = {
       body: "Es tu selección personal para volver rápido. No envía nada a Soundtec hasta que armes un pedido.",
     },
     {
-      id: "goto-portal-lists",
-      route: "/portal/wishlist",
-      target: "portal-nav",
-      title: "Abrí Mis listas",
-      body: "En el menú, tocá «Mis listas».",
-      requirePath: "/portal/lists",
-      autoAdvanceOnRoute: true,
-    },
-    {
-      id: "portal-lists",
-      route: "/portal/lists",
-      target: "page-header",
-      title: "Mis listas",
-      body: "Listas de trabajo por obra o proyecto. Podés reutilizarlas al armar un pedido.",
-    },
-    {
       id: "portal-cart",
-      route: "/portal/lists",
+      route: "/portal/wishlist",
       target: "portal-cart",
       title: "Carrito / borrador",
       body: "Mientras cargás productos se arma un borrador. Cuando esté listo, lo enviás al equipo Soundtec.",
       affects: "Al enviar, el pedido aparece en Admin → Pedidos.",
-    },
-    {
-      id: "goto-portal-requests",
-      route: "/portal",
-      target: "portal-nav",
-      title: "Abrí Mis pedidos",
-      body: "En el menú, tocá «Mis pedidos».",
-      requirePath: "/portal/requests",
-      autoAdvanceOnRoute: true,
-    },
-    {
-      id: "portal-requests",
-      route: "/portal/requests",
-      target: "page-header",
-      title: "Mis pedidos",
-      body: "Historial de lo enviado y las respuestas (incluida una cotización formal si te la adjuntan).",
     },
     {
       id: "portal-done",

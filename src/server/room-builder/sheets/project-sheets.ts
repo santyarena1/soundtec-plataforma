@@ -12,9 +12,13 @@ import { projectTechnical, uniqueRoomCodes, type ProjectFloor } from "@/services
 import { drawableArea, projectFloorExtent, projectFloorSvg, type FloorRoomInput, type ProjectFloorInput } from "@/services/room-builder/sheets/plan-sheet-svg";
 import { pickScale, scaleLabel } from "@/services/room-builder/sheets/scale";
 import type { SheetWarning } from "@/services/room-builder/sheets/sheet-model";
-import { h, lineSample, MAIN_AREA_MM, sideBlock, type SheetPage } from "./sheet-html";
+import { h, lineSample, sideBlock, type SheetPage } from "./sheet-html";
+import { sheetGeometry, type SheetGeometry } from "@/services/room-builder/sheets/sheet-format";
+import type { F501Variant } from "@/services/room-builder/sheets/f501";
 import { diagramPages, equipmentPages, equipmentRows, labelPages, planPage, schedulePages, type EquipmentRow } from "./sheet-pages";
 import { loadRoomSheet, type RoomSheet } from "./room-sheet";
+import { soundMapPage } from "./sound-sheet";
+import { projectRackPages } from "./rack-pages";
 
 /** Planta esquemática de la pantalla (px por metro y acomodo automático): se replica para ubicar igual los ambientes. */
 const S = 40;
@@ -88,14 +92,14 @@ async function planImageHref(hubId: string): Promise<string | null> {
 }
 
 /** Láminas de planta general: una por piso. */
-function floorPages(floor: ProjectFloor, imageHref: string | null): SheetPage[] {
+function floorPages(floor: ProjectFloor, imageHref: string | null, geo: SheetGeometry): SheetPage[] {
   const levels = [...new Set(floor.rooms.map((r) => r.level))].sort((a, b) => LEVELS.indexOf(a) - LEVELS.indexOf(b));
   return levels.map((level) => {
     const rooms = floor.rooms.filter((r) => r.level === level);
     const { input, planMode } = floorLayout(floor, rooms, imageHref);
     const ext = projectFloorExtent(input);
-    const scale = pickScale(ext, drawableArea(MAIN_AREA_MM));
-    const svg = projectFloorSvg({ ...input, areaMm: MAIN_AREA_MM, scale: scale.denominator });
+    const scale = pickScale(ext, drawableArea(geo.mainArea));
+    const svg = projectFloorSvg({ ...input, areaMm: geo.mainArea, scale: scale.denominator });
     const list = rooms
       .map((r) => `<div class="leg"><span style="flex:1">${h(r.name)}</span><span class="muted">${r.devices.length} eq. · ${Object.values(r.trunk).reduce((a, n) => a + n, 0)} al rack${r.trunkMeters ? ` · ${r.trunkEstimated ? "≈ " : ""}${r.trunkMeters} m` : ""}</span></div>`)
       .join("");
@@ -118,7 +122,8 @@ function floorPages(floor: ProjectFloor, imageHref: string | null): SheetPage[] 
 }
 
 /** Láminas del proyecto completo. */
-export async function projectSheetPages(hubId: string): Promise<{ pages: SheetPage[]; rooms: RoomSheet[] }> {
+export async function projectSheetPages(hubId: string, opts: { geo?: SheetGeometry; labels?: F501Variant } = {}): Promise<{ pages: SheetPage[]; rooms: RoomSheet[] }> {
+  const geo = opts.geo ?? sheetGeometry("a3");
   const hub = await prisma.roomProject.findUnique({ where: { id: hubId }, select: { children: { select: { id: true, name: true }, orderBy: { createdAt: "asc" } } } });
   const children = hub?.children ?? [];
   const prefixes = uniqueRoomCodes(children.map((c) => c.name));
@@ -138,13 +143,16 @@ export async function projectSheetPages(hubId: string): Promise<{ pages: SheetPa
     ),
   ]);
   const usesImage = Boolean(tech.floor.image && tech.floor.rooms.length && tech.floor.rooms.every((r) => r.box));
-  const pages: SheetPage[] = [...floorPages(tech.floor, usesImage ? await planImageHref(hubId) : null)];
-  for (const room of rooms) {
+  const pages: SheetPage[] = [...floorPages(tech.floor, usesImage ? await planImageHref(hubId) : null, geo)];
+  // Mapa de sonido de cada ambiente con parlantes (si falla uno, el juego sale igual sin esa lámina).
+  const sound = await Promise.all(rooms.map((r) => (r.walls.length ? soundMapPage(r.id, r.name, { geo }).catch((error: unknown) => (console.error(`[room-builder/sheets] mapa de sonido ${r.id}`, error), null)) : null)));
+  for (const [i, room] of rooms.entries()) {
     if (!room.walls.length) continue;
-    pages.push(planPage(room), ...diagramPages(room));
+    pages.push(planPage(room, { geo }), ...diagramPages(room, geo));
+    if (sound[i]) pages.push(sound[i]!);
   }
   const cables = rooms.flatMap((r) => r.cables.map((c) => ({ ...c, room: r.name })));
-  pages.push(...schedulePages(cables, null, { withRoom: true }), ...labelPages(cables, null));
+  pages.push(...schedulePages(cables, null, { withRoom: true, geo }), ...labelPages(cables, null, { variant: opts.labels, geo }));
 
   // Equipos: los de cada ambiente (numerados por ambiente) y el rack central del proyecto.
   const remote = rooms.flatMap((r) => r.devices.filter((d) => d.remote));
@@ -156,7 +164,8 @@ export async function projectSheetPages(hubId: string): Promise<{ pages: SheetPa
     });
   const rows = [...rooms.flatMap((r) => equipmentRows(r.devices.filter((d) => !d.remote), r.name)), ...central];
   const warnings: SheetWarning[] = rooms.flatMap((r) => r.warnings.map((w) => ({ ...w, text: `${r.name} · ${w.text}` })));
-  pages.push(...equipmentPages(rows, dedupe(warnings), null, { withRoom: true }));
+  pages.push(...equipmentPages(rows, dedupe(warnings), null, { withRoom: true, geo }));
+  pages.push(...(await projectRackPages(hubId, geo)));
   return { pages, rooms };
 }
 

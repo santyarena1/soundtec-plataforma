@@ -7,7 +7,6 @@ import { FavoriteButton } from "./favorite-button";
 import { StockBadge, priceOnRequest } from "./catalog-grid";
 import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
-import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import { SelectableRowControls } from "./catalog-multi-select";
 import { commercialTagFor } from "@/lib/commercial-tags";
 
@@ -15,6 +14,8 @@ interface TableProps {
   items: CatalogProduct[];
   publicMode?: boolean;
   basePath?: string;
+  /** Equipo Soundtec: stock en origen (proveedor) en vez de «Consultá stock». */
+  internal?: boolean;
 }
 
 /** Cartel comercial sobre la foto (ver lib/commercial-tags): siempre en la misma esquina. */
@@ -33,7 +34,7 @@ function promoTag(p: CatalogProduct) {
  * de corrido y, a la derecha, el precio grande con su acción. Pensada para
  * leerse cómoda (letra generosa, buen contraste) y para invitar a abrir la ficha.
  */
-export function CatalogTable({ items, publicMode = false, basePath = "/portal/products" }: TableProps) {
+export function CatalogTable({ items, publicMode = false, basePath = "/portal/products", internal = false }: TableProps) {
   return (
     <ul className="space-y-4">
       {items.map((p) => {
@@ -99,7 +100,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
                   <span className="rounded-full border border-primary/25 bg-primary/5 px-2.5 py-0.5 font-medium text-primary">Compatible Crestron Home</span>
                 ) : null}
                 {code ? <span className="rounded-full bg-secondary px-2.5 py-0.5 font-mono text-muted-foreground">Cód. {code}</span> : null}
-                {!publicMode && SHOW_STOCK_TO_CUSTOMERS ? <StockBadge status={p.stockStatus} qty={p.stockQuantity} /> : null}
+                <StockBadge status={p.stockStatus} qty={p.stockQuantity} internal={internal && !publicMode} />
                 <Link href={href} className="ml-auto inline-flex items-center gap-1 font-medium text-primary hover:underline">
                   Ver ficha completa <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>

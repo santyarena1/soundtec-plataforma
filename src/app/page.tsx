@@ -7,6 +7,7 @@ import { Features } from "@/components/landing/features";
 import { AudiencesAndSectors } from "@/components/landing/audiences-sectors";
 import { Brands } from "@/components/landing/brands";
 import { AccessCta, News } from "@/components/landing/news-cta";
+import { getCatalogBrands } from "@/lib/catalog-brands";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +28,8 @@ async function getLandingData() {
           createdAt: true,
         },
       }),
-      prisma.brand.findMany({
-        where: { isActive: true, products: { some: { isActive: true } } },
-        orderBy: { name: "asc" },
-        take: 24,
-        select: { id: true, name: true },
-      }),
+      // Marcas visibles del catálogo, con logo: van todas en «Representación exclusiva».
+      getCatalogBrands(),
       prisma.product.count({ where: { isActive: true } }),
       prisma.brand.count({ where: { isActive: true, products: { some: { isActive: true } } } }),
     ]);

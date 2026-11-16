@@ -17,6 +17,8 @@ import { portsFromSignals, signalFamily, signalsCompatible } from "@/services/ro
 import { WIRE_SIGNAL_STYLE, type Wire, type WirePort } from "@/services/room-builder/wiring/types";
 import type { WireIssue } from "@/services/room-builder/wiring/validate";
 import type { TechSelection } from "./technical-canvas";
+import { ManualPortsEditor } from "./manual-ports-editor";
+import { MANUAL_PORT_NOTE, type ManualPort } from "@/services/room-builder/manual-ports";
 
 const input = "w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-[#1e3553] focus:outline-none focus:ring-2 focus:ring-[#1e3553]/15";
 const btn = "inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50";
@@ -41,6 +43,9 @@ type Props = {
   onReverseWire: (id: string) => void;
   onAnotherWire: (w: Wire) => void;
   onSetPorts: (deviceId: string, ports: WirePort[] | null) => void;
+  /** Puertos cargados a mano del equipo en este proyecto (null: no es un equipo de la escena). */
+  manualPortsOf?: (deviceId: string) => ManualPort[] | null;
+  onSetManualPorts?: (deviceId: string, ports: ManualPort[]) => void;
   onAutoWire: () => void;
   onClearAuto: () => void;
 };
@@ -120,6 +125,8 @@ function SummaryPanel(p: Props) {
             <IssueRow key={k} issue={i} onClick={() => p.onSelect({ kind: "wire", id: i.wireId })} />
           ))}
         </div>
+      ) : p.model.pending ? (
+        <p className="rounded-md bg-slate-50 px-2 py-1.5 text-slate-600">Cargando las fichas de los equipos… los cables se revisan cuando terminan de cargar.</p>
       ) : p.model.wires.length && !p.review.length ? (
         // Solo si de verdad no queda nada: ni avisos de cables ni puntos para revisar a mano.
         <p className="flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1.5 text-emerald-800">
@@ -277,11 +284,12 @@ function DevicePanel(p: Props & { deviceId: string; unit: number; label: string 
   const conn = (portId: string) =>
     p.model.wires.filter((w) => (w.from.deviceId === p.deviceId && w.from.unit === p.unit && w.from.portId === portId) || (w.to.deviceId === p.deviceId && w.to.unit === p.unit && w.to.portId === portId));
   const manual = ports.some((q) => q.source !== "datasheet");
+  const sceneManual = p.manualPortsOf?.(p.deviceId) ?? null;
   return (
     <div className="space-y-3 p-3 text-xs">
       <div>
         <p className="text-sm font-semibold text-slate-900">{p.label}</p>
-        <p className="text-slate-500">{manual ? "Puertos cargados a mano" : ports.length ? "Puertos de la ficha del fabricante" : "Sin puertos: cargá las señales que admite"}</p>
+        <p className="text-slate-500">{sceneManual?.length ? (ports.some((q) => q.source === "datasheet") ? "Ficha del fabricante + puertos cargados a mano (sin verificar)" : "Puertos cargados a mano, sin ficha (sin verificar)") : manual ? "Puertos cargados a mano" : ports.length ? "Puertos de la ficha del fabricante" : "Sin puertos: cargá las señales que admite"}</p>
       </div>
       {ports.length && !editing ? (
         <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
@@ -291,7 +299,9 @@ function DevicePanel(p: Props & { deviceId: string; unit: number; label: string 
               <li key={q.id} className="flex items-start gap-2 px-2 py-1.5">
                 <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: WIRE_SIGNAL_STYLE[q.signal].color }} />
                 <span className="min-w-0 flex-1">
-                  <span className="font-semibold">{q.label}</span> <span className="text-slate-400">{q.direction === "in" ? "entrada" : q.direction === "out" ? "salida" : "E/S"}</span>
+                  <span className="font-semibold">{q.label}</span>
+                  {q.source === "manual" ? <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-800" title={MANUAL_PORT_NOTE}>* a mano</span> : null}{" "}
+                  <span className="text-slate-400">{q.direction === "in" ? "entrada" : q.direction === "out" ? "salida" : "E/S"}</span>
                   {used.map((w) => {
                     const other = w.from.deviceId === p.deviceId && w.from.unit === p.unit ? w.to : w.from;
                     return (
@@ -306,14 +316,15 @@ function DevicePanel(p: Props & { deviceId: string; unit: number; label: string 
           })}
         </ul>
       ) : null}
-      {editing || !ports.length ? <SignalEditor onSave={(next) => { p.onSetPorts(p.deviceId, next); setEditing(false); }} /> : null}
+      {sceneManual && p.onSetManualPorts ? <ManualPortsEditor ports={sceneManual} onChange={(next) => p.onSetManualPorts!(p.deviceId, next)} /> : null}
+      {(editing || !ports.length) && !sceneManual ? <SignalEditor onSave={(next) => { p.onSetPorts(p.deviceId, next); setEditing(false); }} /> : null}
       <div className="flex flex-wrap gap-1.5">
-        {ports.length && !editing ? (
+        {ports.length && !editing && !sceneManual ? (
           <button type="button" className={btn} onClick={() => setEditing(true)}>
             Cargar puertos a mano
           </button>
         ) : null}
-        {manual ? (
+        {manual && !sceneManual?.length ? (
           <button type="button" className={btn} onClick={() => p.onSetPorts(p.deviceId, null)}>
             Volver a la ficha
           </button>

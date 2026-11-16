@@ -12,6 +12,7 @@ import { resolveCommercialClientId } from "@/lib/client-context";
 import { getVisibleProductsWhere } from "@/lib/catalog";
 import { brandHref, brandsWithLogos, getBrandsWithoutProducts, loadCrestronHomeSettings, withCrestronHome } from "@/lib/catalog-brands";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
+import { BrandCardCaption } from "@/app/catalogo/brand-grid";
 import {
   ArrowRight,
   Heart,
@@ -19,7 +20,6 @@ import {
   Search,
   Send,
   ShoppingBag,
-  Sparkles,
   Tag,
   Warehouse,
 } from "lucide-react";
@@ -29,7 +29,6 @@ export const metadata = { title: "Inicio" };
 const QUICK_FILTERS = [
   ...(SHOW_STOCK_TO_CUSTOMERS ? [{ label: "En stock", href: "/portal/products?stock=in_stock", icon: Warehouse }] : []),
   { label: "Con descuento", href: "/portal/products?discount=1", icon: Tag },
-  { label: "Crestron Home", href: "/portal/products?crestron=1", icon: Sparkles },
   { label: "Mis favoritos", href: "/portal/products?fav=1", icon: Heart },
 ];
 
@@ -250,11 +249,7 @@ export default async function PortalDashboardPage() {
                 ) : (
                   <span className="text-center text-base font-bold tracking-wide">{brand.name}</span>
                 )}
-                {brand.count > 0 || brand.query ? (
-                <span className="text-[11px] text-muted-foreground">{brand.count.toLocaleString("es-AR")} productos</span>
-            ) : (
-                <span className="text-[11px] font-medium text-primary">Consultá disponibilidad</span>
-            )}
+                <BrandCardCaption brand={brand} />
               </Link>
             ))}
           </div>

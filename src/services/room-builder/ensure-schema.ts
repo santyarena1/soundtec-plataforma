@@ -47,6 +47,8 @@ async function columnExists(table: string, column: string): Promise<boolean> {
  * antes de alterar: ALTER TABLE toma un bloqueo exclusivo aunque la columna ya exista.
  */
 async function ensureRoomProjectColumns(): Promise<void> {
+  // Historial de emisiones de las láminas (revisiones A, B, C… con estado).
+  if (!(await columnExists("RoomProject", "revisionsJson"))) await exec(`ALTER TABLE "RoomProject" ADD COLUMN IF NOT EXISTS "revisionsJson" JSONB`);
   if (await columnExists("RoomProject", "shareViews")) return;
   // Enlace de solo lectura para el cliente (/p/[token]).
   await exec(`

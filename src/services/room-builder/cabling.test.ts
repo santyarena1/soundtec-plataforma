@@ -75,16 +75,20 @@ test("faltan salidas HDMI del codec: error con la solución", () => {
   assert.ok(meetingRoom({ extraDisplays: 1 }).findings.some((f) => f.id === "video-outs"));
 });
 
-test("recorrido: sube por la pared, cruza por el cielorraso y baja; desde la mesa va por el piso", () => {
+test("recorrido: desde la mesa baja al piso; si la otra punta también está baja sigue por piso/zócalo (misma geometría que el plano técnico)", () => {
   const nodes = meetingRoom().nodes;
   const tp = nodes.find((n) => n.id === "tp")!;
   const ctl = nodes.find((n) => n.id === "ctl")!;
   const route = routeCable(tp, ctl, dims);
   assert.deepEqual(route[0], [0, 0.76, 0]);
   assert.equal(route[1]![1], 0.02);
-  assert.ok(route.some((p) => p[1] > 2.7));
+  // Mesa (0,76 m) y rack (0,45 m): las dos puntas bajas, no sube al cielorraso.
+  assert.ok(route.every((p) => p[1] <= 0.76));
   assert.deepEqual(route[route.length - 1], [-2.8, 0.45, 1.2]);
-  assert.ok(routeLength(route) > 6);
+  assert.ok(routeLength(route) > 4);
+  // Contra un equipo alto (pared a 1,8 m) sí cruza por el cielorraso.
+  const high = routeCable(tp, { ...ctl, pos: { ...ctl.pos, y: 1.8 }, mount: "wall" }, dims);
+  assert.ok(high.some((p) => p[1] > 2.7));
 });
 
 test("largos: cable armado al largo estándar, rollo por metro; HDMI largo avisa", () => {

@@ -83,6 +83,8 @@ export type IoPort = {
   /** Largo máximo que declara la ficha para este puerto (m), con su cita (que tiene que decir ese largo). */
   maxLengthM?: number | null;
   maxLengthEvidence?: string | null;
+  /** Cargado a mano en un proyecto (manual-ports.ts): no viene de la ficha, no está verificado. */
+  manual?: boolean;
 };
 
 /** Familia de enlace propietario: minúsculas, números y guiones ("hall-ultra-4k"). */

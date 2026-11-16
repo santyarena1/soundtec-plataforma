@@ -27,7 +27,7 @@ export function CrestronActionsBar() {
       const r = await matchCrestronProducts();
       setMsg(
         r.ok
-          ? `Matching completado: ${r.matched} productos marcados como compatibles (de ${r.total} modelos en la lista).`
+          ? `Matching completado: ${r.matched} productos marcados como compatibles (de ${r.total} modelos de la lista oficial).`
           : "Error en matching."
       );
       router.refresh();
@@ -44,7 +44,7 @@ export function CrestronActionsBar() {
         disabled={seedPending || matchPending}
       >
         {seedPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-        Cargar modelos Crestron
+        Cargar lista oficial
       </Button>
       <Button
         type="button"
@@ -53,7 +53,7 @@ export function CrestronActionsBar() {
         disabled={seedPending || matchPending}
       >
         {matchPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-        Marcar productos compatibles
+        Marcar según lista oficial
       </Button>
       {msg && <span className="text-xs text-muted-foreground">{msg}</span>}
     </div>

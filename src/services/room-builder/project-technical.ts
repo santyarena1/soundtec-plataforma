@@ -14,6 +14,8 @@ import { cableTotals } from "./wiring/cable-list";
 import type { LengthKind, ModelWire, PlacedDevice, WiringModel } from "./wiring/model";
 import type { WireIssue } from "./wiring/validate";
 import { WIRE_SIGNAL_STYLE, type WirePort } from "./wiring/types";
+import { signalFamily } from "./wiring/ports";
+import { assignF501Ids } from "./sheets/f501";
 
 const CENTRAL_PREFIX = "central:";
 
@@ -140,8 +142,10 @@ export async function projectTechnical(hubId: string): Promise<ProjectTechnical>
     }
     for (const [id, list] of Object.entries(m.ports)) ports[key(id)] = list;
 
-    for (const w of list.cables) {
-      const label = w.label ? `${code}-${w.label}` : null;
+    // ID F501 (SALA-SEÑAL-NNN): los mismos de las láminas y las etiquetas.
+    const f501 = assignF501Ids(list.cables.map((w) => ({ label: w.label, signal: signalFamily(w.signal) })), code);
+    for (const [wi, w] of list.cables.entries()) {
+      const label = f501[wi] ?? null;
       const { fromName, fromPort, toName, toPort, signalLabel, color, feeds, ...wire } = w;
       void color;
       void feeds;

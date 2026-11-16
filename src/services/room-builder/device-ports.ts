@@ -46,6 +46,8 @@ export type PortGroup = {
   family?: string | null;
   /** Largo máximo del enlace declarado en la ficha (m). */
   maxLengthM?: number | null;
+  /** Cargado a mano en el proyecto (sin ficha): no verificado. */
+  manual?: boolean;
 };
 export type DevicePorts = {
   inputs: PortGroup[];
@@ -168,6 +170,7 @@ export function devicePorts(io: IoProfileData | null | undefined): DevicePorts |
       ...(level ? { level } : {}),
       ...(p.family ? { family: p.family } : {}),
       ...(p.maxLengthM ? { maxLengthM: p.maxLengthM } : {}),
+      ...(p.manual ? { manual: true } : {}),
     };
     if (p.direction === "in" || p.direction === "bidir") inputs.push(group);
     if (p.direction === "out" || p.direction === "bidir") outputs.push(group);

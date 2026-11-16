@@ -159,7 +159,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "margin", label: "Markup y regla", requiresPrices: true },
   { key: "discount", label: "Descuento %", requiresPrices: true },
   { key: "tariff", label: "Pos. arancelaria", requiresPrices: true },
-  { key: "stock", label: "Stock" },
+  { key: "stock", label: "Stock en origen" },
   { key: "active", label: "Activo" },
   { key: "shortDesc", label: "Descripción corta" },
   { key: "aiDesc", label: "Desc. IA" },
@@ -439,7 +439,7 @@ export function ProductsCatalogAdmin(props: Props) {
             {props.distributors.length ? (
               <MultiSelectFilter label="Proveedores" options={props.distributors} values={distributorIdsFromUrl} onChange={(ids) => pushFilters({ distributor: ids })} />
             ) : null}
-            <MultiSelectFilter label="Disponibilidad" options={STOCK_OPTIONS} values={stockFromUrl} onChange={(ids) => pushFilters({ stock: ids })} />
+            <MultiSelectFilter label="Stock en origen" options={STOCK_OPTIONS} values={stockFromUrl} onChange={(ids) => pushFilters({ stock: ids })} />
             <Select value={activeFromUrl} onChange={(e) => pushFilters({ active: e.target.value })} className="h-10 text-sm" aria-label="Activos o inactivos">
               <option value="">Activos e inactivos</option>
               <option value="yes">Solo activos</option>

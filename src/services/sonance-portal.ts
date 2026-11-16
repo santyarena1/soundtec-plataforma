@@ -235,6 +235,108 @@ async function apiPost<T = unknown>(
   return JSON.parse(res.body) as T;
 }
 
+async function apiPatch<T = unknown>(
+  session: Session,
+  path: string,
+  body: unknown
+): Promise<{ data: T; cookies: Record<string, string> }> {
+  const payload = JSON.stringify(body);
+  const res = await rawRequestOnce(
+    `${BASE}${path}`,
+    "PATCH",
+    browserHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "Content-Length": String(Buffer.byteLength(payload)),
+      Origin: BASE,
+      Referer: `${BASE}/`,
+      "X-Requested-With": "XMLHttpRequest",
+      Cookie: cookieStr(session.cookies),
+    }),
+    payload
+  );
+  if (res.status !== 200 && res.status !== 201) {
+    throw new Error(`my.sonance.com API ${res.status} en PATCH ${path}: ${res.body.slice(0, 150)}`);
+  }
+  return { data: JSON.parse(res.body) as T, cookies: parseCookiesRaw(rawSetCookies(res.headers)) };
+}
+
+// ── cuentas de facturación (bill-to / ship-to) ────────────────────────────────
+
+/**
+ * Cuenta de facturación del usuario en el portal (Optimizely/Insite B2B).
+ * El mismo usuario de Soundtec tiene dos: la habitual (5580105) y la de JAMES
+ * (5580105J). Al iniciar sesión el portal queda en la habitual (isDefault), que
+ * no incluye James: para verlo hay que cambiar de cuenta, como el selector de
+ * cuenta de la web.
+ */
+export interface SonancePortalAccount {
+  billToId: string;
+  customerNumber: string;
+  label: string;
+  /** Primera dirección de entrega real de la cuenta (la "One-Time Address" no tiene id). */
+  shipToId: string | null;
+  isDefault: boolean;
+}
+
+interface BillToNode {
+  id?: string;
+  customerNumber?: string;
+  label?: string | null;
+  customerName?: string;
+  isDefault?: boolean;
+  shipTos?: Array<{ id?: string; isDefault?: boolean }>;
+}
+
+/** GET /api/v1/billtos?expand=shiptos — lo mismo que lista el selector de cuenta. Solo lectura. */
+export async function listPortalAccounts(session: Session): Promise<SonancePortalAccount[]> {
+  const data = await apiGet<{ billTos?: BillToNode[] }>(session, "/api/v1/billtos?expand=shiptos&pageSize=50");
+  return (data.billTos ?? []).flatMap((b) => {
+    const billToId = b.id?.trim();
+    const customerNumber = b.customerNumber?.trim();
+    if (!billToId || !customerNumber) return [];
+    const shipTos = (b.shipTos ?? []).filter((s) => s.id?.trim());
+    const shipTo = shipTos.find((s) => s.isDefault) ?? shipTos[0];
+    return [{
+      billToId,
+      customerNumber,
+      label: (b.label ?? b.customerName ?? customerNumber).trim(),
+      shipToId: shipTo?.id?.trim() ?? null,
+      isDefault: Boolean(b.isDefault),
+    }];
+  });
+}
+
+/**
+ * Cambia la cuenta de la sesión: PATCH /api/v1/sessions/current con billTo/shipTo,
+ * el mismo pedido que hace la web al elegir otra cuenta. No toca carrito ni
+ * pedidos. Devuelve una sesión NUEVA (con las cookies de contexto actualizadas) y
+ * verifica que el portal quedó en la cuenta pedida.
+ */
+export async function selectPortalAccount(session: Session, customerNumber: string): Promise<Session> {
+  const wanted = customerNumber.trim().toUpperCase();
+  const accounts = await listPortalAccounts(session);
+  const account = accounts.find((a) => a.customerNumber.toUpperCase() === wanted);
+  if (!account) {
+    throw new Error(
+      `La cuenta ${customerNumber} no figura entre las cuentas del usuario en my.sonance.com ` +
+        `(disponibles: ${accounts.map((a) => a.customerNumber).join(", ") || "ninguna"}).`
+    );
+  }
+  const { cookies } = await apiPatch(session, "/api/v1/sessions/current", {
+    customerWasUpdated: true,
+    billTo: { id: account.billToId },
+    shipTo: account.shipToId ? { id: account.shipToId } : undefined,
+  });
+  const next: Session = { cookies: { ...session.cookies, ...cookies } };
+  const current = await apiGet<{ billTo?: { customerNumber?: string } }>(next, "/api/v1/sessions/current");
+  const now = current.billTo?.customerNumber?.trim().toUpperCase();
+  if (now !== wanted) {
+    throw new Error(`my.sonance.com no cambió a la cuenta ${customerNumber} (quedó en ${now ?? "desconocida"}).`);
+  }
+  return next;
+}
+
 // ── categories (brand discovery) ──────────────────────────────────────────────
 
 interface CategoryNode {
@@ -765,8 +867,56 @@ export async function fetchProductDetailRaw(
  * Login una vez y devuelve la session, para que el caller pueda hacer múltiples
  * llamadas (fetchProductDetailRaw, etc.) reutilizando cookies.
  */
-export async function openSession(): Promise<Session> {
-  return login();
+export async function openSession(options?: { account?: string | null }): Promise<Session> {
+  const session = await login();
+  // Sin cuenta: queda la habitual del usuario (comportamiento de siempre).
+  const account = options?.account?.trim();
+  return account ? selectPortalAccount(session, account) : session;
+}
+
+/**
+ * Listado de UNA marca del portal (categoría "pn-…", ej. "pn-james") con el id
+ * del portal. A diferencia de fetchFromPortalWithIds, conserva los productos sin
+ * precio de lista (price 0 → el detalle y el My Price deciden después).
+ *
+ * onlyListingBrand: la categoría de una marca también lista accesorios de otras
+ * (ej. pn-james trae soportes "SONANCE"); con esto se quedan solo los que el
+ * portal informa con esa marca.
+ */
+export async function fetchBrandListingWithIds(
+  session: Session,
+  slug: string,
+  brand: SonanceBrand,
+  options?: { onlyListingBrand?: string }
+): Promise<Array<{ product: SonanceProduct; portalId: string }>> {
+  const onlyBrand = options?.onlyListingBrand?.trim().toUpperCase();
+  const brandCats = await fetchBrandCategories(session);
+  const category = brandCats.find((c) => c.slug === slug.toLowerCase());
+  if (!category) {
+    throw new Error(`my.sonance.com no tiene la categoría de marca ${slug} en esta cuenta.`);
+  }
+  const items = await fetchProductsForCategory(session, category.id, "attributes");
+  const bySku = new Map<string, { product: SonanceProduct; portalId: string }>();
+  for (const p of items) {
+    const sku = asStr(p.productNumber).trim();
+    const name = asStr(p.productTitle).trim();
+    if (!sku || !name || !p.id) continue;
+    if (onlyBrand && asStr(p.brand?.name).trim().toUpperCase() !== onlyBrand) continue;
+    const listPrice = typeof p.unitListPrice === "number" && p.unitListPrice > 0 && p.canShowPrice ? p.unitListPrice : 0;
+    bySku.set(sku, {
+      portalId: p.id,
+      product: {
+        name,
+        supplierSku: sku,
+        price: listPrice,
+        uom: asStr(p.customerUnitOfMeasure, "EA").trim() || "EA",
+        brand,
+        category: findAttrValue(p.attributeTypes, "Product Category") || findAttrValue(p.attributeTypes, "Product Super Category"),
+        subcategory: findAttrValue(p.attributeTypes, "Product Sub Category"),
+      },
+    });
+  }
+  return [...bySku.values()];
 }
 
 // ── public API ────────────────────────────────────────────────────────────────

@@ -214,6 +214,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               accessoryRequiredWithPrimary: product.accessoryRequiredWithPrimary,
               line: product.line,
               isActive: product.isActive,
+              isFeatured: product.isFeatured,
               fieldUpdatedAt:
                 (product as unknown as { fieldUpdatedAt?: unknown }).fieldUpdatedAt &&
                 typeof (product as unknown as { fieldUpdatedAt?: unknown }).fieldUpdatedAt === "object" &&

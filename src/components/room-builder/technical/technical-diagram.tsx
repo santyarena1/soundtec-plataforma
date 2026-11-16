@@ -288,6 +288,7 @@ export function TechnicalDiagram(p: Props) {
                     <circle cx={px} cy={py} r={pending && usable && !isPending ? PORT_R + 1.5 : PORT_R} fill={port.used ? color : "#ffffff"} stroke={color} strokeWidth={1.6} />
                     <text x={port.side === "left" ? px + 9 : px - 9} y={py + 3.2} fontSize={9.5} textAnchor={port.side === "left" ? "start" : "end"} fill="#1f2937">
                       {port.label}
+                      {port.source === "manual" ? <tspan fill="#b45309">*</tspan> : null}
                     </text>
                   </g>
                 );
@@ -297,7 +298,7 @@ export function TechnicalDiagram(p: Props) {
         })}
       </svg>
       <p className="pointer-events-none absolute bottom-2 left-2 rounded bg-white/90 px-2 py-1 text-[11px] text-slate-500">
-        Tocá un puerto y después otro compatible para cablear · arrastrá el encabezado para mover · rueda para acercar
+        Tocá un puerto y después otro compatible para cablear · arrastrá el encabezado para mover · rueda para acercar · <span className="text-amber-700">*</span> puerto cargado a mano, sin ficha
       </p>
     </div>
   );

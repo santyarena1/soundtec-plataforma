@@ -82,7 +82,34 @@ export type RankFromDbOptions = {
   slotLabel?: string;
   /** Lo relevado que decide qué productos sirven para el papel (control, plataforma, exterior). */
   fit?: FitContext;
+  /**
+   * Equipo agregado (por el sistema o a mano) que se quiere cambiar: solo se sugieren productos de su
+   * misma clase (un switch por otro switch), no cualquiera del rol genérico "otro".
+   */
+  sameKindAs?: { productType: string | null; name: string } | null;
 };
+
+/** Tipos de la IA demasiado generales para filtrar por ellos. */
+const VAGUE_TYPES = new Set(["other", "accessory", "mount", "cable", "power"]);
+
+/**
+ * Filtro de "misma clase que el equipo actual": su tipo (si es concreto) o la familia de su
+ * modelo (lo que va antes del primer número: "CEN-SWPOE-10" → "CEN-SWPOE-").
+ */
+export function sameKindFilter(current: { productType: string | null; name: string }): Prisma.ProductWhereInput | null {
+  const or: Prisma.ProductWhereInput[] = [];
+  if (current.productType && !VAGUE_TYPES.has(current.productType)) or.push({ aiProfile: { productType: current.productType } });
+  const prefix = familyPrefix(current.name);
+  if (prefix) or.push({ normalizedName: { startsWith: prefix, mode: "insensitive" } });
+  return or.length ? { OR: or } : null;
+}
+
+/** Familia del modelo: el texto antes del primer número, si es significativo (≥ 4 caracteres). */
+export function familyPrefix(name: string): string | null {
+  const m = /^[^0-9]+/.exec(name.trim());
+  const p = m?.[0] ?? "";
+  return p.trim().length >= 4 ? p : null;
+}
 
 export type ProcessorKind = "amplifier" | "control";
 
@@ -163,7 +190,9 @@ export async function rankProductsForSlot(options: RankFromDbOptions) {
   };
 
   const preferred = (options.preferredBrands ?? []).filter(Boolean);
-  const special = slotProductFilter(options.slotKey, options.role);
+  const sameKind = options.sameKindAs ? sameKindFilter(options.sameKindAs) : null;
+  // Cambiar un equipo agregado: manda su clase (el rol "otro" no dice nada del equipo).
+  const special = sameKind ? { where: sameKind, anyRole: true } : slotProductFilter(options.slotKey, options.role);
   const findProfiles = (brandSlugs: string[] | null) =>
     prisma.productDesignProfile.findMany({
     where: {

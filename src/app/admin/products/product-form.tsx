@@ -62,6 +62,8 @@ interface Props {
     /** Línea o serie del fabricante. */
     line?: string | null;
     isActive: boolean;
+    /** Destacado (estrella): primero al entrar a su marca. */
+    isFeatured?: boolean;
     /** «Consultá precio»: no se muestra el precio aunque haya costo. */
     requiresQuote?: boolean;
     fieldUpdatedAt?: Record<string, string> | null;
@@ -628,9 +630,12 @@ export function ProductForm({ product, brands, distributors, categories, familie
       {/* ── DISPONIBILIDAD ── */}
       <div>
         <SectionTitle>Disponibilidad</SectionTitle>
+        <p className="-mt-1 mb-3 text-xs text-muted-foreground">
+          Stock en origen (lo informa el proveedor): solo lo ve el equipo Soundtec. El cliente ve «Consultá stock».
+        </p>
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <Label htmlFor="stockStatus">Disponibilidad</Label>
+            <Label htmlFor="stockStatus">Stock en origen (proveedor)</Label>
             <Select id="stockStatus" name="stockStatus" defaultValue={product?.stockStatus || "UNKNOWN"}>
               <option value="IN_STOCK">&gt;5 unidades</option>
               <option value="LOW_STOCK">&lt;5 unidades</option>
@@ -641,7 +646,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
             <FieldStamp at={fieldUpdatedAt?.stockStatus} />
           </div>
           <div>
-            <Label htmlFor="stockQuantity">Cantidad (opcional)</Label>
+            <Label htmlFor="stockQuantity">Cantidad en origen (opcional)</Label>
             <Input
               id="stockQuantity"
               name="stockQuantity"
@@ -701,6 +706,12 @@ export function ProductForm({ product, brands, distributors, categories, familie
             Producto activo
             <FieldStamp at={fieldUpdatedAt?.isActive} />
           </span>
+        </label>
+        {/* Estrella: sale primero al entrar a su marca en el catálogo del cliente. */}
+        <input type="hidden" name="isFeaturedPresent" value="1" />
+        <label className="flex items-center gap-2 text-sm" title="Sale primero al entrar a su marca en el catálogo del cliente. Al quitarla vuelve a su lugar por rubro.">
+          <input type="checkbox" name="isFeatured" defaultChecked={product?.isFeatured ?? false} />
+          <span>★ Destacado en su marca</span>
         </label>
       </div>
 

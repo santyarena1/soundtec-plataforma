@@ -8,8 +8,9 @@ const items = [
   { href: "/portal", label: "Inicio", icon: LayoutDashboard, exact: true },
   { href: "/portal/products", label: "Catálogo", icon: Package },
   { href: "/portal/wishlist", label: "Favoritos", icon: Heart },
-  { href: "/portal/lists", label: "Listas", icon: Bookmark },
-  { href: "/portal/requests", label: "Pedidos", icon: Send },
+  // Se ven pero todavía no se usan: «Próximamente», sin link.
+  { href: "/portal/lists", label: "Listas", icon: Bookmark, comingSoon: true },
+  { href: "/portal/requests", label: "Pedidos", icon: Send, comingSoon: true },
 ];
 
 export function PortalBottomNav() {
@@ -24,7 +25,22 @@ export function PortalBottomNav() {
     >
       <ul className="grid grid-cols-5">
         {items.map((item) => {
-          const active = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
+          if ("comingSoon" in item && item.comingSoon) {
+            return (
+              <li key={item.href}>
+                <span
+                  aria-disabled="true"
+                  title="Próximamente"
+                  className="flex cursor-not-allowed flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium text-muted-foreground/50"
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                  <span className="-mt-0.5 text-[8px] font-semibold uppercase tracking-wide">Próximamente</span>
+                </span>
+              </li>
+            );
+          }
+          const active = "exact" in item && item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <li key={item.href}>
               <Link

@@ -19,6 +19,7 @@ import { WIRE_SIGNAL_STYLE, type SceneWiring, type Wire, type WirePort } from "@
 import { TechnicalCanvas, type TechSelection, type TechTool } from "./technical-canvas";
 import { TechnicalDiagram } from "./technical-diagram";
 import { TechnicalInspector } from "./technical-inspector";
+import { RackView } from "./rack-view";
 
 type Picker = { device: PlacedDevice; x: number; y: number; stage: "from" | "to" };
 type End = { deviceId: string; unit: number; portId: string };
@@ -31,6 +32,7 @@ export function TechnicalPlan({
   onUnitsChange,
   onEditDevice,
   onResolve,
+  projectId,
 }: {
   scene: RoomScene;
   category: string;
@@ -41,13 +43,15 @@ export function TechnicalPlan({
   /** Tocar un equipo lo abre para editarlo en el panel de equipos (cambiar producto, cantidad, quitar). */
   onEditDevice?: (deviceId: string) => void;
   onResolve?: () => Promise<{ added: Array<{ name: string; reason: string; catalog?: boolean }>; removed?: Array<{ name: string; reason: string }>; remaining: Array<{ title: string; detail: string; fix?: unknown }>; wires: number } | null>;
+  /** Ambiente: habilita la vista "Rack" (frente del rack, consumo y calor). */
+  projectId?: string;
 }) {
   const [tool, setTool] = useState<TechTool>("select");
   const [resolving, setResolving] = useState(false);
   const [resolved, setResolved] = useState<Array<{ name: string; reason: string }> | null>(null);
   const autoRan = useRef(false);
   /** Vista del cableado: planta (recorridos reales) o diagrama de señal (esquema de puertos). */
-  const [view, setView] = useState<"planta" | "diagrama">("planta");
+  const [view, setView] = useState<"planta" | "diagrama" | "rack">("planta");
   const [selection, setSelection] = useState<TechSelection>(null);
   // Equipo seleccionado en planta o diagrama → se abre en el panel de equipos.
   useEffect(() => {
@@ -57,7 +61,9 @@ export function TechnicalPlan({
   const [picker, setPicker] = useState<Picker | null>(null);
 
   // Mismo modelo que la lista única de cables (incluye la troncal al rack central).
-  const model = useMemo(() => buildWiringModel(scene, cabling.profile, { trunk: cabling.trunk, category }), [scene, cabling.profile, cabling.trunk, category]);
+  // Mientras cargan las fichas no se valida (si no, todos los cables muestran aviso unos segundos al abrir).
+  const profilePending = !cabling.profile && !cabling.error;
+  const model = useMemo(() => buildWiringModel(scene, cabling.profile, { trunk: cabling.trunk, category, pending: profilePending }), [scene, cabling.profile, cabling.trunk, category, profilePending]);
   const floor = useMemo(() => floorOf(scene), [scene]);
   const walls = useMemo(() => planWalls(scene, category), [scene, category]);
   const furniture = useMemo(() => planFurniture(scene, category), [scene, category]);
@@ -147,13 +153,17 @@ export function TechnicalPlan({
     <div className="flex h-full min-h-0">
       <div className="relative min-w-0 flex-1">
         <div className="absolute left-1/2 top-2 z-20 flex -translate-x-1/2 rounded-lg border border-slate-300 bg-white p-0.5 shadow-sm" role="tablist" aria-label="Vista del cableado">
-          {(["planta", "diagrama"] as const).map((v) => (
+          {(projectId ? (["planta", "diagrama", "rack"] as const) : (["planta", "diagrama"] as const)).map((v) => (
             <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => { setView(v); setPicker(null); setFrom(null); }} className={`rounded-md px-3 py-1 text-xs font-semibold ${view === v ? "bg-[#1e3553] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
-              {v === "planta" ? "Planta" : "Diagrama de señal"}
+              {v === "planta" ? "Planta" : v === "rack" ? "Rack" : "Diagrama de señal"}
             </button>
           ))}
         </div>
-        {view === "diagrama" ? (
+        {view === "rack" && projectId ? (
+          <div className="h-full overflow-auto p-3 pt-12">
+            <RackView projectId={projectId} refreshKey={scene.devices.map((d) => `${d.id}:${d.productId ?? d.generic?.key ?? ""}:${d.quantity}:${d.slotKey}`).join("|")} order={scene.rackOrder ?? null} onOrderChange={(rackOrder) => onSceneChange({ ...scene, rackOrder })} />
+          </div>
+        ) : view === "diagrama" ? (
           <TechnicalDiagram
             model={model}
             positions={wiringOf(scene).diagram ?? {}}
@@ -236,6 +246,10 @@ export function TechnicalPlan({
             const d = model.devices.find((x) => x.deviceId === w.from.deviceId && x.unit === w.from.unit);
             if (d) setPicker({ device: d, x: 0, y: 0, stage: "from" });
           }}
+          manualPortsOf={(deviceId) => scene.devices.find((d) => d.id === deviceId)?.manualPorts ?? (scene.devices.some((d) => d.id === deviceId) ? [] : null)}
+          onSetManualPorts={(deviceId, ports) =>
+            onSceneChange({ ...scene, devices: scene.devices.map((d) => (d.id === deviceId ? { ...d, manualPorts: ports.length ? ports : null } : d)) })
+          }
           onSetPorts={(deviceId, ports) =>
             setWiring((w) => {
               const next = { ...w.ports };
@@ -294,7 +308,9 @@ function PortPicker({ picker, ports, isTaken, compatibleWith, onPick, onClose }:
               <button type="button" disabled={!usable} onClick={() => onPick(q)} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: WIRE_SIGNAL_STYLE[q.signal].color }} />
                 <span className="flex-1">
-                  <span className="font-semibold">{q.label}</span> <span className="text-slate-400">{q.direction === "in" ? "entrada" : q.direction === "out" ? "salida" : "E/S"}</span>
+                  <span className="font-semibold">{q.label}</span>
+                  {q.source === "manual" ? <span className="text-amber-700" title="Cargado a mano, sin ficha">*</span> : null}{" "}
+                  <span className="text-slate-400">{q.direction === "in" ? "entrada" : q.direction === "out" ? "salida" : "E/S"}</span>
                 </span>
                 {busy ? <span className="text-[10px] text-slate-400">ocupado</span> : null}
               </button>
@@ -317,6 +333,7 @@ function Legend() {
             <span className="h-0.5 w-5" style={{ background: WIRE_SIGNAL_STYLE[s].color }} /> {WIRE_SIGNAL_STYLE[s].label}
           </li>
         ))}
+        <li className="pt-0.5 text-amber-800">* puerto cargado a mano, sin ficha</li>
       </ul>
     </details>
   );

@@ -1,8 +1,12 @@
 /* eslint-disable @next/next/no-img-element */
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Download, Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { PublicDeliverables } from "@/components/room-builder/share/public-deliverables";
+import { PublicRoom3D } from "@/components/room-builder/share/public-room-3d";
+import { loadRevisions } from "@/server/room-builder/revisions";
+import { cartelaRevision } from "@/services/room-builder/revisions";
 import { getCompanyIdentity } from "@/lib/quote-defaults";
 import { ogImageUrl, ogMeta } from "@/lib/og/meta";
 import { countShareView, findSharedProject } from "@/server/room-builder/share";
@@ -24,7 +28,7 @@ export async function generateMetadata({ params }: { params: { token: string } }
 
 const m1 = (n: number) => n.toFixed(1).replace(".", ",");
 
-function RoomSection({ room, index }: { room: PublicRoom; index: number }) {
+function RoomSection({ room, index, token }: { room: PublicRoom; index: number; token: string }) {
   return (
     <section id={`sala-${index + 1}`} className="scroll-mt-6 space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2 border-b border-border pb-2">
@@ -36,6 +40,9 @@ function RoomSection({ room, index }: { room: PublicRoom; index: number }) {
         </div>
         {room.source === "auto" ? <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900">Conexiones propuestas, a confirmar en obra</span> : null}
       </div>
+
+      {/* Sala en 3D de solo lectura: el visor se descarga recién al tocar el botón. */}
+      <PublicRoom3D token={token} roomId={room.id} roomName={room.name} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <figure className="rounded-xl border border-border bg-white p-3">
@@ -86,7 +93,7 @@ export default async function SharedProjectPage({ params }: { params: { token: s
   const project = await findSharedProject(params.token);
   if (!project) notFound();
   countShareView(project.id);
-  const [data, identity] = await Promise.all([loadPublicProject(project.id), getCompanyIdentity()]);
+  const [data, identity, revisions] = await Promise.all([loadPublicProject(project.id), getCompanyIdentity(), loadRevisions(project.id)]);
   const mailto = `mailto:${identity.email}?subject=${encodeURIComponent(`Proyecto · ${data.name}`)}`;
   const tel = `tel:${identity.phone.replace(/[^\d+]/g, "")}`;
   const totals = { devices: data.rooms.reduce((a, r) => a + r.devices.length, 0), cables: data.rooms.reduce((a, r) => a + r.cables, 0) };
@@ -102,10 +109,9 @@ export default async function SharedProjectPage({ params }: { params: { token: s
             {data.clientName ? `${data.clientName} · ` : ""}
             {data.rooms.length === 1 ? "1 sala" : `${data.rooms.length} salas`} · {totals.devices} equipos · {totals.cables} cables
           </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <a href={`/p/${params.token}/laminas`} className="inline-flex items-center gap-2 rounded-lg bg-[#1e3553] px-4 py-2 text-sm font-semibold text-white hover:bg-[#16283f]">
-              <Download className="h-4 w-4" /> Descargar láminas PDF
-            </a>
+          {/* Láminas PDF (formato de hoja a elección), CSV sin precios y PNG con la revisión vigente. */}
+          <PublicDeliverables token={params.token} revision={cartelaRevision(revisions.list)} />
+          <div className="mt-3 flex flex-wrap gap-2">
             <a href={mailto} className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">
               <Mail className="h-4 w-4" /> Contactar a Soundtec
             </a>
@@ -127,7 +133,7 @@ export default async function SharedProjectPage({ params }: { params: { token: s
       </header>
 
       <main className="mx-auto max-w-6xl space-y-12 px-4 py-8 sm:px-6">
-        {data.rooms.length ? data.rooms.map((r, i) => <RoomSection key={r.id} room={r} index={i} />) : <p className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">El proyecto todavía no tiene salas cargadas.</p>}
+        {data.rooms.length ? data.rooms.map((r, i) => <RoomSection key={r.id} room={r} index={i} token={params.token} />) : <p className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">El proyecto todavía no tiene salas cargadas.</p>}
         <p className="text-center text-xs text-muted-foreground">Documento técnico de referencia, sin precios. Las medidas finales se confirman en el relevamiento de obra.</p>
       </main>
       <PublicFooter />

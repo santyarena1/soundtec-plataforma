@@ -1,19 +1,20 @@
 "use client";
 
-import { Compass } from "lucide-react";
+import { PlayCircle } from "lucide-react";
 import { requestOnboardingStart } from "@/lib/onboarding/events";
 
-/** Reinicia el paseo de bienvenida del portal. */
+/** Tutorial online del portal: bien a la vista para que el cliente lo encuentre al toque. */
 export function PortalOnboardingButton() {
   return (
     <button
       type="button"
       onClick={() => requestOnboardingStart()}
-      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-      title="Reiniciar paseo de bienvenida"
+      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-accent px-2.5 text-xs font-semibold text-accent-foreground shadow-sm ring-2 ring-accent/25 transition-colors hover:bg-accent/90 sm:px-3"
+      title="Ver el tutorial del portal paso a paso"
     >
-      <Compass className="h-3.5 w-3.5" />
-      <span className="hidden sm:inline">Guía</span>
+      <PlayCircle className="h-4 w-4" />
+      <span className="lg:hidden">Tutorial</span>
+      <span className="hidden lg:inline">Tutorial online</span>
     </button>
   );
 }

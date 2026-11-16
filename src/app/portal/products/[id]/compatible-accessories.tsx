@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatUsd } from "@/lib/utils";
-import { StockBadge } from "../catalog-grid";
 import { AddToDraftButton } from "../add-to-draft-button";
 import { BundleAddAccessoryButton, useProductBundle } from "./product-bundle";
 import { Package } from "lucide-react";
@@ -128,7 +127,6 @@ export function CompatibleAccessoriesSection({ parentProductName, items, variant
                   {item.name}
                 </Link>
                 <div className="flex flex-wrap items-center gap-1">
-                  <StockBadge status={item.stockStatus} qty={item.stockQuantity} />
                   {item.isRequired ? <Badge tone="warning">Obligatorio</Badge> : null}
                   {variant === "INCLUDED" ? (
                     <Badge tone="success">Incluido{item.quantity && item.quantity > 1 ? ` ×${item.quantity}` : ""}</Badge>

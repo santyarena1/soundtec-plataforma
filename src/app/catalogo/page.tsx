@@ -20,6 +20,7 @@ import { ArrowRight, Package } from "lucide-react";
 import type { Metadata } from "next";
 import { ogImageUrl, ogMeta, siteCardUrl } from "@/lib/og/meta";
 import { RememberCatalog } from "@/components/catalog/catalog-memory";
+import { ComingSoonBanner } from "@/components/catalog/coming-soon-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,7 @@ export default async function PublicCatalogPage({
     );
   }
   const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
+  const comingSoonBrand = activeBrandId ? brands.find((b) => b.id === activeBrandId && b.comingSoon) ?? null : null;
   if (activeBrandId) {
     const store = await cookies();
     // La vista de marca se atribuye al QR solo mientras su evento está vigente.
@@ -133,11 +135,14 @@ export default async function PublicCatalogPage({
         ) : null}
       </div>
 
-      <AssistantEntry className="lg:max-w-2xl" />
+      {/* De lado a lado del contenedor, igual que la fila de marcas. */}
+      <AssistantEntry />
 
       {!isLogged ? <StickyAccountCta /> : null}
 
       <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} />
+
+      {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
 
       <CatalogLayout
         state={urlState}
@@ -146,7 +151,7 @@ export default async function PublicCatalogPage({
         publicMode
         toolbar={<CatalogToolbar state={urlState} publicMode />}
       >
-        {items.length === 0 ? (
+        {items.length === 0 && comingSoonBrand ? null : items.length === 0 ? (
           <EmptyState
             icon={<Package className="h-5 w-5" />}
             title="Sin resultados"

@@ -24,6 +24,7 @@ import { InterconnectPanel } from "./interconnect-panel";
 import { SystemPanel, useSystemCheck } from "./system-panel";
 import { CablingPanel } from "./cabling/cabling-panel";
 import type { CablingState } from "./cabling/use-cabling";
+import { DisplaySizingCard } from "./display-sizing-card";
 
 export type RankRow = {
   productId: string;
@@ -696,6 +697,7 @@ export function EditorSidebar({
                       {chosen ? <Check className="h-4 w-4 shrink-0 text-emerald-600" /> : null}
                       <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} />
                     </button>
+                    {open && slot.role === "display" ? <DisplaySizingCard projectId={projectId} scene={scene} category={category} device={device} onSaved={onReload} /> : null}
                     {open && generic ? (
                       <GenericEditor key={`${slot.key}-${generic.name}-${generic.priceUsd}`} generic={generic} pending={pending} onSave={(patch) => onUpdateGeneric(slot.key, patch)} onRemove={() => onRemoveDevice(slot.key)} />
                     ) : open ? (

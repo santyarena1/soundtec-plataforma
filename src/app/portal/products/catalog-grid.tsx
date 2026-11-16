@@ -8,7 +8,8 @@ import { Settings2 } from "lucide-react";
 import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
 import { SelectableCard } from "./catalog-multi-select";
-import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
+import { StockBadge } from "@/components/catalog/stock-badge";
+import { FeaturedStarButton } from "./featured-star-button";
 import { commercialTagFor } from "@/lib/commercial-tags";
 
 interface GridProps {
@@ -17,6 +18,10 @@ interface GridProps {
   publicMode?: boolean;
   /** Base de los links a la ficha (default: portal). */
   basePath?: string;
+  /** Equipo Soundtec: ve el stock en origen (proveedor) en vez de «Consultá stock». */
+  internal?: boolean;
+  /** Puede destacar productos (estrella) desde la grilla. */
+  canFeature?: boolean;
 }
 
 /**
@@ -35,7 +40,7 @@ interface GridProps {
  *  │ [ Agregar ]          │
  *  └──────────────────────┘
  */
-export function CatalogGrid({ items, publicMode = false, basePath = "/portal/products" }: GridProps) {
+export function CatalogGrid({ items, publicMode = false, basePath = "/portal/products", internal = false, canFeature = false }: GridProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {items.map((p) => {
@@ -60,8 +65,9 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                 </div>
               </Link>
               {!publicMode ? (
-                <div className="absolute right-2 top-2">
+                <div className="absolute right-2 top-2 flex flex-col items-end gap-1.5">
                   <FavoriteButton productId={p.id} isFavorite={p.isFavorite} />
+                  {canFeature ? <FeaturedStarButton productId={p.id} isFeatured={p.isFeatured} /> : null}
                 </div>
               ) : null}
               {(() => {
@@ -102,7 +108,7 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
 
               {/* Etiquetas — 1 fila fija, sin wrap */}
               <div className="mt-2 flex h-6 items-center gap-1 overflow-hidden whitespace-nowrap">
-                {!publicMode ? <StockBadge status={p.stockStatus} qty={p.stockQuantity} /> : null}
+                <StockBadge status={p.stockStatus} qty={p.stockQuantity} internal={internal && !publicMode} />
                 {p.categoryName ? <Badge tone="muted">{p.categoryName}</Badge> : null}
                 {p.familyName && p.familyName !== p.categoryName ? <Badge tone="muted">{p.familyName}</Badge> : null}
                 {p.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : null}
@@ -176,11 +182,5 @@ function cardDescription(p: CatalogProduct): string | null {
 }
 
 
-export function StockBadge({ status, qty }: { status: string; qty: number | null }) {
-  if (!SHOW_STOCK_TO_CUSTOMERS) return null;
-  if (status === "IN_STOCK") return <Badge tone="success">En stock{qty != null ? ` · ${qty}` : ""}</Badge>;
-  if (status === "LOW_STOCK") return <Badge tone="warning">Stock bajo{qty != null ? ` · ${qty}` : ""}</Badge>;
-  if (status === "OUT_OF_STOCK") return <Badge tone="destructive">Sin stock</Badge>;
-  if (status === "ON_REQUEST") return <Badge tone="accent">Bajo pedido</Badge>;
-  return <Badge tone="muted">Consultar</Badge>;
-}
+/** Se mantiene el import de siempre (lista compartida, ficha, accesorios). */
+export { StockBadge };

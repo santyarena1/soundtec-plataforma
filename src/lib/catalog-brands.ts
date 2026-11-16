@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { brandLogoSrc } from "@/lib/brand-logo";
+import { customerHiddenCategoryIds } from "@/lib/customer-hidden-categories";
 
 export type CatalogBrand = {
   id: string;
@@ -8,6 +9,8 @@ export type CatalogBrand = {
   count: number;
   /** Marca virtual: en vez de filtrar por marca, abre el catálogo con este filtro (ej. "crestron=1"). */
   query?: string;
+  /** «Próximamente» (Admin → Marcas): la tarjeta lo dice y la marca abre el aviso de lineup en camino. */
+  comingSoon?: boolean;
 };
 
 /**
@@ -73,6 +76,8 @@ export function brandInquiryHref(brandId: string): string {
 
 /** Link de una marca: su listado, o la consulta si todavía no tiene productos. */
 export function brandHref(brand: CatalogBrand, basePath: string): string {
+  // «Próximamente»: abre la marca, que muestra el aviso del lineup en camino.
+  if (brand.comingSoon) return `${basePath}?brand=${brand.id}`;
   if (!brand.query && brand.count === 0) return brandInquiryHref(brand.id);
   return `${basePath}?${brandQuery(brand)}`;
 }
@@ -84,12 +89,12 @@ export function brandHref(brand: CatalogBrand, basePath: string): string {
 export async function getBrandsWithoutProducts(): Promise<CatalogBrand[]> {
   const rows = await prisma.brand.findMany({
     where: { isActive: true, hiddenFromCatalog: false, products: { none: { isActive: true } } },
-    select: { id: true, name: true, logoUrl: true },
+    select: { id: true, name: true, logoUrl: true, comingSoon: true },
     orderBy: { name: "asc" },
   });
   return rows
     .filter((b) => !isCrestronHomeName(b.name))
-    .map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: 0 }));
+    .map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: 0, comingSoon: b.comingSoon }));
 }
 
 /** Total de productos sin contar dos veces los de marcas virtuales. */
@@ -136,29 +141,41 @@ export async function brandsWithLogos(facets: Array<{ id: string; name: string; 
   if (facets.length === 0) return [];
   const rows = await prisma.brand.findMany({
     where: { id: { in: facets.map((f) => f.id) } },
-    select: { id: true, logoUrl: true },
+    select: { id: true, logoUrl: true, comingSoon: true },
   });
-  const logoById = new Map(rows.map((r) => [r.id, r.logoUrl]));
+  const byId = new Map(rows.map((r) => [r.id, r]));
   return facets
-    .map((f) => ({ id: f.id, name: f.name, logoUrl: logoFor(f.id, f.name, logoById.get(f.id) ?? null), count: f.count }))
+    .map((f) => ({
+      id: f.id,
+      name: f.name,
+      logoUrl: logoFor(f.id, f.name, byId.get(f.id)?.logoUrl ?? null),
+      count: f.count,
+      comingSoon: byId.get(f.id)?.comingSoon ?? false,
+    }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
 }
 
 /** Marcas activas con productos activos, para la grilla y la barra del catálogo público. */
 export async function getCatalogBrands(): Promise<CatalogBrand[]> {
+  // Los rubros que solo ve el equipo (Indumentaria) no suman en el catálogo público.
+  const staffOnly = await customerHiddenCategoryIds();
+  const visibleProduct = {
+    isActive: true,
+    ...(staffOnly.length ? { OR: [{ categoryId: null }, { categoryId: { notIn: staffOnly } }] } : {}),
+  };
   const [crestronHomeCount, brands, settings] = await Promise.all([
     prisma.product.count({
-      where: { isActive: true, isCrestronHomeCompatible: true, brand: { is: { isActive: true, hiddenFromCatalog: false } } },
+      where: { ...visibleProduct, isCrestronHomeCompatible: true, brand: { is: { isActive: true, hiddenFromCatalog: false } } },
     }),
     // También las marcas sin productos todavía: van al final y llevan a la consulta.
     prisma.brand.findMany({
       where: { isActive: true, hiddenFromCatalog: false },
-      select: { id: true, name: true, logoUrl: true, _count: { select: { products: { where: { isActive: true } } } } },
+      select: { id: true, name: true, logoUrl: true, comingSoon: true, _count: { select: { products: { where: visibleProduct } } } },
     }),
     loadCrestronHomeSettings(),
   ]);
   const list = brands
-    .map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: b._count.products }))
+    .map((b) => ({ id: b.id, name: b.name, logoUrl: logoFor(b.id, b.name, b.logoUrl), count: b._count.products, comingSoon: b.comingSoon }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
   return withCrestronHome(list, crestronHomeCount, settings);
 }

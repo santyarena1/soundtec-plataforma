@@ -6,7 +6,8 @@ import { preferredBrandsForSlot } from "./brief";
 import { pickForTier, targetDisplayInches } from "./sizing";
 import { catalogFor } from "./catalog-match";
 import { genericByKey, genericForSlot } from "./generic/library";
-import { fitContextFor, slotKind, type SlotKind } from "./role-fit";
+import { fitContextFor, kitIncludesTouch, slotKind, type SlotKind } from "./role-fit";
+import { MAX_FLAT_IN, sceneDisplaySizing } from "./discas";
 import { addCustomDevice } from "./custom-devices";
 import type { DesignRole, MountOption, RoomSlot } from "./types";
 
@@ -72,6 +73,27 @@ async function addCameraAdapters(projectId: string): Promise<void> {
   }
 }
 
+/** ¿El códec / kit de sala de la escena (ya puesto o elegido en esta pasada) trae su propio panel táctil? */
+async function codecBringsTouch(scene: RoomScene, chosen: Map<string, string>): Promise<boolean> {
+  const ids = scene.slots
+    .filter((s) => s.role === "codec")
+    .map((s) => chosen.get(s.key) ?? scene.devices.find((d) => d.slotKey === s.key)?.productId ?? null)
+    .filter((id): id is string => Boolean(id));
+  if (!ids.length) return false;
+  const rows = await prisma.product.findMany({ where: { id: { in: ids } }, select: { normalizedName: true, aiProfile: { select: { summaryEs: true } } } });
+  return rows.some((p) => kitIncludesTouch({ name: p.normalizedName, summary: p.aiProfile?.summaryEs ?? null }));
+}
+
+/** El touch de mesa ya viene en el kit del códec: el lugar queda opcional y lo dice (no se cotiza otro). */
+async function markKitTouch(projectId: string, keys: Set<string>): Promise<void> {
+  const fresh = parseScene((await getRoomProject(projectId))?.sceneJson);
+  if (!fresh) return;
+  const label = "Panel táctil (incluido en el kit del códec)";
+  const slots = fresh.slots.map((s) => (keys.has(s.key) ? { ...s, required: false, label } : s));
+  const devices = fresh.devices.map((d) => (keys.has(d.slotKey) && !d.productId ? { ...d, label } : d));
+  await updateRoomProjectScene(projectId, { ...fresh, slots, devices } as RoomScene);
+}
+
 /** Marca como genéricos los lugares que quedaron sin producto válido. */
 async function applyGenerics(projectId: string, fills: Map<string, GenericFill>): Promise<void> {
   if (!fills.size) return;
@@ -103,14 +125,26 @@ export async function autoFillProjectSlots(
 
   const tier = scene.brief?.tier ?? "recomendado";
   const displayInches = scene.brief?.video?.sizeIn ?? targetDisplayInches(scene, project.category);
+  // DISCAS: si la imagen que pide la sala pasa la pantalla plana más grande, va proyector (o LED), no una TV chica.
+  const sizing = scene.brief?.video?.sizeIn ? null : sceneDisplaySizing(scene, project.category);
+  const beyondFlat = Boolean(sizing && sizing.recommendation.kind !== "flat");
+  /** Producto elegido en esta pasada por lugar (la escena local no se refresca). */
+  const chosen = new Map<string, string>();
+  const kitTouch = new Set<string>();
   const brands = scene.brief?.brands ?? {};
   const control = scene.brief?.control ?? null;
   let filled = 0;
   let attempted = 0;
   const generics = new Map<string, GenericFill>();
 
-  for (const slot of scene.slots) {
+  // El touch va al final: si el kit del códec ya trae su panel, no se suma otro.
+  const ordered = [...scene.slots.filter((s) => slotKind(s) !== "touch-panel"), ...scene.slots.filter((s) => slotKind(s) === "touch-panel")];
+  for (const slot of ordered) {
     if (!slot.required && !options?.includeOptional) continue;
+    if (slotKind(slot) === "touch-panel" && (await codecBringsTouch(scene, chosen))) {
+      kitTouch.add(slot.key);
+      continue;
+    }
     const existing = scene.devices.find((d) => d.slotKey === slot.key);
     if (existing?.productId || existing?.generic) continue;
     attempted += 1;
@@ -122,6 +156,7 @@ export async function autoFillProjectSlots(
       const pick = byCap.need ? await catalogFor(byCap.need, brands, [], control) : null;
       if (pick) {
         await assignProductToSlot({ projectId, slotKey: slot.key, productId: pick.productId, quantity });
+        chosen.set(slot.key, pick.productId);
         filled += 1;
       } else if (slot.required) generics.set(slot.key, { key: byCap.generic, name: genericName(slot, byCap.generic) });
       continue;
@@ -148,6 +183,7 @@ export async function autoFillProjectSlots(
     let best = pickForTier(ranked, tier, { minScore: options?.minScore, targetInches: target });
     // Pantalla: si la más grande que sirve queda corta para la sala, va un proyector (genérico si no hay).
     if (best && isRoomDisplay && target != null && best.diagonalIn != null && best.diagonalIn < target - DISPLAY_SHORT_IN) best = null;
+    if (best && isRoomDisplay && beyondFlat && best.diagonalIn != null && best.diagonalIn <= MAX_FLAT_IN) best = null;
     if (!best) {
       if (slot.required) {
         const key = genericFor(slot, kind, target);
@@ -157,8 +193,11 @@ export async function autoFillProjectSlots(
     }
 
     await assignProductToSlot({ projectId, slotKey: slot.key, productId: best.productId, quantity });
+    chosen.set(slot.key, best.productId);
     filled += 1;
   }
+
+  if (kitTouch.size) await markKitTouch(projectId, kitTouch);
 
   await applyGenerics(projectId, generics);
   await addCameraAdapters(projectId).catch((error) => console.error("[room-builder/auto-fill] adaptador de cámara", projectId, error));

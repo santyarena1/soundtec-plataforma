@@ -1,40 +1,66 @@
 /* eslint-disable @next/next/no-img-element */
+import type { CatalogBrand } from "@/lib/catalog-brands";
 
 interface BrandsProps {
-  catalogBrands: Array<{ id: string; name: string }>;
+  /** Marcas visibles del catálogo (con su logo): todas van en «Representación exclusiva». */
+  catalogBrands: CatalogBrand[];
 }
 
-/** Marcas que Soundtec representa (logos propios de soundtec.com.ar). */
-const REPRESENTED = [
-  { file: "crestron.png", name: "Crestron", exclusive: true },
-  { file: "crestron_home.png", name: "Crestron Home", exclusive: true },
-  { file: "dante.png", name: "Dante", exclusive: true },
-  { file: "atlona.png", name: "Atlona", exclusive: true },
-  { file: "soundtube.png", name: "SoundTube", exclusive: true },
-  { file: "blaze.png", name: "Blaze Audio", exclusive: true },
-  { file: "bluesoundprofessional.png", name: "Bluesound Professional", exclusive: true },
-  { file: "ndt.png", name: "NDT", exclusive: true },
-  { file: "flatpanel.png", name: "Flatpanel Audio", exclusive: true },
-  { file: "yamaha.png", name: "Yamaha" },
-  { file: "jbl.png", name: "JBL" },
-  { file: "shure.png", name: "Shure" },
-  { file: "qsc.png", name: "QSC" },
-  { file: "kramer.png", name: "Kramer" },
-  { file: "barco.png", name: "Barco" },
-  { file: "poly.png", name: "HP Poly" },
-  { file: "epson.png", name: "Epson" },
-  { file: "samsung.png", name: "Samsung" },
-  { file: "lg_electronics.png", name: "LG" },
-  { file: "l-acoustics.png", name: "L-Acoustics" },
-  { file: "bose.png", name: "Bose" },
-  { file: "logitech.png", name: "Logitech" },
-] as const;
+interface LandingLogo {
+  key: string;
+  name: string;
+  src: string;
+  /** Logos casi cuadrados: más alto para que se lean igual que los apaisados. */
+  tall?: boolean;
+}
+
+/**
+ * Representadas con logo propio (de soundtec.com.ar), en el orden de siempre.
+ * Las demás marcas del catálogo se suman detrás con el logo cargado en
+ * Admin → Marcas.
+ */
+const EXCLUSIVE: Array<{ file: string; name: string; aliases?: string[] }> = [
+  { file: "crestron.png", name: "Crestron" },
+  { file: "crestron_home.png", name: "Crestron Home" },
+  { file: "dante.png", name: "Dante", aliases: ["Audinate"] },
+  { file: "atlona.png", name: "Atlona" },
+  { file: "soundtube.png", name: "SoundTube" },
+  { file: "blaze.png", name: "Blaze Audio", aliases: ["BLAZE BY SONANCE", "Blaze"] },
+  { file: "bluesoundprofessional.png", name: "Bluesound Professional", aliases: ["Bluesound"] },
+  { file: "ndt.png", name: "NDT" },
+  { file: "flatpanel.png", name: "FlatPanel Audio", aliases: ["Flat Panel Audio", "Flatpanel"] },
+];
+
+/** Partners (logos oficiales de cada marca). */
+const PARTNERS: LandingLogo[] = [
+  { key: "yamaha", name: "Yamaha", src: "/landing/brands/yamaha.png" },
+  { key: "shure", name: "Shure", src: "/landing/brands/shure.png" },
+  { key: "barco", name: "Barco", src: "/landing/brands/barco.png" },
+  { key: "poly", name: "HP Poly", src: "/landing/brands/poly.png" },
+  { key: "ricoh", name: "Ricoh", src: "/landing/brands/ricoh.svg" },
+  { key: "hk-audio", name: "HK Audio", src: "/landing/brands/hk-audio.svg", tall: true },
+  { key: "work-pro", name: "Work Pro", src: "/landing/brands/work-pro.png", tall: true },
+];
+
+const normalize = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/** Logos de «Representación exclusiva»: los de siempre y, detrás, el resto de las marcas del catálogo. */
+export function exclusiveLogos(catalogBrands: CatalogBrand[]): LandingLogo[] {
+  const fixed = EXCLUSIVE.map((brand) => ({
+    key: normalize(brand.name),
+    name: brand.name,
+    src: `/landing/brands/${brand.file}`,
+    names: [brand.name, ...(brand.aliases ?? [])].map(normalize),
+  }));
+  const taken = new Set(fixed.flatMap((brand) => brand.names));
+  const fromCatalog = catalogBrands
+    .filter((brand) => brand.logoUrl && !taken.has(normalize(brand.name)))
+    .map((brand) => ({ key: brand.id, name: brand.name, src: brand.logoUrl as string }));
+  return [...fixed.map(({ key, name, src }) => ({ key, name, src })), ...fromCatalog];
+}
 
 export function Brands({ catalogBrands }: BrandsProps) {
-  const exclusive = REPRESENTED.filter((brand) => "exclusive" in brand && brand.exclusive);
-  const partners = REPRESENTED.filter((brand) => !("exclusive" in brand && brand.exclusive));
-  const shownNames = new Set(REPRESENTED.map((brand) => brand.name.toLowerCase()));
-  const extraBrands = catalogBrands.filter((brand) => !shownNames.has(brand.name.toLowerCase()));
+  const exclusive = exclusiveLogos(catalogBrands);
 
   return (
     <section id="marcas" className="border-y border-border bg-card py-20 sm:py-24">
@@ -47,7 +73,7 @@ export function Brands({ catalogBrands }: BrandsProps) {
             </h2>
           </div>
           <p className="muted-text max-w-sm md:text-right">
-            El catálogo completo con precios y stock por marca está dentro del portal.
+            El catálogo completo con precios por marca está dentro del portal.
           </p>
         </div>
 
@@ -57,49 +83,30 @@ export function Brands({ catalogBrands }: BrandsProps) {
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {exclusive.map((brand) => (
             <li
-              key={brand.file}
+              key={brand.key}
               className="flex h-20 items-center justify-center rounded-xl border border-accent/25 bg-background px-5 transition-colors hover:border-accent/60"
             >
-              <img
-                src={`/landing/brands/${brand.file}`}
-                alt={brand.name}
-                className="max-h-9 w-auto max-w-full object-contain"
-                loading="lazy"
-              />
+              <img src={brand.src} alt={brand.name} className="max-h-9 w-auto max-w-full object-contain" loading="lazy" />
             </li>
           ))}
         </ul>
 
         <p className="mt-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Partners</p>
         <ul className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-          {partners.map((brand) => (
+          {PARTNERS.map((brand) => (
             <li
-              key={brand.file}
+              key={brand.key}
               className="flex h-16 items-center justify-center rounded-xl border border-border bg-background px-4 opacity-80 transition-opacity hover:opacity-100"
             >
               <img
-                src={`/landing/brands/${brand.file}`}
+                src={brand.src}
                 alt={brand.name}
-                className="max-h-7 w-auto max-w-full object-contain"
+                className={`${brand.tall ? "max-h-10" : "max-h-7"} w-auto max-w-full object-contain`}
                 loading="lazy"
               />
             </li>
           ))}
         </ul>
-
-        {extraBrands.length > 0 ? (
-          <div className="mt-8 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span className="mr-1">También en el portal:</span>
-            {extraBrands.map((brand) => (
-              <span key={brand.id} className="rounded-full border border-border px-3 py-1 text-foreground">
-                {brand.name}
-              </span>
-            ))}
-            <span>y más de 40 fabricantes.</span>
-          </div>
-        ) : (
-          <p className="mt-8 text-sm text-muted-foreground">Y más de 40 fabricantes disponibles a pedido.</p>
-        )}
       </div>
     </section>
   );

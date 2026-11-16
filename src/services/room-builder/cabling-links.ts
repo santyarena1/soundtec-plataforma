@@ -215,6 +215,45 @@ export function proprietaryLinks(ctx: LinkCtx): void {
   }
 }
 
+/* ───────────── Cadena HDMI por extensores propietarios ───────────── */
+
+/** Emisor de video por enlace propietario (Hall ULTRA…): entra HDMI y sale por su UTP propio. */
+export const isHdmiExtenderTx = (n: Ready) => portCount(n.ports, "inputs", "hdmi") > 0 && n.ports.outputs.some((g) => g.signal === "cat" && Boolean(g.family));
+/** Receptor de video por enlace propietario: entra por su UTP propio y sale HDMI. */
+export const isHdmiExtenderRx = (n: Ready) => portCount(n.ports, "outputs", "hdmi") > 0 && n.ports.inputs.some((g) => g.signal === "cat" && Boolean(g.family));
+
+/** ¿Hay en la sala un emisor y un receptor de video de la misma familia? (la notebook va por ellos, no directo a la pantalla). */
+export function hasHdmiExtenderPair(nodes: Ready[]): boolean {
+  const fam = (n: Ready, side: "inputs" | "outputs") => n.ports[side].filter((g) => g.signal === "cat" && g.family).map((g) => g.family!);
+  return nodes.some((tx) => isHdmiExtenderTx(tx) && nodes.some((rx) => rx !== tx && isHdmiExtenderRx(rx) && fam(tx, "outputs").some((f) => fam(rx, "inputs").some((g) => familiesMatch(f, g)))));
+}
+
+/**
+ * Cadena completa a través de un extensor propietario, como con HDBaseT:
+ * fuente (notebook / conexión de mesa) → emisor por HDMI → enlace propietario
+ * (ya emparejado) → receptor → pantalla por HDMI (la más cercana sin video).
+ */
+export function extenderChains(ctx: LinkCtx, source: Ready | null): void {
+  const byId = new Map(ctx.nodes.map((n) => [n.id, n]));
+  const hasVideo = (d: Ready) => ctx.links.some((x) => x.to === d.id && (x.signal === "hdmi" || x.signal === "hdbaset"));
+  for (const link of ctx.links.filter((x) => x.signal === "cat")) {
+    const a = byId.get(link.from);
+    const b = byId.get(link.to);
+    if (!a || !b) continue;
+    // El sentido del video lo da el HDMI: entra en el emisor y sale del receptor.
+    const [tx, rx] = isHdmiExtenderTx(a) && isHdmiExtenderRx(b) ? [a, b] : isHdmiExtenderTx(b) && isHdmiExtenderRx(a) ? [b, a] : [null, null];
+    if (!tx || !rx) continue;
+    if (!ctx.links.some((x) => x.from === rx.id && x.signal === "hdmi")) {
+      const d2 = (n: Ready) => Math.hypot(n.pos.x - rx.pos.x, n.pos.z - rx.pos.z);
+      const display = ctx.nodes.filter((n) => n.cls === "display" && !hasVideo(n) && portCount(n.ports, "inputs", "hdmi") > 0).sort((x, y) => d2(x) - d2(y))[0];
+      if (display) ctx.add(rx, display, "hdmi", "Salida HDMI", "Entrada HDMI", "HDMI corto desde el receptor del enlace propietario");
+    }
+    if (source && source !== tx && !ctx.links.some((x) => x.to === tx.id && x.signal === "hdmi") && !ctx.links.some((x) => x.from === source.id && x.signal === "hdmi")) {
+      ctx.add(source, tx, "hdmi", "HDMI notebook", "Entrada HDMI", "Notebook al emisor del enlace");
+    }
+  }
+}
+
 /* ───────────── Audio: nivel y formato ───────────── */
 
 const kindOf = (g: PortGroup): AudioKind => g.level ?? (g.signal === "digital" ? "digital" : "line");

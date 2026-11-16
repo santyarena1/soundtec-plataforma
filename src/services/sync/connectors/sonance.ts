@@ -1,4 +1,5 @@
 import {
+  fetchBrandListingWithIds,
   fetchFromPortalWithIds,
   fetchProductsBySearch,
   fetchProductDetailRawOrThrow,
@@ -115,12 +116,46 @@ function pickSkus(items: PortalAccessory[] | undefined): string[] {
 type ListingProduct = Awaited<ReturnType<typeof fetchFromPortalWithIds>>["products"][number]["product"];
 
 const RUN_CACHE_KEY = "sync.sonance.run_cache";
+
+/** La corrida solo-James guarda su listado aparte para no mezclarse con el sync completo. */
+function runCacheKey(): string {
+  return onlyJamesRun() ? `${RUN_CACHE_KEY}.james` : RUN_CACHE_KEY;
+}
 const RUN_CACHE_MAX_AGE_MS = 30 * 60_000;
+
+/**
+ * Cuenta de facturación de JAMES en my.sonance.com (ej. "5580105J"). El mismo
+ * usuario tiene la cuenta habitual (sin J, la que queda al iniciar sesión) y la
+ * de James: el catálogo y el My Price de James solo se ven en la de James.
+ * Vacío = el sync no usa la cuenta James (comportamiento anterior).
+ * SONANCE_JAMES_ACCOUNT (variable de entorno) tiene prioridad; es para scripts.
+ */
+const JAMES_ACCOUNT_SETTING = "sonance.james_account";
+const JAMES_CATEGORY_SLUG = "pn-james";
+const JAMES_BRAND = "JAMES";
+
+async function jamesAccountNumber(): Promise<string> {
+  return (process.env.SONANCE_JAMES_ACCOUNT ?? "").trim() || (await getSetting(JAMES_ACCOUNT_SETTING, "")).trim();
+}
+
+/** SONANCE_ONLY_BRAND=JAMES: la corrida trae solo James (importación puntual por script). */
+function onlyJamesRun(): boolean {
+  return (process.env.SONANCE_ONLY_BRAND ?? "").trim().toUpperCase() === JAMES_BRAND;
+}
+
+interface CacheEntry {
+  listing: ListingProduct;
+  portalId: string | null;
+  /** Cuenta del portal donde se pide detalle y My Price (vacío = la habitual). */
+  account?: string;
+}
 
 interface RunCache {
   savedAt: string;
   sessionCookies: Record<string, string>;
-  entries: Array<{ listing: ListingProduct; portalId: string | null }>;
+  /** Cookies de sesión por cuenta alternativa (ej. "5580105J"). */
+  accountCookies?: Record<string, Record<string, string>>;
+  entries: CacheEntry[];
   total: number;
   brandCounts?: Record<string, number>;
   subBrandBySku?: Record<string, string>;
@@ -191,37 +226,76 @@ function cacheIsFresh(cache: RunCache | undefined): cache is RunCache {
   return Number.isFinite(savedAt) && Date.now() - savedAt < RUN_CACHE_MAX_AGE_MS;
 }
 
-async function buildRunCache(): Promise<RunCache> {
-  const session = await openSession();
-  const listing = await fetchFromPortalWithIds(session);
-  const categoryEntries = listing.products.map(({ product, portalId }) => ({
-    listing: product,
-    portalId,
-  }));
-  const blazeListings = await fetchProductsBySearch(session, "blaze");
-  const subBrandBySku: Record<string, string> = {};
-  const entriesBySku = new Map(
-    categoryEntries.map((entry) => [entry.listing.supplierSku, entry])
-  );
-  for (const blazeListing of blazeListings) {
-    const mapped = mapBlazeSearchListing(blazeListing);
-    if (!mapped) continue;
-    subBrandBySku[mapped.supplierSku] = "BLAZE BY SONANCE";
-    entriesBySku.set(mapped.supplierSku, {
-      listing: mapped,
-      portalId: blazeListing.id,
-    });
+/**
+ * Productos JAMES desde la cuenta James: la categoría pn-james con marca JAMES
+ * en el listado (los accesorios Sonance que la categoría también lista siguen
+ * saliendo de la cuenta habitual). Pisan a los de la cuenta habitual por SKU.
+ */
+async function addJamesEntries(
+  account: string,
+  entriesBySku: Map<string, CacheEntry>,
+  subBrandBySku: Record<string, string>
+): Promise<{ cookies: Record<string, string>; count: number }> {
+  const session = await openSession({ account });
+  const listing = await fetchBrandListingWithIds(session, JAMES_CATEGORY_SLUG, JAMES_BRAND, {
+    onlyListingBrand: JAMES_BRAND,
+  });
+  for (const { product, portalId } of listing) {
+    subBrandBySku[product.supplierSku] = JAMES_BRAND;
+    entriesBySku.set(product.supplierSku, { listing: product, portalId, account });
   }
+  return { cookies: session.cookies, count: listing.length };
+}
+
+async function buildRunCache(): Promise<RunCache> {
+  const jamesAccount = await jamesAccountNumber();
+  const subBrandBySku: Record<string, string> = {};
+  const entriesBySku = new Map<string, CacheEntry>();
+  let session: Session | undefined;
+  let brandCounts: Record<string, number> | undefined;
+
+  if (onlyJamesRun()) {
+    if (!jamesAccount) {
+      throw new Error(`SONANCE_ONLY_BRAND=JAMES necesita la cuenta James (setting ${JAMES_ACCOUNT_SETTING} o SONANCE_JAMES_ACCOUNT).`);
+    }
+  } else {
+    session = await openSession();
+    const listing = await fetchFromPortalWithIds(session);
+    for (const { product, portalId } of listing.products) {
+      entriesBySku.set(product.supplierSku, { listing: product, portalId });
+    }
+    const blazeListings = await fetchProductsBySearch(session, "blaze");
+    for (const blazeListing of blazeListings) {
+      const mapped = mapBlazeSearchListing(blazeListing);
+      if (!mapped) continue;
+      subBrandBySku[mapped.supplierSku] = "BLAZE BY SONANCE";
+      entriesBySku.set(mapped.supplierSku, {
+        listing: mapped,
+        portalId: blazeListing.id,
+      });
+    }
+    brandCounts = listing.brandCounts;
+  }
+
+  const accountCookies: Record<string, Record<string, string>> = {};
+  if (jamesAccount) {
+    const james = await addJamesEntries(jamesAccount, entriesBySku, subBrandBySku);
+    accountCookies[jamesAccount] = james.cookies;
+    brandCounts = { ...(brandCounts ?? {}), [JAMES_BRAND]: james.count };
+  }
+
   const entries = [...entriesBySku.values()];
   const cache: RunCache = {
     savedAt: new Date().toISOString(),
-    sessionCookies: session.cookies,
+    // En una corrida solo-James no hay sesión habitual: se usa la de James.
+    sessionCookies: session?.cookies ?? accountCookies[jamesAccount] ?? {},
+    accountCookies,
     entries,
     total: entries.length,
-    brandCounts: listing.brandCounts,
+    brandCounts,
     subBrandBySku,
   };
-  await setSetting(RUN_CACHE_KEY, JSON.stringify(cache));
+  await setSetting(runCacheKey(), JSON.stringify(cache));
   return cache;
 }
 
@@ -450,25 +524,45 @@ export const sonanceConnector: ProductSourceConnector = {
   async fetchNormalized(opts) {
     const offset = Math.max(0, opts?.offset ?? 0);
     const batchSize = Math.max(1, Math.min(100, opts?.batchSize ?? 25));
-    const storedCache = parseRunCache(await getSetting(RUN_CACHE_KEY, ""));
+    const storedCache = parseRunCache(await getSetting(runCacheKey(), ""));
     const cache = offset === 0 || !cacheIsFresh(storedCache)
       ? await buildRunCache()
       : storedCache;
     const total = cache.total;
     const batch = cache.entries.slice(offset, offset + batchSize);
     const subBrandBySku = cache.subBrandBySku ?? {};
-    let session = sessionFromCookies(cache.sessionCookies);
-    let detailResult: Awaited<ReturnType<typeof fetchBatchDetails>>;
 
-    try {
-      detailResult = await fetchBatchDetails(batch, session, subBrandBySku);
-    } catch (error) {
-      if (!isAuthError(error)) throw error;
-      session = await openSession();
-      cache.sessionCookies = session.cookies;
-      cache.savedAt = new Date().toISOString();
-      await setSetting(RUN_CACHE_KEY, JSON.stringify(cache));
-      detailResult = await fetchBatchDetails(batch, session, subBrandBySku);
+    // Cada producto se pide en la cuenta de donde salió (habitual o James):
+    // el My Price depende de la cuenta.
+    const groups = new Map<string, CacheEntry[]>();
+    for (const entry of batch) {
+      const account = entry.account ?? "";
+      groups.set(account, [...(groups.get(account) ?? []), entry]);
+    }
+    const detailResult: Awaited<ReturnType<typeof fetchBatchDetails>> = {
+      items: [], failedCount: 0, firstError: undefined, attempted: 0, skippedNoId: 0, noMyPriceCount: 0,
+    };
+    for (const [account, entries] of groups) {
+      const cookies = account ? cache.accountCookies?.[account] : cache.sessionCookies;
+      let session = cookies ? sessionFromCookies(cookies) : await openSession({ account });
+      let result: Awaited<ReturnType<typeof fetchBatchDetails>>;
+      try {
+        result = await fetchBatchDetails(entries, session, subBrandBySku);
+      } catch (error) {
+        if (!isAuthError(error)) throw error;
+        session = await openSession({ account });
+        if (account) cache.accountCookies = { ...(cache.accountCookies ?? {}), [account]: session.cookies };
+        else cache.sessionCookies = session.cookies;
+        cache.savedAt = new Date().toISOString();
+        await setSetting(runCacheKey(), JSON.stringify(cache));
+        result = await fetchBatchDetails(entries, session, subBrandBySku);
+      }
+      detailResult.items.push(...result.items);
+      detailResult.failedCount += result.failedCount;
+      detailResult.firstError ??= result.firstError;
+      detailResult.attempted += result.attempted;
+      detailResult.skippedNoId += result.skippedNoId;
+      detailResult.noMyPriceCount += result.noMyPriceCount;
     }
 
     const { items, attempted, firstError, noMyPriceCount } = detailResult;

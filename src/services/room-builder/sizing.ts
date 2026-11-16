@@ -5,32 +5,37 @@
  */
 
 import type { BriefTier } from "./brief";
+import { defaultDisplayContent, discas, sceneDisplaySizing } from "./discas";
+import type { RoomScene } from "./scene";
 
 /** Tamaños comerciales de pantalla (pulgadas). */
 export const DISPLAY_SIZES_IN = [32, 43, 50, 55, 65, 75, 85, 98] as const;
 const IN_TO_M = 0.0254;
-/** Alto de imagen 16:9 = 0.4903 × diagonal; ancho = 0.8716 × diagonal. */
-const H_PER_DIAG = 0.4903;
+/** Ancho de imagen 16:9 = 0.8716 × diagonal. */
 const W_PER_DIAG = 0.8716;
-/**
- * Corporativo/educación (AVIXA, lectura de detalle): el último espectador a
- * no más de 6 alturas de imagen. Hogar/hotel (SMPTE ~30°): diagonal ≈ 0.62 ×
- * distancia al sillón.
- */
-const AVIXA_HEIGHTS = 6;
-const CINEMA_DIAG_PER_DIST = 0.615;
-/** Dónde se sienta el más lejano / el sillón, en fracción de la profundidad. */
+/** Dónde se sienta el más lejano / el sillón sin muebles ubicados, en fracción de la profundidad (estimado). */
 const FARTHEST_SEAT = 0.85;
 const SOFA_SEAT = 0.6;
 const HOME_CATEGORIES = new Set(["residential", "hotel"]);
 
-/** Pulgadas recomendadas para la pantalla principal del ambiente. */
-export function targetDisplayInches(dims: { depthM: number }, category: string): number {
-  const home = HOME_CATEGORIES.has(category);
-  const distance = Math.max(1.5, dims.depthM * (home ? SOFA_SEAT : FARTHEST_SEAT));
-  const diagM = home ? distance * CINEMA_DIAG_PER_DIST : distance / AVIXA_HEIGHTS / H_PER_DIAG;
-  const inches = diagM / IN_TO_M;
-  return DISPLAY_SIZES_IN.find((s) => s >= inches) ?? DISPLAY_SIZES_IN[DISPLAY_SIZES_IN.length - 1];
+/**
+ * Pulgadas recomendadas para la pantalla principal del ambiente (TV / monitor
+ * del catálogo, hasta 98"). El cálculo es AVIXA DISCAS (discas.ts): con la
+ * escena completa usa la pantalla y los asientos reales; con solo medidas,
+ * el último espectador estimado al 85 % de la profundidad (60 % en hogar).
+ */
+export function targetDisplayInches(dims: { depthM: number } & Partial<Pick<RoomScene, "slots" | "devices" | "heightM">>, category: string): number {
+  const full = dims.slots && dims.devices ? sceneDisplaySizing(dims as RoomScene, category) : null;
+  const r =
+    full ??
+    discas({
+      display: { x: 0, y: 1.4, z: dims.depthM / 2, rotY: 180 },
+      viewers: [],
+      content: defaultDisplayContent(category),
+      heightM: dims.heightM ?? 2.7,
+      fallbackDistanceM: dims.depthM * (HOME_CATEGORIES.has(category) ? SOFA_SEAT : FARTHEST_SEAT),
+    });
+  return DISPLAY_SIZES_IN.find((s) => s >= r.requiredIn - 1e-9) ?? DISPLAY_SIZES_IN[DISPLAY_SIZES_IN.length - 1];
 }
 
 /** Pulgadas escritas en el nombre ("TV 65\"", "75 pulgadas", "QM85C"). */

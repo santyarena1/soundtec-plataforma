@@ -10,7 +10,7 @@ import { findLiveQr, visitorHasLead } from "@/server/expo/visits";
 export const metadata = {
   title: "Catálogo",
   description:
-    "Catálogo público de Soundtec: productos de audio, video, control y videoconferencia de las marcas que representamos. Precios y stock disponibles para clientes con cuenta.",
+    "Catálogo público de Soundtec: productos de audio, video, control y videoconferencia de las marcas que representamos. Precios para clientes con cuenta.",
 };
 
 export default async function PublicCatalogLayout({ children }: { children: React.ReactNode }) {

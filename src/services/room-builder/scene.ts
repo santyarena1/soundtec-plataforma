@@ -12,6 +12,9 @@ import type { PlanModeState } from "./plan-mode";
 import type { RoomBrief } from "./brief";
 import type { DeviceUnit } from "./units";
 import type { FurnitureItem, FurnitureOverrides } from "./furnishing";
+import type { SceneAcoustics } from "./acoustics/settings";
+import type { DisplayContent } from "./discas";
+import type { ManualPort } from "./manual-ports";
 
 /** Datos técnicos del proyecto (contenedor): dónde va el rack y en qué piso está cada ambiente. */
 export type ProjectTechnicalSettings = {
@@ -44,6 +47,8 @@ export type SceneDevice = {
   generic?: GenericInfo | null;
   /** Lo sumó el sistema al resolver el cableado (se puede quitar solo si queda sin uso). */
   addedBy?: "system" | null;
+  /** Puertos cargados a mano en ESTE proyecto (equipo sin ficha o con ficha incompleta): no verificados. */
+  manualPorts?: ManualPort[] | null;
 };
 
 export type ProductSizeCm = { w: number | null; h: number | null; d: number | null };
@@ -88,6 +93,15 @@ export type RoomScene = {
    * Si la falta sigue, no se vuelve a agregar otro equipo cada vez que se abre el editor.
    */
   autoFixes?: Array<{ key: string; reason: string }> | null;
+  /** Mapa de sonido: materiales, ruido, uso, ocupación y tap fijados por el usuario (acoustics/settings.ts). */
+  acoustics?: SceneAcoustics | null;
+  /** Tamaño de pantalla (AVIXA DISCAS): contenido elegido para el cálculo (discas.ts). */
+  displaySizing?: { content?: DisplayContent | null } | null;
+  /**
+   * Frente del rack: orden puesto a mano (claves de bloque de arriba hacia abajo: "equipo#unidad",
+   * "shelf:…", "half:…"). Sin dato, orden lógico (rack/rack-elevation.ts). En el proyecto contenedor, el rack central.
+   */
+  rackOrder?: string[] | null;
 };
 
 /**

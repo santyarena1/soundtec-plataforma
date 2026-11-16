@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireStaff } from "@/lib/auth-helpers";
 import { buildProposalPdf } from "@/server/room-builder/proposal-pdf";
+import { parseSheetFormat, SHEET_FORMAT_KEYS } from "@/services/room-builder/sheets/sheet-format";
+import { F501_VARIANTS, type F501Variant } from "@/services/room-builder/sheets/f501";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -12,6 +14,9 @@ const schema = z.object({
     .array(z.object({ label: z.string().max(80), dataUrl: z.string().max(3_000_000).regex(/^data:image\/(jpeg|png);base64,/) }))
     .max(3)
     .default([]),
+  /** Formato de hoja y variante de etiquetas F501. */
+  format: z.enum(SHEET_FORMAT_KEYS as [string, ...string[]]).default("a3"),
+  labels: z.enum(Object.keys(F501_VARIANTS) as [F501Variant, ...F501Variant[]]).default("plana"),
 });
 
 /** Láminas técnicas en PDF: de un ambiente (con sus vistas 3D) o del proyecto completo. */
@@ -20,7 +25,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const parsed = schema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Vistas inválidas" }, { status: 400 });
   try {
-    const { bytes, fileName } = await buildProposalPdf(params.id, parsed.data.snapshots, new URL(req.url).origin);
+    const { bytes, fileName } = await buildProposalPdf(params.id, parsed.data.snapshots, new URL(req.url).origin, { format: parseSheetFormat(parsed.data.format), labels: parsed.data.labels });
     return new NextResponse(Buffer.from(bytes), {
       headers: {
         "Content-Type": "application/pdf",

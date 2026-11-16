@@ -13,6 +13,7 @@ import { pickCablesFor, type CableMissing, type CablePickLine, type CableProduct
 import type { RoomScene } from "@/services/room-builder/scene";
 import { cableNeeds, roomCableList, type RoomCableList } from "@/services/room-builder/wiring/cable-list";
 import type { RackTrunk } from "@/services/room-builder/wiring/model";
+import { withManualPorts } from "@/services/room-builder/manual-ports";
 
 export type CablingState = {
   plan: CablingPlan | null;
@@ -37,7 +38,9 @@ export type CablingState = {
 };
 
 export function useCabling(projectId: string, scene: RoomScene, category: string): CablingState {
-  const [profile, setProfile] = useState<CablingProfile | null>(null);
+  const [rawProfile, setProfile] = useState<CablingProfile | null>(null);
+  // Puertos cargados a mano: se aplican con la escena actual (al editarlos se ven sin esperar al servidor).
+  const profile = useMemo(() => (rawProfile ? withManualPorts(rawProfile, scene) : null), [rawProfile, scene]);
   const [trunk, setTrunk] = useState<RackTrunk | null>(null);
   const [catalog, setCatalog] = useState<CableProduct[] | null>(null);
   const [loading, setLoading] = useState(false);

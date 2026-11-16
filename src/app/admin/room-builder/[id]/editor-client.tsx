@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   Cable,
   FileSpreadsheet,
-  FileText,
   Loader2,
   RefreshCw,
   Sparkles,
@@ -29,8 +28,10 @@ import { HubSpaces } from "@/components/room-builder/plan/hub-spaces";
 import { ProjectSystemPanel } from "@/components/room-builder/plan/project-system-panel";
 import { useCabling } from "@/components/room-builder/cabling/use-cabling";
 import { TechnicalPlan } from "@/components/room-builder/technical/technical-plan";
+import { SoundMapView } from "@/components/room-builder/acoustics/sound-map-view";
 import { ProjectTechnicalView } from "@/components/room-builder/technical/project-technical";
 import { ClientLinkButton } from "@/components/room-builder/share/client-link-button";
+import { DeliverablesMenu, type SheetDownloadOptions } from "@/components/room-builder/deliverables/deliverables-menu";
 import { downloadFileName } from "@/lib/content-disposition";
 import type { SnapshotFn } from "@/components/room-builder/three/snapshot-bridge";
 
@@ -149,7 +150,7 @@ export function RoomBuilderEditor({
   const [showCables, setShowCables] = useState(false);
   /** Vista principal: el modelo 3D o el plano técnico (planta, diagrama de señal y cableado), en la misma pantalla. */
   // El sistema (equipos y conexionado) es lo principal: se abre en el plano técnico; el 3D es la presentación.
-  const [view, setView] = useState<"3d" | "tecnico">("tecnico");
+  const [view, setView] = useState<"3d" | "tecnico" | "sonido">("tecnico");
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("view") === "3d") setView("3d");
   }, []);
@@ -418,7 +419,7 @@ export function RoomBuilderEditor({
   }
 
   /** Propuesta técnica en PDF: captura dos vistas del 3D y la arma en el servidor. */
-  async function downloadProposal() {
+  async function downloadProposal(opts?: SheetDownloadOptions) {
     if (proposalBusy) return;
     setProposalBusy(true);
     const original = scene.cameraPreset;
@@ -437,7 +438,7 @@ export function RoomBuilderEditor({
       const res = await fetch(`/api/admin/room-builder/projects/${project.id}/proposal-pdf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ snapshots: shots }),
+        body: JSON.stringify({ snapshots: shots, ...opts }),
       });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
@@ -606,7 +607,7 @@ export function RoomBuilderEditor({
           </div>
           <div className="flex shrink-0 flex-wrap gap-1.5">
             <div className="flex rounded-md border border-slate-300 bg-slate-50 p-0.5" role="tablist" aria-label="Vista">
-              {(["tecnico", "3d"] as const).map((v) => (
+              {(["tecnico", "sonido", "3d"] as const).map((v) => (
                 <button
                   key={v}
                   type="button"
@@ -616,7 +617,7 @@ export function RoomBuilderEditor({
                   className={`inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-semibold ${view === v ? "bg-[#1e3553] text-white" : "text-slate-700 hover:bg-white"}`}
                 >
                   {v === "tecnico" ? <Cable className="h-3.5 w-3.5" /> : null}
-                  {v === "3d" ? "3D" : "Plano técnico"}
+                  {v === "3d" ? "3D" : v === "sonido" ? "Mapa de sonido" : "Plano técnico"}
                 </button>
               ))}
             </div>
@@ -656,16 +657,8 @@ export function RoomBuilderEditor({
               )}
               Cotizar
             </button>
-            <button
-              type="button"
-              onClick={() => void downloadProposal()}
-              disabled={proposalBusy}
-              className="inline-flex items-center gap-1.5 rounded-md border border-[#1e3553] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#1e3553] disabled:opacity-60"
-              title="Láminas técnicas A3: plano a escala, diagrama de conexiones, planilla y etiquetas de cables, equipos y vistas 3D"
-            >
-              {proposalBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-              Láminas PDF
-            </button>
+            {/* Láminas (A3 / Tabloid / ARCH D), revisiones, CSV y PNG. */}
+            <DeliverablesMenu projectId={project.id} busy={proposalBusy} compact onDownloadSheets={(opts) => downloadProposal(opts)} />
             <ClientLinkButton projectId={project.id} compact />
           </div>
         </header>
@@ -676,6 +669,7 @@ export function RoomBuilderEditor({
               scene={scene}
               category={project.category}
               cabling={cabling}
+              projectId={project.id}
               onSceneChange={(next) => {
                 setScene(next);
                 void persistScene(next);
@@ -698,6 +692,8 @@ export function RoomBuilderEditor({
                 return { added: json.added ?? [], removed: json.removed ?? [], remaining: json.remaining ?? [], wires: json.wires ?? 0 };
               }}
             />
+          ) : view === "sonido" ? (
+            <SoundMapView scene={scene} category={project.category} cabling={cabling} onSceneChange={(next) => { setScene(next); void persistScene(next); }} onUnitsChange={onUnitsChange} />
           ) : (
           <RoomViewport
             scene={scene}

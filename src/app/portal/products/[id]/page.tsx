@@ -15,7 +15,10 @@ import { commercialTagFor } from "@/lib/commercial-tags";
 import { ProductKeyFeatures } from "@/components/catalog/product-key-features";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { FavoriteButton } from "../favorite-button";
-import { StockBadge } from "../catalog-grid";
+import { OriginStockPanel, StockBadge } from "@/components/catalog/stock-badge";
+import { customerHiddenCategoryIds } from "@/lib/customer-hidden-categories";
+import { PriceTaxNotice } from "@/components/catalog/price-tax-notice";
+import { FeaturedStarButton } from "../featured-star-button";
 import { AddToRequestPanel } from "./add-to-request-panel";
 import { ProductBundleProvider, BundleStagingPanel } from "./product-bundle";
 import { ProductGallery } from "./product-gallery";
@@ -89,6 +92,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   if (!isAdminViewer) {
     if (!commercialClientId) notFound();
     if (product.brand?.hiddenFromCatalog) notFound();
+    // Rubros que solo ve el equipo (Indumentaria).
+    if (product.categoryId && (await customerHiddenCategoryIds()).includes(product.categoryId)) notFound();
     const allowed = await isProductVisibleToClient(
       {
         id: product.id,
@@ -121,6 +126,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const viewerPermissions = isAdminViewer ? (await getCurrentPermissions()).permissions : null;
   const isAdmin = !!viewerPermissions && canSeeCosts(viewerPermissions);
   const canEditPrices = isAdmin && permissionsHave(viewerPermissions!, "margins.manage");
+  // Estrella (sale primero en su marca): quien edita productos.
+  const canFeature = !!viewerPermissions && permissionsHave(viewerPermissions, "products.edit");
   const pricing = await calculateCustomerPrice({
     product: {
       productId: product.id,
@@ -309,7 +316,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <h1 className="heading-2 text-2xl leading-tight sm:text-3xl">{productTitle(product)}</h1>
             {productSubtitle(product) ? <p className="muted-text mt-2">{productSubtitle(product)}</p> : null}
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <StockBadge status={product.stockStatus} qty={product.stockQuantity} />
+              <StockBadge status={product.stockStatus} qty={product.stockQuantity} internal={isAdminViewer} />
               {product.isCustomizable ? <Badge tone="accent">Configurable</Badge> : null}
               {product.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : <Badge tone="primary">Producto principal</Badge>}
               {pricing.discountPercent > 0 ? (
@@ -336,7 +343,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                     </p>
                   ) : null}
                   <p className="text-3xl font-semibold tracking-tight">{formatUsd(pricing.finalPriceUsd)}</p>
-                  <p className="muted-text text-sm">Precio en dólares estadounidenses. No incluye impuestos ni descuentos aplicables.</p>
+                  <PriceTaxNotice compact />
                 </>
               )}
 
@@ -352,6 +359,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                     <li>Precio antes de descuento: {formatUsd(pricing.priceBeforeDiscountUsd)}</li>
                     <li>Descuento aplicado: {formatPercent(pricing.discountPercent)}{pricing.appliedDiscountRule ? ` · ${pricing.appliedDiscountRule.name}` : pricing.discountSource === "PRODUCT" ? " · descuento del producto" : ""}</li>
                   </ul>
+                </div>
+              ) : null}
+
+              {isAdminViewer ? (
+                <div className="space-y-2">
+                  {/* Solo equipo Soundtec: el stock del proveedor, separado de lo que ve el cliente. */}
+                  <OriginStockPanel status={product.stockStatus} qty={product.stockQuantity} />
+                  {canFeature ? <FeaturedStarButton productId={product.id} isFeatured={product.isFeatured} label /> : null}
                 </div>
               ) : null}
 

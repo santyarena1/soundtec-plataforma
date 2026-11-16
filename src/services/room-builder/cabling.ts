@@ -7,10 +7,10 @@
  */
 
 import { SIGNAL_INFO, portCount, type DeviceClass, type DevicePorts, type Signal } from "./device-ports";
-import { cableLengthM } from "./cable-length";
+import { cableLengthM, FLOOR_RUN_Y, isDirectRun, runLevelY } from "./cable-length";
 import { assignSpeakers, type AmpUnit, type ChannelLoad } from "./amp-assign";
 import { ampMinLoad, HIGHZ_MAX_LOAD_RATIO, speakerGauge, TYPICAL_MIN_LOAD_OHMS } from "./amp-load";
-import { audioPair, audioProblem, feedAudio, feedDisplays, hasAudioOut, lengthFindings, proprietaryLinks, type AddLink, type LinkCtx, type Ready } from "./cabling-links";
+import { audioPair, audioProblem, extenderChains, feedAudio, feedDisplays, hasAudioOut, hasHdmiExtenderPair, lengthFindings, proprietaryLinks, type AddLink, type LinkCtx, type Ready } from "./cabling-links";
 import type { ReachCatalog } from "./signal-reach";
 
 export type Point3 = [number, number, number];
@@ -89,22 +89,24 @@ const BULK: Signal[] = ["lan", "dante", "hdbaset", "speaker", "line", "digital",
 /**
  * Equipos de pared o rack a menos de esto en planta (ej. el receptor o el códec detrás de la
  * pantalla, dos equipos del mismo rack): el cable va directo por detrás, no por el cielorraso (m).
- * Misma regla que el plano técnico (wiring/validate.ts).
+ * Misma geometría que el plano técnico (cable-length.ts cableRunM).
  */
-export const DIRECT_RUN_M = 1.5;
-const DIRECT_MOUNTS = new Set(["wall", "rack"]);
+export { DIRECT_RUN_M } from "./cable-length";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Recorrido de un cable: sube (o baja por el piso hasta la pared y sube), cruza por el cielorraso y baja. */
 export function routeCable(a: CableNode, b: CableNode, dims: CablingInput["dims"]): Point3[] {
-  if (DIRECT_MOUNTS.has(a.mount) && DIRECT_MOUNTS.has(b.mount) && Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z) < DIRECT_RUN_M) {
+  const ea = { ...a.pos, mount: a.mount };
+  const eb = { ...b.pos, mount: b.mount };
+  if (isDirectRun(ea, eb)) {
     // Tramo corto por detrás del equipo, a escuadra: vertical en la punta de origen y luego en planta.
     const end: Point3 = [b.pos.x, b.pos.y, b.pos.z];
     const path = dedupe([[a.pos.x, a.pos.y, a.pos.z], [a.pos.x, b.pos.y, a.pos.z], [b.pos.x, b.pos.y, a.pos.z], end]);
     return path.length > 1 ? [...path.slice(0, -1), end] : [path[0]!, end];
   }
-  const ceil = Math.max(2.2, dims.heightM - 0.03);
+  // Cielorraso, o piso / zócalo si las dos puntas están bajas (misma regla que el plano técnico).
+  const ceil = runLevelY(ea, eb, dims.heightM);
   const toCeiling = (n: CableNode): Point3[] => {
     const p: Point3 = [n.pos.x, n.pos.y, n.pos.z];
     if (n.mount === "ceiling") return [p, [p[0], ceil, p[2]]];
@@ -119,7 +121,7 @@ export function routeCable(a: CableNode, b: CableNode, dims: CablingInput["dims"
         [p[2] + hd, [p[0], 0.02, -hd]],
       ];
       const wall = gaps.sort((x, y) => x[0] - y[0])[0]![1];
-      return [p, [p[0], 0.02, p[2]], wall, [wall[0], ceil, wall[2]]];
+      return [p, [p[0], FLOOR_RUN_Y, p[2]], wall, [wall[0], ceil, wall[2]]];
     }
     return [p, [p[0], ceil, p[2]]];
   };
@@ -406,6 +408,8 @@ export function planCabling(input: CablingInput): CablingPlan {
       if (portCount(codec.ports, "inputs", "hdmi") > 0) add(table, codec, "hdmi", "HDMI notebook", "Entrada HDMI");
       else findings.push({ id: "codec-ingest", level: "warn", title: "El codec no tiene entrada HDMI", detail: `${codec.label} no declara entrada HDMI: para compartir la notebook con cable hace falta un capturador/ingest HDMI→USB o compartir por la app.` });
       if (portCount(codec.ports, "inputs", "usb") > 0 && (of("camera").length || of("mic").length)) add(table, codec, "usb", "USB notebook", "USB");
+    } else if (displays[0] && hasHdmiExtenderPair(nodes)) {
+      // Extensor propietario en la sala (Hall ULTRA…): la notebook va al emisor, no directo a la pantalla (ver extenderChains).
     } else if (displays[0]) {
       if (portCount(displays[0].ports, "inputs", "hdmi") > 0) add(table, displays[0], "hdmi", "HDMI notebook", "HDMI");
       else incompatible(table, displays[0], "Notebook y pantalla", "la pantalla no declara entrada HDMI.");
@@ -524,6 +528,11 @@ export function planCabling(input: CablingInput): CablingPlan {
     if (sources.length && screen) add(avr, screen, "hdmi", "Salida HDMI (a la pantalla)", "Entrada HDMI");
   }
 
+  // 8) Enlaces UTP propietarios (Hall ULTRA, Osiris…): emisor ↔ receptor de la misma familia,
+  // y la cadena HDMI completa por los de video: notebook → emisor → enlace → receptor → pantalla.
+  proprietaryLinks(ctx);
+  extenderChains(ctx, table);
+
   // Pantallas que siguen sin video: las alimenta un reproductor/streamer de la sala con salida HDMI libre.
   const videoSources = of("source", "streamer").filter((s) => portCount(s.ports, "outputs", "hdmi") > 0 && !(avr && links.some((l) => l.from === s.id && l.to === avr.id)));
   const usedOuts = new Map<string, number>();
@@ -544,11 +553,15 @@ export function planCabling(input: CablingInput): CablingPlan {
     if (d) add(base, d, "hdmi", "Salida HDMI", `Entrada HDMI ${(used.get(`${d.id}|in|hdmi`) ?? 0) + 1}`);
   }
 
-  // 8) Enlaces UTP propietarios (Hall ULTRA, Osiris…): emisor ↔ receptor de la misma familia.
-  proprietaryLinks(ctx);
-
   // 9) Conexiones inalámbricas: cada cliente con su gateway / receptor / base, y su capacidad.
   wirelessLinks(nodes, links, findings);
+
+  // Puertos cargados a mano en el proyecto: se cablean igual, pero no están verificados contra una ficha.
+  for (const n of nodes) {
+    const manual = [...n.ports.inputs, ...n.ports.outputs].filter((g) => g.manual);
+    if (!manual.length || n.virtual) continue;
+    findings.push({ id: `manual-ports-${n.id}`, level: "warn", title: "Puertos cargados a mano, sin ficha", detail: `${n.label}: ${[...new Set(manual.map((g) => g.label))].join(", ")} — cargados a mano en este proyecto, no verificados contra la ficha del fabricante. Confirmar en obra.` });
+  }
 
   // Red de seguridad: ningún equipo con conexiones queda suelto sin un aviso que lo nombre.
   const mentioned = () => findings.map((f) => `${f.title} ${f.detail}`).join(" | ");

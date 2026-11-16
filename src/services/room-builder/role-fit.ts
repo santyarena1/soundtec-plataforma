@@ -63,6 +63,8 @@ export type FitContext = {
   outdoor?: boolean;
   /** Parlantes pasivos de la sala que tiene que mover el amplificador. */
   speakers?: number | null;
+  /** El códec / kit de sala elegido ya trae su panel táctil (kitIncludesTouch). */
+  codecHasTouch?: boolean;
 };
 
 /** Canales de amplificación que se aceptan en una sala (más es un equipo de otra escala). */
@@ -107,6 +109,20 @@ const CEILING_ONLY_MOUNTS = new Set(["in-ceiling", "pendant"]);
 const CEILING_MODEL = /^(CM\d|CS-?\d|C\d|IC\d)|\b(ULTIMATE|REFERENCE) IC\d|ceiling/i;
 /** Paneles residenciales Crestron Home (TS-1070R, TSW-770R). */
 const RESIDENTIAL_PANEL = /\d{3,4}R(\b|-)/i;
+
+/**
+ * Kits de sala que ya traen su panel táctil: Crestron Flex UC-C100 / UC-CX100 (-T, -Z, -PRO, -WM, -GV:
+ * incluyen el TSW-1070 de 10,1"), o lo que la ficha diga ("incluye una pantalla táctil", "touch
+ * controller", Logitech Tap, Poly TC8/TC10). Los kits de actualización (UPGRD) no.
+ */
+const KIT_WITH_TOUCH_NAME = /\bUC-CX?\d{3}(-PRO)?-(T|Z)\b/i;
+const KIT_TOUCH_TEXT = /\b(incluye|cuenta con|includes?)\s+(una\s+|un\s+|a\s+)?(pantalla t[aá]ctil|panel t[aá]ctil|touch ?(screen|panel|controller))|\bTSW-\d{3,4}\b|\blogitech tap\b|\bTC(8|10)\b/i;
+
+/** ¿El códec / kit de sala elegido ya trae su panel táctil? (entonces no se suma otro touch de mesa). */
+export function kitIncludesTouch(p: { name: string; summary?: string | null }): boolean {
+  if (UPGRADE_KIT.test(p.name)) return false;
+  return KIT_WITH_TOUCH_NAME.test(p.name) || KIT_TOUCH_TEXT.test(`${p.name} ${p.summary ?? ""}`);
+}
 
 /** Contexto de selección a partir de lo relevado y del tipo de ambiente. */
 export function fitContextFor(input: {
@@ -205,6 +221,7 @@ export function roleFitReason(slot: FitSlot, p: FitProduct, ctx: FitContext = {}
       return null;
     }
     case "touch-panel": {
+      if (ctx.codecHasTouch) return "El kit del códec elegido ya trae su panel táctil: no hace falta otro";
       if (NOT_ROOM_TOUCH.test(p.name)) return "Es una pantalla de reserva o un control de mano, no el panel de control de la sala";
       if (!TOUCH_PANEL_NAME.test(p.name) && type !== "touchpanel") return "No es un panel táctil de control";
       if (count(p, ["lan"], "in") === 0 && !(p.caps.wireless?.value ?? []).length) return "El panel no tiene red ni radio para hablar con el procesador";

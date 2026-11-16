@@ -208,6 +208,10 @@ model Brand {
   isActive          Boolean  @default(true)
   /// Oculta la marca y sus productos del catálogo público, del portal y de la pantalla del stand.
   hiddenFromCatalog Boolean  @default(false)
+  /// «Próximamente»: la tarjeta de la marca lo dice y al entrar se avisa que el lineup está por llegar.
+  comingSoon        Boolean  @default(false)
+  /// Orden de rubros al entrar a la marca (vista cliente): ids de Category, el primero va arriba. Vacío = por nombre.
+  categoryOrder     String[] @default([])
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -399,6 +403,8 @@ model Product {
   kind                         ProductKind @default(PRINCIPAL)
   accessoryRequiredWithPrimary Boolean     @default(false)
   isActive                     Boolean     @default(true)
+  /// Destacado (estrella): sale primero al entrar a su marca. Se marca a mano en el panel o desde la grilla.
+  isFeatured                   Boolean     @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2034,6 +2040,8 @@ model RoomProject {
   shareCreatedAt DateTime?
   /// Visitas al enlace vigente (se reinicia al renovar).
   shareViews     Int       @default(0)
+  /// Historial de emisiones de las láminas: [{ code, date, author, description, status }] (ver services/room-builder/revisions.ts).
+  revisionsJson  Json?
 
   parentId String?
   parent   RoomProject?  @relation("RoomProjectTree", fields: [parentId], references: [id], onDelete: Cascade)

@@ -20,6 +20,8 @@ import {
 } from "@/lib/catalog-brands";
 import { loadProductViewCounts } from "@/server/catalog/product-views";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
+import { customerHiddenCategoryIds } from "@/lib/customer-hidden-categories";
+import { brandListingComparator, categorySortKeys } from "@/lib/brand-listing-order";
 
 /**
  * Construye el OR del filtro de búsqueda extendido. Buscar SIMULTÁNEAMENTE en:
@@ -89,6 +91,8 @@ export interface CatalogProduct {
   stockQuantity: number | null;
   isCustomizable: boolean;
   isCrestronHomeCompatible: boolean;
+  /** Destacado (estrella): primero al entrar a su marca. */
+  isFeatured: boolean;
   kind: "PRINCIPAL" | "ACCESORIO";
   accessoryRequiredWithPrimary: boolean;
   /** null en el catálogo público (sin precios). */
@@ -154,13 +158,15 @@ async function buildCatalogWhere(
   ctx: CatalogContext,
   options?: { skipPrice?: boolean }
 ): Promise<Prisma.ProductWhereInput | null> {
-  const [hidden, catalogHiddenBrands, filterCategoryIds] = await Promise.all([
+  const [hidden, catalogHiddenBrands, filterCategoryIds, staffOnlyCategoryIds] = await Promise.all([
     resolveVisibility(ctx.commercialClientId, ctx.isAdmin),
     prisma.brand.findMany({ where: { hiddenFromCatalog: true }, select: { id: true } }),
     // Rubro elegido u oculto = ese nodo del árbol y todo lo que cuelga de él.
     expandCategoryIds(filters.categoryIds ?? []),
+    // Rubros que solo ve el equipo (Indumentaria): fuera del portal del cliente y del catálogo público.
+    ctx.isAdmin ? Promise.resolve([] as string[]) : customerHiddenCategoryIds(),
   ]);
-  const hiddenCategoryIds = await expandCategoryIds(hidden.hiddenCategoryIds);
+  const hiddenCategoryIds = [...(await expandCategoryIds(hidden.hiddenCategoryIds)), ...staffOnlyCategoryIds];
   // Marcas ocultas (por visibilidad del cliente o desde Admin → Marcas) combinadas
   // con el filtro de marca: un `in` no puede pisar el `notIn`.
   const excludedBrandIds = [...hidden.hiddenBrandIds, ...catalogHiddenBrands.map((b) => b.id)];
@@ -176,7 +182,6 @@ async function buildCatalogWhere(
     isActive: true,
     ...(hidden.hiddenProductIds.length ? { id: { notIn: hidden.hiddenProductIds } } : {}),
     ...brandFilter,
-    ...(hiddenCategoryIds.length ? { categoryId: { notIn: hiddenCategoryIds } } : {}),
     ...(hidden.hiddenDistributorIds.length ? { distributorId: { notIn: hidden.hiddenDistributorIds } } : {}),
     ...(hidden.hiddenFamilyIds.length ? { familyId: { notIn: hidden.hiddenFamilyIds } } : {}),
     ...(ctx.isAdmin && filters.distributorIds?.length
@@ -204,6 +209,12 @@ async function buildCatalogWhere(
         })()
       : {}),
   };
+  // Rubros ocultos: `notIn` en SQL descarta los productos sin rubro (NULL), así que se los vuelve a incluir.
+  if (hiddenCategoryIds.length) {
+    const categoryExclusion: Prisma.ProductWhereInput = { OR: [{ categoryId: null }, { categoryId: { notIn: hiddenCategoryIds } }] };
+    const previous = where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : [];
+    where.AND = [...previous, categoryExclusion];
+  }
   // Mantenemos la referencia al builder OR para compatibilidad con otros llamadores.
   void buildSearchOr;
 
@@ -259,6 +270,38 @@ export async function listVisibleCatalogBrands(ctx: CatalogContext): Promise<{ b
     brands: [...withCrestronHome(withLogos, crestronHomeCount, settings), ...emptyBrands],
     total,
   };
+}
+
+/**
+ * Rubros principales (primer nivel del árbol) con la cantidad de productos que
+ * ve este usuario con los filtros actuales, sin contar el filtro de rubro (así
+ * se puede pasar de uno a otro). Para la columna de rubros del portal.
+ */
+export async function listCatalogTopCategories(filters: CatalogFilters, ctx: CatalogContext): Promise<FacetOption[]> {
+  const where = await buildCatalogWhere({ ...filters, categoryIds: [], page: undefined }, ctx);
+  if (!where) return [];
+  const [groups, nodes] = await Promise.all([
+    prisma.product.groupBy({ by: ["categoryId"], where: { AND: [where, { categoryId: { not: null } }] }, _count: { _all: true } }),
+    prisma.category.findMany({ select: { id: true, name: true, parentId: true } }),
+  ]);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const rootOf = (id: string) => {
+    let current = byId.get(id);
+    const seen = new Set<string>();
+    while (current?.parentId && byId.has(current.parentId) && !seen.has(current.id)) {
+      seen.add(current.id);
+      current = byId.get(current.parentId);
+    }
+    return current;
+  };
+  const counts = new Map<string, FacetOption>();
+  for (const group of groups) {
+    const root = group.categoryId ? rootOf(group.categoryId) : undefined;
+    if (!root) continue;
+    const prev = counts.get(root.id);
+    counts.set(root.id, { id: root.id, name: root.name, count: (prev?.count ?? 0) + group._count._all });
+  }
+  return [...counts.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
 }
 
 /** Nombres de los filtros activos, para las pastillas. No recorre el catálogo. */
@@ -360,6 +403,7 @@ async function mapProductsToCatalogItems(
     stockQuantity: p.stockQuantity,
     isCustomizable: p.isCustomizable,
     isCrestronHomeCompatible: p.isCrestronHomeCompatible,
+    isFeatured: p.isFeatured,
     kind: p.kind,
     accessoryRequiredWithPrimary: p.accessoryRequiredWithPrimary,
     pricing: prices.get(p.id) ?? null,
@@ -456,6 +500,23 @@ const productInclude = {
   images: productCoverImageInclude,
 } as const;
 
+let categoryKeysCache: { at: number; rows: ReturnType<typeof categorySortKeys> } | null = null;
+
+/**
+ * Orden de rubros de la marca abierta (una sola marca, orden «Más relevantes»).
+ * null = no se está mirando una marca: queda el orden de siempre.
+ */
+async function loadBrandListingOrder(filters: CatalogFilters) {
+  const brandId = filters.brandIds?.length === 1 ? filters.brandIds[0] : null;
+  if (!brandId || filters.crestronOnly) return null;
+  if (!categoryKeysCache || Date.now() - categoryKeysCache.at > 5 * 60_000) {
+    const rows = await prisma.category.findMany({ select: { id: true, parentId: true, name: true, tangoPath: true } });
+    categoryKeysCache = { at: Date.now(), rows: categorySortKeys(rows) };
+  }
+  const brand = await prisma.brand.findUnique({ where: { id: brandId }, select: { categoryOrder: true } });
+  return { categoryOrder: brand?.categoryOrder ?? [], categories: categoryKeysCache.rows };
+}
+
 export async function getCatalog(
   filters: CatalogFilters,
   ctx: CatalogContext
@@ -477,18 +538,31 @@ export async function getCatalog(
   // Home, costo) y recién después se cargan los productos de la página.
   if (!hasSearch && filters.sort === "relevance") {
     const start = (page - 1) * pageSize;
-    const [rows, viewData] = await Promise.all([
+    const [rows, viewData, brandOrder] = await Promise.all([
       prisma.product.findMany({
         where,
-        select: { id: true, isCrestronHomeCompatible: true, baseCostUsd: true },
+        select: { id: true, isCrestronHomeCompatible: true, baseCostUsd: true, isFeatured: true, categoryId: true },
       }),
       loadProductViewCounts(),
+      loadBrandListingOrder(filters),
     ]);
     // El costo base ordena igual que el precio dentro de una misma marca (mismo
     // markup), que es lo que importa para "Crestron Home de mayor a menor".
+    const byRelevance = compareByRelevance(viewData.views, hasEnoughViews(viewData.total));
+    type Light = { id: string; isCrestronHomeCompatible: boolean; price: number; isFeatured: boolean; categoryId: string | null };
+    // Dentro de una marca: destacados primero y agrupado por rubro (ver lib/brand-listing-order).
+    const comparator = brandOrder
+      ? brandListingComparator<Light>({ ...brandOrder, fallback: byRelevance })
+      : byRelevance;
     const ordered = rows
-      .map((r) => ({ id: r.id, isCrestronHomeCompatible: r.isCrestronHomeCompatible, price: Number(r.baseCostUsd) }))
-      .sort(compareByRelevance(viewData.views, hasEnoughViews(viewData.total)));
+      .map((r): Light => ({
+        id: r.id,
+        isCrestronHomeCompatible: r.isCrestronHomeCompatible,
+        price: Number(r.baseCostUsd),
+        isFeatured: r.isFeatured,
+        categoryId: r.categoryId,
+      }))
+      .sort(comparator);
     const pageIds = ordered.slice(start, start + pageSize).map((r) => r.id);
     const products = await prisma.product.findMany({ where: { id: { in: pageIds } }, include: productInclude });
     const byId = new Map(products.map((p) => [p.id, p]));

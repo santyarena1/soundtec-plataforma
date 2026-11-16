@@ -2,7 +2,7 @@ import { canSeeCosts, isPanelRole, permissionsHave } from "@/lib/permissions";
 import { getCurrentPermissions, requireUser } from "@/lib/auth-helpers";
 import Link from "next/link";
 import { resolveCommercialClientId } from "@/lib/client-context";
-import { catalogFilterMeta, getCatalog, listVisibleCatalogBrands } from "@/lib/catalog";
+import { catalogFilterMeta, getCatalog, listCatalogTopCategories, listVisibleCatalogBrands } from "@/lib/catalog";
 import { countActiveCatalogFilters, parseCatalogSearchParams } from "@/lib/catalog-url";
 import { CRESTRON_HOME_ID } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
@@ -17,6 +17,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { AssistantEntry } from "@/components/expo/assistant-entry";
 import { Package, Send } from "lucide-react";
 import { RememberCatalog } from "@/components/catalog/catalog-memory";
+import { PriceTaxNotice } from "@/components/catalog/price-tax-notice";
+import { ComingSoonBanner } from "@/components/catalog/coming-soon-banner";
+import { CatalogSideRails } from "./catalog-side-rails";
 
 export const metadata = { title: "Catálogo" };
 
@@ -35,7 +38,10 @@ export default async function ProductsPage({
 
   const ctx = { commercialClientId, userId: user.id, isAdmin: internal };
   // Editar precios desde el catálogo: quien gestiona márgenes y ve costos.
-  const canEditPrices = internal ? await getCurrentPermissions().then(({ permissions }) => permissionsHave(permissions, "margins.manage") && canSeeCosts(permissions)) : false;
+  const permissions = internal ? (await getCurrentPermissions()).permissions : null;
+  const canEditPrices = !!permissions && permissionsHave(permissions, "margins.manage") && canSeeCosts(permissions);
+  // Estrella (sale primero al entrar a la marca): quien edita productos.
+  const canFeature = !!permissions && permissionsHave(permissions, "products.edit");
   const filters = {
     search: urlState.search,
     brandIds: urlState.brandIds,
@@ -69,13 +75,15 @@ export default async function ProductsPage({
   }
   const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
 
-  const [listed, { items, total, page, pageSize }, meta, draft] = await Promise.all([
+  const [listed, { items, total, page, pageSize }, meta, draft, topCategories] = await Promise.all([
     brandsPromise,
     getCatalog(filters, ctx),
     catalogFilterMeta(filters),
     getActiveDraftSummary(user.id),
+    listCatalogTopCategories(filters, ctx),
   ]);
   const brands = listed.brands;
+  const comingSoonBrand = activeBrandId ? brands.find((b) => b.id === activeBrandId && b.comingSoon) ?? null : null;
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -88,15 +96,20 @@ export default async function ProductsPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
       <RememberCatalog memoryKey="portal" />
+      <CatalogSideRails
+        categories={topCategories}
+        brands={brands}
+        activeCategoryIds={urlState.categoryIds ?? []}
+        activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)}
+        params={rawParams}
+        basePath="/portal/products"
+      />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="heading-2">Catálogo</h1>
-          <p className="muted-text mt-1">Explorá productos con precios en USD para tu cuenta comercial.</p>
-          <p className="mt-2 inline-flex rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900">
-            Los precios no incluyen impuestos.
-          </p>
+          <PriceTaxNotice className="mt-3 max-w-3xl" />
         </div>
         {draft ? (
           <Link
@@ -109,22 +122,28 @@ export default async function ProductsPage({
         ) : null}
       </div>
 
-      <AssistantEntry href="/expo?from=portal" className="lg:max-w-2xl" />
+      {/* De lado a lado del contenedor, igual que la fila de marcas. */}
+      <AssistantEntry href="/expo?from=portal" />
 
-      <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} basePath="/portal/products" />
+      {/* En pantallas anchas las marcas ya están en la columna derecha. */}
+      <div className="min-[1700px]:hidden">
+        <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} basePath="/portal/products" />
+      </div>
+
+      {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
 
       <CatalogMultiSelectProvider productIds={items.map((i) => i.id)} canEditPrices={canEditPrices}>
       <CatalogLayout state={urlState} meta={meta} total={total} toolbar={<CatalogToolbar state={urlState} />}>
-        {items.length === 0 ? (
+        {items.length === 0 && comingSoonBrand ? null : items.length === 0 ? (
           <EmptyState
             icon={<Package className="h-5 w-5" />}
             title="Sin resultados"
             description="Probá otros filtros o ampliá el rango de precios."
           />
         ) : urlState.view === "table" ? (
-          <CatalogTable items={items} />
+          <CatalogTable items={items} internal={internal} />
         ) : (
-          <CatalogGrid items={items} />
+          <CatalogGrid items={items} internal={internal} canFeature={canFeature} />
         )}
 
         {totalPages > 1 ? (

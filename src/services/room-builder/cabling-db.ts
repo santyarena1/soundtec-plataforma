@@ -13,6 +13,7 @@ import { getRoomProject } from "./project-service";
 import { centralizedFor, defaultProjectSystem, normalizeProjectSystem } from "./project-system";
 import { parseScene, type RoomScene } from "./scene";
 import { reachCatalog } from "./reach-catalog";
+import { withManualPorts } from "./manual-ports";
 import type { ReachCatalog } from "./signal-reach";
 import { effectiveSpec, SPEC_PRODUCT_SELECT, type SpecProduct } from "./system-check-db";
 
@@ -30,6 +31,10 @@ export type DeviceCablingProfile = {
   sources: string[];
   /** Puertos de la ficha tal cual (validada), para separarlos en puertos individuales en el plano técnico. */
   ioPorts?: IoProfileData["ports"] | null;
+  /** Cuántos grupos de puertos se cargaron a mano en el proyecto (manual-ports.ts). */
+  manualPorts?: number;
+  /** Lo de la ficha antes de sumar los puertos a mano (para volver a mezclar sin duplicar). */
+  sheet?: { ports: DevicePorts | null; ioPorts: IoProfileData["ports"] | null };
 };
 
 export type CablingProfile = {
@@ -83,7 +88,8 @@ export async function cablingProfile(projectId: string): Promise<CablingProfile 
       }
     }
   }
-  return { devices, central, centralDevices, remedies: await reachCatalog() };
+  // Puertos cargados a mano en este proyecto: el motor y el plano técnico los usan igual (marcados sin ficha).
+  return withManualPorts({ devices, central, centralDevices, remedies: await reachCatalog() }, scene);
 }
 
 /**

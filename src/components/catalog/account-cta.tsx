@@ -17,7 +17,7 @@ export function StickyAccountCta() {
         <ArrowRight className="h-5 w-5" />
       </Link>
       <div className="mb-6 hidden items-center justify-between gap-4 rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 sm:flex">
-        <p className="text-sm"><strong>¿Querés ver precios y stock?</strong> Pedí tu cuenta de cliente en un minuto.</p>
+        <p className="text-sm"><strong>¿Querés ver precios?</strong> Pedí tu cuenta de cliente en un minuto.</p>
         <Link href="/solicitar-cuenta" className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground">
           Solicitar cuenta de cliente
         </Link>

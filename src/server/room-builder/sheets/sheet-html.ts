@@ -2,15 +2,19 @@
  * Marco de las láminas técnicas (A3 apaisado, estilo plano de obra AV):
  * recuadro, columna lateral con referencias y la cartela (rótulo) abajo a la
  * derecha con logo y datos de la empresa, proyecto, cliente, sala, número de
- * lámina, escala, fecha y revisión. Cada lámina es una hoja de 420 × 297 mm.
+ * lámina, escala, fecha, revisión y estado de emisión (la primera lámina suma
+ * la tabla de revisiones). Hoja A3 de 420 × 297 mm, o Tabloid / ARCH D
+ * (sheet-format.ts).
  */
 
 import { escapeHtml } from "@/lib/quote-document-html";
+import type { RevisionRow } from "@/services/room-builder/revisions";
+import { BOTTOM_BAND_MM, sheetGeometry, type SheetFormatKey } from "@/services/room-builder/sheets/sheet-format";
 
-/** Área útil de dibujo de la columna principal (mm). */
-export const MAIN_AREA_MM = { w: 272, h: 264 };
-/** Área de dibujo de la lámina apaisada a todo el ancho, con referencias y cartela abajo (mm). */
-export const WIDE_AREA_MM = { w: 382, h: 214 };
+/** Área útil de dibujo de la columna principal en A3 (mm); para otros formatos, sheetGeometry(). */
+export const MAIN_AREA_MM = sheetGeometry("a3").mainArea;
+/** Área de dibujo de la lámina apaisada a todo el ancho en A3, con referencias y cartela abajo (mm). */
+export const WIDE_AREA_MM = sheetGeometry("a3").wideArea;
 
 export type SheetPage = {
   /** wide: dibujo a todo el ancho y las referencias abajo (diagramas largos). */
@@ -34,7 +38,21 @@ export type SheetMeta = {
   color: string;
   date: string;
   revision: string;
+  /** Estado de emisión de la revisión vigente ("Para aprobación"…). */
+  revisionStatus?: string;
+  /** Historial de revisiones (la más nueva primero): tabla en la primera lámina. */
+  revisions?: RevisionRow[];
+  /** Formato de hoja (A3 por defecto). */
+  format?: SheetFormatKey;
 };
+
+/** Tabla de revisiones de la primera lámina (dentro de la cartela). */
+function revisionTable(rows: RevisionRow[]): string {
+  if (!rows.length) return "";
+  return `<table class="c-revs"><tr><th>Rev.</th><th>Fecha</th><th>Estado</th><th>Descripción</th><th>Por</th></tr>${rows
+    .map((r) => `<tr${r.current ? ' class="cur"' : ""}><td><b>${h(r.code)}</b></td><td>${h(r.date)}</td><td>${h(r.status)}</td><td>${h(r.description)}</td><td>${h(r.author)}</td></tr>`)
+    .join("")}</table>`;
+}
 
 export const h = escapeHtml;
 
@@ -53,12 +71,17 @@ function cartela(meta: SheetMeta, page: SheetPage, n: number, total: number): st
 <div class="c-row"><span>Cliente</span>${h(meta.client ?? "—")}</div>
 <div class="c-row"><span>Sala</span>${h(page.room ?? "Proyecto completo")}</div>
 <div class="c-row c-title"><span>Lámina</span><b>${h(page.title)}</b></div>
+${n === 1 ? revisionTable(meta.revisions ?? []) : ""}<div class="c-row c-status"><span>Emisión</span><b>${h(meta.revisionStatus ?? "")}</b></div>
 <div class="c-grid"><div><span>N.º</span><b>${n}/${total}</b></div><div><span>Escala</span><b>${h(page.scale)}</b></div><div><span>Fecha</span><b>${h(meta.date)}</b></div><div><span>Rev.</span><b>${h(meta.revision)}</b></div></div>
 </div>`;
 }
 
 export function renderSheetsHtml(pages: SheetPage[], meta: SheetMeta): string {
   const color = meta.color;
+  // Hoja y recuadro según el formato elegido (A3, Tabloid o ARCH D).
+  const geo = sheetGeometry(meta.format ?? "a3");
+  const W = geo.format.widthMm;
+  const H = geo.format.heightMm;
   const body = pages
     .map((p, i) =>
       p.layout === "wide"
@@ -67,18 +90,18 @@ export function renderSheetsHtml(pages: SheetPage[], meta: SheetMeta): string {
     )
     .join("");
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${h(meta.docTitle)} · ${h(meta.project)}</title><style>
-@page { size: 420mm 297mm; margin: 0; }
+@page { size: ${W}mm ${H}mm; margin: 0; }
 html, body { margin: 0; padding: 0; }
 body { font-family: Arial, Helvetica, sans-serif; color: #111827; font-size: 7.6pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.sheet { position: relative; width: 420mm; height: 297mm; overflow: hidden; break-after: page; page-break-after: always; }
+.sheet { position: relative; width: ${W}mm; height: ${H}mm; overflow: hidden; break-after: page; page-break-after: always; }
 .sheet:last-child { break-after: auto; page-break-after: auto; }
-.frame { position: absolute; left: 15mm; top: 10mm; width: 395mm; height: 277mm; border: .6mm solid #111827; box-sizing: border-box; display: flex; }
-.main { width: 284mm; height: 100%; box-sizing: border-box; padding: 5mm; position: relative; overflow: hidden; }
+.frame { position: absolute; left: ${geo.frame.left}mm; top: ${geo.frame.top}mm; width: ${geo.frame.w}mm; height: ${geo.frame.h}mm; border: .6mm solid #111827; box-sizing: border-box; display: flex; }
+.main { width: ${geo.mainW}mm; height: 100%; box-sizing: border-box; padding: 5mm; position: relative; overflow: hidden; }
 .side { flex: 1; min-width: 0; height: 100%; border-left: .4mm solid #111827; display: flex; flex-direction: column; }
 .side-body { flex: 1; min-height: 0; overflow: hidden; padding: 3.5mm 4mm; }
 .frame.wide { flex-direction: column; }
 .frame.wide .main { width: auto; flex: 1; min-height: 0; }
-.bottom { height: 50mm; flex: none; display: flex; border-top: .4mm solid #111827; }
+.bottom { height: ${BOTTOM_BAND_MM}mm; flex: none; display: flex; border-top: .4mm solid #111827; }
 .bottom .side-body { column-count: 3; column-gap: 6mm; }
 .bottom .sb { break-inside: avoid; }
 .cartbox { width: 110mm; flex: none; border-left: .4mm solid #111827; }
@@ -107,12 +130,21 @@ table { width: 100%; border-collapse: collapse; }
 .warn-list li::before { content: ""; position: absolute; left: 0; top: 1.9mm; width: 2mm; height: 2mm; border-radius: 1mm; background: #94a3b8; }
 .warn-list li.error::before { background: #be123c; } .warn-list li.warn::before { background: #d97706; }
 .h2 { font-size: 10pt; font-weight: 700; color: ${color}; margin: 0 0 2mm; text-transform: uppercase; letter-spacing: .3pt; }
-.labels { display: grid; grid-template-columns: repeat(4, 66mm); grid-auto-rows: 16.4mm; gap: 1mm; }
-.label { border: .25mm dashed #94a3b8; display: flex; overflow: hidden; }
+.labels { display: grid; grid-template-columns: repeat(auto-fill, 51mm); gap: 2mm; align-content: start; }
+.label { width: 51mm; box-sizing: border-box; border: .25mm dashed #94a3b8; display: flex; flex-direction: column; overflow: hidden; }
+.label .face { height: 25mm; flex: none; display: flex; overflow: hidden; box-sizing: border-box; }
+.label .face.flip { transform: rotate(180deg); border-top: .25mm dashed #475569; }
+.label .tail { flex: 1; border-top: .25mm dashed #94a3b8; background: repeating-linear-gradient(45deg, #fff 0 1.2mm, #f1f5f9 1.2mm 2.4mm); color: #94a3b8; font-size: 5.5pt; display: flex; align-items: center; justify-content: center; }
 .label .stripe { width: 3mm; flex: none; }
-.label .lt { padding: .8mm 1.4mm; min-width: 0; line-height: 1.25; }
-.label .tag { font-size: 9.5pt; font-weight: 700; font-family: Consolas, "Courier New", monospace; }
-.label .ln { font-size: 6.4pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60mm; }
+.label .lt { padding: 1mm 1.4mm; min-width: 0; line-height: 1.22; display: flex; flex-direction: column; justify-content: center; }
+.label .tag { font-size: 11pt; font-weight: 700; font-family: Consolas, "Courier New", monospace; letter-spacing: .2pt; white-space: nowrap; }
+.label .end { font-size: 6.4pt; font-weight: 700; color: #475569; }
+.label .ln { font-size: 6.2pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45mm; }
+.c-status b { font-size: 8pt; color: ${color}; text-transform: uppercase; letter-spacing: .3pt; }
+.c-revs { width: 100%; border-collapse: collapse; font-size: 6pt; border-bottom: .2mm solid #94a3b8; }
+.c-revs th { background: #f1f5f9; color: #475569; text-align: left; padding: .6mm 1.2mm; font-weight: 700; text-transform: uppercase; font-size: 5.6pt; }
+.c-revs td { padding: .5mm 1.2mm; border-top: .2mm solid #e2e8f0; vertical-align: top; }
+.c-revs tr.cur td { background: #eef2ff; }
 .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; height: 100%; align-content: start; }
 .shots img { width: 100%; border: .2mm solid #cbd5e1; }
 .cartela { border-top: .4mm solid #111827; font-size: 7pt; }

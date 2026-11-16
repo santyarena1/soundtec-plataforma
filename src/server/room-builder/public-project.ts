@@ -30,7 +30,7 @@ export type PublicRoom = {
 export type PublicProject = { name: string; clientName: string | null; rooms: PublicRoom[] };
 
 /** Plano de la sala recortado a su contenido (sin la hoja A3 alrededor). */
-function webPlanSvg(room: RoomSheet): string | null {
+export function webPlanSvg(room: RoomSheet): string | null {
   if (!room.walls.length) return null;
   const ext = planContentExtent(room);
   const areaMm = { w: Math.ceil(mmAtScale(ext.widthM, WEB_SCALE) + 2 * COTA_MARGIN_MM), h: Math.ceil(mmAtScale(ext.depthM, WEB_SCALE) + 2 * COTA_MARGIN_MM + SCALE_BAR_BAND_MM) };

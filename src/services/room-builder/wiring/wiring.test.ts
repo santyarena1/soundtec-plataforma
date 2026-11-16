@@ -29,10 +29,10 @@ test("señales compatibles: USB entre sí, red con Dante, micrófono con audio a
 
 test("recorrido: subida y bajada por el cielorraso y tramos por los quiebres (sin reservas)", () => {
   // Equipo de pared a 1,5 m y otro a 2 m, 4 m en planta, techo de 2,7 m.
-  // 4 + (2,65-1,5) + (2,65-2) = 5,8
-  assert.equal(wireRunM({ x: 0, y: 1.5, z: 0 }, { x: 4, y: 2, z: 0 }, [], 2.7), 5.8);
-  // Rack y mesa (bajos): corre por el piso. 3 + 0,5 + 0,75 = 4,25
-  assert.equal(wireRunM({ x: 0, y: 0.5, z: 0 }, { x: 0, y: 0.75, z: 3 }, [], 2.7), 4.25);
+  // Cielorraso a 2,67 m (misma altura que el motor): 4 + (2,67-1,5) + (2,67-2) = 5,84
+  assert.equal(wireRunM({ x: 0, y: 1.5, z: 0 }, { x: 4, y: 2, z: 0 }, [], 2.7), 5.84);
+  // Rack y mesa (bajos): corre por el piso (0,02 m). 3 + 0,48 + 0,73 = 4,21
+  assert.equal(wireRunM({ x: 0, y: 0.5, z: 0 }, { x: 0, y: 0.75, z: 3 }, [], 2.7), 4.21);
 });
 
 test("largo final: misma fórmula en el plano técnico y en el motor automático", async () => {

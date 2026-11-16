@@ -309,6 +309,8 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     kind: parsed.data.kind,
     accessoryRequiredWithPrimary: parsed.data.accessoryRequiredWithPrimary ?? false,
     isActive: parsed.data.isActive ?? true,
+    // Estrella (sale primero en su marca): solo si el formulario trae la casilla.
+    ...(formData.has("isFeaturedPresent") ? { isFeatured: formData.get("isFeatured") === "on" } : {}),
   };
 
   let productId = id || "";

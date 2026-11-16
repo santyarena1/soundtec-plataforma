@@ -98,7 +98,7 @@ export function AdminProductList({
         <span>Producto</span>
         <span className="hidden md:block">Categoría</span>
         <span className="hidden text-right md:block">{showPrices ? "Precio de venta" : ""}</span>
-        <span className="hidden md:block">Stock</span>
+        <span className="hidden md:block" title="Stock en origen (lo informa el proveedor)">Stock origen</span>
         <span className="hidden md:block" />
       </div>
       <ul className="divide-y divide-border">

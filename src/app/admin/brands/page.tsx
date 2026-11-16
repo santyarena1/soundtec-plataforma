@@ -12,6 +12,7 @@ import { BrandDetailPanel } from "./brand-detail-panel";
 import { NormalizeLogosButton } from "./normalize-logos-button";
 import { brandLogoSrc } from "@/lib/brand-logo";
 import { toggleBrandCatalogVisibility } from "@/server/actions/brand-logos";
+import { toggleBrandComingSoon } from "@/server/actions/brand-listing";
 
 export const metadata = { title: "Admin · Marcas" };
 
@@ -70,6 +71,7 @@ export default async function AdminBrandsPage() {
               <TH>Productos</TH>
               <TH>Estado</TH>
               <TH>Catálogo</TH>
+              <TH title="La tarjeta dice «Próximamente» y al entrar se avisa que el lineup está en camino">Próximamente</TH>
               <TH></TH>
             </TR>
           </THead>
@@ -86,6 +88,14 @@ export default async function AdminBrandsPage() {
                     {b.hiddenFromCatalog ? <Badge tone="warning">Oculta</Badge> : <Badge tone="success">Visible</Badge>}
                     <button type="submit" className="text-xs font-medium text-primary hover:underline">
                       {b.hiddenFromCatalog ? "Mostrar" : "Ocultar"}
+                    </button>
+                  </form>
+                </TD>
+                <TD>
+                  <form action={toggleBrandComingSoon.bind(null, b.id)} className="flex items-center gap-2">
+                    {b.comingSoon ? <Badge tone="accent">Próximamente</Badge> : <Badge tone="muted">No</Badge>}
+                    <button type="submit" className="text-xs font-medium text-primary hover:underline">
+                      {b.comingSoon ? "Quitar" : "Marcar"}
                     </button>
                   </form>
                 </TD>
