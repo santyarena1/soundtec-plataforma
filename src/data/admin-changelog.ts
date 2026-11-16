@@ -2867,6 +2867,7 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     ],
   },
   {
+    id: "ship-2026-11-16-alejandro-y-room-builder-etapa3",
     version: "2.40.0",
     releasedAt: "2026-11-16T22:00:00.000Z",
     summary: "Pedidos de Alejandro en el portal y Room Builder etapa 3: rack frontal con consumo, mapa de sonido, tamaño de pantalla DISCAS, puertos a mano y entregables con revisiones.",
