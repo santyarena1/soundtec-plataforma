@@ -2475,3 +2475,127 @@ model FormInvite {
   @@unique([formId, email])
   @@index([formId, status])
 }
+
+// ---------------------------------------------
+// Campañas por mail (envíos masivos con Resend). Ver src/lib/mailing.
+// ---------------------------------------------
+
+/// Lista de destinatarios. IMPORTED: personas cargadas desde un Excel/CSV (MailingListMember).
+/// DYNAMIC: un filtro sobre la base (clientes, usuarios del portal, interesados…) que se evalúa al enviar.
+model MailingList {
+  id          String              @id @default(cuid())
+  name        String
+  description String?
+  /// IMPORTED | DYNAMIC
+  kind        String              @default("IMPORTED")
+  /// DYNAMIC: { source, filters } (ver lib/mailing/audience-types).
+  query       Json?
+  /// IMPORTED: nombres de las columnas extra que se guardaron (para usarlas como {{variable}}).
+  extraFields String[]            @default([])
+  createdById String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  members     MailingListMember[]
+
+  @@index([kind])
+}
+
+model MailingListMember {
+  id        String      @id @default(cuid())
+  listId    String
+  list      MailingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  email     String
+  name      String?
+  company   String?
+  /// Columnas extra del Excel: { "ciudad": "Rosario", … }.
+  fields    Json?
+  createdAt DateTime    @default(now())
+
+  @@unique([listId, email])
+  @@index([email])
+}
+
+model MailCampaign {
+  id          String                  @id @default(cuid())
+  name        String
+  subject     String                  @default("")
+  preheader   String                  @default("")
+  /// Bloques del cuerpo (ver lib/mailing/blocks).
+  blocks      Json?
+  /// { include: listId[], exclude: listId[] }
+  audience    Json?
+  /// DRAFT | SCHEDULED | SENDING | PAUSED | SENT | CANCELED
+  status      String                  @default("DRAFT")
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  /// Se mandó en modo prueba (sin Resend): nada salió de verdad.
+  simulated   Boolean                 @default(false)
+  /// Motivo de la última pausa automática (límite diario, error de Resend…).
+  note        String?
+  createdById String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  recipients  MailCampaignRecipient[]
+
+  @@index([status, scheduledAt])
+}
+
+/// Un destinatario de una campaña: la cola de envío y su seguimiento.
+model MailCampaignRecipient {
+  id             String       @id @default(cuid())
+  campaignId     String
+  campaign       MailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  email          String
+  name           String?
+  company        String?
+  fields         Json?
+  /// QUEUED | SENDING | SENT | SIMULATED | FAILED | SKIPPED | CANCELED
+  status         String       @default("QUEUED")
+  /// Tanda en la que salió (clave de idempotencia de Resend).
+  batchKey       String?
+  claimedAt      DateTime?
+  resendId       String?      @unique
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  openedAt       DateTime?
+  openCount      Int          @default(0)
+  clickedAt      DateTime?
+  clickCount     Int          @default(0)
+  lastClickUrl   String?
+  bouncedAt      DateTime?
+  bounceType     String?
+  complainedAt   DateTime?
+  unsubscribedAt DateTime?
+  lastError      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([campaignId, email])
+  @@index([campaignId, status])
+  @@index([status, sentAt])
+}
+
+/// Direcciones a las que no se manda nunca más (bajas, rebotes duros, quejas de spam, a mano).
+model MailSuppression {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  /// UNSUBSCRIBE | BOUNCE | COMPLAINT | MANUAL
+  reason     String
+  detail     String?
+  campaignId String?
+  createdAt  DateTime @default(now())
+
+  @@index([reason])
+}
+
+/// Eventos del webhook de Resend ya procesados (el svix-id evita contarlos dos veces).
+model MailWebhookEvent {
+  id        String   @id
+  type      String
+  emailId   String?
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([emailId])
+}

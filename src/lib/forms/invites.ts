@@ -1,14 +1,11 @@
 import { randomBytes } from "node:crypto";
 import * as XLSX from "xlsx";
 import { appUrl } from "@/lib/app-url";
+import { isEmail } from "@/lib/mail/address";
 
 export type InviteRow = { email: string; name?: string; company?: string };
 
-const EMAIL_RE = /^[^\s@<>()[\],;:"]+@[^\s@<>()[\],;:"]+\.[a-z]{2,}$/i;
-
-export function isEmail(value: string): boolean {
-  return EMAIL_RE.test(value.trim());
-}
+export { isEmail };
 
 /** Código del enlace personal: 12 caracteres al azar (no se puede adivinar el de otro). */
 export function newInviteCode(): string {

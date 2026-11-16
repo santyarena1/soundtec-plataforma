@@ -2912,4 +2912,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Pedir cuenta: los pasos explicados, enlace para ingresar si ya tenés cuenta y pantalla final con a qué mail llega el link y qué sigue." },
     ],
   },
+  {
+    id: "ship-2026-11-16-campanas-por-mail",
+    version: "2.42.0",
+    releasedAt: "2026-11-17T01:30:00.000Z",
+    summary: "Campañas por mail: promociones masivas con Resend desde noreply@soundtecportal.com.ar, con listas, productos del catálogo, bajas y resultados.",
+    items: [
+      { kind: "NUEVO", text: "Ventas → Campañas por mail: asunto, texto de vista previa y cuerpo por bloques (título, texto, imagen, botón, productos del catálogo con foto y enlace a la ficha, separador). Vista previa de escritorio y celular, mail de prueba y duplicar." },
+      { kind: "NUEVO", text: "Listas desde la base (clientes, usuarios del portal, interesados, solicitudes) filtradas por rubro, IVA, responsable, provincia y acceso al portal, o importadas de Excel/CSV con columnas extra como {{variables}}. Se suman y se excluyen." },
+      { kind: "NUEVO", text: "Envío ahora o programado, en tandas en segundo plano (cron cada 5 minutos), con límite diario para el dominio nuevo, pausa y cancelación. Nunca le llega dos veces a la misma persona." },
+      { kind: "NUEVO", text: "Baja en cada mail (enlace y botón «Desuscribirse» de Gmail) y lista de supresión con bajas, rebotes y quejas de spam que se respeta en todo envío." },
+      { kind: "NUEVO", text: "Resultados por campaña: entregados, aperturas, clics, rebotes, spam y bajas (webhook de Resend), con detalle por persona y Excel." },
+      { kind: "NUEVO", text: "Permiso nuevo «Campañas por mail» en Roles. Sin API key de Resend todo funciona en modo prueba: se simula y no sale nada." },
+    ],
+  },
 ];

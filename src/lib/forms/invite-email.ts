@@ -1,4 +1,5 @@
 import type { InfoItem } from "@/lib/forms/types";
+import { MAIL_FONT, SOUNDTEC_BLUE, escapeHtml } from "@/lib/mail/html";
 
 /**
  * Mail de invitación con la estética de los formularios: encabezado con la red
@@ -11,14 +12,9 @@ import type { InfoItem } from "@/lib/forms/types";
 export const DEFAULT_INVITE_MESSAGE =
   "Hola {nombre},\n\nTe invitamos a nuestro próximo evento. Confirmá tu asistencia desde el botón: te lleva a un formulario corto.\n\n¡Te esperamos!";
 
-/** Inter (la del sitio) donde el programa de mail la carga (Apple Mail, iOS); si no, la mejor del sistema: Segoe UI en Windows, Roboto en Android, Helvetica en Mac. Nunca Arial en negrita extra. */
-const FONT = "Inter,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif";
+const FONT = MAIL_FONT;
 
-const ACCENTS = { black: "#0a0a0a", blue: "#1e3553" } as const;
-
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
+const ACCENTS = { black: "#0a0a0a", blue: SOUNDTEC_BLUE } as const;
 
 export function fillPlaceholders(text: string, invite: { name?: string | null; company?: string | null }): string {
   const first = (invite.name ?? "").split(" ")[0] ?? "";

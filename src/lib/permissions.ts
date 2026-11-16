@@ -69,7 +69,9 @@ export type PermissionScope =
   | "quotes.submit_review"
   | "quotes.approve"
   | "quotes.manage_library"
-  | "forms.manage";
+  | "forms.manage"
+  /** Campañas por mail (envíos masivos con Resend): listas, armado y envío. */
+  | "marketing.manage";
 
 export type PriceAccess = "full" | "sale" | "none";
 
@@ -167,6 +169,16 @@ export const PERMISSION_GROUPS: Array<{
       { scope: "account_requests.review", label: "Aprobar o rechazar altas" },
       { scope: "leads.view", label: "Ver leads del catálogo y del asistente" },
       { scope: "forms.manage", label: "Formularios: crear, compartir y ver respuestas", help: "Formularios de eventos, inscripciones y encuestas que se comparten por enlace." },
+    ],
+  },
+  {
+    title: "Marketing",
+    items: [
+      {
+        scope: "marketing.manage",
+        label: "Campañas por mail: armar listas y mandar masivos",
+        help: "Envíos a toda la base (clientes, portal, interesados, listas importadas). Darlo solo a quien maneja las promos: un mail mal mandado le llega a miles.",
+      },
     ],
   },
   {

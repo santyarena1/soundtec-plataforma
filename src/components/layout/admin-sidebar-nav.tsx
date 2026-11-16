@@ -16,6 +16,7 @@ import {
   Globe2,
   LayoutDashboard,
   LifeBuoy,
+  Megaphone,
   ListChecks,
   MessageSquare,
   Package,
@@ -85,6 +86,7 @@ const groups: NavGroup[] = [
       { href: "/admin/account-requests", label: "Solicitudes de cuenta", icon: UserPlus, anyScope: ["account_requests.create", "account_requests.review"], badgeKey: "accountRequests", tourId: "nav-link-account-requests" },
       { href: "/admin/leads", label: "Interesados", icon: QrCode, scope: "leads.view", alsoActive: ["/admin/assistant/leads"] },
       { href: "/admin/forms", label: "Formularios", icon: ClipboardList, scope: "forms.manage" },
+      { href: "/admin/mailing", label: "Campañas por mail", icon: Megaphone, scope: "marketing.manage" },
     ],
   },
   {
