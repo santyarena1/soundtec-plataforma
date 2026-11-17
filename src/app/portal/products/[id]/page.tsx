@@ -1,4 +1,4 @@
-import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
+import { hasConfigurator, productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { describeRule } from "@/lib/compatibility-rules";
@@ -321,7 +321,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             {productSubtitle(product) ? <p className="muted-text mt-2">{productSubtitle(product)}</p> : null}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StockBadge status={product.stockStatus} qty={product.stockQuantity} internal={isAdminViewer} />
-              {product.isCustomizable ? <Badge tone="accent">Configurable</Badge> : null}
+              {hasConfigurator({ isCustomizable: product.isCustomizable, optionCount: product.options.length }) ? <Badge tone="accent">Configurable</Badge> : null}
               {product.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : <Badge tone="primary">Producto principal</Badge>}
               {pricing.discountPercent > 0 ? (
                 <Badge tone="success">Descuento {formatPercent(pricing.discountPercent)}</Badge>

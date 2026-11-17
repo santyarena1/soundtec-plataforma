@@ -159,6 +159,21 @@ table { width: 100%; border-collapse: collapse; }
 .c-grid div { padding: 1.1mm 2mm; border-right: .2mm solid #94a3b8; display: flex; flex-direction: column; }
 .c-grid div:last-child { border-right: none; }
 .c-grid span { width: auto; }
-.c-grid b { font-size: 8.5pt; }
+.c-grid b { font-size: 8.5pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-grid div { min-width: 0; }
+/* Lámina apaisada: la cartela vive en la banda de abajo (${BOTTOM_BAND_MM} mm) y tiene que
+   entrar entera, con N.º / Escala / Fecha / Rev. dentro del recuadro. */
+.cartbox { display: flex; flex-direction: column; overflow: hidden; }
+.cartbox .cartela { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.cartbox .c-head { padding: 1.2mm 3mm; }
+.cartbox .c-head img { max-height: 8.5mm; }
+.cartbox .c-co { font-size: 5.8pt; line-height: 1.2; }
+.cartbox .c-co b { font-size: 6.6pt; }
+.cartbox .c-row { padding: .55mm 3mm; }
+.cartbox .c-title b { font-size: 8pt; }
+.cartbox .c-status b { font-size: 7pt; }
+.cartbox .c-grid { margin-top: auto; border-top: .2mm solid #94a3b8; }
+.cartbox .c-grid div { padding: .6mm 2mm; }
+.cartbox .c-grid b { font-size: 7.6pt; }
 </style></head><body>${body}</body></html>`;
 }

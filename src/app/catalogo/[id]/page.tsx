@@ -1,5 +1,5 @@
 import { optimizedImage } from "@/lib/image-url";
-import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
+import { hasConfigurator, productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { isCatalogModeOn } from "@/lib/catalog-mode";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -57,6 +57,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
         category: { select: { name: true } },
         family: { select: { name: true } },
         images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
+        _count: { select: { options: true } },
         accessories: {
           include: {
             accessoryProduct: {
@@ -117,7 +118,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
             {productSubtitle(product) ? <p className="muted-text">{productSubtitle(product)}</p> : null}
             <div className="flex flex-wrap items-center gap-2 pt-1">
               {product.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : null}
-              {product.isCustomizable ? <Badge tone="accent">Configurable</Badge> : null}
+              {hasConfigurator({ isCustomizable: product.isCustomizable, optionCount: product._count.options }) ? <Badge tone="accent">Configurable</Badge> : null}
               {product.isCrestronHomeCompatible ? <Badge tone="primary">Crestron Home</Badge> : null}
               {product.modelNumber && product.modelNumber.trim().toLowerCase() !== productTitle(product).toLowerCase() ? (
                 <span className="text-xs text-muted-foreground">Modelo: {product.modelNumber}</span>

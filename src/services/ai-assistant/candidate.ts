@@ -44,7 +44,7 @@ export const PRODUCT_SELECT = {
     select: {
       kind: true,
       quantity: true,
-      accessoryProduct: { select: { id: true, normalizedName: true, isActive: true } },
+      accessoryProduct: { select: { id: true, normalizedName: true, isActive: true, isDiscontinued: true } },
     },
     take: 24,
   },
@@ -153,7 +153,7 @@ function toProfile(row: ProductRow): CandidateProfile | null {
 
 export function toCandidate(row: ProductRow, index: number, scope: AssistantScope): CandidateProduct {
   const relations = row.accessories
-    .filter((rel) => rel.accessoryProduct?.isActive)
+    .filter((rel) => rel.accessoryProduct?.isActive && !rel.accessoryProduct.isDiscontinued)
     .map((rel) => ({
       kind: rel.kind as string,
       name: rel.accessoryProduct.normalizedName,

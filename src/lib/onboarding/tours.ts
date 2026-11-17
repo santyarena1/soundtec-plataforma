@@ -818,7 +818,7 @@ export const PORTAL_ONBOARDING: OnboardingTour = {
             target: "portal-cart",
             title: "Carrito / borrador",
             body: "Mientras cargás productos se arma un borrador. Cuando esté listo, lo enviás al equipo Soundtec.",
-            affects: "Al enviar, el pedido aparece en Admin → Pedidos.",
+            affects: "Al enviarlo, le llega al equipo de Soundtec y lo seguís desde Mis pedidos.",
           },
         ]
       : []),
@@ -828,14 +828,14 @@ export const PORTAL_ONBOARDING: OnboardingTour = {
           route: "/portal",
           title: "Ya podés pedir",
           body: "Circuito listo. Empezá por el catálogo, agregá al carrito y enviá tu primer pedido.",
-          tip: "Si también usás el panel, «Modo admin» arriba a la derecha te lleva de vuelta.",
+          tip: "Para volver a ver este recorrido, tocá «Tutorial online» arriba.",
         }
       : {
           id: "portal-done",
           route: "/portal",
           title: "Listo",
           body: "Circuito listo. Empezá por el catálogo; para cotizar, escribile a tu vendedor de Soundtec.",
-          tip: "Si también usás el panel, «Modo admin» arriba a la derecha te lleva de vuelta.",
+          tip: "Para volver a ver este recorrido, tocá «Tutorial online» arriba.",
         },
   ],
 };

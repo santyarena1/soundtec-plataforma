@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
 import { getRoomTemplate } from "@/services/room-builder/templates";
 
-export type HubSpace = { id: string; name: string; templateKey: string; unitCount: number; status: string; _count: { devices: number } };
+export type HubSpace = { id: string; name: string; templateKey: string; unitCount: number; status: string; _count: { devices: number }; equipmentUnits?: number };
 
 const STATUS_LABELS: Record<string, string> = { draft: "Borrador", ready: "Listo", quoted: "Cotizado" };
 
@@ -51,7 +51,7 @@ export function HubSpaces({ spaces, onDeleted }: { spaces: HubSpace[]; onDeleted
               <p className="truncate font-medium text-slate-900">{space.name}</p>
               <p className="text-xs text-slate-500">
                 {template?.name ?? space.templateKey}
-                {space.unitCount > 1 ? ` · ×${space.unitCount}` : ""} · {space._count.devices} equipos · {STATUS_LABELS[space.status] ?? space.status}
+                {space.unitCount > 1 ? ` · ×${space.unitCount}` : ""} · {space.equipmentUnits ?? space._count.devices} equipos · {STATUS_LABELS[space.status] ?? space.status}
               </p>
             </div>
             <div className="flex items-center gap-2">

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { getEquipmentBrands, totalProducts } from "@/lib/catalog-brands";
+import { countCustomerVisibleProducts } from "@/lib/catalog";
 import { ogMeta, siteCardUrl } from "@/lib/og/meta";
 
 // Los enlaces del portal y del panel, para quien no inició sesión (como WhatsApp al armar la vista previa), llegan acá.
@@ -35,7 +36,8 @@ export default async function LoginPage({
   const notice = params.sesion ? SESSION_NOTICES[params.sesion] ?? SESSION_NOTICES.cerrada : null;
 
   const brands = await getEquipmentBrands().catch(() => []);
-  const total = totalProducts(brands);
+  // Mismo conteo que ve el cliente al entrar al portal.
+  const total = await countCustomerVisibleProducts().catch(() => totalProducts(brands));
 
   return (
     <AuthShell

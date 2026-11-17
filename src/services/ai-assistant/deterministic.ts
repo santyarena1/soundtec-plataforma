@@ -14,6 +14,8 @@ import type {
   SpecRow,
 } from "./types";
 
+import { compareSuggestion } from "./compare";
+
 export const SPEC_SOURCE_TITLE = "Ficha técnica Soundtec";
 
 export function productHref(productId: string, scope: "PUBLIC" | "ADMIN"): string {
@@ -193,10 +195,7 @@ export function buildSuggestions(input: {
   const first = candidates[0];
 
   if (candidates.length >= 2) {
-    out.push(`Comparar ${candidates[0].name.split(" ").slice(0, 3).join(" ")} y ${candidates[1].name
-      .split(" ")
-      .slice(0, 3)
-      .join(" ")}`);
+    out.push(compareSuggestion(candidates[0], candidates[1]));
   }
   if (first) {
     if (!analysis.attributes.some((attribute) => attribute.key === "outdoor")) {

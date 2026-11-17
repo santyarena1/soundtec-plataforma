@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
+import { brandLogoFit } from "@/lib/brand-logo-fit";
 export type BrandBarItem = { id: string; name: string; logoUrl: string | null; href: string };
 
 /**
@@ -73,7 +74,7 @@ export function BrandBarClient({
                 <img
                   src={brand.logoUrl}
                   alt={brand.name}
-                  className={`max-h-7 max-w-full object-contain transition ${active ? "" : "opacity-75 grayscale-[35%] group-hover:opacity-100 group-hover:grayscale-0"}`}
+                  className={`${brandLogoFit(brand.id).compact ? "h-12 w-full object-cover" : "max-h-7 max-w-full object-contain"} transition ${active ? "" : "opacity-75 grayscale-[35%] group-hover:opacity-100 group-hover:grayscale-0"}`}
                 />
               ) : (
                 <span className="truncate text-xs font-semibold uppercase tracking-wide text-foreground">{brand.name}</span>

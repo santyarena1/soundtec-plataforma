@@ -415,3 +415,72 @@ describe("leads y recordatorio", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Discontinuados y «Comparar A y B» (presentación del portal, 17/11)
+// ---------------------------------------------------------------------------
+
+import { isRecommendable, textSaysDiscontinued } from "./availability";
+import { compareSuggestion, matchComparePair, parseCompareRequest } from "./compare";
+
+describe("productos discontinuados", () => {
+  it("excluye el flag isDiscontinued y los inactivos", () => {
+    assert.equal(isRecommendable({ isActive: true, isDiscontinued: true }), false);
+    assert.equal(isRecommendable({ isActive: false, isDiscontinued: false }), false);
+    assert.equal(isRecommendable({ isActive: true, isDiscontinued: false }), true);
+  });
+
+  it("detecta las frases de ficha que dicen que el producto ya no se fabrica", () => {
+    assert.equal(textSaysDiscontinued("<p>This product has been discontinued.</p>"), true);
+    assert.equal(textSaysDiscontinued("Discontinued SKU - New version expected in early Q3 ."), true);
+    assert.equal(textSaysDiscontinued("Salida TOSLINK. Producto discontinuado."), true);
+    assert.equal(textSaysDiscontinued("Este modelo fue discontinuado por el fabricante"), true);
+    assert.equal(
+      isRecommendable({ isActive: true, isDiscontinued: false, htmlContent: "<b>This item is discontinued</b>" }),
+      false
+    );
+  });
+
+  it("no confunde un reemplazo de un modelo discontinuado con un discontinuado", () => {
+    assert.equal(textSaysDiscontinued("Retrofit mount that replaces the discontinued TSW-760 panel."), false);
+    assert.equal(textSaysDiscontinued("Reemplaza al modelo discontinuado SA68."), false);
+    assert.equal(textSaysDiscontinued(null), false);
+  });
+});
+
+describe("comparar dos productos sugeridos", () => {
+  const shown = [
+    { id: "p-sq", name: "SQUAREROOT 6.5-TC" },
+    { id: "p-punk", name: "PUNKROCK-S/T" },
+    { id: "p-long", name: "Sonance SA68 Amplificador de 8 canales" },
+  ];
+
+  it("la frase de la sugerencia se resuelve a los ids, aunque el modelo tenga barra", () => {
+    const text = compareSuggestion(shown[1], shown[0]);
+    assert.equal(text, "Comparar PUNKROCK-S/T y SQUAREROOT 6.5-TC");
+    assert.deepEqual(matchComparePair(text, shown), ["p-punk", "p-sq"]);
+  });
+
+  it("usa el nombre corto de tres palabras que muestra el botón", () => {
+    const text = compareSuggestion(shown[2], shown[1]);
+    assert.equal(text, "Comparar Sonance SA68 Amplificador y PUNKROCK-S/T");
+    assert.deepEqual(matchComparePair(text, shown), ["p-long", "p-punk"]);
+  });
+
+  it("no inventa pares: sin coincidencia exacta devuelve null", () => {
+    assert.equal(matchComparePair("Comparar PUNKROCK y SQUAREROOT", shown), null);
+    assert.equal(matchComparePair("¿Cuál conviene para exterior?", shown), null);
+  });
+
+  it("prueba todos los cortes cuando un nombre tiene « y » adentro", () => {
+    assert.deepEqual(parseCompareRequest("Comparar A y B y C"), [
+      ["A", "B y C"],
+      ["A y B", "C"],
+    ]);
+    const known = [
+      { id: "x", name: "Audio y Video" },
+      { id: "z", name: "Rack" },
+    ];
+    assert.deepEqual(matchComparePair("Comparar Audio y Video y Rack", known), ["x", "z"]);
+  });
+});

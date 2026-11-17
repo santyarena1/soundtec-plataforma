@@ -65,6 +65,9 @@ export function wiringDiagramSvg(d: DiagramLayout, opts: { numbers?: BlockNumber
     const title = d.columns[colOrder.indexOf(b.column)] ?? "";
     if (!firstX.has(title) || b.x < firstX.get(title)!) firstX.set(title, b.x);
   }
+  // Textos de los bloques: van después de los cables (con halo) para que una
+  // línea que cruza un equipo no tape el nombre ni los puertos.
+  const texts: string[] = [];
   for (const [title, x] of firstX) if (title) out.push(`<text x="${x}" y="40" font-size="12" font-weight="700" fill="#64748b" letter-spacing="1">${esc(title.toUpperCase())}</text>`);
   for (const b of d.blocks) {
     const head = b.remote ? "#475569" : "#1e3553";
@@ -72,13 +75,14 @@ export function wiringDiagramSvg(d: DiagramLayout, opts: { numbers?: BlockNumber
     out.push(`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="6" fill="#ffffff" stroke="${head}" stroke-width="1.2" ${b.noPorts ? 'stroke-dasharray="5 3"' : ""}/>`);
     out.push(`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="34" rx="6" fill="${head}"/><rect x="${b.x}" y="${b.y + 26}" width="${b.w}" height="8" fill="${head}"/>`);
     const title = `${n ? `${n} · ` : ""}${b.short}`;
-    out.push(`<text x="${b.x + 9}" y="${b.y + 15}" font-size="11.5" font-weight="700" fill="#ffffff">${esc(cut(title, 34))}</text>`);
-    out.push(`<text x="${b.x + 9}" y="${b.y + 28}" font-size="8.5" fill="#cbd5e1">${esc(cut(b.remote ? "Rack central" : b.label, 44))}</text>`);
-    if (b.noPorts) out.push(`<text x="${b.x + 9}" y="${b.y + 50}" font-size="9" fill="#92400e">Puertos pendientes de ficha</text>`);
+    const onHead = `stroke="${head}" stroke-width="3" paint-order="stroke"`;
+    texts.push(`<text x="${b.x + 9}" y="${b.y + 15}" font-size="11.5" font-weight="700" fill="#ffffff" ${onHead}>${esc(cut(title, 34))}</text>`);
+    texts.push(`<text x="${b.x + 9}" y="${b.y + 28}" font-size="8.5" fill="#cbd5e1" ${onHead}>${esc(cut(b.remote ? "Rack central" : b.label, 44))}</text>`);
+    if (b.noPorts) texts.push(`<text x="${b.x + 9}" y="${b.y + 50}" font-size="9" fill="#92400e" stroke="#ffffff" stroke-width="3" paint-order="stroke">Puertos pendientes de ficha</text>`);
     for (const p of b.ports) {
       const x = p.side === "left" ? b.x : b.x + b.w;
       const tx = p.side === "left" ? x + 8 : x - 8;
-      out.push(`<text x="${tx}" y="${b.y + p.y + 3}" font-size="9" text-anchor="${p.side === "left" ? "start" : "end"}" fill="${p.used ? "#0f172a" : "#94a3b8"}">${esc(cut(p.label, 26))}${p.source !== "datasheet" ? "*" : ""}</text>`);
+      texts.push(`<text x="${tx}" y="${b.y + p.y + 3}" font-size="9" text-anchor="${p.side === "left" ? "start" : "end"}" fill="${p.used ? "#0f172a" : "#94a3b8"}" stroke="#ffffff" stroke-width="3" paint-order="stroke">${esc(cut(p.label, 26))}${p.source !== "datasheet" ? "*" : ""}</text>`);
     }
   }
   // Cables por encima de los bloques, con halo blanco: si un tramo pasa por un equipo a la
@@ -93,6 +97,7 @@ export function wiringDiagramSvg(d: DiagramLayout, opts: { numbers?: BlockNumber
       out.push(`<text x="${x + 2}" y="${y - 3}" font-size="9" fill="${w.color}" stroke="#ffffff" stroke-width="2.5" paint-order="stroke">${esc(tag)}</text>`);
     }
   }
+  out.push(...texts);
   // Puntos de conexión arriba de todo.
   for (const b of d.blocks) {
     for (const p of b.ports) {

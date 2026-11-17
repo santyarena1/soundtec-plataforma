@@ -2938,4 +2938,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Avisos al importar: peso mayor a 100 KB (Gmail lo corta), imágenes sin dirección absoluta, enlaces http, imágenes sin texto alternativo y anchos mayores a 700 px. Versión en texto plano automática." },
     ],
   },
+  {
+    id: "ship-2026-11-17-arreglos-presentacion",
+    version: "2.44.0",
+    releasedAt: "2026-11-17T03:00:00.000Z",
+    summary: "Ajustes del portal para la presentación: Soundtec AI, tutorial del cliente, etiquetas, conteos, orden por precio y láminas.",
+    items: [
+      { kind: "FIX", text: "Soundtec AI desde el portal abre la ficha del portal (con precio), no recomienda discontinuados y «Comparar» encuentra los productos que acaba de mostrar." },
+      { kind: "FIX", text: "Tutorial del cliente con textos propios; si se deja a medias no se vuelve a abrir solo." },
+      { kind: "FIX", text: "«Configurable» solo en productos con configurador real. Documentos con su tipo en español (Hoja técnica · PDF, DXF (CAD)…)." },
+      { kind: "FIX", text: "Marcas Próximamente sin productos muestran solo el aviso. El ingreso cuenta los mismos productos que el portal." },
+      { kind: "MEJORA", text: "Recién llegados solo con foto del producto; al ordenar por precio, los «a consultar» van al final; logo de Crestron Home a tamaño legible; teléfono de Soundtec con un solo formato." },
+      { kind: "FIX", text: "Proyecto de sala: la web, el PDF y el panel cuentan los equipos igual. En la lámina del diagrama los textos ya no quedan tapados y la cartela entra en su recuadro." },
+    ],
+  },
 ];

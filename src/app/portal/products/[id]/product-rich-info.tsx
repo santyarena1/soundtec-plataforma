@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { filterCustomerBadges } from "@/lib/manufacturer-promo";
+import { documentKind } from "@/lib/document-kind";
 
 interface SpecItem {
   group?: string;
@@ -81,15 +82,6 @@ function getVideoEmbedUrl(url: string): string | null {
   const vimeo = url.match(/vimeo\.com\/(\d+)/);
   if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
   return null;
-}
-
-function isImageUrl(url: string): boolean {
-  return /\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/i.test(url);
-}
-
-function fileIconForType(type: string, url: string): "image" | "doc" {
-  if (type === "image" || isImageUrl(url)) return "image";
-  return "doc";
 }
 
 export function ProductRichInfo(props: ProductRichInfoProps) {
@@ -340,8 +332,8 @@ export function ProductRichInfo(props: ProductRichInfoProps) {
               {docs.map((d, i) => {
                 const name = d.nameEs || d.name || d.description || `Documento ${i + 1}`;
                 const url = d.fileUrl || d.url || d.filePath || "";
-                const type = d.documentType || d.type || d.fileTypeString || "";
-                const iconKind = fileIconForType(type, url);
+                const kind = documentKind({ type: d.documentType || d.type || d.fileTypeString || "", url });
+                const iconKind = kind.isImage ? "image" : "doc";
                 if (!url) return null;
                 return (
                   <li key={i}>
@@ -360,8 +352,8 @@ export function ProductRichInfo(props: ProductRichInfoProps) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{name}</p>
-                        {type ? (
-                          <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{type}</p>
+                        {kind.label ? (
+                          <p className="text-[11px] text-muted-foreground">{kind.label}</p>
                         ) : null}
                       </div>
                       <Download className="h-4 w-4 text-muted-foreground shrink-0" />

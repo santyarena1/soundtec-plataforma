@@ -73,6 +73,7 @@ export default async function ExpoPage({
         surface="PUBLIC"
         backHref="/portal/products"
         backLabel="Volver al catálogo"
+        productBase="/portal/products"
       />
     );
   }

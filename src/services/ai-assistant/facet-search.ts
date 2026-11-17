@@ -11,6 +11,7 @@ import { VISIBLE_BRAND_WHERE } from "@/lib/brand-visibility";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { PRODUCT_SELECT, toCandidate, type ProductRow } from "./candidate";
+import { AVAILABLE_PRODUCT_WHERE, onlyRecommendable } from "./availability";
 import { cosineSimilarity, embedOne } from "./profile/embedding";
 import type { CanonicalFilter } from "./facets";
 import type { AssistantScope, CandidateProduct } from "./types";
@@ -81,7 +82,7 @@ export function buildWhere(filter: CanonicalFilter): Prisma.ProductWhereInput {
 
   const where: Prisma.ProductWhereInput = {
     ...VISIBLE_BRAND_WHERE,
-    isActive: true,
+    ...AVAILABLE_PRODUCT_WHERE,
     kind: "PRINCIPAL",
     // Un producto sin perfil no puede afirmar nada sobre sus facetas.
     aiProfile: { is: Object.keys(profile).length > 0 ? profile : {} },
@@ -154,7 +155,7 @@ export async function facetSearch(input: FacetSearchInput): Promise<FacetSearchR
     const ranked = await rankSemantically(where, input.question as string, offset, limit);
     if (ranked) {
       return {
-        candidates: ranked.map((row, index) => toCandidate(row, index, input.scope)),
+        candidates: onlyRecommendable(ranked).map((row, index) => toCandidate(row, index, input.scope)),
         total,
         relaxed,
         usedFilter: filter,
@@ -172,7 +173,7 @@ export async function facetSearch(input: FacetSearchInput): Promise<FacetSearchR
   })) as ProductRow[];
 
   return {
-    candidates: rows.map((row, index) => toCandidate(row, index, input.scope)),
+    candidates: onlyRecommendable(rows).map((row, index) => toCandidate(row, index, input.scope)),
     total,
     relaxed,
     usedFilter: filter,

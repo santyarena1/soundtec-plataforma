@@ -28,6 +28,12 @@ function productSuggestions(product: ChatProduct): string[] {
   ];
 }
 
+/** Las fichas públicas que devuelve el asistente, llevadas a la ruta de esta pantalla. */
+export function rebaseProductHref(href: string, base: string): string {
+  if (base === "/catalogo") return href;
+  return href.startsWith("/catalogo/") ? `${base}/${href.slice("/catalogo/".length)}` : href;
+}
+
 let turnCounter = 0;
 function nextTurnId(): string {
   turnCounter += 1;
@@ -42,6 +48,7 @@ export function ExpoExperience({
   surface = "EXPO",
   backHref = "/catalogo",
   backLabel = "Catálogo",
+  productBase = "/catalogo",
 }: {
   initialProduct: ChatProduct | null;
   logoUrl: string;
@@ -54,6 +61,12 @@ export function ExpoExperience({
   /** A dónde vuelve el botón del header. */
   backHref?: string;
   backLabel?: string;
+  /**
+   * Ruta base de las fichas que abre el chat. Desde el portal es
+   * "/portal/products" (la ficha con el precio de la cuenta); en el
+   * catálogo público y la expo queda la ficha pública.
+   */
+  productBase?: string;
 }) {
   const [contactOpen, setContactOpen] = useState(surface === "EXPO");
   const [contactPending, setContactPending] = useState(false);
@@ -130,7 +143,10 @@ export function ExpoExperience({
             content: data.answer as string,
             status: data.status,
             confidence: data.confidence,
-            products: data.products ?? [],
+            products: (data.products ?? []).map((product) => ({
+              ...product,
+              href: rebaseProductHref(product.href, productBase),
+            })),
             sources: data.sources ?? [],
             suggestions: data.suggestions ?? [],
             reminder: Boolean(data.showLeadReminder) && !leadSaved,
@@ -151,7 +167,7 @@ export function ExpoExperience({
         setThinking(false);
       }
     },
-    [initialProduct?.id, leadSaved, sessionId, surface, thinking]
+    [initialProduct?.id, leadSaved, productBase, sessionId, surface, thinking]
   );
 
   const saveLead = useCallback(

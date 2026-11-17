@@ -9,6 +9,8 @@ import {
 } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
+import { hasConfigurator } from "@/lib/product-display";
+import { compareByPrice, missingPriceLast } from "@/lib/catalog-price-sort";
 import { buildProductSearchAnd, productTokenOr, searchRank } from "@/lib/product-search";
 import { compareByRelevance, hasEnoughViews } from "@/lib/catalog-relevance";
 import {
@@ -130,6 +132,7 @@ type ProductRow = Prisma.ProductGetPayload<{
     category: { select: { id: true; name: true } };
     family: { select: { id: true; name: true } };
     images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }]; take: 1 };
+    _count: { select: { options: true } };
   };
 }>;
 
@@ -239,6 +242,18 @@ async function buildCatalogWhere(
  */
 export async function getVisibleProductsWhere(ctx: CatalogContext): Promise<Prisma.ProductWhereInput> {
   return (await buildCatalogWhere({}, ctx)) ?? { isActive: true };
+}
+
+/**
+ * Un cliente del portal sin reglas de visibilidad propias. Sirve para contar
+ * "lo que ve un cliente" fuera del portal (login, activar cuenta): activos,
+ * marcas no ocultas, sin los rubros que solo ve el equipo (Indumentaria).
+ */
+export const CUSTOMER_CATALOG_CONTEXT: CatalogContext = { commercialClientId: null, userId: null, isAdmin: false };
+
+/** Mismo total que muestra el portal al entrar (grilla de marcas). */
+export async function countCustomerVisibleProducts(): Promise<number> {
+  return prisma.product.count({ where: await getVisibleProductsWhere(CUSTOMER_CATALOG_CONTEXT) });
 }
 
 /**
@@ -401,7 +416,8 @@ async function mapProductsToCatalogItems(
     commercialTag: p.commercialTag,
     stockStatus: p.stockStatus,
     stockQuantity: p.stockQuantity,
-    isCustomizable: p.isCustomizable,
+    // «Configurable» solo con opciones reales (ver hasConfigurator).
+    isCustomizable: hasConfigurator({ isCustomizable: p.isCustomizable, optionCount: p._count.options }),
     isCrestronHomeCompatible: p.isCrestronHomeCompatible,
     isFeatured: p.isFeatured,
     kind: p.kind,
@@ -465,11 +481,18 @@ function sortCatalogItems(
       copy.sort((a, b) => relevance(a, b) || byRelevance(asRelevance(a), asRelevance(b)));
       break;
     }
+    // Sin precio al final en los dos sentidos (ver lib/catalog-price-sort).
     case "price_asc":
-      copy.sort((a, b) => relevance(a, b) || kindWeight(a.kind) - kindWeight(b.kind) || price(a) - price(b));
+      copy.sort(
+        (a, b) =>
+          relevance(a, b) || missingPriceLast(a, b) || kindWeight(a.kind) - kindWeight(b.kind) || compareByPrice(a, b, "asc")
+      );
       break;
     case "price_desc":
-      copy.sort((a, b) => relevance(a, b) || kindWeight(a.kind) - kindWeight(b.kind) || price(b) - price(a));
+      copy.sort(
+        (a, b) =>
+          relevance(a, b) || missingPriceLast(a, b) || kindWeight(a.kind) - kindWeight(b.kind) || compareByPrice(a, b, "desc")
+      );
       break;
     case "name_desc":
       copy.sort(
@@ -498,6 +521,7 @@ const productInclude = {
   category: { select: { id: true, name: true } },
   family: { select: { id: true, name: true } },
   images: productCoverImageInclude,
+  _count: { select: { options: true } },
 } as const;
 
 let categoryKeysCache: { at: number; rows: ReturnType<typeof categorySortKeys> } | null = null;

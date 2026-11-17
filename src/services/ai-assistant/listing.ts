@@ -10,6 +10,7 @@
 
 import { describeFilter, filterWeight, type CanonicalFilter } from "./facets";
 import { productHref } from "./deterministic";
+import { compareSuggestion } from "./compare";
 import {
   ECOSYSTEM_LABEL,
   MOUNT_LABEL,
@@ -173,12 +174,7 @@ export function buildListingAnswer(input: ListingInput): AssistantAnswer {
   if (!filter.environment) suggestions.push("¿Cuáles sirven para exterior?");
   if (!filter.audioLine && filter.productType === "speaker") suggestions.push("¿Cuáles admiten 70V?");
   if (candidates.length >= 2) {
-    suggestions.push(
-      `Comparar ${candidates[0].name.split(" ").slice(0, 3).join(" ")} y ${candidates[1].name
-        .split(" ")
-        .slice(0, 3)
-        .join(" ")}`
-    );
+    suggestions.push(compareSuggestion(candidates[0], candidates[1]));
   }
 
   return {

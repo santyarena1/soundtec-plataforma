@@ -10,6 +10,7 @@ import { getHubPreset } from "./hub-presets";
 import { getRoomTemplate, resizeTemplate } from "./templates";
 import { displayProxyKey, targetDisplayInches } from "./sizing";
 import { buildSceneFromTemplate, parseScene, productSizeCm, type ProductSizeCm, type RoomScene } from "./scene";
+import { roomEquipmentUnits } from "./equipment-count";
 
 function decimal(n: number) {
   return new Prisma.Decimal(n);
@@ -81,8 +82,9 @@ export async function getRoomProject(id: string) {
     },
   });
   if (!project) return null;
+  const children = await withEquipmentUnits(project.children);
   const scene = parseScene(project.sceneJson);
-  if (!scene) return project;
+  if (!scene) return { ...project, children };
   const bySlot = new Map(project.devices.map((d) => [d.slotKey, d]));
   const emptyDisplay = `tv_${targetDisplayInches(scene, project.category)}`;
   scene.devices = scene.devices.map((device) => {
@@ -103,7 +105,29 @@ export async function getRoomProject(id: string) {
             : emptyDisplay,
     };
   });
-  return { ...project, sceneJson: scene };
+  return { ...project, children, sceneJson: scene };
+}
+
+/**
+ * Unidades de equipos de cada ambiente (suma de cantidades), el mismo criterio
+ * que la web del proyecto y las láminas (services/room-builder/equipment-count).
+ */
+async function withEquipmentUnits<T extends { id: string; sceneJson: unknown; _count: { devices: number } }>(
+  children: T[]
+): Promise<Array<T & { equipmentUnits: number }>> {
+  if (children.length === 0) return [];
+  // Como en la sala: un equipo cuenta si tiene producto (en la escena o en su fila) o es genérico.
+  const rows = await prisma.roomProjectDevice.findMany({
+    where: { roomProjectId: { in: children.map((c) => c.id) }, productId: { not: null } },
+    select: { roomProjectId: true, slotKey: true },
+  });
+  const withProduct = new Set(rows.map((r) => `${r.roomProjectId}|${r.slotKey}`));
+  return children.map((c) => {
+    const scene = parseScene(c.sceneJson);
+    if (!scene) return { ...c, equipmentUnits: c._count.devices };
+    const placed = scene.devices.filter((d) => d.productId || d.generic || withProduct.has(`${c.id}|${d.slotKey}`));
+    return { ...c, equipmentUnits: roomEquipmentUnits(placed.map((d) => ({ quantity: d.quantity }))) };
+  });
 }
 
 export async function createSpaceProject(input: {

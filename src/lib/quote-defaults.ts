@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
+import { SOUNDTEC_PHONE, displayCompanyPhone } from "@/lib/company-contact";
 
 export const QUOTE_STEPS = [
   { id: 1, key: "datos", title: "Cliente" },
@@ -327,7 +328,7 @@ export async function getCompanyIdentity() {
     getSetting("app.name", "SOUNDTEC"),
     getSetting(QUOTE_SETTING_KEYS.companyTagline, "integramos tecnología"),
     getSetting(QUOTE_SETTING_KEYS.companyAddress, "Av. Donato Alvarez 1526 (C1416BTR) C.A.B.A."),
-    getSetting(QUOTE_SETTING_KEYS.companyPhone, "(+ 54 11) 4586 0400"),
+    getSetting(QUOTE_SETTING_KEYS.companyPhone, SOUNDTEC_PHONE),
     getSetting(QUOTE_SETTING_KEYS.companyEmail, "info@soundtec.com.ar"),
     getSetting(QUOTE_SETTING_KEYS.companyWeb, "www.soundtec.com.ar"),
     getSetting(QUOTE_SETTING_KEYS.companyLogoUrl, QUOTE_CORPORATE_ASSETS.logo),
@@ -345,7 +346,7 @@ export async function getCompanyIdentity() {
     name,
     tagline,
     address,
-    phone,
+    phone: displayCompanyPhone(phone),
     email,
     web,
     logoUrl: logoUrl || QUOTE_CORPORATE_ASSETS.logo,

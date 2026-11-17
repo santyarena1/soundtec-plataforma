@@ -2,6 +2,7 @@ import Link from "next/link";
 import { checkActivationToken } from "@/server/expo/activation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { getEquipmentBrands, totalProducts } from "@/lib/catalog-brands";
+import { countCustomerVisibleProducts } from "@/lib/catalog";
 import { ActivateForm } from "./activate-form";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ const MESSAGES = {
 export default async function Page({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const [state, brands] = await Promise.all([checkActivationToken(token), getEquipmentBrands().catch(() => [])]);
-  const total = totalProducts(brands);
+  const total = await countCustomerVisibleProducts().catch(() => totalProducts(brands));
   return (
     <AuthShell
       kicker="Activá tu cuenta"

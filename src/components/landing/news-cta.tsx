@@ -4,6 +4,7 @@ import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
+import { SOUNDTEC_PHONE, SOUNDTEC_PHONE_HREF } from "@/lib/company-contact";
 
 interface Post {
   id: string;
@@ -16,8 +17,8 @@ interface Post {
 
 export const CONTACT = {
   email: "info@soundtec.com.ar",
-  phone: "(+54 11) 4586-0400",
-  phoneHref: "tel:+541145860400",
+  phone: SOUNDTEC_PHONE,
+  phoneHref: SOUNDTEC_PHONE_HREF,
   address: "Av. Donato Álvarez 1526, CABA, Argentina",
 } as const;
 

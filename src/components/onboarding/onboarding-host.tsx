@@ -219,6 +219,7 @@ export function OnboardingHost({
   const accessKey = access ? JSON.stringify(access) : "";
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const tour = useMemo(() => tourForUser(surface, access), [surface, accessKey]);
+  const isPortal = surface === "portal";
   const pathname = usePathname();
   const [pending, start] = useTransition();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -387,6 +388,9 @@ export function OnboardingHost({
       notifyOnboardingActive();
       return;
     }
+    // En el portal, un tutorial que quedó a medias no se reabre solo al
+    // entrar: el cliente lo retoma cuando quiera con «Tutorial online».
+    if (current.status === "in_progress" && surface === "portal") return;
     if (current.status === "in_progress") {
       const idx = Math.min(current.stepIndex ?? 0, Math.max(0, tour.steps.length - 1));
       setStepIndex(idx);
@@ -598,6 +602,18 @@ export function OnboardingHost({
               {tour.welcomeTitle}
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{tour.welcomeBody}</p>
+            {isPortal ? (
+              <ul className="mt-5 space-y-2.5 text-sm text-foreground/90">
+                <li className="flex items-start gap-2.5">
+                  <Compass className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span>Te marcamos dónde tocar en cada paso; vos navegás a tu ritmo.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span>Lo podés cerrar cuando quieras y volver a verlo con el botón «Tutorial online» de arriba.</span>
+                </li>
+              </ul>
+            ) : (
             <ul className="mt-5 space-y-2.5 text-sm text-foreground/90">
               <li className="flex items-start gap-2.5">
                 <Compass className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -618,6 +634,7 @@ export function OnboardingHost({
                 </span>
               </li>
             </ul>
+            )}
             <div className="mt-7 flex flex-wrap items-center gap-2">
               <Button type="button" size="lg" onClick={startTour} disabled={pending} className="gap-2">
                 Empezar el tutorial
@@ -727,9 +744,11 @@ export function OnboardingHost({
             </button>
           </div>
 
-          <p className="mb-3 rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[11px] leading-snug text-amber-900 dark:text-amber-100">
-            Modo tutorial: mirá y navegá. No uses Guardar, Enviar, Generar el PDF ni Crear — esas acciones sí se guardan. Si solo explorás, no se persiste nada.
-          </p>
+          {isPortal ? null : (
+            <p className="mb-3 rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[11px] leading-snug text-amber-900 dark:text-amber-100">
+              Modo tutorial: mirá y navegá. No uses Guardar, Enviar, Generar el PDF ni Crear — esas acciones sí se guardan. Si solo explorás, no se persiste nada.
+            </p>
+          )}
 
           {needsPath ? (
             <div className="space-y-3">

@@ -8,6 +8,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { getActiveDraftSummary } from "@/lib/draft-request";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
+import { pickRecentArrivals } from "@/lib/recent-arrivals";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { getVisibleProductsWhere } from "@/lib/catalog";
 import { brandHref, brandsWithLogos, getBrandsWithoutProducts, loadCrestronHomeSettings, withCrestronHome } from "@/lib/catalog-brands";
@@ -67,7 +68,7 @@ export default async function PortalDashboardPage() {
     recentPosts,
     activeDraft,
     brandCounts,
-    recentProducts,
+    recentPool,
   ] = await Promise.all([
     prisma.product.count({ where: visible }),
     prisma.wishlistItem.count({ where: { wishlist: { userId: user.id } } }),
@@ -92,10 +93,11 @@ export default async function PortalDashboardPage() {
     }),
     CUSTOMER_ORDERS_ENABLED ? getActiveDraftSummary(user.id) : null,
     prisma.product.groupBy({ by: ["brandId"], where: { AND: [visible, { brandId: { not: null } }] }, _count: { _all: true } }),
+    // Se trae de más: los que no tienen foto propia se descartan abajo.
     prisma.product.findMany({
-      where: { AND: [visible, { kind: "PRINCIPAL" }] },
+      where: { AND: [visible, { kind: "PRINCIPAL" }, { images: { some: {} } }] },
       orderBy: { createdAt: "desc" },
-      take: RECENT_PRODUCTS,
+      take: RECENT_PRODUCTS * 10,
       select: {
         id: true,
         normalizedName: true,
@@ -105,6 +107,17 @@ export default async function PortalDashboardPage() {
       },
     }),
   ]);
+
+  // Recién llegados: solo con foto propia (no el logo de la marca repetido en todas las fichas).
+  const coverUrls = Array.from(new Set(recentPool.map((p) => p.images[0]?.url).filter((url): url is string => !!url)));
+  const coverUsage = coverUrls.length
+    ? await prisma.productImage.groupBy({ by: ["url"], where: { url: { in: coverUrls } }, _count: { _all: true } })
+    : [];
+  const recentProducts = pickRecentArrivals(
+    recentPool,
+    new Map(coverUsage.map((row) => [row.url, row._count._all])),
+    RECENT_PRODUCTS
+  );
 
   // Todas las marcas que este cliente puede ver, con logo y cantidad.
   const brandRows = await prisma.brand.findMany({

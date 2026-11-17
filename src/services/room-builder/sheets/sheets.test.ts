@@ -140,3 +140,29 @@ test("diagrama largo: se parte solo en los huecos entre columnas", () => {
   assert.deepEqual(diagramSlices(1640, cuts, 1), [[0, 1640]]);
   assert.match(sliceSvg(`<svg viewBox="0 0 1640 500" width="1640"><rect/></svg>`, 760, 1640, 500), /viewBox="760 0 880 500".*clip-path.*<rect\/><\/g><\/svg>$/);
 });
+
+import { centralEquipmentUnits, projectEquipmentUnits, roomEquipmentUnits } from "../equipment-count";
+
+test("equipos de un ambiente: unidades, sin el rack central (web, PDF y panel cuentan igual)", () => {
+  const living = [
+    { deviceId: "tv", quantity: 1 },
+    { deviceId: "parlantes", quantity: 6 },
+    { deviceId: "sub", quantity: 1 },
+    { deviceId: "amp-central", quantity: 1, remote: true },
+    { deviceId: "matriz", quantity: 1, remote: true },
+  ];
+  assert.equal(roomEquipmentUnits(living), 8);
+  // Cantidad 0 o vacía cuenta como 1 (un equipo cargado es al menos uno).
+  assert.equal(roomEquipmentUnits([{ quantity: 0 }]), 1);
+});
+
+test("total del proyecto: ambientes por sus repeticiones + rack central una sola vez", () => {
+  const remote = [
+    { deviceId: "amp-central", quantity: 1, remote: true },
+    { deviceId: "amp-central", quantity: 1, remote: true },
+    { deviceId: "matriz", quantity: 2, remote: true },
+    { deviceId: "tv", quantity: 1 },
+  ];
+  assert.equal(centralEquipmentUnits(remote), 3);
+  assert.equal(projectEquipmentUnits([{ units: 8 }, { units: 3, repeat: 3 }], 3), 8 + 9 + 3);
+});

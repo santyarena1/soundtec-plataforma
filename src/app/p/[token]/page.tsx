@@ -35,7 +35,7 @@ function RoomSection({ room, index, token }: { room: PublicRoom; index: number; 
         <div>
           <h2 className="text-xl font-semibold">{room.name}</h2>
           <p className="text-sm text-muted-foreground">
-            {m1(room.dims.widthM)} × {m1(room.dims.depthM)} m · alto {m1(room.dims.heightM)} m · {room.devices.length} equipos · {room.cables} cables ({m1(room.meters)} m)
+            {m1(room.dims.widthM)} × {m1(room.dims.depthM)} m · alto {m1(room.dims.heightM)} m · {room.equipment} equipos · {room.cables} cables ({m1(room.meters)} m)
           </p>
         </div>
         {room.source === "auto" ? <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900">Conexiones propuestas, a confirmar en obra</span> : null}
@@ -96,7 +96,7 @@ export default async function SharedProjectPage({ params }: { params: { token: s
   const [data, identity, revisions] = await Promise.all([loadPublicProject(project.id), getCompanyIdentity(), loadRevisions(project.id)]);
   const mailto = `mailto:${identity.email}?subject=${encodeURIComponent(`Proyecto · ${data.name}`)}`;
   const tel = `tel:${identity.phone.replace(/[^\d+]/g, "")}`;
-  const totals = { devices: data.rooms.reduce((a, r) => a + r.devices.length, 0), cables: data.rooms.reduce((a, r) => a + r.cables, 0) };
+  const totals = { devices: data.equipmentTotal, cables: data.rooms.reduce((a, r) => a + r.cables, 0) };
 
   return (
     <div className="min-h-screen bg-background">

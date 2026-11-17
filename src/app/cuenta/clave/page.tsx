@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { getEquipmentBrands, totalProducts } from "@/lib/catalog-brands";
+import { countCustomerVisibleProducts } from "@/lib/catalog";
 import { requireUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { ChangePasswordForm } from "./change-password-form";
@@ -14,9 +15,10 @@ export const metadata = { title: "Elegí tu clave", robots: { index: false } };
  */
 export default async function ChangePasswordPage() {
   const user = await requireUser({ allowPasswordChange: true });
-  const [dbUser, brands] = await Promise.all([
+  const [dbUser, brands, visibleTotal] = await Promise.all([
     prisma.user.findUnique({ where: { id: user.id }, select: { mustChangePassword: true } }),
     getEquipmentBrands().catch(() => []),
+    countCustomerVisibleProducts().catch(() => null),
   ]);
   if (!dbUser) redirect("/login");
   const forced = dbUser.mustChangePassword;
@@ -30,7 +32,7 @@ export default async function ChangePasswordPage() {
           : `Cambiá la clave de ${user.email}.`
       }
       brands={brands}
-      total={totalProducts(brands)}
+      total={visibleTotal ?? totalProducts(brands)}
       footer={<p className="text-xs text-[#1E3552]/55">Al guardarla se cierran tus sesiones abiertas y entrás con la nueva.</p>}
     >
       <ChangePasswordForm email={user.email ?? ""} />

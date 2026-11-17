@@ -10,6 +10,7 @@ import { COTA_MARGIN_MM, planContentExtent, SCALE_BAR_BAND_MM, scaledPlanSvg } f
 import { mmAtScale } from "@/services/room-builder/sheets/scale";
 import { totalLength, type PortsSource } from "@/services/room-builder/sheets/sheet-model";
 import { loadRoomSheet, type RoomSheet } from "./sheets/room-sheet";
+import { centralEquipmentUnits, projectEquipmentUnits, roomEquipmentUnits } from "@/services/room-builder/equipment-count";
 
 /** Escala del plano en pantalla (el dibujo se adapta al ancho; la escala gráfica sigue valiendo). */
 const WEB_SCALE = 50;
@@ -22,12 +23,14 @@ export type PublicRoom = {
   planSvg: string | null;
   diagramSvg: string | null;
   devices: PublicDevice[];
+  /** Unidades de equipos del ambiente (ver services/room-builder/equipment-count). */
+  equipment: number;
   cables: number;
   meters: number;
   /** Cableado manual del plano técnico o propuesta automática (estimada). */
   source: RoomSheet["source"];
 };
-export type PublicProject = { name: string; clientName: string | null; rooms: PublicRoom[] };
+export type PublicProject = { name: string; clientName: string | null; rooms: PublicRoom[]; equipmentTotal: number };
 
 /** Plano de la sala recortado a su contenido (sin la hoja A3 alrededor). */
 export function webPlanSvg(room: RoomSheet): string | null {
@@ -48,6 +51,7 @@ function publicRoom(room: RoomSheet): PublicRoom {
     planSvg: webPlanSvg(room),
     diagramSvg: room.diagram?.svg ?? null,
     devices: room.devices.map((d) => ({ n: d.remote ? "R" : String(d.n), brand: d.brand, model: d.model, quantity: d.quantity, location: d.location, ports: d.ports, image: publicImage(d.imageUrl) })),
+    equipment: roomEquipmentUnits(room.devices),
     cables: room.cables.length,
     meters: totalLength(room.cables),
     source: room.source,
@@ -57,7 +61,7 @@ function publicRoom(room: RoomSheet): PublicRoom {
 export async function loadPublicProject(projectId: string): Promise<PublicProject> {
   const project = await prisma.roomProject.findUnique({
     where: { id: projectId },
-    select: { name: true, kind: true, client: { select: { companyName: true } }, children: { select: { id: true }, orderBy: { createdAt: "asc" } } },
+    select: { name: true, kind: true, client: { select: { companyName: true } }, children: { select: { id: true, unitCount: true }, orderBy: { createdAt: "asc" } } },
   });
   if (!project) throw new Error("Proyecto no encontrado");
   const ids = project.kind === "hub" ? project.children.map((c) => c.id) : [projectId];
@@ -70,5 +74,10 @@ export async function loadPublicProject(projectId: string): Promise<PublicProjec
     ),
   );
   const valid = rooms.filter((r): r is RoomSheet => Boolean(r));
-  return { name: project.name, clientName: project.client?.companyName ?? valid[0]?.clientName ?? null, rooms: valid.map(publicRoom) };
+  const repeatById = new Map(project.children.map((c) => [c.id, c.unitCount]));
+  const equipmentTotal = projectEquipmentUnits(
+    valid.map((r) => ({ units: roomEquipmentUnits(r.devices), repeat: repeatById.get(r.id) ?? 1 })),
+    centralEquipmentUnits(valid.flatMap((r) => r.devices))
+  );
+  return { name: project.name, clientName: project.client?.companyName ?? valid[0]?.clientName ?? null, rooms: valid.map(publicRoom), equipmentTotal };
 }

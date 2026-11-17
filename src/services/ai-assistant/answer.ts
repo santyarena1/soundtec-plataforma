@@ -41,7 +41,7 @@ import {
   shouldUseListing,
 } from "./listing";
 import { buildUserMessage } from "./prompt";
-import { getBrandNames, retrieveCandidates } from "./retrieval";
+import { getBrandNames, resolveComparePair, retrieveCandidates } from "./retrieval";
 import { LIMITS, candidateLimitFor } from "./budget";
 import type {
   AnswerConfidence,
@@ -186,9 +186,23 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
   });
   const offset = isMore ? Math.max(0, input.listingOffset ?? 0) : 0;
 
+  // "Comparar A y B" de una sugerencia: se resuelve por id, no por texto.
+  const comparePair =
+    analysis.intent === "COMPARISON"
+      ? await resolveComparePair({
+          question,
+          scope,
+          activeProductIds: input.activeProductIds,
+          initialProductId: input.initialProductId,
+        })
+      : null;
+
   const coverage = await profileCoverage();
   const canUseFacets =
-    coverage >= MIN_COVERAGE && filterWeight(filter) > 0 && analysis.modelCodes.length === 0;
+    !comparePair &&
+    coverage >= MIN_COVERAGE &&
+    filterWeight(filter) > 0 &&
+    analysis.modelCodes.length === 0;
 
   // ---------------------------------------------------------------
   // 1) Listado por facetas: la consulta de catálogo, sin modelo.
@@ -239,8 +253,8 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
     wantsList: analysis.wantsList,
   });
 
-  let candidates: CandidateProduct[] = [];
-  let retrievalMode: AssistantAnswer["meta"]["retrievalMode"] = "NONE";
+  let candidates: CandidateProduct[] = comparePair ?? [];
+  let retrievalMode: AssistantAnswer["meta"]["retrievalMode"] = comparePair ? "CONTEXT" : "NONE";
   let facetTotal = 0;
   let facetFilter: CanonicalFilter | null = null;
 
@@ -280,7 +294,7 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
     return answer;
   }
 
-  const suggestions = buildSuggestions({ analysis, candidates });
+  let suggestions = buildSuggestions({ analysis, candidates });
 
   // 3) Cache: misma pregunta, mismos productos, mismo conocimiento.
   const version = knowledgeVersion(candidates);
@@ -366,6 +380,13 @@ export async function askAssistant(input: AskInput): Promise<AssistantAnswer> {
   }
 
   const products = resolveRefs(outcome.data.productRefs, context.used);
+  // La sugerencia de comparar tiene que nombrar productos que la respuesta
+  // muestra: son los que quedan en la sesión para resolverla por id.
+  if (products.length >= 2) {
+    suggestions = buildSuggestions({ analysis, candidates: products });
+  } else {
+    suggestions = suggestions.filter((suggestion) => !suggestion.startsWith("Comparar "));
+  }
   const status = (outcome.data.status ?? "ANSWERED") as AnswerStatus;
   let confidence = (outcome.data.confidence ?? "MEDIUM") as AnswerConfidence;
   const sources =

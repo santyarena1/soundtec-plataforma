@@ -144,6 +144,8 @@ export default async function PublicCatalogPage({
 
       {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
 
+      {/* Marca «Próximamente» sin productos: solo el aviso, sin «0 resultados» ni buscador vacío. */}
+      {comingSoonBrand && total === 0 ? null : (
       <CatalogLayout
         state={urlState}
         meta={meta}
@@ -181,6 +183,7 @@ export default async function PublicCatalogPage({
           </div>
         ) : null}
       </CatalogLayout>
+      )}
     </div>
   );
 }

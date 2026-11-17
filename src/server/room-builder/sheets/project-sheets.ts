@@ -19,6 +19,7 @@ import { diagramPages, equipmentPages, equipmentRows, labelPages, planPage, sche
 import { loadRoomSheet, type RoomSheet } from "./room-sheet";
 import { soundMapPage } from "./sound-sheet";
 import { projectRackPages } from "./rack-pages";
+import { roomEquipmentUnits } from "@/services/room-builder/equipment-count";
 
 /** Planta esquemática de la pantalla (px por metro y acomodo automático): se replica para ubicar igual los ambientes. */
 const S = 40;
@@ -92,7 +93,7 @@ async function planImageHref(hubId: string): Promise<string | null> {
 }
 
 /** Láminas de planta general: una por piso. */
-function floorPages(floor: ProjectFloor, imageHref: string | null, geo: SheetGeometry): SheetPage[] {
+function floorPages(floor: ProjectFloor, imageHref: string | null, geo: SheetGeometry, unitsByRoom: Map<string, number>): SheetPage[] {
   const levels = [...new Set(floor.rooms.map((r) => r.level))].sort((a, b) => LEVELS.indexOf(a) - LEVELS.indexOf(b));
   return levels.map((level) => {
     const rooms = floor.rooms.filter((r) => r.level === level);
@@ -101,7 +102,7 @@ function floorPages(floor: ProjectFloor, imageHref: string | null, geo: SheetGeo
     const scale = pickScale(ext, drawableArea(geo.mainArea));
     const svg = projectFloorSvg({ ...input, areaMm: geo.mainArea, scale: scale.denominator });
     const list = rooms
-      .map((r) => `<div class="leg"><span style="flex:1">${h(r.name)}</span><span class="muted">${r.devices.length} eq. · ${Object.values(r.trunk).reduce((a, n) => a + n, 0)} al rack${r.trunkMeters ? ` · ${r.trunkEstimated ? "≈ " : ""}${r.trunkMeters} m` : ""}</span></div>`)
+      .map((r) => `<div class="leg"><span style="flex:1">${h(r.name)}</span><span class="muted">${unitsByRoom.get(r.id) ?? r.devices.length} eq. · ${Object.values(r.trunk).reduce((a, n) => a + n, 0)} al rack${r.trunkMeters ? ` · ${r.trunkEstimated ? "≈ " : ""}${r.trunkMeters} m` : ""}</span></div>`)
       .join("");
     const notes = [
       planMode ? "Ambientes ubicados sobre el plano del cliente; la escala se deduce de las medidas de cada ambiente (aproximada)." : "Planta esquemática: cada ambiente está a escala, pero su ubicación relativa es indicativa (no hay plano del edificio).",
@@ -143,7 +144,9 @@ export async function projectSheetPages(hubId: string, opts: { geo?: SheetGeomet
     ),
   ]);
   const usesImage = Boolean(tech.floor.image && tech.floor.rooms.length && tech.floor.rooms.every((r) => r.box));
-  const pages: SheetPage[] = [...floorPages(tech.floor, usesImage ? await planImageHref(hubId) : null, geo)];
+  // Mismo conteo de equipos que la web del proyecto y el panel (unidades, sin rack central).
+  const unitsByRoom = new Map(rooms.map((r) => [r.id, roomEquipmentUnits(r.devices)]));
+  const pages: SheetPage[] = [...floorPages(tech.floor, usesImage ? await planImageHref(hubId) : null, geo, unitsByRoom)];
   // Mapa de sonido de cada ambiente con parlantes (si falla uno, el juego sale igual sin esa lámina).
   const sound = await Promise.all(rooms.map((r) => (r.walls.length ? soundMapPage(r.id, r.name, { geo }).catch((error: unknown) => (console.error(`[room-builder/sheets] mapa de sonido ${r.id}`, error), null)) : null)));
   for (const [i, room] of rooms.entries()) {

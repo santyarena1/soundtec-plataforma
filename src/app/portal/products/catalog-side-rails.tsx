@@ -2,6 +2,7 @@ import Link from "next/link";
 import { brandHref, type CatalogBrand } from "@/lib/catalog-brands";
 import type { FacetOption } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
+import { brandLogoFit } from "@/lib/brand-logo-fit";
 
 type RawParams = Record<string, string | string[] | undefined>;
 
@@ -119,7 +120,8 @@ export function CatalogSideRails({
                         src={brand.logoUrl}
                         alt={brand.name}
                         className={cn(
-                          "max-h-7 max-w-full object-contain transition",
+                          brandLogoFit(brand.id).compact ? "h-10 w-full object-cover" : "max-h-7 max-w-full object-contain",
+                          "transition",
                           active ? "" : "opacity-75 grayscale-[35%] group-hover:opacity-100 group-hover:grayscale-0"
                         )}
                         loading="lazy"

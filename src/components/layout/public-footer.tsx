@@ -1,10 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import { SOUNDTEC_PHONE, SOUNDTEC_PHONE_HREF } from "@/lib/company-contact";
 
 const CONTACT = {
   email: "info@soundtec.com.ar",
-  phone: "(+54 11) 4586-0400",
-  phoneHref: "tel:+541145860400",
+  phone: SOUNDTEC_PHONE,
+  phoneHref: SOUNDTEC_PHONE_HREF,
   address: "Av. Donato Álvarez 1526, C1416 CABA, Argentina",
   site: "https://www.soundtec.com.ar",
 } as const;

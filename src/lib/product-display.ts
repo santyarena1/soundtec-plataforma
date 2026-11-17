@@ -41,3 +41,13 @@ export function tangoCode(internalSku: string | null | undefined): string | null
   const value = clean(internalSku);
   return value && !UUID_LIKE.test(value) ? value : null;
 }
+
+/**
+ * Cartel «Configurable»: solo si el producto tiene un configurador real
+ * (opciones cargadas). El flag `isCustomizable` lo prende también el import
+ * de Sonance o el panel al vincular accesorios, así que solo no alcanza: con
+ * el flag y sin opciones la ficha no tiene nada para configurar.
+ */
+export function hasConfigurator(p: { isCustomizable: boolean; optionCount: number }): boolean {
+  return p.isCustomizable && p.optionCount > 0;
+}

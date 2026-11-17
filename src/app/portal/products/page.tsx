@@ -87,6 +87,7 @@ export default async function ProductsPage({
   const brands = listed.brands;
   const comingSoonBrand = activeBrandId ? brands.find((b) => b.id === activeBrandId && b.comingSoon) ?? null : null;
 
+  const onlyComingSoon = comingSoonBrand !== null && total === 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const paginationParams = new URLSearchParams();
@@ -134,6 +135,8 @@ export default async function ProductsPage({
 
       {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
 
+      {/* Marca «Próximamente» sin productos: solo el aviso, sin «0 resultados» ni buscador vacío. */}
+      {onlyComingSoon ? null : (
       <CatalogMultiSelectProvider productIds={items.map((i) => i.id)} canEditPrices={canEditPrices} canOrder={CUSTOMER_ORDERS_ENABLED}>
       <CatalogLayout state={urlState} meta={meta} total={total} toolbar={<CatalogToolbar state={urlState} />}>
         {items.length === 0 && comingSoonBrand ? null : items.length === 0 ? (
@@ -181,6 +184,7 @@ export default async function ProductsPage({
         ) : null}
       </CatalogLayout>
       </CatalogMultiSelectProvider>
+      )}
     </div>
   );
 }

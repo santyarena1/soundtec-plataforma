@@ -24,6 +24,8 @@ import {
 } from "@/lib/product-search";
 import { normalizeForSearch } from "@/lib/search-key";
 import { LIMITS, candidateLimitFor } from "./budget";
+import { AVAILABLE_PRODUCT_WHERE, isRecommendable, onlyRecommendable } from "./availability";
+import { matchComparePair, parseCompareRequest } from "./compare";
 import { expandSearchTerms } from "./synonyms";
 import type {
   AssistantScope,
@@ -47,11 +49,12 @@ async function findByCodes(codes: string[]): Promise<ProductRow[]> {
     );
     if (normalized.length >= 3) or.push({ searchKey: { contains: normalized } });
   }
-  return prisma.product.findMany({
-    where: { ...VISIBLE_BRAND_WHERE, isActive: true, OR: or },
+  const rows = await prisma.product.findMany({
+    where: { ...VISIBLE_BRAND_WHERE, ...AVAILABLE_PRODUCT_WHERE, OR: or },
     select: PRODUCT_SELECT,
     take: LIMITS.candidateFetchCap,
   });
+  return onlyRecommendable(rows);
 }
 
 /** Búsqueda tolerante: la misma que usa el catálogo. */
@@ -60,20 +63,27 @@ async function findBySearch(query: string): Promise<ProductRow[]> {
   if (clean.length < 2) return [];
   const where = buildProductSearchWhere(clean);
   if (!where.AND) return [];
-  return prisma.product.findMany({
-    where: { ...VISIBLE_BRAND_WHERE, isActive: true, ...where },
+  const rows = await prisma.product.findMany({
+    where: { ...VISIBLE_BRAND_WHERE, ...AVAILABLE_PRODUCT_WHERE, ...where },
     select: PRODUCT_SELECT,
-    orderBy: [{ isDiscontinued: "asc" }, { kind: "asc" }, { normalizedName: "asc" }],
+    orderBy: [{ kind: "asc" }, { normalizedName: "asc" }],
     take: LIMITS.candidateFetchCap,
   });
+  return onlyRecommendable(rows);
 }
 
-async function findByIds(ids: string[]): Promise<ProductRow[]> {
+/**
+ * Productos del contexto de la conversación. Los discontinuados se caen,
+ * salvo el producto con el que arrancó la charla (el QR que escaneó la
+ * persona): de ese sí se puede seguir hablando.
+ */
+async function findByIds(ids: string[], keepId?: string | null): Promise<ProductRow[]> {
   if (ids.length === 0) return [];
-  return prisma.product.findMany({
+  const rows = await prisma.product.findMany({
     where: { id: { in: ids.slice(0, 8) } },
     select: PRODUCT_SELECT,
   });
+  return rows.filter((row) => row.id === keepId || isRecommendable(row));
 }
 
 /**
@@ -213,7 +223,7 @@ async function findByConcept(analysis: QuestionAnalysis, limit: number): Promise
 
   const baseWhere: Prisma.ProductWhereInput = {
     ...VISIBLE_BRAND_WHERE,
-    isActive: true,
+    ...AVAILABLE_PRODUCT_WHERE,
     kind: "PRINCIPAL",
     ...(structured ?? {}),
   };
@@ -230,6 +240,7 @@ async function findByConcept(analysis: QuestionAnalysis, limit: number): Promise
       orderBy: [{ isDiscontinued: "asc" }, { enrichedAt: "desc" }, { normalizedName: "asc" }],
       take: LIMITS.candidateFetchCap * 2,
     });
+    rows = onlyRecommendable(rows);
     if (rows.length > 0) {
       usedGroups = active;
       break;
@@ -312,7 +323,7 @@ export async function retrieveCandidates(input: {
 
   // 2) Pregunta de seguimiento sin códigos: seguimos con lo que ya se hablaba.
   if (analysis.isFollowUp && contextIds.length > 0) {
-    const rows = await findByIds(contextIds);
+    const rows = await findByIds(contextIds, input.initialProductId);
     if (rows.length > 0) {
       const byId = new Map(rows.map((row) => [row.id, row]));
       const ordered = contextIds.map((id) => byId.get(id)).filter((row): row is ProductRow => !!row);
@@ -360,7 +371,7 @@ export async function retrieveCandidates(input: {
 
   // 4) Último recurso: el contexto de la conversación.
   if (contextIds.length > 0) {
-    const rows = await findByIds(contextIds);
+    const rows = await findByIds(contextIds, input.initialProductId);
     if (rows.length > 0) {
       return {
         candidates: rows.slice(0, limit).map((row, index) => toCandidate(row, index, scope)),
@@ -391,4 +402,49 @@ export async function getBrandNames(): Promise<string[]> {
   } catch {
     return brandCache?.names ?? [];
   }
+}
+
+/**
+ * "Comparar A y B" que armó el propio asistente: se resuelve por id contra
+ * los productos que acaba de mostrar. Si no están en la sesión (la respuesta
+ * anterior mostró otros), se busca por el comienzo del nombre, sin pasar el
+ * texto por el extractor de códigos.
+ */
+export async function resolveComparePair(input: {
+  question: string;
+  scope: AssistantScope;
+  activeProductIds?: string[];
+  initialProductId?: string | null;
+}): Promise<CandidateProduct[] | null> {
+  const splits = parseCompareRequest(input.question);
+  if (splits.length === 0) return null;
+
+  const contextIds = [
+    ...(input.activeProductIds ?? []),
+    ...(input.initialProductId ? [input.initialProductId] : []),
+  ];
+  let known = await findByIds(contextIds, input.initialProductId);
+  let pair = matchComparePair(input.question, known.map((row) => ({ id: row.id, name: row.normalizedName || row.originalName })));
+
+  if (!pair) {
+    const labels = Array.from(new Set(splits.flat())).slice(0, 6);
+    const rows = await prisma.product.findMany({
+      where: {
+        ...VISIBLE_BRAND_WHERE,
+        ...AVAILABLE_PRODUCT_WHERE,
+        OR: labels.map((label) => ({ normalizedName: { startsWith: label, mode: "insensitive" as const } })),
+      },
+      select: PRODUCT_SELECT,
+      orderBy: [{ kind: "asc" }, { normalizedName: "asc" }],
+      take: 24,
+    });
+    known = onlyRecommendable(rows);
+    pair = matchComparePair(input.question, known.map((row) => ({ id: row.id, name: row.normalizedName || row.originalName })));
+  }
+  if (!pair) return null;
+
+  const byId = new Map(known.map((row) => [row.id, row]));
+  const ordered = pair.map((id) => byId.get(id)).filter((row): row is ProductRow => !!row);
+  if (ordered.length < 2) return null;
+  return ordered.map((row, index) => toCandidate(row, index, input.scope));
 }
