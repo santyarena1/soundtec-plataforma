@@ -10,8 +10,9 @@ export const dynamic = "force-dynamic";
  * Sirve los archivos del almacenamiento privado (logos, fotos, planos, Excel).
  * Los nombres llevan un sufijo al azar, así que la URL no se adivina; se cachea
  * un año porque un archivo subido no cambia (uno nuevo tiene otro nombre).
+ * Acepta Range (206): los videos tutoriales se adelantan sin bajar todo el archivo.
  */
-export async function GET(_req: Request, ctx: { params: Promise<{ path: string[] }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
   const pathname = (path ?? []).map((part) => decodeURIComponent(part)).join("/");
   if (!pathname || pathname.includes("..") || !SERVABLE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
@@ -25,10 +26,18 @@ export async function GET(_req: Request, ctx: { params: Promise<{ path: string[]
   }
 
   try {
-    const result = await get(pathname, { access: "private" });
+    const range = req.headers.get("range");
+    const result = await get(pathname, { access: "private", ...(range ? { headers: { range } } : {}) });
     if (!result || !result.stream) return NextResponse.json({ error: "No existe." }, { status: 404 });
+    const contentRange = result.headers.get("content-range");
+    // El largo solo en los pedidos parciales: en el resto fetch pudo descomprimir y no coincidiría.
+    const contentLength = range && contentRange ? result.headers.get("content-length") : null;
     return new NextResponse(result.stream as ReadableStream, {
+      status: range && contentRange ? 206 : 200,
       headers: {
+        "accept-ranges": "bytes",
+        ...(contentLength ? { "content-length": contentLength } : {}),
+        ...(range && contentRange ? { "content-range": contentRange } : {}),
         "content-type": result.blob.contentType || "application/octet-stream",
         // Lo privado no queda en cachés compartidas.
         "cache-control": privateFile ? "private, max-age=3600" : "public, max-age=31536000, immutable",

@@ -28,6 +28,7 @@ import {
   notifyOnboardingActive,
   notifyOnboardingInactive,
   ONBOARDING_START_EVENT,
+  type OnboardingStartDetail,
 } from "@/lib/onboarding/events";
 import { readHandoffLocal, writeHandoffLocal } from "@/lib/onboarding/handoff";
 import { tourForUser, type OnboardingAccess } from "@/lib/onboarding/tours";
@@ -41,6 +42,7 @@ import type {
 import { resetOnboarding, saveOnboardingState, setOnboardingHandoff } from "@/server/actions/onboarding";
 import { toast } from "sonner";
 import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
+import { TutorialChoice } from "@/components/tutorials/tutorial-choice";
 
 type Phase = "idle" | "welcome" | "tour" | "handoff";
 
@@ -404,12 +406,15 @@ export function OnboardingHost({
   }, [initialState, surface, tour.steps.length]);
 
   useEffect(() => {
-    function onStart() {
-      restartFromScratch();
+    function onStart(event: Event) {
+      // «Hacer el recorrido guiado» desde la elección del Tutorial online: directo al primer
+      // paso (startTour guarda el progreso desde cero, no hace falta el reinicio aparte).
+      if ((event as CustomEvent<OnboardingStartDetail | undefined>).detail?.skipWelcome) startTour();
+      else restartFromScratch();
     }
     window.addEventListener(ONBOARDING_START_EVENT, onStart);
     return () => window.removeEventListener(ONBOARDING_START_EVENT, onStart);
-  }, [restartFromScratch]);
+  }, [restartFromScratch, startTour]);
 
   useEffect(() => {
     if (phase === "idle") notifyOnboardingInactive();
@@ -584,7 +589,7 @@ export function OnboardingHost({
       >
         <div className="absolute inset-0 bg-[hsl(213_47%_10%/0.78)] backdrop-blur-[2px]" />
         <div
-          className="relative z-[101] w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-card shadow-2xl"
+          className={`relative z-[101] w-full ${isPortal ? "max-w-xl" : "max-w-lg"} max-h-[92dvh] overflow-y-auto rounded-2xl border border-white/10 bg-card shadow-2xl`}
           style={{
             backgroundImage:
               "radial-gradient(ellipse 120% 80% at 0% 0%, hsl(213 47% 22% / 0.12), transparent 55%), radial-gradient(ellipse 90% 70% at 100% 100%, hsl(32 70% 48% / 0.08), transparent 50%)",
@@ -593,7 +598,7 @@ export function OnboardingHost({
           <div className="relative p-6 sm:p-8">
             <div className="mb-5 inline-flex items-center gap-2 rounded-md bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
               <Sparkles className="h-3.5 w-3.5" />
-              Tutorial guiado
+              {isPortal ? "Tutorial online" : "Tutorial guiado"}
             </div>
             <h2
               id="onboarding-welcome-title"
@@ -603,16 +608,18 @@ export function OnboardingHost({
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{tour.welcomeBody}</p>
             {isPortal ? (
-              <ul className="mt-5 space-y-2.5 text-sm text-foreground/90">
-                <li className="flex items-start gap-2.5">
-                  <Compass className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span>Te marcamos dónde tocar en cada paso; vos navegás a tu ritmo.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span>Lo podés cerrar cuando quieras y volver a verlo con el botón «Tutorial online» de arriba.</span>
-                </li>
-              </ul>
+              <>
+                {/* Dos caminos: los videos (cierra el cartel y no vuelve a salir solo) o el recorrido guiado. */}
+                <TutorialChoice className="mt-6" onVideos={skipAll} onGuidedTour={startTour} disabled={pending} />
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[11px] text-muted-foreground">
+                    Los dos quedan siempre en «Tutorial online», arriba a la derecha.
+                  </p>
+                  <Button type="button" size="sm" variant="ghost" onClick={skipAll} disabled={pending}>
+                    Ahora no
+                  </Button>
+                </div>
+              </>
             ) : (
             <ul className="mt-5 space-y-2.5 text-sm text-foreground/90">
               <li className="flex items-start gap-2.5">
@@ -635,18 +642,22 @@ export function OnboardingHost({
               </li>
             </ul>
             )}
-            <div className="mt-7 flex flex-wrap items-center gap-2">
-              <Button type="button" size="lg" onClick={startTour} disabled={pending} className="gap-2">
-                Empezar el tutorial
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button type="button" size="lg" variant="ghost" onClick={skipAll} disabled={pending}>
-                Ahora no
-              </Button>
-            </div>
-            <p className="mt-4 text-[11px] text-muted-foreground">
-              {tour.steps.length} pasos · tomate el tiempo que necesites
-            </p>
+            {isPortal ? null : (
+              <>
+                <div className="mt-7 flex flex-wrap items-center gap-2">
+                  <Button type="button" size="lg" onClick={startTour} disabled={pending} className="gap-2">
+                    Empezar el tutorial
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" size="lg" variant="ghost" onClick={skipAll} disabled={pending}>
+                    Ahora no
+                  </Button>
+                </div>
+                <p className="mt-4 text-[11px] text-muted-foreground">
+                  {tour.steps.length} pasos · tomate el tiempo que necesites
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>

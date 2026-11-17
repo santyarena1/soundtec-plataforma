@@ -2993,4 +2993,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Todas las marcas visibles siempre, en dos renglones de mosaicos más chicos y a color, ordenadas de izquierda a derecha. Sale «Ver todas». En el celular, dos renglones que se deslizan." },
     ],
   },
+  {
+    id: "ship-2026-11-17-videos-del-portal",
+    version: "2.47.0",
+    releasedAt: "2026-11-17T15:00:00.000Z",
+    summary: "Videos del portal: 8 tutoriales cortos en /portal/tutoriales, y «Tutorial online» deja elegir entre videos y recorrido guiado.",
+    items: [
+      { kind: "NUEVO", text: "Página «Videos del portal» (/portal/tutoriales): pedir la cuenta, recorrido, catálogo, ficha, favoritos, Soundtec AI, Crestron Home y proyecto de sala. Cada video con miniatura, duración y de qué trata; se abre en un reproductor con la lista al costado, «Anterior/Siguiente» y aviso del que sigue al terminar. En el celular ocupa toda la pantalla." },
+      { kind: "NUEVO", text: "Los videos que ya viste quedan marcados «Visto» (en ese navegador). El link con ?video=… abre directo ese video, para pasárselo a un cliente." },
+      { kind: "MEJORA", text: "«Tutorial online» abre una elección: «Ver videos» o «Hacer el recorrido guiado» (este arranca directo en el primer paso). El cartel de bienvenida de la primera vez ofrece las mismas dos opciones." },
+      { kind: "MEJORA", text: "Títulos y descripciones de los videos se editan en el ajuste «portal.tutorial_videos»; los archivos se cargan con scripts/tutorial-videos-upload.ts y la carga respeta lo editado." },
+    ],
+  },
 ];
