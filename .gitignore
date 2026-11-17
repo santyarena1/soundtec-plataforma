@@ -59,3 +59,7 @@ prisma/dev.db*
 e2e/.auth/
 test-results/
 playwright-report/
+
+# Páginas locales de depuración
+src/app/dev-harness/
+public/dev-harness/
