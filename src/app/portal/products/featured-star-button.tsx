@@ -40,8 +40,8 @@ export function FeaturedStarButton({ productId, isFeatured, label = false }: { p
       title={error ?? title}
       aria-pressed={featured}
       className={cn(
-        "inline-flex h-8 items-center gap-1 rounded-full border bg-card px-2 text-xs transition-colors",
-        featured ? "border-amber-400 text-amber-500" : "border-border text-muted-foreground hover:border-amber-400 hover:text-amber-500",
+        "inline-flex h-8 items-center gap-1 rounded-full border border-border bg-card px-2 text-xs transition-colors hover:border-accent",
+        featured ? "text-accent" : "text-muted-foreground",
         error ? "border-destructive text-destructive" : ""
       )}
     >

@@ -17,13 +17,17 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { FavoriteButton } from "../favorite-button";
 import { OriginStockPanel, StockBadge } from "@/components/catalog/stock-badge";
 import { customerHiddenCategoryIds } from "@/lib/customer-hidden-categories";
+import { customerCategoryName } from "@/lib/tango-only";
 import { PriceTaxNotice } from "@/components/catalog/price-tax-notice";
+import { CategoryPath } from "@/components/catalog/category-path";
+import { productCategoryCrumbs } from "@/lib/category-tree";
 import { FeaturedStarButton } from "../featured-star-button";
 import { AddToRequestPanel } from "./add-to-request-panel";
 import { ProductBundleProvider, BundleStagingPanel } from "./product-bundle";
 import { ProductGallery } from "./product-gallery";
 import { getOrCreateActiveDraft } from "@/lib/draft-request";
 import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
+import { SOUNDTEC_PHONE, SOUNDTEC_PHONE_HREF, SOUNDTEC_SALES_EMAIL, salesMailHref } from "@/lib/company-contact";
 import { AiContentNotice } from "./ai-content-notice";
 import { ProductConfigurator } from "./configurator";
 import { CompatibleAccessoriesSection } from "./compatible-accessories";
@@ -110,6 +114,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     await recordProductView(product.id, user.id);
   }
 
+  // Camino del rubro (el equipo lo ve aunque sea «Sin categorizar» o un rubro viejo).
+  const categoryCrumbs = await productCategoryCrumbs(product.categoryId, { customer: !isAdminViewer });
   const [favItem, activeDraft, globalMargin] = await Promise.all([
     prisma.wishlistItem.findFirst({
       where: { productId: product.id, wishlist: { userId: user.id } },
@@ -298,9 +304,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
         <div className="min-w-0 space-y-5 [overflow-wrap:anywhere]">
           <div className="space-y-2">
+            <CategoryPath
+              linkLast
+              className="text-xs"
+              crumbs={categoryCrumbs.map((c) => ({ ...c, href: `/portal/products?category=${c.id}` }))}
+            />
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {product.brand?.name || "Marca"}
-              {product.category?.name ? ` · ${product.category.name}` : ""}
+              {customerCategoryName(product.category) ? ` · ${customerCategoryName(product.category)}` : ""}
               {product.family?.name ? ` · ${product.family.name}` : ""}
             </p>
             {(() => {
@@ -340,7 +351,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                   <p className="muted-text text-sm">
                     {CUSTOMER_ORDERS_ENABLED
                       ? "Agregalo a un pedido y te pasamos el precio."
-                      : "Pedíselo a tu vendedor de Soundtec y te pasamos el precio."}
+                      : "Escribinos y te pasamos el precio."}
                   </p>
                 </>
               ) : (
@@ -386,6 +397,22 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                   </a>
                 ) : null}
               </div>
+
+              {!CUSTOMER_ORDERS_ENABLED ? (
+                <div className="border-t border-border pt-3 text-sm">
+                  <p className="font-medium text-foreground">¿Necesitás más información o cotizar este producto?</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Hablá con Soundtec:{" "}
+                    <a href={salesMailHref(`Consulta por ${productTitle(product)}`)} className="font-medium text-primary hover:underline">
+                      {SOUNDTEC_SALES_EMAIL}
+                    </a>{" "}
+                    ·{" "}
+                    <a href={SOUNDTEC_PHONE_HREF} className="font-medium text-primary hover:underline">
+                      {SOUNDTEC_PHONE}
+                    </a>
+                  </p>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 

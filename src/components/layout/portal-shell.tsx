@@ -71,13 +71,13 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
                 key={item.label}
                 aria-disabled="true"
                 title="Próximamente"
-                className="inline-flex cursor-not-allowed items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground/60"
+                className="inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-md px-3 text-sm text-muted-foreground/60"
               >
                 <item.icon className="h-4 w-4" />
-                {item.label}
-                {/* En pantallas medianas el rótulo no entra: queda el título al pasar el mouse. */}
-                <span className="hidden rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground xl:inline">
-                  Próximamente
+                {/* «Próximamente» en una línea mínima debajo: el botón no crece. */}
+                <span className="flex flex-col leading-none">
+                  <span className="leading-4">{item.label}</span>
+                  <span className="mt-0.5 text-[9px] tracking-wide text-muted-foreground/80">Próximamente</span>
                 </span>
               </span>
             ))}

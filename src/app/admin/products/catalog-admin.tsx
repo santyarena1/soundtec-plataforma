@@ -388,7 +388,7 @@ export function ProductsCatalogAdmin(props: Props) {
     ...distributorIdsFromUrl.map((id) => ({ key: `d-${id}`, label: nameOf(props.distributors, id), clear: () => pushFilters({ distributor: without(distributorIdsFromUrl, id) }) })),
     ...stockFromUrl.map((id) => ({ key: `s-${id}`, label: nameOf(STOCK_OPTIONS, id), clear: () => pushFilters({ stock: without(stockFromUrl, id) }) })),
     ...(activeFromUrl ? [{ key: "active", label: activeFromUrl === "yes" ? "Solo activos" : "Solo inactivos", clear: () => pushFilters({ active: "" }) }] : []),
-    ...(nocatActive ? [{ key: "nocat", label: "Sin categoría", clear: () => pushFilters({ nocat: "" }) }] : []),
+    ...(nocatActive ? [{ key: "nocat", label: "Sin categorizar", clear: () => pushFilters({ nocat: "" }) }] : []),
     ...(noimgActive ? [{ key: "noimg", label: "Sin foto", clear: () => pushFilters({ noimg: "" }) }] : []),
     ...(nodescActive ? [{ key: "nodesc", label: "Sin descripción", clear: () => pushFilters({ nodesc: "" }) }] : []),
     ...(crestronActive ? [{ key: "crestron", label: "Crestron Home", clear: () => pushFilters({ crestron: "" }) }] : []),

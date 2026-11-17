@@ -7,6 +7,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { getSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import { translateBatchCached } from "@/services/translation-cache";
@@ -97,6 +98,8 @@ async function loadCategoryConfig(): Promise<SoundTubeCategoryConfig> {
 /** Las categorías/familias destino se crean antes del upsert (igual que Crestron). */
 async function ensureTaxonomy(names: string[], target: SoundTubeCategoryConfig["target"]): Promise<void> {
   if (target !== "categoria" && target !== "familia") return;
+  // Con el árbol de Tango cargado no se crean categorías por nombre (la sync tampoco las asigna).
+  if (target === "categoria" && (await isTangoTreeActive(prisma))) return;
   for (const name of names) {
     const normalized = name.trim();
     if (!normalized) continue;

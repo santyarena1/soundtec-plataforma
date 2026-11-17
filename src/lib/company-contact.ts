@@ -5,6 +5,12 @@
  */
 export const SOUNDTEC_PHONE = "+54 11 4586-0400";
 export const SOUNDTEC_PHONE_HREF = "tel:+541145860400";
+export const SOUNDTEC_SALES_EMAIL = "comercial@soundtec.com.ar";
+
+/** Mail a ventas con el asunto ya armado (ej. "Consulta por VXXT6"). */
+export function salesMailHref(subject: string): string {
+  return `mailto:${SOUNDTEC_SALES_EMAIL}?subject=${encodeURIComponent(subject)}`;
+}
 
 const SOUNDTEC_PHONE_DIGITS = "541145860400";
 

@@ -2,7 +2,7 @@ import { canSeeCosts, isPanelRole, permissionsHave } from "@/lib/permissions";
 import { getCurrentPermissions, requireUser } from "@/lib/auth-helpers";
 import Link from "next/link";
 import { resolveCommercialClientId } from "@/lib/client-context";
-import { catalogFilterMeta, getCatalog, listCatalogTopCategories, listVisibleCatalogBrands } from "@/lib/catalog";
+import { catalogFilterMeta, getCatalog, listCatalogCategoryTree, listVisibleCatalogBrands } from "@/lib/catalog";
 import { countActiveCatalogFilters, parseCatalogSearchParams } from "@/lib/catalog-url";
 import { CRESTRON_HOME_ID } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
@@ -20,7 +20,7 @@ import { Package, Send } from "lucide-react";
 import { RememberCatalog } from "@/components/catalog/catalog-memory";
 import { PriceTaxNotice } from "@/components/catalog/price-tax-notice";
 import { ComingSoonBanner } from "@/components/catalog/coming-soon-banner";
-import { CatalogSideRails } from "./catalog-side-rails";
+import { CatalogCategoryBar, CatalogCategoryRail } from "./catalog-side-rails";
 
 export const metadata = { title: "Catálogo" };
 
@@ -76,15 +76,23 @@ export default async function ProductsPage({
   }
   const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
 
-  const [listed, { items, total, page, pageSize }, meta, draft, topCategories] = await Promise.all([
+  const [listed, { items, total, page, pageSize }, meta, draft, categoryTree] = await Promise.all([
     brandsPromise,
     getCatalog(filters, ctx),
     catalogFilterMeta(filters),
     // Pedidos apagados (src/lib/customer-orders.ts): sin «Mi pedido».
     CUSTOMER_ORDERS_ENABLED ? getActiveDraftSummary(user.id) : null,
-    listCatalogTopCategories(filters, ctx),
+    listCatalogCategoryTree(filters, ctx),
   ]);
   const brands = listed.brands;
+  const categoryProps = {
+    nodes: categoryTree,
+    activeId: urlState.categoryIds?.[0] ?? null,
+    params: rawParams,
+    basePath: "/portal/products",
+  };
+  // Un solo rubro y presente en el árbol: su camino ya se ve arriba del listado.
+  const categoryInPath = urlState.categoryIds?.length === 1 && categoryTree.some((n) => n.id === categoryProps.activeId);
   const comingSoonBrand = activeBrandId ? brands.find((b) => b.id === activeBrandId && b.comingSoon) ?? null : null;
 
   const onlyComingSoon = comingSoonBrand !== null && total === 0;
@@ -101,18 +109,10 @@ export default async function ProductsPage({
   return (
     <div className="relative space-y-6">
       <RememberCatalog memoryKey="portal" />
-      <CatalogSideRails
-        categories={topCategories}
-        brands={brands}
-        activeCategoryIds={urlState.categoryIds ?? []}
-        activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)}
-        params={rawParams}
-        basePath="/portal/products"
-      />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="heading-2">Catálogo</h1>
-          <PriceTaxNotice className="mt-3 max-w-3xl" />
+          <PriceTaxNotice className="mt-2" />
         </div>
         {draft ? (
           <Link
@@ -128,17 +128,20 @@ export default async function ProductsPage({
       {/* De lado a lado del contenedor, igual que la fila de marcas. */}
       <AssistantEntry href="/expo?from=portal" />
 
-      {/* En pantallas anchas las marcas ya están en la columna derecha. */}
-      <div className="min-[1700px]:hidden">
-        <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} basePath="/portal/products" />
-      </div>
+      <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} basePath="/portal/products" />
+
+      {/* Listado con el sidebar de rubros al lado (PC) o el botón «Rubros» arriba (tablet y celular). */}
+      <div className="relative xl:flex xl:gap-6 min-[1800px]:block">
+      <CatalogCategoryRail {...categoryProps} />
+      <div className="min-w-0 flex-1 space-y-6">
+      <CatalogCategoryBar {...categoryProps} />
 
       {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
 
       {/* Marca «Próximamente» sin productos: solo el aviso, sin «0 resultados» ni buscador vacío. */}
       {onlyComingSoon ? null : (
       <CatalogMultiSelectProvider productIds={items.map((i) => i.id)} canEditPrices={canEditPrices} canOrder={CUSTOMER_ORDERS_ENABLED}>
-      <CatalogLayout state={urlState} meta={meta} total={total} toolbar={<CatalogToolbar state={urlState} />}>
+      <CatalogLayout state={urlState} meta={meta} total={total} categoryShownAbove={categoryInPath} toolbar={<CatalogToolbar state={urlState} />}>
         {items.length === 0 && comingSoonBrand ? null : items.length === 0 ? (
           <EmptyState
             icon={<Package className="h-5 w-5" />}
@@ -148,7 +151,7 @@ export default async function ProductsPage({
         ) : urlState.view === "table" ? (
           <CatalogTable items={items} internal={internal} />
         ) : (
-          <CatalogGrid items={items} internal={internal} canFeature={canFeature} />
+          <CatalogGrid items={items} internal={internal} canFeature={canFeature} withSidebar={categoryTree.length > 0} />
         )}
 
         {totalPages > 1 ? (
@@ -185,6 +188,8 @@ export default async function ProductsPage({
       </CatalogLayout>
       </CatalogMultiSelectProvider>
       )}
+      </div>
+      </div>
     </div>
   );
 }

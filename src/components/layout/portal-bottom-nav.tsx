@@ -35,7 +35,7 @@ export function PortalBottomNav() {
                 >
                   <item.icon className="h-5 w-5" />
                   {item.label}
-                  <span className="-mt-0.5 text-[8px] font-semibold uppercase tracking-wide">Próximamente</span>
+                  <span className="-mt-0.5 text-[9px] font-normal leading-none">Próximamente</span>
                 </span>
               </li>
             );

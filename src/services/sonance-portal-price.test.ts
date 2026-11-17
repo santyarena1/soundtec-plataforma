@@ -25,5 +25,6 @@ assert.equal(
 
 assert.equal(resolveSonanceMyPrice({ pricing: null }), undefined);
 assert.equal(resolveSonanceMyPrice({ pricing: { unitNetPrice: 0 } }), undefined);
+assert.equal(resolveSonanceMyPrice({ pricing: { unitNetPrice: 0.01 } }), undefined); // precio de relleno del portal
 
 console.log("sonance-portal-price.test.ts OK");

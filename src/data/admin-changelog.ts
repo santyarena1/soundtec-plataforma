@@ -2952,4 +2952,22 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Proyecto de sala: la web, el PDF y el panel cuentan los equipos igual. En la lámina del diagrama los textos ya no quedan tapados y la cartela entra en su recuadro." },
     ],
   },
+  {
+    id: "ship-2026-11-17-catalogo-rubros-marcas",
+    version: "2.45.0",
+    releasedAt: "2026-11-17T06:00:00.000Z",
+    summary: "Catálogo del portal: marcas arriba en dos renglones, rubros en árbol y estética sobria otra vez.",
+    items: [
+      { kind: "MEJORA", text: "Marcas arriba del listado en dos renglones, todas a la vista y sin flechas (también en /catalogo). En tablet, grilla compacta; en el celular, dos renglones que se deslizan. Sale la columna de marcas de la derecha." },
+      { kind: "MEJORA", text: "Sidebar de rubros en PC (desde 1280 px): ícono por rubro principal, subrubros con sangría y línea guía en todos los niveles, un rubro principal abierto a la vez, buscador «Filtrar rubros…», «Limpiar rubro» y manejo con teclado. Queda fijo con su propio scroll; hasta 1799 px la grilla pasa a 3 columnas." },
+      { kind: "MEJORA", text: "Al elegir un rubro el listado filtra por ese nivel con todo lo de abajo, y arriba se ve el camino (Sonido › Bafles › Techo) para volver a un nivel o quitar el rubro. En tablet y celular, botón «Rubros» con el mismo árbol." },
+      { kind: "MEJORA", text: "Ficha del producto (portal y pública): camino de su rubro arriba del título, cada tramo lleva al catálogo filtrado. Si no tiene rubro o está «Sin categorizar», el cliente no ve nada." },
+      { kind: "MEJORA", text: "Aviso de precios en una línea chica: «Precios en USD, sin impuestos.» (catálogo y ficha)." },
+      { kind: "FIX", text: "Vuelve el tono sobrio: etiquetas de stock en origen en gris, estrella de destacado como el corazón de favoritos, «Próximamente» chico debajo de Mis listas y Mis pedidos, botón del tutorial discreto y aviso de marca Próximamente sin degradé." },
+      { kind: "MEJORA", text: "Ficha del producto: bloque «¿Necesitás más información o cotizar este producto?» con el mail de ventas (asunto con el modelo) y el teléfono de Soundtec." },
+      { kind: "MEJORA", text: "La sesión dura 30 días y se renueva sola mientras se use: no hay que volver a ingresar cada día. Quitar el acceso o cambiar la clave la corta en el momento." },
+      { kind: "MEJORA", text: "Rubros: el portal muestra solo el árbol de Tango. Bandeja «Sin categorizar» en Reclasificación para ubicar uno a uno los productos sin rubro de Tango." },
+      { kind: "FIX", text: "Sonance/JAMES: el precio de relleno del portal (USD 0,01) se toma como «a consultar»." },
+    ],
+  },
 ];

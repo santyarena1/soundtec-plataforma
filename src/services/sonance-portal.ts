@@ -652,8 +652,14 @@ export interface PortalProductPrice {
   };
 }
 
+/**
+ * Por debajo de esto el portal no informa un precio real: a los productos sin precio publicado
+ * (rejillas y accesorios de JAMES, por ejemplo) les muestra USD 0,01. Se toman como "a consultar".
+ */
+const PLACEHOLDER_PRICE_MAX_USD = 0.5;
+
 function positivePrice(value: unknown): number | undefined {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
+  if (typeof value !== "number" || !Number.isFinite(value) || value < PLACEHOLDER_PRICE_MAX_USD) return undefined;
   return value;
 }
 

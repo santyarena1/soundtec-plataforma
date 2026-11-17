@@ -14,6 +14,7 @@ export function CatalogLayout({
   children,
   toolbar,
   publicMode = false,
+  categoryShownAbove = false,
 }: {
   state: CatalogUrlState;
   meta: CatalogSidebarMeta;
@@ -21,6 +22,8 @@ export function CatalogLayout({
   children: React.ReactNode;
   toolbar: React.ReactNode;
   publicMode?: boolean;
+  /** El rubro elegido ya se ve arriba (camino de rubros del portal): sin pastilla repetida. */
+  categoryShownAbove?: boolean;
 }) {
   // La marca se elige en la barra de marcas de arriba (mobile y PC): sin sidebar.
   return (
@@ -30,7 +33,7 @@ export function CatalogLayout({
           {total} resultado{total === 1 ? "" : "s"}
         </p>
         {toolbar}
-        <CatalogActiveFilters state={state} meta={meta} publicMode={publicMode} />
+        <CatalogActiveFilters state={state} meta={meta} publicMode={publicMode} hideCategories={categoryShownAbove} />
         {children}
     </div>
   );
@@ -40,10 +43,12 @@ function CatalogActiveFilters({
   state,
   meta,
   publicMode,
+  hideCategories,
 }: {
   state: CatalogUrlState;
   meta: CatalogSidebarMeta;
   publicMode: boolean;
+  hideCategories: boolean;
 }) {
   const { push } = useCatalogNavigation();
   const chips: { key: string; label: string; clear: () => void }[] = [];
@@ -62,7 +67,7 @@ function CatalogActiveFilters({
     const name = meta.brands.find((b) => b.id === id)?.name || "Marca";
     chips.push({ key: `brand-${id}`, label: name, clear: () => push({ brandIds: (state.brandIds || []).filter((x) => x !== id) }) });
   }
-  for (const id of state.categoryIds || []) {
+  for (const id of hideCategories ? [] : state.categoryIds || []) {
     const name = meta.categories.find((c) => c.id === id)?.name || "Categoría";
     chips.push({ key: `cat-${id}`, label: name, clear: () => push({ categoryIds: (state.categoryIds || []).filter((x) => x !== id) }) });
   }

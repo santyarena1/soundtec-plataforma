@@ -49,7 +49,10 @@ const credentialsSchema = z.object({
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt", maxAge: 60 * 60 * 8 },
+  // Sesión larga y renovable: dura 30 días y se renueva (como mucho una vez por día) mientras se use,
+  // así nadie tiene que volver a ingresar a cada rato. Para cortar sesiones a mano está sessionVersion
+  // (cambio de clave, quitar acceso o "cerrar sesiones" desde el admin invalidan los tokens viejos).
+  session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
   pages: {
     signIn: "/login",
     error: "/login",

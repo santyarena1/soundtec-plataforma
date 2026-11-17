@@ -12,6 +12,7 @@ import { DEFAULT_SORT } from "@/lib/admin-catalog-sort";
 import { parseAdminProductFilters } from "@/lib/admin-product-filters";
 import { CRESTRON_MISSING_WHERE, buildAdminProductWhere } from "@/lib/admin-product-where";
 import { BulkActiveBar } from "./bulk-active-bar";
+import { countUncategorizedProducts } from "@/server/uncategorized";
 import { ProductCompatList } from "../crestron-home/product-compat-list";
 import { CrestronActionsBar } from "../crestron-home/crestron-actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -83,6 +84,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const openFeedback = await prisma.aiContentFeedback.groupBy({ by: ["refId"], where: { type: "PRODUCT_DESCRIPTION", verdict: "HAS_ERRORS", resolvedAt: null }, _count: { _all: true } });
   const openFeedbackMap = new Map(openFeedback.map((f) => [f.refId, f._count._all]));
   const crestronMissingCount = await prisma.product.count({ where: { isActive: true, ...CRESTRON_MISSING_WHERE } });
+  const uncategorizedCount = await countUncategorizedProducts();
 
   // El mismo armado que usa «activar/desactivar los que coinciden».
   const filters = parseAdminProductFilters(params as Record<string, string | string[] | undefined>);
@@ -305,6 +307,17 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         title="Productos Crestron que no existen en crestron.com: quedan con los datos de Xtrabone y sin ficha enriquecida.">
         Crestron sin ficha en crestron.com ({crestronMissingCount})
       </Link>
+      <Link href={params.nocat === "1" ? "/admin/products" : "/admin/products?nocat=1&active=yes"}
+        className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${params.nocat === "1" ? "border-primary bg-primary text-primary-foreground" : uncategorizedCount ? "border-warning/50 bg-warning/10 text-foreground" : "border-border bg-card text-foreground"}`}
+        title="Productos activos sin rubro de Tango claro. Los clientes no ven esta categoría; se revisan en Reclasificación › Revisar uno a uno."
+        data-testid="uncategorized-pill">
+        Sin categorizar ({uncategorizedCount})
+      </Link>
+      {uncategorizedCount ? (
+        <Link href="/admin/products/reclasificacion?ver=uno-a-uno" className="text-xs font-medium text-accent hover:underline">
+          Revisar uno a uno
+        </Link>
+      ) : null}
       </div>
 
       {rows.length === 0 &&

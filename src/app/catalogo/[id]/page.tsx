@@ -1,9 +1,12 @@
 import { optimizedImage } from "@/lib/image-url";
+import { CategoryPath } from "@/components/catalog/category-path";
+import { productCategoryCrumbs } from "@/lib/category-tree";
 import { hasConfigurator, productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { isCatalogModeOn } from "@/lib/catalog-mode";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { customerHiddenCategoryIds } from "@/lib/customer-hidden-categories";
+import { customerCategoryName } from "@/lib/tango-only";
 import type { Metadata } from "next";
 import { ogImageUrl, ogMeta } from "@/lib/og/meta";
 import { prisma } from "@/lib/prisma";
@@ -89,6 +92,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
     await recordProductView(product.id, session?.user?.id ?? null);
   }
   const portalHref = `/portal/products/${product.id}`;
+  const categoryCrumbs = await productCategoryCrumbs(product.categoryId, { customer: true });
 
   const sections = RELATION_SECTIONS.map((section) => ({
     ...section,
@@ -111,8 +115,13 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
 
         <div className="space-y-5">
           <div className="space-y-2">
+            <CategoryPath
+              linkLast
+              className="text-xs"
+              crumbs={categoryCrumbs.map((c) => ({ ...c, href: `/catalogo?category=${c.id}` }))}
+            />
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {[product.brand?.name, product.category?.name].filter(Boolean).join(" · ") || "Producto"}
+              {[product.brand?.name, customerCategoryName(product.category)].filter(Boolean).join(" · ") || "Producto"}
             </p>
             <h1 className="heading-2 text-2xl leading-tight sm:text-3xl">{productTitle(product)}</h1>
             {productSubtitle(product) ? <p className="muted-text">{productSubtitle(product)}</p> : null}

@@ -46,7 +46,9 @@ export function ProposalsBoard({
   pageSize,
   nodes,
   newBranches,
+  uncategorizedCount,
 }: {
+  uncategorizedCount: number;
   stats: { safe: number; doubtful: number; decided: number; approved: number };
   view: View;
   filters: { marca: string; q: string; page: number };
@@ -143,6 +145,17 @@ export function ProposalsBoard({
             </p>
           )}
         </li>
+        {uncategorizedCount > 0 ? (
+          <li className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4 md:col-span-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sin categorizar</p>
+            <p>
+              <b className="text-lg tabular-nums">{fmt(uncategorizedCount)}</b> productos esperan rubro: no se sabía con certeza dónde van. Los clientes no ven esta categoría.
+            </p>
+            <Link href="/admin/products/reclasificacion?ver=uno-a-uno" className="self-start rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+              Revisar uno a uno
+            </Link>
+          </li>
+        ) : null}
       </ol>
 
       <div className="flex flex-wrap items-end justify-between gap-3">

@@ -6,6 +6,9 @@ import { listCategoryTree } from "@/lib/category-tree";
 import { tangoPathLabel } from "@/lib/tango-tree";
 import { applyPendingBranches, loadTangoProposals, TANGO_BATCH } from "@/server/category-proposals";
 import { ProposalsBoard, type ProposalRow, type NewBranch } from "./proposals-board";
+import { UncategorizedTray, type UncategorizedRow } from "./uncategorized-tray";
+import { countUncategorizedProducts, uncategorizedProductWhere, UNCATEGORIZED_BATCH } from "@/server/uncategorized";
+import { productCoverImageInclude } from "@/lib/product-cover-image";
 
 export const metadata = { title: "Admin · Reclasificación de rubros" };
 export const maxDuration = 300;
@@ -19,10 +22,11 @@ export default async function ReclassificationPage({ searchParams }: { searchPar
   if ((await prisma.categoryProposal.count({ where: { batch: TANGO_BATCH } })) === 0) await loadTangoProposals();
   else if (await prisma.tangoBranchSuggestion.count({ where: { batch: TANGO_BATCH, status: "PENDING" } })) await applyPendingBranches();
 
-  const ver = searchParams.ver === "seguros" || searchParams.ver === "decididos" ? searchParams.ver : "revisar";
   const marca = searchParams.marca ?? "";
   const q = (searchParams.q ?? "").trim();
   const page = Math.max(1, Number(searchParams.pagina) || 1);
+  if (searchParams.ver === "uno-a-uno") return <UncategorizedPage marca={marca} q={q} page={page} />;
+  const ver = searchParams.ver === "seguros" || searchParams.ver === "decididos" ? searchParams.ver : "revisar";
 
   const where: Prisma.CategoryProposalWhereInput = {
     batch: TANGO_BATCH,
@@ -37,7 +41,7 @@ export default async function ReclassificationPage({ searchParams }: { searchPar
       : {}),
   };
 
-  const [counts, rows, matching, brands, nodes, branches] = await Promise.all([
+  const [counts, rows, matching, brands, nodes, branches, uncategorizedCount] = await Promise.all([
     prisma.categoryProposal.groupBy({ by: ["status", "confidence"], where: { batch: TANGO_BATCH }, _count: { _all: true } }),
     prisma.categoryProposal.findMany({
       where,
@@ -50,6 +54,7 @@ export default async function ReclassificationPage({ searchParams }: { searchPar
     prisma.brand.findMany({ where: { products: { some: { categoryProposals: { some: { batch: TANGO_BATCH } } } } }, orderBy: { name: "asc" }, select: { name: true } }),
     listCategoryTree(),
     prisma.tangoBranchSuggestion.findMany({ where: { batch: TANGO_BATCH, status: "APPROVED" }, orderBy: { tangoPath: "asc" } }),
+    countUncategorizedProducts(),
   ]);
   const branchCounts = await prisma.categoryProposal.groupBy({ by: ["tangoPath"], where: { batch: TANGO_BATCH, tangoPath: { in: branches.map((b) => b.tangoPath) } }, _count: { _all: true } });
   const sum = (f: (c: (typeof counts)[number]) => boolean) => counts.filter(f).reduce((a, c) => a + c._count._all, 0);
@@ -95,7 +100,74 @@ export default async function ReclassificationPage({ searchParams }: { searchPar
         pageSize={PAGE_SIZE}
         nodes={nodes}
         newBranches={newBranches}
+        uncategorizedCount={uncategorizedCount}
       />
+    </div>
+  );
+}
+
+/** Bandeja «Para revisar uno a uno»: lo que está en «Sin categorizar» (o sin rubro). */
+async function UncategorizedPage({ marca, q, page }: { marca: string; q: string; page: number }) {
+  const base = await uncategorizedProductWhere();
+  const where: Prisma.ProductWhereInput = {
+    AND: [
+      { isActive: true },
+      base,
+      ...(marca ? [{ brand: { name: marca } }] : []),
+      ...(q ? [{ OR: [{ normalizedName: { contains: q, mode: "insensitive" as const } }, { internalSku: { contains: q } }] }] : []),
+    ],
+  };
+  const [products, matching, brandRows, nodes] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy: [{ brand: { name: "asc" } }, { normalizedName: "asc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      select: {
+        id: true,
+        normalizedName: true,
+        internalSku: true,
+        shortDescription: true,
+        brand: { select: { name: true } },
+        images: productCoverImageInclude,
+        categoryProposals: {
+          where: { batch: { in: [TANGO_BATCH, UNCATEGORIZED_BATCH] } },
+          select: { batch: true, tangoPath: true, status: true, note: true, previousCategoryId: true },
+        },
+      },
+    }),
+    prisma.product.count({ where }),
+    prisma.brand.findMany({ where: { products: { some: { AND: [{ isActive: true }, base] } } }, orderBy: { name: "asc" }, select: { name: true } }),
+    listCategoryTree(),
+  ]);
+  const previousIds = [...new Set(products.flatMap((p) => p.categoryProposals.map((c) => c.previousCategoryId)).filter((id): id is string => !!id))];
+  const proposalPaths = [...new Set(products.flatMap((p) => p.categoryProposals.filter((c) => c.batch === TANGO_BATCH).map((c) => c.tangoPath)))];
+  const [previous, proposalNodes] = await Promise.all([
+    prisma.category.findMany({ where: { id: { in: previousIds } }, select: { id: true, name: true } }),
+    prisma.category.findMany({ where: { tangoPath: { in: proposalPaths } }, select: { id: true, tangoPath: true } }),
+  ]);
+  const previousName = new Map(previous.map((c) => [c.id, c.name]));
+  const nodeByPath = new Map(proposalNodes.map((c) => [c.tangoPath!, c.id]));
+
+  const rows: UncategorizedRow[] = products.map((p) => {
+    const tango = p.categoryProposals.find((c) => c.batch === TANGO_BATCH && c.status !== "REJECTED");
+    const moved = p.categoryProposals.find((c) => c.batch === UNCATEGORIZED_BATCH);
+    return {
+      productId: p.id,
+      model: p.normalizedName,
+      sku: p.internalSku,
+      brand: p.brand?.name ?? null,
+      image: p.images[0]?.url ?? null,
+      description: p.shortDescription?.slice(0, 140) ?? null,
+      previous: moved?.previousCategoryId ? previousName.get(moved.previousCategoryId) ?? null : null,
+      proposal: tango ? { label: tangoPathLabel(tango.tangoPath), categoryId: nodeByPath.get(tango.tangoPath) ?? null, note: tango.note } : null,
+    };
+  });
+
+  return (
+    <div className="space-y-5">
+      <PageHeader title="Para revisar uno a uno" description="Productos en «Sin categorizar»: elegí su rubro de Tango. No cambia ningún precio." />
+      <UncategorizedTray rows={rows} matching={matching} pageSize={PAGE_SIZE} filters={{ marca, q, page }} brands={brandRows.map((b) => b.name)} nodes={nodes} />
     </div>
   );
 }

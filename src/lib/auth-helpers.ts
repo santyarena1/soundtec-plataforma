@@ -50,7 +50,7 @@ const loadSessionUser = cache(async (): Promise<{ user: CurrentUser; mustChangeP
   });
   if (!dbUser) return { invalid: "usuario" };
   if (!dbUser.isActive) return { invalid: "inactivo" };
-  // Tokens emitidos antes de esta versión no traen `sv`: valen hasta que venzan (8 h) salvo que se haya invalidado algo.
+  // Tokens emitidos antes de esta versión no traen `sv`: valen hasta que venzan (30 días sin uso) salvo que se haya invalidado algo.
   if ((tokenVersion ?? 0) !== dbUser.sessionVersion) return { invalid: "cambios" };
   return {
     user: { id: dbUser.id, role: dbUser.role, name: dbUser.name, email: dbUser.email, companyName: dbUser.companyName, clientId: dbUser.clientId },

@@ -1,0 +1,12 @@
+[
+  { "brand": "Crestron", "model": "AM-3200-GV", "tangoPath": "VIDEO > PROCESADORES > PRESENTADOR AIR MEDIA", "motivo": "receptor AirMedia 3200 (versión gobierno); AM-3200-WF y AM-3200-WF-I ya están en este rubro" },
+  { "brand": "Crestron", "model": "DM-NVX-370", "tangoPath": "VIDEO > DIGITAL MEDIA > DM NVX", "motivo": "toda la línea DM NVX va a DM NVX (REGLAS.md); DM-NVX-360/363/384C ya están ahí" },
+  { "brand": "Crestron", "model": "DM-NAX-BTIO-100-1G", "tangoPath": "SONIDO > PROCESADORES > CONVERSORES E INTERFASES", "motivo": "interfaz de E/S de audio por IP (NAX) de pared: CONVERSORES E INTERFASES (REGLAS.md), como DM-NAX-XSP y DM-NAX-16AIN" },
+  { "brand": "Crestron", "model": "USB-EXT-3S SYSTEM", "tangoPath": "VARIOS > INFORMATICA > EXTENSORES USB", "motivo": "extensor USB; USB-EXT-3 KIT y la línea USB-EXT-2 ya están en EXTENSORES USB" },
+  { "brand": "Crestron", "model": "USB-EXT-3S-LOCAL-1G", "tangoPath": "VARIOS > INFORMATICA > EXTENSORES USB", "motivo": "extensor USB (local); USB-EXT-3 KIT y la línea USB-EXT-2 ya están en EXTENSORES USB" },
+  { "brand": "Crestron", "model": "USB-EXT-3S-REMOTE", "tangoPath": "VARIOS > INFORMATICA > EXTENSORES USB", "motivo": "extensor USB (remoto); USB-EXT-3 KIT y la línea USB-EXT-2 ya están en EXTENSORES USB" },
+  { "brand": "Crestron", "model": "SIW-100-USB KIT", "tangoPath": "CONTROL > AUTOMATIZACION > AGENDAMIENTO > INDICADORES DE SALA", "motivo": "indicador de estado de sala para pasillo; SIW-100 KIT ya está en INDICADORES DE SALA" },
+  { "brand": "Crestron", "model": "TSW-880/1080-MSMK-ANG-W", "tangoPath": "CONTROL > ACCESORIOS > KITS DE MONTAJE", "motivo": "kit de montaje (angulado) para TSW-880/1080; TSW-880/1080-MSMK-B ya está en KITS DE MONTAJE" },
+  { "brand": "Crestron", "model": "CM2-BTN-MD-TOP-B-T ENGRAVED", "tangoPath": "CONTROL > ACCESORIOS > TECLAS P/KEYPAD", "motivo": "botón de reemplazo Cameo 2; todos los CM2-BTN ya están en TECLAS P/KEYPAD" },
+  { "brand": "Crestron", "model": "CM2-BTN-MD-TOP-W-S ENGRAVED", "tangoPath": "CONTROL > ACCESORIOS > TECLAS P/KEYPAD", "motivo": "botón de reemplazo Cameo 2; todos los CM2-BTN ya están en TECLAS P/KEYPAD" }
+]

@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/auth-helpers";
 import { slugify } from "@/lib/utils";
+import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { suggestTaxonomyAssignment, suggestTaxonomyAssignmentBatch } from "@/services/openai";
 import { TaxonomySuggestionKind, TaxonomySuggestionStatus } from "@prisma/client";
 
 const MINI_BATCH = 15;
+const TANGO_ONLY_ERROR = "Los rubros salen del árbol de Tango: asignalos desde Productos › Reclasificación (Revisar uno a uno).";
 
 function revalidateTaxonomyPaths(kind: TaxonomySuggestionKind) {
   revalidatePath(kind === "CATEGORY" ? "/admin/categories" : "/admin/families");
@@ -57,6 +59,8 @@ async function ensureTaxonomyAndAssign(
   targetId: string | null,
   createIfMissing: boolean
 ): Promise<{ ok: boolean; error?: string }> {
+  // Con el árbol de Tango, los rubros se eligen del árbol (Reclasificación): acá no se crean ni asignan categorías por nombre.
+  if (kind === "CATEGORY" && (await isTangoTreeActive(prisma))) return { ok: false, error: TANGO_ONLY_ERROR };
   let resolvedId = targetId;
 
   if (!resolvedId) {
@@ -271,6 +275,9 @@ export async function generateAndApplyTaxonomySuggestions(
   error?: string;
 }> {
   await requireStaff(["categories.manage", "families.manage"]);
+  if (kind === "CATEGORY" && (await isTangoTreeActive(prisma))) {
+    return { ok: false, generated: 0, applied: 0, newTaxonomies: 0, assignedExisting: 0, failed: 0, error: TANGO_ONLY_ERROR };
+  }
 
   const field = kind === "CATEGORY" ? "categoryId" : "familyId";
   let totalApplied = 0;

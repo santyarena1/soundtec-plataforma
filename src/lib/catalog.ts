@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { expandCategoryIds } from "@/lib/category-tree";
+import { buildCategoryCountTree, type CategoryCountNode } from "@/lib/catalog-category-tree";
 import {
   calculatePricesForProducts,
   getClientVisibility,
@@ -23,6 +24,7 @@ import {
 import { loadProductViewCounts } from "@/server/catalog/product-views";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import { customerHiddenCategoryIds } from "@/lib/customer-hidden-categories";
+import { customerCategoryName, isCustomerTreeNode } from "@/lib/tango-only";
 import { brandListingComparator, categorySortKeys } from "@/lib/brand-listing-order";
 
 /**
@@ -288,35 +290,22 @@ export async function listVisibleCatalogBrands(ctx: CatalogContext): Promise<{ b
 }
 
 /**
- * Rubros principales (primer nivel del árbol) con la cantidad de productos que
- * ve este usuario con los filtros actuales, sin contar el filtro de rubro (así
- * se puede pasar de uno a otro). Para la columna de rubros del portal.
+ * Árbol de rubros con la cantidad de productos que ve este usuario con los
+ * filtros actuales, sin contar el filtro de rubro (así se puede pasar de uno a
+ * otro). Cada nodo suma lo de sus subrubros. Para la columna de rubros del portal.
  */
-export async function listCatalogTopCategories(filters: CatalogFilters, ctx: CatalogContext): Promise<FacetOption[]> {
+export async function listCatalogCategoryTree(filters: CatalogFilters, ctx: CatalogContext): Promise<CategoryCountNode[]> {
   const where = await buildCatalogWhere({ ...filters, categoryIds: [], page: undefined }, ctx);
   if (!where) return [];
   const [groups, nodes] = await Promise.all([
     prisma.product.groupBy({ by: ["categoryId"], where: { AND: [where, { categoryId: { not: null } }] }, _count: { _all: true } }),
-    prisma.category.findMany({ select: { id: true, name: true, parentId: true } }),
+    prisma.category.findMany({ where: { tangoPath: { not: null } }, select: { id: true, name: true, parentId: true, tangoPath: true, slug: true } }),
   ]);
-  const byId = new Map(nodes.map((n) => [n.id, n]));
-  const rootOf = (id: string) => {
-    let current = byId.get(id);
-    const seen = new Set<string>();
-    while (current?.parentId && byId.has(current.parentId) && !seen.has(current.id)) {
-      seen.add(current.id);
-      current = byId.get(current.parentId);
-    }
-    return current;
-  };
-  const counts = new Map<string, FacetOption>();
-  for (const group of groups) {
-    const root = group.categoryId ? rootOf(group.categoryId) : undefined;
-    if (!root) continue;
-    const prev = counts.get(root.id);
-    counts.set(root.id, { id: root.id, name: root.name, count: (prev?.count ?? 0) + group._count._all });
-  }
-  return [...counts.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
+  return buildCategoryCountTree(
+    // Solo rubros de Tango: ni categorías viejas ni «Sin categorizar» (sus productos siguen en búsquedas y por marca).
+    nodes.filter(isCustomerTreeNode),
+    groups.map((g) => ({ categoryId: g.categoryId, count: g._count._all }))
+  );
 }
 
 /** Nombres de los filtros activos, para las pastillas. No recorre el catálogo. */
@@ -408,7 +397,7 @@ async function mapProductsToCatalogItems(
     normalizedName: p.normalizedName,
     shortDescription: p.shortDescription,
     brandName: p.brand?.name ?? null,
-    categoryName: p.category?.name ?? null,
+    categoryName: customerCategoryName(p.category),
     familyName: p.family?.name ?? null,
     primaryImage: p.images[0]?.url ?? null,
     requiresQuote: p.requiresQuote,

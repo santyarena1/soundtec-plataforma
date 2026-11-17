@@ -2,6 +2,7 @@ import { applySyncFieldPolicy } from "@/services/sync/field-policy";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { getSetting, setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import {
@@ -241,7 +242,9 @@ export async function POST(req: NextRequest) {
 
     // Pre-upsert all FK rows once (avoid race conditions inside the loop)
     const fkIdByEs = new Map<string, string>();
-    if (target === "categoria" || target === "familia") {
+    // Con el árbol de Tango cargado, el rubro lo decide Soundtec: no se crean ni asignan categorías por nombre.
+    const skipCategory = target === "categoria" && (await isTangoTreeActive(prisma));
+    if ((target === "categoria" && !skipCategory) || target === "familia") {
       const uniqueEs = Array.from(
         new Set(
           crestronItems

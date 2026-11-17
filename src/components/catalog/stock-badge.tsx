@@ -11,7 +11,7 @@ export function StockBadge({ status, qty, internal = false }: { status: string; 
   if (internal) {
     const origin = originStockText(status, qty);
     return (
-      <Badge tone={origin.tone} title={`${ORIGIN_STOCK_LABEL}: ${origin.text}. El cliente ve «${CUSTOMER_STOCK_LABEL}».`}>
+      <Badge tone="muted" title={`${ORIGIN_STOCK_LABEL}: ${origin.text}. El cliente ve «${CUSTOMER_STOCK_LABEL}».`}>
         Origen: {origin.text}
       </Badge>
     );
@@ -31,7 +31,7 @@ export function OriginStockPanel({ status, qty }: { status: string; qty: number 
       <div>
         <dt className="font-semibold uppercase tracking-wider text-muted-foreground">{ORIGIN_STOCK_LABEL}</dt>
         <dd className="mt-1">
-          <Badge tone={origin.tone}>{origin.text}</Badge>
+          <Badge tone="muted">{origin.text}</Badge>
         </dd>
       </div>
       <div>

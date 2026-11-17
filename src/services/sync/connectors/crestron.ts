@@ -4,6 +4,7 @@ import {
   type CrestronItem,
 } from "@/services/crestron-sync";
 import { prisma } from "@/lib/prisma";
+import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { getSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import type {
@@ -132,9 +133,12 @@ export const crestronConnector: ProductSourceConnector = {
             .filter((name) => name.length > 0)
         )
       );
+      // Con el árbol de Tango cargado no se crean categorías por nombre (la sync tampoco las asigna).
+      const tangoActive = target === "categoria" && (await isTangoTreeActive(prisma));
       for (const esName of uniqueEs) {
-        if (target === "categoria") await upsertCategoryByName(esName);
-        else await upsertFamilyByName(esName);
+        if (target === "categoria") {
+          if (!tangoActive) await upsertCategoryByName(esName);
+        } else await upsertFamilyByName(esName);
       }
     }
     const items = sourceItems

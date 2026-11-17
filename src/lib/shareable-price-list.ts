@@ -4,6 +4,7 @@ import { calculatePricesForProducts, getClientVisibility } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { buildProductSearchAnd } from "@/lib/product-search";
+import { customerCategoryName } from "@/lib/tango-only";
 
 export interface ShareablePriceListFilters {
   brandIds?: string[];
@@ -144,7 +145,7 @@ export async function resolveShareablePriceListProducts(input: {
     name: p.normalizedName,
     shortDescription: p.shortDescription,
     brandName: p.brand?.name ?? null,
-    categoryName: p.category?.name ?? null,
+    categoryName: customerCategoryName(p.category),
     familyName: p.family?.name ?? null,
     stockStatus: p.stockStatus,
     stockQuantity: p.stockQuantity,

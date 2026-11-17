@@ -481,3 +481,11 @@ body.quote-focus-mode .xl\:pl-64 {
   25% { transform: translateX(-6px); }
   75% { transform: translateX(6px); }
 }
+
+/* Despliegue de subrubros del árbol del catálogo (category-tree-nav). */
+@keyframes tree-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}

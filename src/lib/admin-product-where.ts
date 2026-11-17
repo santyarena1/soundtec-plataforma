@@ -3,6 +3,7 @@ import type { Prisma, StockStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildProductSearchAnd } from "@/lib/product-search";
 import type { AdminProductFilters } from "@/lib/admin-product-filters";
+import { uncategorizedProductWhere } from "@/server/uncategorized";
 
 /** Productos Crestron cuyo enriquecimiento falló (no existen en crestron.com). */
 export const CRESTRON_MISSING_WHERE: Prisma.ProductWhereInput = {
@@ -30,7 +31,8 @@ export async function buildAdminProductWhere(f: AdminProductFilters): Promise<Pr
     ...(f.distributorIds.length ? { distributorId: { in: f.distributorIds } } : {}),
     ...(f.stockStatuses.length ? { stockStatus: { in: f.stockStatuses as StockStatus[] } } : {}),
     ...(f.active ? { isActive: f.active === "yes" } : {}),
-    ...(f.nocat ? { categoryId: null } : {}),
+    // «Sin categorizar»: en la categoría temporal o sin rubro.
+    ...(f.nocat ? await uncategorizedProductWhere() : {}),
     ...(f.noimg ? { images: { none: {} } } : {}),
     ...(f.nodesc ? { longDescription: null } : {}),
     ...(f.crestron ? { isCrestronHomeCompatible: true } : {}),

@@ -22,6 +22,8 @@ interface GridProps {
   internal?: boolean;
   /** Puede destacar productos (estrella) desde la grilla. */
   canFeature?: boolean;
+  /** Con el sidebar de rubros al lado: 3 columnas hasta que el sidebar sale al margen (1800 px). */
+  withSidebar?: boolean;
 }
 
 /**
@@ -40,9 +42,9 @@ interface GridProps {
  *  │ [ Agregar ]          │
  *  └──────────────────────┘
  */
-export function CatalogGrid({ items, publicMode = false, basePath = "/portal/products", internal = false, canFeature = false }: GridProps) {
+export function CatalogGrid({ items, publicMode = false, basePath = "/portal/products", internal = false, canFeature = false, withSidebar = false }: GridProps) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className={withSidebar ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 min-[1800px]:grid-cols-4" : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}>
       {items.map((p) => {
         const href = `${basePath}/${p.id}`;
         const card = (

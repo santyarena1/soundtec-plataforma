@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isCustomerTreeNode } from "@/lib/tango-only";
 
 /** Nodo del árbol de rubros tal como lo usan los selectores y filtros. */
 export type CategoryNode = { id: string; name: string; parentId: string | null; level: number };
@@ -79,4 +80,32 @@ export function categoryWithDescendants(id: string, nodes: Array<Pick<CategoryNo
     stack.push(...(children.get(next) ?? []));
   }
   return out;
+}
+
+/**
+ * Camino del rubro de un producto, del principal al suyo («Sonido», «Bafles
+ * pasivos», «Techo»). Para el cliente (`customer`), vacío si el rubro no es del
+ * árbol de Tango o es «Sin categorizar».
+ */
+export async function productCategoryCrumbs(
+  categoryId: string | null | undefined,
+  { customer }: { customer: boolean }
+): Promise<Array<{ id: string; name: string }>> {
+  if (!categoryId) return [];
+  const path: Array<{ id: string; name: string; slug: string | null; tangoPath: string | null }> = [];
+  const seen = new Set<string>();
+  let nextId: string | null = categoryId;
+  while (nextId && !seen.has(nextId) && path.length < 10) {
+    seen.add(nextId);
+    const node: { id: string; name: string; slug: string | null; tangoPath: string | null; parentId: string | null } | null =
+      await prisma.category.findUnique({
+        where: { id: nextId },
+        select: { id: true, name: true, slug: true, tangoPath: true, parentId: true },
+      });
+    if (!node) break;
+    path.unshift(node);
+    nextId = node.parentId;
+  }
+  if (customer && (path.length === 0 || path.some((n) => !isCustomerTreeNode(n)))) return [];
+  return path.map((n) => ({ id: n.id, name: n.name }));
 }

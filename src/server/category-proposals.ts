@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { parseTangoTree, tangoDisplayName } from "@/lib/tango-tree";
+import { UNCATEGORIZED_SLUG } from "@/lib/tango-only";
 
 /** Tanda de la reclasificación con el árbol de Tango (octubre 2026). */
 export const TANGO_BATCH = "tango-2026-10";
@@ -173,8 +174,11 @@ export async function undoProposal(id: string): Promise<boolean> {
   return true;
 }
 
-/** Categorías viejas (fuera del árbol) que ya no tienen productos: se desactivan, no se borran. */
+/** Categorías viejas (fuera del árbol) que ya no tienen productos: se desactivan, no se borran. «Sin categorizar» queda siempre. */
 export async function deactivateEmptyLegacyCategories(): Promise<number> {
-  const r = await prisma.category.updateMany({ where: { tangoPath: null, isActive: true, products: { none: {} } }, data: { isActive: false } });
+  const r = await prisma.category.updateMany({
+    where: { tangoPath: null, isActive: true, slug: { not: UNCATEGORIZED_SLUG }, products: { none: {} } },
+    data: { isActive: false },
+  });
   return r.count;
 }

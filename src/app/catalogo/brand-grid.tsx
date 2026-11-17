@@ -50,7 +50,7 @@ export function BrandGrid({
 export function BrandCardCaption({ brand }: { brand: CatalogBrand }) {
   if (brand.comingSoon) {
     return (
-      <span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary-foreground">
+      <span className="text-[11px] font-medium text-muted-foreground">
         Próximamente
       </span>
     );

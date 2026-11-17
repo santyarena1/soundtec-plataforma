@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { approveProposals, deactivateEmptyLegacyCategories, rejectProposals, removeBranch, undoProposal } from "@/server/category-proposals";
+import { assignFromUncategorized } from "@/server/uncategorized";
 
 type Result = { ok: boolean; error?: string; message?: string };
 const PAGE = "/admin/products/reclasificacion";
@@ -56,6 +57,17 @@ export async function rejectProposalsAction(input: { ids: string[] }): Promise<R
 export async function undoProposalAction(input: { id: string }): Promise<Result> {
   await requireStaff("categories.manage");
   return (await undoProposal(input.id)) ? done("Deshecho: volvió a la lista para revisar.") : { ok: false, error: "No se pudo deshacer." };
+}
+
+/** Bandeja «Para revisar uno a uno»: un producto de «Sin categorizar» pasa al rubro elegido. */
+export async function assignUncategorizedAction(input: { productId: string; categoryId: string }): Promise<Result> {
+  const { user } = await requireStaff("categories.manage");
+  const parsed = z.object({ productId: z.string().min(1), categoryId: z.string().min(1) }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Elegí un rubro de la lista." };
+  const r = await assignFromUncategorized(parsed.data.productId, parsed.data.categoryId, user.id);
+  if (!r.ok) return r;
+  revalidatePath("/portal/products");
+  return done("Guardado: el producto ya está en su rubro.");
 }
 
 /** Quitar un rubro nuevo: sus productos vuelven a la ruta original de Tango. */
