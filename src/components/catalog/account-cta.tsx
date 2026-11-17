@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { ArrowRight, LockOpen } from "lucide-react";
 
-/** Botón fijo abajo (mobile) / franja (desktop) del catálogo público. */
+/** Aviso para pedir cuenta: fijo abajo en el celular (la página deja su lugar al pie) y bloque en tablet y PC. */
 export function StickyAccountCta() {
   return (
     <>
-      <div className="h-20 sm:hidden" aria-hidden="true" />
       <Link
         href="/solicitar-cuenta"
         className="fixed inset-x-3 bottom-3 z-30 flex items-center justify-between rounded-2xl bg-primary px-4 py-3 text-primary-foreground shadow-lg shadow-primary/30 sm:hidden"
@@ -16,7 +15,7 @@ export function StickyAccountCta() {
         </span>
         <ArrowRight className="h-5 w-5" />
       </Link>
-      <div className="mb-6 hidden items-center justify-between gap-4 rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 sm:flex">
+      <div className="hidden items-center justify-between gap-4 rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 sm:flex">
         <p className="text-sm"><strong>¿Querés ver precios?</strong> Pedí tu cuenta de cliente en un minuto.</p>
         <Link href="/solicitar-cuenta" className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground">
           Solicitar cuenta de cliente

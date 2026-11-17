@@ -43,7 +43,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh min-w-0 max-w-full flex-col">
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
-        <div className="container-page flex h-14 min-w-0 items-center justify-between gap-1.5 sm:h-16 sm:gap-2">
+        <div className="container-page 2xl:max-w-[96rem] flex h-14 min-w-0 items-center justify-between gap-1.5 sm:h-16 sm:gap-2">
           <Link href="/portal" className="flex min-w-0 flex-1 items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/landing/logo_soundtec.png" alt={appName} className="h-9 w-auto shrink-0 sm:h-11" />
@@ -110,10 +110,10 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="container-page min-w-0 flex-1 py-5 pb-28 sm:py-8 md:pb-8">{children}</main>
+      <main className="container-page 2xl:max-w-[96rem] min-w-0 flex-1 py-5 pb-28 sm:py-8 md:pb-8">{children}</main>
 
       <footer className="mb-16 border-t border-border bg-card md:mb-0">
-        <div className="container-page flex flex-col gap-1 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="container-page 2xl:max-w-[96rem] flex flex-col gap-1 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} Soundtec S.R.L.</span>
           <span className="truncate">{session.user.email}</span>
         </div>

@@ -62,18 +62,18 @@ export function CatalogToolbar({ state, publicMode = false }: { state: CatalogUr
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por modelo, marca o palabra clave…"
-          className="h-11 pl-9 shadow-sm"
+          className="h-10 pl-9 shadow-sm"
           aria-label="Buscar productos"
           enterKeyHint="search"
           autoComplete="off"
         />
       </form>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2">
         <Select
           value={state.sort || "relevance"}
           onChange={(e) => push({ sort: e.target.value as CatalogUrlState["sort"] })}
-          className="h-10 w-full min-w-[160px] text-sm sm:w-44"
+          className="h-10 min-w-0 flex-1 text-sm sm:w-44 sm:flex-none"
           aria-label="Ordenar por"
         >
           <option value="relevance">Más relevantes</option>
@@ -87,7 +87,7 @@ export function CatalogToolbar({ state, publicMode = false }: { state: CatalogUr
         <Select
           value={String(state.pageSize ?? 24)}
           onChange={(e) => push({ pageSize: Number(e.target.value) })}
-          className="h-10 w-24 text-sm"
+          className="h-10 w-24 shrink-0 text-sm"
           aria-label="Productos por página"
         >
           <option value="12">12</option>
@@ -96,7 +96,7 @@ export function CatalogToolbar({ state, publicMode = false }: { state: CatalogUr
           <option value="60">60</option>
         </Select>
 
-        <div className="flex rounded-md border border-border bg-card p-0.5 shadow-sm">
+        <div className="flex shrink-0 rounded-md border border-border bg-card p-0.5 shadow-sm">
           <button
             type="button"
             onClick={() => push({ view: "grid" })}

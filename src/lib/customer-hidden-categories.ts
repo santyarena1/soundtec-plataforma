@@ -4,11 +4,11 @@ import { categoryWithDescendants } from "@/lib/category-tree";
 /**
  * Rubros que solo ve el equipo de Soundtec: no aparecen en el portal del
  * cliente ni en el catálogo público (filtros, columna de rubros, conteos ni
- * resultados). Hoy: Indumentaria (ropa de trabajo y uniformes propios), con
- * todo lo que cuelga de ella.
+ * resultados). Hoy: Indumentaria (ropa de trabajo y uniformes propios) y
+ * Servicios (p. ej. IV-PROSERVICE-1B de Crestron), con todo lo que cuelga de ellos.
  */
-const HIDDEN_TANGO_PATHS = ["INSUMOS GENERALES > INDUMENTARIA"];
-const HIDDEN_NAMES = ["indumentaria"];
+const HIDDEN_TANGO_PATHS = ["INSUMOS GENERALES > INDUMENTARIA", "SERVICIOS"];
+const HIDDEN_NAMES = ["indumentaria", "servicios"];
 
 export function isCustomerHiddenCategory(category: { name: string; tangoPath?: string | null }): boolean {
   const path = category.tangoPath?.trim().toUpperCase();

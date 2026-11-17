@@ -14,18 +14,21 @@ export function CategoryPath({
   rootHref,
   clearable = false,
   linkLast = false,
+  hideRoot = false,
   className,
 }: {
   crumbs: CategoryCrumb[];
   rootHref?: string;
   clearable?: boolean;
   linkLast?: boolean;
+  /** Sin el tramo «Rubros» (al lado del botón «Rubros» ya se lee). */
+  hideRoot?: boolean;
   className?: string;
 }) {
   if (crumbs.length === 0) return null;
   return (
     <nav aria-label="Rubro" className={cn("flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm", className)}>
-      {rootHref ? (
+      {rootHref && !hideRoot ? (
         <>
           <Link href={rootHref} className="text-muted-foreground hover:text-foreground hover:underline">
             Rubros

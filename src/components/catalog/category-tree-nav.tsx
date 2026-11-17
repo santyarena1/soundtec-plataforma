@@ -230,7 +230,7 @@ export function CategoryTreeNav({ nodes, activeId, basePath, baseQuery, variant 
       aria-label="Rubros"
       className={cn(
         "flex flex-col rounded-xl border border-border bg-card shadow-sm",
-        variant === "sidebar" ? "max-h-[calc(100dvh-6rem)]" : "max-h-[70vh]"
+        variant === "sidebar" ? "max-h-[calc(100dvh-7rem)]" : "max-h-[70vh]"
       )}
     >
       <div className="space-y-2 border-b border-border p-3">
@@ -270,7 +270,11 @@ export function CategoryTreeNav({ nodes, activeId, basePath, baseQuery, variant 
             Todos los rubros
           </Link>
         ) : null}
-        {tree ?? <p className="px-2 py-3 text-[13px] text-muted-foreground">No hay rubros con «{query.trim()}».</p>}
+        {tree ?? (
+          <p className="px-2 py-3 text-[13px] text-muted-foreground">
+            {query.trim() ? `No hay rubros con «${query.trim()}».` : "Ningún rubro tiene productos con estos filtros."}
+          </p>
+        )}
       </div>
 
       {activeId ? (

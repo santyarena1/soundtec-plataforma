@@ -4,7 +4,7 @@ import { formatUsd } from "@/lib/utils";
 import type { CatalogSidebarMeta } from "@/lib/catalog";
 import type { CatalogUrlState } from "@/lib/catalog-url";
 import { useCatalogNavigation } from "./use-catalog-navigation";
-import { Sparkles, X } from "lucide-react";
+import { X } from "lucide-react";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 
 export function CatalogLayout({
@@ -15,7 +15,10 @@ export function CatalogLayout({
   toolbar,
   publicMode = false,
   categoryShownAbove = false,
+  lead,
 }: {
+  /** A la izquierda de la cantidad: el camino del rubro (y el botón «Rubros» sin sidebar). */
+  lead?: React.ReactNode;
   state: CatalogUrlState;
   meta: CatalogSidebarMeta;
   total: number;
@@ -25,16 +28,20 @@ export function CatalogLayout({
   /** El rubro elegido ya se ve arriba (camino de rubros del portal): sin pastilla repetida. */
   categoryShownAbove?: boolean;
 }) {
-  // La marca se elige en la barra de marcas de arriba (mobile y PC): sin sidebar.
+  // Orden: buscar y ordenar → dónde estoy (camino del rubro y filtros activos) y cuántos hay → resultados.
   return (
     <div className="min-w-0 space-y-4">
-        <p className="text-sm text-muted-foreground">
-          <Sparkles className="mr-1 inline h-3.5 w-3.5 text-accent" />
-          {total} resultado{total === 1 ? "" : "s"}
+      {toolbar}
+      <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex min-w-0 basis-full flex-wrap items-center gap-x-4 gap-y-2 empty:hidden sm:basis-0 sm:flex-1">
+          {lead}
+          <CatalogActiveFilters state={state} meta={meta} publicMode={publicMode} hideCategories={categoryShownAbove} />
+        </div>
+        <p className="shrink-0 text-sm tabular-nums text-muted-foreground">
+          <span className="font-semibold text-foreground">{total.toLocaleString("es-AR")}</span> producto{total === 1 ? "" : "s"}
         </p>
-        {toolbar}
-        <CatalogActiveFilters state={state} meta={meta} publicMode={publicMode} hideCategories={categoryShownAbove} />
-        {children}
+      </div>
+      {children}
     </div>
   );
 }
@@ -63,7 +70,8 @@ function CatalogActiveFilters({
           : `Desde ${formatUsd(state.minPrice!)}`;
     chips.push({ key: "price", label, clear: () => push({ minPrice: undefined, maxPrice: undefined }) });
   }
-  for (const id of state.brandIds || []) {
+  // Una sola marca ya se ve marcada en la barra de marcas: sin pastilla repetida.
+  for (const id of (state.brandIds?.length ?? 0) > 1 ? state.brandIds! : []) {
     const name = meta.brands.find((b) => b.id === id)?.name || "Marca";
     chips.push({ key: `brand-${id}`, label: name, clear: () => push({ brandIds: (state.brandIds || []).filter((x) => x !== id) }) });
   }

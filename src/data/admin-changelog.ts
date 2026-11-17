@@ -2970,4 +2970,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Sonance/JAMES: el precio de relleno del portal (USD 0,01) se toma como «a consultar»." },
     ],
   },
+  {
+    id: "ship-2026-11-17-catalogo-segunda-vuelta",
+    version: "2.46.0",
+    releasedAt: "2026-11-17T09:00:00.000Z",
+    summary: "Catálogo del portal, segunda vuelta de diseño: rubros desde arriba, marcas grandes a color y Soundtec AI a la vista.",
+    items: [
+      { kind: "MEJORA", text: "En PC la columna de rubros arranca a la altura del título. A su derecha, en este orden: título con el aviso de precios y Soundtec AI, marcas, buscador/orden/vista, camino del rubro con la cantidad de productos y los resultados." },
+      { kind: "MEJORA", text: "Marcas más grandes y siempre a color pleno; la elegida se marca solo con un recuadro. Dos renglones y «Ver todas (+N)» despliega el resto en el lugar (si la marca elegida está entre las ocultas, se abre solo). En el celular siguen deslizándose. También en /catalogo." },
+      { kind: "MEJORA", text: "«Preguntale a Soundtec AI» pasa a ser una píldora azul con degradé y aro de color, al lado del título (también en /catalogo)." },
+      { kind: "FIX", text: "Vuelve el texto del aviso: «Los precios indicados están expresados en dólares estadounidenses y no incluyen impuestos.», con ícono y en un solo tono suave (catálogo y ficha)." },
+      { kind: "MEJORA", text: "En pantallas de 1536 px o más el portal usa más ancho: rubros al costado y la grilla en 4 columnas, todo centrado. Las etiquetas de cada producto que no entran se desvanecen en vez de cortarse a la mitad." },
+      { kind: "MEJORA", text: "El rubro Servicios (p. ej. IV-PROSERVICE-1B de Crestron) queda solo para el equipo: los clientes no lo ven en el catálogo ni en búsquedas." },
+    ],
+  },
 ];

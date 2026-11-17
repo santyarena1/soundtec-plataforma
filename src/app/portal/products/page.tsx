@@ -107,51 +107,61 @@ export default async function ProductsPage({
   }
 
   return (
-    <div className="relative space-y-6">
+    <>
       <RememberCatalog memoryKey="portal" />
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="heading-2">Catálogo</h1>
-          <PriceTaxNotice className="mt-2" />
-        </div>
-        {draft ? (
-          <Link
-            href={`/portal/requests/${draft.id}`}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-4 text-sm font-medium text-primary hover:bg-primary/15"
-          >
-            <Send className="h-4 w-4" />
-            Mi pedido ({draft.itemCount})
-          </Link>
-        ) : null}
-      </div>
+      {/*
+        PC: la columna de rubros arranca a la altura del título y el resto va a su derecha.
+        Orden de la derecha: encabezado (título, aviso de precios, Soundtec AI) → marcas (el
+        alcance) → buscar/ordenar/vista (refinan dentro de ese alcance) → camino del rubro y
+        cantidad → resultados.
+      */}
+      <div className="xl:grid xl:grid-cols-[16rem_minmax(0,1fr)] xl:gap-8">
+        <CatalogCategoryRail {...categoryProps} />
+        <div className="min-w-0 space-y-6">
+          <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="heading-2 leading-none">Catálogo</h1>
+              <PriceTaxNotice className="mt-2.5" />
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              {draft ? (
+                <Link
+                  href={`/portal/requests/${draft.id}`}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 text-sm font-medium text-primary hover:bg-primary/15"
+                >
+                  <Send className="h-4 w-4" />
+                  Mi pedido ({draft.itemCount})
+                </Link>
+              ) : null}
+              <AssistantEntry href="/expo?from=portal" />
+            </div>
+          </header>
 
-      {/* De lado a lado del contenedor, igual que la fila de marcas. */}
-      <AssistantEntry href="/expo?from=portal" />
+          <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} basePath="/portal/products" />
 
-      <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} basePath="/portal/products" />
-
-      {/* Listado con el sidebar de rubros al lado (PC) o el botón «Rubros» arriba (tablet y celular). */}
-      <div className="relative xl:flex xl:gap-6 min-[1800px]:block">
-      <CatalogCategoryRail {...categoryProps} />
-      <div className="min-w-0 flex-1 space-y-6">
-      <CatalogCategoryBar {...categoryProps} />
-
-      {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
+          {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
 
       {/* Marca «Próximamente» sin productos: solo el aviso, sin «0 resultados» ni buscador vacío. */}
       {onlyComingSoon ? null : (
       <CatalogMultiSelectProvider productIds={items.map((i) => i.id)} canEditPrices={canEditPrices} canOrder={CUSTOMER_ORDERS_ENABLED}>
-      <CatalogLayout state={urlState} meta={meta} total={total} categoryShownAbove={categoryInPath} toolbar={<CatalogToolbar state={urlState} />}>
+      <CatalogLayout
+        state={urlState}
+        meta={meta}
+        total={total}
+        categoryShownAbove={categoryInPath}
+        toolbar={<CatalogToolbar state={urlState} />}
+        lead={<CatalogCategoryBar {...categoryProps} />}
+      >
         {items.length === 0 && comingSoonBrand ? null : items.length === 0 ? (
           <EmptyState
             icon={<Package className="h-5 w-5" />}
             title="Sin resultados"
-            description="Probá otros filtros o ampliá el rango de precios."
+            description="Probá con otra palabra, otra marca o «Todos los rubros»."
           />
         ) : urlState.view === "table" ? (
           <CatalogTable items={items} internal={internal} />
         ) : (
-          <CatalogGrid items={items} internal={internal} canFeature={canFeature} withSidebar={categoryTree.length > 0} />
+          <CatalogGrid items={items} internal={internal} canFeature={canFeature} withSidebar />
         )}
 
         {totalPages > 1 ? (
@@ -188,8 +198,8 @@ export default async function ProductsPage({
       </CatalogLayout>
       </CatalogMultiSelectProvider>
       )}
+        </div>
       </div>
-      </div>
-    </div>
+    </>
   );
 }

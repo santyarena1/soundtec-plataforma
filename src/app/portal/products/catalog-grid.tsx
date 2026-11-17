@@ -44,7 +44,7 @@ interface GridProps {
  */
 export function CatalogGrid({ items, publicMode = false, basePath = "/portal/products", internal = false, canFeature = false, withSidebar = false }: GridProps) {
   return (
-    <div className={withSidebar ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 min-[1800px]:grid-cols-4" : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}>
+    <div className={withSidebar ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}>
       {items.map((p) => {
         const href = `${basePath}/${p.id}`;
         const card = (
@@ -108,8 +108,8 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                 {cardDescription(p) ?? ""}
               </p>
 
-              {/* Etiquetas — 1 fila fija, sin wrap */}
-              <div className="mt-2 flex h-6 items-center gap-1 overflow-hidden whitespace-nowrap">
+              {/* Etiquetas — 1 fila fija, sin wrap; la que no entra se desvanece en vez de cortarse seca */}
+              <div className="mt-2 flex h-6 items-center gap-1 overflow-hidden whitespace-nowrap [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]">
                 <StockBadge status={p.stockStatus} qty={p.stockQuantity} internal={internal && !publicMode} />
                 {p.categoryName ? <Badge tone="muted">{p.categoryName}</Badge> : null}
                 {p.familyName && p.familyName !== p.categoryName ? <Badge tone="muted">{p.familyName}</Badge> : null}
