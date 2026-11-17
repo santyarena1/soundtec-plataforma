@@ -1,24 +1,42 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Monitor, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { renderCampaignEmail, type CampaignFooter } from "@/lib/mailing/template";
+import { finalizeCustomHtml } from "@/lib/mailing/html-finalize";
+import { fillVariables } from "@/lib/mailing/variables";
 import type { MailBlock } from "@/lib/mailing/blocks";
 import type { MailContact } from "@/lib/mailing/variables";
 
 /** Vista previa del mail tal como sale (misma plantilla), en ancho de escritorio o de celular. */
-export function EmailPreview({ subject, preheader, blocks, footer, contact }: { subject: string; preheader: string; blocks: MailBlock[]; footer: CampaignFooter; contact: MailContact }) {
+export function EmailPreview({ subject, preheader, blocks, footer, contact, customHtml, title = "Vista previa", height = 860 }: { subject: string; preheader: string; blocks: MailBlock[]; footer: CampaignFooter; contact: MailContact; /** HTML propio (modo HTML): reemplaza a los bloques. */ customHtml?: string | null; title?: string; height?: number }) {
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
-  const mail = useMemo(() => renderCampaignEmail({ subject, preheader, blocks, contact, unsubscribeUrl: "#baja", footer, origin }), [subject, preheader, blocks, contact, footer, origin]);
+  const mail = useMemo(
+    () =>
+      customHtml != null
+        ? { subject: fillVariables(subject.trim() || "(sin asunto)", contact), html: finalizeCustomHtml({ html: customHtml, contact, preheader, unsubscribeUrl: "#baja", footer }) }
+        : renderCampaignEmail({ subject, preheader, blocks, contact, unsubscribeUrl: "#baja", footer, origin }),
+    [subject, preheader, blocks, contact, footer, origin, customHtml]
+  );
   const width = device === "mobile" ? 390 : 680;
+  const frameBox = useRef<HTMLDivElement | null>(null);
+  const [boxWidth, setBoxWidth] = useState(0);
+  useEffect(() => {
+    const el = frameBox.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => setBoxWidth(entry?.contentRect.width ?? 0));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const scale = boxWidth > 0 && boxWidth < width ? boxWidth / width : 1;
 
   return (
     <section className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-semibold">Vista previa</h2>
+        <h2 className="font-semibold">{title}</h2>
         <div role="tablist" className="inline-flex rounded-lg border border-border p-0.5">
           {(
             [
@@ -46,9 +64,11 @@ export function EmailPreview({ subject, preheader, blocks, footer, contact }: { 
         </p>
         <p className="truncate text-xs text-muted-foreground">Así le llega a {contact.name || contact.email}{contact.company ? ` (${contact.company})` : ""}</p>
       </div>
-      <div className="flex justify-center overflow-hidden rounded-lg bg-[#eef0f3]">
-        <iframe title="Vista previa del mail" srcDoc={mail.html} sandbox="" style={{ width, maxWidth: "100%", height: 860, border: 0, background: "#eef0f3" }} />
+      <div ref={frameBox} className="flex justify-center overflow-hidden rounded-lg bg-[#eef0f3]" style={{ height: height * scale }}>
+        {/* Si la columna es más angosta que el ancho simulado, se achica entero (no se recorta un diseño de 600 px). */}
+        <iframe title="Vista previa del mail" srcDoc={mail.html} sandbox="" className="shrink-0 origin-top" style={{ width, height, border: 0, background: "#eef0f3", transform: scale < 1 ? `scale(${scale})` : undefined }} />
       </div>
+      {scale < 1 ? <p className="text-xs text-muted-foreground">Achicada al {Math.round(scale * 100)} % para que entre en la pantalla.</p> : null}
     </section>
   );
 }

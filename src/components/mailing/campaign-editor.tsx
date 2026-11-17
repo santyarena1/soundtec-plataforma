@@ -16,6 +16,9 @@ import { newBlock, type MailBlock, type MailBlockType } from "@/lib/mailing/bloc
 import type { CampaignAudience } from "@/lib/mailing/audience";
 import type { CampaignFooter } from "@/lib/mailing/template";
 import { variableKey, type MailContact } from "@/lib/mailing/variables";
+import type { TemplateWarning } from "@/lib/mailing/html-template";
+import { cn } from "@/lib/utils";
+import { CampaignHtmlContent } from "@/components/mailing/campaign-html-content";
 import { saveCampaign, sendCampaignTest, unscheduleCampaign } from "@/server/actions/mailing";
 
 export type EditorCampaign = {
@@ -27,6 +30,9 @@ export type EditorCampaign = {
   audience: CampaignAudience;
   status: string;
   scheduledAt: string | null;
+  contentMode: "BLOCKS" | "HTML";
+  customHtml: string | null;
+  templateId: string | null;
 };
 
 const ADD_BLOCKS: Array<{ type: MailBlockType; label: string; icon: React.ComponentType<{ className?: string }> }> = [
@@ -47,6 +53,7 @@ export function CampaignEditor({
   simulate,
   dailyLimit,
   defaultTestEmail,
+  templates,
 }: {
   campaign: EditorCampaign;
   lists: ListOption[];
@@ -54,6 +61,7 @@ export function CampaignEditor({
   simulate: boolean;
   dailyLimit: number;
   defaultTestEmail: string;
+  templates: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();
   const [name, setName] = useState(campaign.name);
@@ -65,9 +73,14 @@ export function CampaignEditor({
   const [testTo, setTestTo] = useState(defaultTestEmail);
   const [sendOpen, setSendOpen] = useState(false);
   const [busy, start] = useTransition();
-  const [savedAt, setSavedAt] = useState<string>(JSON.stringify({ name: campaign.name, subject: campaign.subject, preheader: campaign.preheader, blocks: campaign.blocks, audience: campaign.audience }));
+  const [mode, setMode] = useState<"BLOCKS" | "HTML">(campaign.contentMode);
+  const [customHtml, setCustomHtml] = useState(campaign.customHtml ?? "");
+  const [htmlWarnings, setHtmlWarnings] = useState<TemplateWarning[] | null>(null);
+  const [savedAt, setSavedAt] = useState<string>(
+    JSON.stringify({ name: campaign.name, subject: campaign.subject, preheader: campaign.preheader, blocks: campaign.blocks, audience: campaign.audience, mode: campaign.contentMode, customHtml: campaign.customHtml ?? "" })
+  );
 
-  const snapshot = JSON.stringify({ name, subject, preheader, blocks, audience });
+  const snapshot = JSON.stringify({ name, subject, preheader, blocks, audience, mode, customHtml });
   const dirty = snapshot !== savedAt;
 
   useEffect(() => {
@@ -80,12 +93,16 @@ export function CampaignEditor({
   const extraVariables = useMemo(() => [...new Set(lists.filter((l) => audience.include.includes(l.id)).flatMap((l) => l.extraFields))], [lists, audience.include]);
 
   async function save(silent = false): Promise<boolean> {
-    const result = await saveCampaign({ id: campaign.id, name, subject, preheader, blocks, audience });
+    const result = await saveCampaign({ id: campaign.id, name, subject, preheader, blocks, audience, contentMode: mode, ...(mode === "HTML" ? { customHtml } : {}) });
     if (!result.ok) {
       toast.error(result.error);
       return false;
     }
-    setSavedAt(snapshot);
+    if (result.html !== undefined) {
+      setCustomHtml(result.html);
+      setHtmlWarnings(result.warnings ?? []);
+    }
+    setSavedAt(JSON.stringify({ name, subject, preheader, blocks, audience, mode, customHtml: result.html ?? customHtml }));
     if (!silent) toast.success("Campaña guardada.");
     return true;
   }
@@ -180,10 +197,42 @@ export function CampaignEditor({
           </section>
 
           <section className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-semibold">Contenido</h2>
-              <p className="text-xs text-muted-foreground">{blocks.length} bloques</p>
+              <div role="tablist" aria-label="Cómo se arma el mail" className="inline-flex rounded-lg border border-border p-0.5 text-sm">
+                {(
+                  [
+                    { key: "BLOCKS", label: "Armar con bloques" },
+                    { key: "HTML", label: "HTML propio" },
+                  ] as const
+                ).map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={mode === option.key}
+                    onClick={() => setMode(option.key)}
+                    className={cn("rounded-md px-3 py-1.5 font-medium", mode === option.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
+            {mode === "HTML" ? (
+              <CampaignHtmlContent
+                campaignId={campaign.id}
+                html={customHtml}
+                onHtml={setCustomHtml}
+                warnings={htmlWarnings}
+                onImported={(html, warnings) => {
+                  setCustomHtml(html);
+                  setHtmlWarnings(warnings);
+                }}
+                templates={templates}
+              />
+            ) : (
+              <>
             {blocks.map((block, index) => (
               <BlockCard
                 key={block.id}
@@ -208,6 +257,8 @@ export function CampaignEditor({
                 </button>
               ))}
             </div>
+              </>
+            )}
             {extraVariables.length ? (
               <p className="text-xs text-muted-foreground">
                 Variables de las listas elegidas: {extraVariables.map((v) => `{{${variableKey(v)}}}`).join(" · ")}
@@ -227,7 +278,7 @@ export function CampaignEditor({
             <p className="text-sm text-muted-foreground">Llega con «[Prueba]» en el asunto. Mirala en el celular y en la computadora antes de mandarla a todos.</p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Input type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="tu-mail@soundtec.com.ar" aria-label="Mail para la prueba" />
-              <Button variant="outline" disabled={busy || !testTo.trim()} onClick={sendTest}>
+              <Button variant="outline" className="shrink-0 whitespace-nowrap" disabled={busy || !testTo.trim()} onClick={sendTest}>
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Mandar prueba
               </Button>
             </div>
@@ -235,7 +286,7 @@ export function CampaignEditor({
         </div>
 
         <div className="xl:sticky xl:top-4 xl:self-start">
-          <EmailPreview subject={subject} preheader={preheader} blocks={blocks} footer={footer} contact={sample} />
+          <EmailPreview subject={subject} preheader={preheader} blocks={blocks} footer={footer} contact={sample} customHtml={mode === "HTML" ? customHtml : null} />
         </div>
       </div>
 

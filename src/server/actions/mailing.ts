@@ -12,6 +12,8 @@ import { campaignAudienceSchema, readAudience, type RecipientStats } from "@/lib
 import { resolveCampaignAudience } from "@/lib/mailing/sources";
 import { materializeCampaign, processCampaign, sendTestEmail, type TickResult } from "@/lib/mailing/sender";
 import { getMailingConfig } from "@/lib/mailing/config";
+import { processIncomingHtml } from "@/lib/mailing/assets";
+import type { TemplateWarning } from "@/lib/mailing/html-template";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
@@ -44,9 +46,11 @@ const saveSchema = z.object({
   preheader: z.string().max(200),
   blocks: blocksSchema,
   audience: campaignAudienceSchema,
+  contentMode: z.enum(["BLOCKS", "HTML"]).default("BLOCKS"),
+  customHtml: z.string().max(4_000_000).nullable().optional(),
 });
 
-export async function saveCampaign(input: unknown): Promise<Result> {
+export async function saveCampaign(input: unknown): Promise<Result<{ html?: string; warnings?: TemplateWarning[] }>> {
   await guard();
   const parsed = saveSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
@@ -54,9 +58,22 @@ export async function saveCampaign(input: unknown): Promise<Result> {
   const current = await prisma.mailCampaign.findUnique({ where: { id }, select: { status: true } });
   if (!current) return { ok: false, error: "La campaña ya no existe." };
   if (!["DRAFT", "SCHEDULED"].includes(current.status)) return { ok: false, error: "Una campaña que ya salió no se edita. Duplicala para mandar otra." };
-  await prisma.mailCampaign.update({ where: { id }, data: { ...data, blocks: data.blocks as unknown as Prisma.InputJsonValue, audience: data.audience } });
+  const { customHtml, ...rest } = data;
+  // El HTML propio se vuelve a sanear en cada guardado (y las imágenes en base64 nuevas van a Blob).
+  let processed: { html: string; warnings: TemplateWarning[] } | null = null;
+  if (customHtml?.trim()) {
+    try {
+      processed = await processIncomingHtml(customHtml);
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : "No se pudo procesar el HTML." };
+    }
+  }
+  await prisma.mailCampaign.update({
+    where: { id },
+    data: { ...rest, blocks: rest.blocks as unknown as Prisma.InputJsonValue, audience: rest.audience, ...(customHtml !== undefined ? { customHtml: processed?.html ?? null } : {}) },
+  });
   revalidate(id);
-  return { ok: true };
+  return { ok: true, ...(processed ? { html: processed.html, warnings: processed.warnings } : {}) };
 }
 
 export async function duplicateCampaign(input: { id: string }): Promise<Result<{ id: string }>> {
@@ -70,6 +87,9 @@ export async function duplicateCampaign(input: { id: string }): Promise<Result<{
       preheader: source.preheader,
       blocks: (source.blocks ?? []) as Prisma.InputJsonValue,
       audience: (source.audience ?? { include: [], exclude: [] }) as Prisma.InputJsonValue,
+      contentMode: source.contentMode,
+      customHtml: source.customHtml,
+      templateId: source.templateId,
       createdById: user.id,
     },
   });
@@ -96,9 +116,10 @@ export async function previewCampaignAudience(input: unknown): Promise<Result<{ 
   return { ok: true, stats, missingLists, sample: recipients.slice(0, 6).map((r) => ({ email: r.email, name: r.name ?? null, company: r.company ?? null })) };
 }
 
-function readyToSend(campaign: { subject: string; blocks: Prisma.JsonValue | null; audience: Prisma.JsonValue | null }): string | null {
+function readyToSend(campaign: { subject: string; blocks: Prisma.JsonValue | null; audience: Prisma.JsonValue | null; contentMode: string; customHtml: string | null }): string | null {
   if (!campaign.subject.trim()) return "Falta el asunto.";
-  if (!readBlocks(campaign.blocks).length) return "El mail está vacío: agregá al menos un bloque.";
+  if (campaign.contentMode === "HTML" && !campaign.customHtml?.trim()) return "Falta el HTML: elegí una plantilla o importá uno.";
+  if (campaign.contentMode !== "HTML" && !readBlocks(campaign.blocks).length) return "El mail está vacío: agregá al menos un bloque.";
   if (!readAudience(campaign.audience).include.length) return "Elegí al menos una lista de destinatarios.";
   return null;
 }
@@ -107,9 +128,10 @@ export async function sendCampaignTest(input: { id: string; to: string }): Promi
   const { user } = await guard();
   const to = normalizeEmail(input.to);
   if (!isEmail(to)) return { ok: false, error: "Ese mail no es válido." };
-  const campaign = await prisma.mailCampaign.findUnique({ where: { id: input.id }, select: { id: true, subject: true, preheader: true, blocks: true } });
+  const campaign = await prisma.mailCampaign.findUnique({ where: { id: input.id }, select: { id: true, subject: true, preheader: true, blocks: true, contentMode: true, customHtml: true } });
   if (!campaign) return { ok: false, error: "La campaña ya no existe." };
   if (!campaign.subject.trim()) return { ok: false, error: "Falta el asunto." };
+  if (campaign.contentMode === "HTML" && !campaign.customHtml?.trim()) return { ok: false, error: "Falta el HTML." };
   const result = await sendTestEmail(campaign, to, { email: to, name: user.name ?? "Ana Gómez", company: user.companyName ?? "Estudio AV" });
   return result.ok ? { ok: true, simulated: result.simulated } : { ok: false, error: result.error };
 }
@@ -125,7 +147,7 @@ export async function startCampaign(input: unknown): Promise<Result<{ total: num
   await guard();
   const parsed = startSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Datos inválidos." };
-  const campaign = await prisma.mailCampaign.findUnique({ where: { id: parsed.data.id }, select: { id: true, status: true, subject: true, blocks: true, audience: true } });
+  const campaign = await prisma.mailCampaign.findUnique({ where: { id: parsed.data.id }, select: { id: true, status: true, subject: true, blocks: true, audience: true, contentMode: true, customHtml: true } });
   if (!campaign) return { ok: false, error: "La campaña ya no existe." };
   if (!["DRAFT", "SCHEDULED"].includes(campaign.status)) return { ok: false, error: "Esta campaña ya salió." };
   const problem = readyToSend(campaign);

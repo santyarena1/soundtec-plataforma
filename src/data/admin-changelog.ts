@@ -2926,4 +2926,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Permiso nuevo «Campañas por mail» en Roles. Sin API key de Resend todo funciona en modo prueba: se simula y no sale nada." },
     ],
   },
+  {
+    id: "ship-2026-11-17-plantillas-html-campanas",
+    version: "2.43.0",
+    releasedAt: "2026-11-17T03:00:00.000Z",
+    summary: "Campañas por mail con HTML propio: plantillas importadas de un .html, un .zip con imágenes o código pegado.",
+    items: [
+      { kind: "NUEVO", text: "Campañas › Plantillas: importar un .html, un .zip (HTML + imágenes) o pegar el código. Las imágenes del zip, las de rutas relativas y las incrustadas se suben solas. Miniatura, edición del código con vista previa en vivo (escritorio y celular), duplicar y borrar." },
+      { kind: "NUEVO", text: "En cada campaña: «Armar con bloques» o «HTML propio» (desde una plantilla o cargado solo para esa campaña). Asunto, listas, prueba, programación, envío en tandas, resultados y bajas funcionan igual." },
+      { kind: "NUEVO", text: "El HTML se limpia al guardar (sin scripts, formularios, iframes ni código en enlaces). Variables {{nombre}}, {{empresa}} y columnas del Excel también en el HTML; {{baja}} ubica el enlace de baja y, si no está, se agrega el pie legal." },
+      { kind: "MEJORA", text: "Avisos al importar: peso mayor a 100 KB (Gmail lo corta), imágenes sin dirección absoluta, enlaces http, imágenes sin texto alternativo y anchos mayores a 700 px. Versión en texto plano automática." },
+    ],
+  },
 ];

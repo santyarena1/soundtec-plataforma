@@ -27,6 +27,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
     orderBy: [{ kind: "asc" }, { updatedAt: "desc" }],
     select: { id: true, name: true, kind: true, query: true, extraFields: true, description: true, _count: { select: { members: true } } },
   });
+  const templates = await prisma.mailTemplate.findMany({ orderBy: { updatedAt: "desc" }, select: { id: true, name: true } });
   const options: ListOption[] = lists.map((l) => {
     const query = l.kind === "DYNAMIC" ? readAudienceQuery(l.query) : null;
     return {
@@ -49,7 +50,11 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         audience: readAudience(campaign.audience),
         status: campaign.status,
         scheduledAt: campaign.scheduledAt?.toISOString() ?? null,
+        contentMode: campaign.contentMode === "HTML" ? "HTML" : "BLOCKS",
+        customHtml: campaign.customHtml,
+        templateId: campaign.templateId,
       }}
+      templates={templates}
       lists={options}
       footer={config.footer}
       simulate={config.simulate}

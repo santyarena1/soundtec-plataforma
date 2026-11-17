@@ -2533,6 +2533,12 @@ model MailCampaign {
   simulated   Boolean                 @default(false)
   /// Motivo de la última pausa automática (límite diario, error de Resend…).
   note        String?
+  /// BLOCKS (editor por bloques) | HTML (HTML propio, saneado).
+  contentMode String                  @default("BLOCKS")
+  /// HTML propio de la campaña (copia de una plantilla o importado solo para esta).
+  customHtml  String?                 @db.Text
+  /// Plantilla de la que salió el HTML (solo referencia: el HTML se copia).
+  templateId  String?
   createdById String?
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
@@ -2598,4 +2604,17 @@ model MailWebhookEvent {
   createdAt DateTime @default(now())
 
   @@index([emailId])
+}
+
+/// Plantilla HTML importada (archivo, código pegado o .zip con imágenes). Ya saneada y con las imágenes en Blob.
+model MailTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  html        String   @db.Text
+  /// Avisos de entregabilidad del último guardado (peso, imágenes, enlaces http…).
+  warnings    Json?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

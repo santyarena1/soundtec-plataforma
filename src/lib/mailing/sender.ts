@@ -5,6 +5,9 @@ import { appUrl } from "@/lib/app-url";
 import { readBlocks } from "@/lib/mailing/blocks";
 import { readAudience } from "@/lib/mailing/audience";
 import { renderCampaignEmail } from "@/lib/mailing/template";
+import { finalizeCustomHtml, finalizeCustomText, hasUnsubscribeMarker } from "@/lib/mailing/html-finalize";
+import { htmlToPlainText } from "@/lib/mailing/html-template";
+import { fillVariables } from "@/lib/mailing/variables";
 import { addressOf, getMailingConfig, type MailingConfig } from "@/lib/mailing/config";
 import { resolveCampaignAudience, suppressedEmails } from "@/lib/mailing/sources";
 import { createUnsubscribeToken } from "@/lib/mailing/unsubscribe-token";
@@ -51,20 +54,31 @@ export function oneClickUrlFor(email: string, campaignId: string | null): string
   return `${appUrl()}/api/mailing/baja?t=${encodeURIComponent(createUnsubscribeToken({ email, campaignId }))}`;
 }
 
-type CampaignContent = { id: string; subject: string; preheader: string; blocks: Prisma.JsonValue | null };
+type CampaignContent = { id: string; subject: string; preheader: string; blocks: Prisma.JsonValue | null; contentMode?: string | null; customHtml?: string | null };
+
+/** Texto plano de un HTML propio: se calcula una vez por HTML (no por cada destinatario). */
+let plainCache: { html: string; text: string } | null = null;
+function plainTextOf(html: string): string {
+  if (plainCache?.html !== html) plainCache = { html, text: htmlToPlainText(html) };
+  return plainCache.text;
+}
+
+function renderContent(campaign: CampaignContent, contact: MailContact, config: MailingConfig): { subject: string; html: string; text: string } {
+  const unsubscribeUrl = unsubscribeUrlFor(contact.email, campaign.id);
+  if (campaign.contentMode === "HTML" && campaign.customHtml) {
+    const hadMarker = hasUnsubscribeMarker(campaign.customHtml);
+    return {
+      subject: fillVariables(campaign.subject.trim() || "(sin asunto)", contact),
+      html: finalizeCustomHtml({ html: campaign.customHtml, contact, preheader: campaign.preheader, unsubscribeUrl, footer: config.footer }),
+      text: finalizeCustomText({ text: plainTextOf(campaign.customHtml), contact, preheader: campaign.preheader, unsubscribeUrl, footer: config.footer, hadMarker }),
+    };
+  }
+  return renderCampaignEmail({ subject: campaign.subject, preheader: campaign.preheader, blocks: readBlocks(campaign.blocks), contact, unsubscribeUrl, footer: config.footer, origin: appUrl() });
+}
 
 /** El mail final para una persona (con su enlace de baja y los encabezados de baja en un clic). */
 export function buildEmail(campaign: CampaignContent, contact: MailContact, config: MailingConfig, options: { testPrefix?: boolean } = {}): ResendEmail {
-  const origin = appUrl();
-  const rendered = renderCampaignEmail({
-    subject: campaign.subject,
-    preheader: campaign.preheader,
-    blocks: readBlocks(campaign.blocks),
-    contact,
-    unsubscribeUrl: unsubscribeUrlFor(contact.email, campaign.id),
-    footer: config.footer,
-    origin,
-  });
+  const rendered = renderContent(campaign, contact, config);
   return {
     from: config.from,
     to: [contact.email],
@@ -221,7 +235,7 @@ export async function processCampaign(campaignId: string, deadline: number): Pro
   const config = await getMailingConfig();
   let first = true;
   while (Date.now() < deadline) {
-    const campaign = await prisma.mailCampaign.findUnique({ where: { id: campaignId }, select: { id: true, status: true, subject: true, preheader: true, blocks: true, simulated: true } });
+    const campaign = await prisma.mailCampaign.findUnique({ where: { id: campaignId }, select: { id: true, status: true, subject: true, preheader: true, blocks: true, simulated: true, contentMode: true, customHtml: true } });
     if (!campaign || campaign.status !== "SENDING") break;
     // Una campaña que arrancó simulada termina simulada (y al revés): no se mezcla.
     const effective: MailingConfig = { ...config, simulate: campaign.simulated };

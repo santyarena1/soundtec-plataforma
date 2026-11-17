@@ -194,7 +194,7 @@ export async function CampaignResults({ campaign, searchParams, footer }: { camp
           ) : null}
         </section>
         <div className="xl:sticky xl:top-4 xl:self-start">
-          <EmailPreview subject={campaign.subject} preheader={campaign.preheader} blocks={readBlocks(campaign.blocks)} footer={footer} contact={{ email: "martin@ejemplo.com", name: "Martín Pereyra", company: "Estudio Acústico Sur" }} />
+          <EmailPreview subject={campaign.subject} preheader={campaign.preheader} blocks={readBlocks(campaign.blocks)} footer={footer} contact={{ email: "martin@ejemplo.com", name: "Martín Pereyra", company: "Estudio Acústico Sur" }} customHtml={campaign.contentMode === "HTML" ? campaign.customHtml : null} />
         </div>
       </div>
     </div>

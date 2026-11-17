@@ -55,11 +55,12 @@ const VARIABLE_RE = /\{\{\s*([a-zA-Z0-9_áéíóúñÁÉÍÓÚÑ ]+?)\s*(?:\|\s*
  * Reemplaza las variables. Si no hay dato y no hay valor por defecto queda
  * vacío, y se limpian los restos («Hola ,» → «Hola,»).
  */
-export function fillVariables(text: string, contact: MailContact): string {
+export function fillVariables(text: string, contact: MailContact, options: { escape?: (value: string) => string } = {}): string {
   if (!text.includes("{{")) return text;
-  return text
-    .replace(VARIABLE_RE, (_, rawKey: string, fallback: string | undefined) => valueFor(variableKey(rawKey), contact) || (fallback ?? ""))
-    .replace(/[ \t]+([,.!?;:])/g, "$1")
+  const out = options.escape ?? ((v: string) => v);
+  const filled = text.replace(VARIABLE_RE, (_, rawKey: string, fallback: string | undefined) => out(valueFor(variableKey(rawKey), contact) || (fallback ?? "")));
+  // En HTML (con escape) no se toca la puntuación: podría ser CSS.
+  return (options.escape ? filled : filled.replace(/[ \t]+([,.!?;:])/g, "$1"))
     .replace(/\b(Hola|Buen día|Buenas tardes|Estimado|Estimada)\s*,/gi, "$1,");
 }
 
