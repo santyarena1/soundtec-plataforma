@@ -2984,4 +2984,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "El rubro Servicios (p. ej. IV-PROSERVICE-1B de Crestron) queda solo para el equipo: los clientes no lo ven en el catálogo ni en búsquedas." },
     ],
   },
+  {
+    id: "ship-2026-11-17-marcas-dos-renglones",
+    version: "2.46.1",
+    releasedAt: "2026-11-17T09:00:00.000Z",
+    summary: "Marcas del catálogo: todas a la vista en dos renglones.",
+    items: [
+      { kind: "MEJORA", text: "Todas las marcas visibles siempre, en dos renglones de mosaicos más chicos y a color, ordenadas de izquierda a derecha. Sale «Ver todas». En el celular, dos renglones que se deslizan." },
+    ],
+  },
 ];
