@@ -41,7 +41,7 @@ const SECTORS = [
 export function AudiencesAndSectors() {
   return (
     <section id="soluciones" className="container-page py-20 sm:py-24">
-      <div className="grid gap-12 lg:grid-cols-[1fr_1fr] lg:gap-16">
+      <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_1fr] lg:gap-16">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Para quién</p>
           <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">

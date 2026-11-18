@@ -515,7 +515,7 @@ function BlockScreen({
 
   if (block.type === "map") {
     return (
-      <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+      <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <div>
           <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-5xl">{block.title}</h2>
           <RichBody html={block.body} className={`mt-5 ${theme.prose} ${theme.muted}`} />
@@ -561,7 +561,7 @@ function BlockScreen({
   // Marcas: área más ancha (6 columnas en escritorio) para que entren todas sin scroll.
   if (!side) return <div className={`mx-auto ${block.type === "brand_choice" ? "max-w-6xl" : "max-w-3xl"}`}>{content}</div>;
   return (
-    <div className="grid items-center gap-10 lg:grid-cols-2">
+    <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
       {content}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={side} alt="" className="max-h-[65vh] w-full rounded-2xl object-cover shadow-2xl" />

@@ -67,14 +67,17 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
-  // El sitio es solo claro: sin esto, Chrome en Android con el modo oscuro del teléfono
-  // «oscurece» las páginas por su cuenta (fondos negros en formularios, catálogo y portal).
-  colorScheme: "only light",
+  // El sitio es solo claro, aunque el teléfono esté en modo oscuro. «only light» solo no alcanzaba:
+  // hay navegadores y vistas web de Android que oscurecen la página salvo que declare tener tema
+  // oscuro. Por eso la raíz declara «light dark» (así nadie la oscurece por su cuenta) y en
+  // globals.css el body fija «only light» con los colores claros de siempre (controles nativos
+  // incluidos). Lo verifica e2e/force-dark.spec.ts con el oscurecido automático de Chrome.
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={inter.variable} style={{ colorScheme: "only light" }} suppressHydrationWarning>
+    <html lang="es" className={inter.variable} style={{ colorScheme: "light dark" }} suppressHydrationWarning>
       <body className="min-h-dvh bg-background text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>

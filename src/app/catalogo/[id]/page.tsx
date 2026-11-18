@@ -105,7 +105,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
         <ArrowLeft className="h-4 w-4" /> Volver al catálogo
       </BackToCatalogLink>
 
-      <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-start">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
         <div className="lg:sticky lg:top-24">
           <ProductGallery
             images={product.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt }))}
@@ -208,7 +208,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
               </CardTitle>
               <p className="muted-text mt-1">{section.hint}</p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {section.items.map((r) => (
                 <Link
                   key={r.id}

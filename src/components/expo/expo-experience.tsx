@@ -227,13 +227,13 @@ export function ExpoExperience({
             className="h-9 w-auto shrink-0 object-contain sm:h-10"
           />
           <span className="hidden h-5 w-px bg-border sm:block" />
-          <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
+          <p className="hidden truncate text-xs text-muted-foreground sm:block">
             Asistente técnico de productos
           </p>
         </div>
         <Link
           href={backHref}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-accent hover:text-foreground"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-accent hover:text-foreground"
         >
           <Search className="h-3.5 w-3.5" aria-hidden="true" />
           {backLabel}

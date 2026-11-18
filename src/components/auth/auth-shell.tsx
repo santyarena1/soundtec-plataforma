@@ -21,7 +21,7 @@ interface AuthShellProps {
 export function AuthShell({ kicker, title, subtitle, children, footer, brands, total }: AuthShellProps) {
   const withLogo = brands.filter((b) => b.logoUrl);
   return (
-    <div className="grid min-h-dvh bg-[#f3f6fa] text-[#1E3552] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 min-h-dvh bg-[#f3f6fa] text-[#1E3552] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
       <aside className="relative hidden overflow-hidden bg-[radial-gradient(ellipse_at_30%_20%,#2c4a70_0%,#1E3552_55%,#152740_100%)] text-white lg:flex lg:flex-col lg:items-center lg:justify-between lg:px-14 lg:py-14 lg:text-center">
         <div className="pointer-events-none absolute -right-40 -top-40 h-[30rem] w-[30rem] rounded-full border border-white/10" />
         <div className="pointer-events-none absolute -bottom-56 left-[12%] h-[28rem] w-[28rem] rounded-full border border-white/5" />

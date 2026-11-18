@@ -103,14 +103,14 @@ export function AccountRequestForm({ prefill }: { prefill: Prefill }) {
         <fieldset className="space-y-4">
           <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tus datos</legend>
           {field("fullName", "Nombre y apellido *", { required: true, defaultValue: prefill.fullName, autoComplete: "name" })}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {field("email", "Mail (con este vas a entrar) *", { required: true, type: "email", defaultValue: prefill.email, autoComplete: "email", inputMode: "email" })}
             {field("phone", "Teléfono / WhatsApp *", { required: true, type: "tel", defaultValue: prefill.phone, autoComplete: "tel", inputMode: "tel" })}
           </div>
         </fieldset>
         <fieldset className="space-y-4">
           <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tu empresa</legend>
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
             {field("company", "Razón social *", { required: true, defaultValue: prefill.company, autoComplete: "organization" })}
             {field("cuit", "CUIT *", { required: true, inputMode: "numeric", placeholder: "30-12345678-9" })}
           </div>
@@ -129,7 +129,7 @@ export function AccountRequestForm({ prefill }: { prefill: Prefill }) {
             <FieldError message={errors.activity} />
           </div>
           {activity === "Otra" ? field("activityOther", "Contanos el rubro *", { required: true }) : null}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {field("location", "Ciudad y provincia")}
             {field("website", "Web o Instagram")}
           </div>

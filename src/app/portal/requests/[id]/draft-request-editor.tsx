@@ -48,7 +48,7 @@ export function DraftRequestEditor({ requestId, items, projectDescription, subto
   );
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
       {/* Columna principal */}
       <div className="space-y-4">
         <Card className="border-primary/20 bg-gradient-to-br from-primary/8 to-card">

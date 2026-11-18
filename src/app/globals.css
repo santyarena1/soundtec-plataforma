@@ -56,6 +56,23 @@
   }
 }
 
+/* Solo claro, aunque el teléfono esté en modo oscuro (ver viewport en layout.tsx): la raíz
+   declara «light dark» para que el navegador no oscurezca la página, y todo lo que está
+   adentro del body queda en claro y sin oscurecido automático por elemento. */
+body {
+  color-scheme: only light;
+}
+
+/* Con el sistema en oscuro, la barra de desplazamiento de la raíz se pintaría oscura: se
+   deja clara. La regla además les indica a los navegadores que miran «prefers-color-scheme»
+   que el sitio ya resuelve su modo oscuro (que es el mismo claro). */
+@media (prefers-color-scheme: dark) {
+  html {
+    background-color: hsl(var(--background));
+    scrollbar-color: hsl(215 16% 72%) hsl(var(--background));
+  }
+}
+
 @layer components {
   .container-page {
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;

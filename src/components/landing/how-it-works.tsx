@@ -26,7 +26,7 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section id="como-funciona" className="container-page py-20 sm:py-24">
-      <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
         <div className="lg:sticky lg:top-24 lg:self-start">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Cómo funciona</p>
           <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">

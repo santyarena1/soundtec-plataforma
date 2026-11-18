@@ -44,7 +44,7 @@ interface GridProps {
  */
 export function CatalogGrid({ items, publicMode = false, basePath = "/portal/products", internal = false, canFeature = false, withSidebar = false }: GridProps) {
   return (
-    <div className={withSidebar ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}>
+    <div className={withSidebar ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}>
       {items.map((p) => {
         const href = `${basePath}/${p.id}`;
         const card = (

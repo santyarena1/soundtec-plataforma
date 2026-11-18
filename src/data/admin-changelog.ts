@@ -3005,4 +3005,17 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Títulos y descripciones de los videos se editan en el ajuste «portal.tutorial_videos»; los archivos se cargan con scripts/tutorial-videos-upload.ts y la carga respeta lo editado." },
     ],
   },
+  {
+    id: "ship-2026-11-18-celular-claro-y-sin-cortes",
+    version: "2.48.0",
+    releasedAt: "2026-11-18T12:00:00.000Z",
+    summary: "Celular: el sitio queda siempre claro aunque el teléfono esté en modo oscuro, y las tarjetas de la búsqueda ya no se cortan.",
+    items: [
+      { kind: "FIX", text: "Modo oscuro del teléfono / «Oscurecer sitios web»: la página declara «light dark» en la raíz (los navegadores y vistas web de Android que solo respetan esa señal dejan de oscurecerla) y el contenido fija «only light». Formularios, listas, calendarios y barras de desplazamiento siguen claros. Vale para todo: portal, catálogo, /f, /p y el panel." },
+      { kind: "FIX", text: "Catálogo público con búsqueda: en el celular las tarjetas medían ~470 px y se cortaban a la derecha. Ahora ocupan el ancho de la pantalla. Lo mismo con la documentación de la ficha de producto." },
+      { kind: "FIX", text: "Grillas del portal, ficha, favoritos, /p, /f y Solicitar cuenta: en el celular arrancan en una columna fija, así un nombre largo no estira la página." },
+      { kind: "MEJORA", text: "Barra del catálogo en el celular: «Más relevantes» entra completo (el selector de cantidad y los botones de vista son más angostos). En el inicio del portal, «Próximamente» ya no se corta. Soundtec AI: «Volver al catálogo» en un renglón." },
+      { kind: "MEJORA", text: "Pruebas nuevas: e2e/force-dark.spec.ts (Chrome con el oscurecido forzado) y e2e/mobile-overflow.spec.ts (páginas a 390 px sin nada fuera de la pantalla)." },
+    ],
+  },
 ];

@@ -10,7 +10,7 @@ export function InfoList({ items, theme }: { items: InfoItem[]; theme: FormTheme
   const rows = items.filter((i) => i.label.trim() || i.value.trim());
   if (!rows.length) return null;
   return (
-    <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+    <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
       {rows.map((item, i) => (
         <div key={i} className={`border-l-2 pl-4 ${theme.dark ? "border-white/30" : "border-black/10"}`}>
           <dt className={`text-xs font-semibold uppercase tracking-[0.14em] ${theme.muted}`}>{item.label}</dt>

@@ -105,7 +105,7 @@ export function AiContentNotice({
       </div>
       {reporting ? (
         <div className="space-y-3 border-t border-border pt-3">
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {REASONS.map(([key, label]) => (
               <label key={key} className="flex gap-2 text-sm">
                 <input

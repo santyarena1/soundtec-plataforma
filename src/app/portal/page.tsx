@@ -325,7 +325,7 @@ export default async function PortalDashboardPage() {
       ) : null}
 
       {/* Pedidos + novedades del equipo */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {CUSTOMER_ORDERS_ENABLED ? (
         <Card className="lg:col-span-2">
           <CardContent className="p-6">
@@ -419,7 +419,7 @@ function ComingSoonStat({ label }: { label: string }) {
       className="flex min-w-0 cursor-not-allowed flex-col overflow-hidden rounded-xl border border-dashed border-primary-foreground/15 px-1.5 py-2.5 text-center sm:px-4 sm:text-left"
     >
       <dt className="order-2 mt-1 text-[10px] font-medium uppercase leading-tight tracking-normal text-primary-foreground/50 sm:text-[11px] sm:tracking-wider">{label}</dt>
-      <dd className="order-1 text-[11px] font-semibold uppercase leading-tight tracking-wide text-primary-foreground/60 sm:text-sm">Próximamente</dd>
+      <dd className="order-1 text-[11px] font-semibold leading-tight tracking-normal text-primary-foreground/60 sm:text-sm sm:uppercase sm:tracking-wide">Próximamente</dd>
     </div>
   );
 }

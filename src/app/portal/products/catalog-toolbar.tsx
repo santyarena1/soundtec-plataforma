@@ -73,7 +73,7 @@ export function CatalogToolbar({ state, publicMode = false }: { state: CatalogUr
         <Select
           value={state.sort || "relevance"}
           onChange={(e) => push({ sort: e.target.value as CatalogUrlState["sort"] })}
-          className="h-10 min-w-0 flex-1 text-sm sm:w-44 sm:flex-none"
+          className="h-10 min-w-0 flex-1 px-2.5 text-sm sm:w-44 sm:flex-none sm:px-3"
           aria-label="Ordenar por"
         >
           <option value="relevance">Más relevantes</option>
@@ -87,7 +87,7 @@ export function CatalogToolbar({ state, publicMode = false }: { state: CatalogUr
         <Select
           value={String(state.pageSize ?? 24)}
           onChange={(e) => push({ pageSize: Number(e.target.value) })}
-          className="h-10 w-24 shrink-0 text-sm"
+          className="h-10 w-[4.5rem] shrink-0 px-2.5 text-sm sm:w-24 sm:px-3"
           aria-label="Productos por página"
         >
           <option value="12">12</option>
@@ -100,7 +100,7 @@ export function CatalogToolbar({ state, publicMode = false }: { state: CatalogUr
           <button
             type="button"
             onClick={() => push({ view: "grid" })}
-            className={`inline-flex h-9 items-center gap-1 rounded-sm px-3 text-xs font-medium ${
+            className={`inline-flex h-9 items-center gap-1 rounded-sm px-2.5 text-xs font-medium sm:px-3 ${
               state.view === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
             }`}
           >
@@ -109,7 +109,7 @@ export function CatalogToolbar({ state, publicMode = false }: { state: CatalogUr
           <button
             type="button"
             onClick={() => push({ view: "table" })}
-            className={`inline-flex h-9 items-center gap-1 rounded-sm px-3 text-xs font-medium ${
+            className={`inline-flex h-9 items-center gap-1 rounded-sm px-2.5 text-xs font-medium sm:px-3 ${
               state.view === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
             }`}
           >

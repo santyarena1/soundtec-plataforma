@@ -248,7 +248,7 @@ export function ProductRichInfo(props: ProductRichInfoProps) {
               <Tag className="h-4 w-4 text-accent" />
               Identificación del fabricante
             </CardTitle>
-            <div className="grid gap-3 sm:grid-cols-3 text-sm">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 text-sm">
               {props.modelNumber ? (
                 <div>
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Modelo</p>
@@ -287,7 +287,7 @@ export function ProductRichInfo(props: ProductRichInfoProps) {
                   {group.name ? (
                     <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-primary">{group.name}</p>
                   ) : null}
-                  <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
                     {group.rows.map((row, i) => (
                       <div key={i} className="flex items-baseline justify-between gap-3 border-b border-border/40 pb-1.5 text-sm">
                         <span className="text-muted-foreground">{row.label}</span>
@@ -328,7 +328,7 @@ export function ProductRichInfo(props: ProductRichInfoProps) {
               Documentación
               <Badge tone="muted">{docs.length}</Badge>
             </CardTitle>
-            <ul className="grid gap-2 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {docs.map((d, i) => {
                 const name = d.nameEs || d.name || d.description || `Documento ${i + 1}`;
                 const url = d.fileUrl || d.url || d.filePath || "";

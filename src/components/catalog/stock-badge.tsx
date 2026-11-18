@@ -27,7 +27,7 @@ export function StockBadge({ status, qty, internal = false }: { status: string; 
 export function OriginStockPanel({ status, qty }: { status: string; qty: number | null }) {
   const origin = originStockText(status, qty);
   return (
-    <dl className="grid gap-2 rounded-md border border-dashed border-border bg-secondary/40 p-3 text-xs sm:grid-cols-2">
+    <dl className="grid grid-cols-1 gap-2 rounded-md border border-dashed border-border bg-secondary/40 p-3 text-xs sm:grid-cols-2">
       <div>
         <dt className="font-semibold uppercase tracking-wider text-muted-foreground">{ORIGIN_STOCK_LABEL}</dt>
         <dd className="mt-1">

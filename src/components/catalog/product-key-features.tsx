@@ -9,7 +9,7 @@ export function ProductKeyFeatures({ features, translated }: { features: unknown
   return (
     <div className="mt-5 border-t border-border pt-4">
       <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-primary">Características destacadas</h3>
-      <ul className="grid gap-x-8 gap-y-1.5 text-[15px] leading-relaxed sm:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-x-8 gap-y-1.5 text-[15px] leading-relaxed sm:grid-cols-2">
         {list.map((feature, i) => (
           <li key={i} className="flex gap-2">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />

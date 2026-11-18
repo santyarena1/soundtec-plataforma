@@ -44,7 +44,7 @@ function RoomSection({ room, index, token }: { room: PublicRoom; index: number; 
       {/* Sala en 3D de solo lectura: el visor se descarga recién al tocar el botón. */}
       <PublicRoom3D token={token} roomId={room.id} roomName={room.name} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <figure className="rounded-xl border border-border bg-white p-3">
           <figcaption className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Plano a escala</figcaption>
           {room.planSvg ? <div className="[&_svg]:h-auto [&_svg]:w-full" dangerouslySetInnerHTML={{ __html: room.planSvg }} /> : <p className="py-10 text-center text-sm text-muted-foreground">Plano en preparación.</p>}
@@ -63,7 +63,7 @@ function RoomSection({ room, index, token }: { room: PublicRoom; index: number; 
 
       <div>
         <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Equipos</h3>
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {room.devices.map((d, i) => (
             <li key={`${d.n}-${i}`} className="flex gap-3 rounded-xl border border-border bg-card p-3">
               <div className="flex h-20 w-20 flex-none items-center justify-center overflow-hidden rounded-lg bg-white">
