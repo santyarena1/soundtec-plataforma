@@ -3018,4 +3018,21 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Pruebas nuevas: e2e/force-dark.spec.ts (Chrome con el oscurecido forzado) y e2e/mobile-overflow.spec.ts (páginas a 390 px sin nada fuera de la pantalla)." },
     ],
   },
+  {
+    id: "ship-2026-11-18-inicio-del-panel",
+    version: "2.49.0",
+    releasedAt: "2026-11-18T22:00:00.000Z",
+    summary: "Inicio del panel nuevo: «Para hacer hoy», «Para llamar», actividad de clientes en el portal, comercial del mes, salud del catálogo y marketing. Los accesos directos quedan igual.",
+    items: [
+      { kind: "NUEVO", text: "«Para hacer hoy»: una sola lista, lo urgente arriba. Solicitudes de cuenta por aprobar, invitaciones al portal vencidas o sin usar, cotizaciones que vencen esta semana o que se mandaron hace más de 7 días sin llamada/mail/nota del cliente, tareas de clientes atrasadas, sincronizaciones que fallaron o están atrasadas, productos sin categorizar, textos de IA con errores y tickets. Cada fila lleva directo a resolverlo. Si no hay nada, lo dice." },
+      { kind: "NUEVO", text: "«Para llamar»: clientes que en los últimos 7 días miraron fichas, guardaron favoritos, le preguntaron a Soundtec AI, buscaron o entraron, y no tienen una cotización abierta. Con el motivo al lado («guardó 2 favoritos · miró 7 fichas · entró hoy»)." },
+      { kind: "NUEVO", text: "Clientes en el portal: quién entró hoy y en la semana, quién dejó de entrar hace más de 30 días, favoritos recientes y las últimas preguntas a Soundtec AI de clientes logueados (desde esta versión el chat queda a nombre del cliente)." },
+      { kind: "NUEVO", text: "Registro de búsquedas del catálogo (portal y /catalogo): «Lo más buscado» y «Búsquedas sin resultados» de la semana. Se guarda solo el texto normalizado, sin mails ni teléfonos; no cuenta al equipo interno ni a los robots, y nunca demora la búsqueda." },
+      { kind: "NUEVO", text: "Comercial del mes: cotizaciones creadas, enviadas (PDF generado), monto enviado y archivadas del 1 a hoy contra el mismo tramo del mes pasado; las abiertas con más monto y, para quien ve todas, el detalle por vendedor. Los montos son los mismos del listado de cotizaciones." },
+      { kind: "NUEVO", text: "Salud del catálogo: sin foto, sin precio o «a consultar», sin ficha de conexiones, sin traducir y sin categorizar, cada uno con el listado de Productos ya filtrado (filtros nuevos en «Les falta»: Precio, Ficha de conexiones, Traducción). Cambios de costo de proveedores de la semana (subas y bajas) y estado de cada sincronización." },
+      { kind: "NUEVO", text: "Marketing: últimas campañas por mail con aperturas y clics, interesados nuevos (catálogo, Expo, Soundtec AI), respuestas a formularios y solicitudes de cuenta de la semana." },
+      { kind: "MEJORA", text: "Cada bloque carga por su cuenta: la página no espera al más lento y si uno falla muestra un aviso chico sin romper el resto. Cada uno muestra solo lo que permite el rol: el vendedor ve lo de sus clientes y sus cotizaciones." },
+      { kind: "MEJORA", text: "Sale del inicio el listado de productos en oferta y «Últimos pedidos» (los pedidos del portal están pausados). Los admins suman los atajos del equipo más Sincronizaciones e Importar lista de precios." },
+    ],
+  },
 ];

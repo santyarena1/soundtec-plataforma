@@ -1,48 +1,44 @@
+import Link from "next/link";
+import { Database, FileSpreadsheet, LifeBuoy, Package, RefreshCw, Send, Sparkles, Users } from "lucide-react";
 import { requireStaff } from "@/lib/auth-helpers";
-import { StaffHome } from "./staff-home";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
-import { formatDate, formatUsd } from "@/lib/utils";
-import { CrmOverview } from "./crm-overview";
-import {
-  Package, Users, FileSpreadsheet, Send, Sparkles, LifeBuoy,
-} from "lucide-react";
+import { buildViewer } from "@/server/dashboard/viewer";
+import { StaffHome, ShortcutGrid, staffShortcuts, type Shortcut } from "./staff-home";
+import { DashboardBlocks } from "./_dashboard/dashboard-blocks";
 
 export const metadata = { title: "Admin · Dashboard" };
 
 export default async function AdminDashboardPage({ searchParams }: { searchParams?: { sinPermiso?: string } }) {
   const { user, isAdmin, permissions } = await requireStaff();
+  const viewer = buildViewer(user, permissions, isAdmin);
   const denied = searchParams?.sinPermiso ? (
     <p className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
       No tenés permiso para entrar a esa pantalla. Si lo necesitás, pedíselo a un administrador.
     </p>
   ) : null;
-  // El equipo interno tiene su propio inicio (sin costos ni datos de toda la empresa).
-  if (!isAdmin) {
-    return (
-      <div className="space-y-4">
-        {denied}
-        <StaffHome user={user} permissions={permissions} />
-      </div>
-    );
-  }
-  const now = new Date();
 
-  const [
-    totalProducts,
-    catalogProducts,
-    totalUsers,
-    activeRequests,
-    pendingFeedback,
-    pendingImports,
-    openTickets,
-    recentRequests,
-    recentImports,
-    offerProductsRaw,
-  ] = await Promise.all([
+  return (
+    <div className="mx-auto max-w-[1680px] space-y-6">
+      {denied}
+      {/* Accesos directos: los mismos de siempre. El equipo ve los de su rol; el admin, además, los del sistema. */}
+      {isAdmin ? <AdminShortcuts firstName={viewer.firstName} shortcuts={staffShortcuts(permissions)} /> : <StaffHome user={user} permissions={permissions} />}
+      <DashboardBlocks viewer={viewer} />
+    </div>
+  );
+}
+
+const TONES = {
+  primary: "bg-primary/10 text-primary",
+  accent: "bg-accent/10 text-accent",
+  warning: "bg-warning/10 text-warning",
+  destructive: "bg-destructive/10 text-destructive",
+  muted: "bg-muted text-muted-foreground",
+} as const;
+
+/** Inicio del admin: los atajos y los números del sistema que ya tenía, más los atajos del equipo. */
+async function AdminShortcuts({ firstName, shortcuts }: { firstName: string; shortcuts: Shortcut[] }) {
+  const [totalProducts, catalogProducts, totalUsers, activeRequests, pendingFeedback, pendingImports, openTickets] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     // Lo que ven los visitantes (catálogo, pantalla del stand, login): solo marcas activas y visibles.
     prisma.product.count({ where: { isActive: true, brand: { is: { isActive: true, hiddenFromCatalog: false } } } }),
@@ -51,53 +47,10 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
     prisma.aiContentFeedback.count({ where: { verdict: "HAS_ERRORS" } }),
     prisma.importBatch.count({ where: { status: { in: ["PENDING", "MAPPING", "REVIEWING"] } } }),
     prisma.developerTicket.count({ where: { status: { in: ["OPEN", "IN_PROGRESS"] } } }),
-    prisma.customerRequest.findMany({
-      orderBy: { updatedAt: "desc" },
-      take: 6,
-      include: { user: { select: { name: true, companyName: true } }, _count: { select: { items: true } } },
-    }),
-    prisma.importBatch.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
-    prisma.product.findMany({
-      where: {
-        salePriceUsd: { not: null },
-        OR: [{ salePriceEndsAt: null }, { salePriceEndsAt: { gte: now } }],
-      },
-      orderBy: [
-        { salePriceEndsAt: { sort: "asc", nulls: "last" } },
-        { normalizedName: "asc" },
-      ],
-      take: 51,
-      select: {
-        id: true,
-        normalizedName: true,
-        internalSku: true,
-        baseCostUsd: true,
-        salePriceUsd: true,
-        salePriceEndsAt: true,
-      },
-    }),
   ]);
 
-  const hasMoreOfferProducts = offerProductsRaw.length > 50;
-  const offerProducts = offerProductsRaw.slice(0, 50);
-
-  const tones = {
-    primary: "bg-primary/10 text-primary",
-    accent: "bg-accent/10 text-accent",
-    warning: "bg-warning/10 text-warning",
-    destructive: "bg-destructive/10 text-destructive",
-    muted: "bg-muted text-muted-foreground",
-  } as const;
-
   const stats = [
-    {
-      label: "Productos activos",
-      value: totalProducts,
-      hint: `${catalogProducts.toLocaleString("es-AR")} visibles en el catálogo`,
-      icon: Package,
-      tone: "primary" as const,
-      href: "/admin/products",
-    },
+    { label: "Productos activos", value: totalProducts, hint: `${catalogProducts.toLocaleString("es-AR")} visibles en el catálogo`, icon: Package, tone: "primary" as const, href: "/admin/products" },
     { label: "Usuarios del portal", value: totalUsers, icon: Users, tone: "accent" as const, href: "/admin/users" },
     { label: "Pedidos a responder", value: activeRequests, icon: Send, tone: "warning" as const, href: "/admin/requests" },
     { label: "Importaciones pendientes", value: pendingImports, icon: FileSpreadsheet, tone: "primary" as const, href: "/admin/imports" },
@@ -105,10 +58,18 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
     { label: "Tickets abiertos", value: openTickets, icon: LifeBuoy, tone: "muted" as const, href: "/admin/tickets" },
   ];
 
+  // Equivalentes de sistema para el admin (además de los del equipo).
+  const adminShortcuts: Shortcut[] = [
+    ...shortcuts,
+    { href: "/admin/sync", label: "Sincronizaciones", help: "Crestron, Sonance y SoundTube: estado y corridas.", icon: RefreshCw },
+    { href: "/admin/imports", label: "Importar lista de precios", help: "Excel de proveedores: mapear y revisar.", icon: Database },
+  ];
+
   return (
-    <div className="space-y-6">
-      {denied}
-      <PageHeader title={`Hola, ${(user.name || "Admin").split(" ")[0]}`} description="Vista general del sistema."
+    <div className="space-y-4">
+      <PageHeader
+        title={`Hola, ${firstName === "equipo" ? "Admin" : firstName}`}
+        description="Lo pendiente primero; después clientes, ventas, catálogo y marketing."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Link
@@ -118,152 +79,34 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
               <Sparkles className="h-4 w-4" />
               Asistente de productos
             </Link>
-            <Link
-              href="/admin/quotes/quick"
-              className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
-            >
+            <Link href="/admin/quotes/quick" className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
               Cotización rápida
             </Link>
           </div>
-        } />
+        }
+      />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-tour="dash-stats">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6" data-tour="dash-stats">
         {stats.map((s) => (
-          <Link key={s.label} href={s.href}>
-            <Card className="h-full transition-shadow hover:shadow-elevated">
-              <CardContent className="flex items-center gap-3 p-5">
-                <span className={`flex h-10 w-10 items-center justify-center rounded-md ${tones[s.tone]}`}>
-                  <s.icon className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="muted-text">{s.label}</p>
-                  <p className="text-2xl font-semibold">{s.value.toLocaleString("es-AR")}</p>
-                  {"hint" in s && s.hint ? <p className="text-xs text-muted-foreground">{s.hint}</p> : null}
-                </div>
-              </CardContent>
-            </Card>
+          <Link
+            key={s.label}
+            href={s.href}
+            className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 shadow-card transition-shadow hover:shadow-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${TONES[s.tone]}`}>
+              <s.icon className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-lg font-semibold leading-tight tabular-nums">{s.value.toLocaleString("es-AR")}</span>
+              <span className="block truncate text-xs text-muted-foreground" title={s.hint}>
+                {s.label}
+              </span>
+            </span>
           </Link>
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <CardTitle>Últimos pedidos</CardTitle>
-              <Link href="/admin/requests" className="text-sm text-accent hover:underline">
-                Ver todas
-              </Link>
-            </div>
-            <ul className="mt-3 divide-y divide-border">
-              {recentRequests.length === 0 ? (
-                <p className="muted-text py-6 text-center">Sin pedidos recientes.</p>
-              ) : (
-                recentRequests.map((r) => (
-                  <li key={r.id}>
-                    <Link
-                      href={`/admin/requests/${r.id}`}
-                      className="flex items-center justify-between py-3 hover:bg-secondary/40"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">
-                          {r.user.companyName || r.user.name} · #{r.id.slice(-6).toUpperCase()}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {r._count.items} ítems · {formatDate(r.updatedAt)}
-                        </p>
-                      </div>
-                      <Badge tone="muted">{r.status}</Badge>
-                    </Link>
-                  </li>
-                ))
-              )}
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <CardTitle>Últimas importaciones</CardTitle>
-              <Link href="/admin/imports" className="text-sm text-accent hover:underline">
-                Ver todas
-              </Link>
-            </div>
-            <ul className="mt-3 divide-y divide-border">
-              {recentImports.length === 0 ? (
-                <p className="muted-text py-6 text-center">Sin importaciones aún.</p>
-              ) : (
-                recentImports.map((i) => (
-                  <li key={i.id} className="flex items-center justify-between py-3">
-                    <div>
-                      <p className="text-sm font-medium">{i.fileName}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(i.createdAt)}</p>
-                    </div>
-                    <Badge tone="muted">{i.status}</Badge>
-                  </li>
-                ))
-              )}
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
-
-      <CrmOverview />
-
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between gap-4">
-            <CardTitle>Productos en oferta</CardTitle>
-            <Link href="/admin/products" className="text-sm text-accent hover:underline">
-              Ver todos
-            </Link>
-          </div>
-          {offerProducts.length === 0 ? (
-            <p className="muted-text py-8 text-center">No hay productos en oferta.</p>
-          ) : (
-            <>
-              <div className="mt-4 overflow-x-auto rounded-md border border-border">
-                <table className="w-full text-sm">
-                  <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Producto</th>
-                      <th className="px-3 py-2 font-medium">COD. Tango</th>
-                      <th className="px-3 py-2 text-right font-medium">Costo USD</th>
-                      <th className="px-3 py-2 text-right font-medium">Oferta proveedor</th>
-                      <th className="px-3 py-2 font-medium">Finaliza</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {offerProducts.map((product) => (
-                      <tr key={product.id} className="hover:bg-secondary/30">
-                        <td className="px-3 py-2.5">
-                          <Link href={`/admin/products/${product.id}`} className="font-medium hover:text-accent hover:underline">
-                            {product.normalizedName}
-                          </Link>
-                        </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{product.internalSku || "—"}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">{formatUsd(Number(product.baseCostUsd))}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-accent">
-                          {formatUsd(product.salePriceUsd == null ? null : Number(product.salePriceUsd))}
-                        </td>
-                        <td className="px-3 py-2.5 text-muted-foreground">
-                          {product.salePriceEndsAt ? formatDate(product.salePriceEndsAt) : "Sin vencimiento"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {hasMoreOfferProducts ? (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Se muestran los primeros 50 productos. <Link href="/admin/products" className="text-accent hover:underline">Ver todos</Link>
-                </p>
-              ) : null}
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <ShortcutGrid shortcuts={adminShortcuts} className="lg:grid-cols-4" />
     </div>
   );
 }

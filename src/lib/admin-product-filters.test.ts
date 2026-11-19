@@ -38,3 +38,12 @@ test("lo que viaja a la acción masiva valida con el mismo esquema", () => {
   const roundTrip = adminProductFiltersSchema.parse(JSON.parse(JSON.stringify(f)));
   assert.equal(JSON.stringify(roundTrip), JSON.stringify(f));
 });
+
+test("filtros de salud del catálogo: sin precio, sin ficha de conexiones, sin traducir", () => {
+  const f = parseAdminProductFilters({ noprice: "1", noio: "1", notrans: "1" });
+  assert.equal(f.noprice, true);
+  assert.equal(f.noio, true);
+  assert.equal(f.notrans, true);
+  assert.equal(hasAdminProductFilters(f), true);
+  assert.equal(parseAdminProductFilters({ noprice: "0" }).noprice, false);
+});

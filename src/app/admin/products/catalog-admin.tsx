@@ -89,6 +89,9 @@ interface Filters {
   nocat: boolean;
   noimg: boolean;
   nodesc: boolean;
+  noprice: boolean;
+  noio: boolean;
+  notrans: boolean;
   crestron: boolean;
   sort: string;
 }
@@ -251,7 +254,7 @@ export function ProductsCatalogAdmin(props: Props) {
   type FilterPatch = Partial<{
     q: string; brand: string[]; category: string[]; family: string[];
     distributor: string[]; stock: string[]; active: string; sort: string;
-    nocat: string; noimg: string; nodesc: string; crestron: string; page: string;
+    nocat: string; noimg: string; nodesc: string; noprice: string; noio: string; notrans: string; crestron: string; page: string;
   }>;
 
   const pushFilters = useCallback(
@@ -266,7 +269,7 @@ export function ProductsCatalogAdmin(props: Props) {
       }
       if (patch.active !== undefined) { patch.active ? sp.set("active", patch.active) : sp.delete("active"); }
       if (patch.sort !== undefined) { patch.sort && patch.sort !== DEFAULT_SORT ? sp.set("sort", patch.sort) : sp.delete("sort"); }
-      for (const key of ["nocat", "noimg", "nodesc", "crestron"] as const) {
+      for (const key of ["nocat", "noimg", "nodesc", "noprice", "noio", "notrans", "crestron"] as const) {
         if (patch[key] !== undefined) { patch[key] === "1" ? sp.set(key, "1") : sp.delete(key); }
       }
       sp.set("page", patch.page ?? "1");
@@ -373,12 +376,15 @@ export function ProductsCatalogAdmin(props: Props) {
   const nocatActive = search.get("nocat") === "1";
   const noimgActive = search.get("noimg") === "1";
   const nodescActive = search.get("nodesc") === "1";
+  const nopriceActive = search.get("noprice") === "1";
+  const noioActive = search.get("noio") === "1";
+  const notransActive = search.get("notrans") === "1";
   const crestronActive = search.get("crestron") === "1";
 
   const nameOf = (options: Option[], id: string) => options.find((o) => o.id === id)?.name ?? id;
   const secondaryCount =
     categoryIdsFromUrl.length + familyIdsFromUrl.length + distributorIdsFromUrl.length + stockFromUrl.length +
-    (activeFromUrl ? 1 : 0) + (nocatActive ? 1 : 0) + (noimgActive ? 1 : 0) + (nodescActive ? 1 : 0) + (crestronActive ? 1 : 0);
+    (activeFromUrl ? 1 : 0) + (nocatActive ? 1 : 0) + (noimgActive ? 1 : 0) + (nodescActive ? 1 : 0) + (nopriceActive ? 1 : 0) + (noioActive ? 1 : 0) + (notransActive ? 1 : 0) + (crestronActive ? 1 : 0);
   const without = (list: string[], id: string) => list.filter((x) => x !== id);
   const activeChips: Array<{ key: string; label: string; clear: () => void }> = [
     ...(qFromUrl ? [{ key: "q", label: `«${qFromUrl}»`, clear: () => { setQInput(""); pushFilters({ q: "" }); } }] : []),
@@ -391,6 +397,9 @@ export function ProductsCatalogAdmin(props: Props) {
     ...(nocatActive ? [{ key: "nocat", label: "Sin categorizar", clear: () => pushFilters({ nocat: "" }) }] : []),
     ...(noimgActive ? [{ key: "noimg", label: "Sin foto", clear: () => pushFilters({ noimg: "" }) }] : []),
     ...(nodescActive ? [{ key: "nodesc", label: "Sin descripción", clear: () => pushFilters({ nodesc: "" }) }] : []),
+    ...(nopriceActive ? [{ key: "noprice", label: "Sin precio / a consultar", clear: () => pushFilters({ noprice: "" }) }] : []),
+    ...(noioActive ? [{ key: "noio", label: "Sin ficha de conexiones", clear: () => pushFilters({ noio: "" }) }] : []),
+    ...(notransActive ? [{ key: "notrans", label: "Sin traducir", clear: () => pushFilters({ notrans: "" }) }] : []),
     ...(crestronActive ? [{ key: "crestron", label: "Crestron Home", clear: () => pushFilters({ crestron: "" }) }] : []),
   ];
 
@@ -459,6 +468,9 @@ export function ProductsCatalogAdmin(props: Props) {
                   ["nocat", "Categoría", nocatActive],
                   ["noimg", "Foto", noimgActive],
                   ["nodesc", "Descripción", nodescActive],
+                  ["noprice", "Precio", nopriceActive],
+                  ["noio", "Ficha de conexiones", noioActive],
+                  ["notrans", "Traducción", notransActive],
                 ] as const
               ).map(([key, label, on]) => (
                 <button
@@ -501,7 +513,7 @@ export function ProductsCatalogAdmin(props: Props) {
               type="button"
               onClick={() => {
                 setQInput("");
-                pushFilters({ q: "", brand: [], category: [], family: [], distributor: [], stock: [], active: "", nocat: "", noimg: "", nodesc: "", crestron: "" });
+                pushFilters({ q: "", brand: [], category: [], family: [], distributor: [], stock: [], active: "", nocat: "", noimg: "", nodesc: "", noprice: "", noio: "", notrans: "", crestron: "" });
               }}
               className="ml-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             >

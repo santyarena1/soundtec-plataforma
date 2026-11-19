@@ -11,6 +11,15 @@ export const CRESTRON_MISSING_WHERE: Prisma.ProductWhereInput = {
   sourceMetadata: { path: ["crestronCom", "error"], string_contains: "" },
 };
 
+/** Tiene texto del fabricante (descripción o HTML) y nunca se tradujo. */
+export const NOT_TRANSLATED_WHERE: Prisma.ProductWhereInput = {
+  translatedAt: null,
+  OR: [{ longDescription: { not: null } }, { htmlContent: { not: null } }],
+};
+
+/** Sin precio para el cliente: costo en cero o «a consultar». */
+export const NO_PRICE_WHERE: Prisma.ProductWhereInput = { OR: [{ requiresQuote: true }, { baseCostUsd: { lte: 0 } }] };
+
 export async function buildAdminProductWhere(f: AdminProductFilters): Promise<Prisma.ProductWhereInput> {
   const feedbackIds = f.feedback
     ? (
@@ -21,6 +30,13 @@ export async function buildAdminProductWhere(f: AdminProductFilters): Promise<Pr
       ).map((row) => row.refId)
     : null;
   const search = f.q ? buildProductSearchAnd(f.q) : null;
+  const and: Prisma.ProductWhereInput[] = [
+    ...(search ?? []),
+    // «Sin categorizar»: en la categoría temporal o sin rubro.
+    ...(f.nocat ? [await uncategorizedProductWhere()] : []),
+    ...(f.noprice ? [NO_PRICE_WHERE] : []),
+    ...(f.notrans ? [NOT_TRANSLATED_WHERE] : []),
+  ];
   return {
     ...(feedbackIds ? { id: { in: feedbackIds } } : {}),
     ...(f.crestronMissing ? CRESTRON_MISSING_WHERE : {}),
@@ -31,12 +47,12 @@ export async function buildAdminProductWhere(f: AdminProductFilters): Promise<Pr
     ...(f.distributorIds.length ? { distributorId: { in: f.distributorIds } } : {}),
     ...(f.stockStatuses.length ? { stockStatus: { in: f.stockStatuses as StockStatus[] } } : {}),
     ...(f.active ? { isActive: f.active === "yes" } : {}),
-    // «Sin categorizar»: en la categoría temporal o sin rubro.
-    ...(f.nocat ? await uncategorizedProductWhere() : {}),
     ...(f.noimg ? { images: { none: {} } } : {}),
     ...(f.nodesc ? { longDescription: null } : {}),
+    ...(f.noio ? { ioProfile: { is: null } } : {}),
     ...(f.crestron ? { isCrestronHomeCompatible: true } : {}),
-    ...(search?.length ? { AND: search } : {}),
+    // Los filtros que llevan su propio OR van en AND (si no, uno pisaría al otro).
+    ...(and.length ? { AND: and } : {}),
   };
 }
 

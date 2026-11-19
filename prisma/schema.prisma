@@ -81,6 +81,8 @@ model User {
   @@index([role])
   @@index([customRoleId])
   @@index([clientId])
+  /// Inicio del panel: quién entró hoy / en la semana y clientes inactivos.
+  @@index([lastLoginAt])
 }
 
 model CustomRole {
@@ -751,6 +753,8 @@ model WishlistItem {
 
   @@unique([wishlistId, productId])
   @@index([productId])
+  /// Inicio del panel: favoritos agregados recientes.
+  @@index([createdAt])
 }
 
 enum CustomerRequestType {
@@ -1405,6 +1409,8 @@ model Quote {
   @@index([ownerId])
   @@index([createdAt])
   @@index([sourceRequestId])
+  /// Inicio del panel: enviadas en el mes y por vencer.
+  @@index([status, issuedAt])
 }
 
 model QuoteAlternative {
@@ -1730,6 +1736,8 @@ model SyncRun {
 
   @@index([source])
   @@index([status])
+  /// Inicio del panel: última corrida de cada fuente.
+  @@index([source, startedAt])
 }
 
 model SyncStagedProduct {
@@ -1808,6 +1816,8 @@ model AiChatSession {
 
   @@index([surface, startedAt])
   @@index([anonymousId])
+  /// Inicio del panel: preguntas recientes de clientes del portal.
+  @@index([userId, lastActivityAt])
 }
 
 model AiChatMessage {
@@ -2326,6 +2336,29 @@ model ProductView {
   @@index([productId, createdAt])
   @@index([createdAt])
   @@index([visitorKey, productId])
+}
+
+/// Búsqueda en el catálogo (portal o /catalogo), para «Lo más buscado» y
+/// «Búsquedas sin resultados» del inicio del panel. Se guarda solo el texto
+/// normalizado (sin mails ni números largos) y la misma clave de visitante que
+/// ProductView (usuario, cookie o hash de IP; nunca la IP en claro). El equipo
+/// interno no se registra. Escritura best-effort: nunca frena la búsqueda.
+model CatalogSearch {
+  id         String   @id @default(cuid())
+  /// Texto normalizado: minúsculas, sin acentos ni espacios de más (ver lib/catalog-search-log).
+  query      String
+  /// Cuántos productos devolvió (0 = sin resultados).
+  results    Int
+  /// "portal" | "catalogo"
+  surface    String
+  userId     String?
+  clientId   String?
+  visitorKey String
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([visitorKey, createdAt])
+  @@index([clientId, createdAt])
 }
 
 /// Compatibilidad por grupo: el producto es compatible con todo un rubro del árbol (y sus subrubros),

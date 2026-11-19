@@ -36,6 +36,9 @@ interface SP {
   nocat?: string;
   noimg?: string;
   nodesc?: string;
+  noprice?: string;
+  noio?: string;
+  notrans?: string;
   crestron?: string;
   sort?: string;
   page?: string;
@@ -331,6 +334,9 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       !params.nocat &&
       !params.noimg &&
       !params.nodesc &&
+      !params.noprice &&
+      !params.noio &&
+      !params.notrans &&
       !params.crestron ? (
         <TableEmpty message="Todavía no hay productos. Creá uno o importá un Excel desde Importaciones." />
       ) : (
@@ -355,6 +361,9 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
                 nocat: params.nocat === "1",
                 noimg: params.noimg === "1",
                 nodesc: params.nodesc === "1",
+                noprice: params.noprice === "1",
+                noio: params.noio === "1",
+                notrans: params.notrans === "1",
                 crestron: params.crestron === "1",
                 sort: params.sort || "updated_desc",
               }}

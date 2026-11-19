@@ -7,6 +7,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
 import { askAssistant } from "@/services/ai-assistant/answer";
 import { LIMITS } from "@/services/ai-assistant/budget";
 import { checkAssistantLimits, clientIp, hashIp } from "@/services/ai-assistant/rate-limit";
@@ -39,9 +40,14 @@ export async function POST(req: NextRequest) {
   const ipHash = hashIp(clientIp(req.headers));
 
   try {
+    // Cliente del portal logueado: la sesión queda a su nombre para que el equipo vea qué preguntó
+    // (inicio del panel). El scope sigue siendo PUBLIC.
+    const viewer = await auth().catch(() => null);
+    const portalUserId = viewer?.user?.role === "CLIENT" ? viewer.user.id : null;
     const session = await getOrCreateSession({
       sessionId,
       surface,
+      userId: portalUserId,
       initialProductId: productId ?? null,
       ipHash,
     });

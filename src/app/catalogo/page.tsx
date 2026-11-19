@@ -21,6 +21,7 @@ import type { Metadata } from "next";
 import { ogImageUrl, ogMeta, siteCardUrl } from "@/lib/og/meta";
 import { RememberCatalog } from "@/components/catalog/catalog-memory";
 import { ComingSoonBanner } from "@/components/catalog/coming-soon-banner";
+import { logCatalogSearch } from "@/server/catalog/search-log";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +103,11 @@ export default async function PublicCatalogPage({
     catalogFilterMeta(filters),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  // Para «Lo más buscado» del panel. No espera a la base. El equipo interno no cuenta.
+  const viewerRole = session?.user?.role;
+  if (!viewerRole || viewerRole === "CLIENT" || isCatalogModeOn()) {
+    logCatalogSearch({ query: urlState.search, results: total, surface: "catalogo", page, userId: viewerRole === "CLIENT" && !isCatalogModeOn() ? session?.user?.id : null });
+  }
 
   const pageHref = (target: number) => {
     const p = new URLSearchParams();

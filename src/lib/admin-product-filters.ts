@@ -16,6 +16,12 @@ export const adminProductFiltersSchema = z.object({
   nocat: z.boolean().default(false),
   noimg: z.boolean().default(false),
   nodesc: z.boolean().default(false),
+  /** Sin precio: costo en cero o marcado «a consultar». */
+  noprice: z.boolean().default(false),
+  /** Sin ficha de conexiones (ProductIoProfile) para Room Builder. */
+  noio: z.boolean().default(false),
+  /** Con descripción o ficha del fabricante que nunca se tradujo al español. */
+  notrans: z.boolean().default(false),
   crestron: z.boolean().default(false),
   feedback: z.boolean().default(false),
   crestronMissing: z.boolean().default(false),
@@ -53,6 +59,9 @@ export function parseAdminProductFilters(params: RawParams): AdminProductFilters
     nocat: one("nocat") === "1",
     noimg: one("noimg") === "1",
     nodesc: one("nodesc") === "1",
+    noprice: one("noprice") === "1",
+    noio: one("noio") === "1",
+    notrans: one("notrans") === "1",
     crestron: one("crestron") === "1",
     feedback: one("feedback") === "errors",
     crestronMissing: one("crestronMissing") === "1",
@@ -72,6 +81,9 @@ export function hasAdminProductFilters(f: AdminProductFilters): boolean {
       f.nocat ||
       f.noimg ||
       f.nodesc ||
+      f.noprice ||
+      f.noio ||
+      f.notrans ||
       f.crestron ||
       f.feedback ||
       f.crestronMissing

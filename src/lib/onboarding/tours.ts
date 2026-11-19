@@ -34,15 +34,15 @@ export const ADMIN_ONBOARDING: OnboardingTour = {
       route: "/admin",
       target: "dash-stats",
       title: "Inicio: el pulso del día",
-      body: "Estas tarjetas resumen la actividad reciente. No se editan acá: son un atajo visual para saber si hay pedidos nuevos, cotizaciones en curso o movimiento comercial.",
-      affects: "Los números salen de Pedidos, Cotizaciones y Clientes.",
+      body: "Estos números son atajos: cada uno abre su pantalla. Debajo están los accesos directos de siempre.",
+      affects: "Los números salen de Productos, Usuarios, Pedidos, Importaciones, Feedback de IA y Tickets.",
     },
     {
       id: "admin-dash-crm",
       route: "/admin",
-      target: "dash-crm",
-      title: "Resumen CRM",
-      body: "Más abajo ves un vistazo de clientes y actividad. Desde acá podés saltar a una ficha, pero el alta y la edición vive en Ventas → Clientes.",
+      target: "dash-inbox",
+      title: "Para hacer hoy",
+      body: "Todo lo pendiente en una sola lista, lo más urgente arriba: solicitudes de cuenta, invitaciones vencidas, cotizaciones por vencer o sin seguimiento, sincronizaciones con problemas y tickets. Cada fila te lleva directo a resolverlo.",
     },
 
     // —— CLIENTES ——

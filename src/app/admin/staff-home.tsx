@@ -21,14 +21,7 @@ export async function StaffHome({ user, permissions }: { user: CurrentUser; perm
     can("account_requests.create") ? prisma.accountRequest.count({ where: { requestedById: user.id, status: "PENDING" } }) : 0,
   ]);
 
-  const shortcuts = [
-    can("quotes.create") && { href: "/admin/quotes/quick", label: "Cotización rápida", help: "Armá y mandá una cotización en minutos.", icon: FileSpreadsheet },
-    { href: "/portal/products", label: "Catálogo de venta", help: "Productos con precio de venta.", icon: Package },
-    can("clients.create") && { href: "/admin/clients?nuevo=1", label: "Nuevo cliente", help: "Empresa, contactos y datos.", icon: Building2 },
-    can("account_requests.create") && { href: "/admin/account-requests?nueva=1", label: "Pedir alta de empresa", help: "Un admin la aprueba y le da acceso al portal.", icon: UserPlus },
-    can("room_builder.use") && { href: "/admin/room-builder", label: "Room Builder", help: "Diseñar salas y proyectos.", icon: Box },
-    can("requests.view") && { href: "/admin/requests", label: "Pedidos de clientes", help: "Responder pedidos del portal.", icon: ListChecks },
-  ].filter(Boolean) as Array<{ href: string; label: string; help: string; icon: typeof Package }>;
+  const shortcuts = staffShortcuts(permissions);
 
   const stats = [
     can("quotes.view_own") && { label: "Cotizaciones abiertas", value: quotesOpen, href: "/admin/quotes" },
@@ -73,23 +66,44 @@ export async function StaffHome({ user, permissions }: { user: CurrentUser; perm
         </div>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {shortcuts.map((s) => (
-          <Link key={s.href} href={s.href}>
-            <Card className="h-full transition-all hover:-translate-y-0.5 hover:shadow-elevated">
-              <CardContent className="flex items-start gap-3 p-5">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <s.icon className="h-5 w-5" />
-                </span>
-                <span>
-                  <span className="block font-medium">{s.label}</span>
-                  <span className="block text-xs text-muted-foreground">{s.help}</span>
-                </span>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      <ShortcutGrid shortcuts={shortcuts} />
+    </div>
+  );
+}
+
+export type Shortcut = { href: string; label: string; help: string; icon: typeof Package };
+
+/** Atajos del inicio según lo que permite el rol (los mismos para el equipo y, con todo habilitado, para los admins). */
+export function staffShortcuts(permissions: Permissions): Shortcut[] {
+  const can = (s: Parameters<typeof permissionsHave>[1]) => permissionsHave(permissions, s);
+  return [
+    can("quotes.create") && { href: "/admin/quotes/quick", label: "Cotización rápida", help: "Armá y mandá una cotización en minutos.", icon: FileSpreadsheet },
+    { href: "/portal/products", label: "Catálogo de venta", help: "Productos con precio de venta.", icon: Package },
+    can("clients.create") && { href: "/admin/clients?nuevo=1", label: "Nuevo cliente", help: "Empresa, contactos y datos.", icon: Building2 },
+    can("account_requests.create") && { href: "/admin/account-requests?nueva=1", label: "Pedir alta de empresa", help: "Un admin la aprueba y le da acceso al portal.", icon: UserPlus },
+    can("room_builder.use") && { href: "/admin/room-builder", label: "Room Builder", help: "Diseñar salas y proyectos.", icon: Box },
+    can("requests.view") && { href: "/admin/requests", label: "Pedidos de clientes", help: "Responder pedidos del portal.", icon: ListChecks },
+  ].filter(Boolean) as Shortcut[];
+}
+
+export function ShortcutGrid({ shortcuts, className = "lg:grid-cols-3" }: { shortcuts: Shortcut[]; className?: string }) {
+  return (
+    <div className={`grid gap-3 sm:grid-cols-2 ${className}`} data-tour="dash-shortcuts">
+      {shortcuts.map((s) => (
+        <Link key={s.href} href={s.href}>
+          <Card className="h-full transition-all hover:-translate-y-0.5 hover:shadow-elevated">
+            <CardContent className="flex items-start gap-3 p-5">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <s.icon className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block font-medium">{s.label}</span>
+                <span className="block text-xs text-muted-foreground">{s.help}</span>
+              </span>
+            </CardContent>
+          </Card>
+        </Link>
+      ))}
     </div>
   );
 }

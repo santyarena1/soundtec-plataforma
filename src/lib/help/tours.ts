@@ -264,6 +264,21 @@ export const TOURS: TourDef[] = [
         title: "Indicadores",
         body: "Productos, pedidos a responder, importaciones, feedback de IA y tickets abiertos.",
       },
+      {
+        target: "dash-inbox",
+        title: "Para hacer hoy",
+        body: "Lo pendiente de todos los módulos, ordenado por urgencia. Cada fila abre la pantalla para resolverlo.",
+      },
+      {
+        target: "dash-call",
+        title: "Para llamar",
+        body: "Clientes que se están moviendo en el portal (miran fichas, guardan favoritos, preguntan a Soundtec AI) y no tienen una cotización abierta.",
+      },
+      {
+        target: "dash-commercial",
+        title: "Comercial del mes",
+        body: "Cotizaciones creadas, enviadas y archivadas del 1 a hoy, contra el mismo tramo del mes pasado.",
+      },
     ],
   },
   {

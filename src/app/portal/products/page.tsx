@@ -21,6 +21,7 @@ import { RememberCatalog } from "@/components/catalog/catalog-memory";
 import { PriceTaxNotice } from "@/components/catalog/price-tax-notice";
 import { ComingSoonBanner } from "@/components/catalog/coming-soon-banner";
 import { CatalogCategoryBar, CatalogCategoryRail } from "./catalog-side-rails";
+import { logCatalogSearch } from "@/server/catalog/search-log";
 
 export const metadata = { title: "Catálogo" };
 
@@ -97,6 +98,8 @@ export default async function ProductsPage({
 
   const onlyComingSoon = comingSoonBrand !== null && total === 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  // Para «Lo más buscado» del panel: solo clientes (el equipo interno no cuenta). No espera a la base.
+  if (!internal) logCatalogSearch({ query: urlState.search, results: total, surface: "portal", page, userId: user.id, clientId: commercialClientId });
 
   const paginationParams = new URLSearchParams();
   for (const [key, value] of Object.entries(rawParams)) {
