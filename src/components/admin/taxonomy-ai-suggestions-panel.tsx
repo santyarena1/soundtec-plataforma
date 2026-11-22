@@ -14,7 +14,6 @@ import {
   rejectTaxonomySuggestion,
   acceptAllTaxonomySuggestions,
   generateAndApplyTaxonomySuggestions,
-  clearAllTaxonomyData,
 } from "@/server/actions/taxonomy-suggestions";
 import type { TaxonomySuggestionKind } from "@prisma/client";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
@@ -72,28 +71,6 @@ export function TaxonomyAiSuggestionsPanel({
         );
       }
       router.refresh();
-    });
-  }
-
-  async function runClear() {
-    if (
-      !(await confirmDialog({
-        message: `¿Borrar TODAS las ${labelPlural} y desasignar todos los productos?\n\nEsto no se puede deshacer.`,
-        tone: "danger",
-        confirmLabel: "Borrar",
-      }))
-    )
-      return;
-    setMessage(null);
-    setError(null);
-    start(async () => {
-      const r = await clearAllTaxonomyData(kind);
-      if (r.ok) {
-        setMessage(`Eliminadas ${r.deleted} ${labelPlural}. Los productos quedaron sin asignar.`);
-        router.refresh();
-      } else {
-        setError("No se pudo limpiar.");
-      }
     });
   }
 
@@ -233,17 +210,6 @@ export function TaxonomyAiSuggestionsPanel({
                 </Button>
               </div>
             ) : null}
-            <Button
-              onClick={runClear}
-              disabled={pending}
-              size="sm"
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
-              title={`Borrar todas las ${labelPlural} y desasignar productos`}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Limpiar todo
-            </Button>
           </div>
         </div>
 

@@ -94,30 +94,6 @@ async function ensureTaxonomyAndAssign(
   return { ok: true };
 }
 
-/** Borra todas las categorías/familias y resetea los productos. Permite empezar de cero. */
-export async function clearAllTaxonomyData(
-  kind: TaxonomySuggestionKind
-): Promise<{ ok: boolean; deleted: number }> {
-  await requireStaff(["categories.manage", "families.manage"]);
-
-  // Primero romper la FK en productos
-  if (kind === "CATEGORY") {
-    await prisma.product.updateMany({ where: { categoryId: { not: null } }, data: { categoryId: null } });
-    await prisma.taxonomySuggestion.deleteMany({ where: { kind } });
-    const result = await prisma.category.deleteMany({});
-    revalidatePath("/admin/categories");
-    revalidatePath("/admin/products");
-    return { ok: true, deleted: result.count };
-  } else {
-    await prisma.product.updateMany({ where: { familyId: { not: null } }, data: { familyId: null } });
-    await prisma.taxonomySuggestion.deleteMany({ where: { kind } });
-    const result = await prisma.productFamily.deleteMany({});
-    revalidatePath("/admin/families");
-    revalidatePath("/admin/products");
-    return { ok: true, deleted: result.count };
-  }
-}
-
 /** Analiza productos sin categoría/familia (flujo de revisión manual). */
 export async function generateTaxonomySuggestions(
   kind: TaxonomySuggestionKind

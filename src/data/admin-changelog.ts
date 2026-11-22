@@ -3035,4 +3035,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Sale del inicio el listado de productos en oferta y «Últimos pedidos» (los pedidos del portal están pausados). Los admins suman los atajos del equipo más Sincronizaciones e Importar lista de precios." },
     ],
   },
+  {
+    id: "ship-2026-11-22-sin-limpiar-todo",
+    version: "2.49.1",
+    releasedAt: "2026-11-22T15:00:00.000Z",
+    summary: "Se quita «Limpiar todo» de Categorías y Familias.",
+    items: [
+      { kind: "FIX", text: "Sale el botón «Limpiar todo» del panel de IA en Categorías y Familias: con una sola confirmación borraba todo el árbol de rubros (Tango incluido) o todas las familias y dejaba los productos sin asignar." },
+    ],
+  },
 ];
