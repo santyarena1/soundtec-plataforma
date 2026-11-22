@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
+import { isSameValue } from "@/lib/unsaved-guard/core";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
@@ -33,16 +35,19 @@ export function DocumentTypesManager({ types, modules, audiences }: { types: Doc
   const [editing, setEditing] = useState<string | null>(null); // key o "nuevo"
   const baseSections = (baseKey: string) => modules.filter((m) => m.defaultOn.includes(baseKey)).map((m) => m.key);
   const [draft, setDraft] = useState<Draft>({ name: "", baseKey: "resumido", audience: "", sectionKeys: baseSections("resumido"), description: "" });
+  // Lo que tenía el formulario al abrirse: avisa al salir solo si el borrador cambió.
+  const [openedDraft, setOpenedDraft] = useState<Draft>(draft);
+  useUnsavedChangesGuard(editing !== null && !isSameValue(draft, openedDraft));
   const audienceLabel = (k: string | null) => audiences.find((a) => a.key === k)?.label ?? null;
   const baseLabel = (k: string) => BASES.find((b) => b.key === k)?.label ?? k;
 
   function open(type?: DocType) {
     setEditing(type?.key ?? "nuevo");
-    setDraft(
-      type
-        ? { name: type.name, baseKey: type.baseKey, audience: type.audience ?? "", sectionKeys: type.sectionKeys, description: type.description ?? "" }
-        : { name: "", baseKey: "resumido", audience: "", sectionKeys: baseSections("resumido"), description: "" },
-    );
+    const next: Draft = type
+      ? { name: type.name, baseKey: type.baseKey, audience: type.audience ?? "", sectionKeys: type.sectionKeys, description: type.description ?? "" }
+      : { name: "", baseKey: "resumido", audience: "", sectionKeys: baseSections("resumido"), description: "" };
+    setDraft(next);
+    setOpenedDraft(next);
   }
 
   function save() {

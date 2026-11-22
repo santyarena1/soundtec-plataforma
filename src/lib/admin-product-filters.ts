@@ -9,7 +9,8 @@ export const adminProductFiltersSchema = z.object({
   q: z.string().max(200).optional(),
   brandIds: z.array(z.string()).default([]),
   categoryIds: z.array(z.string()).default([]),
-  familyIds: z.array(z.string()).default([]),
+  /** Series (ProductLine). «none» = sin serie. Reemplaza al viejo filtro de familias. */
+  lineIds: z.array(z.string()).default([]),
   distributorIds: z.array(z.string()).default([]),
   stockStatuses: z.array(z.enum(["IN_STOCK", "LOW_STOCK", "OUT_OF_STOCK", "ON_REQUEST", "UNKNOWN"])).default([]),
   active: z.enum(["yes", "no"]).optional(),
@@ -52,7 +53,7 @@ export function parseAdminProductFilters(params: RawParams): AdminProductFilters
     q: one("q")?.trim() || undefined,
     brandIds: multi(params.brand),
     categoryIds: multi(params.category),
-    familyIds: multi(params.family),
+    lineIds: multi(params.line),
     distributorIds: multi(params.distributor),
     stockStatuses: multi(params.stock).filter((s) => STOCK.has(s)) as AdminProductFilters["stockStatuses"],
     active: active === "yes" || active === "no" ? active : undefined,
@@ -74,7 +75,7 @@ export function hasAdminProductFilters(f: AdminProductFilters): boolean {
     f.q ||
       f.brandIds.length ||
       f.categoryIds.length ||
-      f.familyIds.length ||
+      f.lineIds.length ||
       f.distributorIds.length ||
       f.stockStatuses.length ||
       f.active ||

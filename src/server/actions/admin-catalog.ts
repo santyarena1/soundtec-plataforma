@@ -17,6 +17,9 @@ import {
 } from "@/lib/field-timestamps";
 import { buildProductSearchKey, normalizeForSearch } from "@/lib/search-key";
 import { checkImageUrl } from "@/server/actions/brand-logos";
+import { validateProductRubro } from "@/server/categories/rubros";
+import { moveProductsToRubro, moveReviewMessage } from "@/server/categories/move";
+import { proposePriceReview } from "@/server/price-review/reviews";
 
 type TimestampedProductCreateInput = Prisma.ProductUncheckedCreateInput & {
   fieldUpdatedAt?: Prisma.InputJsonValue;
@@ -116,11 +119,6 @@ export async function upsertDistributor(formData: FormData): Promise<void> {
   revalidatePath("/admin/distributors");
 }
 
-const catSchema = z.object({
-  name: z.string().min(2).max(120),
-  parentId: z.string().optional().nullable(),
-});
-
 const familySchema = z.object({
   name: z.string().min(2).max(120),
   isActive: z.coerce.boolean().optional(),
@@ -147,26 +145,14 @@ export async function upsertFamily(formData: FormData): Promise<void> {
   revalidatePath("/admin/families");
 }
 
+/**
+ * Retirada: creaba categorías planas, fuera del árbol de Tango, que no
+ * aparecían en ningún selector. Los subrubros se crean con «Crear subrubro
+ * acá» (src/server/actions/rubros.ts), que valida nivel, nombre y duplicados.
+ */
 export async function upsertCategory(formData: FormData): Promise<void> {
   await requireStaff("categories.manage");
-  const id = formData.get("id")?.toString() || undefined;
-  const parsed = catSchema.safeParse({
-    name: formData.get("name"),
-    parentId: formData.get("parentId") || null,
-  });
-  if (!parsed.success) return;
-
-  if (id) {
-    await prisma.category.update({
-      where: { id },
-      data: { name: parsed.data.name, parentId: parsed.data.parentId || null },
-    });
-  } else {
-    await prisma.category.create({
-      data: { name: parsed.data.name, slug: slugify(parsed.data.name), parentId: parsed.data.parentId || null },
-    });
-  }
-  revalidatePath("/admin/categories");
+  void formData;
 }
 
 const productSchema = z.object({
@@ -179,6 +165,8 @@ const productSchema = z.object({
   distributorId: z.string().optional().nullable(),
   categoryId: z.string().optional().nullable(),
   familyId: z.string().optional().nullable(),
+  /** Serie del fabricante (ProductLine). Sin el campo en el form no se toca. */
+  lineId: z.string().max(64).optional().nullable(),
   familia: z.string().max(120).optional().nullable(),
   line: z.string().trim().max(80).optional().nullable(),
   tipo: z.string().max(120).optional().nullable(),
@@ -226,8 +214,8 @@ async function saveProductRow(write: () => Promise<unknown>): Promise<{ ok: fals
   }
 }
 
-export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; id?: string; error?: string }> {
-  await requireStaff("products.edit", { costs: true });
+export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; id?: string; error?: string; notice?: string }> {
+  const { user: actorUser } = await requireStaff("products.edit", { costs: true });
   const id = formData.get("id")?.toString() || undefined;
   const parsed = productSchema.safeParse({
     internalSku: formData.get("internalSku")?.toString().trim() || null,
@@ -237,7 +225,9 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     brandId: formData.get("brandId") || null,
     distributorId: formData.get("distributorId") || null,
     categoryId: formData.get("categoryId") || null,
-    familyId: formData.get("familyId") || null,
+    // Familia (vieja): el formulario ya no la muestra; sin el campo no se toca (la usan reglas de precio FAMILY).
+    familyId: formData.has("familyId") ? formData.get("familyId") || null : undefined,
+    lineId: formData.has("lineId") ? String(formData.get("lineId") || "") || null : undefined,
     familia: formData.get("familia") || null,
     line: formData.has("line") ? String(formData.get("line") || "").trim() || null : undefined,
     tipo: formData.get("tipo") || null,
@@ -279,7 +269,8 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     brandId: parsed.data.brandId || null,
     distributorId: parsed.data.distributorId || null,
     categoryId: parsed.data.categoryId || null,
-    familyId: parsed.data.familyId || null,
+    ...(parsed.data.familyId !== undefined ? { familyId: parsed.data.familyId || null } : {}),
+    ...(parsed.data.lineId !== undefined ? { lineId: parsed.data.lineId || null } : {}),
     familia: parsed.data.familia || null,
     ...(parsed.data.line !== undefined ? { line: parsed.data.line || null } : {}),
     tipo: parsed.data.tipo || null,
@@ -313,12 +304,33 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     ...(formData.has("isFeaturedPresent") ? { isFeatured: formData.get("isFeatured") === "on" } : {}),
   };
 
+  if (parsed.data.lineId) {
+    const series = await prisma.productLine.findUnique({ where: { id: parsed.data.lineId }, select: { brandId: true } });
+    if (!series) return { ok: false, error: "La serie elegida ya no existe." };
+    if (series.brandId !== (parsed.data.brandId || null)) return { ok: false, error: "La serie elegida es de otra marca." };
+  }
+
   let productId = id || "";
+  // Rubro: solo nodos del árbol de Tango (el servidor no confía en el selector).
+  // Si cambia y hay reglas por rubro, el movimiento pasa por la revisión de precios.
+  let pendingRubro: string | null = null;
+  const currentRubro = id ? (await prisma.product.findUnique({ where: { id }, select: { categoryId: true } }))?.categoryId ?? null : null;
+  const wantedRubro = parsed.data.categoryId || null;
+  if (wantedRubro !== currentRubro) {
+    const rubroOk = await validateProductRubro(prisma, wantedRubro, currentRubro);
+    if (!rubroOk.ok) return { ok: false, error: rubroOk.error };
+    if (id && wantedRubro) {
+      data.categoryId = currentRubro;
+      pendingRubro = wantedRubro;
+    }
+  }
   const selectedBrand = parsed.data.brandId
     ? await prisma.brand.findUnique({ where: { id: parsed.data.brandId }, select: { name: true } })
     : null;
   if (id) {
     const current = await prisma.product.findUniqueOrThrow({ where: { id } });
+    // Serie elegida a mano: el llenado automático no la vuelve a cambiar.
+    if (parsed.data.lineId !== undefined && (parsed.data.lineId || null) !== current.lineId) data.lineLocked = true;
     if (parsed.data.requiresQuote !== undefined) {
       // Cargar un costo nuevo saca «Consultá precio» si nadie tocó la casilla: esa marca
       // la dejan los syncs cuando no hay precio, y antes quedaba aunque después se cargara uno.
@@ -356,6 +368,7 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
       originalName: parsed.data.originalName || parsed.data.normalizedName,
       brandName: selectedBrand?.name,
     });
+    if (parsed.data.lineId) data.lineLocked = true;
     const providedFields = SCALAR_PRODUCT_FIELDS.filter(
       (field) => (data as Record<string, unknown>)[field] !== undefined
     );
@@ -393,22 +406,31 @@ export async function upsertProduct(formData: FormData): Promise<{ ok: boolean; 
     }
   }
 
+  let notice: string | undefined;
+  if (pendingRubro && productId) {
+    const moved = await moveProductsToRubro([productId], pendingRubro, { id: actorUser.id, name: actorUser.name ?? actorUser.email ?? null }, `Cambio de rubro: ${parsed.data.normalizedName}`);
+    if (!moved.ok) return { ok: false, id: productId, error: moved.error };
+    if (!moved.applied) notice = moveReviewMessage(moved);
+  }
+
   revalidatePath("/admin/products");
   if (productId) revalidatePath(`/admin/products/${productId}`);
-  return { ok: true, id: productId };
+  return { ok: true, id: productId, notice };
 }
 
 const bulkSchema = z.object({
   productIds: z.array(z.string()).min(1),
-  action: z.enum(["activate", "deactivate", "set_brand", "set_category", "set_family", "set_discount", "set_crestron", "unset_crestron", "set_accessory", "set_principal"]),
+  action: z.enum(["activate", "deactivate", "set_brand", "set_category", "set_line", "set_discount", "set_crestron", "unset_crestron", "set_accessory", "set_principal"]),
   brandId: z.string().optional().nullable(),
   categoryId: z.string().optional().nullable(),
-  familyId: z.string().optional().nullable(),
+  /** Serie (set_line): null = sacar la serie. Solo se aplica a productos de la misma marca. */
+  lineId: z.string().optional().nullable(),
   discountPercent: z.coerce.number().min(0).max(100).optional().nullable(),
 });
 
-export async function bulkUpdateProducts(input: z.infer<typeof bulkSchema>): Promise<{ ok: boolean; error?: string }> {
-  await requireStaff("products.edit", { costs: true });
+export async function bulkUpdateProducts(input: z.infer<typeof bulkSchema>): Promise<{ ok: boolean; error?: string; notice?: string; reviewId?: string }> {
+  const { user: actorUser } = await requireStaff("products.edit", { costs: true });
+  const actor = { id: actorUser.id, name: actorUser.name ?? actorUser.email ?? null };
   const parsed = bulkSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
 
@@ -423,18 +445,42 @@ export async function bulkUpdateProducts(input: z.infer<typeof bulkSchema>): Pro
     case "set_brand":
       await prisma.product.updateMany({ where, data: { brandId: parsed.data.brandId || null } });
       break;
-    case "set_category":
-      await prisma.product.updateMany({ where, data: { categoryId: parsed.data.categoryId || null } });
+    case "set_category": {
+      if (!parsed.data.categoryId) return { ok: false, error: "Elegí un rubro del árbol." };
+      const moved = await moveProductsToRubro(parsed.data.productIds, parsed.data.categoryId, actor, `Mover ${parsed.data.productIds.length} productos de rubro (edición en lote)`);
+      if (!moved.ok) return moved;
+      if (!moved.applied) {
+        revalidatePath("/admin/products");
+        return { ok: true, notice: moveReviewMessage(moved), reviewId: moved.reviewId };
+      }
       break;
-    case "set_family":
-      await prisma.product.updateMany({ where, data: { familyId: parsed.data.familyId || null } });
+    }
+    case "set_line": {
+      if (!parsed.data.lineId) {
+        await prisma.product.updateMany({ where, data: { lineId: null, lineLocked: true } });
+        break;
+      }
+      const series = await prisma.productLine.findUnique({ where: { id: parsed.data.lineId }, select: { brandId: true } });
+      if (!series) return { ok: false, error: "La serie elegida ya no existe." };
+      await prisma.product.updateMany({ where: { ...where, brandId: series.brandId }, data: { lineId: parsed.data.lineId, lineLocked: true } });
       break;
-    case "set_discount":
-      await prisma.product.updateMany({
-        where,
-        data: { discountPercent: parsed.data.discountPercent ?? null },
-      });
-      break;
+    }
+    case "set_discount": {
+      // Descuento de producto en lote: cambia precios, pasa por la revisión.
+      const review = await proposePriceReview(
+        { type: "products.setDiscount", productIds: parsed.data.productIds, discountPercent: parsed.data.discountPercent ?? null },
+        `Descuento ${parsed.data.discountPercent ?? 0} % en ${parsed.data.productIds.length} productos (edición en lote)`,
+        actor
+      );
+      revalidatePath("/admin/price-reviews");
+      return {
+        ok: true,
+        reviewId: review.id,
+        notice: review.affectedProducts === 0
+          ? "No cambia ningún precio: aplicalo con un clic en Precios › Revisión de cambios."
+          : `Mueve el precio de ${review.affectedProducts} productos: quedó en Precios › Revisión de cambios para aplicarlo.`,
+      };
+    }
     case "set_crestron":
       await prisma.product.updateMany({ where, data: { isCrestronHomeCompatible: true } });
       break;

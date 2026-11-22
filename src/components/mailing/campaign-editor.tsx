@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { CalendarClock, Heading1, Image as ImageIcon, Loader2, Minus, MousePointerClick, Package, Save, Send, Type, Users } from "lucide-react";
 import { toast } from "sonner";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -83,12 +84,8 @@ export function CampaignEditor({
   const snapshot = JSON.stringify({ name, subject, preheader, blocks, audience, mode, customHtml });
   const dirty = snapshot !== savedAt;
 
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  // Aviso al salir (pestaña, enlaces, atrás) mientras la campaña tenga cambios sin guardar.
+  useUnsavedChangesGuard(dirty);
 
   const extraVariables = useMemo(() => [...new Set(lists.filter((l) => audience.include.includes(l.id)).flatMap((l) => l.extraFields))], [lists, audience.include]);
 

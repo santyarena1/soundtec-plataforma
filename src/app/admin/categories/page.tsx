@@ -1,109 +1,115 @@
-import { SectionTabs } from "@/components/admin/section-tabs";
+import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/input";
-import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
-import { upsertCategory } from "@/server/actions/admin-catalog";
-import { TaxonomyAiSuggestionsPanel } from "@/components/admin/taxonomy-ai-suggestions-panel";
-import { TaxonomySuggestionKind, TaxonomySuggestionStatus } from "@prisma/client";
+import { listCategoryTree } from "@/lib/category-tree";
+import { tangoPathLabel } from "@/lib/tango-tree";
+import { hiddenCategoryIdsFrom } from "@/lib/customer-hidden-categories";
+import { countUncategorizedProducts } from "@/server/uncategorized";
+import { TANGO_BATCH } from "@/server/category-proposals";
+import { RubrosTabs, type RubrosTabId } from "./rubros-tabs";
+import { RubrosTree, type RubroTreeNode } from "./rubros-tree";
+import { EquivalencesTab, type EquivalenceRow } from "./equivalences-tab";
+import { PendingTangoTab, type PendingTangoRow } from "./pending-tango-tab";
 
-export const maxDuration = 300;
-export const metadata = { title: "Admin · Categorías" };
+export const metadata = { title: "Admin · Rubros" };
 
-export default async function AdminCategoriesPage() {
+type Search = { tab?: string };
+
+/**
+ * «Rubros»: el árbol de Tango con conteos y acciones por nodo, más las
+ * equivalencias proveedor → rubro y los rubros pendientes de cargar en Tango.
+ * «Sin rubro» y «Revisión» son las pantallas de la reclasificación y «Series»
+ * la de series del fabricante (todas con la misma barra de pestañas).
+ */
+export default async function AdminRubrosPage({ searchParams }: { searchParams: Search }) {
   await requireStaff("categories.manage");
-  const [cats, suggestions, unassignedCount] = await Promise.all([
-    prisma.category.findMany({
-      orderBy: [{ parentId: "asc" }, { name: "asc" }],
-      include: { _count: { select: { products: true } }, parent: { select: { name: true } } },
-    }),
-    prisma.taxonomySuggestion.findMany({
-      where: { kind: TaxonomySuggestionKind.CATEGORY, status: TaxonomySuggestionStatus.PENDING },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-      include: {
-        product: { select: { id: true, normalizedName: true, internalSku: true } },
-      },
-    }),
-    prisma.product.count({ where: { isActive: true, categoryId: null } }),
+  // Pestañas que viven en otras pantallas (enlaces viejos o de los importadores).
+  if (searchParams.tab === "sin-rubro") redirect("/admin/products/reclasificacion?ver=uno-a-uno");
+  if (searchParams.tab === "revision") redirect("/admin/products/reclasificacion");
+  if (searchParams.tab === "series") redirect("/admin/categories/series");
+  const tab: RubrosTabId = searchParams.tab === "equivalencias" ? "equivalencias" : searchParams.tab === "pendientes-tango" ? "pendientes-tango" : "arbol";
+
+  const [nodes, flags, uncategorized, pendingProposals, pendingTango] = await Promise.all([
+    listCategoryTree(),
+    prisma.category.findMany({ select: { id: true, parentId: true, name: true, tangoPath: true, hiddenFromCustomers: true } }),
+    countUncategorizedProducts(),
+    prisma.categoryProposal.count({ where: { batch: TANGO_BATCH, status: "PENDING", confidence: { not: "alta" } } }),
+    prisma.category.count({ where: { pendingTango: true, isActive: true, tangoPath: { not: null } } }),
   ]);
+  // Ocultos «de raíz» (el árbol marca también lo que cuelga de ellos).
+  const hiddenAll = new Set(hiddenCategoryIdsFrom(flags));
+  const parentOf = new Map(flags.map((f) => [f.id, f.parentId]));
+  const hiddenRoots = new Set([...hiddenAll].filter((id) => !hiddenAll.has(parentOf.get(id) ?? "")));
 
   return (
-    <div className="space-y-6">
-      <SectionTabs tabs={[{ href: "/admin/categories", label: "Categorías" }, { href: "/admin/families", label: "Familias" }]} />
+    <div className="space-y-5">
       <PageHeader
-        title="Categorías"
-        description="Organizá el catálogo. La IA puede clasificar productos sin categoría: asignarlos a una existente o proponer categorías nuevas."
+        title="Rubros"
+        description="El árbol de rubros de Tango (Rubro › Subrubro › Categoría › Tipo). Desde acá se renombra, se mueven productos, se unen rubros, se ocultan a clientes y se crean subrubros. Las reglas de precio por rubro alcanzan a todos sus subrubros."
       />
-
-      <TaxonomyAiSuggestionsPanel
-        kind="CATEGORY"
-        title="Clasificación con IA"
-        description="Analiza productos activos sin categoría. Si encajan con una categoría del catálogo, los asigna ahí; si no, sugiere crear una categoría nueva para cubrirlos."
-        unassignedCount={unassignedCount}
-        suggestions={suggestions.map((s) => ({
-          id: s.id,
-          suggestedName: s.suggestedName,
-          targetId: s.targetId,
-          confidence: s.confidence,
-          rationale: s.rationale,
-          product: s.product,
-        }))}
+      <RubrosTabs
+        active={tab}
+        counts={{ "sin-rubro": uncategorized, revision: pendingProposals, "pendientes-tango": pendingTango }}
       />
-
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="heading-3 mb-3">Nueva categoría</h2>
-          <form action={upsertCategory} className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="name" required>
-                Nombre
-              </Label>
-              <Input id="name" name="name" required />
-            </div>
-            <div>
-              <Label htmlFor="parentId">Categoría padre</Label>
-              <Select id="parentId" name="parentId">
-                <option value="">(sin padre)</option>
-                {cats.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="sm:col-span-2 flex justify-end">
-              <Button type="submit">Crear</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {cats.length === 0 ? (
-        <TableEmpty message="Sin categorías cargadas." />
+      {tab === "arbol" ? (
+        <RubrosTree nodes={nodes.map((n): RubroTreeNode => ({ ...n, hidden: hiddenRoots.has(n.id) }))} />
+      ) : tab === "equivalencias" ? (
+        <EquivalencesPanel nodes={nodes} />
       ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Categoría</TH>
-              <TH>Padre</TH>
-              <TH>Productos</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {cats.map((c) => (
-              <TR key={c.id}>
-                <TD className="font-medium">{c.name}</TD>
-                <TD>{c.parent?.name || "—"}</TD>
-                <TD>{c._count.products}</TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
+        <PendingTangoPanel />
       )}
     </div>
   );
+}
+
+async function EquivalencesPanel({ nodes }: { nodes: Awaited<ReturnType<typeof listCategoryTree>> }) {
+  const [rows, brands] = await Promise.all([
+    prisma.categoryEquivalence.findMany({
+      orderBy: [{ status: "desc" }, { sampleCount: "desc" }, { sourceLabel: "asc" }],
+      select: {
+        id: true,
+        source: true,
+        brandKey: true,
+        sourceLabel: true,
+        categoryId: true,
+        status: true,
+        sampleCount: true,
+        sampleShare: true,
+        category: { select: { tangoPath: true, name: true } },
+      },
+    }),
+    prisma.brand.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
+  const brandName = new Map(brands.map((b) => [b.id, b.name]));
+  const data: EquivalenceRow[] = rows.map((r) => ({
+    id: r.id,
+    source: r.source,
+    brandId: r.brandKey || null,
+    brandName: r.brandKey ? brandName.get(r.brandKey) ?? "Marca inactiva" : null,
+    sourceLabel: r.sourceLabel,
+    categoryId: r.categoryId,
+    categoryPath: r.category.tangoPath ? tangoPathLabel(r.category.tangoPath) : r.category.name,
+    status: r.status,
+    sampleCount: r.sampleCount,
+    sampleShare: r.sampleShare,
+  }));
+  return <EquivalencesTab rows={data} nodes={nodes} brands={brands} />;
+}
+
+async function PendingTangoPanel() {
+  const rows = await prisma.category.findMany({
+    where: { pendingTango: true, isActive: true, tangoPath: { not: null } },
+    orderBy: { tangoPath: "asc" },
+    select: { id: true, tangoPath: true, createdInAppBy: true, createdInAppAt: true, _count: { select: { products: true } } },
+  });
+  const data: PendingTangoRow[] = rows.map((r) => ({
+    id: r.id,
+    path: tangoPathLabel(r.tangoPath!),
+    tangoPath: r.tangoPath!,
+    products: r._count.products,
+    createdBy: r.createdInAppBy,
+    createdAt: r.createdInAppAt?.toISOString() ?? null,
+  }));
+  return <PendingTangoTab rows={data} />;
 }

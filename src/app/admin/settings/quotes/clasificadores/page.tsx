@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 import {
   addQuoteClassifierOption,
   archiveQuoteClassifier,
@@ -39,6 +40,7 @@ export default async function QuoteClassifiersSettingsPage() {
         <Card key={classifier.id}>
           <CardContent className="space-y-3 p-5">
             <div className="flex flex-wrap items-end gap-2">
+              <UnsavedArea className="flex min-w-0 flex-1">
               <form action={renameQuoteClassifier} className="flex min-w-0 flex-1 flex-wrap items-end gap-2">
                 <input type="hidden" name="id" value={classifier.id} />
                 <div className="min-w-[200px] flex-1">
@@ -53,6 +55,7 @@ export default async function QuoteClassifiersSettingsPage() {
                   Guardar
                 </Button>
               </form>
+              </UnsavedArea>
               <form action={archiveQuoteClassifier}>
                 <input type="hidden" name="id" value={classifier.id} />
                 <Button type="submit" size="sm" variant="ghost">
@@ -63,6 +66,7 @@ export default async function QuoteClassifiersSettingsPage() {
             <ul className="divide-y rounded-md border border-border">
               {classifier.options.map((option) => (
                 <li key={option.id} className="flex items-center gap-2 px-3 py-2">
+                  <UnsavedArea className="flex flex-1">
                   <form action={renameQuoteClassifierOption} className="flex flex-1 items-center gap-2">
                     <input type="hidden" name="id" value={option.id} />
                     <Input name="label" defaultValue={option.label} className="h-8" />
@@ -70,6 +74,7 @@ export default async function QuoteClassifiersSettingsPage() {
                       Renombrar
                     </Button>
                   </form>
+                  </UnsavedArea>
                   <form action={archiveQuoteClassifierOption}>
                     <input type="hidden" name="id" value={option.id} />
                     <Button type="submit" size="sm" variant="ghost">
@@ -79,6 +84,7 @@ export default async function QuoteClassifiersSettingsPage() {
                 </li>
               ))}
             </ul>
+            <UnsavedArea>
             <form action={addQuoteClassifierOption} className="flex flex-wrap items-end gap-2">
               <input type="hidden" name="classifierId" value={classifier.id} />
               <Input name="label" placeholder="Nueva opción…" className="max-w-xs" />
@@ -86,12 +92,14 @@ export default async function QuoteClassifiersSettingsPage() {
                 Agregar opción
               </Button>
             </form>
+            </UnsavedArea>
           </CardContent>
         </Card>
       ))}
 
       <Card>
         <CardContent className="p-5">
+          <UnsavedArea>
           <form action={createQuoteClassifier} className="flex flex-wrap items-end gap-2">
             <div>
               <Label htmlFor="new-classifier">Nuevo clasificador</Label>
@@ -102,6 +110,7 @@ export default async function QuoteClassifiersSettingsPage() {
               Crear clasificador
             </Button>
           </form>
+          </UnsavedArea>
         </CardContent>
       </Card>
     </div>

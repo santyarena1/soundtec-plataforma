@@ -7,6 +7,7 @@ import { requireStaff } from "@/lib/auth-helpers";
 import { permissionsHave } from "@/lib/permissions";
 import { calculatePricesForProducts } from "@/lib/pricing";
 import { getGlobalMarginPercent } from "@/lib/settings";
+import { proposePriceReview } from "@/server/price-review/reviews";
 
 /**
  * Reglas de precio que tocan a un producto, para verlas y editarlas desde su
@@ -211,16 +212,27 @@ const percentSchema = z.number().min(0, "El descuento no puede ser negativo.").m
 
 /** Cambia el % de una regla de descuento (y de su grupo, si es agrupada: igual que en Descuentos). */
 export async function updateDiscountRulePercent(ruleId: string, percent: number): Promise<Result> {
-  await requireStaff("discounts.manage", { costs: true });
+  const staff = await requireStaff("discounts.manage", { costs: true });
   const parsed = percentSchema.safeParse(percent);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Porcentaje inválido." };
   const rule = await prisma.discountRule.findUnique({ where: { id: ruleId }, select: { id: true, groupId: true, clientId: true } });
   if (!rule) return { ok: false, error: "La regla no existe." };
   if (rule.clientId) return { ok: false, error: "Las condiciones de un cliente se editan en su ficha." };
-  const where = rule.groupId ? { groupId: rule.groupId, isExemption: false } : { id: rule.id };
-  const updated = await prisma.discountRule.updateMany({ where, data: { discountPercent: parsed.data } });
-  revalidatePath("/admin/discounts");
-  revalidatePath("/admin/products");
-  revalidatePath("/portal/products");
-  return { ok: true, changed: updated.count };
+  // Cambiar una regla de descuento mueve precios de todo su alcance: pasa por Revisión de cambios.
+  const members = await prisma.discountRule.findMany({
+    where: rule.groupId ? { groupId: rule.groupId, isExemption: false } : { id: rule.id },
+    select: { id: true, name: true },
+  });
+  const review = await proposePriceReview(
+    { type: "rules.update", kind: "discount", ids: members.map((x) => x.id), data: { discountPercent: parsed.data } },
+    `Cambiar descuento a ${parsed.data} %: ${members[0]?.name ?? "regla"}`,
+    { id: staff.user.id, name: staff.user.name ?? staff.user.email ?? null }
+  );
+  revalidatePath("/admin/price-reviews");
+  return {
+    ok: false,
+    error: review.affectedProducts === 0
+      ? "No se aplicó todavía: no mueve ningún precio. Aplicalo con un clic en Precios › Revisión de cambios."
+      : `No se aplicó todavía: mueve el precio de ${review.affectedProducts} productos. Quedó en Precios › Revisión de cambios para verificarlo.`,
+  };
 }

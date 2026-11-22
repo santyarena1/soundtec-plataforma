@@ -25,12 +25,13 @@ export async function findUncategorizedCategoryId(db: Db = prisma): Promise<stri
 }
 
 /**
- * Productos para revisar uno a uno: en «Sin categorizar» o sin rubro (lo que
- * entra nuevo por sincronización o importación queda sin rubro).
+ * Productos para revisar uno a uno: en «Sin categorizar», sin rubro (lo que
+ * entra nuevo por sincronización o importación) o con una categoría vieja
+ * fuera del árbol de Tango.
  */
 export async function uncategorizedProductWhere(db: Db = prisma): Promise<Prisma.ProductWhereInput> {
-  const id = await findUncategorizedCategoryId(db);
-  return id ? { OR: [{ categoryId: null }, { categoryId: id }] } : { categoryId: null };
+  void db;
+  return { OR: [{ categoryId: null }, { category: { tangoPath: null } }] };
 }
 
 /**
@@ -39,14 +40,14 @@ export async function uncategorizedProductWhere(db: Db = prisma): Promise<Prisma
  * puede deshacer desde «Lo que ya decidiste»).
  */
 export async function assignFromUncategorized(productId: string, categoryId: string, userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const [node, product, uncategorizedId] = await Promise.all([
-    prisma.category.findUnique({ where: { id: categoryId }, select: { tangoPath: true } }),
-    prisma.product.findUnique({ where: { id: productId }, select: { categoryId: true } }),
-    findUncategorizedCategoryId(),
+  const [node, product] = await Promise.all([
+    prisma.category.findUnique({ where: { id: categoryId }, select: { tangoPath: true, isActive: true } }),
+    prisma.product.findUnique({ where: { id: productId }, select: { categoryId: true, category: { select: { tangoPath: true } } } }),
   ]);
-  if (!node?.tangoPath) return { ok: false, error: "Elegí un rubro del árbol de Tango." };
+  if (!node?.tangoPath || !node.isActive) return { ok: false, error: "Elegí un rubro del árbol de Tango." };
   if (!product) return { ok: false, error: "No encontré el producto." };
-  if (product.categoryId && product.categoryId !== uncategorizedId) return { ok: false, error: "Ese producto ya tiene rubro." };
+  // Solo productos sin rubro, en «Sin categorizar» o con una categoría vieja (fuera del árbol).
+  if (product.categoryId && product.category?.tangoPath) return { ok: false, error: "Ese producto ya tiene rubro." };
   const now = new Date();
   await prisma.$transaction([
     prisma.product.update({ where: { id: productId }, data: { categoryId } }),

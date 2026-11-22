@@ -38,7 +38,7 @@ export function parseCatalogSearchParams(
     brandIds: toList(params.brand),
     distributorIds: toList(params.distributor),
     categoryIds: toList(params.category),
-    familyIds: toList(params.family),
+    lineIds: toList(params.line),
     stock:
       SHOW_STOCK_TO_CUSTOMERS && (stock === "in_stock" || stock === "low_stock" || stock === "on_request") ? stock : "any",
     includeOutOfStock: SHOW_STOCK_TO_CUSTOMERS ? params.oos === "1" : true,
@@ -65,7 +65,7 @@ export function countActiveCatalogFilters(
   if (state.search?.trim()) n += 1;
   if (state.brandIds?.length) n += 1;
   if (state.categoryIds?.length) n += 1;
-  if (state.familyIds?.length) n += 1;
+  if (state.lineIds?.length) n += 1;
   if (options?.includeDistributors && state.distributorIds?.length) n += 1;
   if (state.stock && state.stock !== "any") n += 1;
   if (state.hasDiscount) n += 1;
@@ -74,4 +74,20 @@ export function countActiveCatalogFilters(
   if (state.kind && state.kind !== "any") n += 1;
   if (state.minPrice != null || state.maxPrice != null) n += 1;
   return n;
+}
+
+/**
+ * El filtro viejo de familias (?family=) se retiró: sus ids no son series.
+ * Devuelve la misma URL sin ese parámetro (para redirigir) o null si no lo trae.
+ */
+export function withoutLegacyFamilyParam(basePath: string, params: Record<string, string | string[] | undefined>): string | null {
+  if (params.family == null) return null;
+  const next = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "family" || value == null) continue;
+    if (Array.isArray(value)) for (const v of value) next.append(key, v);
+    else next.set(key, value);
+  }
+  const query = next.toString();
+  return query ? `${basePath}?${query}` : basePath;
 }

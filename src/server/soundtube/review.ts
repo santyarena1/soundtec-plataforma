@@ -54,7 +54,7 @@ export interface ReviewState {
   missing: Record<string, MissingAction>;
   applyTaxonomy: boolean;
   appliedAt?: string;
-  applyResult?: { updated: number; created: number; deactivated: number };
+  applyResult?: { updated: number; created: number; deactivated: number; uncategorizedNew?: number };
 }
 
 export interface ReviewStatus {

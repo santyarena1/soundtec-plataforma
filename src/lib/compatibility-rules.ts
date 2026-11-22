@@ -11,6 +11,23 @@ import { tangoPathLabel } from "@/lib/tango-tree";
  */
 export type RuleInput = { categoryId: string | null; brandId: string | null; line: string | null };
 
+/**
+ * La «línea» de una regla es la SERIE del producto (ProductLine) o, para
+ * productos que todavía no tienen serie, el texto viejo `line`. Sin tildes ni
+ * mayúsculas: «Horizon» = «horizon».
+ */
+export function ruleLineMatches(ruleLine: string | null | undefined, product: { line?: string | null; seriesName?: string | null }): boolean {
+  const want = ruleLine?.trim().toLowerCase();
+  if (!want) return true;
+  return [product.seriesName, product.line].some((v) => v?.trim().toLowerCase() === want);
+}
+
+/** Filtro de base para la línea de una regla (serie o texto viejo). */
+export function ruleLineWhere(line: string): Prisma.ProductWhereInput {
+  const value = line.trim();
+  return { OR: [{ series: { name: { equals: value, mode: "insensitive" } } }, { line: { equals: value, mode: "insensitive" } }] };
+}
+
 /** Productos que entran en una regla (activos, sin el producto mismo). */
 export async function ruleWhere(rule: RuleInput, excludeProductId?: string): Promise<Prisma.ProductWhereInput> {
   return {
@@ -18,7 +35,7 @@ export async function ruleWhere(rule: RuleInput, excludeProductId?: string): Pro
     ...(excludeProductId ? { id: { not: excludeProductId } } : {}),
     ...(rule.categoryId ? { categoryId: { in: await expandCategoryIds([rule.categoryId]) } } : {}),
     ...(rule.brandId ? { brandId: rule.brandId } : {}),
-    ...(rule.line ? { line: { equals: rule.line.trim(), mode: "insensitive" } } : {}),
+    ...(rule.line ? ruleLineWhere(rule.line) : {}),
   };
 }
 
@@ -33,7 +50,7 @@ export async function productsMatchingRulesWhere(productId: string): Promise<Pri
  * Al revés: productos que tienen una regla en la que entra este producto
  * (ej. el amplificador ve los parlantes que dicen ser compatibles con su rubro).
  */
-export async function productsWithRulesCovering(product: { id: string; categoryId: string | null; brandId: string | null; line: string | null }): Promise<string[]> {
+export async function productsWithRulesCovering(product: { id: string; categoryId: string | null; brandId: string | null; line: string | null; seriesName?: string | null }): Promise<string[]> {
   const ancestors: string[] = [];
   if (product.categoryId) {
     const all = await prisma.category.findMany({ select: { id: true, parentId: true } });
@@ -50,11 +67,10 @@ export async function productsWithRulesCovering(product: { id: string; categoryI
     },
     select: { productId: true, line: true, categoryId: true, brandId: true },
   });
-  const line = product.line?.trim().toLowerCase() ?? null;
   return [
     ...new Set(
       rules
-        .filter((r) => (r.categoryId || r.brandId || r.line) && (!r.line || r.line.trim().toLowerCase() === line))
+        .filter((r) => (r.categoryId || r.brandId || r.line) && ruleLineMatches(r.line, product))
         .map((r) => r.productId),
     ),
   ];
@@ -65,7 +81,7 @@ export function describeRule(rule: { category?: { name: string; tangoPath: strin
   const parts = [
     rule.category ? (rule.category.tangoPath ? tangoPathLabel(rule.category.tangoPath) : rule.category.name) : null,
     rule.brand ? rule.brand.name : null,
-    rule.line ? `línea ${rule.line}` : null,
+    rule.line ? `serie ${rule.line}` : null,
   ].filter(Boolean);
   return parts.join(" · ") || "Cualquier producto";
 }

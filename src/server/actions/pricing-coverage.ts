@@ -4,9 +4,17 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
-import { calculatePricesForProducts, findCandidateRules, type AppliedRule, type ProductPricingInput } from "@/lib/pricing";
+import { calculatePricesForProducts, findCandidateRules, preparePricingInputs, type AppliedRule, type ProductPricingInput } from "@/lib/pricing";
 import { attachRuleExemptions, toFiniteNumber, toPricingRuleRow } from "@/lib/pricing-scope";
 import type { PricingRuleRow } from "@/components/admin/pricing-rules-table";
+import { expandCategoryIds } from "@/lib/category-tree";
+import { proposePriceReview } from "@/server/price-review/reviews";
+
+function reviewMessage(affected: number) {
+  return affected === 0
+    ? "No se aplicó todavía: no mueve ningún precio. Aplicalo con un clic en Precios › Revisión de cambios."
+    : `No se aplicó todavía: mueve el precio de ${affected} producto${affected === 1 ? "" : "s"}. Quedó en Precios › Revisión de cambios para verificarlo.`;
+}
 
 export type CoverageSource = "RULE" | "PRODUCT_FIELD" | "COEF_VTA" | "DEFAULT" | "NONE";
 export type ProductCoverageRow = {
@@ -93,7 +101,8 @@ export async function listProductRuleCoverage(input: {
 }): Promise<ProductCoverageResult> {
   try {
     await requireStaff("margins.manage", { costs: true });
-    const where = productWhere(input); const clientId = input.clientId || null;
+    // Un rubro incluye sus subrubros (como las reglas de precio).
+    const where = productWhere({ ...input, categoryIds: input.categoryIds?.length ? await expandCategoryIds(input.categoryIds) : input.categoryIds }); const clientId = input.clientId || null;
     const page = Math.max(1, input.page || 1); const pageSize = [25, 50, 100].includes(input.pageSize || 0) ? input.pageSize! : 25;
     const all = await prisma.product.findMany({ where, orderBy: { normalizedName: "asc" }, select: pricingSelect });
     const breakdowns = new Map<string, Awaited<ReturnType<typeof calculatePricesForProducts>> extends Map<string, infer B> ? B : never>();
@@ -111,11 +120,13 @@ export async function listProductRuleCoverage(input: {
         images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }], take: 1, select: { url: true } }, } }),
       ruleRows(input.kind, clientId),
     ]);
-    const detailMap = new Map(details.map((p) => [p.id, p])); const rowMap = new Map(rules.rows.map((r) => [r.id, r]));
+    const detailMap = new Map(details.map((p) => [p.id, p]));
+    // Con ancestros de rubro: las reglas por rubro alcanzan a los subrubros.
+    const preparedInputs = new Map((await preparePricingInputs(details.map(pricingInput))).map((x) => [x.productId, x])); const rowMap = new Map(rules.rows.map((r) => [r.id, r]));
     const countBy = async (field: "brandId" | "categoryId" | "familyId" | "distributorId") => prisma.product.groupBy({ by: [field], where: { isActive: true }, _count: { _all: true } });
     const [brandCounts, categoryCounts, familyCounts, distributorCounts, catalogCount] = await Promise.all([countBy("brandId"), countBy("categoryId"), countBy("familyId"), countBy("distributorId"), prisma.product.count({ where: { isActive: true } })]);
     const maps = [brandCounts, categoryCounts, familyCounts, distributorCounts].map((rows, i) => new Map(rows.map((x) => [String(x[["brandId","categoryId","familyId","distributorId"][i] as keyof typeof x] || ""), x._count._all])));
-    const items = selected.map((base) => { const p = detailMap.get(base.id)!; const b = breakdowns.get(p.id)!; const candidates = findCandidateRules(rules.raw, pricingInput(p), clientId).map((r) => rowMap.get(r.id)).filter((r): r is PricingRuleRow => Boolean(r));
+    const items = selected.map((base) => { const p = detailMap.get(base.id)!; const b = breakdowns.get(p.id)!; const candidates = findCandidateRules(rules.raw, preparedInputs.get(p.id) ?? pricingInput(p), clientId).map((r) => rowMap.get(r.id)).filter((r): r is PricingRuleRow => Boolean(r));
       const applied = input.kind === "margin" ? b.appliedMarginRule : b.appliedDiscountRule; const source: CoverageSource = input.kind === "margin" ? b.markupSource : b.discountSource === "RULE" ? "RULE" : b.discountSource === "PRODUCT" ? "PRODUCT_FIELD" : "NONE";
       return { id: p.id, name: p.normalizedName, sku: p.internalSku || "", brandId: p.brandId, brandName: p.brand?.name || null, categoryId: p.categoryId, categoryName: p.category?.name || null,
         familyId: p.familyId, familyName: p.family?.name || p.familia || null, distributorId: p.distributorId, distributorName: p.distributor?.name || null, imageUrl: p.images[0]?.url || null,
@@ -127,16 +138,27 @@ export async function listProductRuleCoverage(input: {
   } catch (error) { console.error("listProductRuleCoverage", error); return { ok: false, error: "No se pudo cargar la cobertura. Probá de nuevo." }; }
 }
 
+/** Activar/desactivar una regla también pasa por Revisión de cambios (no se aplica directo). */
 export async function setPricingRuleActive(input: { kind: "margin" | "discount"; id: string; active: boolean }) {
-  await requireStaff("margins.manage", { costs: true });
-  if (input.kind === "margin") await prisma.marginRule.update({ where: { id: input.id }, data: { isActive: input.active } });
-  else await prisma.discountRule.update({ where: { id: input.id }, data: { isActive: input.active } });
-  revalidatePath(input.kind === "margin" ? "/admin/margins" : "/admin/discounts"); return { ok: true as const };
+  const { user } = await requireStaff(input.kind === "margin" ? "margins.manage" : "discounts.manage", { costs: true });
+  const rule = input.kind === "margin"
+    ? await prisma.marginRule.findUnique({ where: { id: input.id }, select: { name: true } })
+    : await prisma.discountRule.findUnique({ where: { id: input.id }, select: { name: true } });
+  if (!rule) return { ok: false as const, error: "La regla no existe." };
+  const review = await proposePriceReview({ type: "rules.update", kind: input.kind, ids: [input.id], data: { isActive: input.active } },
+    `${input.active ? "Activar" : "Desactivar"} regla: ${rule.name}`, { id: user.id, name: user.name ?? user.email ?? null });
+  revalidatePath("/admin/price-reviews");
+  return { ok: false as const, error: reviewMessage(review.affectedProducts), reviewId: review.id };
 }
 
 export async function removePricingRule(input: { kind: "margin" | "discount"; id: string }) {
-  await requireStaff("margins.manage", { costs: true });
-  if (input.kind === "margin") await prisma.marginRule.delete({ where: { id: input.id } });
-  else await prisma.discountRule.delete({ where: { id: input.id } });
-  revalidatePath(input.kind === "margin" ? "/admin/margins" : "/admin/discounts"); return { ok: true as const };
+  const { user } = await requireStaff(input.kind === "margin" ? "margins.manage" : "discounts.manage", { costs: true });
+  const rule = input.kind === "margin"
+    ? await prisma.marginRule.findUnique({ where: { id: input.id }, select: { name: true } })
+    : await prisma.discountRule.findUnique({ where: { id: input.id }, select: { name: true } });
+  if (!rule) return { ok: false as const, error: "La regla no existe." };
+  const review = await proposePriceReview({ type: "rules.delete", kind: input.kind, ids: [input.id] },
+    `Borrar regla: ${rule.name}`, { id: user.id, name: user.name ?? user.email ?? null });
+  revalidatePath("/admin/price-reviews");
+  return { ok: false as const, error: reviewMessage(review.affectedProducts), reviewId: review.id };
 }

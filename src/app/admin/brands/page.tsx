@@ -13,6 +13,7 @@ import { NormalizeLogosButton } from "./normalize-logos-button";
 import { brandLogoSrc } from "@/lib/brand-logo";
 import { toggleBrandCatalogVisibility } from "@/server/actions/brand-logos";
 import { toggleBrandComingSoon } from "@/server/actions/brand-listing";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 
 export const metadata = { title: "Admin · Marcas" };
 
@@ -37,6 +38,7 @@ export default async function AdminBrandsPage() {
       <Card>
         <CardContent className="p-6">
           <h2 className="heading-3 mb-3">Crear marca</h2>
+          <UnsavedArea>
           <form action={upsertBrand} className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="name" required>Nombre</Label>
@@ -58,6 +60,7 @@ export default async function AdminBrandsPage() {
               <Button type="submit">Crear marca</Button>
             </div>
           </form>
+          </UnsavedArea>
         </CardContent>
       </Card>
 

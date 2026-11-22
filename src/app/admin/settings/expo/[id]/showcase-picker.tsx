@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductSearchPicker, type PickerItem } from "@/components/products/product-search-picker";
@@ -41,7 +42,8 @@ export function ShowcasePicker({
   const found = useRef(new Map<string, PickerProduct>());
   const [saving, startSave] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
-  const dirty = JSON.stringify(selected.map((p) => p.id)) !== JSON.stringify(initial.map((p) => p.id));
+  // Compara contra lo guardado (al cargar o en el último «Guardar vidriera»).
+  const { isDirty: dirty, markSaved } = useUnsavedValue(selected.map((p) => p.id));
   const manual = selected.length > 0;
 
   const pickedIds = useMemo(() => new Set(selected.map((p) => p.id)), [selected]);
@@ -68,6 +70,7 @@ export function ShowcasePicker({
     setMessage(null);
     startSave(async () => {
       const r = await saveShowcaseProducts(eventId, selected.map((p) => p.id));
+      if (r.ok) markSaved();
       setMessage(r.ok ? "Guardado. La pantalla del stand toma la nueva vidriera al recargar." : r.error ?? "Error");
     });
   }

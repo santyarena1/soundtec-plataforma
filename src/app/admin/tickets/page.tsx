@@ -1,3 +1,4 @@
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
@@ -41,6 +42,7 @@ export default async function AdminTicketsPage() {
       <Card>
         <CardContent className="p-6">
           <h2 className="heading-3 mb-3">Crear ticket</h2>
+          <UnsavedArea>
           <form action={createTicket} className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Label htmlFor="title" required>Título</Label>
@@ -63,6 +65,7 @@ export default async function AdminTicketsPage() {
               <Button type="submit">Crear ticket</Button>
             </div>
           </form>
+          </UnsavedArea>
         </CardContent>
       </Card>
 
@@ -86,6 +89,7 @@ export default async function AdminTicketsPage() {
                   </div>
                 </div>
                 <p className="whitespace-pre-wrap text-sm text-foreground">{t.description}</p>
+                <UnsavedArea>
                 <form action={updateTicket} className="grid gap-2 sm:grid-cols-[160px_1fr_auto] sm:items-end">
                   <input type="hidden" name="id" value={t.id} />
                   <div>
@@ -103,6 +107,7 @@ export default async function AdminTicketsPage() {
                   </div>
                   <Button type="submit" size="sm">Guardar</Button>
                 </form>
+                </UnsavedArea>
               </CardContent>
             </Card>
           ))

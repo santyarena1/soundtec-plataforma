@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -68,6 +69,7 @@ export function PdfTextsEditor({
   const [tryAudience, setTryAudience] = useState("");
 
   const dirty = section.mode === "editable" && !sameDraft(draft, saved);
+  useUnsavedChangesGuard(dirty, "Tenés cambios sin guardar en este texto. Si salís ahora, se pierden.");
   const audienceLabel = (k: string) => audiences.find((a) => a.key === k)?.label ?? k;
 
   async function go(nextKey: string, nextTab: string) {

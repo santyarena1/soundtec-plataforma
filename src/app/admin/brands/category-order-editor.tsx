@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { getBrandCategoryOrder, saveBrandCategoryOrder, type BrandCategoryOption } from "@/server/actions/brand-listing";
 
 /**
@@ -17,6 +18,7 @@ export function CategoryOrderEditor({ brandId, brandName }: { brandId: string; b
   const [status, setStatus] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const tracker = useUnsavedValue(order, { ready: options !== null });
 
   useEffect(() => {
     let alive = true;
@@ -48,6 +50,7 @@ export function CategoryOrderEditor({ brandId, brandName }: { brandId: string; b
     setStatus(null);
     start(async () => {
       const result = await saveBrandCategoryOrder(brandId, order);
+      if (result.ok) tracker.markSaved(order);
       setStatus(result.ok ? { tone: "ok", text: "Orden guardado." } : { tone: "error", text: result.error });
     });
   }

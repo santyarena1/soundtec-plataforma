@@ -2,6 +2,8 @@ import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { PriceLogicHint } from "@/components/admin/price-logic-hint";
+import { PriceReviewBanner } from "@/components/admin/price-review-banner";
+import { categoryLabelMap, lineOptions, listCategoryTree } from "@/lib/category-tree";
 import { PricingRulesWorkspace } from "../_rules/workspace";
 import { deleteMarginRule, deleteMarginRuleGroup } from "@/server/actions/pricing-rules";
 import { toFiniteNumber, toPricingRuleRow, attachRuleExemptions } from "@/lib/pricing-scope";
@@ -21,7 +23,7 @@ export default async function AdminMarginsPage() {
       }),
       prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
       prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-      prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+      listCategoryTree(),
       prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
       prisma.product.findMany({
         orderBy: { normalizedName: "asc" },
@@ -31,10 +33,12 @@ export default async function AdminMarginsPage() {
     ]);
 
   const clientMap = new Map(clients.map((c) => [c.id, c.companyName || c.contactName || c.id]));
+  const lines = await lineOptions();
   const resourceMaps: Record<string, Map<string, string>> = {
     BRAND: new Map(brands.map((b) => [b.id, b.name])),
     DISTRIBUTOR: new Map(distributors.map((d) => [d.id, d.name])),
-    CATEGORY: new Map(categories.map((c) => [c.id, c.name])),
+    CATEGORY: await categoryLabelMap(),
+    LINE: new Map(lines.map((l) => [l.id, l.name])),
     FAMILY: new Map(families.map((f) => [f.id, f.name])),
     PRODUCT: new Map(products.map((p) => [p.id, p.normalizedName])),
   };
@@ -88,6 +92,8 @@ export default async function AdminMarginsPage() {
         description="Definí el markup o el margen sobre el costo nacionalizado. La regla más específica gana. Cada regla queda con fecha de alta y se puede editar."
       />
 
+      <PriceReviewBanner area="MARGIN" />
+
       <PriceLogicHint variant="margin" />
 
       <PricingRulesWorkspace
@@ -101,6 +107,7 @@ export default async function AdminMarginsPage() {
         distributors={distributors}
         categories={categories}
         families={families}
+        lines={lines}
         products={products}
       />
     </div>

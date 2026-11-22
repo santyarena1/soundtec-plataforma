@@ -18,6 +18,8 @@ import { revalidatePath } from "next/cache";
 import { changedScalarFields, mergeFieldTimestamps } from "@/lib/field-timestamps";
 import { mergeSourceMetadata } from "@/services/sync/source-metadata";
 import { realDimensionsCm } from "@/services/sync/dimensions";
+import { sonanceProviderPath } from "@/lib/new-product-rubro";
+import { rubroForNewProduct } from "@/server/categories/new-product-rubro";
 
 const CACHED_PAYLOAD_KEY = "sonance.sync_preview"; // enrich consume el preview (con items + skus)
 
@@ -51,6 +53,8 @@ export interface EnrichResponse {
   totalTargets?: number;
   nextOffset?: number | null;
   done?: boolean;
+  /** Productos creados en esta llamada que quedaron en «Sin categorizar» (sin equivalencia de rubro). */
+  uncategorizedNew?: number;
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -150,7 +154,7 @@ export async function POST(req: NextRequest) {
     let targetSkus: string[];
     const skuToCachedItem = new Map<
       string,
-      { name: string; price: number; brand: string; uom: string; category?: string }
+      { name: string; price: number; brand: string; uom: string; category?: string; subcategory?: string }
     >();
 
     if (body.skus && body.skus.length > 0) {
@@ -174,6 +178,7 @@ export async function POST(req: NextRequest) {
             brand?: string;
             uom?: string;
             category?: string;
+            subcategory?: string;
             currentCategoryLabel?: string | null;
             productId?: string | null;
           }>;
@@ -190,6 +195,7 @@ export async function POST(req: NextRequest) {
             brand: String(it.brand ?? ""),
             uom: String(it.uom ?? "EA"),
             category: String(it.category ?? ""),
+            subcategory: String(it.subcategory ?? ""),
           });
         }
       } catch {
@@ -231,6 +237,7 @@ export async function POST(req: NextRequest) {
     }
 
     let targets: { id: string; supplierSku: string }[] = [];
+    let uncategorizedNew = 0;
     for (const sku of workingSkus) {
       const existing = existingMap.get(sku);
       if (existing) {
@@ -242,6 +249,12 @@ export async function POST(req: NextRequest) {
       if (!cachedItem) continue; // No data → skip (shouldn't happen)
       const brandId = brandIdMap.get(cachedItem.brand) ?? null;
       try {
+        // Rubro del alta: equivalencia de «Product Category > Product Sub Category»; si no hay, «Sin categorizar».
+        const rubro = await rubroForNewProduct(prisma, {
+          source: "sonance",
+          brandId,
+          sourcePath: sonanceProviderPath(cachedItem.category, cachedItem.subcategory),
+        });
         const created = await prisma.product.create({
           data: {
             normalizedName: cachedItem.name,
@@ -250,10 +263,16 @@ export async function POST(req: NextRequest) {
             baseCostUsd: cachedItem.price,
             brandId,
             isActive: false,
-            fieldUpdatedAt: mergeFieldTimestamps({}, ["normalizedName", "originalName", "supplierSku", "baseCostUsd", "brandId", "isActive"], new Date().toISOString()),
+            ...(rubro ? { categoryId: rubro.categoryId, sourceCategoryPath: rubro.sourceCategoryPath ?? null } : {}),
+            fieldUpdatedAt: mergeFieldTimestamps(
+              {},
+              ["normalizedName", "originalName", "supplierSku", "baseCostUsd", "brandId", "isActive", ...(rubro ? ["categoryId"] : [])],
+              new Date().toISOString()
+            ),
           },
           select: { id: true, supplierSku: true },
         });
+        if (rubro && !rubro.matched) uncategorizedNew++;
         targets.push({ id: created.id, supplierSku: sku });
       } catch (e) {
         console.error(`enrich: failed to auto-create ${sku}`, e);
@@ -267,6 +286,7 @@ export async function POST(req: NextRequest) {
         ok: true,
         processed: 0,
         totalTargets,
+        uncategorizedNew,
         nextOffset: null,
         done: true,
       } satisfies EnrichResponse);
@@ -518,6 +538,7 @@ export async function POST(req: NextRequest) {
       withAccessories,
       withTranslations,
       totalTargets,
+      uncategorizedNew,
       nextOffset: done ? null : nextOffset,
       done,
     } satisfies EnrichResponse);

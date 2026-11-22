@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAutosaveGuard } from "@/hooks/use-unsaved-changes-guard";
 import { attachQuotePlan, deleteQuoteAsset } from "@/server/actions/quote-images";
 
 type Plan = { id: string; url: string; caption: string | null };
@@ -19,6 +20,8 @@ export function QuotePlanUpload({
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  // Se sube al elegir: avisar solo mientras la subida está en curso.
+  useAutosaveGuard(pending ? "saving" : "idle", "Se están subiendo los planos. Si salís ahora, se pueden perder.");
 
   function upload(files: FileList | File[] | null) {
     if (!files || disabled) return;

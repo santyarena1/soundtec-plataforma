@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Layers3, Loader2, Plus, Sparkles } from "lucide-react";
@@ -61,6 +62,9 @@ export function AddCustomModule({ quoteId, issued }: { quoteId: string; issued?:
       setDrafts(await listQuoteModuleLibrary());
     });
   }, [open]);
+
+  // Módulo a medio escribir (el borrador sigue aunque se cierre la ventana): avisar al salir.
+  useUnsavedChangesGuard(!issued && Boolean(title.trim() || body.trim() || prompt.trim()));
 
   if (issued) return null;
 

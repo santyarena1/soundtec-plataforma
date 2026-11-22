@@ -5,6 +5,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { buildProductSearchKey } from "@/lib/search-key";
+import { soundTubeListPath, uncategorizedNewNotice } from "@/lib/new-product-rubro";
+import { rubroForNewProduct, type NewProductRubro } from "@/server/categories/new-product-rubro";
 import { parsePriceListFile, rowRef, skuKey } from "@/services/soundtube/price-list";
 import { applyCorrections, parseCorrections, type Correction, type CorrectionsReport } from "@/services/soundtube/corrections";
 import {
@@ -211,10 +213,28 @@ export async function applySoundTubeReview(): Promise<Result & { summary?: strin
     const brandId = (name: string) => brandRows.find((b) => b.name.toLowerCase() === name.toLowerCase())?.id;
     const missingBrand = toCreate.find((q) => !brandId(q.decision!.brand!));
     if (missingBrand) return { ok: false, error: `No existe la marca ${missingBrand.decision!.brand} en el sistema.` };
+    // Rubro de cada alta: equivalencia de la clasificación de la lista (CATEGORIA > SEGMENTO > FAMILIA > TIPO);
+    // si no hay, «Sin categorizar». Nunca se crean rubros.
+    const chosenBySku = new Map(rowsWithChosenClassification(state).map((r) => [skuKey(r.sku), r]));
+    const rubros = new Map<string, NewProductRubro | null>();
+    for (const q of toCreate) {
+      rubros.set(
+        q.row.sku,
+        await rubroForNewProduct(prisma, {
+          source: "soundtube",
+          brandId: brandId(q.decision!.brand!) ?? null,
+          sourcePath: soundTubeListPath(chosenBySku.get(skuKey(q.row.sku)) ?? q.row),
+        })
+      );
+    }
+    const uncategorizedNew = [...rubros.values()].filter((r) => r && !r.matched).length;
     await prisma.$transaction(
       toCreate.map((q) =>
         prisma.product.create({
           data: {
+            ...(rubros.get(q.row.sku)
+              ? { categoryId: rubros.get(q.row.sku)!.categoryId, sourceCategoryPath: rubros.get(q.row.sku)!.sourceCategoryPath ?? null }
+              : {}),
             normalizedName: q.row.sku,
             originalName: q.row.description || q.row.sku,
             supplierSku: q.row.sku,
@@ -253,13 +273,14 @@ export async function applySoundTubeReview(): Promise<Result & { summary?: strin
     if (!result.ok) return result;
 
     state.appliedAt = new Date().toISOString();
-    state.applyResult = { updated: result.updated, created: toCreate.length, deactivated: result.deactivated };
+    state.applyResult = { updated: result.updated, created: toCreate.length, deactivated: result.deactivated, uncategorizedNew };
     await saveReviewState(state, 0);
     revalidatePath(PATH);
     revalidatePath("/admin", "layout");
+    const notice = uncategorizedNewNotice(uncategorizedNew);
     return {
       ok: true,
-      summary: `${result.updated} productos actualizados, ${toCreate.length} creados y ${result.deactivated} desactivados.`,
+      summary: `${result.updated} productos actualizados, ${toCreate.length} creados y ${result.deactivated} desactivados.${notice ? ` ${notice}` : ""}`,
     };
   } catch (error) {
     console.error("[soundtube-review] apply failed", error);

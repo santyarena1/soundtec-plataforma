@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { categoryLabelMap, listCategoryTree } from "@/lib/category-tree";
 import { Tabs } from "@/components/ui/tabs";
 import { PricingRulesWorkspace } from "@/app/admin/_rules/workspace";
 import { VisibilityRulesWorkspace } from "@/app/admin/visibility/visibility-rules-workspace";
@@ -25,7 +26,7 @@ export async function ClientPricingPanel({
       prisma.visibilityRule.findMany({ where: { clientId }, orderBy: { createdAt: "desc" } }),
       prisma.brand.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
       prisma.distributor.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-      prisma.category.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+      listCategoryTree(),
       prisma.productFamily.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     ]);
   const productIds = [
@@ -44,7 +45,7 @@ export async function ClientPricingPanel({
   const maps: Record<string, Map<string, string>> = {
     BRAND: new Map(brands.map((x) => [x.id, x.name])),
     DISTRIBUTOR: new Map(distributors.map((x) => [x.id, x.name])),
-    CATEGORY: new Map(categories.map((x) => [x.id, x.name])),
+    CATEGORY: await categoryLabelMap(),
     FAMILY: new Map(families.map((x) => [x.id, x.name])),
     PRODUCT: new Map(products.map((x) => [x.id, x.normalizedName])),
   };

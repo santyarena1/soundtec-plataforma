@@ -1,3 +1,4 @@
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth-helpers";
@@ -206,6 +207,7 @@ export default async function Page({ params, searchParams }: { params: { id: str
                       </span>
                     ) : null}
                   </p>
+                  <UnsavedArea>
                   <form action={createMovementForm} className="grid gap-2 md:grid-cols-3">
                     <input type="hidden" name="clientId" value={id} />
                     <Select name="kind">
@@ -227,6 +229,7 @@ export default async function Page({ params, searchParams }: { params: { id: str
                     <Textarea name="notes" placeholder="Notas" />
                     <Button type="submit">Agregar movimiento</Button>
                   </form>
+                  </UnsavedArea>
                   {movements.map((m) => (
                     <div key={m.id} className="rounded border p-3 text-sm">
                       <div className="flex justify-between">

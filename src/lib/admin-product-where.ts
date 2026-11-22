@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { buildProductSearchAnd } from "@/lib/product-search";
 import type { AdminProductFilters } from "@/lib/admin-product-filters";
 import { uncategorizedProductWhere } from "@/server/uncategorized";
+import { seriesFilterWhere } from "@/lib/product-lines/series-filter";
 
 /** Productos Crestron cuyo enriquecimiento falló (no existen en crestron.com). */
 export const CRESTRON_MISSING_WHERE: Prisma.ProductWhereInput = {
@@ -36,6 +37,7 @@ export async function buildAdminProductWhere(f: AdminProductFilters): Promise<Pr
     ...(f.nocat ? [await uncategorizedProductWhere()] : []),
     ...(f.noprice ? [NO_PRICE_WHERE] : []),
     ...(f.notrans ? [NOT_TRANSLATED_WHERE] : []),
+    ...(f.lineIds.length ? [seriesFilterWhere(f.lineIds)] : []),
   ];
   return {
     ...(feedbackIds ? { id: { in: feedbackIds } } : {}),
@@ -43,7 +45,6 @@ export async function buildAdminProductWhere(f: AdminProductFilters): Promise<Pr
     ...(f.brandIds.length ? { brandId: { in: f.brandIds } } : {}),
     // Un rubro trae también todo lo que cuelga de él en el árbol.
     ...(f.categoryIds.length ? { categoryId: { in: await expandCategoryIds(f.categoryIds) } } : {}),
-    ...(f.familyIds.length ? { familyId: { in: f.familyIds } } : {}),
     ...(f.distributorIds.length ? { distributorId: { in: f.distributorIds } } : {}),
     ...(f.stockStatuses.length ? { stockStatus: { in: f.stockStatuses as StockStatus[] } } : {}),
     ...(f.active ? { isActive: f.active === "yes" } : {}),

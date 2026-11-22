@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { isTangoTreeActive } from "@/lib/tango-tree-db";
+import { sonanceProviderPath } from "@/lib/new-product-rubro";
+import { rubroForNewProduct } from "@/server/categories/new-product-rubro";
 import { getSetting, setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import type { SonanceProduct } from "@/services/sonance-portal";
@@ -63,7 +65,8 @@ async function loadTranslations(): Promise<Record<string, string>> {
 
 async function loadTarget(): Promise<CategoryTarget> {
   const raw = await getSetting(TARGET_KEY, "rubro");
-  return (["categoria", "familia", "rubro", "subrubro"].includes(raw) ? raw : "rubro") as CategoryTarget;
+  // «familia» (Familias, retiradas) quedó guardado de antes: ahora va como texto en «familia».
+  return (["categoria", "rubro", "subrubro"].includes(raw) ? raw : "rubro") as CategoryTarget;
 }
 
 function categoryLabelFor(target: CategoryTarget, product: {
@@ -73,8 +76,7 @@ function categoryLabelFor(target: CategoryTarget, product: {
   tipo: string | null;
 }): string | null {
   if (target === "categoria") return product.categoryName;
-  if (target === "familia") return product.familyName;
-  if (target === "rubro") return product.familia;
+  if (target === "familia" || target === "rubro") return product.familia;
   return product.tipo;
 }
 
@@ -230,19 +232,6 @@ async function upsertCategoryByName(name: string): Promise<string> {
   return created.id;
 }
 
-async function upsertFamilyByName(name: string): Promise<string> {
-  const normalized = name.trim();
-  const existing = await prisma.productFamily.findFirst({
-    where: { name: { equals: normalized, mode: "insensitive" } },
-    select: { id: true },
-  });
-  if (existing) return existing.id;
-  const created = await prisma.productFamily.create({
-    data: { name: normalized, slug: slugify(normalized) },
-    select: { id: true },
-  });
-  return created.id;
-}
 
 // PUT — apply changes. Body: { items, createNew, translations, target }
 export async function PUT(req: NextRequest) {
@@ -257,10 +246,13 @@ export async function PUT(req: NextRequest) {
     };
     const items = body.items ?? [];
     const createNew = !!body.createNew;
+    // Familias retiradas: el destino «familia» se escribe como texto (igual que «rubro»), sin crear familias.
     const target = (
-      ["categoria", "familia", "rubro", "subrubro"].includes(body.target ?? "")
+      ["categoria", "rubro", "subrubro"].includes(body.target ?? "")
         ? body.target
-        : await loadTarget()
+        : body.target === "familia"
+          ? "rubro"
+          : await loadTarget()
     ) as CategoryTarget;
     const translations = body.translations ?? (await loadTranslations());
 
@@ -282,7 +274,7 @@ export async function PUT(req: NextRequest) {
     const fkIdByEs = new Map<string, string>();
     // Con el árbol de Tango cargado, el rubro lo decide Soundtec: no se crean ni asignan categorías por nombre.
     const skipCategory = target === "categoria" && (await isTangoTreeActive(prisma));
-    if ((target === "categoria" && !skipCategory) || target === "familia") {
+    if (target === "categoria" && !skipCategory) {
       const uniqueEs = Array.from(
         new Set(
           items
@@ -295,10 +287,7 @@ export async function PUT(req: NextRequest) {
         )
       );
       for (const esName of uniqueEs) {
-        const id = target === "categoria"
-          ? await upsertCategoryByName(esName)
-          : await upsertFamilyByName(esName);
-        fkIdByEs.set(esName, id);
+        fkIdByEs.set(esName, await upsertCategoryByName(esName));
       }
     }
 
@@ -318,9 +307,6 @@ export async function PUT(req: NextRequest) {
       if (target === "categoria") {
         const fkId = fkIdByEs.get(es);
         if (fkId) data.categoryId = fkId;
-      } else if (target === "familia") {
-        const fkId = fkIdByEs.get(es);
-        if (fkId) data.familyId = fkId;
       } else if (target === "rubro") {
         data.familia = es;
       } else if (target === "subrubro") {
@@ -331,6 +317,7 @@ export async function PUT(req: NextRequest) {
 
     let updated = 0;
     let created = 0;
+    let uncategorizedNew = 0;
     let categoryWrites = 0;
 
     for (const item of items) {
@@ -365,6 +352,17 @@ export async function PUT(req: NextRequest) {
             ...catFields,
             isActive: false,
         };
+        // Rubro del alta: equivalencia de «Product Category > Product Sub Category»; si no hay, «Sin categorizar».
+        const rubro = await rubroForNewProduct(prisma, {
+          source: "sonance",
+          brandId,
+          sourcePath: sonanceProviderPath(item.category, item.subcategory),
+        });
+        if (rubro) {
+          createData.categoryId = rubro.categoryId;
+          if (rubro.sourceCategoryPath) createData.sourceCategoryPath = rubro.sourceCategoryPath;
+          if (!rubro.matched) uncategorizedNew++;
+        }
         createData.fieldUpdatedAt = mergeFieldTimestamps({}, SCALAR_PRODUCT_FIELDS.filter((field) => createData[field] !== undefined), new Date().toISOString());
         await prisma.product.create({ data: createData as Parameters<typeof prisma.product.create>[0]["data"] });
         created++;
@@ -379,7 +377,7 @@ export async function PUT(req: NextRequest) {
     // NO clear cached payload — el nuevo flujo de mapping necesita
     // el sync_preview disponible para la tabla y la preview de mapping.
 
-    return NextResponse.json({ ok: true, updated, created, categoryWrites, target });
+    return NextResponse.json({ ok: true, updated, created, categoryWrites, target, uncategorizedNew });
   } catch (err) {
     const error = err instanceof Error ? err.message : "Error desconocido";
     return NextResponse.json({ ok: false, error }, { status: 500 });

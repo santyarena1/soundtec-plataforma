@@ -5,6 +5,8 @@ import { Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label, Select } from "@/components/ui/input";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
+import { RUBRO_FROM_EQUIVALENCES_HELP } from "@/lib/new-product-rubro";
 
 type Target = "categoria" | "familia" | "rubro" | "subrubro";
 type SourceValue = { username: string; password: string; passwordConfigured: boolean; categoryTarget: Target; translations: Record<string, string> };
@@ -12,6 +14,8 @@ type SoundTubeValue = { priceField: "pricelevel1" | "pricelevel30" | "onlinecust
 type Settings = { crestron: SourceValue; sonance: SourceValue; soundtube: SoundTubeValue };
 const EMPTY_ST: SoundTubeValue = { priceField: "pricelevel1", categoryTarget: "categoria", translations: {} };
 const EMPTY: SourceValue = { username: "", password: "", passwordConfigured: false, categoryTarget: "rubro", translations: {} };
+/** Qué pasa de verdad con el rubro (el destino «Categoría» ya no asigna nada). */
+const RUBRO_TARGET_HELP = `«Categoría» no cambia el rubro de ningún producto. ${RUBRO_FROM_EQUIVALENCES_HELP}`;
 
 export function SourceSettings() {
   const [settings, setSettings] = useState<Settings>({ crestron: { ...EMPTY }, sonance: { ...EMPTY }, soundtube: { ...EMPTY_ST } });
@@ -19,6 +23,8 @@ export function SourceSettings() {
   const [saving, setSaving] = useState(false);
   const [translating, setTranslating] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // Aviso al salir: credenciales o traducciones cambiadas y sin guardar (la foto se toma al terminar de cargar).
+  const { markSaved } = useUnsavedValue(settings, { ready: !loading });
 
   useEffect(() => { void (async () => {
     try {
@@ -48,11 +54,13 @@ export function SourceSettings() {
       const response = await fetch("/api/admin/sync/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings) });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo guardar.");
-      setSettings((current) => ({
-        ...current,
-        crestron: { ...current.crestron, password: "", passwordConfigured: current.crestron.passwordConfigured || Boolean(current.crestron.password) },
-        sonance: { ...current.sonance, password: "", passwordConfigured: current.sonance.passwordConfigured || Boolean(current.sonance.password) },
-      }));
+      const saved = {
+        ...settings,
+        crestron: { ...settings.crestron, password: "", passwordConfigured: settings.crestron.passwordConfigured || Boolean(settings.crestron.password) },
+        sonance: { ...settings.sonance, password: "", passwordConfigured: settings.sonance.passwordConfigured || Boolean(settings.sonance.password) },
+      };
+      setSettings(saved);
+      markSaved(saved);
       setMessage("Configuración guardada.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo guardar."); }
     finally { setSaving(false); }
@@ -81,7 +89,7 @@ export function SourceSettings() {
           <div><h3 className="font-medium">{source === "crestron" ? "Crestron (Xtrabone)" : "Sonance"}</h3><p className="text-xs text-muted-foreground">Contraseña configurada: {value.passwordConfigured ? "sí" : "no"}</p>{source === "crestron" ? <a href="/admin/products?crestronMissing=1" className="mt-1 inline-block text-xs font-medium text-accent hover:underline">Ver productos sin ficha en crestron.com</a> : null}</div>
           <div><Label>Usuario</Label><Input value={value.username} onChange={(event) => update(source, { username: event.target.value })} /></div>
           <div><Label>Nueva contraseña</Label><Input type="password" autoComplete="new-password" placeholder={value.passwordConfigured ? "Dejá vacío para conservarla" : "Ingresá la contraseña"} value={value.password} onChange={(event) => update(source, { password: event.target.value })} /></div>
-          <div><Label>Destino de categoría</Label><Select value={value.categoryTarget} onChange={(event) => update(source, { categoryTarget: event.target.value as Target })}><option value="categoria">Categoría</option><option value="familia">Familia</option><option value="rubro">Rubro</option><option value="subrubro">Subrubro</option></Select></div>
+          <div><Label>Destino de categoría</Label><Select value={value.categoryTarget} onChange={(event) => update(source, { categoryTarget: event.target.value as Target })}><option value="categoria">Categoría</option><option value="familia">Familia (retirada: va como texto)</option><option value="rubro">Rubro</option><option value="subrubro">Subrubro</option></Select><p className="mt-1 text-[11px] text-muted-foreground">{RUBRO_TARGET_HELP}</p></div>
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2"><Label>Traducciones EN → ES</Label><Button type="button" size="sm" variant="outline" onClick={() => update(source, { translations: { ...value.translations, "": "" } })}><Plus className="mr-1 h-3.5 w-3.5" />Agregar</Button></div>
             {entries.length === 0 ? <p className="text-xs text-muted-foreground">No hay traducciones guardadas.</p> : entries.map(([original, translated], index) => <div key={`${original}-${index}`} className="grid grid-cols-[1fr_1fr_auto] gap-2">
@@ -122,10 +130,11 @@ function SoundTubeSettingsCard({ value, onChange }: { value: SoundTubeValue; onC
         <Label>Destino de categoría</Label>
         <Select value={value.categoryTarget} onChange={(event) => onChange({ categoryTarget: event.target.value as Target })}>
           <option value="categoria">Categoría</option>
-          <option value="familia">Familia</option>
+          <option value="familia">Familia (retirada: va como texto)</option>
           <option value="rubro">Rubro</option>
           <option value="subrubro">Subrubro</option>
         </Select>
+        <p className="mt-1 text-[11px] text-muted-foreground">{RUBRO_TARGET_HELP}</p>
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">

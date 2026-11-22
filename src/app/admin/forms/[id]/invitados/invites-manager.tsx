@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { AlertTriangle, BellRing, Download, FileSpreadsheet, Inbox, Loader2, Mail, Send, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
@@ -105,6 +106,11 @@ export function InvitesManager({
     [draft, form.title, look, sample]
   );
   const dirty = draft.subject !== message.subject || draft.body !== message.body || draft.button !== message.button;
+  // Aviso al salir: mail editado sin guardar, invitados pegados sin agregar o un envío en tandas en curso.
+  useUnsavedChangesGuard(
+    dirty || Boolean(pasted.trim()) || progress !== null,
+    progress ? "Se están mandando las invitaciones: si salís, se corta el envío." : "Tenés cambios sin guardar (el mail o invitados pegados sin agregar).",
+  );
 
   function saveMessage(after?: () => void) {
     start(async () => {

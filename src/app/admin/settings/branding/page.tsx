@@ -1,3 +1,4 @@
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { requirePermission } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
@@ -61,6 +62,7 @@ export default async function SettingsBrandingPage() {
             </div>
           ) : null}
 
+          <UnsavedArea>
           <form action={uploadBrandLogo} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-3">
             <div className="min-w-0">
               <Label htmlFor="file">Subir archivo</Label>
@@ -70,6 +72,7 @@ export default async function SettingsBrandingPage() {
               Subir logo
             </Button>
           </form>
+          </UnsavedArea>
 
           <div className="divide-y divide-border/70 border-t border-border/70">
             <SettingField

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
+import { useFormDirty, useGuardedRouter, useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,8 @@ import {
 } from "@/server/actions/shareable-price-lists";
 import { shareListPublicUrl, type ShareablePriceListFilters } from "@/lib/shareable-price-list";
 import { ShareListProductSearch, type ShareProductOption } from "@/components/admin/share-list-product-search";
+import { RubroPicker } from "@/components/admin/rubro-picker";
+import type { CategoryNode } from "@/lib/category-tree";
 
 type Option = { id: string; name: string };
 
@@ -33,7 +36,8 @@ interface Props {
   };
   clients: { id: string; companyName: string }[];
   brands: Option[];
-  categories: Option[];
+  /** Árbol de rubros: elegir uno incluye sus subrubros. */
+  categories: CategoryNode[];
   families: Option[];
   distributors: Option[];
   products: ShareProductOption[];
@@ -106,6 +110,7 @@ export function ShareListForm({
   initialProductIds = [],
 }: Props) {
   const router = useRouter();
+  const guardedRouter = useGuardedRouter();
   const [pending, start] = useTransition();
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +125,11 @@ export function ShareListForm({
   const [excludeProductIds, setExcludeProductIds] = useState(() => new Set(list?.filters.excludeProductIds || []));
   const [selectedProducts, setSelectedProducts] = useState(() => products.filter((p) => productIds.has(p.id)));
   const [excludedProducts, setExcludedProducts] = useState(() => products.filter((p) => excludeProductIds.has(p.id)));
+
+  // Aviso al salir: campos del formulario (DOM) y filtros elegidos (conjuntos), contra lo cargado.
+  const formRef = useRef<HTMLFormElement>(null);
+  const fields = useFormDirty(formRef, { saveOnSubmit: false });
+  const sets = useUnsavedValue({ brandIds, categoryIds, familyIds, distributorIds, productIds, excludeProductIds });
 
   const publicUrl = slug ? shareListPublicUrl(slug) : "";
 
@@ -178,6 +188,8 @@ export function ShareListForm({
         setError(r.error || "No se pudo guardar.");
         return;
       }
+      fields.markSaved();
+      sets.markSaved();
       router.push(r.id ? `/admin/share-lists/${r.id}` : "/admin/share-lists");
       router.refresh();
     });
@@ -200,9 +212,10 @@ export function ShareListForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form ref={formRef} onSubmit={onSubmit} className="space-y-6">
       {list?.id ? <input type="hidden" name="id" value={list.id} /> : null}
-      <input type="hidden" name="shareSlug" value={slug} />
+      {/* El enlace se regenera y guarda al instante: no cuenta como cambio sin guardar. */}
+      <input type="hidden" name="shareSlug" value={slug} data-unsaved-guard="ignore" />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-3">
@@ -332,9 +345,13 @@ export function ShareListForm({
           <Input id="search" name="search" defaultValue={list?.filters.search || ""} placeholder="Opcional" />
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3 lg:grid-cols-2" data-unsaved-guard="ignore">
           <FilterSection title="Marcas" options={brands} selected={brandIds} onToggle={(id) => toggle(setBrandIds, id)} onToggleAll={(ids) => toggleAll(setBrandIds, ids)} />
-          <FilterSection title="Categorías" options={categories} selected={categoryIds} onToggle={(id) => toggle(setCategoryIds, id)} onToggleAll={(ids) => toggleAll(setCategoryIds, ids)} />
+          <div className="space-y-1.5 rounded-md border border-border p-3">
+            <p className="text-sm font-medium">Rubros</p>
+            <RubroPicker nodes={categories} multiple values={[...categoryIds]} onValuesChange={(ids) => setCategoryIds(new Set(ids))} />
+            <p className="text-xs text-muted-foreground">Cada rubro incluye todo lo que cuelga de él.</p>
+          </div>
           <FilterSection title="Familias" options={families} selected={familyIds} onToggle={(id) => toggle(setFamilyIds, id)} onToggleAll={(ids) => toggleAll(setFamilyIds, ids)} />
           <FilterSection title="Proveedores" options={distributors} selected={distributorIds} onToggle={(id) => toggle(setDistributorIds, id)} onToggleAll={(ids) => toggleAll(setDistributorIds, ids)} />
           <ShareListProductSearch label="Productos específicos" selected={selectedProducts}
@@ -347,7 +364,7 @@ export function ShareListForm({
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={() => router.push("/admin/share-lists")}>
+        <Button type="button" variant="outline" onClick={() => guardedRouter.push("/admin/share-lists")}>
           Cancelar
         </Button>
         <Button type="submit" disabled={pending}>

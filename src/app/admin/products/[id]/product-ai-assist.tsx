@@ -1,32 +1,28 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
-import { Sparkles, Loader2, CheckCircle2, Plus } from "lucide-react";
+import { Sparkles, Loader2, CheckCircle2 } from "lucide-react";
 import {
   suggestClassificationAction,
   applyClassificationSuggestion,
   loadAiPrompts,
   saveAiPrompts,
+  type ProductClassificationSuggestion,
 } from "@/server/actions/product-enrichment";
+import { tangoPathLabel } from "@/lib/tango-tree";
 
 interface SuggestionItem {
   name: string;
   confidence: number;
 }
 
-interface Suggestion {
-  brand: SuggestionItem | null;
-  category: SuggestionItem | null;
-  family: SuggestionItem | null;
-  proposedNewCategory?: string | null;
-  proposedNewFamily?: string | null;
-  rationale?: string;
-}
+type Suggestion = ProductClassificationSuggestion;
 
 interface Props {
   productId: string;
@@ -36,7 +32,7 @@ interface Props {
 
 /**
  * Asistente IA con dos áreas:
- *  - Clasificación: sugerencias de marca/categoría/familia (con creación de nuevas).
+ *  - Clasificación: marca del catálogo y rubro del árbol de Tango (equivalencia o IA); nunca crea rubros.
  *  - Editar prompts: prompts de sistema para descripciones (se aplican a TODOS los productos).
  *
  * Las descripciones cortas y largas se editan DENTRO del ProductForm (sección
@@ -60,6 +56,7 @@ export function ProductAiAssist({ productId, productName, brandName }: Props) {
   const [promptsLoaded, setPromptsLoaded] = useState(false);
   const [promptsSaving, setPromptsSaving] = useState(false);
   const [promptsSaved, setPromptsSaved] = useState<string | null>(null);
+  const prompts = useUnsavedValue({ shortPrompt, longPrompt }, { ready: promptsLoaded });
 
   useEffect(() => {
     (async () => {
@@ -94,46 +91,24 @@ export function ProductAiAssist({ productId, productName, brandName }: Props) {
     });
   }
 
-  function applyClassification(input: {
-    kind: "brand" | "category" | "family" | "all" | "proposedCategory" | "proposedFamily";
-  }) {
+  function applyClassification(input: { kind: "brand" | "category" | "all" }) {
     if (!suggestion) return;
     setClassApplied(null);
     setClassError(null);
     startApply(async () => {
       try {
-        const payload: Parameters<typeof applyClassificationSuggestion>[0] = {
-          productId,
-        };
-        if (input.kind === "brand" || input.kind === "all") {
-          payload.brandName = suggestion.brand?.name ?? null;
-        }
-        if (input.kind === "category" || input.kind === "all") {
-          payload.categoryName = suggestion.category?.name ?? null;
-        }
-        if (input.kind === "family" || input.kind === "all") {
-          payload.familyName = suggestion.family?.name ?? null;
-        }
-        if (input.kind === "proposedCategory") {
-          payload.categoryName = suggestion.proposedNewCategory ?? null;
-          payload.createIfMissing = true;
-        }
-        if (input.kind === "proposedFamily") {
-          payload.familyName = suggestion.proposedNewFamily ?? null;
-          payload.createIfMissing = true;
+        const payload: Parameters<typeof applyClassificationSuggestion>[0] = { productId };
+        // «Aplicar todo» manda solo lo que hay: lo que no se encontró no se toca.
+        if ((input.kind === "brand" || input.kind === "all") && suggestion.brand) payload.brandName = suggestion.brand.name;
+        if ((input.kind === "category" || input.kind === "all") && suggestion.category) payload.rubroPath = suggestion.category.name;
+        if (payload.brandName === undefined && payload.rubroPath === undefined) {
+          setClassError("No hay nada para aplicar: no se cambió nada.");
+          return;
         }
         const r = await applyClassificationSuggestion(payload);
         if (r.ok) {
-          const parts: string[] = [];
-          if (input.kind === "all") parts.push("Marca, categoría y familia aplicadas.");
-          else if (input.kind === "brand") parts.push("Marca aplicada.");
-          else if (input.kind === "category") parts.push("Categoría aplicada.");
-          else if (input.kind === "family") parts.push("Familia aplicada.");
-          else if (input.kind === "proposedCategory")
-            parts.push(`Categoría «${suggestion.proposedNewCategory}» creada y aplicada.`);
-          else if (input.kind === "proposedFamily")
-            parts.push(`Familia «${suggestion.proposedNewFamily}» creada y aplicada.`);
-          setClassApplied(parts.join(" "));
+          // Dice exactamente qué se aplicó y qué no (nunca «aplicada» si no se encontró).
+          setClassApplied([...(r.applied ?? []), ...(r.notApplied ?? [])].join(" "));
           router.refresh();
         } else {
           setClassError(r.error || "No se pudo aplicar.");
@@ -149,6 +124,7 @@ export function ProductAiAssist({ productId, productName, brandName }: Props) {
     setPromptsSaved(null);
     try {
       await saveAiPrompts({ short: shortPrompt, long: longPrompt });
+      prompts.markSaved();
       setPromptsSaved("Prompts guardados. Se usarán en las próximas generaciones.");
     } catch {
       setPromptsSaved("Error al guardar.");
@@ -163,8 +139,9 @@ export function ProductAiAssist({ productId, productName, brandName }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <p className="text-xs text-muted-foreground">
-          La IA sugiere marca, categoría y familia para <strong className="text-foreground">{productName}</strong>{" "}
-          basándose en el catálogo actual. Si no hay match exacto, propone crear una categoría o familia nueva.
+          Sugiere marca y rubro para <strong className="text-foreground">{productName}</strong>. El rubro sale primero de la
+          tabla de Equivalencias (con la categoría del proveedor); si no hay, la IA elige una ruta del árbol de rubros de Tango.
+          Nunca crea rubros: si nada encaja, no cambia el rubro y lo avisa.
         </p>
         <Button onClick={fetchSuggestion} disabled={pendingSuggest} size="sm" variant="outline">
           {pendingSuggest ? (
@@ -194,30 +171,24 @@ export function ProductAiAssist({ productId, productName, brandName }: Props) {
               disabled={pendingApply}
             />
             <SuggestionCard
-              title="Categoría"
-              item={suggestion.category}
-              proposedNew={suggestion.proposedNewCategory}
+              title={suggestion.category?.from === "equivalencia" ? "Rubro (por equivalencia)" : "Rubro"}
+              item={suggestion.category ? { name: tangoPathLabel(suggestion.category.name), confidence: suggestion.category.confidence } : null}
+              emptyText={suggestion.categoryNote || "Sin sugerencia: el rubro no se cambia."}
               onApply={() => applyClassification({ kind: "category" })}
-              onApplyProposed={() => applyClassification({ kind: "proposedCategory" })}
-              disabled={pendingApply}
-            />
-            <SuggestionCard
-              title="Familia"
-              item={suggestion.family}
-              proposedNew={suggestion.proposedNewFamily}
-              onApply={() => applyClassification({ kind: "family" })}
-              onApplyProposed={() => applyClassification({ kind: "proposedFamily" })}
               disabled={pendingApply}
             />
           </div>
-          {suggestion.brand || suggestion.category || suggestion.family ? (
+          {suggestion.category && suggestion.categoryNote ? (
+            <p className="text-[11px] text-muted-foreground">{suggestion.categoryNote}</p>
+          ) : null}
+          {suggestion.brand || suggestion.category ? (
             <Button
               onClick={() => applyClassification({ kind: "all" })}
               disabled={pendingApply}
               size="sm"
             >
               {pendingApply ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-              Aplicar las 3 sugerencias del catálogo
+              {suggestion.brand && suggestion.category ? "Aplicar marca y rubro sugeridos" : suggestion.brand ? "Aplicar la marca sugerida" : "Aplicar el rubro sugerido"}
             </Button>
           ) : null}
           {suggestion.rationale ? (
@@ -346,16 +317,14 @@ export function ProductAiAssist({ productId, productName, brandName }: Props) {
 function SuggestionCard({
   title,
   item,
-  proposedNew,
+  emptyText = "Sin sugerencia.",
   onApply,
-  onApplyProposed,
   disabled,
 }: {
   title: string;
   item: SuggestionItem | null;
-  proposedNew?: string | null;
+  emptyText?: string;
   onApply: () => void;
-  onApplyProposed?: () => void;
   disabled: boolean;
 }) {
   return (
@@ -368,28 +337,11 @@ function SuggestionCard({
             Confianza: {Math.round(item.confidence * 100)}%
           </p>
           <Button onClick={onApply} disabled={disabled} size="sm" variant="ghost" className="h-7 text-xs justify-start">
-            Aplicar del catálogo
-          </Button>
-        </>
-      ) : proposedNew && onApplyProposed ? (
-        <>
-          <p className="text-xs text-muted-foreground">Sin match en catálogo.</p>
-          <div className="rounded-sm bg-accent/10 border border-accent/30 px-2 py-1.5">
-            <p className="text-[10px] uppercase tracking-wide text-accent">Sugerencia nueva</p>
-            <p className="text-sm font-medium">{proposedNew}</p>
-          </div>
-          <Button
-            onClick={onApplyProposed}
-            disabled={disabled}
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs justify-start"
-          >
-            <Plus className="mr-1 h-3 w-3" /> Crear y aplicar
+            Aplicar
           </Button>
         </>
       ) : (
-        <p className="text-xs text-muted-foreground">Sin sugerencia.</p>
+        <p className="text-xs text-muted-foreground">{emptyText}</p>
       )}
     </div>
   );

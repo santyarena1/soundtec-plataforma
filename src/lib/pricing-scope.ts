@@ -2,12 +2,14 @@ import type { RuleScopeType } from "@prisma/client";
 import { formatDate } from "@/lib/utils";
 
 export const RULE_TARGETS = [
-  { value: "ALL", label: "Todo el catálogo" },
-  { value: "BRAND", label: "Marca(s)" },
-  { value: "PRODUCT", label: "Producto(s)" },
-  { value: "CATEGORY", label: "Categoría(s)" },
-  { value: "FAMILY", label: "Familia(s)" },
-  { value: "DISTRIBUTOR", label: "Proveedor(es)" },
+  { value: "ALL", label: "Todo el catálogo", legacy: false },
+  { value: "BRAND", label: "Marca(s)", legacy: false },
+  { value: "PRODUCT", label: "Producto(s)", legacy: false },
+  { value: "CATEGORY", label: "Rubro(s) con sus subrubros", legacy: false },
+  { value: "LINE", label: "Serie(s) del fabricante", legacy: false },
+  // Familias: en retiro. Solo aparece al editar una regla vieja.
+  { value: "FAMILY", label: "Familia(s) (en retiro)", legacy: true },
+  { value: "DISTRIBUTOR", label: "Proveedor(es)", legacy: false },
 ] as const;
 
 export type RuleTarget = (typeof RULE_TARGETS)[number]["value"];
@@ -17,8 +19,9 @@ export const SCOPE_LABEL: Record<string, string> = {
   CLIENT: "Cliente",
   BRAND: "Marca",
   DISTRIBUTOR: "Proveedor",
-  CATEGORY: "Categoría",
-  FAMILY: "Familia",
+  CATEGORY: "Rubro",
+  LINE: "Serie",
+  FAMILY: "Familia (en retiro)",
   PRODUCT: "Producto",
 };
 
@@ -50,6 +53,7 @@ export function autoPriority(scopeType: RuleScopeType, hasClient: boolean) {
     PRODUCT: 10,
     BRAND: 20,
     CATEGORY: 30,
+    LINE: 35,
     FAMILY: 40,
     DISTRIBUTOR: 50,
     CLIENT: 60,
@@ -133,7 +137,7 @@ export function scopeTypeToForm(
   if (scopeType === "GLOBAL" || scopeType === "CLIENT") {
     return { audience, target: "ALL" };
   }
-  const targets = new Set<RuleTarget>(["BRAND", "PRODUCT", "CATEGORY", "FAMILY", "DISTRIBUTOR"]);
+  const targets = new Set<RuleTarget>(["BRAND", "PRODUCT", "CATEGORY", "LINE", "FAMILY", "DISTRIBUTOR"]);
   if (targets.has(scopeType as RuleTarget)) {
     return { audience, target: scopeType as RuleTarget };
   }

@@ -97,7 +97,7 @@ const groups: NavGroup[] = [
       { href: "/admin/products/servicios", label: "Servicios", icon: Wrench, adminOnly: true },
       { href: "/admin/products/reclasificacion", label: "Reclasificación (Tango)", icon: ListChecks, scope: "categories.manage" },
       { href: "/admin/brands", label: "Marcas", icon: Tags, scope: "brands.manage", tourId: "nav-link-brands" },
-      { href: "/admin/categories", label: "Categorías y familias", icon: Building2, anyScope: ["categories.manage", "families.manage"], alsoActive: ["/admin/families"] },
+      { href: "/admin/categories", label: "Rubros y series", icon: Building2, anyScope: ["categories.manage", "families.manage"], alsoActive: ["/admin/families"] },
       { href: "/admin/labels", label: "Etiquetas", icon: Tags, scope: "brands.manage" },
       { href: "/admin/distributors", label: "Proveedores", icon: Truck, scope: "distributors.manage", costs: true },
       { href: "/admin/assistant", label: "Asistente de productos", icon: Sparkles, scope: "products.view", costs: true, notUnder: ["/admin/assistant/leads"] },
@@ -109,6 +109,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/admin/margins", label: "Márgenes", icon: Percent, scope: "margins.manage", tourId: "nav-link-margins", costs: true },
       { href: "/admin/discounts", label: "Descuentos", icon: Receipt, scope: "discounts.manage", tourId: "nav-link-discounts", costs: true },
+      { href: "/admin/price-reviews", label: "Revisión de cambios", icon: ClipboardCheck, anyScope: ["margins.manage", "discounts.manage"], costs: true },
       { href: "/admin/visibility", label: "Qué ve cada cliente", icon: Eye, scope: "visibility.manage", tourId: "nav-link-visibility" },
       { href: "/admin/share-lists", label: "Listas para compartir", icon: Share2, scope: "share_lists.manage", tourId: "nav-link-share-lists" },
     ],

@@ -2,12 +2,15 @@
 
 import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useDirtyTracker, useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { toast } from "sonner";
 import { upsertVisibility } from "@/server/actions/pricing-rules";
 import { Button } from "@/components/ui/button";
 import { Select, Label, Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { SearchablePick } from "@/components/admin/searchable-pick";
+import { RubroPicker } from "@/components/admin/rubro-picker";
+import type { CategoryNode } from "@/lib/category-tree";
 import { Loader2, Search } from "lucide-react";
 import type { VisibilityRuleRow } from "./visibility-rules-table";
 
@@ -19,7 +22,7 @@ interface Props {
   clients: { id: string; name: string; companyName: string | null }[];
   brands: Option[];
   distributors: Option[];
-  categories: Option[];
+  categories: CategoryNode[];
   families: Option[];
   products: Option[];
   /** Preselecciona cliente (ej. ficha de usuario). */
@@ -53,6 +56,10 @@ export function VisibilityRuleForm({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const editing = Boolean(initial?.id);
+  // Aviso al salir: en una regla nueva cuenta solo si ya elegiste recursos; editando, cualquier cambio.
+  const draft = { clientId, scopeType, canView, selectedIds };
+  const tracker = useDirtyTracker(draft);
+  useUnsavedChangesGuard(editing ? tracker.isDirty : selectedIds.size > 0);
 
   const optionsByScope: Record<ScopeKey, Option[]> = {
     BRAND: brands,
@@ -123,6 +130,7 @@ export function VisibilityRuleForm({
         toast.success(editing ? "Regla de visibilidad actualizada." : "Regla de visibilidad creada.");
         setFeedback(editing ? "Regla actualizada." : `Aplicaste la regla a ${selectedIds.size} recurso(s).`);
         if (!editing) setSelectedIds(new Set());
+        tracker.markSaved(editing ? draft : { ...draft, selectedIds: new Set<string>() });
         onSaved?.();
         router.refresh();
       } catch {
@@ -155,8 +163,8 @@ export function VisibilityRuleForm({
           >
             <option value="BRAND">Marcas</option>
             <option value="DISTRIBUTOR">Proveedores</option>
-            <option value="CATEGORY">Categorías</option>
-            <option value="FAMILY">Familias</option>
+            <option value="CATEGORY">Rubros (con sus subrubros)</option>
+            {scopeType === "FAMILY" ? <option value="FAMILY">Familias (en retiro)</option> : null}
             <option value="PRODUCT">Productos</option>
           </Select>
         </div>
@@ -169,6 +177,18 @@ export function VisibilityRuleForm({
         </div>
       </div>
 
+      {scopeType === "CATEGORY" ? (
+        <div className="rounded-md border border-border bg-secondary/30 p-3">
+          <Label>Rubros</Label>
+          <RubroPicker
+            nodes={categories}
+            multiple={!editing}
+            values={[...selectedIds]}
+            onValuesChange={(ids) => setSelectedIds(new Set(editing ? ids.slice(-1) : ids))}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">Ocultar un rubro oculta también todo lo que cuelga de él.</p>
+        </div>
+      ) : (
       <div className="rounded-md border border-border bg-secondary/30 p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="relative w-full max-w-md">
@@ -215,6 +235,7 @@ export function VisibilityRuleForm({
           )}
         </div>
       </div>
+      )}
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {feedback ? <p className="text-sm text-success">{feedback}</p> : null}

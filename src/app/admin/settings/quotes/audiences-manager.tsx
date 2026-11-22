@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
+import { isSameValue } from "@/lib/unsaved-guard/core";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
@@ -18,10 +20,14 @@ export function AudiencesManager({ audiences }: { audiences: Audience[] }) {
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<string | null>(audiences.length === 0 ? "nuevo" : null);
   const [draft, setDraft] = useState<Draft>({ label: "", focus: "" });
+  // Lo que tenía el formulario al abrirse: avisa al salir solo si el borrador cambió.
+  const [openedDraft, setOpenedDraft] = useState<Draft>({ label: "", focus: "" });
+  useUnsavedChangesGuard(editing !== null && !isSameValue(draft, openedDraft));
 
   function open(a?: Audience) {
     setEditing(a?.key ?? "nuevo");
     setDraft({ label: a?.label ?? "", focus: a?.focus ?? "" });
+    setOpenedDraft({ label: a?.label ?? "", focus: a?.focus ?? "" });
   }
 
   function save() {

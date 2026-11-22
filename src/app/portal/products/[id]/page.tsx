@@ -38,6 +38,8 @@ import { recordProductView } from "@/server/catalog/product-views";
 import { formatUsd, formatPercent } from "@/lib/utils";
 import { ArrowLeft, Sparkles, FileText } from "lucide-react";
 import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
+import { MoreFromSeries } from "@/components/catalog/more-from-series";
+import { getMoreFromSeries } from "@/lib/catalog";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -48,7 +50,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     include: {
       brand: true,
       category: true,
-      family: true,
+      series: { select: { id: true, name: true } },
       images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
       options: { orderBy: { sortOrder: "asc" } },
       accessories: {
@@ -113,6 +115,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     // Las visitas del equipo interno no cuentan para "Más relevantes".
     await recordProductView(product.id, user.id);
   }
+  // «Más de la serie»: lo que ve este usuario de la misma serie y marca (no espera al resto).
+  const moreFromSeriesPromise = getMoreFromSeries(
+    { id: product.id, lineId: product.lineId, brandId: product.brandId },
+    { commercialClientId, userId: user.id, isAdmin: isAdminViewer }
+  );
 
   // Camino del rubro (el equipo lo ve aunque sea «Sin categorizar» o un rubro viejo).
   const categoryCrumbs = await productCategoryCrumbs(product.categoryId, { customer: !isAdminViewer });
@@ -312,7 +319,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {product.brand?.name || "Marca"}
               {customerCategoryName(product.category) ? ` · ${customerCategoryName(product.category)}` : ""}
-              {product.family?.name ? ` · ${product.family.name}` : ""}
+              {product.series?.name ? ` · Serie ${product.series.name}` : ""}
             </p>
             {(() => {
               const tag = commercialTagFor({
@@ -545,6 +552,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           variant="RELATED"
         />
       ) : null}
+
+      <MoreFromSeries
+        seriesName={product.series?.name ?? null}
+        items={await moreFromSeriesPromise}
+        seeAllHref={`/portal/products?brand=${product.brandId}&line=${product.lineId}`}
+        basePath="/portal/products"
+        internal={isAdminViewer}
+      />
 
       {compatGroups.length > 0 ? (
         <section className="space-y-2 rounded-xl border border-border bg-card p-5">

@@ -2,19 +2,34 @@ import { prisma } from "@/lib/prisma";
 import { isCustomerTreeNode } from "@/lib/tango-only";
 
 /** Nodo del árbol de rubros tal como lo usan los selectores y filtros. */
-export type CategoryNode = { id: string; name: string; parentId: string | null; level: number };
+export type CategoryNode = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  level: number;
+  /** Productos activos con este rubro (sin contar los de abajo). */
+  count?: number;
+  /** Creado en la app, falta cargarlo en Tango. */
+  pendingTango?: boolean;
+};
 
 /**
  * Rubros para elegir: el árbol de Tango si está cargado; si no, las categorías
  * viejas (planas, todas nivel 1). Ordenado por nombre.
  */
 export async function listCategoryTree(): Promise<CategoryNode[]> {
-  const tango = await prisma.category.findMany({
-    where: { tangoPath: { not: null }, isActive: true },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, parentId: true, level: true },
-  });
-  if (tango.length) return tango.map((c) => ({ ...c, level: c.level ?? 1 }));
+  const [tango, counts] = await Promise.all([
+    prisma.category.findMany({
+      where: { tangoPath: { not: null }, isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, parentId: true, level: true, pendingTango: true },
+    }),
+    prisma.product.groupBy({ by: ["categoryId"], _count: { _all: true }, where: { isActive: true, categoryId: { not: null } } }),
+  ]);
+  const countById = new Map(counts.map((row) => [row.categoryId, row._count._all]));
+  if (tango.length) {
+    return tango.map((c) => ({ ...c, level: c.level ?? 1, count: countById.get(c.id) ?? 0, pendingTango: c.pendingTango || undefined }));
+  }
   const flat = await prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } });
   return flat.map((c) => ({ ...c, parentId: null, level: 1 }));
 }
@@ -108,4 +123,20 @@ export async function productCategoryCrumbs(
   }
   if (customer && (path.length === 0 || path.some((n) => !isCustomerTreeNode(n)))) return [];
   return path.map((n) => ({ id: n.id, name: n.name }));
+}
+
+/** Nombre para mostrar de cualquier categoría: ruta completa si es del árbol, el nombre si es vieja. */
+export async function categoryLabelMap(): Promise<Map<string, string>> {
+  const rows = await prisma.category.findMany({ select: { id: true, name: true, parentId: true, tangoPath: true } });
+  const nodes = rows.map((r) => ({ id: r.id, name: r.name, parentId: r.parentId, level: 1 }));
+  return new Map(rows.map((r) => [r.id, r.tangoPath ? categoryPathLabel(r.id, nodes) : r.name]));
+}
+
+/** Series del fabricante para elegir en reglas (alcance «Serie»): «Sonance · Landscape». */
+export async function lineOptions(): Promise<Array<{ id: string; name: string }>> {
+  const rows = await prisma.productLine.findMany({
+    select: { id: true, name: true, brand: { select: { name: true } } },
+    orderBy: [{ brand: { name: "asc" } }, { name: "asc" }],
+  });
+  return rows.map((r) => ({ id: r.id, name: `${r.brand.name} · ${r.name}` }));
 }

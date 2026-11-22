@@ -1,3 +1,4 @@
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { getSetting } from "@/lib/settings";
 import { saveSetting } from "@/server/actions/settings";
@@ -37,6 +38,7 @@ export default async function CrestronSyncPage() {
             )}
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
+            <UnsavedArea>
             <form action={saveSetting} className="space-y-1.5">
               <input type="hidden" name="key" value="crestron.username" />
               <Label htmlFor="crestron-user">Usuario</Label>
@@ -52,7 +54,9 @@ export default async function CrestronSyncPage() {
                 <Button type="submit" size="sm" variant="outline">Guardar usuario</Button>
               </div>
             </form>
+            </UnsavedArea>
 
+            <UnsavedArea>
             <form action={saveSetting} className="space-y-1.5">
               <input type="hidden" name="key" value="crestron.password" />
               <input type="hidden" name="isSecret" value="true" />
@@ -69,6 +73,7 @@ export default async function CrestronSyncPage() {
                 <Button type="submit" size="sm" variant="outline">Guardar contraseña</Button>
               </div>
             </form>
+            </UnsavedArea>
           </div>
         </CardContent>
       </Card>

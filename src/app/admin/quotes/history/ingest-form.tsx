@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useAutosaveGuard } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { chunkHistoricalSheets, type IngestHistoricalResult } from "@/lib/quote-history-parse";
@@ -106,6 +107,7 @@ export function HistoryIngestForm() {
   const router = useRouter();
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  useAutosaveGuard(pending ? "saving" : "idle", "Se están leyendo las planillas. Si salís ahora, la ingesta se corta.");
   return (
     <form
       className="flex flex-wrap items-end gap-3"

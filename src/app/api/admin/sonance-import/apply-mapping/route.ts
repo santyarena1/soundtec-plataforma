@@ -9,6 +9,9 @@ import { applyMapping, resolvePath } from "@/services/portal-path-resolver";
 import { openSession, resolveSonanceMyPrice, type PortalProductDetail } from "@/services/sonance-portal";
 import { revalidatePath } from "next/cache";
 import { SCALAR_PRODUCT_FIELDS, changedScalarFields, mergeFieldTimestamps } from "@/lib/field-timestamps";
+import { assignSeriesIfMissing } from "@/server/product-lines/assign";
+import { sonanceProviderPath } from "@/lib/new-product-rubro";
+import { rubroForNewProduct } from "@/server/categories/new-product-rubro";
 
 /**
  * Llama al API en vivo de mySonance para obtener TODOS los productNumbers
@@ -149,6 +152,8 @@ interface ApplyMappingResponse {
   withAccessoryRels: number; // productos a los que se les linkeó al menos 1 accesorio
   withCrossSellRels: number; // productos con al menos 1 cross-sell linkeado
   withAlsoPurchasedRels: number; // productos con al menos 1 also-purchased linkeado
+  /** Altas de este lote que quedaron en «Sin categorizar» (sin equivalencia de rubro). */
+  uncategorizedNew?: number;
   /** Reasignación final de marcas vs API en vivo. Solo en done=true. */
   brandReassignment?: Record<string, { found: number; updated: number }> | null;
   totalProducts: number;
@@ -192,19 +197,6 @@ async function upsertCategoryByName(name: string): Promise<string> {
   return created.id;
 }
 
-async function upsertFamilyByName(name: string): Promise<string> {
-  const normalized = name.trim();
-  const existing = await prisma.productFamily.findFirst({
-    where: { name: { equals: normalized, mode: "insensitive" } },
-    select: { id: true },
-  });
-  if (existing) return existing.id;
-  const created = await prisma.productFamily.create({
-    data: { name: normalized, slug: slugify(normalized) },
-    select: { id: true },
-  });
-  return created.id;
-}
 
 async function upsertBrandByName(name: string): Promise<string> {
   const normalized = name.trim();
@@ -482,7 +474,6 @@ export async function POST(req: NextRequest) {
     const tangoActive = await isTangoTreeActive(prisma);
     const brandNamesNeeded = new Set<string>();
     const categoryNamesNeeded = new Set<string>();
-    const familyNamesNeeded = new Set<string>();
     for (let i = 0; i < batch.length; i++) {
       const productPos = offset + i;
       const chunkIdx = Math.floor(productPos / CHUNK_SIZE);
@@ -500,11 +491,6 @@ export async function POST(req: NextRequest) {
         const name = Array.isArray(v) ? v[0] : v;
         if (typeof name === "string" && name.trim()) categoryNamesNeeded.add(name.trim());
       }
-      if (mapping.familyId) {
-        const v = mapped.familyId;
-        const name = Array.isArray(v) ? v[0] : v;
-        if (typeof name === "string" && name.trim()) familyNamesNeeded.add(name.trim());
-      }
     }
     // Aseguramos que las sub-marcas conocidas estén siempre en el set para
     // que el fallback de keywords tenga su id listo cuando lo necesite.
@@ -513,12 +499,11 @@ export async function POST(req: NextRequest) {
     for (const n of brandNamesNeeded) brandIdByName.set(n, await upsertBrandByName(n));
     const categoryIdByName = new Map<string, string>();
     for (const n of categoryNamesNeeded) categoryIdByName.set(n, await upsertCategoryByName(n));
-    const familyIdByName = new Map<string, string>();
-    for (const n of familyNamesNeeded) familyIdByName.set(n, await upsertFamilyByName(n));
 
     // 5. Process each item
     let updated = 0;
     let created = 0;
+    let uncategorizedNew = 0;
     let skippedNoDetail = 0;
     let withSpecifications = 0;
     let withDocuments = 0;
@@ -549,6 +534,7 @@ export async function POST(req: NextRequest) {
 
       const mapped = applyMapping(detail, mapping);
       const productData: Record<string, unknown> = {};
+      let seriesName: string | null = null;
 
       for (const [field, rawValue] of Object.entries(mapped)) {
         // Special FK fields
@@ -568,14 +554,21 @@ export async function POST(req: NextRequest) {
           }
           continue;
         }
+        // Familias retiradas: un mapeo guardado con «Familia (FK)» (ej. «Product Sub Category»:
+        // Accessory, Grille…) ahora va a «tipo» como texto del proveedor, sin crear familias.
         if (field === "familyId") {
-          const v = Array.isArray(rawValue) ? rawValue[0] : rawValue;
-          if (typeof v === "string" && v.trim()) {
-            const id = familyIdByName.get(v.trim());
-            if (id) productData.familyId = id;
-          }
+          const v = Array.isArray(rawValue) ? rawValue.join(" · ") : rawValue;
+          if (typeof v === "string" && v.trim() && mapped.tipo === undefined) productData.tipo = v.trim();
           continue;
         }
+        // Serie: se asigna después de guardar (necesita la marca del producto).
+        if (field === "lineId") {
+          const v = Array.isArray(rawValue) ? rawValue[0] : rawValue;
+          if (typeof v === "string" && v.trim()) seriesName = v.trim();
+          continue;
+        }
+        // El portal a veces manda productLine como objeto ({id, name}): no se guarda JSON crudo.
+        if (field === "productLine" && rawValue != null && typeof rawValue === "object") continue;
         // Relations handled separately below — skip from productData
         if (
           field === "(rel) images" ||
@@ -656,6 +649,25 @@ export async function POST(req: NextRequest) {
           isActive: setActive,
           ...productData,
         };
+        // Rubro del alta: equivalencia del atributo de categoría del portal; si no hay, «Sin categorizar».
+        const attrText = (path: string) => {
+          const v = resolvePath(detail, path);
+          const first = Array.isArray(v) ? v[0] : v;
+          return typeof first === "string" ? first : undefined;
+        };
+        const rubro = await rubroForNewProduct(prisma, {
+          source: "sonance",
+          brandId: typeof productData.brandId === "string" ? productData.brandId : null,
+          sourcePath: sonanceProviderPath(
+            attrText("attr:Product Category") ?? attrText("attr:Product Super Category"),
+            attrText("attr:Product Sub Category")
+          ),
+        });
+        if (rubro) {
+          createData.categoryId = rubro.categoryId;
+          if (rubro.sourceCategoryPath && !createData.sourceCategoryPath) createData.sourceCategoryPath = rubro.sourceCategoryPath;
+          if (!rubro.matched) uncategorizedNew++;
+        }
         createData.fieldUpdatedAt = mergeFieldTimestamps(
           {},
           SCALAR_PRODUCT_FIELDS.filter((field) => (createData as Record<string, unknown>)[field] !== undefined),
@@ -669,6 +681,14 @@ export async function POST(req: NextRequest) {
         created++;
         if (productData.specifications !== undefined) withSpecifications++;
         if (productData.documents !== undefined) withDocuments++;
+      }
+
+      // Serie del fabricante: la del mapeo o la detectada (atributo «Product Category», prefijo).
+      // No pisa una serie ya puesta ni una elegida a mano.
+      try {
+        await assignSeriesIfMissing(productId, seriesName);
+      } catch (e) {
+        console.error("apply-mapping: no se pudo asignar la serie de", item.sku, e);
       }
 
       // Relations: images (este SÍ se hace en cada producto — las imágenes
@@ -854,6 +874,7 @@ export async function POST(req: NextRequest) {
       withAccessoryRels,
       withCrossSellRels,
       withAlsoPurchasedRels,
+      uncategorizedNew,
       brandReassignment,
       totalProducts: idx.totalProducts,
       nextOffset: done ? null : nextOffset,

@@ -60,6 +60,7 @@ export interface NormalizedProduct {
   originalName?: string;
   brandName?: string;
   categoryName?: string;
+  /** Destino «familia» viejo de los conectores: se guarda como texto en `familia` (las familias se retiraron). */
   familyName?: string;
   familia?: string;
   tipo?: string;
@@ -83,6 +84,12 @@ export interface NormalizedProduct {
   regulatoryModel?: string;
   keyFeatures?: string[];
   sourceCategoryPath?: string;
+  /**
+   * Categoría del proveedor cuando el conector no la manda en sourceCategoryPath
+   * (que la sync pisa siempre). Sirve para buscar la equivalencia de rubro de un
+   * producto nuevo y se guarda en sourceCategoryPath solo si está vacío.
+   */
+  supplierCategoryPath?: string;
   vendorPublishedAt?: Date;
   /**
    * Si está definido, `raw` se guarda en sourceMetadata[rawKey] preservando el

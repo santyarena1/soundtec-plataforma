@@ -1,3 +1,4 @@
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
@@ -25,6 +26,7 @@ export default async function AdminLandingPage() {
       <Card>
         <CardContent className="p-6">
           <h2 className="heading-3 mb-3">Hero principal</h2>
+          <UnsavedArea>
           <form action={upsertHero} className="grid gap-3 sm:grid-cols-2">
             {hero ? <input type="hidden" name="id" value={hero.id} /> : null}
             <div className="sm:col-span-2">
@@ -55,12 +57,14 @@ export default async function AdminLandingPage() {
               <Button type="submit">Guardar hero</Button>
             </div>
           </form>
+          </UnsavedArea>
         </CardContent>
       </Card>
 
       <Card>
         <CardContent className="p-6">
           <h2 className="heading-3 mb-3">Nueva publicación / nota</h2>
+          <UnsavedArea>
           <form action={upsertPost} className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="post-title" required>Título</Label>
@@ -86,6 +90,7 @@ export default async function AdminLandingPage() {
               <Button type="submit">Crear publicación</Button>
             </div>
           </form>
+          </UnsavedArea>
         </CardContent>
       </Card>
 
@@ -105,6 +110,7 @@ export default async function AdminLandingPage() {
                   <span className="text-xs text-accent">Editar / contraer</span>
                 </summary>
 
+                <UnsavedArea>
                 <form action={upsertPost} className="mt-4 grid gap-3 sm:grid-cols-2">
                   <input type="hidden" name="id" value={p.id} />
                   <div>
@@ -131,6 +137,7 @@ export default async function AdminLandingPage() {
                     <Button type="submit" size="sm">Guardar cambios</Button>
                   </div>
                 </form>
+                </UnsavedArea>
 
                 <form action={deletePost} className="mt-2 flex justify-end">
                   <input type="hidden" name="id" value={p.id} />

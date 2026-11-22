@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { CheckCircle2, Copy, Globe, KeyRound, Loader2, RefreshCw, Save, Send, ShieldCheck, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useUnsavedChangesGuard, useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -66,11 +67,15 @@ export function MailingConfigForm({ summary, canEditKeys, webhookUrl, defaultTes
   const [domain, setDomain] = useState<DomainStatus | null>(null);
 
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+  // Aviso al salir: configuración distinta de la guardada, o una clave escrita sin guardar.
+  const { markSaved } = useUnsavedValue(form);
+  useUnsavedChangesGuard(Boolean(apiKey.trim() || webhookSecret.trim()), "Escribiste una clave y no la guardaste.");
 
   function saveConfig() {
     start(async () => {
       const result = await saveMailingConfigAction(form);
       if (!result.ok) return void toast.error(result.error);
+      markSaved(form);
       toast.success("Configuración guardada.");
       router.refresh();
     });

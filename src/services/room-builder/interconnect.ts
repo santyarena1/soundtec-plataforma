@@ -23,6 +23,9 @@ export type InterconnectSuggestion = {
   alreadyInProject: boolean;
 };
 
+/** Tope de accesorios sugeridos por serie (los de la relación directa van aparte). */
+const SERIES_ACCESSORIES_PER_SERIES = 6;
+
 const PLATFORM_PACK_ROLES: Partial<
   Record<RoomPlatform, Array<{ role: string; label: string; severity: "required" | "recommended" }>>
 > = {
@@ -136,6 +139,41 @@ export async function analyzeInterconnect(projectId: string): Promise<{
         quantity: rel.quantity ?? 1,
         alreadyInProject: placedIds.has(rel.accessoryProductId),
       });
+    }
+  }
+
+  // 1b) Accesorios de la MISMA SERIE del fabricante (rejillas, soportes, cajas de la serie
+  // Landscape, botones Horizon…) para los productos principales puestos en el proyecto.
+  if (placedIds.size > 0) {
+    const principals = await prisma.product.findMany({
+      where: { id: { in: [...placedIds] }, kind: "PRINCIPAL", lineId: { not: null } },
+      select: { id: true, normalizedName: true, lineId: true, brandId: true, series: { select: { name: true } } },
+    });
+    const bySeries = new Map<string, (typeof principals)[number]>();
+    for (const p of principals) if (p.lineId && !bySeries.has(p.lineId)) bySeries.set(p.lineId, p);
+    for (const [lineId, source] of bySeries) {
+      const accessories = await prisma.product.findMany({
+        where: { lineId, brandId: source.brandId, kind: "ACCESORIO", isActive: true, isDiscontinued: false, id: { notIn: [...placedIds] } },
+        select: { id: true, normalizedName: true, supplierSku: true, modelNumber: true, brand: { select: { name: true } } },
+        orderBy: { normalizedName: "asc" },
+        take: SERIES_ACCESSORIES_PER_SERIES,
+      });
+      for (const acc of accessories) {
+        push({
+          id: `series-${lineId}-${acc.id}`,
+          reason: `Accesorio de la serie ${source.series?.name ?? ""} (${source.normalizedName})`,
+          severity: "recommended",
+          sourceProductId: source.id,
+          sourceName: source.normalizedName,
+          productId: acc.id,
+          name: acc.normalizedName,
+          brand: acc.brand?.name ?? null,
+          sku: acc.supplierSku ?? acc.modelNumber,
+          kind: "SERIES_ACCESSORY",
+          quantity: 1,
+          alreadyInProject: false,
+        });
+      }
     }
   }
 

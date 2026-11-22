@@ -8,6 +8,7 @@
  */
 
 import { useState } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { ArrowLeftRight, Cable, CheckCircle2, Plus, Spline, Trash2, TriangleAlert, Wand2 } from "lucide-react";
 import type { CableProduct } from "@/services/room-builder/cable-picks";
 import { IO_SIGNALS, type IoSignal } from "@/services/room-builder/io-profile/types";
@@ -337,6 +338,8 @@ function DevicePanel(p: Props & { deviceId: string; unit: number; label: string 
 /** Señales que admite un equipo genérico o sin ficha: cada una con su sentido y cantidad. */
 function SignalEditor({ onSave }: { onSave: (ports: WirePort[]) => void }) {
   const [rows, setRows] = useState<Record<string, { on: boolean; direction: "in" | "out" | "bidir"; count: number }>>({});
+  // Señales marcadas y sin «Guardar puertos»: avisar al salir.
+  useUnsavedChangesGuard(Object.values(rows).some((r) => r.on));
   const signals = IO_SIGNALS.filter((s) => s !== "wireless");
   return (
     <div className="space-y-2">

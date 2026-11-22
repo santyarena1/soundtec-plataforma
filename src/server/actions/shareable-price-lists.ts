@@ -12,6 +12,7 @@ import {
   type ShareablePriceListFilters,
 } from "@/lib/shareable-price-list";
 import { Prisma, ShareablePriceListStatus } from "@prisma/client";
+import { expandCategoryIds } from "@/lib/category-tree";
 
 function newShareSlug(): string {
   return randomBytes(9).toString("base64url");
@@ -161,7 +162,7 @@ export async function searchProductsForShareList(input: z.input<typeof searchSch
     where: {
       isActive: true,
       ...(data.brandIds.length ? { brandId: { in: data.brandIds } } : {}),
-      ...(data.categoryIds.length ? { categoryId: { in: data.categoryIds } } : {}),
+      ...(data.categoryIds.length ? { categoryId: { in: await expandCategoryIds(data.categoryIds) } } : {}),
       ...(q ? buildProductSearchWhere(q) : {}),
     },
     orderBy: { normalizedName: "asc" },

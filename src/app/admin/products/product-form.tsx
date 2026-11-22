@@ -3,9 +3,11 @@
 import { COMMERCIAL_TAGS } from "@/lib/commercial-tags";
 import { CategoryTreePicker } from "@/components/admin/category-tree-picker";
 import type { CategoryNode } from "@/lib/category-tree";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useFormDirty } from "@/hooks/use-unsaved-changes-guard";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { upsertProduct } from "@/server/actions/admin-catalog";
 import { TabPane, useProductTabsDirty } from "./product-tabs";
 import { Button } from "@/components/ui/button";
@@ -14,6 +16,7 @@ import { NcmAutocomplete } from "@/components/admin/ncm-autocomplete";
 import { AlertTriangle, Loader2, Save } from "lucide-react";
 import { DescriptionsSection } from "./descriptions-section";
 import { FieldStamp } from "./field-stamp";
+import { SeriesSelect } from "./series-select";
 import { SCOPE_LABEL } from "@/lib/pricing-scope";
 
 const PRODUCT_FORM_ID = "admin-product-form";
@@ -31,6 +34,8 @@ interface Props {
     distributorId: string | null;
     categoryId: string | null;
     familyId: string | null;
+    /** Serie del fabricante (ProductLine). */
+    lineId?: string | null;
     familia: string | null;
     tipo: string | null;
     shortDescription: string | null;
@@ -71,7 +76,8 @@ interface Props {
   brands: Option[];
   distributors: Option[];
   categories: CategoryNode[];
-  families: Option[];
+  /** Series de todas las marcas: el selector muestra las de la marca elegida. */
+  series: Array<Option & { brandId: string }>;
   enginePricing?: {
     priceUsdFinal: number;
     priceFobUsd: number;
@@ -94,14 +100,20 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function ProductForm({ product, brands, distributors, categories, families, enginePricing }: Props) {
+export function ProductForm({ product, brands, distributors, categories, series, enginePricing }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Marca elegida: el selector de serie muestra solo las series de esa marca.
+  const [brandSel, setBrandSel] = useState(product?.brandId || "");
   const [role, setRole] = useState<"PRINCIPAL" | "ACC_EXIGE" | "ACC_LIBRE">(
     product?.kind === "ACCESORIO" ? (product.accessoryRequiredWithPrimary ? "ACC_EXIGE" : "ACC_LIBRE") : "PRINCIPAL",
   );
   const setDirty = useProductTabsDirty();
+  // Aviso al salir: compara los valores del formulario contra los de la carga (no «si tocó algo»).
+  const formRef = useRef<HTMLFormElement>(null);
+  const { isDirty, markSaved } = useFormDirty(formRef, { saveOnSubmit: false });
+  useEffect(() => setDirty(isDirty), [isDirty, setDirty]);
   const [saveBarReady, setSaveBarReady] = useState(false);
   const fieldUpdatedAt = product?.fieldUpdatedAt ?? undefined;
 
@@ -134,7 +146,8 @@ export function ProductForm({ product, brands, distributors, categories, familie
         setError(result?.error || "No se pudo guardar.");
         return;
       }
-      setDirty(false);
+      markSaved();
+      if (result.notice) toast.warning(result.notice, { duration: 12000 });
       if (result.id) router.push(`/admin/products/${result.id}`);
       else router.push("/admin/products");
       router.refresh();
@@ -199,7 +212,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
       : null;
 
   return (
-    <form id={PRODUCT_FORM_ID} onSubmit={handleSubmit} onInput={() => setDirty(true)} onChange={() => setDirty(true)} className="space-y-4">
+    <form ref={formRef} id={PRODUCT_FORM_ID} onSubmit={handleSubmit} className="space-y-4">
       {product?.id ? <input type="hidden" name="id" value={product.id} /> : null}
 
       {/* Hidden controlled inputs for FormData */}
@@ -247,7 +260,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <Label htmlFor="brandId">Marca</Label>
-            <Select id="brandId" name="brandId" defaultValue={product?.brandId || ""}>
+            <Select id="brandId" name="brandId" defaultValue={product?.brandId || ""} onChange={(e) => setBrandSel(e.target.value)}>
               <option value="">—</option>
               {brands.map((b) => (<option key={b.id} value={b.id}>{b.name}</option>))}
             </Select>
@@ -263,17 +276,10 @@ export function ProductForm({ product, brands, distributors, categories, familie
           </div>
           <div>
             <Label htmlFor="categoryId">Rubro (árbol de Tango)</Label>
-            <CategoryTreePicker id="categoryId" name="categoryId" nodes={categories} defaultValue={product?.categoryId || ""} />
+            <CategoryTreePicker id="categoryId" name="categoryId" nodes={categories} defaultValue={product?.categoryId || ""} allowCreate />
             <FieldStamp at={fieldUpdatedAt?.categoryId} />
           </div>
-          <div>
-            <Label htmlFor="familyId">Familia (para reglas de margen)</Label>
-            <Select id="familyId" name="familyId" defaultValue={product?.familyId || ""}>
-              <option value="">—</option>
-              {families.map((f) => (<option key={f.id} value={f.id}>{f.name}</option>))}
-            </Select>
-            <FieldStamp at={fieldUpdatedAt?.familyId} />
-          </div>
+          <SeriesSelect series={series} brandId={brandSel} defaultValue={product?.lineId ?? ""} at={fieldUpdatedAt?.lineId} />
           <div>
             <Label htmlFor="familia">Familia según la lista (texto)</Label>
             <Input id="familia" name="familia" placeholder="Ej: Amplificadores, Micrófonos…" defaultValue={product?.familia || ""} />
@@ -302,11 +308,7 @@ export function ProductForm({ product, brands, distributors, categories, familie
             </p>
             <FieldStamp at={fieldUpdatedAt?.kind} />
           </div>
-          <div>
-            <Label htmlFor="line">Línea / serie</Label>
-            <Input id="line" name="line" placeholder="Ej: Sonamp, Landscape, Horizon" defaultValue={product?.line || ""} />
-            <p className="mt-1 text-xs text-muted-foreground">La línea del fabricante. Sirve para decir con qué es compatible.</p>
-          </div>
+
         </div>
       </div>
 

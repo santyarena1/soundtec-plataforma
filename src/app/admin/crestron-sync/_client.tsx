@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
+import { isSameValue } from "@/lib/unsaved-guard/core";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,15 +25,16 @@ import type {
 type Filter = "all" | "changes" | "unmatched";
 
 const TARGET_LABELS: Record<CategoryTarget, string> = {
-  categoria: "Categoría (FK)",
-  familia: "Familia (FK)",
+  categoria: "Rubro (no se aplica)",
+  familia: "Familia (retirada)",
   rubro: "Rubro (texto familia)",
   subrubro: "Subrubro (texto tipo)",
 };
 
 const TARGET_HELP: Record<CategoryTarget, string> = {
-  categoria: "Crea o reusa filas en Categorías y la asigna al producto.",
-  familia: "Crea o reusa filas en Familias y la asigna al producto.",
+  categoria:
+    "No cambia el rubro de ningún producto: esta lista solo actualiza productos que ya existen y su rubro lo decide Soundtec. Para productos nuevos, el rubro sale de la tabla de Equivalencias (Rubros › Equivalencias) y, si no hay, van a Sin categorizar.",
+  familia: "Las familias se retiraron: se escribe como texto en el campo libre familia. La serie del fabricante se detecta sola.",
   rubro: "Escribe el valor traducido directo en el campo libre familia.",
   subrubro: "Escribe el valor traducido directo en el campo libre tipo.",
 };
@@ -76,6 +79,18 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
     withSpecs: number;
   } | null>(null);
 
+  // Lo que trajo la vista previa: si se editan traducciones o destino y no se aplica, avisar al salir.
+  const [previewBase, setPreviewBase] = useState<{ translations: Record<string, string>; target: CategoryTarget } | null>(null);
+  const editedPreview = state === "preview" && previewBase !== null && !isSameValue(previewBase, { translations, target });
+  useUnsavedChangesGuard(
+    editedPreview || state === "applying" || enriching,
+    enriching
+      ? "Se están completando las fichas: si salís, se corta a la mitad."
+      : state === "applying"
+        ? "Se están aplicando los cambios: si salís ahora pueden quedar a medias."
+        : "Editaste traducciones de la vista previa y todavía no las aplicaste.",
+  );
+
   // Hydrate translations and target when a preview arrives
   useEffect(() => {
     if (!preview) return;
@@ -85,6 +100,8 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
     }
     setTranslations(base);
     if (preview.target) setTarget(preview.target);
+    setPreviewBase({ translations: base, target: preview.target ?? target });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preview]);
 
   async function handlePreview() {
@@ -193,16 +210,18 @@ export function CrestronSyncPanel({ hasCredentials }: { hasCredentials: boolean 
     }
   }
 
-  // categoryChanged is computed client-side from translations + target
+  // categoryChanged se calcula acá con lo que el servidor realmente aplica: con el árbol de Tango el
+  // destino «categoría» no se escribe, y los demás destinos solo se completan si están vacíos.
+  const categoryLocked = target === "categoria" && preview?.categoryLocked !== false;
   const itemsWithComputed = useMemo(() => {
     if (!preview?.items) return [];
     return preview.items.map((i) => {
       const es = (translations[i.category] ?? "").trim();
       const categoryChanged =
-        i.matched && es.length > 0 && (i.currentCategoryLabel ?? "").trim() !== es;
+        !categoryLocked && i.matched && es.length > 0 && !(i.currentCategoryLabel ?? "").trim();
       return { ...i, esCategory: es, categoryChanged };
     });
-  }, [preview, translations]);
+  }, [preview, translations, categoryLocked]);
 
   const filteredItems = useMemo(() => {
     if (filter === "changes")

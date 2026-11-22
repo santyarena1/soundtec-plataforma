@@ -9,6 +9,7 @@ import type { CatalogProduct } from "@/lib/catalog";
 import { AddToDraftButton } from "./add-to-draft-button";
 import { SelectableRowControls } from "./catalog-multi-select";
 import { commercialTagFor } from "@/lib/commercial-tags";
+import { seriesChipLabel } from "@/lib/product-lines/chip";
 import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 interface TableProps {
@@ -44,7 +45,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
         const code = tangoCode(p.internalSku);
         const onRequest = priceOnRequest(p);
         const promo = promoTag(p);
-        const crumbs = [p.categoryName, p.familyName].filter(Boolean).join(" · ");
+        const crumbs = [p.categoryName, seriesChipLabel(p)].filter(Boolean).join(" · ");
         return (
           <li
             key={p.id}

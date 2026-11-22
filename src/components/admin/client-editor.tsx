@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { Plus, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +12,8 @@ import { AccessModePicker, AccessReveal } from "@/components/admin/access-reveal
 import { CLIENT_SEGMENTS, PROVINCES, TAX_CONDITIONS } from "@/lib/clients/fields";
 import { createClientFull, updateClientFull, type CreatedAccess } from "@/server/actions/clients";
 import type { AccessMode } from "@/server/user-access";
+import { RubroPicker } from "@/components/admin/rubro-picker";
+import type { CategoryNode } from "@/lib/category-tree";
 
 type Option = { id: string; name: string };
 
@@ -84,7 +87,8 @@ export function ClientEditor({
   owners: Option[];
   priceLists: Option[];
   brands: Option[];
-  categories: Option[];
+  /** Árbol de rubros (descuento por rubro: incluye sus subrubros). */
+  categories: CategoryNode[];
   canCommercial: boolean;
   canPortal: boolean;
   canChooseOwner: boolean;
@@ -124,6 +128,8 @@ export function ClientEditor({
   // Lo normal al dar de alta es que el contacto principal entre al portal: viene marcado.
   const [contacts, setContacts] = useState<Contact[]>(editing ? [] : [newContact(true, canPortal)]);
   const [accessMode, setAccessMode] = useState<AccessMode>("invite");
+  // Aviso al salir: compara contra lo cargado. Al crear, el contacto vacío inicial no cuenta.
+  const { markSaved } = useUnsavedValue({ company, commercial, discounts, contacts, accessMode }, { enabled: !created });
 
   const setC = (patch: Partial<typeof company>) => setCompany((c) => ({ ...c, ...patch }));
   const setContact = (key: string, patch: Partial<Contact>) =>
@@ -158,6 +164,7 @@ export function ClientEditor({
       if (editing && initial) {
         const r = await updateClientFull({ id: initial.id, company: payloadCompany(), commercial: canCommercial ? payloadCommercial() : undefined });
         if (!r.ok) return setError(r.error);
+        markSaved();
         router.push(`/admin/clients/${initial.id}`);
         router.refresh();
         return;
@@ -171,6 +178,7 @@ export function ClientEditor({
         accessMode,
       });
       if (!r.ok) return setError(r.error);
+      markSaved();
       if (r.accesses.length) return setCreated({ id: r.id, accesses: r.accesses });
       router.push(`/admin/clients/${r.id}`);
     });
@@ -331,14 +339,23 @@ export function ClientEditor({
                   <Select value={d.target} onChange={(e) => setDiscounts((l) => l.map((x, j) => (j === i ? { ...x, target: e.target.value as Discount["target"], targetId: null } : x)))}>
                     <option value="ALL">Todo el catálogo</option>
                     <option value="BRAND">Una marca</option>
-                    <option value="CATEGORY">Una categoría</option>
+                    <option value="CATEGORY">Un rubro (con sus subrubros)</option>
                   </Select>
                 </div>
-                {d.target !== "ALL" ? (
+                {d.target === "CATEGORY" ? (
+                  <div className="min-w-[16rem] flex-1">
+                    <RubroPicker
+                      nodes={categories}
+                      allowEmpty={false}
+                      defaultValue={d.targetId}
+                      onChange={(id) => setDiscounts((l) => l.map((x, j) => (j === i ? { ...x, targetId: id || null } : x)))}
+                    />
+                  </div>
+                ) : d.target !== "ALL" ? (
                   <div className="min-w-[12rem] flex-1">
                     <Select value={d.targetId ?? ""} onChange={(e) => setDiscounts((l) => l.map((x, j) => (j === i ? { ...x, targetId: e.target.value || null } : x)))}>
                       <option value="">Elegí…</option>
-                      {(d.target === "BRAND" ? brands : categories).map((o) => (
+                      {brands.map((o) => (
                         <option key={o.id} value={o.id}>
                           {o.name}
                         </option>

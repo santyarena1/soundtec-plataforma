@@ -13,6 +13,7 @@ import {
 } from "@/server/actions/hall-research-price-list";
 import { MissingTable, type MissingAction, type MissingChoice } from "./_missing-table";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
+import { UncategorizedNewNotice } from "@/components/admin/uncategorized-new-notice";
 
 type Tab = "missing" | "matched" | "new" | "warnings";
 
@@ -52,6 +53,7 @@ export function HallResearchPriceListPanel() {
   const [reactivate, setReactivate] = useState(true);
   const [tab, setTab] = useState<Tab>("matched");
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [uncategorizedNew, setUncategorizedNew] = useState(0);
   const [pending, startTransition] = useTransition();
 
   function formFor(selected: File) {
@@ -116,6 +118,7 @@ export function HallResearchPriceListPanel() {
           `Listo: ${result.updated} actualizados, ${result.created} creados, ${result.deactivated} desactivados, ` +
           `${result.priced} con costo manual, ${result.reactivated} reactivados.`,
       });
+      setUncategorizedNew(result.uncategorizedNew);
       setPreview(null);
       router.refresh();
     });
@@ -156,6 +159,7 @@ export function HallResearchPriceListPanel() {
       {message && (
         <p className={message.ok ? "text-sm text-emerald-600" : "text-sm text-destructive"}>{message.text}</p>
       )}
+      {message?.ok && <UncategorizedNewNotice count={uncategorizedNew} />}
 
       {preview && (
         <>
@@ -293,7 +297,10 @@ export function HallResearchPriceListPanel() {
               <div className="space-y-2">
                 <label className="flex items-start gap-2 text-xs">
                   <input type="checkbox" className="mt-0.5" checked={createNew} onChange={(e) => setCreateNew(e.target.checked)} />
-                  <span>Crear los productos nuevos con los datos de la lista (marca, categoría, descripciones, medidas y foto).</span>
+                  <span>
+                    Crear los productos nuevos con los datos de la lista (marca, descripciones, medidas y foto). El rubro sale de la tabla de
+                    Equivalencias según la categoría de la lista; si no hay equivalencia, entran en Sin categorizar.
+                  </span>
                 </label>
                 {inactiveMatched > 0 && (
                   <label className="flex items-start gap-2 text-xs">

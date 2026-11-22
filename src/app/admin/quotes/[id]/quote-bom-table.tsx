@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
+import { useAutosaveGuard } from "@/hooks/use-unsaved-changes-guard";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
 import { QuoteRevisePanel } from "./revise-panel";
@@ -94,9 +96,24 @@ function ZoneTable({
   // Quitar ítem ya confirmado: el reenvío del form no vuelve a preguntar.
   const removeConfirmed = useRef(false);
   const cols = showDelivery ? 9 : 8;
+  // Las filas se guardan solas al salir del campo. Mientras se escribe (sin salir del campo)
+  // hay algo sin guardar: se avisa si se cierra la pestaña o se navega.
+  const [typing, setTyping] = useState(false);
+  useAutosaveGuard(typing ? "pending" : "idle");
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
+    <div
+      className="overflow-x-auto rounded-lg border border-border bg-card shadow-sm"
+      onInput={(e) => {
+        // Los campos de la fila apuntan a su <form> con form=…: el evento no llega al form, se marca acá.
+        const form = (e.target as HTMLInputElement).form;
+        if (form?.id.startsWith("bom-")) {
+          form.dataset.dirty = "1";
+          setTyping(true);
+        }
+      }}
+      onBlur={() => setTyping(false)}
+    >
       <table className="w-full min-w-[1040px] border-collapse text-[13px]">
         <thead>
           <tr className="bg-[#1e3553] text-left text-[11px] font-semibold uppercase tracking-wide text-white">
@@ -664,6 +681,7 @@ export function QuoteBomTable({
 
             {!readOnly ? <QuoteProductPicker quoteId={quoteId} groupId={zone.id} alternativeId={alternativeId} /> : null}
             {!readOnly ? (
+              <UnsavedArea>
               <form action={addServiceToQuote} className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-secondary/10 p-3">
                 <input type="hidden" name="quoteId" value={quoteId} />
                 {zone.id ? <input type="hidden" name="groupId" value={zone.id} /> : null}
@@ -675,6 +693,7 @@ export function QuoteBomTable({
                   Agregar ítem libre
                 </Button>
               </form>
+              </UnsavedArea>
             ) : null}
 
             <ZoneTable

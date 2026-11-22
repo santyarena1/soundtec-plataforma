@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { SonanceImportPanel } from "./_client";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 
 export const metadata = { title: "Admin · Sincronización Sonance" };
 
@@ -37,6 +38,7 @@ export default async function SonanceImportPage() {
             con SKU + nombre + precio en USD, listo para previsualizar y aplicar.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
+            <UnsavedArea>
             <form action={saveSetting} className="space-y-1.5">
               <input type="hidden" name="key" value="sonance.portal_username" />
               <Label htmlFor="portal-user">Usuario (email)</Label>
@@ -51,6 +53,8 @@ export default async function SonanceImportPage() {
                 <Button type="submit" size="sm" variant="outline">Guardar</Button>
               </div>
             </form>
+            </UnsavedArea>
+            <UnsavedArea>
             <form action={saveSetting} className="space-y-1.5">
               <input type="hidden" name="key" value="sonance.portal_password" />
               <input type="hidden" name="isSecret" value="true" />
@@ -66,6 +70,7 @@ export default async function SonanceImportPage() {
                 <Button type="submit" size="sm" variant="outline">Guardar</Button>
               </div>
             </form>
+            </UnsavedArea>
           </div>
         </CardContent>
       </Card>

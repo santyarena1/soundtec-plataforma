@@ -5,6 +5,7 @@ import { getGlobalMarginPercent } from "@/lib/settings";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { buildProductSearchAnd } from "@/lib/product-search";
 import { customerCategoryName } from "@/lib/tango-only";
+import { expandCategoryIds } from "@/lib/category-tree";
 
 export interface ShareablePriceListFilters {
   brandIds?: string[];
@@ -36,6 +37,12 @@ export function parseShareListFilters(raw: unknown): ShareablePriceListFilters {
     inStockOnly: o.inStockOnly === true,
     hasDiscountOnly: o.hasDiscountOnly === true,
   };
+}
+
+/** Elegir un rubro incluye sus subrubros (se expande al consultar, así toma también los que se creen después). */
+async function withSubrubros(filters: ShareablePriceListFilters): Promise<ShareablePriceListFilters> {
+  if (!filters.categoryIds?.length) return filters;
+  return { ...filters, categoryIds: await expandCategoryIds(filters.categoryIds) };
 }
 
 export function buildProductWhereFromFilters(filters: ShareablePriceListFilters): Prisma.ProductWhereInput {
@@ -101,7 +108,7 @@ export async function resolveShareablePriceListProducts(input: {
   offset?: number;
   includePrices?: boolean;
 }) {
-  let where = buildProductWhereFromFilters(input.filters);
+  let where = buildProductWhereFromFilters(await withSubrubros(input.filters));
   if (input.clientId) {
     where = await applyClientVisibilityToWhere(input.clientId, where);
   }
@@ -159,7 +166,7 @@ export async function countShareablePriceListProducts(
   filters: ShareablePriceListFilters,
   clientId?: string | null
 ) {
-  let where = buildProductWhereFromFilters(filters);
+  let where = buildProductWhereFromFilters(await withSubrubros(filters));
   if (clientId) where = await applyClientVisibilityToWhere(clientId, where);
   return prisma.product.count({ where });
 }

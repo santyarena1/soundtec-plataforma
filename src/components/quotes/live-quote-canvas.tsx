@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useAutosaveGuard } from "@/hooks/use-unsaved-changes-guard";
 import { Sparkles, Table2 } from "lucide-react";
 import { AiRewriteBox } from "@/components/quotes/ai-rewrite-box";
 import { LiveRichText } from "@/components/quotes/live-rich-text";
@@ -398,6 +399,10 @@ export function LiveQuoteCanvas({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [aiPendingKey, setAiPendingKey] = useState<string | null>(null);
+  // Autoguardado al salir del texto: avisa mientras hay texto escrito sin salir del campo,
+  // mientras se guarda o si el guardado falló.
+  const [typing, setTyping] = useState(false);
+  useAutosaveGuard(error ? "error" : savingKey ? "saving" : typing ? "pending" : "idle");
 
   const tableItems = scope === "template" ? SAMPLE_ITEMS : items ?? [];
   const tableZones =
@@ -568,8 +573,12 @@ export function LiveQuoteCanvas({
           value={toEditorHtml(bodies[mod.key] ?? "")}
           onChange={(html) => {
             draftsRef.current[mod.key] = html;
+            setTyping(true);
           }}
-          onBlurSave={() => persistBody(mod)}
+          onBlurSave={() => {
+            setTyping(false);
+            persistBody(mod);
+          }}
           onFocusChange={(focused) => setFocusedKey(focused ? mod.key : null)}
           ariaLabel={`Texto de ${titles[mod.key] || mod.title}`}
           readOnly={!editable}

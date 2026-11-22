@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
@@ -36,6 +37,7 @@ export function CompatibilityRulesPanel({
   const [pending, start] = useTransition();
   const draft = { productId, categoryId: categoryId || null, brandId: brandId || null, line: line.trim() || null };
   const empty = !draft.categoryId && !draft.brandId && !draft.line;
+  useUnsavedChangesGuard(adding && !empty);
 
   useEffect(() => {
     if (!adding || empty) return setPreview(null);
@@ -72,7 +74,7 @@ export function CompatibilityRulesPanel({
       <div>
         <h3 className="font-semibold">Compatible con</h3>
         <p className="text-sm text-muted-foreground">
-          Grupos de productos con los que este va: un rubro entero, o solo una marca o una línea dentro de él. Sirve para el portal y para los accesorios que exigen un producto principal.
+          Grupos de productos con los que este va: un rubro entero, o solo una marca o una serie dentro de él. Sirve para el portal y para los accesorios que exigen un producto principal.
         </p>
       </div>
 
@@ -110,8 +112,8 @@ export function CompatibilityRulesPanel({
               </Select>
             </div>
             <div>
-              <Label htmlFor="compat-line">Línea (opcional)</Label>
-              <Input id="compat-line" list="compat-lines" value={line} onChange={(e) => setLine(e.target.value)} placeholder="Ej: Sonamp" />
+              <Label htmlFor="compat-line">Serie (opcional)</Label>
+              <Input id="compat-line" list="compat-lines" value={line} onChange={(e) => setLine(e.target.value)} placeholder="Ej: Horizon, Landscape" />
               <datalist id="compat-lines">
                 {lines.map((l) => (
                   <option key={l} value={l} />
@@ -121,7 +123,7 @@ export function CompatibilityRulesPanel({
           </div>
           <p className="text-sm text-muted-foreground">
             {empty
-              ? "Elegí al menos un rubro, una marca o una línea."
+              ? "Elegí al menos un rubro, una marca o una serie."
               : preview
                 ? `${preview.count.toLocaleString("es-AR")} productos entran${preview.examples.length ? `: ${preview.examples.join(", ")}${preview.count > preview.examples.length ? "…" : ""}` : ""}.`
                 : "Contando…"}

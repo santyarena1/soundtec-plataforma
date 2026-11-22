@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { EmailPreview } from "@/components/mailing/email-preview";
@@ -24,6 +25,7 @@ export function TemplateEditor({ template, footer }: { template: { id: string; n
   const [saved, setSaved] = useState({ name: template.name, description: template.description, html: template.html });
   const [busy, start] = useTransition();
   const dirty = name !== saved.name || description !== saved.description || html !== saved.html;
+  useUnsavedChangesGuard(dirty);
 
   // La vista previa sigue al código con un respiro (no se redibuja en cada tecla).
   useEffect(() => {

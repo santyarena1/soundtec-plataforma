@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { confirmDiscard, useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
+import { stableSerialize } from "@/lib/unsaved-guard/core";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, X } from "lucide-react";
 import { previewBulkDescriptions, saveBulkDescriptions, type DescriptionType } from "@/server/actions/product-enrichment";
@@ -27,6 +29,13 @@ export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
   const [edited, setEdited] = useState<Record<string, { short?: string; long?: string }>>({});
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // Lo generado por la IA no está guardado hasta «Guardar todo».
+  const [savedEdited, setSavedEdited] = useState<string | null>(null);
+  const isDirty = step === "review" && rows.length > 0 && stableSerialize(edited) !== savedEdited;
+  useUnsavedChangesGuard(isDirty, "Las descripciones generadas todavía no se guardaron. Si salís ahora, se pierden.");
+  const close = async () => {
+    if (await confirmDiscard(isDirty, "Las descripciones generadas todavía no se guardaron. ¿Descartarlas?")) onClose();
+  };
 
   function generate() {
     setStep("generating");
@@ -46,6 +55,7 @@ export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
     start(async () => {
       const items = Object.entries(edited).map(([id, v]) => ({ id, short: v.short, long: v.long }));
       const r = await saveBulkDescriptions(items);
+      setSavedEdited(stableSerialize(Object.fromEntries(items.map(({ id, short, long }) => [id, { short, long }]))));
       setSaveMsg(`Guardados: ${r.saved} productos.`);
     });
   }
@@ -60,7 +70,7 @@ export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
             <h2 className="font-semibold">Generar descripciones con IA</h2>
             <span className="text-sm text-muted-foreground">· {selectedIds.length} producto(s)</span>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button onClick={close} className="text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -142,7 +152,7 @@ export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
 
         {/* Footer */}
         <div className="flex justify-end gap-2 border-t border-border px-6 py-4">
-          <Button variant="ghost" onClick={onClose}>Cerrar</Button>
+          <Button variant="ghost" onClick={close}>Cerrar</Button>
           {step === "choose" && (
             <Button onClick={generate} disabled={pending}>
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}

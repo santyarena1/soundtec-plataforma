@@ -7,7 +7,9 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { supplierTermEs } from "@/lib/supplier-glossary";
 import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { getSetting, setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
@@ -159,6 +161,12 @@ export const decisionsSchema = z.array(
 
 export type MissingDecision = z.infer<typeof decisionsSchema>[number];
 
+/** Guarda el segmento de la lista (con el término del glosario) en los datos de origen, sin pisar el resto. */
+function withSegment(metadata: unknown, segmento: string): Prisma.InputJsonValue {
+  const base = metadata && typeof metadata === "object" && !Array.isArray(metadata) ? (metadata as Record<string, unknown>) : {};
+  return { ...base, soundtubeSegment: supplierTermEs(segmento) ?? segmento.trim() } as Prisma.InputJsonValue;
+}
+
 async function taxonomyIds(
   model: "category" | "productFamily",
   names: Array<string | undefined>
@@ -216,20 +224,17 @@ export async function applySoundTubeRows(input: ApplySoundTubeInput): Promise<Ap
     const validDecisions = decisions.filter((d) => missingIds.has(d.productId));
     const skuById = new Map(products.map((p) => [p.id, p.sku ?? p.name]));
 
-    // Con el árbol de Tango cargado, la lista no pisa el rubro (el segmento sí, va a familia).
+    // Con el árbol de Tango cargado, la lista no pisa el rubro. El SEGMENTO (Comercial, Residencial…)
+    // ya no crea familias: queda como texto en los datos de origen (sourceMetadata.soundtubeSegment).
     const tangoActive = await isTangoTreeActive(prisma);
-    const [categoryIds, familyIds] = applyTaxonomy
-      ? await Promise.all([
-          tangoActive ? new Map<string, string>() : taxonomyIds("category", plan.matched.map((m) => m.row.categoria)),
-          taxonomyIds("productFamily", plan.matched.map((m) => m.row.segmento)),
-        ])
-      : [new Map<string, string>(), new Map<string, string>()];
+    const categoryIds = applyTaxonomy && !tangoActive ? await taxonomyIds("category", plan.matched.map((m) => m.row.categoria)) : new Map<string, string>();
 
     const timestamps = await prisma.product.findMany({
       where: { id: { in: [...plan.matched.map((m) => m.product.id), ...validDecisions.map((d) => d.productId)] } },
-      select: { id: true, fieldUpdatedAt: true },
+      select: { id: true, fieldUpdatedAt: true, sourceMetadata: true },
     });
     const fieldTimes = new Map(timestamps.map((t) => [t.id, t.fieldUpdatedAt]));
+    const metadataById = new Map(timestamps.map((t) => [t.id, t.sourceMetadata]));
     const nowIso = new Date().toISOString();
 
     // Única fuente de precio: SPRDIS US de la lista. Lo que no viene en la lista queda SIN precio,
@@ -247,7 +252,7 @@ export async function applySoundTubeRows(input: ApplySoundTubeInput): Promise<Ap
         const taxonomy = applyTaxonomy
           ? {
               categoryId: row.categoria ? categoryIds.get(row.categoria.toLowerCase()) : undefined,
-              familyId: row.segmento ? familyIds.get(row.segmento.toLowerCase()) : undefined,
+              ...(row.segmento ? { sourceMetadata: withSegment(metadataById.get(product.id), row.segmento) } : {}),
               familia: row.familia,
               tipo: row.tipo,
             }

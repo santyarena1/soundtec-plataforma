@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useFormDirty } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,21 +14,21 @@ export function SettingsBatchForm({ title, description, children }: { title: str
   const router = useRouter();
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
-  const [dirty, setDirty] = useState(false);
+  // Compara los campos contra lo cargado: si se vuelve al valor original, no hay cambios.
+  const formRef = useRef<HTMLFormElement>(null);
+  const { isDirty: dirty, markSaved } = useFormDirty(formRef, { saveOnSubmit: false });
   return (
     <form
+      ref={formRef}
       className="rounded-xl border border-border bg-card p-5"
-      onChange={() => {
-        setDirty(true);
-        setMessage(null);
-      }}
+      onChange={() => setMessage(null)}
       onSubmit={(event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
         start(async () => {
           const result = await saveQuoteSettingsBatch(data);
           if (!result.ok) return setMessage({ ok: false, text: result.error });
-          setDirty(false);
+          markSaved();
           setMessage({ ok: true, text: "Guardado." });
           router.refresh();
         });

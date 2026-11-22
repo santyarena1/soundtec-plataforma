@@ -7,6 +7,7 @@ import { Input, Label } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { ConfirmSubmit } from "@/components/ui/confirm-button";
 import { upsertLabel, deleteLabel } from "@/server/actions/labels";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 
 export const metadata = { title: "Admin · Etiquetas" };
 
@@ -24,6 +25,7 @@ export default async function AdminLabelsPage() {
       <Card>
         <CardContent className="p-6">
           <h2 className="heading-3 mb-3">Nueva etiqueta</h2>
+          <UnsavedArea>
           <form action={upsertLabel} className="flex flex-wrap items-end gap-3">
             <div>
               <Label htmlFor="name" required>Nombre</Label>
@@ -41,6 +43,7 @@ export default async function AdminLabelsPage() {
             </div>
             <Button type="submit">Crear etiqueta</Button>
           </form>
+          </UnsavedArea>
         </CardContent>
       </Card>
 

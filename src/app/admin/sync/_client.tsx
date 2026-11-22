@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import {
   AlertCircle,
   CheckCircle2,
@@ -21,6 +22,7 @@ import { RunPanel } from "./_components/run-panel";
 import { SchedulePanel } from "./_components/schedule-panel";
 import { RunsHistory } from "./_components/runs-history";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
+import { UncategorizedNewNotice } from "@/components/admin/uncategorized-new-notice";
 type SyncMode = "preview" | "apply";
 
 const MODE_LABELS: Record<string, string> = {
@@ -123,6 +125,8 @@ interface BatchSummary {
   priceChanges: number;
   stockChanges: number;
   errors: number;
+  /** Altas que quedaron en «Sin categorizar» (sin equivalencia de rubro). */
+  uncategorizedNew?: number;
 }
 
 interface StartResponse extends Partial<BatchSummary> {
@@ -244,6 +248,7 @@ function requireSummary(data: Partial<BatchSummary>): BatchSummary {
     priceChanges: data.priceChanges,
     stockChanges: data.stockChanges,
     errors: data.errors,
+    uncategorizedNew: typeof data.uncategorizedNew === "number" ? data.uncategorizedNew : 0,
   };
 }
 
@@ -367,6 +372,8 @@ export function UnifiedSyncPanel() {
     tone: "success" | "destructive";
     text: string;
   } | null>(null);
+  // Programación: avisa al salir si quedó distinta de la guardada.
+  const { markSaved: markScheduleSaved } = useUnsavedValue(schedule, { ready: schedule !== null, message: "Cambiaste la programación y no la guardaste." });
 
   const loadRecentRuns = useCallback(async () => {
     setLoadingRuns(true);
@@ -449,6 +456,7 @@ export function UnifiedSyncPanel() {
         throw new Error("El servidor no devolvió la programación");
       }
       setSchedule(data.schedule);
+      markScheduleSaved(data.schedule);
     } catch (scheduleError) {
       setScheduleMessage({
         tone: "destructive",
@@ -457,7 +465,7 @@ export function UnifiedSyncPanel() {
     } finally {
       setLoadingSchedule(false);
     }
-  }, []);
+  }, [markScheduleSaved]);
 
   useEffect(() => {
     void loadRecentRuns();
@@ -495,6 +503,7 @@ export function UnifiedSyncPanel() {
         throw new Error("El servidor no devolvió la programación guardada");
       }
       setSchedule(data.schedule);
+      markScheduleSaved(data.schedule);
       setScheduleMessage({
         tone: "success",
         text: "Programación guardada.",
@@ -790,6 +799,7 @@ export function UnifiedSyncPanel() {
               <p className="text-[11px] text-muted-foreground">
                 “Actualizados” solo cuenta productos con cambios reales. El resto va en “Sin cambios”.
               </p>
+              <UncategorizedNewNotice count={progress.uncategorizedNew} />
             </CardContent>
           </Card>
 

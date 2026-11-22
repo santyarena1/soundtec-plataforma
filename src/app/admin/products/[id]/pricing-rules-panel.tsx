@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { clearProductsMarkup, setProductsMarkup, updateRuleMarkup } from "@/server/actions/price-editor";
 import { updateDiscountRulePercent, type ProductRuleRow, type ProductRulesData } from "@/server/actions/product-pricing-rules";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 
 type Data = Extract<ProductRulesData, { ok: true }>;
 type ActionResult = { ok: true; changed: number } | { ok: false; error: string };
@@ -35,6 +36,7 @@ function RuleRow({
 }) {
   const [value, setValue] = useState(String(Number(row.value.toFixed(4))));
   const changed = parse(value) !== Number(row.value.toFixed(4));
+  useUnsavedChangesGuard(editable && changed);
   const reach =
     row.scope === "PRODUCT"
       ? "Solo este producto."
@@ -98,6 +100,7 @@ export function PricingRulesPanel({ productId, data }: { productId: string; data
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [ownMarkup, setOwnMarkup] = useState("");
   const hasOwnMarkup = data.margins.some((r) => r.origin === "catalog");
+  useUnsavedChangesGuard(data.canMargins && !hasOwnMarkup && ownMarkup.trim() !== "");
 
   function run(action: () => Promise<ActionResult>, done: string) {
     setMessage(null);

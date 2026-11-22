@@ -55,6 +55,8 @@ export interface SyncPreviewResponse {
   uniqueCategories?: string[]; // unique EN values found in Crestron
   translations?: Record<string, string>; // saved EN → ES map
   target?: CategoryTarget;
+  /** Árbol de Tango cargado: el destino «categoría» no se aplica (el rubro lo decide Soundtec). */
+  categoryLocked?: boolean;
 }
 
 async function loadTranslations(): Promise<Record<string, string>> {
@@ -69,7 +71,8 @@ async function loadTranslations(): Promise<Record<string, string>> {
 
 async function loadTarget(): Promise<CategoryTarget> {
   const raw = await getSetting(TARGET_KEY, "rubro");
-  return (["categoria", "familia", "rubro", "subrubro"].includes(raw) ? raw : "rubro") as CategoryTarget;
+  // «familia» (Familias, retiradas) quedó guardado de antes: ahora va como texto en «familia».
+  return (["categoria", "rubro", "subrubro"].includes(raw) ? raw : "rubro") as CategoryTarget;
 }
 
 function categoryLabelFor(target: CategoryTarget, product: {
@@ -79,8 +82,7 @@ function categoryLabelFor(target: CategoryTarget, product: {
   tipo: string | null;
 }): string | null {
   if (target === "categoria") return product.categoryName;
-  if (target === "familia") return product.familyName;
-  if (target === "rubro") return product.familia;
+  if (target === "familia" || target === "rubro") return product.familia;
   return product.tipo;
 }
 
@@ -169,6 +171,7 @@ export async function GET() {
       uniqueCategories,
       translations,
       target,
+      categoryLocked: await isTangoTreeActive(prisma),
     } satisfies SyncPreviewResponse);
   } catch (err) {
     const error = err instanceof Error ? err.message : "Error desconocido";
@@ -193,19 +196,6 @@ async function upsertCategoryByName(name: string): Promise<string> {
   return created.id;
 }
 
-async function upsertFamilyByName(name: string): Promise<string> {
-  const normalized = name.trim();
-  const existing = await prisma.productFamily.findFirst({
-    where: { name: { equals: normalized, mode: "insensitive" } },
-    select: { id: true },
-  });
-  if (existing) return existing.id;
-  const created = await prisma.productFamily.create({
-    data: { name: normalized, slug: slugify(normalized) },
-    select: { id: true },
-  });
-  return created.id;
-}
 
 // POST → apply changes. Body: { translations, target }
 export async function POST(req: NextRequest) {
@@ -216,10 +206,13 @@ export async function POST(req: NextRequest) {
       translations?: Record<string, string>;
       target?: CategoryTarget;
     };
+    // Familias retiradas: el destino «familia» se escribe como texto (igual que «rubro»), sin crear familias.
     const target = (
-      ["categoria", "familia", "rubro", "subrubro"].includes(body.target ?? "")
+      ["categoria", "rubro", "subrubro"].includes(body.target ?? "")
         ? body.target
-        : await loadTarget()
+        : body.target === "familia"
+          ? "rubro"
+          : await loadTarget()
     ) as CategoryTarget;
     const translations = body.translations ?? (await loadTranslations());
 
@@ -244,7 +237,7 @@ export async function POST(req: NextRequest) {
     const fkIdByEs = new Map<string, string>();
     // Con el árbol de Tango cargado, el rubro lo decide Soundtec: no se crean ni asignan categorías por nombre.
     const skipCategory = target === "categoria" && (await isTangoTreeActive(prisma));
-    if ((target === "categoria" && !skipCategory) || target === "familia") {
+    if (target === "categoria" && !skipCategory) {
       const uniqueEs = Array.from(
         new Set(
           crestronItems
@@ -253,10 +246,7 @@ export async function POST(req: NextRequest) {
         )
       );
       for (const esName of uniqueEs) {
-        const id = target === "categoria"
-          ? await upsertCategoryByName(esName)
-          : await upsertFamilyByName(esName);
-        fkIdByEs.set(esName, id);
+        fkIdByEs.set(esName, await upsertCategoryByName(esName));
       }
     }
 
@@ -309,9 +299,6 @@ export async function POST(req: NextRequest) {
         if (target === "categoria") {
           const fkId = fkIdByEs.get(esCategory);
           if (fkId) { data.categoryId = fkId; categoryWrites++; }
-        } else if (target === "familia") {
-          const fkId = fkIdByEs.get(esCategory);
-          if (fkId) { data.familyId = fkId; categoryWrites++; }
         } else if (target === "rubro") {
           data.familia = esCategory;
           categoryWrites++;

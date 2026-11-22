@@ -15,6 +15,7 @@ import { QuoteAdvancedFields } from "./advanced-fields";
 import { QuoteClassifierFields } from "@/components/quotes/quote-classifier-fields";
 import { listQuoteClassifiers } from "@/lib/quote-classifiers";
 import { ClientSelectWithCreate } from "@/components/admin/client-select-with-create";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 
 export const metadata = { title: "Admin · Nueva cotización" };
 
@@ -53,6 +54,7 @@ export default async function NewQuotePage() {
 
       <Card>
         <CardContent className="p-6">
+          <UnsavedArea>
           <form action={createQuoteFromBrief} className="space-y-6">
             <section className="space-y-3" data-tour="quote-new-client">
               <div>
@@ -172,6 +174,7 @@ export default async function NewQuotePage() {
               <Button type="submit">Crear cotización</Button>
             </div>
           </form>
+          </UnsavedArea>
         </CardContent>
       </Card>
     </div>

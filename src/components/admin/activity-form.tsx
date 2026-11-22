@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useFormDirty } from "@/hooks/use-unsaved-changes-guard";
 import { createClientActivity } from "@/server/actions/clients";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea, FieldError } from "@/components/ui/input";
@@ -16,6 +17,8 @@ export function ActivityForm({
     [pending, start] = useTransition();
   const ref = useRef<HTMLFormElement>(null),
     router = useRouter();
+  // Nota a medio escribir: avisa al salir. Al agregarla, el form se vacía (reset) y deja de avisar.
+  useFormDirty(ref, { saveOnSubmit: false });
   return (
     <form
       ref={ref}

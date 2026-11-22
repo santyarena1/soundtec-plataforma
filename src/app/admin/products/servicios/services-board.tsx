@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { confirmDiscard, useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
+import { isSameValue } from "@/lib/unsaved-guard/core";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
@@ -40,13 +42,17 @@ export function ServicesBoard({ rows, nodes }: { rows: ServiceRow[]; nodes: Cate
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(toDraft());
+  // Aviso al salir con un servicio a medio editar (compara contra cómo se abrió).
+  const draftDirty = editing !== null && !isSameValue(draft, toDraft(editing === "nuevo" ? undefined : rows.find((r) => r.id === editing)));
+  useUnsavedChangesGuard(draftDirty);
 
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase();
     return t ? rows.filter((r) => `${r.name} ${r.description ?? ""} ${r.categoryLabel ?? ""}`.toLowerCase().includes(t)) : rows;
   }, [q, rows]);
 
-  function open(r?: ServiceRow) {
+  async function open(r?: ServiceRow) {
+    if (!(await confirmDiscard(draftDirty))) return;
     setEditing(r?.id ?? "nuevo");
     setDraft(toDraft(r));
   }
@@ -109,7 +115,7 @@ export function ServicesBoard({ rows, nodes }: { rows: ServiceRow[]; nodes: Cate
         <Button type="button" onClick={save} disabled={pending || draft.name.trim().length < 2}>
           {editing === "nuevo" ? "Agregar servicio" : "Guardar"}
         </Button>
-        <Button type="button" variant="ghost" onClick={() => setEditing(null)} disabled={pending}>Cancelar</Button>
+        <Button type="button" variant="ghost" onClick={async () => { if (await confirmDiscard(draftDirty)) setEditing(null); }} disabled={pending}>Cancelar</Button>
       </div>
     </div>
   );

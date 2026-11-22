@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { CheckCircle2, FileSpreadsheet, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,8 @@ export function ImportWizard({ targets, fixedListId, onDone }: { targets: Array<
   const [target, setTarget] = useState(fixedListId ?? "");
   const [done, setDone] = useState<Done | null>(null);
   const [busy, start] = useTransition();
+  // Archivo leído y sin importar todavía: avisar al salir.
+  useUnsavedChangesGuard(Boolean(file && preview), "Cargaste un Excel y todavía no lo importaste.");
 
   function pick(selected: File) {
     setDone(null);

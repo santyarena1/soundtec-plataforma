@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { calculatePricesForProducts } from "@/lib/pricing";
 import { autoPriority, markupToMarginPercent } from "@/lib/pricing-scope";
 import { getGlobalMarginPercent } from "@/lib/settings";
+import { proposePriceReview } from "@/server/price-review/reviews";
 
 /**
  * Editor de precios desde el catálogo (admins con márgenes y costos): ver por
@@ -255,8 +256,23 @@ export async function updateRuleMarkup(ruleId: string, markup: number): Promise<
   if (!rule) return { ok: false, error: "La regla no existe." };
   const marginPercent = Math.min(999.999, markupToMarginPercent(m.data));
   // Lista SoundTube y markups propios son una regla por producto: se cambia solo esa.
-  const where = isSingleRuleGroup(rule.groupId) ? { id: rule.id } : { groupId: rule.groupId!, isExemption: false };
-  const updated = await prisma.marginRule.updateMany({ where, data: { markupMultiplier: m.data, marginPercent } });
+  if (!isSingleRuleGroup(rule.groupId)) {
+    // Regla de grupo (marca, rubro…): mueve muchos precios, pasa por Revisión de cambios.
+    const members = await prisma.marginRule.findMany({ where: { groupId: rule.groupId!, isExemption: false }, select: { id: true, name: true } });
+    const { user } = await requireStaff("margins.manage", { costs: true });
+    const review = await proposePriceReview(
+      { type: "rules.update", kind: "margin", ids: members.map((x) => x.id), data: { markupMultiplier: m.data, marginPercent } },
+      `Cambiar markup a ×${m.data}: ${members[0]?.name ?? "regla"}${members.length > 1 ? ` (y ${members.length - 1} subreglas)` : ""}`,
+      { id: user.id, name: user.name ?? user.email ?? null }
+    );
+    return {
+      ok: false,
+      error: review.affectedProducts === 0
+        ? "No se aplicó todavía: no mueve ningún precio. Aplicalo con un clic en Precios › Revisión de cambios."
+        : `No se aplicó todavía: mueve el precio de ${review.affectedProducts} productos. Quedó en Precios › Revisión de cambios para verificarlo.`,
+    };
+  }
+  const updated = await prisma.marginRule.updateMany({ where: { id: rule.id }, data: { markupMultiplier: m.data, marginPercent } });
   refresh();
   return { ok: true, changed: updated.count };
 }

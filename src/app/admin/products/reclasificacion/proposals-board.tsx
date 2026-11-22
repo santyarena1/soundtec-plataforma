@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -63,6 +64,7 @@ export function ProposalsBoard({
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
   const [picked, setPicked] = useState("");
+  useUnsavedChangesGuard(editing !== null && picked !== "");
 
   const href = (patch: { ver?: View; page?: number; marca?: string; q?: string }) => {
     const next = { ver: view, marca: filters.marca, q: filters.q, page: 1, ...patch };

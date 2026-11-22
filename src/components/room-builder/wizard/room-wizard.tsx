@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles } from "lucide-react";
 import type { BrandGroup, RoomBrief } from "@/services/room-builder/brief";
 import { layoutSlotsForScene } from "@/services/room-builder/slot-layout";
@@ -57,6 +58,8 @@ export function RoomWizard() {
   const [, startTransition] = useTransition();
   /** Estado propio: en React 18 la transición no queda "pendiente" durante un await. */
   const [pending, setPending] = useState(false);
+  // Ambiente a medio armar: avisa al salir si cambió algo. Al generar se apaga (redirige solo).
+  useUnsavedValue({ space, brief }, { enabled: !pending });
 
   useEffect(() => {
     fetch("/api/admin/room-builder/templates")

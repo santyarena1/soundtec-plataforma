@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
         },
         enrichment
       );
-      await prisma.$transaction((tx) => applyNormalizedProduct(tx, normalized));
+      await prisma.$transaction((tx) => applyNormalizedProduct(tx, normalized, { equivalenceSource: "crestron" }));
       recomputed++;
       compatibleLinks += await prisma.accessoryRelation.count({
         where: { productId: row.id, kind: "COMPATIBLE" },

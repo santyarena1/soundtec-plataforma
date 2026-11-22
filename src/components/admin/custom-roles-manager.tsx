@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { confirmDiscard, useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { Copy, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -163,6 +164,9 @@ function RoleForm({ id, initial, isActive, onDone }: { id?: string; initial: Dra
   const toggle = (scope: PermissionScope, on: boolean) =>
     set({ scopes: on ? [...new Set([...draft.scopes, scope])] : draft.scopes.filter((s) => s !== scope) });
   const groups = PERMISSION_GROUPS.filter((g) => (draft.type === "CLIENT" ? g.portal : !g.portal));
+  // Aviso al salir con el rol a medio editar (los permisos se comparan sin importar el orden).
+  const tracked = useMemo(() => ({ ...draft, scopes: [...draft.scopes].sort() }), [draft]);
+  const { isDirty, markSaved } = useUnsavedValue(tracked);
 
   function save() {
     setError(null);
@@ -176,6 +180,7 @@ function RoleForm({ id, initial, isActive, onDone }: { id?: string; initial: Dra
         isActive: isActive ?? true,
       });
       if (!r.ok) return setError(r.error);
+      markSaved();
       router.refresh();
       onDone();
     });
@@ -275,7 +280,7 @@ function RoleForm({ id, initial, isActive, onDone }: { id?: string; initial: Dra
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onDone} disabled={pending}>
+        <Button variant="outline" onClick={async () => (await confirmDiscard(isDirty)) && onDone()} disabled={pending}>
           Cancelar
         </Button>
         <Button onClick={save} disabled={pending}>

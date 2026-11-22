@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { toast } from "sonner";
 import { Plus, Search, Trash2 } from "lucide-react";
 import {
@@ -27,6 +28,8 @@ export function BrandLibraryEditor({ initial }: { initial: LibraryRow[] }) {
   const [hits, setHits] = useState<{ title: string; url: string }[]>([]);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
+  // Logo elegido/escrito y todavía no guardado en la biblioteca (la búsqueda no cuenta).
+  useUnsavedChangesGuard(Boolean(label.trim() || url.trim()));
 
   function refresh() {
     router.refresh();

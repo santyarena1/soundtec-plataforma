@@ -7,6 +7,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { AlertTriangle, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { GENERIC_CATEGORIES, GENERIC_LIBRARY, genericByKey, genericMissing, type GenericInfo, type GenericTemplate } from "@/services/room-builder/generic/library";
 import { IO_SIGNAL_LABEL } from "@/services/room-builder/io-profile/types";
@@ -118,6 +119,8 @@ export function GenericEditor({ generic, pending, onSave, onRemove }: { generic:
   const [name, setName] = useState(generic.name);
   const [description, setDescription] = useState(generic.description ?? "");
   const [price, setPrice] = useState(generic.priceUsd == null ? "" : String(generic.priceUsd));
+  // Distinto de lo guardado en el proyecto → avisar al salir.
+  useUnsavedChangesGuard(name !== generic.name || description !== (generic.description ?? "") || price !== (generic.priceUsd == null ? "" : String(generic.priceUsd)));
   const template = genericByKey(generic.key);
   const missing = genericMissing(generic);
   const priceNum = price.trim() === "" ? null : Number(price.replace(",", "."));

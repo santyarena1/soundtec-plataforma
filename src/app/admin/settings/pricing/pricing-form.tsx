@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useFormDirty } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,15 @@ import { savePricingSettings } from "@/server/actions/pricing-settings";
 export function PricingSettingsForm({ defaultMarkup, tcSource, tcFallback, currentRate }: { defaultMarkup: string; tcSource: string; tcFallback: string; currentRate: number }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [dirty, setDirty] = useState(false);
+  // «Hay cambios» compara contra lo guardado (si vuelve al valor original, no hay cambios) y avisa al salir.
+  const formRef = useRef<HTMLFormElement>(null);
+  const { isDirty: dirty, markSaved } = useFormDirty(formRef, { saveOnSubmit: false });
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   return (
     <form
+      ref={formRef}
       className="space-y-5"
       onChange={() => {
-        setDirty(true);
         setMessage(null);
       }}
       onSubmit={(event) => {
@@ -25,7 +28,7 @@ export function PricingSettingsForm({ defaultMarkup, tcSource, tcFallback, curre
         start(async () => {
           const result = await savePricingSettings(data);
           if (!result.ok) return setMessage({ ok: false, text: result.error });
-          setDirty(false);
+          markSaved();
           setMessage({ ok: true, text: "Guardado. Los precios ya usan estos valores." });
           router.refresh();
         });

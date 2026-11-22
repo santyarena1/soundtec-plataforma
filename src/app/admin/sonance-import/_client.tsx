@@ -20,16 +20,18 @@ import type {
   CategoryTarget,
 } from "@/app/api/admin/sonance-import/route";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
+import { UncategorizedNewNotice } from "@/components/admin/uncategorized-new-notice";
+import { RUBRO_FROM_EQUIVALENCES_HELP } from "@/lib/new-product-rubro";
 
 const TARGET_LABELS: Record<CategoryTarget, string> = {
-  categoria: "Categoría (FK)",
-  familia: "Familia (FK)",
+  categoria: "Rubro (no se aplica)",
+  familia: "Familia (retirada)",
   rubro: "Rubro (texto familia)",
   subrubro: "Subrubro (texto tipo)",
 };
 const TARGET_HELP: Record<CategoryTarget, string> = {
-  categoria: "Crea o reusa filas en Categorías y la asigna al producto.",
-  familia: "Crea o reusa filas en Familias y la asigna al producto.",
+  categoria: `No cambia el rubro de los productos que ya existen. ${RUBRO_FROM_EQUIVALENCES_HELP}`,
+  familia: "Las familias se retiraron: se escribe como texto en el campo libre familia. La serie del fabricante se detecta sola.",
   rubro: "Escribe el valor traducido directo en el campo libre familia.",
   subrubro: "Escribe el valor traducido directo en el campo libre tipo.",
 };
@@ -61,6 +63,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     updated: number;
     created: number;
     categoryWrites?: number;
+    uncategorizedNew?: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("changes");
@@ -226,6 +229,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     withAccessoryRels: number;
     withCrossSellRels: number;
     withAlsoPurchasedRels: number;
+    uncategorizedNew?: number;
   } | null>(null);
   const [applyMappingError, setApplyMappingError] = useState<string | null>(null);
   const [applyMappingCancelRef] = useState<{ canceled: boolean }>({ canceled: false });
@@ -296,6 +300,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         updated: 0, created: 0, skippedNoDetail: 0,
         withSpecifications: 0, withDocuments: 0, withImageRels: 0,
         withAccessoryRels: 0, withCrossSellRels: 0, withAlsoPurchasedRels: 0,
+        uncategorizedNew: 0,
       };
       while (!applyMappingCancelRef.canceled) {
         const res = await fetch("/api/admin/sonance-import/apply-mapping", {
@@ -315,6 +320,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         acc.withAccessoryRels += data.withAccessoryRels ?? 0;
         acc.withCrossSellRels += data.withCrossSellRels ?? 0;
         acc.withAlsoPurchasedRels += data.withAlsoPurchasedRels ?? 0;
+        acc.uncategorizedNew += data.uncategorizedNew ?? 0;
         const newDone = data.nextOffset ?? total;
         setApplyMappingProgress({ done: newDone, total, ...acc });
         if (data.done || data.nextOffset === null) break;
@@ -426,6 +432,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
     withDocs: number;
     withAccessories: number;
     withTranslations: number;
+    uncategorizedNew?: number;
   } | null>(null);
   const [enrichError, setEnrichError] = useState<string | null>(null);
   const [enrichDone, setEnrichDone] = useState(false);
@@ -563,6 +570,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         updated: data.updated,
         created: data.created,
         categoryWrites: data.categoryWrites,
+        uncategorizedNew: data.uncategorizedNew ?? 0,
       });
       // El servidor ya borró el cached payload — limpiar UI también
       setPreview(null);
@@ -626,6 +634,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         withDocs: 0,
         withAccessories: 0,
         withTranslations: 0,
+        uncategorizedNew: 0,
       };
       while (!enrichCancelRef.canceled) {
         const res = await fetch("/api/admin/sonance-import/enrich", {
@@ -647,6 +656,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
         acc.withDocs += data.withDocs ?? 0;
         acc.withAccessories += data.withAccessories ?? 0;
         acc.withTranslations += data.withTranslations ?? 0;
+        acc.uncategorizedNew += data.uncategorizedNew ?? 0;
         const newDone = data.nextOffset ?? total;
         setEnrichProgress({ done: newDone, total, ...acc });
         if (data.done || data.nextOffset === null) break;
@@ -1286,6 +1296,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
           <p className="text-[11px] text-muted-foreground">
             {Object.keys(mapping).length} campos mapeados · Autosave activo · Reemplaza imágenes y accesorios al aplicar.
           </p>
+          <p className="text-[11px] text-muted-foreground">{RUBRO_FROM_EQUIVALENCES_HELP}</p>
         </CardContent>
       </Card>
 
@@ -1296,6 +1307,14 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
           <CardContent className="p-4 flex items-start gap-2 text-destructive">
             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
             <p className="text-sm">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {state === "done" && applyResult && (applyResult.uncategorizedNew ?? 0) > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <UncategorizedNewNotice count={applyResult.uncategorizedNew} />
           </CardContent>
         </Card>
       )}
@@ -1313,6 +1332,7 @@ export function SonanceImportPanel({ hasPortal }: { hasPortal: boolean }) {
                 {" "}de {applyMappingProgress.total} totales.
               </p>
             </div>
+            <UncategorizedNewNotice count={applyMappingProgress.uncategorizedNew} className="ml-6" />
             <p className="text-xs text-muted-foreground pl-6">
               Datos escritos por tipo:{" "}
               <strong>{applyMappingProgress.withSpecifications}</strong> con specs ·{" "}

@@ -1,6 +1,8 @@
 "use client";
 
 import { SearchablePick } from "@/components/admin/searchable-pick";
+import { RubroPicker } from "@/components/admin/rubro-picker";
+import type { CategoryNode } from "@/lib/category-tree";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +12,7 @@ export type CoverageFiltersState = { q: string; brandIds: string[]; categoryIds:
 export function CoverageFilters({ value, onChange, counts, clients, brands, categories, families, distributors }: {
   value: CoverageFiltersState; onChange: (next: CoverageFiltersState) => void;
   counts: { total: number; withRule: number; withoutRule: number };
-  clients: Named[]; brands: Named[]; categories: Named[]; families: Named[]; distributors: Named[];
+  clients: Named[]; brands: Named[]; categories: CategoryNode[]; families: Named[]; distributors: Named[];
 }) {
   const set = <K extends keyof CoverageFiltersState>(key: K, next: CoverageFiltersState[K]) => onChange({ ...value, [key]: next });
   const chips = [
@@ -23,7 +25,7 @@ export function CoverageFilters({ value, onChange, counts, clients, brands, cate
       <div className="flex min-w-0 flex-col gap-1.5"><label className="text-sm font-medium">Buscar</label><Input value={value.q} onChange={(e) => set("q", e.target.value)} placeholder="Nombre, SKU, marca…" /></div>
       <SearchablePick label="Ver como" options={[{ id: "global", name: "Reglas globales" }, ...clients]} value={value.clientId || "global"} onChange={(id) => set("clientId", id === "global" ? "" : id)} placeholder="Buscá un cliente…" />
       <SearchablePick label="Marcas" options={brands} values={value.brandIds} onValuesChange={(x) => set("brandIds", x)} multiple />
-      <SearchablePick label="Categorías" options={categories} values={value.categoryIds} onValuesChange={(x) => set("categoryIds", x)} multiple />
+      <div className="flex min-w-0 flex-col gap-1.5"><label className="text-sm font-medium">Rubros</label><RubroPicker nodes={categories} multiple values={value.categoryIds} onValuesChange={(x) => set("categoryIds", x)} /></div>
       <SearchablePick label="Familias" options={families} values={value.familyIds} onValuesChange={(x) => set("familyIds", x)} multiple />
       <SearchablePick label="Proveedores" options={distributors} values={value.distributorIds} onValuesChange={(x) => set("distributorIds", x)} multiple />
     </div>

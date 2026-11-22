@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useFormDirty } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
@@ -15,8 +16,11 @@ export function EventForm({ event }: { event?: EventValues }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const { markSaved } = useFormDirty(formRef, { saveOnSubmit: false });
   return (
     <form
+      ref={formRef}
       className="grid gap-3 sm:grid-cols-2"
       onSubmit={(e) => {
         e.preventDefault();
@@ -30,6 +34,7 @@ export function EventForm({ event }: { event?: EventValues }) {
           const r = await saveExpoEvent(fd);
           if (!r.ok) return setError(r.error ?? "Error");
           setError(null);
+          markSaved();
           if (!event && r.id) router.push(`/admin/settings/expo/${r.id}`);
           else router.refresh();
         });

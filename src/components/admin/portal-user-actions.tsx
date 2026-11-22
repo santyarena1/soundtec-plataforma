@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
+import { DirtyReporter, useGuardedModalClose } from "@/components/admin/modal-unsaved";
 import { Input, Label, FieldError } from "@/components/ui/input";
 import { AccessModePicker, AccessReveal } from "@/components/admin/access-reveal";
 import { createPortalUserForClient, resetPortalUserPassword, togglePortalUserActive } from "@/server/actions/clients";
@@ -32,6 +34,11 @@ export function CreatePortalAccess({
   const [result, setResult] = useState<{ access: AccessResult; email: string; name: string }>();
   const [pending, start] = useTransition();
   const router = useRouter();
+  const closeModal = useCallback(() => {
+    setOpen(false);
+    setResult(undefined);
+  }, []);
+  const { setDirty, requestClose } = useGuardedModalClose(closeModal);
   return (
     <>
       <Button size="sm" variant={blank ? "outline" : "ghost"} disabled={!blank && !email} title={blank || email ? "" : "Cargale un email al contacto primero"} onClick={() => setOpen(true)}>
@@ -39,16 +46,15 @@ export function CreatePortalAccess({
       </Button>
       <Modal
         open={open}
-        onClose={() => {
-          setOpen(false);
-          setResult(undefined);
-        }}
+        onClose={requestClose}
         title={blank ? "Dar acceso a otra persona" : "Acceso al portal"}
         size="md"
       >
         {result ? (
           <AccessReveal access={result.access} email={result.email} name={result.name} />
         ) : (
+          <UnsavedArea>
+          <DirtyReporter onChange={setDirty} />
           <form
             className="space-y-3"
             autoComplete="off"
@@ -83,6 +89,7 @@ export function CreatePortalAccess({
               {pending ? "Creando…" : "Dar acceso"}
             </Button>
           </form>
+          </UnsavedArea>
         )}
       </Modal>
     </>

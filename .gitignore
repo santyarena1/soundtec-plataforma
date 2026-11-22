@@ -63,3 +63,6 @@ playwright-report/
 # Páginas locales de depuración
 src/app/dev-harness/
 public/dev-harness/
+
+# Carpetas de build alternativas de next dev
+.next-*/

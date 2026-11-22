@@ -9,6 +9,8 @@
  */
 
 import { useState } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
+import { isSameValue } from "@/lib/unsaved-guard/core";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { IO_SIGNALS, type IoDirection, type IoSignal } from "@/services/room-builder/io-profile/types";
 import { MANUAL_PORT_NOTE, normalizeManualPorts, type ManualPort } from "@/services/room-builder/manual-ports";
@@ -25,6 +27,9 @@ export function ManualPortsEditor({ ports, onChange }: { ports: ManualPort[]; on
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
+  // Puerto a medio cargar (o editado y sin «Guardar puerto»): avisar al salir.
+  const [openedDraft, setOpenedDraft] = useState<Draft>(EMPTY);
+  useUnsavedChangesGuard(open && !isSameValue(draft, openedDraft));
 
   function save() {
     const id = editing ?? nextId(ports);
@@ -37,7 +42,9 @@ export function ManualPortsEditor({ ports, onChange }: { ports: ManualPort[]; on
   }
 
   function edit(p: ManualPort) {
-    setDraft({ label: p.label, signal: p.signal, direction: p.direction, count: p.count, connector: p.connector ?? "", family: p.family ?? "" });
+    const next = { label: p.label, signal: p.signal, direction: p.direction, count: p.count, connector: p.connector ?? "", family: p.family ?? "" };
+    setDraft(next);
+    setOpenedDraft(next);
     setEditing(p.id);
     setOpen(true);
   }
@@ -117,7 +124,10 @@ export function ManualPortsEditor({ ports, onChange }: { ports: ManualPort[]; on
           </div>
         </div>
       ) : (
-        <button type="button" className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-white px-2 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-50" onClick={() => setOpen(true)}>
+        <button type="button" className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-white px-2 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-50" onClick={() => {
+          setOpenedDraft(draft);
+          setOpen(true);
+        }}>
           <Plus className="h-3.5 w-3.5" /> Agregar puerto a mano
         </button>
       )}

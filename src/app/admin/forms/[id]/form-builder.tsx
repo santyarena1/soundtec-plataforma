@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { useAutosaveGuard } from "@/hooks/use-unsaved-changes-guard";
 import { ArrowDown, ArrowUp, Copy, Eye, Flag, Layers, Mail, MessageSquareText, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
 import { BLOCK_LABELS, isQuestionType, type BlockType, type FormSettings } from "@/lib/forms/types";
@@ -48,10 +49,14 @@ export function FormBuilder({
   const [title, setTitle] = useState(form.title);
   const [settings, setSettings] = useState<FormSettings>(form.settings);
   const [selected, setSelected] = useState<Selected>(initialBlocks[0]?.id ?? "welcome");
-  const [saving, setSaving] = useState<"idle" | "saving" | "saved">("idle");
+  const [saving, setSaving] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [addOpen, setAddOpen] = useState(false);
   const [origin, setOrigin] = useState("");
   const dragId = useRef<string | null>(null);
+  // Autoguardado: avisa al salir solo si queda algo pendiente, guardándose o con error
+  // (también el título escrito que todavía no se guardó al salir del campo).
+  const titlePending = Boolean(title.trim()) && title !== form.title;
+  useAutosaveGuard(saving === "error" ? "error" : saving === "saving" || titlePending ? "pending" : "saved");
 
   useEffect(() => setOrigin(window.location.origin), []);
   // Cuando el servidor devuelve otra estructura (agregar, borrar, ordenar), se toma esa.
@@ -85,7 +90,10 @@ export function FormBuilder({
     const failed = results.find((r) => !r.ok);
     if (failed && !failed.ok) {
       toast.error(failed.error);
-      setSaving("idle");
+      // Lo que no se pudo guardar vuelve a la cola (lo nuevo pisa a lo viejo) y queda el aviso al salir.
+      for (const [blockId, patch] of blockPatches) pendingBlocks.current.set(blockId, { ...patch, ...(pendingBlocks.current.get(blockId) ?? {}) });
+      if (settingsPatch) pendingSettings.current = { ...settingsPatch, ...(pendingSettings.current ?? {}) };
+      setSaving("error");
     } else setSaving("saved");
   }, [form.id]);
 
@@ -250,7 +258,7 @@ export function FormBuilder({
             aria-label="Título del formulario"
           />
           <span className="text-xs text-muted-foreground" aria-live="polite">
-            {saving === "saving" ? "Guardando…" : saving === "saved" ? "Guardado" : ""}
+            {saving === "saving" ? "Guardando…" : saving === "saved" ? "Guardado" : saving === "error" ? <span className="text-destructive">No se guardó: probá de nuevo</span> : ""}
           </span>
           <div className="flex rounded-lg border border-border p-0.5" role="group" aria-label="Estado">
             {statusButton("DRAFT", "Borrador", "bg-amber-100 text-amber-900")}

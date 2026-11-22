@@ -20,6 +20,8 @@ import { ProductAccountCta } from "@/components/catalog/account-cta";
 import { recordProductView } from "@/server/catalog/product-views";
 import { ArrowLeft, ArrowRight, FileText, Lock, Package } from "lucide-react";
 import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
+import { MoreFromSeries } from "@/components/catalog/more-from-series";
+import { getMoreFromSeries } from "@/lib/catalog";
 import { ProductKeyFeatures } from "@/components/catalog/product-key-features";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +60,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
       include: {
         brand: { select: { name: true } },
         category: { select: { name: true } },
-        family: { select: { name: true } },
+        series: { select: { id: true, name: true } },
         images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
         _count: { select: { options: true } },
         accessories: {
@@ -92,7 +94,13 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
     await recordProductView(product.id, session?.user?.id ?? null);
   }
   const portalHref = `/portal/products/${product.id}`;
-  const categoryCrumbs = await productCategoryCrumbs(product.categoryId, { customer: true });
+  const [categoryCrumbs, moreFromSeries] = await Promise.all([
+    productCategoryCrumbs(product.categoryId, { customer: true }),
+    getMoreFromSeries(
+      { id: product.id, lineId: product.lineId, brandId: product.brandId },
+      { commercialClientId: null, userId: null, isAdmin: false, publicMode: true }
+    ),
+  ]);
 
   const sections = RELATION_SECTIONS.map((section) => ({
     ...section,
@@ -121,7 +129,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
               crumbs={categoryCrumbs.map((c) => ({ ...c, href: `/catalogo?category=${c.id}` }))}
             />
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {[product.brand?.name, customerCategoryName(product.category)].filter(Boolean).join(" · ") || "Producto"}
+              {[product.brand?.name, customerCategoryName(product.category), product.series?.name ? `Serie ${product.series.name}` : null].filter(Boolean).join(" · ") || "Producto"}
             </p>
             <h1 className="heading-2 text-2xl leading-tight sm:text-3xl">{productTitle(product)}</h1>
             {productSubtitle(product) ? <p className="muted-text">{productSubtitle(product)}</p> : null}
@@ -196,6 +204,14 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
         manufacturerItem={product.manufacturerItem ?? null}
         productLine={product.productLine ?? null}
         isCrestronHomeCompatible={product.isCrestronHomeCompatible}
+      />
+
+      <MoreFromSeries
+        seriesName={product.series?.name ?? null}
+        items={moreFromSeries}
+        seeAllHref={`/catalogo?brand=${product.brandId}&line=${product.lineId}`}
+        basePath="/catalogo"
+        publicMode
       />
 
       {sections.map((section) => (

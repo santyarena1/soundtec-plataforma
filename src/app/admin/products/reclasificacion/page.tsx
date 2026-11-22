@@ -9,6 +9,7 @@ import { ProposalsBoard, type ProposalRow, type NewBranch } from "./proposals-bo
 import { UncategorizedTray, type UncategorizedRow } from "./uncategorized-tray";
 import { countUncategorizedProducts, uncategorizedProductWhere, UNCATEGORIZED_BATCH } from "@/server/uncategorized";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
+import { RubrosTabs } from "@/app/admin/categories/rubros-tabs";
 
 export const metadata = { title: "Admin · Reclasificación de rubros" };
 export const maxDuration = 300;
@@ -81,6 +82,7 @@ export default async function ReclassificationPage({ searchParams }: { searchPar
 
   return (
     <div className="space-y-5">
+      <RubrosTabs active="revision" />
       <PageHeader
         title="Reclasificación con el árbol de Tango"
         description="Pasá cada producto a su rubro de Tango (Rubro › Subrubro › Categoría › Tipo). No cambia ningún precio."
@@ -166,7 +168,8 @@ async function UncategorizedPage({ marca, q, page }: { marca: string; q: string;
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Para revisar uno a uno" description="Productos en «Sin categorizar»: elegí su rubro de Tango. No cambia ningún precio." />
+      <RubrosTabs active="sin-rubro" />
+      <PageHeader title="Sin rubro" description="Productos sin rubro, en «Sin categorizar» o con una categoría vieja fuera del árbol: elegí su rubro de Tango. Si hay reglas de precio por rubro y el precio cambia, pasa por Revisión de cambios." />
       <UncategorizedTray rows={rows} matching={matching} pageSize={PAGE_SIZE} filters={{ marca, q, page }} brands={brandRows.map((b) => b.name)} nodes={nodes} />
     </div>
   );

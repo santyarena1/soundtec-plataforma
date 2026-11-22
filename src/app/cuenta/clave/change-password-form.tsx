@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useFormDirty } from "@/hooks/use-unsaved-changes-guard";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -9,8 +10,12 @@ import { changeOwnPassword } from "@/server/actions/change-password";
 export function ChangePasswordForm({ email }: { email: string }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Aviso al salir con la clave a medio cargar. Al enviar se toma como guardado (después se cierra la sesión).
+  const formRef = useRef<HTMLFormElement>(null);
+  useFormDirty(formRef);
   return (
     <form
+      ref={formRef}
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();

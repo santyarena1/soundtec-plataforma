@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { Calculator, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,8 @@ export function DynamicListForm({
   const [filters, setFilters] = useState<AudienceFilters>(initial?.query.filters ?? EMPTY_FILTERS);
   const [preview, setPreview] = useState<{ total: number; suppressed: number; invalid: number; duplicates: number; sample: Array<{ email: string; name: string | null; company: string | null }> } | null>(null);
   const [busy, start] = useTransition();
+  // Aviso al salir con la lista a medio armar o editada sin guardar.
+  const { markSaved } = useUnsavedValue({ name, description, source, filters });
 
   const set = (patch: Partial<AudienceFilters>) => {
     setFilters((f) => ({ ...f, ...patch }));
@@ -185,6 +188,7 @@ export function DynamicListForm({
                 setDescription("");
                 setPreview(null);
               }
+              markSaved(initial ? { name, description, source, filters } : { name: "", description: "", source, filters });
               onSaved?.(result.id);
             })
           }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { confirmTwoFactor, disableTwoFactor, startTwoFactorSetup } from "@/server/actions/two-factor";
 
 function CodeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -30,6 +31,8 @@ export function TwoFactorPanel({ enabled, backHref }: { enabled: boolean; backHr
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  // Activación a medio hacer (se mostró el QR y falta confirmar el código): avisar al salir.
+  useUnsavedChangesGuard(Boolean(setup) && !done, "Todavía no confirmaste el código: la verificación en dos pasos no quedó activa.");
 
   const run = (fn: () => Promise<void>) =>
     start(async () => {

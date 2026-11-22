@@ -100,6 +100,8 @@ function normalizeItem(
     brandName: "CRESTRON",
     modelNumber: item.ItemCode.trim(),
     manufacturerItem: item.ItemCode.trim(),
+    // Grupo de la lista de precios: busca la equivalencia de rubro de un producto nuevo.
+    supplierCategoryPath: rawCategory || undefined,
     raw: item,
   };
   if (esCategory) {
@@ -141,9 +143,12 @@ export const crestronConnector: ProductSourceConnector = {
         } else await upsertFamilyByName(esName);
       }
     }
+    // Con el árbol de Tango el destino «categoría» no se aplica: no se manda (ni cuenta en la vista previa).
+    const categoryLocked = target === "categoria" && (await isTangoTreeActive(prisma));
     const items = sourceItems
       .filter((item) => item.ItemCode?.trim())
-      .map((item) => normalizeItem(item, target, translations));
+      .map((item) => normalizeItem(item, target, translations))
+      .map((item) => (categoryLocked ? { ...item, categoryName: undefined } : item));
 
     return {
       items,

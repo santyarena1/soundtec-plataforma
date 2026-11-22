@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Loader2, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
@@ -45,6 +46,8 @@ function ImportedList({ list, members, total, suppressed, page, pages, q }: Extr
   const [name, setName] = useState(list.name);
   const [busy, start] = useTransition();
   const [selected, setSelected] = useState<string[]>([]);
+  // El nombre editado y sin guardar (después del refresh list.name trae el guardado).
+  useUnsavedChangesGuard(name !== list.name);
   const href = (p: number) => `/admin/mailing/listas/${list.id}?${new URLSearchParams({ ...(q ? { q } : {}), ...(p > 1 ? { pagina: String(p) } : {}) })}`;
 
   return (

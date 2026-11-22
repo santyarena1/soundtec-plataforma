@@ -36,16 +36,7 @@ export function ProductTabsProvider({ children, counts }: { children: React.Reac
     if (isTab(fromUrl)) setActiveState(fromUrl);
   }, []);
 
-  // Cambios sin guardar: el navegador avisa antes de salir de la ficha.
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  // El aviso al salir con cambios lo da el formulario (useFormDirty → UnsavedChangesHost).
 
   const setActive = useCallback((tab: ProductTabKey) => {
     setActiveState(tab);

@@ -6,6 +6,10 @@ import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { approveProposals, deactivateEmptyLegacyCategories, rejectProposals, removeBranch, undoProposal } from "@/server/category-proposals";
 import { assignFromUncategorized } from "@/server/uncategorized";
+import { validateRubroIds } from "@/server/categories/rubros";
+import { hasCategoryPriceRules, moveReviewMessage } from "@/server/categories/move";
+import { simulateOperation } from "@/server/price-review/engine";
+import { proposePriceReview } from "@/server/price-review/reviews";
 
 type Result = { ok: boolean; error?: string; message?: string };
 const PAGE = "/admin/products/reclasificacion";
@@ -38,6 +42,8 @@ export async function approveProposalsAction(input: { ids: string[] }): Promise<
 /** «Va en otro rubro»: pasa al rubro elegido. */
 export async function approveWithCategoryAction(input: { id: string; categoryId: string }): Promise<Result> {
   const { user } = await requireStaff("categories.manage");
+  const valid = await validateRubroIds(prisma, [input.categoryId]);
+  if (!valid.ok) return { ok: false, error: valid.error };
   const node = await prisma.category.findUnique({ where: { id: input.categoryId }, select: { tangoPath: true } });
   if (!node?.tangoPath) return { ok: false, error: "Elegí un rubro de la lista." };
   const n = await approveProposals({ ids: [input.id] }, user.id, node.tangoPath);
@@ -64,6 +70,18 @@ export async function assignUncategorizedAction(input: { productId: string; cate
   const { user } = await requireStaff("categories.manage");
   const parsed = z.object({ productId: z.string().min(1), categoryId: z.string().min(1) }).safeParse(input);
   if (!parsed.success) return { ok: false, error: "Elegí un rubro de la lista." };
+  const valid = await validateRubroIds(prisma, [parsed.data.categoryId]);
+  if (!valid.ok) return { ok: false, error: valid.error };
+  // Con reglas por rubro, ubicar el producto puede cambiar su precio: si cambia, pasa por la revisión.
+  if (await hasCategoryPriceRules()) {
+    const op = { type: "products.setCategory" as const, productIds: [parsed.data.productId], categoryId: parsed.data.categoryId };
+    const sim = await simulateOperation(op);
+    if (sim.summary.affectedProducts > 0) {
+      const review = await proposePriceReview(op, "Ubicar producto sin rubro", { id: user.id, name: user.name ?? user.email ?? null });
+      revalidatePath("/admin/price-reviews");
+      return { ok: false, error: moveReviewMessage({ ok: true, applied: false, reviewId: review.id, affectedProducts: review.affectedProducts }) };
+    }
+  }
   const r = await assignFromUncategorized(parsed.data.productId, parsed.data.categoryId, user.id);
   if (!r.ok) return r;
   revalidatePath("/portal/products");

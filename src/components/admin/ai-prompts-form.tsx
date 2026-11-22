@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/input";
 import { Loader2, Save } from "lucide-react";
 import { saveBulkSettings } from "@/server/actions/settings";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 
 interface Props {
   prompts: {
@@ -52,6 +53,7 @@ const FIELDS: { key: keyof Props["prompts"]; settingKey: string; label: string; 
 export function AiPromptsForm({ prompts }: Props) {
   const [values, setValues] = useState({ ...prompts });
   const [saved, setSaved] = useState(false);
+  const { markSaved } = useUnsavedValue(values);
   const [pending, start] = useTransition();
 
   function handleSave() {
@@ -62,6 +64,7 @@ export function AiPromptsForm({ prompts }: Props) {
         input[f.settingKey] = values[f.key];
       }
       await saveBulkSettings(input);
+      markSaved(values);
       setSaved(true);
     });
   }

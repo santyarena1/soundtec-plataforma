@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { CheckCircle2, Loader2, PlugZap, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { saveMailAccountAction, testMailAccountAction } from "@/server/actions/mail-account";
 
 type Account = { host: string; user: string; fromName: string; smtpPort: number; imapPort: number; hasPassword: boolean };
@@ -17,6 +18,7 @@ export function MailAccountForm({ initial }: { initial: Account }) {
   const [saving, startSave] = useTransition();
   const [testing, startTest] = useTransition();
   const set = (patch: Partial<typeof form>) => setForm((prev) => ({ ...prev, ...patch }));
+  const { markSaved } = useUnsavedValue(form);
 
   const save = () =>
     startSave(async () => {
@@ -24,6 +26,7 @@ export function MailAccountForm({ initial }: { initial: Account }) {
       if (!result.ok) return void toast.error(result.error);
       if (form.password) setHasPassword(true);
       set({ password: "" });
+      markSaved({ ...form, password: "" });
       setTest(null);
       toast.success("Cuenta guardada.");
     });

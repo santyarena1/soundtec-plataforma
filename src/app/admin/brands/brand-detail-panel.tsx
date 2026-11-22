@@ -9,6 +9,9 @@ import { Loader2, X } from "lucide-react";
 import { upsertBrand } from "@/server/actions/admin-catalog";
 import { LogoEditor } from "./logo-editor";
 import { CategoryOrderEditor } from "./category-order-editor";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
+import { confirmDiscard } from "@/hooks/use-unsaved-changes-guard";
+import { hasUnsavedChanges } from "@/lib/unsaved-guard/registry";
 
 interface Product {
   id: string;
@@ -31,6 +34,10 @@ export function BrandDetailPanel({ brand }: { brand: Brand }) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
+  // Cerrar con cambios sin guardar (datos, logo por URL u orden de rubros) pide confirmación.
+  const close = async () => {
+    if (await confirmDiscard(hasUnsavedChanges())) setOpen(false);
+  };
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,12 +60,13 @@ export function BrandDetailPanel({ brand }: { brand: Brand }) {
           <div className="flex w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl" style={{ maxHeight: "90vh" }}>
             <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <h2 className="font-semibold">{brand.name}</h2>
-              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <button onClick={close} className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+              <UnsavedArea className="space-y-6">
               {/* Formulario edición */}
               <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2">
                 <input type="hidden" name="id" value={brand.id} />
@@ -84,6 +92,7 @@ export function BrandDetailPanel({ brand }: { brand: Brand }) {
               </form>
 
               <LogoEditor brandId={brand.id} brandName={brand.name} logoSrc={brand.logoUrl} />
+              </UnsavedArea>
 
               <CategoryOrderEditor brandId={brand.id} brandName={brand.name} />
 
@@ -116,7 +125,7 @@ export function BrandDetailPanel({ brand }: { brand: Brand }) {
             </div>
 
             <div className="flex justify-end border-t border-border px-6 py-3">
-              <Button variant="ghost" onClick={() => setOpen(false)}>Cerrar</Button>
+              <Button variant="ghost" onClick={close}>Cerrar</Button>
             </div>
           </div>
         </div>

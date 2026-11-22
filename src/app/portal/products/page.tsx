@@ -2,8 +2,10 @@ import { canSeeCosts, isPanelRole, permissionsHave } from "@/lib/permissions";
 import { getCurrentPermissions, requireUser } from "@/lib/auth-helpers";
 import Link from "next/link";
 import { resolveCommercialClientId } from "@/lib/client-context";
-import { catalogFilterMeta, getCatalog, listCatalogCategoryTree, listVisibleCatalogBrands } from "@/lib/catalog";
-import { countActiveCatalogFilters, parseCatalogSearchParams } from "@/lib/catalog-url";
+import { catalogFilterMeta, getCatalog, listBrandSeriesFacet, listCatalogCategoryTree, listVisibleCatalogBrands } from "@/lib/catalog";
+import { countActiveCatalogFilters, parseCatalogSearchParams, withoutLegacyFamilyParam } from "@/lib/catalog-url";
+import { redirect } from "next/navigation";
+import { SeriesFilterBar } from "@/components/catalog/series-filter-bar";
 import { CRESTRON_HOME_ID } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
 import { BrandBar } from "@/app/catalogo/brand-bar";
@@ -31,6 +33,9 @@ export default async function ProductsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const rawParams = await searchParams;
+  // ?family= (familias retiradas) → la misma vista sin ese filtro; ahora se filtra por serie (?line=).
+  const legacy = withoutLegacyFamilyParam("/portal/products", rawParams);
+  if (legacy) redirect(legacy);
   const urlState = parseCatalogSearchParams(rawParams);
   const user = await requireUser();
   const isAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
@@ -49,7 +54,7 @@ export default async function ProductsPage({
     brandIds: urlState.brandIds,
     distributorIds: isAdmin ? urlState.distributorIds : undefined,
     categoryIds: urlState.categoryIds,
-    familyIds: urlState.familyIds,
+    lineIds: urlState.lineIds,
     stock: urlState.stock,
     includeOutOfStock: urlState.includeOutOfStock,
     hasDiscount: urlState.hasDiscount,
@@ -77,13 +82,14 @@ export default async function ProductsPage({
   }
   const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
 
-  const [listed, { items, total, page, pageSize }, meta, draft, categoryTree] = await Promise.all([
+  const [listed, { items, total, page, pageSize }, meta, draft, categoryTree, brandSeries] = await Promise.all([
     brandsPromise,
     getCatalog(filters, ctx),
     catalogFilterMeta(filters),
     // Pedidos apagados (src/lib/customer-orders.ts): sin «Mi pedido».
     CUSTOMER_ORDERS_ENABLED ? getActiveDraftSummary(user.id) : null,
     listCatalogCategoryTree(filters, ctx),
+    listBrandSeriesFacet(filters, ctx),
   ]);
   const brands = listed.brands;
   const categoryProps = {
@@ -143,6 +149,8 @@ export default async function ProductsPage({
           <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} basePath="/portal/products" />
 
           {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
+
+          <SeriesFilterBar series={brandSeries} brandIds={urlState.brandIds} activeIds={urlState.lineIds} params={rawParams} basePath="/portal/products" />
 
       {/* Marca «Próximamente» sin productos: solo el aviso, sin «0 resultados» ni buscador vacío. */}
       {onlyComingSoon ? null : (

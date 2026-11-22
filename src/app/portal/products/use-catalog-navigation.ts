@@ -33,9 +33,13 @@ export function useCatalogNavigation() {
         if (q) next.set("q", q);
         else next.delete("q");
       }
-      if (patch.brandIds !== undefined) applyList("brand", patch.brandIds);
+      // Una serie es de una sola marca: al cambiar de marca se suelta la serie.
+      if (patch.brandIds !== undefined) {
+        applyList("brand", patch.brandIds);
+        if (patch.lineIds === undefined) next.delete("line");
+      }
       if (patch.categoryIds !== undefined) applyList("category", patch.categoryIds);
-      if (patch.familyIds !== undefined) applyList("family", patch.familyIds);
+      if (patch.lineIds !== undefined) applyList("line", patch.lineIds);
       if (patch.distributorIds !== undefined) applyList("distributor", patch.distributorIds);
 
       if (patch.stock !== undefined) {
@@ -95,7 +99,7 @@ export function useCatalogNavigation() {
   function toggleInList(
     current: string[] | undefined,
     id: string,
-    key: "brandIds" | "categoryIds" | "familyIds" | "distributorIds"
+    key: "brandIds" | "categoryIds" | "lineIds" | "distributorIds"
   ) {
     const set = new Set(current || []);
     if (set.has(id)) set.delete(id);

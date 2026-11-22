@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/dialog";
 import { RulesForm } from "./rules-form";
+import { confirmDiscard } from "@/hooks/use-unsaved-changes-guard";
+import { hasUnsavedChanges } from "@/lib/unsaved-guard/registry";
 import {
   removePricingRule,
   setPricingRuleActive,
@@ -16,6 +18,7 @@ import type { PricingRuleRow } from "@/components/admin/pricing-rules-table";
 import type { RuleTarget } from "@/lib/pricing-scope";
 
 type Named = { id: string; name: string };
+type CategoryNode = import("@/lib/category-tree").CategoryNode;
 type Choice = { target: RuleTarget; id?: string; label: string; count?: number };
 export function CoverageProductModal({
   open,
@@ -36,7 +39,7 @@ export function CoverageProductModal({
     clients: Named[];
     brands: Named[];
     distributors: Named[];
-    categories: Named[];
+    categories: CategoryNode[];
     families: Named[];
     products: { id: string; normalizedName: string }[];
   };
@@ -131,7 +134,14 @@ export function CoverageProductModal({
   function mutate(action: () => Promise<unknown>, message: string) {
     start(async () => {
       try {
-        await action();
+        const result = (await action()) as { ok?: boolean; error?: string; reviewId?: string } | undefined;
+        // Desactivar o quitar una regla no se aplica directo: queda en Revisión de cambios.
+        if (result && result.reviewId) {
+          toast.message(result.error ?? "Quedó en Revisión de cambios.", {
+            action: { label: "Ver revisión", onClick: () => window.open(`/admin/price-reviews/${result.reviewId}`, "_self") },
+          });
+          return;
+        }
         toast.success(message);
         onChanged();
       } catch {
@@ -143,7 +153,10 @@ export function CoverageProductModal({
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={async () => {
+        // Cerrar con una regla a medio cargar pide confirmación.
+        if (await confirmDiscard(hasUnsavedChanges())) onClose();
+      }}
       title={row.name}
       size="xl"
       description={`${row.sku || "Sin SKU"} · ${[row.brandName, row.categoryName, row.familyName].filter(Boolean).join(" › ") || "Sin clasificación"}`}

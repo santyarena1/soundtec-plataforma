@@ -10,6 +10,7 @@ import { Input, Select } from "@/components/ui/input";
 import { CategoryTreePicker } from "@/components/admin/category-tree-picker";
 import type { CategoryNode } from "@/lib/category-tree";
 import { assignUncategorizedAction } from "@/server/actions/category-proposals";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 
 export type UncategorizedRow = {
   productId: string;
@@ -97,6 +98,7 @@ function TrayItem({ row, nodes }: { row: UncategorizedRow; nodes: CategoryNode[]
   const router = useRouter();
   const [pending, start] = useTransition();
   const [picked, setPicked] = useState(row.proposal?.categoryId ?? "");
+  useUnsavedChangesGuard(picked !== (row.proposal?.categoryId ?? ""));
 
   function save() {
     start(async () => {
@@ -133,7 +135,7 @@ function TrayItem({ row, nodes }: { row: UncategorizedRow; nodes: CategoryNode[]
         </div>
         {row.proposal?.note ? <p className="rounded-md bg-warning/10 px-2 py-1 text-xs">Por qué hay duda: {row.proposal.note}</p> : null}
         <div className="space-y-2 rounded-md border border-border p-3">
-          <CategoryTreePicker nodes={nodes} name={`cat-${row.productId}`} defaultValue={row.proposal?.categoryId ?? ""} onChange={setPicked} />
+          <CategoryTreePicker nodes={nodes} name={`cat-${row.productId}`} defaultValue={row.proposal?.categoryId ?? ""} onChange={setPicked} allowCreate />
           <Button type="button" size="sm" disabled={pending || !picked} onClick={save}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Guardar

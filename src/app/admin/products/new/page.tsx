@@ -11,11 +11,11 @@ export const metadata = { title: "Admin · Nuevo producto" };
 
 export default async function NewProductPage() {
   await requireStaff("products.edit", { costs: true });
-  const [brands, distributors, categories, families, tcVentaStr, globalCoefStr] = await Promise.all([
+  const [brands, distributors, categories, series, tcVentaStr, globalCoefStr] = await Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     listCategoryTree(),
-    prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.productLine.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, brandId: true } }),
     getExchangeRate().then(String),
     getSetting("app.global_margin_percent", "35"),
   ]);
@@ -29,7 +29,7 @@ export default async function NewProductPage() {
             brands={brands}
             distributors={distributors}
             categories={categories}
-            families={families}
+            series={series}
             tcVenta={parseFloat(tcVentaStr) || 0}
             globalCoefNac={parseFloat(globalCoefStr) || 35}
           />

@@ -9,6 +9,7 @@ import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/tab
 import { Badge } from "@/components/ui/badge";
 import { deleteColumnMappingProfile, startImportFromExcel } from "@/server/actions/imports";
 import { formatDate } from "@/lib/utils";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 
 export const metadata = { title: "Admin · Importaciones" };
 
@@ -53,6 +54,7 @@ export default async function AdminImportsPage({
       <Card>
         <CardContent className="p-6">
           <h2 className="heading-3 mb-3">Nueva importación</h2>
+          <UnsavedArea>
           <form action={startImportFromExcel} encType="multipart/form-data" className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Label htmlFor="priceListName" required>Nombre de la lista</Label>
@@ -88,6 +90,7 @@ export default async function AdminImportsPage({
               <Button type="submit">Subir y analizar</Button>
             </div>
           </form>
+          </UnsavedArea>
         </CardContent>
       </Card>
 

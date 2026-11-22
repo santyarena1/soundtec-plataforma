@@ -45,7 +45,8 @@ export function productTokenOr(token: string): NonNullable<Prisma.ProductWhereIn
     // Relaciones
     { brand: { name: c } },
     { category: { name: c } },
-    { family: { name: c } },
+    // La serie del fabricante («horizon», «landscape») encuentra toda la serie. La familia vieja ya no se busca.
+    { series: { name: c } },
     { distributor: { name: c } },
   ];
 }

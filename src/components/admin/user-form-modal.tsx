@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, ShieldCheck, Users } from "lucide-react";
 import { Modal } from "@/components/ui/dialog";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
+import { DirtyReporter, useGuardedModalClose } from "@/components/admin/modal-unsaved";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError, Select } from "@/components/ui/input";
 import { SearchablePick } from "@/components/admin/searchable-pick";
@@ -79,12 +81,13 @@ export function UserFormModal({
     setCustomRole(next === "staff" ? defaultStaffRole : "");
   }
 
-  function close() {
+  const close = useCallback(() => {
     setOpen(false);
     setResult(undefined);
     setError(undefined);
     if (result) router.refresh();
-  }
+  }, [result, router]);
+  const { setDirty, requestClose } = useGuardedModalClose(close);
 
   const label = triggerLabel ?? (user ? "Editar usuario" : fixedKind === "portal" ? "Nuevo acceso de cliente" : fixedKind === "staff" ? "Nuevo usuario del equipo" : "Nuevo usuario");
 
@@ -93,13 +96,15 @@ export function UserFormModal({
       <Button variant={triggerVariant ?? (user ? "outline" : "primary")} onClick={() => setOpen(true)} data-tour="users-new-btn">
         {label}
       </Button>
-      <Modal open={open} onClose={close} title={user ? "Editar usuario" : kind === "portal" ? "Nuevo acceso al portal" : "Nuevo usuario del equipo"} size="lg">
+      <Modal open={open} onClose={requestClose} title={user ? "Editar usuario" : kind === "portal" ? "Nuevo acceso al portal" : "Nuevo usuario del equipo"} size="lg">
         {result ? (
           <div className="space-y-4">
             <AccessReveal access={result.access} email={result.email} name={result.name} />
             <Button onClick={close}>Listo</Button>
           </div>
         ) : (
+          <UnsavedArea>
+          <DirtyReporter onChange={setDirty} />
           <form
             className="space-y-5"
             autoComplete="off"
@@ -225,6 +230,7 @@ export function UserFormModal({
               {user ? <p className="text-xs text-muted-foreground">Si cambiás el tipo, el rol o el email, se cierran sus sesiones abiertas.</p> : null}
             </div>
           </form>
+          </UnsavedArea>
         )}
       </Modal>
     </>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Modal } from "@/components/ui/dialog";
+import { confirmDiscard, useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { formatUsd } from "@/lib/utils";
@@ -175,9 +176,18 @@ export function PriceEditorModal({ productIds, open, onClose }: { productIds: st
 
   const selectedRule = rules.find((r) => r.id === ruleId);
   const withOwnRule = products.filter((p) => p.ownRule).length;
+  // Precio nuevo escrito pero no aplicado: avisa al salir y al cerrar la ventana.
+  const hasPendingChange = open && !loading && products.some((p) => {
+    const next = preview(p);
+    return next != null && Math.abs(next - p.finalPriceUsd) > 0.005;
+  });
+  useUnsavedChangesGuard(hasPendingChange, "Hay un precio nuevo sin aplicar. Si salís ahora, se pierde.");
+  const close = async () => {
+    if (await confirmDiscard(hasPendingChange, "Hay un precio nuevo sin aplicar. ¿Cerrar igual?")) onClose();
+  };
 
   return (
-    <Modal open={open} onClose={onClose} title={single ? "Editar precio" : `Editar precios de ${productIds.length} productos`} size="lg">
+    <Modal open={open} onClose={() => void close()} title={single ? "Editar precio" : `Editar precios de ${productIds.length} productos`} size="lg">
       {loading ? (
         <p className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Calculando precios…

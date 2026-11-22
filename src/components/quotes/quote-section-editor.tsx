@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { Check, Loader2, Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuoteBody } from "@/components/quotes/quote-body";
@@ -24,6 +25,9 @@ export function QuoteSectionEditor({
   const [current, setCurrent] = useState(body);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // Editando el texto: avisa al salir si el borrador quedó distinto del texto guardado.
+  const [startDraft, setStartDraft] = useState("");
+  useUnsavedChangesGuard(editing && draft !== startDraft);
 
   useEffect(() => {
     setCurrent(body);
@@ -32,6 +36,7 @@ export function QuoteSectionEditor({
   function begin() {
     setError(null);
     setDraft(toEditorHtml(current));
+    setStartDraft(toEditorHtml(current));
     setEditing(true);
   }
 

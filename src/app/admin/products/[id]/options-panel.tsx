@@ -5,6 +5,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { upsertProductOption, deleteProductOption } from "@/server/actions/product-options";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmSubmit } from "@/components/ui/confirm-button";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 
 interface Option {
   id: string;
@@ -70,6 +71,7 @@ export function ProductOptionsPanel({ productId, options }: Props) {
           <p className="text-sm text-muted-foreground">Sin opciones configuradas.</p>
         )}
 
+        <UnsavedArea>
         <form action={upsertProductOption} className="grid gap-3 rounded-md border border-border bg-secondary/40 p-3 sm:grid-cols-2">
           <input type="hidden" name="productId" value={productId} />
           <div>
@@ -101,6 +103,7 @@ export function ProductOptionsPanel({ productId, options }: Props) {
             <Button type="submit" size="sm">Agregar opción</Button>
           </div>
         </form>
+        </UnsavedArea>
       </CardContent>
     </Card>
   );

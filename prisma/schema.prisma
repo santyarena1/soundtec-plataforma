@@ -223,6 +223,7 @@ model Brand {
   mappings           ColumnMappingProfile[]
   imports            ImportBatch[]
   quoteBrandLogos    QuoteBrandLogo[]
+  productLines       ProductLine[]
 }
 
 model Distributor {
@@ -242,25 +243,88 @@ model Distributor {
 }
 
 model Category {
-  id        String     @id @default(cuid())
-  name      String
-  slug      String     @unique
-  parentId  String?
-  parent    Category?  @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
-  children  Category[] @relation("CategoryParent")
+  id                  String     @id @default(cuid())
+  name                String
+  slug                String     @unique
+  parentId            String?
+  parent              Category?  @relation("CategoryParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children            Category[] @relation("CategoryParent")
   /// Ruta en el árbol de rubros de Tango («SONIDO > BAFLES PASIVOS > …», en mayúsculas como en Tango). null = categoría vieja, fuera del árbol.
-  tangoPath String?    @unique
+  tangoPath           String?    @unique
   /// Nivel en el árbol de Tango: 1 rubro, 2 subrubro, 3 y 4.
-  level     Int?
-  isActive  Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  level               Int?
+  isActive            Boolean    @default(true)
+  /// Lo ve solo el equipo: no aparece en el portal ni en el catálogo público (con todo lo que cuelga). Reemplaza la lista fija de customer-hidden-categories.ts.
+  hiddenFromCustomers Boolean    @default(false)
+  /// Subrubro creado desde la app que todavía no está cargado en Tango (lista exportable en Rubros › Pendientes en Tango).
+  pendingTango        Boolean    @default(false)
+  /// Quién y cuándo lo creó desde la app (null = vino del CSV de Tango).
+  createdInAppBy      String?
+  createdInAppAt      DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
   products           Product[]
   compatibilityRules CompatibilityRule[]
   quoteServices      QuoteService[]
+  equivalences       CategoryEquivalence[]
 }
 
+/// Equivalencia «categoría o ruta del proveedor → rubro de Tango». La usan las sincronizaciones, los importadores y la IA de producto para ubicar productos nuevos.
+model CategoryEquivalence {
+  id          String   @id @default(cuid())
+  /// Fuente: sonance, crestron, soundtube, hall, excel, ai… («*» = cualquiera).
+  source      String
+  /// Marca (id) o "" si vale para todas las marcas de la fuente.
+  brandKey    String   @default("")
+  /// Ruta del proveedor normalizada (minúsculas, sin tildes, separador « > »).
+  sourceKey   String
+  /// Ruta del proveedor tal como vino.
+  sourceLabel String
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  /// ACTIVE = confirmada; SUGGESTED = derivada de productos ya ubicados (se usa igual, pero hay que revisarla).
+  status      String   @default("ACTIVE")
+  /// Productos que respaldaban la sugerencia y qué parte iba a ese rubro.
+  sampleCount Int      @default(0)
+  sampleShare Float?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([source, brandKey, sourceKey])
+  @@index([categoryId])
+}
+
+/// De dónde salió una serie del fabricante (ver scripts/product-lines-apply.ts).
+enum ProductLineSource {
+  CRESTRON_PATH
+  SONANCE_ATTR
+  LINE
+  MODEL_PREFIX
+  MANUAL
+}
+
+/// Serie o línea del fabricante (Crestron Horizon, Sonance Landscape, Blaze CBL…). Reemplaza a ProductFamily en pantallas e importadores.
+model ProductLine {
+  id         String            @id @default(cuid())
+  brandId    String
+  brand      Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name       String
+  slug       String
+  source     ProductLineSource @default(MANUAL)
+  /// El dueño la revisó en Rubros › Series («Está bien»).
+  isReviewed Boolean           @default(false)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  products Product[]
+
+  @@unique([brandId, slug])
+  @@index([brandId])
+}
+
+/// RETIRADA de pantallas e importadores (reemplazo: ProductLine). Queda solo por las reglas de precio FAMILY.
 model ProductFamily {
   id        String   @id @default(cuid())
   name      String
@@ -299,6 +363,11 @@ model Product {
   category       Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   familyId       String?
   family         ProductFamily? @relation(fields: [familyId], references: [id], onDelete: SetNull)
+  /// Serie del fabricante (ver ProductLine). El campo de texto `line` queda como respaldo para reglas viejas.
+  lineId         String?
+  series         ProductLine?   @relation(fields: [lineId], references: [id], onDelete: SetNull)
+  /// La serie la tocó una persona (asignó o quitó): el llenado automático no la cambia más.
+  lineLocked     Boolean        @default(false)
 
   shortDescription            String?
   longDescription             String?
@@ -341,9 +410,9 @@ model Product {
   availabilityType    String? // ej. "INSTOCK" | "BACKORDER" | "OUTOFSTOCK"
 
   // Dimensiones físicas
-  widthCm  Decimal? @db.Decimal(10, 2)
-  heightCm Decimal? @db.Decimal(10, 2)
-  depthCm  Decimal? @db.Decimal(10, 2)
+  widthCm          Decimal? @db.Decimal(10, 2)
+  heightCm         Decimal? @db.Decimal(10, 2)
+  depthCm          Decimal? @db.Decimal(10, 2)
   /// Diámetro de corte/empotrado (parlantes de techo/pared redondos), en cm. Fuente: ficha oficial.
   cutoutDiameterCm Decimal? @db.Decimal(10, 2)
   /// Alto en unidades de rack (1 = 1U; 1U media-rack también es 1). null = no va en rack o sin dato.
@@ -439,6 +508,7 @@ model Product {
   @@index([categoryId])
   @@index([distributorId])
   @@index([isActive])
+  @@index([lineId])
 }
 
 enum ProductRelationKind {
@@ -654,6 +724,8 @@ enum RuleScopeType {
   FAMILY
   GLOBAL
   CLIENT
+  /// Línea o serie del fabricante (ProductLine). En la cadena de precios va donde estaba FAMILY.
+  LINE
 }
 
 model MarginRule {
@@ -706,6 +778,43 @@ model DiscountRule {
   @@index([scopeType, scopeId])
   @@index([clientId])
   @@index([groupId])
+}
+
+enum PriceReviewStatus {
+  PENDING
+  APPLIED
+  DISCARDED
+}
+
+/// Revisión de un cambio que mueve precios (reglas de margen/descuento, mover productos de rubro con reglas por rubro, unir rubros…).
+/// No se aplica hasta que alguien toca «Aplicar»; guarda la lista de productos con precio actual → precio nuevo (simulado con la cadena real).
+model PriceReview {
+  id               String            @id @default(cuid())
+  status           PriceReviewStatus @default(PENDING)
+  /// MARGIN, DISCOUNT, CATEGORY o LINE.
+  area             String
+  title            String
+  /// Qué hay que hacer al aplicar (se vuelve a simular en ese momento).
+  operation        Json
+  affectedProducts Int               @default(0)
+  affectedRows     Int               @default(0)
+  totalBeforeUsd   Float             @default(0)
+  totalAfterUsd    Float             @default(0)
+  summary          Json?
+  /// Filas: producto × cliente/lista con precio actual y nuevo (USD).
+  items            Json?
+  createdById      String?
+  createdByName    String?
+  decidedById      String?
+  decidedByName    String?
+  decidedAt        DateTime?
+  /// Resultado real al aplicar (puede diferir de la simulación si algo cambió en el medio).
+  appliedResult    Json?
+  error            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([status, createdAt])
 }
 
 model VisibilityRule {

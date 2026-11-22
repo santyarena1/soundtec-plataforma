@@ -29,6 +29,8 @@ import {
   Tag,
 } from "lucide-react";
 import { bulkUpdateProducts } from "@/server/actions/admin-catalog";
+import { RubroPicker } from "@/components/admin/rubro-picker";
+import type { CategoryNode } from "@/lib/category-tree";
 import { bulkSearchImages } from "@/server/actions/product-enrichment";
 import { bulkSetLabel } from "@/server/actions/labels";
 import { BulkDescriptionsModal } from "@/components/admin/bulk-descriptions-modal";
@@ -47,8 +49,9 @@ interface Row {
   brandId: string | null;
   category: string | null;
   categoryId: string | null;
-  family: string | null;
-  familyId: string | null;
+  /** Serie del fabricante. */
+  series: string | null;
+  lineId: string | null;
   distributor: string | null;
   distributorId: string | null;
   cost: number;
@@ -82,7 +85,7 @@ interface Filters {
   q: string;
   brandIds: string[];
   categoryIds: string[];
-  familyIds: string[];
+  lineIds: string[];
   distributorIds: string[];
   stockStatuses: string[];
   active: string;
@@ -108,7 +111,10 @@ interface Props {
   filters: Filters;
   brands: Option[];
   categories: Option[];
-  families: Option[];
+  /** Árbol de rubros para «Asignar rubro» en lote. */
+  rubroNodes?: CategoryNode[];
+  /** Series para el filtro y «Asignar serie» («Marca · Serie»). */
+  seriesOptions: Array<Option & { brandId: string }>;
   distributors: Option[];
   allLabels: { id: string; name: string; color: string }[];
 }
@@ -121,7 +127,7 @@ type ColumnKey =
   | "supplierSku"
   | "brand"
   | "category"
-  | "family"
+  | "series"
   | "distributor"
   | "kind"
   | "customizable"
@@ -153,7 +159,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "supplierSku", label: "SKU proveedor", requiresPrices: true },
   { key: "brand", label: "Marca" },
   { key: "category", label: "Categoría" },
-  { key: "family", label: "Familia" },
+  { key: "series", label: "Serie" },
   { key: "distributor", label: "Proveedor", requiresPrices: true },
   { key: "kind", label: "Tipo" },
   { key: "customizable", label: "Con accesorios opcionales" },
@@ -190,6 +196,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const [bulkAction, setBulkAction] = useState<string>("activate");
   const [bulkBrandId, setBulkBrandId] = useState("");
   const [bulkCategoryId, setBulkCategoryId] = useState("");
+  const [bulkLineId, setBulkLineId] = useState("");
   const [bulkDiscount, setBulkDiscount] = useState("");
   const [bulkLabelId, setBulkLabelId] = useState("");
   const [pending, start] = useTransition();
@@ -242,7 +249,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const qFromUrl = search.get("q") || "";
   const brandIdsFromUrl = search.getAll("brand");
   const categoryIdsFromUrl = search.getAll("category");
-  const familyIdsFromUrl = search.getAll("family");
+  const lineIdsFromUrl = search.getAll("line").flatMap((v) => v.split(",")).filter(Boolean);
   const distributorIdsFromUrl = search.getAll("distributor");
   const stockFromUrl = search.getAll("stock");
   const activeFromUrl = search.get("active") || "";
@@ -252,7 +259,7 @@ export function ProductsCatalogAdmin(props: Props) {
   const debouncedQ = useDebouncedValue(qInput, 350);
 
   type FilterPatch = Partial<{
-    q: string; brand: string[]; category: string[]; family: string[];
+    q: string; brand: string[]; category: string[]; line: string[];
     distributor: string[]; stock: string[]; active: string; sort: string;
     nocat: string; noimg: string; nodesc: string; noprice: string; noio: string; notrans: string; crestron: string; page: string;
   }>;
@@ -261,7 +268,7 @@ export function ProductsCatalogAdmin(props: Props) {
     (patch: FilterPatch) => {
       const sp = new URLSearchParams(search.toString());
       if (patch.q !== undefined) { patch.q.trim() ? sp.set("q", patch.q.trim()) : sp.delete("q"); }
-      for (const key of ["brand", "category", "family", "distributor", "stock"] as const) {
+      for (const key of ["brand", "category", "line", "distributor", "stock"] as const) {
         if (patch[key] !== undefined) {
           sp.delete(key);
           for (const id of patch[key]!) sp.append(key, id);
@@ -340,12 +347,17 @@ export function ProductsCatalogAdmin(props: Props) {
     start(async () => {
       const r = await bulkUpdateProducts({
         productIds: [...selected],
-        action: bulkAction as "activate" | "deactivate" | "set_brand" | "set_category" | "set_discount" | "set_accessory" | "set_principal",
+        action: bulkAction as "activate" | "deactivate" | "set_brand" | "set_category" | "set_line" | "set_discount" | "set_accessory" | "set_principal",
         brandId: bulkBrandId || null,
         categoryId: bulkCategoryId || null,
+        lineId: bulkLineId || null,
         discountPercent: bulkDiscount ? Number(bulkDiscount) : null,
       });
-      if (r?.ok) {
+      if (r?.ok && r.notice) {
+        setBulkMsg(r.notice);
+        setSelected(new Set());
+        router.refresh();
+      } else if (r?.ok) {
         setBulkMsg(`Aplicado a ${selected.size} producto(s).`);
         setSelected(new Set());
         router.refresh();
@@ -383,14 +395,14 @@ export function ProductsCatalogAdmin(props: Props) {
 
   const nameOf = (options: Option[], id: string) => options.find((o) => o.id === id)?.name ?? id;
   const secondaryCount =
-    categoryIdsFromUrl.length + familyIdsFromUrl.length + distributorIdsFromUrl.length + stockFromUrl.length +
+    categoryIdsFromUrl.length + lineIdsFromUrl.length + distributorIdsFromUrl.length + stockFromUrl.length +
     (activeFromUrl ? 1 : 0) + (nocatActive ? 1 : 0) + (noimgActive ? 1 : 0) + (nodescActive ? 1 : 0) + (nopriceActive ? 1 : 0) + (noioActive ? 1 : 0) + (notransActive ? 1 : 0) + (crestronActive ? 1 : 0);
   const without = (list: string[], id: string) => list.filter((x) => x !== id);
   const activeChips: Array<{ key: string; label: string; clear: () => void }> = [
     ...(qFromUrl ? [{ key: "q", label: `«${qFromUrl}»`, clear: () => { setQInput(""); pushFilters({ q: "" }); } }] : []),
     ...brandIdsFromUrl.map((id) => ({ key: `b-${id}`, label: nameOf(props.brands, id), clear: () => pushFilters({ brand: without(brandIdsFromUrl, id) }) })),
     ...categoryIdsFromUrl.map((id) => ({ key: `c-${id}`, label: nameOf(props.categories, id), clear: () => pushFilters({ category: without(categoryIdsFromUrl, id) }) })),
-    ...familyIdsFromUrl.map((id) => ({ key: `f-${id}`, label: nameOf(props.families, id), clear: () => pushFilters({ family: without(familyIdsFromUrl, id) }) })),
+    ...lineIdsFromUrl.map((id) => ({ key: `l-${id}`, label: id === "none" ? "Sin serie" : nameOf(props.seriesOptions, id), clear: () => pushFilters({ line: without(lineIdsFromUrl, id) }) })),
     ...distributorIdsFromUrl.map((id) => ({ key: `d-${id}`, label: nameOf(props.distributors, id), clear: () => pushFilters({ distributor: without(distributorIdsFromUrl, id) }) })),
     ...stockFromUrl.map((id) => ({ key: `s-${id}`, label: nameOf(STOCK_OPTIONS, id), clear: () => pushFilters({ stock: without(stockFromUrl, id) }) })),
     ...(activeFromUrl ? [{ key: "active", label: activeFromUrl === "yes" ? "Solo activos" : "Solo inactivos", clear: () => pushFilters({ active: "" }) }] : []),
@@ -444,7 +456,7 @@ export function ProductsCatalogAdmin(props: Props) {
         {moreFiltersOpen ? (
           <div className="grid gap-3 border-t border-border pt-3 sm:grid-cols-2 lg:grid-cols-4">
             <MultiSelectFilter label="Categorías" options={props.categories} values={categoryIdsFromUrl} onChange={(ids) => pushFilters({ category: ids })} />
-            <MultiSelectFilter label="Familias" options={props.families} values={familyIdsFromUrl} onChange={(ids) => pushFilters({ family: ids })} />
+            <MultiSelectFilter label="Series" options={[{ id: "none", name: "Sin serie" }, ...props.seriesOptions]} values={lineIdsFromUrl} onChange={(ids) => pushFilters({ line: ids })} />
             {props.distributors.length ? (
               <MultiSelectFilter label="Proveedores" options={props.distributors} values={distributorIdsFromUrl} onChange={(ids) => pushFilters({ distributor: ids })} />
             ) : null}
@@ -513,7 +525,7 @@ export function ProductsCatalogAdmin(props: Props) {
               type="button"
               onClick={() => {
                 setQInput("");
-                pushFilters({ q: "", brand: [], category: [], family: [], distributor: [], stock: [], active: "", nocat: "", noimg: "", nodesc: "", noprice: "", noio: "", notrans: "", crestron: "" });
+                pushFilters({ q: "", brand: [], category: [], line: [], distributor: [], stock: [], active: "", nocat: "", noimg: "", nodesc: "", noprice: "", noio: "", notrans: "", crestron: "" });
               }}
               className="ml-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             >
@@ -545,6 +557,7 @@ export function ProductsCatalogAdmin(props: Props) {
           <option value="deactivate">Desactivar</option>
           <option value="set_brand">Asignar marca</option>
           <option value="set_category">Asignar rubro</option>
+          <option value="set_line">Asignar serie</option>
           {props.showPrices ? <option value="set_discount">Aplicar descuento %</option> : null}
           <option value="assign_label">Asignar etiqueta</option>
           <option value="remove_label">Quitar etiqueta</option>
@@ -565,11 +578,23 @@ export function ProductsCatalogAdmin(props: Props) {
           </Select>
         ) : null}
         {bulkAction === "set_category" ? (
-          <Select value={bulkCategoryId} onChange={(e) => setBulkCategoryId(e.target.value)} className="h-9 w-44 text-xs">
-            <option value="">Sin categoría</option>
-            {props.categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+          <div className="w-80 text-xs">
+            <RubroPicker
+              nodes={props.rubroNodes ?? []}
+              allowCreate
+              allowEmpty={false}
+              defaultValue={bulkCategoryId}
+              onChange={setBulkCategoryId}
+              placeholder="Elegir rubro del árbol…"
+            />
+          </div>
+        ) : null}
+        {bulkAction === "set_line" ? (
+          <Select value={bulkLineId} onChange={(e) => setBulkLineId(e.target.value)} className="h-9 w-56 text-xs" aria-label="Serie">
+            <option value="">Sacar la serie</option>
+            {props.seriesOptions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
               </option>
             ))}
           </Select>
@@ -849,8 +874,8 @@ function renderCell(
       return r.brand || "—";
     case "category":
       return <span className="block max-w-[12rem] truncate" title={r.category ?? undefined}>{r.category || "—"}</span>;
-    case "family":
-      return <span className="block max-w-[12rem] truncate" title={r.family ?? undefined}>{r.family || "—"}</span>;
+    case "series":
+      return <span className="block max-w-[12rem] truncate" title={r.series ?? undefined}>{r.series || "—"}</span>;
     case "distributor":
       return r.distributor || "—";
     case "kind":
@@ -989,7 +1014,7 @@ function ProductPreviewModal({
             <div className="grid grid-cols-2 gap-2 text-sm">
               <Info label="Marca" value={row.brand} />
               <Info label="Categoría" value={row.category} />
-              <Info label="Familia" value={row.family} />
+              <Info label="Serie" value={row.series} />
               {showPrices ? <Info label="Proveedor" value={row.distributor} /> : null}
               {showPrices ? <Info label="SKU proveedor" value={row.supplierSku || "—"} /> : null}
               <Info label="Tipo" value={row.kind === "ACCESORIO" ? "Accesorio" : "Principal"} />

@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { toast } from "sonner";
 import { ArrowLeft, Check, Loader2, Pencil, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
 import {
@@ -38,6 +39,7 @@ const emptyRule = (): RuleInput => ({
 
 function RuleForm({ initial, brands, onDone }: { initial: RuleInput; brands: Brand[]; onDone: () => void }) {
   const [rule, setRule] = useState<RuleInput>(initial);
+  const { markSaved: markRuleSaved } = useUnsavedValue(rule);
   const [pending, startTransition] = useTransition();
   const set = (patch: Partial<RuleInput>) => setRule((r) => ({ ...r, ...patch }));
   function save() {
@@ -47,6 +49,7 @@ function RuleForm({ initial, brands, onDone }: { initial: RuleInput; brands: Bra
         toast.error(res.error);
         return;
       }
+      markRuleSaved();
       toast.success("Regla guardada");
       onDone();
     });
@@ -221,6 +224,7 @@ const KIND_LABEL: Record<SystemSpec["kind"], string> = {
 
 function SpecEditor({ row, onDone }: { row: SpecRow; onDone: () => void }) {
   const [spec, setSpec] = useState(row.spec);
+  const { markSaved: markSpecSaved } = useUnsavedValue(spec);
   const [pending, startTransition] = useTransition();
   const set = (patch: Partial<SystemSpec>) => setSpec((s) => ({ ...s, ...patch }));
   const numOrNull = (v: string) => (v.trim() === "" ? null : Number(v));
@@ -242,6 +246,7 @@ function SpecEditor({ row, onDone }: { row: SpecRow; onDone: () => void }) {
         toast.error(res.error);
         return;
       }
+      markSpecSaved();
       toast.success("Especificación guardada");
       onDone();
     });

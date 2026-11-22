@@ -10,6 +10,7 @@ import { parseExcelBuffer, applyMapping, type ColumnMapping } from "@/services/e
 import { suggestColumnMapping, heuristicSuggestMapping } from "@/services/openai";
 import { slugify } from "@/lib/utils";
 import { changedScalarFields, mergeFieldTimestamps } from "@/lib/field-timestamps";
+import { rubroForNewProduct } from "@/server/categories/new-product-rubro";
 
 const createSchema = z.object({
   brandId: z.string().optional().nullable(),
@@ -195,7 +196,7 @@ const approveSchema = z.object({
   batchId: z.string().min(1),
 });
 
-export async function approveAllRows(formData: FormData): Promise<{ ok: boolean; processed?: number; errors?: number; error?: string }> {
+export async function approveAllRows(formData: FormData): Promise<{ ok: boolean; processed?: number; errors?: number; uncategorizedNew?: number; error?: string }> {
   await requireAdmin();
   const parsed = approveSchema.safeParse({ batchId: formData.get("batchId") });
   if (!parsed.success) return { ok: false, error: "Datos inválidos" };
@@ -208,6 +209,7 @@ export async function approveAllRows(formData: FormData): Promise<{ ok: boolean;
 
   let processed = 0;
   let errors = 0;
+  let uncategorizedNew = 0;
 
   for (const raw of batch.rawProducts) {
     const draft = (raw.normalizedJson as Record<string, unknown>) || null;
@@ -224,6 +226,7 @@ export async function approveAllRows(formData: FormData): Promise<{ ok: boolean;
       const sku = String(draft.sku || draft.supplierSku || `${batch.id.slice(0, 6)}-${raw.id.slice(0, 6)}`);
       const supplierSku = draft.supplierSku ? String(draft.supplierSku) : null;
       const name = String(draft.name);
+      const providerCategory = typeof draft.category === "string" && draft.category.trim() ? draft.category.trim() : undefined;
 
       const existing = await prisma.product.findUnique({ where: { internalSku: sku } });
       const alwaysUpdate = {
@@ -241,7 +244,14 @@ export async function approveAllRows(formData: FormData): Promise<{ ok: boolean;
         longDescription: existing.longDescription?.trim() ? undefined : draft.longDescription ? String(draft.longDescription) : undefined,
         brandId: existing.brandId || batch.brandId,
         distributorId: existing.distributorId || batch.distributorId,
+        // La categoría del Excel no cambia el rubro de un producto existente: solo se guarda como ruta del proveedor si no tenía.
+        sourceCategoryPath: existing.sourceCategoryPath?.trim() ? undefined : providerCategory,
       } : {};
+      // Alta: rubro por la tabla de Equivalencias con la columna «category»; si no hay, «Sin categorizar».
+      const rubro = existing
+        ? null
+        : await rubroForNewProduct(prisma, { source: "excel", brandId: batch.brandId, sourcePath: providerCategory });
+      if (rubro && !rubro.matched) uncategorizedNew++;
       const updateData = { ...alwaysUpdate, ...fillOnly };
       const changed = existing
         ? changedScalarFields(existing as unknown as Record<string, unknown>, updateData)
@@ -268,9 +278,12 @@ export async function approveAllRows(formData: FormData): Promise<{ ok: boolean;
           stockStatus: "UNKNOWN",
           brandId: batch.brandId,
           distributorId: batch.distributorId,
+          categoryId: rubro?.categoryId,
+          sourceCategoryPath: providerCategory ?? null,
           fieldUpdatedAt: mergeFieldTimestamps({}, [
             "internalSku", "supplierSku", "normalizedName", "originalName", "baseCostUsd",
             "currency", "shortDescription", "longDescription", "discountPercent", "brandId", "distributorId",
+            ...(rubro ? ["categoryId"] : []),
           ], new Date().toISOString()),
           images: draft.imageUrl
             ? {
@@ -310,5 +323,5 @@ export async function approveAllRows(formData: FormData): Promise<{ ok: boolean;
 
   revalidatePath("/admin/imports");
   revalidatePath(`/admin/imports/${batch.id}`);
-  return { ok: true, processed, errors };
+  return { ok: true, processed, errors, uncategorizedNew };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ export function PricingEditor({
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [values, setValues] = useState({ input: String(input), output: String(output) });
+  useUnsavedChangesGuard(open && (values.input !== String(input) || values.output !== String(output)));
 
   async function save() {
     setPending(true);

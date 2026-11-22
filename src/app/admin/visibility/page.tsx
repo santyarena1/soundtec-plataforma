@@ -1,5 +1,6 @@
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { categoryLabelMap, listCategoryTree } from "@/lib/category-tree";
 import { PageHeader } from "@/components/ui/page-header";
 import { PriceLogicHint } from "@/components/admin/price-logic-hint";
 import { deleteVisibility, toggleVisibilityCanView } from "@/server/actions/pricing-rules";
@@ -17,7 +18,7 @@ export default async function AdminVisibilityPage() {
     }),
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    listCategoryTree(),
     prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.product.findMany({ orderBy: { normalizedName: "asc" }, select: { id: true, normalizedName: true } }),
     prisma.visibilityRule.findMany({
@@ -29,7 +30,7 @@ export default async function AdminVisibilityPage() {
   const resourceMaps: Record<string, Map<string, string>> = {
     BRAND: new Map(brands.map((b) => [b.id, b.name])),
     DISTRIBUTOR: new Map(distributors.map((d) => [d.id, d.name])),
-    CATEGORY: new Map(categories.map((c) => [c.id, c.name])),
+    CATEGORY: await categoryLabelMap(),
     FAMILY: new Map(families.map((f) => [f.id, f.name])),
     PRODUCT: new Map(products.map((p) => [p.id, p.normalizedName])),
   };

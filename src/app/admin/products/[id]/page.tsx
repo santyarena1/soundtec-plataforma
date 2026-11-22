@@ -84,11 +84,11 @@ export default async function AdminProductEditPage({ params }: { params: Promise
   const canSeeRules = access.permissions.fullAccess || permissionsHave(access.permissions, "margins.manage") || permissionsHave(access.permissions, "discounts.manage");
   const pricingRules = canSeeRules ? await loadProductPricingRules(product.id) : null;
 
-  const [brands, distributors, categories, families, tcVentaStr, globalCoefStr, allLabels, priceBreakdown] = await Promise.all([
+  const [brands, distributors, categories, series, tcVentaStr, globalCoefStr, allLabels, priceBreakdown] = await Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     listCategoryTree(),
-    prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.productLine.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, brandId: true } }),
     getExchangeRate().then(String),
     getSetting("app.global_margin_percent", "35"),
     prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
@@ -113,12 +113,14 @@ export default async function AdminProductEditPage({ params }: { params: Promise
     }),
   ]);
   // «Compatible con»: reglas por rubro, marca o línea, y las líneas conocidas para sugerir.
-  const [ruleRows, lineRows] = await Promise.all([
+  const [ruleRows, lineRows, seriesNames] = await Promise.all([
     prisma.compatibilityRule.findMany({ where: { productId: product.id }, orderBy: { createdAt: "asc" }, include: { category: { select: { name: true, tangoPath: true } }, brand: { select: { name: true } } } }),
     prisma.product.findMany({ where: { line: { not: null } }, distinct: ["line"], select: { line: true }, orderBy: { line: "asc" }, take: 500 }),
+    prisma.productLine.findMany({ distinct: ["name"], select: { name: true }, orderBy: { name: "asc" } }),
   ]);
   const compatRules = await Promise.all(ruleRows.map(async (r) => ({ id: r.id, label: describeRule(r), count: await prisma.product.count({ where: await ruleWhere(r, product.id) }) })));
-  const knownLines = lineRows.map((l) => l.line!).filter(Boolean);
+  // Sugerencias: las series cargadas y, de respaldo, los textos viejos de `line`.
+  const knownLines = [...new Set([...seriesNames.map((s) => s.name), ...lineRows.map((l) => l.line!).filter(Boolean)])].sort((a, b) => a.localeCompare(b, "es"));
 
   return (
     <div className="space-y-6 pb-24">
@@ -213,6 +215,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
               kind: product.kind,
               accessoryRequiredWithPrimary: product.accessoryRequiredWithPrimary,
               line: product.line,
+              lineId: product.lineId,
               isActive: product.isActive,
               isFeatured: product.isFeatured,
               fieldUpdatedAt:
@@ -225,7 +228,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
             brands={brands}
             distributors={distributors}
             categories={categories}
-            families={families}
+            series={series}
             enginePricing={{
               priceUsdFinal: priceBreakdown.priceUsdFinal,
               priceFobUsd: priceBreakdown.priceFobUsd,

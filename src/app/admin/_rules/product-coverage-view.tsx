@@ -8,7 +8,8 @@ import { CoverageTable } from "./coverage-table";
 import { CoverageProductModal } from "./coverage-product-modal";
 
 type Named = { id: string; name: string };
-type Props = { kind: "margin" | "discount"; clients: Named[]; brands: Named[]; distributors: Named[]; categories: Named[]; families: Named[]; products: { id: string; normalizedName: string }[] };
+type CategoryNode = import("@/lib/category-tree").CategoryNode;
+type Props = { kind: "margin" | "discount"; clients: Named[]; brands: Named[]; distributors: Named[]; categories: CategoryNode[]; families: Named[]; products: { id: string; normalizedName: string }[] };
 function fromUrl(): { filters: CoverageFiltersState; page: number; pageSize: number } {
   const p = typeof window === "undefined" ? new URLSearchParams() : new URLSearchParams(window.location.search);
   const many = (key: string) => (p.get(key) || "").split(",").filter(Boolean);

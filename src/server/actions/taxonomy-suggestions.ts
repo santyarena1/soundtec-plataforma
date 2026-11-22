@@ -52,6 +52,9 @@ async function resolveTargetId(
   return fuzzy?.id ?? null;
 }
 
+/** Las familias se retiraron (reemplazo: series del fabricante en Rubros › Series). */
+const FAMILIES_RETIRED_ERROR = "Las familias se retiraron: ahora se usan las series del fabricante (Rubros › Series).";
+
 async function ensureTaxonomyAndAssign(
   kind: TaxonomySuggestionKind,
   productId: string,
@@ -61,6 +64,7 @@ async function ensureTaxonomyAndAssign(
 ): Promise<{ ok: boolean; error?: string }> {
   // Con el árbol de Tango, los rubros se eligen del árbol (Reclasificación): acá no se crean ni asignan categorías por nombre.
   if (kind === "CATEGORY" && (await isTangoTreeActive(prisma))) return { ok: false, error: TANGO_ONLY_ERROR };
+  if (kind === "FAMILY") return { ok: false, error: FAMILIES_RETIRED_ERROR };
   let resolvedId = targetId;
 
   if (!resolvedId) {
@@ -99,6 +103,7 @@ export async function generateTaxonomySuggestions(
   kind: TaxonomySuggestionKind
 ): Promise<{ ok: boolean; created: number; skipped: number; error?: string }> {
   await requireStaff(["categories.manage", "families.manage"]);
+  if (kind === "FAMILY") return { ok: false, created: 0, skipped: 0, error: FAMILIES_RETIRED_ERROR };
 
   const field = kind === "CATEGORY" ? "categoryId" : "familyId";
   const products = await prisma.product.findMany({
@@ -253,6 +258,9 @@ export async function generateAndApplyTaxonomySuggestions(
   await requireStaff(["categories.manage", "families.manage"]);
   if (kind === "CATEGORY" && (await isTangoTreeActive(prisma))) {
     return { ok: false, generated: 0, applied: 0, newTaxonomies: 0, assignedExisting: 0, failed: 0, error: TANGO_ONLY_ERROR };
+  }
+  if (kind === "FAMILY") {
+    return { ok: false, generated: 0, applied: 0, newTaxonomies: 0, assignedExisting: 0, failed: 0, error: FAMILIES_RETIRED_ERROR };
   }
 
   const field = kind === "CATEGORY" ? "categoryId" : "familyId";

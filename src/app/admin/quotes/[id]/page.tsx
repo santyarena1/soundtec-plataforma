@@ -36,6 +36,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Label, Textarea, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { GenerateProposalButton } from "./generate-button";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 import { QuoteImagesPanel } from "./images-panel";
 import { QuoteIssueBar } from "./issue-bar";
 import { QuotePlanUpload } from "./plan-upload";
@@ -381,6 +382,7 @@ export default async function QuoteEditorPage({
         }`}>
         <div className="min-w-0 space-y-4">
           {step === 1 ? (
+            <UnsavedArea>
             <form
               action={saveQuoteClassifierPicks}
               data-tour="quote-classifiers"
@@ -404,6 +406,7 @@ export default async function QuoteEditorPage({
                 </Button>
               ) : null}
             </form>
+            </UnsavedArea>
           ) : null}
           {step === 1 || step === 2 || step === 4 ? (
             <div data-tour="quote-memory">
@@ -417,6 +420,7 @@ export default async function QuoteEditorPage({
             </div>
           ) : null}
           {step === 1 ? (
+            <UnsavedArea>
             <form
               action={saveQuoteMeta}
               data-tour="quote-header"
@@ -492,6 +496,7 @@ export default async function QuoteEditorPage({
                 </Button>
               ) : null}
             </form>
+            </UnsavedArea>
           ) : null}
           {step === 1 && prevTerms?.terms ? (
             <p className="rounded-md border border-border bg-card p-3 text-sm text-muted-foreground">
@@ -505,6 +510,7 @@ export default async function QuoteEditorPage({
                 <p className="text-sm text-muted-foreground">
                   Contá qué necesita el cliente y, si querés, subí planos. Con «Generar propuesta» la IA sugiere equipos y redacta la propuesta: todo queda editable, no toca los textos fijos ni inventa precios.
                 </p>
+                <UnsavedArea>
                 <form action={saveQuoteMeta} className="space-y-2" data-tour="quote-brief">
                   <input type="hidden" name="quoteId" value={quote.id} />
                   <input type="hidden" name="metaKind" value="brief" />
@@ -516,6 +522,7 @@ export default async function QuoteEditorPage({
                     </Button>
                   ) : null}
                 </form>
+                </UnsavedArea>
                 <QuotePlanUpload quoteId={quote.id} plans={plans} />
                 {canEdit ? (
                   <div data-tour="quote-generate">
@@ -788,6 +795,7 @@ export default async function QuoteEditorPage({
               <Card>
                 <CardContent className="space-y-3 p-5">
                   <h2 className="heading-3">Condiciones</h2>
+                  <UnsavedArea>
                   <form action={saveQuoteTerms} className="space-y-3">
                     <input type="hidden" name="quoteId" value={quote.id} />
                     <div>
@@ -828,6 +836,7 @@ export default async function QuoteEditorPage({
                       </Button>
                     ) : null}
                   </form>
+                  </UnsavedArea>
                 </CardContent>
               </Card>
               <Card>
@@ -846,6 +855,7 @@ export default async function QuoteEditorPage({
                       {w}
                     </p>
                   ))}
+                  <UnsavedArea>
                   <form action={saveQuoteSignature} className="grid gap-2 sm:grid-cols-2">
                     <input type="hidden" name="quoteId" value={quote.id} />
                     <div>
@@ -860,6 +870,7 @@ export default async function QuoteEditorPage({
                       Guardar firma
                     </Button>
                   </form>
+                  </UnsavedArea>
                 </CardContent>
               </Card>
               <div className="flex flex-wrap gap-2">

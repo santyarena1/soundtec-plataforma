@@ -2,6 +2,7 @@ import { Prisma, RuleScopeType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { getExchangeRate } from "@/lib/exchange-rate";
+import { expandCategoryIds } from "@/lib/category-tree";
 
 /**
  * Motor central de precios.
@@ -15,15 +16,15 @@ import { getExchangeRate } from "@/lib/exchange-rate";
  * Prioridad de MÁRGENES (la PRIMERA que matchea gana; orden estricto):
  *   1. cliente + producto
  *   2. cliente + marca
- *   3. cliente + categoría
- *   4. cliente + familia
+ *   3. cliente + categoría (rubro propio o el más cercano hacia arriba)
+ *   4. cliente + serie (LINE) · cliente + familia (FAMILY, en retiro)
  *   5. cliente + proveedor
  *   6. cliente (regla global del cliente)
  *   7. producto
  *   8. marca
  *   9. distribuidor
- *  10. familia
- *  11. categoría
+ *  10. serie (LINE) · familia (FAMILY, en retiro)
+ *  11. categoría (rubro propio o el más cercano hacia arriba)
  *  12. global del sistema
  *
  * Prioridad de DESCUENTOS (idéntica lógica, primera que matchea gana):
@@ -42,6 +43,11 @@ import { getExchangeRate } from "@/lib/exchange-rate";
  *  13. global
  *
  * Notas:
+ *  - Rubros con herencia: una regla sobre un rubro alcanza a todos sus
+ *    subrubros. Si hay varias (p. ej. SONIDO y SONIDO > BAFLES PASIVOS), gana
+ *    la del rubro más profundo; recién si no hay ninguna se sigue la cadena.
+ *    Por eso el nivel «categoría» se expande en un matcher por ancestro (del
+ *    rubro propio hacia la raíz) y la cantidad de niveles depende del producto.
  *  - `MarginRule.priority` no se usa para reordenar la cadena; se usa solo
  *    para desempate cuando hay varias reglas dentro del MISMO nivel.
  *  - Una subregla PRODUCT con `isExemption` no aplica un valor propio: saca
@@ -64,6 +70,13 @@ export interface ProductPricingInput {
   brandId: string | null;
   distributorId: string | null;
   categoryId: string | null;
+  /**
+   * El rubro del producto y sus ancestros, del más profundo a la raíz. Si no
+   * viene, el motor lo resuelve (con caché). Lo usa la herencia por rubro.
+   */
+  categoryAncestorIds?: string[] | null;
+  /** Línea o serie del fabricante (ProductLine), para reglas LINE. */
+  lineId?: string | null;
   familyId: string | null;
   /**
    * Texto libre del producto (campo FAMILIA). Si `familyId` está vacío, el
@@ -90,6 +103,7 @@ export const PRICING_PRODUCT_SELECT = {
   brandId: true,
   distributorId: true,
   categoryId: true,
+  lineId: true,
   familyId: true,
   familia: true,
   discountPercent: true,
@@ -107,6 +121,7 @@ type PricingSource = {
   brandId: string | null;
   distributorId: string | null;
   categoryId: string | null;
+  lineId?: string | null;
   familyId: string | null;
   familia?: string | null;
   discountPercent?: unknown;
@@ -136,6 +151,7 @@ export function toPricingInput(product: PricingSource): ProductPricingInput {
     brandId: product.brandId,
     distributorId: product.distributorId,
     categoryId: product.categoryId,
+    lineId: product.lineId ?? null,
     familyId: product.familyId,
     familia: product.familia ?? null,
     productDiscountPercent: pricingNum(product.discountPercent),
@@ -211,21 +227,58 @@ export type MatchablePricingRule = {
   isExemption: boolean;
 };
 
-export function pricingMatcherChain(product: ProductPricingInput, clientId: string | null) {
-  return [
-    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && r.scopeType === "PRODUCT" && r.scopeId === product.productId,
-    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && r.scopeType === "BRAND" && r.scopeId === product.brandId,
-    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && r.scopeType === "CATEGORY" && r.scopeId === product.categoryId,
-    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && r.scopeType === "FAMILY" && r.scopeId === product.familyId,
-    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && r.scopeType === "DISTRIBUTOR" && r.scopeId === product.distributorId,
-    (r: MatchablePricingRule) => !!clientId && r.clientId === clientId && (r.scopeType === "CLIENT" || r.scopeType === "GLOBAL"),
-    (r: MatchablePricingRule) => r.scopeType === "PRODUCT" && r.scopeId === product.productId && !r.clientId,
-    (r: MatchablePricingRule) => r.scopeType === "BRAND" && r.scopeId === product.brandId && !r.clientId,
-    (r: MatchablePricingRule) => r.scopeType === "DISTRIBUTOR" && r.scopeId === product.distributorId && !r.clientId,
-    (r: MatchablePricingRule) => r.scopeType === "FAMILY" && r.scopeId === product.familyId && !r.clientId,
-    (r: MatchablePricingRule) => r.scopeType === "CATEGORY" && r.scopeId === product.categoryId && !r.clientId,
-    (r: MatchablePricingRule) => r.scopeType === "GLOBAL" && !r.clientId,
+type RuleMatcher = (r: MatchablePricingRule) => boolean;
+
+/** Rubro propio y ancestros (del más profundo a la raíz). Sin datos: solo el propio. */
+function categoryChainOf(product: ProductPricingInput): string[] {
+  const chain = product.categoryAncestorIds?.length
+    ? product.categoryAncestorIds
+    : product.categoryId
+      ? [product.categoryId]
+      : [];
+  return chain.filter(Boolean);
+}
+
+/**
+ * Cadena de matchers en orden de prioridad, más cuántos de los primeros son
+ * del cliente. El nivel de rubro se expande en un matcher por ancestro (gana
+ * el más profundo), así que la cantidad depende del producto.
+ */
+export function pricingMatcherLevels(
+  product: ProductPricingInput,
+  clientId: string | null
+): { chain: RuleMatcher[]; clientLevels: number } {
+  const categories = categoryChainOf(product);
+  const forClient = (match: RuleMatcher): RuleMatcher => (r) => !!clientId && r.clientId === clientId && match(r);
+  const general = (match: RuleMatcher): RuleMatcher => (r) => !r.clientId && match(r);
+  const categoryLevels = (wrap: (m: RuleMatcher) => RuleMatcher) =>
+    categories.map((id) => wrap((r) => r.scopeType === "CATEGORY" && r.scopeId === id));
+  const lineMatch: RuleMatcher = (r) => r.scopeType === "LINE" && !!product.lineId && r.scopeId === product.lineId;
+  const familyMatch: RuleMatcher = (r) => r.scopeType === "FAMILY" && r.scopeId === product.familyId;
+
+  const clientChain: RuleMatcher[] = [
+    forClient((r) => r.scopeType === "PRODUCT" && r.scopeId === product.productId),
+    forClient((r) => r.scopeType === "BRAND" && r.scopeId === product.brandId),
+    ...categoryLevels(forClient),
+    forClient(lineMatch),
+    forClient(familyMatch),
+    forClient((r) => r.scopeType === "DISTRIBUTOR" && r.scopeId === product.distributorId),
+    forClient((r) => r.scopeType === "CLIENT" || r.scopeType === "GLOBAL"),
   ];
+  const generalChain: RuleMatcher[] = [
+    general((r) => r.scopeType === "PRODUCT" && r.scopeId === product.productId),
+    general((r) => r.scopeType === "BRAND" && r.scopeId === product.brandId),
+    general((r) => r.scopeType === "DISTRIBUTOR" && r.scopeId === product.distributorId),
+    general(lineMatch),
+    general(familyMatch),
+    ...categoryLevels(general),
+    general((r) => r.scopeType === "GLOBAL"),
+  ];
+  return { chain: [...clientChain, ...generalChain], clientLevels: clientChain.length };
+}
+
+export function pricingMatcherChain(product: ProductPricingInput, clientId: string | null): RuleMatcher[] {
+  return pricingMatcherLevels(product, clientId).chain;
 }
 
 export function findCandidateRules<T extends MatchablePricingRule>(rules: T[], product: ProductPricingInput, clientId: string | null): T[] {
@@ -394,6 +447,10 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
   const { clientId } = options;
   void options.defaultGlobalMarginPercent;
   let product = options.product;
+  if (product.categoryId && !product.categoryAncestorIds) {
+    const ancestors = await resolveCategoryAncestors([product]);
+    product = { ...product, categoryAncestorIds: ancestors.get(product.productId) ?? [product.categoryId] };
+  }
   if (!product.familyScopeResolved) {
     const familyIds = await resolveFamilyIds([product]);
     product = {
@@ -422,8 +479,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
   const skippedDiscountGroups = exemptionGroupIds(discountRules, product.productId, clientId ?? null);
 
   // Cadena de matchers de mayor a menor prioridad
-  const matcherChain = pricingMatcherChain(product, clientId ?? null);
-  const clientLevels = 6;
+  const { chain: matcherChain, clientLevels } = pricingMatcherLevels(product, clientId ?? null);
   const lastLevel = matcherChain.length - 1;
 
   function findFirstMatching<T extends MatchablePricingRule>(rules: T[], skippedGroups: Set<string>): T | null {
@@ -586,30 +642,130 @@ export async function calculatePricesForProducts(
 
   // Una sola lectura de reglas/TC/markup para todo el lote. Antes el catálogo
   // pedía margin+discount por cada producto (miles de queries) y se colgaba.
-  const [defaultMarkupRaw, tc, rules, familyIds] = await Promise.all([
+  const [defaultMarkupRaw, tc, rules, prepared] = await Promise.all([
     getSetting("pricing.default_markup", "1.35"),
     getExchangeRate(),
     loadPricingRules(clientId),
-    resolveFamilyIds(products),
+    preparePricingInputs(products),
   ]);
-  const defaultMarkupMultiplier = parsedSetting(defaultMarkupRaw, 1.35);
+  return priceProductsWithRules(prepared, clientId, {
+    marginRules: rules.marginRules,
+    discountRules: rules.discountRules,
+    defaultMarkupMultiplier: parsedSetting(defaultMarkupRaw, 1.35),
+    tc,
+  });
+}
+
+/** Completa familia (por texto) y ancestros de rubro de un lote, para no resolverlos uno por uno. */
+export async function preparePricingInputs(products: ProductPricingInput[]): Promise<ProductPricingInput[]> {
+  const [familyIds, ancestors] = await Promise.all([resolveFamilyIds(products), resolveCategoryAncestors(products)]);
+  return products.map((p) => ({
+    ...p,
+    familyId: familyIds.get(p.productId) ?? p.familyId,
+    familyScopeResolved: true,
+    categoryAncestorIds: p.categoryAncestorIds ?? ancestors.get(p.productId) ?? (p.categoryId ? [p.categoryId] : []),
+  }));
+}
+
+export interface PricingRuleSet {
+  marginRules: PricingMarginRule[];
+  discountRules: PricingDiscountRule[];
+  defaultMarkupMultiplier: number;
+  tc: number;
+}
+
+/**
+ * Precios de un lote con un juego de reglas dado (las del sistema o uno
+ * simulado). Es la MISMA cadena que usa todo el sistema: la revisión de
+ * cambios de precio la usa para comparar «antes» y «después».
+ * Las reglas inactivas se ignoran. Los productos ya vienen preparados
+ * (`preparePricingInputs`).
+ */
+export async function priceProductsWithRules(
+  products: ProductPricingInput[],
+  clientId: string | null,
+  ruleSet: PricingRuleSet
+): Promise<Map<string, PriceBreakdown>> {
+  const relevant = <T extends MatchablePricingRule>(rules: T[]) =>
+    rules.filter((r) => r.isActive && (!r.clientId || r.clientId === clientId));
+  const margins = splitByProduct(relevant(ruleSet.marginRules));
+  const discounts = splitByProduct(relevant(ruleSet.discountRules));
   const results = new Map<string, PriceBreakdown>();
   for (const p of products) {
     const r = await calculateCustomerPrice({
-      product: {
-        ...p,
-        familyId: familyIds.get(p.productId) ?? p.familyId,
-        familyScopeResolved: true,
-      },
+      product: { ...p, familyScopeResolved: true, categoryAncestorIds: p.categoryAncestorIds ?? (p.categoryId ? [p.categoryId] : []) },
       clientId,
-      defaultMarkupMultiplier,
-      tcOverride: tc,
-      marginRules: rules.marginRules,
-      discountRules: rules.discountRules,
+      defaultMarkupMultiplier: ruleSet.defaultMarkupMultiplier,
+      tcOverride: ruleSet.tc,
+      marginRules: margins.forProduct(p.productId),
+      discountRules: discounts.forProduct(p.productId),
     });
     results.set(p.productId, r);
   }
   return results;
+}
+
+/**
+ * Reglas para un producto: las de PRODUCT de ese producto y todas las demás,
+ * respetando el orden original (prioridad y fecha). Con ~600 reglas por
+ * producto, recorrer todas por cada producto del catálogo era lo más lento.
+ */
+function splitByProduct<T extends MatchablePricingRule>(rules: T[]) {
+  const byProduct = new Map<string, Array<{ index: number; rule: T }>>();
+  const others: Array<{ index: number; rule: T }> = [];
+  rules.forEach((rule, index) => {
+    if (rule.scopeType !== "PRODUCT") {
+      others.push({ index, rule });
+      return;
+    }
+    const keys = new Set([rule.scopeId, rule.productId].filter((k): k is string => Boolean(k)));
+    for (const key of keys) byProduct.set(key, [...(byProduct.get(key) ?? []), { index, rule }]);
+  });
+  return {
+    forProduct(productId: string): T[] {
+      const own = byProduct.get(productId);
+      if (!own?.length) return others.map((o) => o.rule);
+      return [...own, ...others].sort((a, b) => a.index - b.index).map((o) => o.rule);
+    },
+  };
+}
+
+let categoryParentsCache: { at: number; parents: Map<string, string | null> } | null = null;
+const CATEGORY_PARENTS_MS = 5 * 60_000;
+
+/** Vacía la caché de padres de rubros (al crear un subrubro, por ejemplo). */
+export function resetCategoryAncestorsCache(): void {
+  categoryParentsCache = null;
+}
+
+/** Ancestros de un rubro (el propio primero) con un mapa id → padre. */
+export function categoryAncestorsFrom(categoryId: string, parents: Map<string, string | null>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  let current: string | null | undefined = categoryId;
+  while (current && !seen.has(current) && out.length < 12) {
+    seen.add(current);
+    out.push(current);
+    current = parents.get(current) ?? null;
+  }
+  return out;
+}
+
+async function resolveCategoryAncestors(products: ProductPricingInput[]): Promise<Map<string, string[]>> {
+  const ids = [...new Set(products.map((p) => p.categoryId).filter((id): id is string => Boolean(id)))];
+  const result = new Map<string, string[]>();
+  if (!ids.length) return result;
+  const stale = !categoryParentsCache || Date.now() - categoryParentsCache.at > CATEGORY_PARENTS_MS;
+  const missing = categoryParentsCache ? ids.some((id) => !categoryParentsCache!.parents.has(id)) : true;
+  if (stale || missing) {
+    const rows = await prisma.category.findMany({ select: { id: true, parentId: true } });
+    categoryParentsCache = { at: Date.now(), parents: new Map(rows.map((r) => [r.id, r.parentId])) };
+  }
+  const parents = categoryParentsCache!.parents;
+  for (const p of products) {
+    if (p.categoryId) result.set(p.productId, categoryAncestorsFrom(p.categoryId, parents));
+  }
+  return result;
 }
 
 /**
@@ -676,5 +832,9 @@ export async function getClientVisibility(clientId: string) {
     }
   }
 
+  // Ocultar un rubro oculta también sus subrubros (igual que las reglas de precio).
+  if (hidden.categoryIds.size) {
+    hidden.categoryIds = new Set(await expandCategoryIds([...hidden.categoryIds]));
+  }
   return { hidden, allowed };
 }

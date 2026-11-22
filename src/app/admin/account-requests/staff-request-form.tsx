@@ -1,5 +1,6 @@
 "use client";
 
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ export function StaffRequestForm({ defaultOpen = false }: { defaultOpen?: boolea
   return (
     <Card>
       <CardContent className="p-5">
+        <UnsavedArea>
         <form
           className="space-y-4"
           autoComplete="off"
@@ -154,6 +156,7 @@ export function StaffRequestForm({ defaultOpen = false }: { defaultOpen?: boolea
             </Button>
           </div>
         </form>
+        </UnsavedArea>
       </CardContent>
     </Card>
   );

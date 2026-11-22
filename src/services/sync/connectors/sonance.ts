@@ -17,6 +17,7 @@ import {
 import { getSetting, setSetting } from "@/lib/settings";
 import { codeNameFor } from "@/lib/product-code-name";
 import { translateBatchCached } from "@/services/translation-cache";
+import { sonanceProviderPath } from "@/lib/new-product-rubro";
 import {
   canonicalizeSonanceBrand,
   inferBrandFromKeywords,
@@ -468,6 +469,8 @@ function normalizeDetail(
     brandName,
     categoryName: str(listing.category),
     tipo: str(listing.subcategory),
+    // «Product Category > Product Sub Category» del portal: equivalencia de rubro para los nuevos.
+    supplierCategoryPath: sonanceProviderPath(listing.category, listing.subcategory),
     shortDescription: str(detail.shortDescription),
     htmlContent,
     longDescription: htmlContent

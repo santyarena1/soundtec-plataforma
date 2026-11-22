@@ -63,6 +63,10 @@ export function ProductDiscountsPanel({ rows }: { rows: ProductDiscountRow[] }) 
                   return;
                 }
                 const result = await clearAllProductDiscounts();
+                if (result.reviewId) {
+                  router.push(`/admin/price-reviews/${result.reviewId}`);
+                  return;
+                }
                 toast.success(`Se quitó el descuento en ${result.count} producto${result.count === 1 ? "" : "s"}.`);
                 router.refresh();
               })

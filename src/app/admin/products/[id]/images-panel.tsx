@@ -28,6 +28,18 @@ interface SerperResult {
   url: string;
   title: string;
   thumbnail?: string;
+  pageUrl?: string;
+}
+
+/** Fotos que se aceptan al subir: el servidor reconoce el formato por el contenido. */
+const IMAGE_ACCEPT = "image/*,.heic,.heif,.avif,.svg,.tif,.tiff,.bmp";
+const IMAGE_EXT = /\.(jpe?g|png|webp|gif|avif|heic|heif|svg|tiff?|bmp)$/i;
+
+function sourceLabel(source: string | null): string {
+  if (!source) return "manual";
+  if (source === "url") return "URL pegada";
+  if (source === "upload") return "archivo";
+  return source;
 }
 
 interface Props {
@@ -53,6 +65,36 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
   const [serperError, setSerperError] = useState<string | null>(null);
   const [pendingSearch, startSearch] = useTransition();
   const [showSerper, setShowSerper] = useState(false);
+  // Adjuntar desde Serper o desde una URL pegada: estado por dirección.
+  const [attaching, setAttaching] = useState<string | null>(null);
+  const [attachErrors, setAttachErrors] = useState<Record<string, string>>({});
+  const [attachNote, setAttachNote] = useState<string | null>(null);
+  const [pastedUrl, setPastedUrl] = useState("");
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set());
+
+  async function attachFromUrl(key: string, input: { url: string; alt?: string; pageUrl?: string; thumbnail?: string; origin: "serper" | "url" }) {
+    setAttaching(key);
+    setAttachNote(null);
+    setAttachErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    try {
+      const r = await attachProductImage({ productId, ...input, isPrimary: images.length === 0 });
+      if (r.ok) {
+        setAttachNote(r.note || "Imagen agregada.");
+        if (input.origin === "url") setPastedUrl("");
+        router.refresh();
+      } else {
+        setAttachErrors((prev) => ({ ...prev, [key]: r.error || "No se pudo agregar la imagen." }));
+      }
+    } catch {
+      setAttachErrors((prev) => ({ ...prev, [key]: "No se pudo agregar la imagen. Probá de nuevo." }));
+    } finally {
+      setAttaching(null);
+    }
+  }
 
   async function uploadFiles(files: FileList | File[]) {
     setUploadError(null);
@@ -94,7 +136,8 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
     e.preventDefault();
     setDragOver(false);
     if (uploading) return;
-    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+    // HEIC y algunos TIFF llegan sin tipo desde Windows: se reconocen por la extensión.
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/") || IMAGE_EXT.test(f.name));
     if (files.length === 0) {
       setUploadError("Soltá archivos de imagen.");
       return;
@@ -121,8 +164,8 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
             <Badge tone="muted">{images.length}</Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Las imágenes se suben como archivo. El sistema las guarda en Vercel Blob
-            y persiste la URL — así la BD queda liviana.
+            Archivo, URL pegada o búsqueda: el sistema descarga la foto, la convierte si
+            hace falta y la guarda en nuestro almacenamiento.
           </p>
         </div>
 
@@ -137,8 +180,26 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
                 }`}
               >
                 <div className="aspect-square bg-secondary">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt={img.alt || ""} className="h-full w-full object-cover" />
+                  {brokenIds.has(img.id) ? (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center text-[11px] text-destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      No carga: el sitio original ya no la muestra. Quitala y volvé a agregarla.
+                    </div>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={img.url}
+                      alt={img.alt || ""}
+                      className="h-full w-full object-cover"
+                      onError={() => setBrokenIds((prev) => new Set(prev).add(img.id))}
+                      // Si falló antes de que la página se active, onError ya no se dispara.
+                      ref={(el) => {
+                        if (el && el.complete && el.naturalWidth === 0 && !brokenIds.has(img.id)) {
+                          setBrokenIds((prev) => new Set(prev).add(img.id));
+                        }
+                      }}
+                    />
+                  )}
                 </div>
                 {img.isPrimary && (
                   <div className="absolute top-1.5 left-1.5">
@@ -148,8 +209,8 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
                   </div>
                 )}
                 <div className="flex items-center justify-between gap-1 p-2 bg-card">
-                  <span className="text-[10px] text-muted-foreground truncate" title={img.source || "manual"}>
-                    {img.source || "manual"}
+                  <span className="text-[10px] text-muted-foreground truncate" title={sourceLabel(img.source)}>
+                    {sourceLabel(img.source)}
                   </span>
                   <div className="flex gap-1.5">
                     {!img.isPrimary ? (
@@ -201,7 +262,7 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={IMAGE_ACCEPT}
             multiple
             className="hidden"
             onChange={(e) => {
@@ -219,7 +280,7 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
             {uploading ? "Subiendo…" : "Arrastrá una imagen acá o hacé click"}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            PNG, JPEG, WebP, GIF o AVIF · hasta 8 MB · podés soltar varios archivos a la vez
+            JPEG, PNG, WebP, AVIF, GIF, TIFF, BMP, SVG o HEIC · hasta 15 MB · se convierten solas si hace falta · podés soltar varias a la vez
           </p>
           <div className="mt-4 flex items-center justify-center gap-3 flex-wrap">
             <Button
@@ -251,6 +312,42 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
             </p>
           ) : null}
         </div>
+
+        {/* ── PEGAR URL ── */}
+        <form
+          className="space-y-1.5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const url = pastedUrl.trim();
+            if (url) void attachFromUrl("pasted", { url, alt: productName, origin: "url" });
+          }}
+        >
+          <Label htmlFor="pastedImageUrl">O pegá la dirección de una imagen</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="pastedImageUrl"
+              type="url"
+              inputMode="url"
+              value={pastedUrl}
+              onChange={(e) => setPastedUrl(e.target.value)}
+              placeholder="https://sitio-del-fabricante.com/foto.png"
+            />
+            <Button type="submit" size="sm" disabled={!pastedUrl.trim() || attaching !== null}>
+              {attaching === "pasted" ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+              Agregar
+            </Button>
+          </div>
+          {attachErrors.pasted ? (
+            <p className="text-xs text-destructive flex items-center gap-1">
+              <AlertCircle className="h-3 w-3 shrink-0" /> {attachErrors.pasted}
+            </p>
+          ) : null}
+        </form>
+        {attachNote ? (
+          <p className="text-xs text-success flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3 shrink-0" /> {attachNote}
+          </p>
+        ) : null}
 
         {/* ── BÚSQUEDA SERPER (colapsable, opcional) ── */}
         <div className="rounded-md border border-border">
@@ -288,15 +385,13 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
               {serperError ? <p className="text-xs text-destructive">{serperError}</p> : null}
               {results.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {results.map((r) => (
-                    <form
-                      key={r.url}
-                      action={attachProductImage}
+                  {results.map((r, index) => {
+                    const key = `serper-${index}`;
+                    return (
+                    <div
+                      key={`${r.url}-${index}`}
                       className="flex flex-col overflow-hidden rounded-md border border-border bg-card"
                     >
-                      <input type="hidden" name="productId" value={productId} />
-                      <input type="hidden" name="url" value={r.url} />
-                      <input type="hidden" name="alt" value={r.title} />
                       <div className="aspect-square bg-secondary">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -308,14 +403,23 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
                       <div className="p-2">
                         <p className="line-clamp-2 text-[11px] text-muted-foreground">{r.title}</p>
                         <button
-                          type="submit"
-                          className="mt-1 text-xs font-medium text-accent underline"
+                          type="button"
+                          disabled={attaching !== null}
+                          onClick={() =>
+                            void attachFromUrl(key, { url: r.url, alt: r.title, pageUrl: r.pageUrl, thumbnail: r.thumbnail, origin: "serper" })
+                          }
+                          className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-accent underline disabled:opacity-50"
                         >
-                          Adjuntar
+                          {attaching === key ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                          {attaching === key ? "Descargando…" : "Adjuntar"}
                         </button>
+                        {attachErrors[key] ? (
+                          <p className="mt-1 text-[11px] leading-snug text-destructive">{attachErrors[key]}</p>
+                        ) : null}
                       </div>
-                    </form>
-                  ))}
+                    </div>
+                    );
+                  })}
                 </div>
               ) : null}
             </div>

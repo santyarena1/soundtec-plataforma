@@ -1,6 +1,6 @@
 export const SCALAR_PRODUCT_FIELDS: string[] = [
   "internalSku", "supplierSku", "normalizedName", "originalName", "brandId",
-  "distributorId", "categoryId", "familyId", "familia", "tipo", "kind",
+  "distributorId", "categoryId", "familyId", "lineId", "familia", "tipo", "kind",
   "baseCostUsd", "currency", "discountPercent", "stockStatus", "stockQuantity",
   "availabilityType", "availabilityMessage", "shortDescription", "longDescription",
   "htmlContent", "modelNumber", "manufacturerItem", "metaTitle", "metaDescription",

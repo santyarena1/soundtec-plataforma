@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/server/actions/clients";
 import { Modal } from "@/components/ui/dialog";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
+import { DirtyReporter, useGuardedModalClose } from "@/components/admin/modal-unsaved";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, FieldError } from "@/components/ui/input";
 import { AccessModePicker, AccessReveal } from "@/components/admin/access-reveal";
@@ -34,6 +36,8 @@ export function ClientFormModal({
   const [result, setResult] = useState<{ id: string; access?: AccessResult; email: string; name: string }>();
   const [pending, start] = useTransition();
   const router = useRouter();
+  const closeModal = useCallback(() => setOpen(false), []);
+  const { setDirty, requestClose } = useGuardedModalClose(closeModal);
 
   function done(id: string) {
     setOpen(false);
@@ -47,13 +51,15 @@ export function ClientFormModal({
       <Button type="button" onClick={() => setOpen(true)} data-tour="clients-new-btn">
         {triggerLabel}
       </Button>
-      <Modal open={open} onClose={() => setOpen(false)} title="Nuevo cliente (alta rápida)" size="lg">
+      <Modal open={open} onClose={requestClose} title="Nuevo cliente (alta rápida)" size="lg">
         {result?.access ? (
           <div className="space-y-4">
             <AccessReveal access={result.access} email={result.email} name={result.name} />
             <Button onClick={() => done(result.id)}>{onCreated ? "Listo" : "Ir a la ficha"}</Button>
           </div>
         ) : (
+          <UnsavedArea>
+          <DirtyReporter onChange={setDirty} />
           <form
             className="space-y-4"
             autoComplete="off"
@@ -143,6 +149,7 @@ export function ClientFormModal({
               </Button>
             </div>
           </form>
+          </UnsavedArea>
         )}
       </Modal>
     </>

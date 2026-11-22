@@ -1,4 +1,4 @@
-import { categoryFilterOptions } from "@/lib/category-tree";
+import { categoryFilterOptions, listCategoryTree } from "@/lib/category-tree";
 import { canSeePrices, requireStaff } from "@/lib/auth-helpers";
 import { permissionsHave } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -29,7 +29,8 @@ interface SP {
   q?: string;
   brand?: string | string[];
   category?: string | string[];
-  family?: string | string[];
+  /** Serie (ProductLine); «none» = sin serie. */
+  line?: string | string[];
   distributor?: string | string[];
   stock?: string | string[];
   active?: string;
@@ -79,7 +80,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
 
   const brandIds = multi(params.brand);
   const categoryIds = multi(params.category);
-  const familyIds = multi(params.family);
+  const lineIds = multi(params.line);
   const distributorIds = multi(params.distributor);
   const stockStatuses = multi(params.stock);
   const activeFilter =
@@ -158,14 +159,14 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   }
 
   const pageIds = rankedPageIds ? rankedPageIds.slice((page - 1) * pageSize, page * pageSize) : null;
-  const [productsUnordered, total, brands, categories, families, distributors, allLabels] = await Promise.all([
+  const [productsUnordered, total, brands, categories, seriesRows, distributors, allLabels] = await Promise.all([
     prisma.product.findMany({
       where: pageIds ? { id: { in: pageIds } } : where,
       orderBy,
       include: {
         brand: { select: { id: true, name: true } },
         category: { select: { id: true, name: true } },
-        family: { select: { id: true, name: true } },
+        series: { select: { id: true, name: true } },
         distributor: { select: { id: true, name: true } },
         images: productCoverImageInclude,
         labels: { select: { label: { select: { id: true, name: true, color: true } } } },
@@ -178,7 +179,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       select: { id: true, name: true, _count: { select: { products: true } } },
     }),
     categoryFilterOptions(),
-    prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.productLine.findMany({ orderBy: [{ brand: { name: "asc" } }, { name: "asc" }], select: { id: true, name: true, brandId: true, brand: { select: { name: true } } } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
   ]);
@@ -223,8 +224,8 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       brandId: p.brandId,
       category: (p.categoryId && categoryLabels.get(p.categoryId)) || p.category?.name || null,
       categoryId: p.categoryId,
-      family: p.family?.name || null,
-      familyId: p.familyId,
+      series: p.series?.name || null,
+      lineId: p.lineId,
       distributor: p.distributor?.name || null,
       distributorId: p.distributorId,
       cost: Number(p.baseCostUsd),
@@ -327,7 +328,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       !params.q &&
       brandIds.length === 0 &&
       categoryIds.length === 0 &&
-      familyIds.length === 0 &&
+      lineIds.length === 0 &&
       distributorIds.length === 0 &&
       stockStatuses.length === 0 &&
       activeFilter === undefined &&
@@ -354,7 +355,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
                 q: params.q || "",
                 brandIds,
                 categoryIds,
-                familyIds,
+                lineIds,
                 distributorIds,
                 stockStatuses,
                 active: params.active || "",
@@ -369,7 +370,8 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
               }}
               brands={brands.map((b) => ({ id: b.id, name: b.name }))}
               categories={categories}
-              families={families}
+              rubroNodes={await listCategoryTree()}
+              seriesOptions={seriesRows.map((s) => ({ id: s.id, brandId: s.brandId, name: `${s.brand.name} · ${s.name}` }))}
               distributors={showPrices ? distributors : []}
               allLabels={allLabels}
             />

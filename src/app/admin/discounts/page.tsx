@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { PriceLogicHint } from "@/components/admin/price-logic-hint";
+import { PriceReviewBanner } from "@/components/admin/price-review-banner";
+import { categoryLabelMap, lineOptions, listCategoryTree } from "@/lib/category-tree";
 import { PricingRulesWorkspace } from "../_rules/workspace";
 import { deleteDiscountRule, deleteDiscountRuleGroup } from "@/server/actions/pricing-rules";
 import { badgeLabel, isManufacturerPromoLabel } from "@/lib/manufacturer-promo";
@@ -23,7 +25,7 @@ export default async function AdminDiscountsPage() {
       }),
       prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
       prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-      prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+      listCategoryTree(),
       prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
       prisma.product.findMany({
         orderBy: { normalizedName: "asc" },
@@ -59,10 +61,12 @@ export default async function AdminDiscountsPage() {
     ]);
 
   const clientMap = new Map(clients.map((c) => [c.id, c.companyName || c.contactName || c.id]));
+  const lines = await lineOptions();
   const resourceMaps: Record<string, Map<string, string>> = {
     BRAND: new Map(brands.map((b) => [b.id, b.name])),
     DISTRIBUTOR: new Map(distributors.map((d) => [d.id, d.name])),
-    CATEGORY: new Map(categories.map((c) => [c.id, c.name])),
+    CATEGORY: await categoryLabelMap(),
+    LINE: new Map(lines.map((l) => [l.id, l.name])),
     FAMILY: new Map(families.map((f) => [f.id, f.name])),
     PRODUCT: new Map(products.map((p) => [p.id, p.normalizedName])),
   };
@@ -134,6 +138,8 @@ export default async function AdminDiscountsPage() {
         description="Las reglas comerciales viven acá y se pueden editar. El % de la ficha del producto y las etiquetas del fabricante son otras dos fuentes: si el catálogo muestra un descuento y esta tabla está vacía, casi seguro está en una de las listas de abajo."
       />
 
+      <PriceReviewBanner area="DISCOUNT" />
+
       <PriceLogicHint variant="discount" />
 
       <PricingRulesWorkspace
@@ -147,6 +153,7 @@ export default async function AdminDiscountsPage() {
         distributors={distributors}
         categories={categories}
         families={families}
+        lines={lines}
         products={products}
       />
 

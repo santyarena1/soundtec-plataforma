@@ -14,6 +14,7 @@ import { MissingSection } from "./_missing";
 import { PriceListSheets } from "@/components/admin/price-list-sheets";
 import { StartReviewForm } from "./_start-form";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
+import { UncategorizedNewNotice } from "@/components/admin/uncategorized-new-notice";
 
 interface Props {
   fileName: string;
@@ -33,7 +34,7 @@ interface Props {
   brands: string[];
   applyTaxonomy: boolean;
   appliedAt: string | null;
-  applyResult: { updated: number; created: number; deactivated: number } | null;
+  applyResult: { updated: number; created: number; deactivated: number; uncategorizedNew?: number } | null;
 }
 
 function Section({ id, title, count, help, children }: { id: string; title: string; count: number; help: string; children: ReactNode }) {
@@ -75,6 +76,7 @@ export function ReviewPanel(props: Props) {
               {props.applyResult.updated} productos actualizados, {props.applyResult.created} creados y {props.applyResult.deactivated} desactivados.
             </p>
           ) : null}
+          <UncategorizedNewNotice count={props.applyResult?.uncategorizedNew} />
           <p className="text-sm text-muted-foreground">Si quedó todo bien, cerrá la revisión y el módulo desaparece del menú.</p>
           <Button
             disabled={busy}
@@ -168,7 +170,7 @@ export function ReviewPanel(props: Props) {
         <PairsSection items={props.pairs} />
       </Section>
 
-      <Section id="nuevos" title="2. Productos nuevos" count={newPending} help="No existen en el sistema. «Crear» lo da de alta con el SKU, la descripción, el costo, el MUP y la clasificación de la lista.">
+      <Section id="nuevos" title="2. Productos nuevos" count={newPending} help="No existen en el sistema. «Crear» lo da de alta con el SKU, la descripción, el costo y el MUP de la lista. El rubro sale de la tabla de Equivalencias según la clasificación de la lista (CATEGORIA > SEGMENTO > FAMILIA > TIPO); si no hay equivalencia, entra en Sin categorizar.">
         <NewProductsSection items={props.newProducts} brands={props.brands} />
       </Section>
 
@@ -191,7 +193,11 @@ export function ReviewPanel(props: Props) {
                 disabled={busy}
                 onChange={(e) => start(async () => { await setReviewTaxonomy(e.target.checked); router.refresh(); })}
               />
-              <span>Aplicar la clasificación de la lista (CATEGORIA → Rubro, SEGMENTO → Subrubro, FAMILIA, TIPO).</span>
+              <span>
+                Aplicar la clasificación de la lista a los productos que coinciden: FAMILIA y TIPO como texto, SEGMENTO (Comercial, Residencial…) en los datos de origen. CATEGORIA no cambia el rubro:
+                el rubro de los productos existentes no se toca, y el de los nuevos sale de la tabla de Equivalencias (Rubros › Equivalencias);
+                si no hay, entran en Sin categorizar.
+              </span>
             </label>
             <p className="text-xs text-muted-foreground">
               Al aplicar: {props.matchedCount} productos actualizan costo y MUP, se crean {creations}, se desactivan {deactivations}.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, CornerDownLeft, Loader2, Send, Sparkles, X } from "lucide-react";
@@ -41,6 +42,8 @@ export function ResponseComposer({ requestId, currentStatus, savedResponse, stor
   const trimmed = text.trim();
   // El estado arranca en el siguiente sugerido: eso solo no es un cambio del usuario.
   const dirty = trimmed !== savedResponse.trim() || status !== suggestedNextStatus(currentStatus);
+  // Aviso al salir: texto o estado distintos de como se abrió (o del último envío).
+  const { markSaved } = useUnsavedValue({ text: trimmed, status });
   const needsConfirm = status === "REJECTED" || status === "CLOSED";
 
   function runAi() {
@@ -67,6 +70,7 @@ export function ResponseComposer({ requestId, currentStatus, savedResponse, stor
     startSaving(async () => {
       const r = await adminRespondRequest({ requestId, status, adminResponse: trimmed || null });
       if (r.ok) {
+        markSaved();
         toast.success(trimmed ? "Respuesta enviada al cliente" : "Estado actualizado", {
           description: trimmed
             ? `El pedido quedó como “${REQUEST_STATUS_META[status as keyof typeof REQUEST_STATUS_META].label}” y el texto ya está visible en su portal.`

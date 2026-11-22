@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { ArrowLeft, Loader2, MousePointer2, PenLine, Ruler, ScanLine, Sparkles, SquareDashed, Trash2, Upload } from "lucide-react";
 import {
   GENERIC_TEMPLATE,
@@ -90,6 +91,8 @@ export function PlanWizard() {
   const [, startTransition] = useTransition();
   /** Estado propio: en React 18 la transición no queda "pendiente" durante un await. */
   const [generating, setGenerating] = useState(false);
+  // Plano subido (ambientes marcados, escala…) y todavía sin generar el proyecto: avisar al salir.
+  useUnsavedChangesGuard(Boolean(image) && !generating);
 
   useEffect(() => {
     fetch("/api/admin/room-builder/templates")

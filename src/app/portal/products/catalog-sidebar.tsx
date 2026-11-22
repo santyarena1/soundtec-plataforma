@@ -79,9 +79,9 @@ function CatalogActiveFilters({
     const name = meta.categories.find((c) => c.id === id)?.name || "Categoría";
     chips.push({ key: `cat-${id}`, label: name, clear: () => push({ categoryIds: (state.categoryIds || []).filter((x) => x !== id) }) });
   }
-  for (const id of state.familyIds || []) {
-    const name = meta.families.find((f) => f.id === id)?.name || "Familia";
-    chips.push({ key: `fam-${id}`, label: name, clear: () => push({ familyIds: (state.familyIds || []).filter((x) => x !== id) }) });
+  for (const id of state.lineIds || []) {
+    const name = meta.series.find((s) => s.id === id)?.name;
+    chips.push({ key: `line-${id}`, label: name ? `Serie ${name}` : "Serie", clear: () => push({ lineIds: (state.lineIds || []).filter((x) => x !== id) }) });
   }
   if (!publicMode && SHOW_STOCK_TO_CUSTOMERS && state.stock && state.stock !== "any") {
     const labels = { in_stock: "Solo en stock", low_stock: "Solo stock bajo", on_request: "Solo bajo pedido" };

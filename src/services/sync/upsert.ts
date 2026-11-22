@@ -1,4 +1,5 @@
 import { isTangoTreeActive } from "@/lib/tango-tree-db";
+import { rubroForNewProduct } from "@/server/categories/new-product-rubro";
 import { applySyncFieldPolicy } from "./field-policy";
 import { realDimensionsCm } from "./dimensions";
 import { Prisma, type ProductRelationKind } from "@prisma/client";
@@ -16,6 +17,7 @@ import {
   type FieldChange,
 } from "./snapshot";
 import { mergeSourceMetadata } from "./source-metadata";
+import { assignSeriesIfMissing } from "@/server/product-lines/assign";
 
 export type ApplyResult = {
   action: "create" | "update" | "noop";
@@ -24,7 +26,14 @@ export type ApplyResult = {
   changes: FieldChange[];
   priceChanged: boolean;
   stockChanged: boolean;
+  /** Solo en altas con el árbol de Tango: false = entró en «Sin categorizar» (sin equivalencia). */
+  rubroMatched?: boolean;
 };
+
+export interface ApplyOptions {
+  /** Fuente para buscar la equivalencia de rubro (crestron, sonance, soundtube, hall…). */
+  equivalenceSource?: string;
+}
 
 type TimestampedProductUpdateInput = Prisma.ProductUncheckedUpdateInput & {
   fieldUpdatedAt?: Prisma.InputJsonValue;
@@ -180,7 +189,8 @@ async function applyAllRelations(
 
 export async function applyNormalizedProduct(
   tx: Prisma.TransactionClient,
-  n: NormalizedProduct
+  n: NormalizedProduct,
+  options: ApplyOptions = {}
 ): Promise<ApplyResult> {
   const matchValue = n.matchValue.trim();
   const name = n.name.trim();
@@ -262,12 +272,6 @@ export async function applyNormalizedProduct(
       }
     }
   }
-  const family = familyName
-    ? ((await tx.productFamily.findFirst({
-        where: { name: { equals: familyName, mode: "insensitive" } },
-        select: { id: true },
-      })) ?? undefined)
-    : undefined;
 
   const sharedData = {
     baseCostUsd: finite(n.baseCostUsd),
@@ -301,8 +305,8 @@ export async function applyNormalizedProduct(
     videoUrl: nonEmpty(n.videoUrl),
     brandId: brand?.id,
     categoryId: category?.id,
-    familyId: family?.id,
-    familia: nonEmpty(n.familia),
+    // Familias retiradas: un destino «familia» de los conectores se guarda como texto (no se asigna ProductFamily).
+    familia: nonEmpty(n.familia) ?? familyName,
     tipo: nonEmpty(n.tipo),
     specifications:
       n.specifications && n.specifications.length > 0
@@ -353,6 +357,11 @@ export async function applyNormalizedProduct(
       jsonChanged(existingRecord.sourceMetadata, allowed.sourceMetadata);
     if (originalName && !existing.originalName.trim()) {
       data.originalName = originalName;
+    }
+    // Ruta del proveedor para futuras equivalencias: solo si el producto no tiene ninguna.
+    const supplierPath = nonEmpty(n.supplierCategoryPath);
+    if (supplierPath && data.sourceCategoryPath === undefined && !nonEmpty(existing.sourceCategoryPath ?? undefined)) {
+      data.sourceCategoryPath = supplierPath;
     }
     data.searchKey = buildProductSearchKey({
       internalSku: n.matchField === "internalSku" ? matchValue : existing.internalSku,
@@ -432,6 +441,7 @@ export async function applyNormalizedProduct(
 
     await reconcileImages(tx, existing.id, n);
     await applyAllRelations(tx, existing.id, n);
+    await assignSeriesSafely(tx, existing.id);
 
     return {
       action: "update",
@@ -450,6 +460,17 @@ export async function applyNormalizedProduct(
     originalName: originalName ?? name,
     baseCostUsd: finite(n.baseCostUsd) ?? 0,
   };
+  // Alta: rubro por la tabla de Equivalencias con la ruta del proveedor; si no hay, «Sin categorizar».
+  const providerPath = nonEmpty(n.sourceCategoryPath) ?? nonEmpty(n.supplierCategoryPath);
+  const rubro = await rubroForNewProduct(tx, {
+    source: options.equivalenceSource ?? "sync",
+    brandId: brand?.id ?? null,
+    sourcePath: providerPath,
+  });
+  if (rubro) {
+    createData.categoryId = rubro.categoryId;
+    if (!createData.sourceCategoryPath && rubro.sourceCategoryPath) createData.sourceCategoryPath = rubro.sourceCategoryPath;
+  }
   createData.searchKey = buildProductSearchKey({
     internalSku: n.matchField === "internalSku" ? matchValue : undefined,
     supplierSku: n.matchField === "supplierSku" ? matchValue : undefined,
@@ -495,6 +516,7 @@ export async function applyNormalizedProduct(
 
   await reconcileImages(tx, created.id, n);
   await applyAllRelations(tx, created.id, n);
+  await assignSeriesSafely(tx, created.id);
 
   return {
     action: "create",
@@ -507,5 +529,18 @@ export async function applyNormalizedProduct(
     })),
     priceChanged: true,
     stockChanged: n.stockStatus != null,
+    rubroMatched: rubro ? rubro.matched : undefined,
   };
+}
+
+/**
+ * Serie del fabricante (ruta de crestron.com, atributo Sonance, prefijo de
+ * modelo) para productos que todavía no tienen. Un error acá no frena la sync.
+ */
+async function assignSeriesSafely(tx: Prisma.TransactionClient, productId: string): Promise<void> {
+  try {
+    await assignSeriesIfMissing(productId, null, tx);
+  } catch (error) {
+    console.error("[sync] no se pudo asignar la serie de", productId, error);
+  }
 }

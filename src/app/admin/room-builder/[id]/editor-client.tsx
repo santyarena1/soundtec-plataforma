@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { useAutosaveGuard } from "@/hooks/use-unsaved-changes-guard";
 import {
   ArrowLeft,
   Cable,
@@ -169,18 +170,34 @@ export function RoomBuilderEditor({
       .map((s) => s.key);
   }, [staged, scene.slots]);
 
+  // Todo se guarda solo al instante. Se avisa al salir solo mientras hay un guardado en curso
+  // o si el último falló.
+  const [savesInFlight, setSavesInFlight] = useState(0);
+  const [saveFailed, setSaveFailed] = useState(false);
+  useAutosaveGuard(saveFailed ? "error" : savesInFlight > 0 || pending ? "saving" : "idle");
+
   const persistScene = useCallback(
     async (next: RoomScene, patch?: Record<string, unknown>) => {
-      const res = await fetch(`/api/admin/room-builder/projects/${project.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scene: next, ...patch }),
-      });
-      const json = await res.json();
-      if (!json.ok) {
-        toast.error(json.error || "No se pudo guardar");
+      setSavesInFlight((n) => n + 1);
+      let json: { ok?: boolean; error?: string; project?: typeof project } | null = null;
+      try {
+        const res = await fetch(`/api/admin/room-builder/projects/${project.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scene: next, ...patch }),
+        });
+        json = await res.json().catch(() => null);
+      } catch {
+        json = null;
+      } finally {
+        setSavesInFlight((n) => Math.max(0, n - 1));
+      }
+      if (!json?.ok || !json.project) {
+        setSaveFailed(true);
+        toast.error(json?.error || "No se pudo guardar");
         return;
       }
+      setSaveFailed(false);
       setProject(json.project);
       const parsed = parseScene(json.project.sceneJson) ?? next;
       setScene(

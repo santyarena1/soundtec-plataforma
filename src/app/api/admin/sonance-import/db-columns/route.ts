@@ -35,8 +35,8 @@ const COLUMNS: Omit<ColumnInfo, "coveragePercent" | "sample">[] = [
   // Relaciones
   { field: "brandId", label: "Marca", type: "Marca (FK)", description: "Relación con tabla Marcas — busca por nombre o crea" },
   { field: "distributorId", label: "Distribuidor", type: "Distribuidor (FK)", description: "Distribuidor / proveedor (FK)" },
-  { field: "categoryId", label: "Categoría", type: "Categoría (FK)", description: "Relación con tabla Categorías — busca por nombre o crea" },
-  { field: "familyId", label: "Familia", type: "Familia (FK)", description: "Relación con tabla Familias — busca por nombre o crea" },
+  { field: "categoryId", label: "Rubro", type: "Rubro (no se mapea)", description: "No se toma de esta columna ni se crean rubros. A los productos nuevos se les pone el rubro de la tabla de Equivalencias (Rubros › Equivalencias) según «Product Category > Product Sub Category»; si no hay, van a Sin categorizar. A los que ya existen no se les cambia." },
+  { field: "lineId", label: "Serie del fabricante", type: "Serie (FK)", description: "Serie de la marca (Landscape, Visual Performance…): busca por nombre dentro de la marca o la crea, sin «Series». Si no se mapea, se detecta sola del atributo «Product Category»." },
 
   // Descripciones
   { field: "shortDescription", label: "Descripción corta", type: "texto", description: "1-2 líneas resumen del producto" },
@@ -149,7 +149,7 @@ export async function GET() {
       "internalSku",
       "brandId",
       "categoryId",
-      "familyId",
+      "lineId",
       "shortDescription",
       "longDescription",
       "htmlContent",

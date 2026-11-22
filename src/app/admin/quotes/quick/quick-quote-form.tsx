@@ -4,6 +4,7 @@ import { AudienceSelect } from "@/components/quotes/audience-select";
 import { TAX_MODES } from "@/lib/quote-totals";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
 import { ProductSearchPicker, type PickerItem } from "@/components/products/product-search-picker";
@@ -78,6 +79,8 @@ export function QuickQuoteForm({
   const [errors, setErrors] = useState<string[]>([]);
   const [issued, setIssued] = useState<{ quoteId: string; number: string; pdfUrl?: string } | null>(null);
   const editing = Boolean(initial);
+  // Aviso al salir: compara contra lo cargado (o lo último guardado). El cuadro de pegado masivo no cuenta.
+  const { markSaved } = useUnsavedValue({ clientId, clientName, contact, reference, profileKey, audience, taxMode, validity, showPhotos, items }, { enabled: !issued });
 
   const search = useCallback(
     async (q: string): Promise<PickerItem[]> => {
@@ -202,6 +205,7 @@ export function QuickQuoteForm({
         })),
       });
       if (!result.ok) return setErrors(result.errors || ["No se pudo guardar la cotización."]);
+      markSaved();
       if (issue) {
         setIssued({ quoteId: result.quoteId!, number: result.number!, pdfUrl: result.pdfUrl });
         return;

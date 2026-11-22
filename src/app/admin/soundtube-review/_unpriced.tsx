@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { ImageOff } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ const num = (v: string) => Number(v.replace(",", "."));
 function Row({ item, run, pending }: { item: Item; run: ReturnType<typeof useDecision>["run"]; pending: boolean }) {
   const [cost, setCost] = useState("");
   const [mup, setMup] = useState("2.75");
+  useUnsavedChangesGuard(cost.trim() !== "" || mup !== "2.75");
   return (
     <div className="grid items-center gap-2 border-b border-border py-2 text-sm md:grid-cols-[minmax(0,1fr)_7rem_5rem_auto]">
       <div className="min-w-0">

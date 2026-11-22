@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { isTangoTreeActive } from "@/lib/tango-tree-db";
+import { rubroForNewProduct } from "@/server/categories/new-product-rubro";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { setSetting } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
@@ -234,7 +235,7 @@ function rawFromRow(row: HallPriceRow, fileName: string, nowIso: string) {
 
 function createProductData(
   row: HallPriceRow,
-  ids: { brandId: string; categoryId?: string; distributorId: string },
+  ids: { brandId: string; categoryId?: string; sourceCategoryPath?: string; distributorId: string },
   fileName: string,
   nowIso: string
 ): Prisma.ProductCreateInput {
@@ -253,6 +254,7 @@ function createProductData(
     currency: "USD",
     coo: row.coo,
     vendorProductUrl: row.webLink,
+    sourceCategoryPath: ids.sourceCategoryPath,
     ...physicalData(row),
     searchKey: buildProductSearchKey({ supplierSku: row.sku, normalizedName: row.sku, originalName: row.shortDescription, modelNumber: row.sku, brandName }),
     sourceMetadata: { [RAW_KEY]: rawFromRow(row, fileName, nowIso) },
@@ -267,7 +269,7 @@ function createProductData(
 
 export async function applyHallResearchPriceList(
   formData: FormData
-): Promise<{ ok: true; updated: number; created: number; deactivated: number; priced: number; reactivated: number } | Failure> {
+): Promise<{ ok: true; updated: number; created: number; deactivated: number; priced: number; reactivated: number; uncategorizedNew: number } | Failure> {
   await requireAdmin();
   const upload = await readUpload(formData);
   if ("ok" in upload) return upload;
@@ -297,6 +299,7 @@ export async function applyHallResearchPriceList(
     });
     const byId = new Map(current.map((c) => [c.id, c]));
     const reactivated = reactivate ? plan.matched.filter((m) => !m.product.isActive).length : 0;
+    let uncategorizedNew = 0;
 
     // Todo o nada: marcas, categorías, precios, altas y bajas en una sola transacción.
     await prisma.$transaction(
@@ -336,12 +339,17 @@ export async function applyHallResearchPriceList(
         }
 
         for (const row of toCreate) {
+          const brandId = brandIds.get((officialBrand(row.brand) ?? row.brand).toLowerCase())!;
+          // Rubro del alta: equivalencia de la categoría de la lista; si no hay, «Sin categorizar».
+          const rubro = await rubroForNewProduct(tx, { source: "hall", brandId, sourcePath: row.category });
+          if (rubro && !rubro.matched) uncategorizedNew++;
           await tx.product.create({
             data: createProductData(
               row,
               {
-                brandId: brandIds.get((officialBrand(row.brand) ?? row.brand).toLowerCase())!,
-                categoryId: row.category ? categoryIds.get(row.category.toLowerCase()) : undefined,
+                brandId,
+                categoryId: rubro ? rubro.categoryId : row.category ? categoryIds.get(row.category.toLowerCase()) : undefined,
+                sourceCategoryPath: row.category?.trim() || undefined,
                 distributorId,
               },
               upload.fileName,
@@ -374,7 +382,7 @@ export async function applyHallResearchPriceList(
     revalidatePath("/admin/brands");
     revalidatePath("/catalogo");
     revalidatePath("/portal/products");
-    return { ok: true, updated: plan.matched.length, created: toCreate.length, deactivated, priced, reactivated };
+    return { ok: true, updated: plan.matched.length, created: toCreate.length, deactivated, priced, reactivated, uncategorizedNew };
   } catch (error) {
     console.error("[hall-research-price-list] apply failed", error);
     return { ok: false, error: "No se pudo aplicar la lista y no se cambió nada. Probá de nuevo." };

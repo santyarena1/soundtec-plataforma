@@ -97,25 +97,18 @@ async function loadCategoryConfig(): Promise<SoundTubeCategoryConfig> {
 
 /** Las categorías/familias destino se crean antes del upsert (igual que Crestron). */
 async function ensureTaxonomy(names: string[], target: SoundTubeCategoryConfig["target"]): Promise<void> {
-  if (target !== "categoria" && target !== "familia") return;
+  // Familias retiradas: el destino «familia» se guarda como texto (sync/upsert), no crea filas.
+  if (target !== "categoria") return;
   // Con el árbol de Tango cargado no se crean categorías por nombre (la sync tampoco las asigna).
   if (target === "categoria" && (await isTangoTreeActive(prisma))) return;
   for (const name of names) {
     const normalized = name.trim();
     if (!normalized) continue;
-    if (target === "categoria") {
-      const existing = await prisma.category.findFirst({
-        where: { name: { equals: normalized, mode: "insensitive" } },
-        select: { id: true },
-      });
-      if (!existing) await prisma.category.create({ data: { name: normalized, slug: slugify(normalized) } });
-    } else {
-      const existing = await prisma.productFamily.findFirst({
-        where: { name: { equals: normalized, mode: "insensitive" } },
-        select: { id: true },
-      });
-      if (!existing) await prisma.productFamily.create({ data: { name: normalized, slug: slugify(normalized) } });
-    }
+    const existing = await prisma.category.findFirst({
+      where: { name: { equals: normalized, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (!existing) await prisma.category.create({ data: { name: normalized, slug: slugify(normalized) } });
   }
 }
 
@@ -189,7 +182,11 @@ export const soundtubeConnector: ProductSourceConnector = {
         return row.supplierSku && identity ? [[row.supplierSku, identity] as const] : [];
       })
     );
-    const items = normalized.map((item) => {
+    // Con el árbol de Tango el destino «categoría» no se aplica: no se manda (ni cuenta en la vista previa).
+    // El rubro de los nuevos sale de la equivalencia de sourceCategoryPath (ver sync/upsert).
+    const categoryLocked = category.target === "categoria" && (await isTangoTreeActive(prisma));
+    const items = normalized.map((raw) => {
+      const item = categoryLocked ? { ...raw, categoryName: undefined } : raw;
       const priced = withoutExcelFields(item, excel, existingSkus, excelPricedSkus);
       const identity = identityBySku.get(item.matchValue);
       return identity

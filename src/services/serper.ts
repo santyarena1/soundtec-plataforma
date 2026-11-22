@@ -11,6 +11,10 @@ export interface SerperImage {
   title: string;
   source?: string;
   thumbnail?: string;
+  /** Página donde está la foto: sirve de Referer y para buscar su og:image. */
+  pageUrl?: string;
+  width?: number;
+  height?: number;
 }
 
 async function getApiKey(): Promise<string> {
@@ -46,12 +50,17 @@ export async function searchProductImagesOrError(query: string, count = 8): Prom
       if (resp.status === 401 || resp.status === 403) return { images: [], error: "Serper rechazó la clave. Revisala en Configuración → Integraciones y claves." };
       return { images: [], error: `El buscador de imágenes respondió con error (${resp.status}). Probá de nuevo en un rato.` };
     }
-    const data = (await resp.json()) as { images?: Array<{ imageUrl: string; title: string; source: string; thumbnailUrl: string }> };
+    const data = (await resp.json()) as {
+      images?: Array<{ imageUrl: string; title: string; source: string; thumbnailUrl: string; link?: string; imageWidth?: number; imageHeight?: number }>;
+    };
     const images = (data.images || []).slice(0, count).map((i) => ({
       url: i.imageUrl,
       title: i.title,
       source: i.source,
       thumbnail: i.thumbnailUrl,
+      pageUrl: i.link,
+      width: i.imageWidth,
+      height: i.imageHeight,
     }));
     return { images, error: images.length ? undefined : "No se encontraron imágenes. Probá con el modelo y la marca, por ejemplo «SoundTube RS500i»." };
   } catch (error) {

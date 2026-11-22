@@ -11,6 +11,8 @@ import { logClientActivity } from "@/server/crm/activity";
 import { canAccessClient, seesAllClients, staffForClient } from "@/server/clients/access";
 import { clientDiscountSchema, replaceClientDiscounts, type ClientDiscountInput } from "@/server/clients/conditions";
 import { issueAccess, parseAccessMode, unusablePasswordHash, type AccessMode, type AccessResult } from "@/server/user-access";
+import { validateRubroIds } from "@/server/categories/rubros";
+import { tangoPathLabel } from "@/lib/tango-tree";
 
 export type ActionResult = { ok: boolean; error?: string; id?: string; access?: AccessResult };
 export type CreatedAccess = { name: string; email: string; access: AccessResult };
@@ -91,9 +93,12 @@ async function taxonomyNames(discounts: ClientDiscountInput[]) {
   const categoryIds = discounts.filter((d) => d.target === "CATEGORY" && d.targetId).map((d) => d.targetId!);
   const [brands, categories] = await Promise.all([
     brandIds.length ? prisma.brand.findMany({ where: { id: { in: brandIds } }, select: { id: true, name: true } }) : [],
-    categoryIds.length ? prisma.category.findMany({ where: { id: { in: categoryIds } }, select: { id: true, name: true } }) : [],
+    categoryIds.length ? prisma.category.findMany({ where: { id: { in: categoryIds } }, select: { id: true, name: true, tangoPath: true } }) : [],
   ]);
-  return { brands: new Map(brands.map((b) => [b.id, b.name])), categories: new Map(categories.map((c) => [c.id, c.name])) };
+  return {
+    brands: new Map(brands.map((b) => [b.id, b.name])),
+    categories: new Map(categories.map((c) => [c.id, c.tangoPath ? tangoPathLabel(c.tangoPath) : c.name])),
+  };
 }
 
 function companyData(c: z.output<typeof companySchema>, taxId: string | null) {
@@ -145,6 +150,8 @@ export async function createClientFull(input: ClientCreateInput): Promise<{ ok: 
   // Sin «Ver todos los clientes», el cliente queda a cargo de quien lo crea.
   const ownerId = seesAllClients(ctx.permissions) ? company.ownerId || ctx.user.id : ctx.user.id;
   const discounts = canCommercial ? commercial?.discounts ?? [] : [];
+  const rubrosOk = await validateRubroIds(prisma, discounts.filter((d) => d.target === "CATEGORY" && d.targetId).map((d) => d.targetId!));
+  if (!rubrosOk.ok) return { ok: false, error: rubrosOk.error };
   const names = await taxonomyNames(discounts);
   const primaryIndex = Math.max(0, contacts.findIndex((c) => c.isPrimary));
   const hash = await unusablePasswordHash();
@@ -227,6 +234,10 @@ export async function updateClientFull(input: ClientUpdateInput): Promise<{ ok: 
   if (dup) return { ok: false, error: `Ya existe otro cliente con ese CUIT: ${dup.companyName}.` };
 
   const commercial = canCommercial && commercialParsed?.success ? commercialParsed.data : null;
+  if (commercial) {
+    const rubrosOk = await validateRubroIds(prisma, commercial.discounts.filter((d) => d.target === "CATEGORY" && d.targetId).map((d) => d.targetId!));
+    if (!rubrosOk.ok) return { ok: false, error: rubrosOk.error };
+  }
   const names = commercial ? await taxonomyNames(commercial.discounts) : null;
   try {
     await prisma.$transaction(async (tx) => {

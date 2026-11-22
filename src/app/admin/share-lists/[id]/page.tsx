@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ShareListForm } from "@/components/admin/share-list-form";
 import { parseShareListFilters } from "@/lib/shareable-price-list";
 import { formatDate } from "@/lib/utils";
+import { listCategoryTree } from "@/lib/category-tree";
 
 export const metadata = { title: "Admin · Editar lista compartible" };
 
@@ -21,7 +22,7 @@ export default async function EditShareListPage({ params }: { params: Promise<{ 
   const [clients, brands, categories, families, distributors, products] = await Promise.all([
     prisma.client.findMany({ where: { isActive: true }, orderBy: { companyName: "asc" }, select: { id: true, companyName: true } }),
     prisma.brand.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    listCategoryTree(),
     prisma.productFamily.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.product.findMany({

@@ -2,8 +2,10 @@ import { isCatalogModeOn } from "@/lib/catalog-mode";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
-import { catalogFilterMeta, getCatalog, type CatalogContext } from "@/lib/catalog";
-import { parseCatalogSearchParams, countActiveCatalogFilters } from "@/lib/catalog-url";
+import { catalogFilterMeta, getCatalog, listBrandSeriesFacet, type CatalogContext } from "@/lib/catalog";
+import { parseCatalogSearchParams, countActiveCatalogFilters, withoutLegacyFamilyParam } from "@/lib/catalog-url";
+import { redirect } from "next/navigation";
+import { SeriesFilterBar } from "@/components/catalog/series-filter-bar";
 import { CRESTRON_HOME_ID, getCatalogBrands, totalProducts } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
 import { BrandBar } from "@/app/catalogo/brand-bar";
@@ -59,6 +61,9 @@ export default async function PublicCatalogPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const rawParams = await searchParams;
+  // ?family= (familias retiradas) → la misma vista sin ese filtro; ahora se filtra por serie (?line=).
+  const legacy = withoutLegacyFamilyParam(BASE_PATH, rawParams);
+  if (legacy) redirect(legacy);
   const urlState = parseCatalogSearchParams(rawParams);
   const session = await auth().catch(() => null);
   // En modo catálogo (vendedor mostrándolo) se ve como un visitante: sin atajos al portal.
@@ -89,7 +94,7 @@ export default async function PublicCatalogPage({
     search: urlState.search,
     brandIds: urlState.brandIds,
     categoryIds: urlState.categoryIds,
-    familyIds: urlState.familyIds,
+    lineIds: urlState.lineIds,
     crestronOnly: urlState.crestronOnly,
     kind: urlState.kind,
     sort: urlState.sort,
@@ -98,9 +103,10 @@ export default async function PublicCatalogPage({
     includeOutOfStock: true,
   };
 
-  const [{ items, total, page, pageSize }, meta] = await Promise.all([
+  const [{ items, total, page, pageSize }, meta, brandSeries] = await Promise.all([
     getCatalog(filters, ctx),
     catalogFilterMeta(filters),
+    listBrandSeriesFacet(filters, ctx),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   // Para «Lo más buscado» del panel. No espera a la base. El equipo interno no cuenta.
@@ -149,6 +155,8 @@ export default async function PublicCatalogPage({
       <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} />
 
       {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
+
+      <SeriesFilterBar series={brandSeries} brandIds={urlState.brandIds} activeIds={urlState.lineIds} params={rawParams} basePath={BASE_PATH} />
 
       {/* Marca «Próximamente» sin productos: solo el aviso, sin «0 resultados» ni buscador vacío. */}
       {comingSoonBrand && total === 0 ? null : (

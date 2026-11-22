@@ -47,8 +47,11 @@ const RECOMMENDED_MAPPING: Record<string, string> = {
   // V1 devuelve "SONANCE" para todas las sub-marcas. El slug del listing es la
   // única fuente que distingue BLAZE/TRUFIG/IPORT/JAMES/SONANCE correctamente.
   brandId: "__sourceBrand",
-  categoryId: "attr:Product Category",
-  familyId: "attr:Product Sub Category",
+  // categoryId no se mapea: el rubro de los productos nuevos sale de la tabla de
+  // Equivalencias («Product Category > Product Sub Category»); sin equivalencia van a
+  // «Sin categorizar». A los existentes no se les cambia el rubro.
+  // Tipo de pieza del proveedor (Accessory, Grille…) como texto; la serie se detecta sola.
+  tipo: "attr:Product Sub Category",
 
   // Status y disponibilidad
   stockStatus: "availability.message",

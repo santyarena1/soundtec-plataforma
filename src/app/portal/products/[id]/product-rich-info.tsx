@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { supplierTermEs } from "@/lib/supplier-glossary";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -263,8 +264,9 @@ export function ProductRichInfo(props: ProductRichInfoProps) {
               ) : null}
               {props.productLine ? (
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Línea</p>
-                  <p className="mt-1">{props.productLine}</p>
+                  {/* Sonance manda acá el tipo de montaje en inglés («In-Ceiling»): se muestra con el glosario. */}
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Montaje</p>
+                  <p className="mt-1">{supplierTermEs(props.productLine)}</p>
                 </div>
               ) : null}
             </div>

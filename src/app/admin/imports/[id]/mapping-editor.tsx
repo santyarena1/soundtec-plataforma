@@ -8,6 +8,8 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { saveMapping } from "@/server/actions/imports";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Save } from "lucide-react";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
+import { RUBRO_FROM_EQUIVALENCES_HELP } from "@/lib/new-product-rubro";
 
 interface SuggestionItem {
   source: string;
@@ -45,6 +47,7 @@ export function MappingEditor({ batchId, headers, mappingJson, canonicalFields }
   const [saveProfile, setSaveProfile] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const tracker = useUnsavedValue(mapping);
   const router = useRouter();
 
   function setTarget(header: string, value: string) {
@@ -64,6 +67,7 @@ export function MappingEditor({ batchId, headers, mappingJson, canonicalFields }
     start(async () => {
       const r = await saveMapping(fd);
       if (r?.ok) {
+        tracker.markSaved(mapping);
         setMsg("Mapeo guardado y filas pre-procesadas.");
         router.refresh();
       } else {
@@ -126,6 +130,9 @@ export function MappingEditor({ batchId, headers, mappingJson, canonicalFields }
           })}
         </TBody>
       </Table>
+      <p className="text-xs text-muted-foreground">
+        «category»: no crea rubros ni cambia el de los productos que ya existen. {RUBRO_FROM_EQUIVALENCES_HELP}
+      </p>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex items-end gap-2">

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { VisibilityRuleForm } from "./visibility-rule-form";
 import { VisibilityRulesTable, type VisibilityRuleRow } from "./visibility-rules-table";
+import { confirmDiscard } from "@/hooks/use-unsaved-changes-guard";
+import { hasUnsavedChanges } from "@/lib/unsaved-guard/registry";
 
 type Named = { id: string; name: string };
 
@@ -23,7 +25,7 @@ export function VisibilityRulesWorkspace({
   clients: { id: string; name: string; companyName: string | null }[];
   brands: Named[];
   distributors: Named[];
-  categories: Named[];
+  categories: import("@/lib/category-tree").CategoryNode[];
   families: Named[];
   products: Named[];
   defaultClientId?: string;
@@ -31,6 +33,10 @@ export function VisibilityRulesWorkspace({
   toggleAction: (formData: FormData) => void | Promise<void>;
 }) {
   const [editing, setEditing] = useState<VisibilityRuleRow | null>(null);
+  // Cambiar de regla o cancelar con la actual a medio editar pide confirmación.
+  const switchTo = async (row: VisibilityRuleRow | null) => {
+    if (await confirmDiscard(hasUnsavedChanges(), "Tenés cambios sin guardar en la regla que estás editando. ¿Descartarlos?")) setEditing(row);
+  };
 
   return (
     <div className="space-y-6">
@@ -48,7 +54,7 @@ export function VisibilityRulesWorkspace({
             defaultClientId={defaultClientId}
             initial={editing}
             onSaved={() => setEditing(null)}
-            onCancel={() => setEditing(null)}
+            onCancel={() => void switchTo(null)}
           />
         </CardContent>
       </Card>
@@ -58,7 +64,7 @@ export function VisibilityRulesWorkspace({
         deleteAction={deleteAction}
         toggleAction={toggleAction}
         editingId={editing?.id}
-        onEdit={setEditing}
+        onEdit={(row) => void switchTo(row)}
       />
     </div>
   );

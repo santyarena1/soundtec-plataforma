@@ -13,7 +13,7 @@ const ruleSchema = z
     brandId: z.string().min(1).nullable(),
     line: z.string().trim().max(80).nullable(),
   })
-  .refine((r) => r.categoryId || r.brandId || r.line, { message: "Elegí al menos un rubro, una marca o una línea." });
+  .refine((r) => r.categoryId || r.brandId || r.line, { message: "Elegí al menos un rubro, una marca o una serie." });
 
 type RuleView = { id: string; label: string; count: number };
 

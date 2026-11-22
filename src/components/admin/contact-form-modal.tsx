@@ -1,7 +1,9 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/dialog";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
+import { DirtyReporter, useGuardedModalClose } from "@/components/admin/modal-unsaved";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea, FieldError } from "@/components/ui/input";
 import { upsertClientContact } from "@/server/actions/clients";
@@ -20,6 +22,8 @@ export function ContactFormModal({ clientId, contact }: { clientId: string; cont
     [error, setError] = useState<string>(),
     [pending, start] = useTransition();
   const router = useRouter();
+  const closeModal = useCallback(() => setOpen(false), []);
+  const { setDirty, requestClose } = useGuardedModalClose(closeModal);
   return (
     <>
       <Button size="sm" variant={contact ? "ghost" : "outline"} onClick={() => setOpen(true)}>
@@ -27,9 +31,11 @@ export function ContactFormModal({ clientId, contact }: { clientId: string; cont
       </Button>
       <Modal
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={requestClose}
         title={contact ? "Editar contacto" : "Nuevo contacto"}
       >
+        <UnsavedArea>
+        <DirtyReporter onChange={setDirty} />
         <form
           className="grid gap-3 sm:grid-cols-2"
           onSubmit={(e) => {
@@ -82,6 +88,7 @@ export function ContactFormModal({ clientId, contact }: { clientId: string; cont
             </Button>
           </div>
         </form>
+        </UnsavedArea>
       </Modal>
     </>
   );

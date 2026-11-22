@@ -11,6 +11,7 @@ import { SelectableCard } from "./catalog-multi-select";
 import { StockBadge } from "@/components/catalog/stock-badge";
 import { FeaturedStarButton } from "./featured-star-button";
 import { commercialTagFor } from "@/lib/commercial-tags";
+import { seriesChipLabel } from "@/lib/product-lines/chip";
 
 interface GridProps {
   items: CatalogProduct[];
@@ -111,8 +112,9 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
               {/* Etiquetas — 1 fila fija, sin wrap; la que no entra se desvanece en vez de cortarse seca */}
               <div className="mt-2 flex h-6 items-center gap-1 overflow-hidden whitespace-nowrap [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]">
                 <StockBadge status={p.stockStatus} qty={p.stockQuantity} internal={internal && !publicMode} />
+                {/* La serie va antes que el rubro: es lo más específico y la fila corta lo que no entra. */}
+                {seriesChipLabel(p) ? <Badge tone="primary">{seriesChipLabel(p)}</Badge> : null}
                 {p.categoryName ? <Badge tone="muted">{p.categoryName}</Badge> : null}
-                {p.familyName && p.familyName !== p.categoryName ? <Badge tone="muted">{p.familyName}</Badge> : null}
                 {p.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : null}
                 {p.isCustomizable ? (
                   <Badge tone="accent">

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShareListForm } from "@/components/admin/share-list-form";
+import { listCategoryTree } from "@/lib/category-tree";
 
 export const metadata = { title: "Admin · Nueva lista compartible" };
 
@@ -12,7 +13,7 @@ export default async function NewShareListPage({ searchParams }: { searchParams:
   const [clients, brands, categories, families, distributors, products] = await Promise.all([
     prisma.client.findMany({ where: { isActive: true }, orderBy: { companyName: "asc" }, select: { id: true, companyName: true } }),
     prisma.brand.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    listCategoryTree(),
     prisma.productFamily.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.product.findMany({

@@ -26,6 +26,7 @@ import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import { customerHiddenCategoryIds } from "@/lib/customer-hidden-categories";
 import { customerCategoryName, isCustomerTreeNode } from "@/lib/tango-only";
 import { brandListingComparator, categorySortKeys } from "@/lib/brand-listing-order";
+import { MORE_FROM_SERIES_MAX, moreFromSeriesQuery, NO_SERIES } from "@/lib/product-lines/series-filter";
 
 /**
  * Construye el OR del filtro de búsqueda extendido. Buscar SIMULTÁNEAMENTE en:
@@ -58,7 +59,8 @@ export interface CatalogFilters {
   brandIds?: string[];
   distributorIds?: string[];
   categoryIds?: string[];
-  familyIds?: string[];
+  /** Serie del fabricante (?line=). Reemplaza a la faceta de familias. */
+  lineIds?: string[];
   stock?: "in_stock" | "low_stock" | "on_request" | "any";
   /** Por defecto el catálogo oculta los productos sin stock; true los muestra. */
   includeOutOfStock?: boolean;
@@ -84,7 +86,8 @@ export interface CatalogProduct {
   shortDescription: string | null;
   brandName: string | null;
   categoryName: string | null;
-  familyName: string | null;
+  /** Serie del fabricante (chip «Serie X» en la tarjeta). Nunca la familia vieja. */
+  seriesName: string | null;
   primaryImage: string | null;
   /** Sin precio cargado (o marcado "a consultar"): se muestra "Precio a consultar". */
   requiresQuote: boolean;
@@ -110,7 +113,7 @@ export interface CatalogSidebarMeta {
   priceBounds: { min: number; max: number };
   brands: FacetOption[];
   categories: FacetOption[];
-  families: FacetOption[];
+  series: FacetOption[];
   distributors: FacetOption[];
   stockCounts: { in_stock: number; low_stock: number; on_request: number; out_of_stock: number };
   discountCount: number;
@@ -132,7 +135,7 @@ type ProductRow = Prisma.ProductGetPayload<{
   include: {
     brand: { select: { id: true; name: true } };
     category: { select: { id: true; name: true } };
-    family: { select: { id: true; name: true } };
+    series: { select: { id: true; name: true } };
     images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }]; take: 1 };
     _count: { select: { options: true } };
   };
@@ -193,7 +196,7 @@ async function buildCatalogWhere(
       ? { distributorId: { in: filters.distributorIds } }
       : {}),
     ...(filterCategoryIds.length ? { categoryId: { in: filterCategoryIds } } : {}),
-    ...(filters.familyIds?.length ? { familyId: { in: filters.familyIds } } : {}),
+    ...(filters.lineIds?.length ? { lineId: { in: filters.lineIds.filter((id) => id !== NO_SERIES) } } : {}),
     ...(filters.kind === "PRINCIPAL" ? { kind: "PRINCIPAL" } : {}),
     ...(filters.kind === "ACCESORIO" ? { kind: "ACCESORIO" } : {}),
     ...(filters.stock === "in_stock"
@@ -314,28 +317,28 @@ export async function catalogFilterMeta(filters: CatalogFilters): Promise<Catalo
     priceBounds: { min: 0, max: 0 },
     brands: [],
     categories: [],
-    families: [],
+    series: [],
     distributors: [],
     stockCounts: { in_stock: 0, low_stock: 0, on_request: 0, out_of_stock: 0 },
     discountCount: 0,
     totalMatching: 0,
   };
-  const [brands, categories, families] = await Promise.all([
+  const [brands, categories, series] = await Promise.all([
     filters.brandIds?.length
       ? prisma.brand.findMany({ where: { id: { in: filters.brandIds } }, select: { id: true, name: true } })
       : [],
     filters.categoryIds?.length
       ? prisma.category.findMany({ where: { id: { in: filters.categoryIds } }, select: { id: true, name: true } })
       : [],
-    filters.familyIds?.length
-      ? prisma.productFamily.findMany({ where: { id: { in: filters.familyIds } }, select: { id: true, name: true } })
+    filters.lineIds?.length
+      ? prisma.productLine.findMany({ where: { id: { in: filters.lineIds } }, select: { id: true, name: true } })
       : [],
   ]);
   return {
     ...empty,
     brands: brands.map((b) => ({ id: b.id, name: b.name, count: 0 })),
     categories: categories.map((c) => ({ id: c.id, name: c.name, count: 0 })),
-    families: families.map((f) => ({ id: f.id, name: f.name, count: 0 })),
+    series: series.map((s) => ({ id: s.id, name: s.name, count: 0 })),
   };
 }
 
@@ -398,7 +401,7 @@ async function mapProductsToCatalogItems(
     shortDescription: p.shortDescription,
     brandName: p.brand?.name ?? null,
     categoryName: customerCategoryName(p.category),
-    familyName: p.family?.name ?? null,
+    seriesName: p.series?.name ?? null,
     primaryImage: p.images[0]?.url ?? null,
     requiresQuote: p.requiresQuote,
     isDiscontinued: p.isDiscontinued,
@@ -508,7 +511,7 @@ function sortCatalogItems(
 const productInclude = {
   brand: { select: { id: true, name: true } },
   category: { select: { id: true, name: true } },
-  family: { select: { id: true, name: true } },
+  series: { select: { id: true, name: true } },
   images: productCoverImageInclude,
   _count: { select: { options: true } },
 } as const;
@@ -660,7 +663,7 @@ export async function getCatalogSidebarMeta(
       priceBounds: { min: 0, max: 0 },
       brands: [],
       categories: [],
-      families: [],
+      series: [],
       distributors: [],
       stockCounts: { in_stock: 0, low_stock: 0, on_request: 0, out_of_stock: 0 },
       discountCount: 0,
@@ -689,7 +692,8 @@ export async function getCatalogSidebarMeta(
       category: { select: { name: true } },
       familyId: true,
       familia: true,
-      family: { select: { name: true } },
+      lineId: true,
+      series: { select: { name: true } },
       distributorId: true,
       distributor: { select: { name: true } },
       stockStatus: true,
@@ -729,7 +733,7 @@ export async function getCatalogSidebarMeta(
 
   const brandMap = new Map<string, { name: string; count: number }>();
   const categoryMap = new Map<string, { name: string; count: number }>();
-  const familyMap = new Map<string, { name: string; count: number }>();
+  const seriesMap = new Map<string, { name: string; count: number }>();
   const distributorMap = new Map<string, { name: string; count: number }>();
   const stockCounts = { in_stock: 0, low_stock: 0, on_request: 0, out_of_stock: outOfStockHidden };
   let discountCount = 0;
@@ -745,7 +749,7 @@ export async function getCatalogSidebarMeta(
 
     countFacet(brandMap, p.brandId, p.brand?.name ?? null);
     countFacet(categoryMap, p.categoryId, p.category?.name ?? null);
-    countFacet(familyMap, p.familyId, p.family?.name ?? null);
+    countFacet(seriesMap, p.lineId, p.series?.name ?? null);
     if (includeDistributors) countFacet(distributorMap, p.distributorId, p.distributor?.name ?? null);
 
     if (p.stockStatus === "IN_STOCK") stockCounts.in_stock += 1;
@@ -769,7 +773,7 @@ export async function getCatalogSidebarMeta(
     priceBounds: { min: Math.floor(priceMin), max: Math.ceil(priceMax) },
     brands: toSorted(brandMap),
     categories: toSorted(categoryMap),
-    families: toSorted(familyMap),
+    series: toSorted(seriesMap),
     distributors: toSorted(distributorMap),
     stockCounts,
     discountCount,
@@ -794,4 +798,46 @@ export async function getCatalogFilterOptions() {
     }),
   ]);
   return { brands, distributors, categories, families };
+}
+
+/**
+ * Series de la marca abierta, con cuántos productos ve este usuario con los
+ * filtros actuales (sin contar el filtro de serie, así se puede pasar de una a
+ * otra). Solo con una marca elegida; para el filtro «Serie» de la marca.
+ */
+export async function listBrandSeriesFacet(filters: CatalogFilters, ctx: CatalogContext): Promise<FacetOption[]> {
+  if (filters.brandIds?.length !== 1 || filters.crestronOnly) return [];
+  const where = await buildCatalogWhere({ ...filters, lineIds: [], page: undefined }, ctx);
+  if (!where) return [];
+  const groups = await prisma.product.groupBy({ by: ["lineId"], where: { AND: [where, { lineId: { not: null } }] }, _count: { _all: true } });
+  const ids = groups.map((g) => g.lineId).filter((id): id is string => !!id);
+  if (!ids.length) return [];
+  const rows = await prisma.productLine.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
+  const count = new Map(groups.map((g) => [g.lineId, g._count._all]));
+  return rows.map((r) => ({ id: r.id, name: r.name, count: count.get(r.id) ?? 0 })).sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
+
+/**
+ * «Más de la serie X» en la ficha: hasta 8 productos de la misma serie y marca
+ * que este usuario puede ver (visibilidad del cliente, marcas y rubros ocultos),
+ * sin el producto abierto. Principales primero, después por nombre.
+ */
+export async function getMoreFromSeries(
+  product: { id: string; lineId: string | null; brandId: string | null },
+  ctx: CatalogContext,
+  limit = MORE_FROM_SERIES_MAX
+): Promise<CatalogProduct[]> {
+  const q = moreFromSeriesQuery(product, limit);
+  if (!q) return [];
+  const where = await buildCatalogWhere({ brandIds: q.brandIds, lineIds: q.lineIds, includeOutOfStock: true }, ctx);
+  if (!where) return [];
+  const rows = await prisma.product.findMany({
+    where: { AND: [where, { id: { not: q.excludeId } }] },
+    orderBy: [{ kind: "asc" }, { isFeatured: "desc" }, { normalizedName: "asc" }],
+    take: q.take,
+    include: productInclude,
+  });
+  const items = await mapProductsToCatalogItems(rows, ctx);
+  return ctx.publicMode ? items.map((i) => ({ ...i, pricing: null })) : items;
 }

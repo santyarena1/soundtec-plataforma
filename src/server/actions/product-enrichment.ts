@@ -1,14 +1,19 @@
 "use server";
 
-import { BLOB_NOT_CONFIGURED, BLOB_UPLOAD_FAILED, isBlobConfigured, uploadFile } from "@/lib/blob-storage";
+import { BLOB_NOT_CONFIGURED, BLOB_UPLOAD_FAILED, isBlobConfigured } from "@/lib/blob-storage";
+import { ImageRejectError } from "@/lib/remote-image/reasons";
+import { MAX_DOWNLOAD_BYTES } from "@/server/remote-image/download";
+import { normalizeProductImage, type NormalizedImage } from "@/server/remote-image/normalize";
+import { importRemoteProductImage, storeNormalizedImage } from "@/server/remote-image/product-image-import";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { isTangoTreeActive } from "@/lib/tango-tree-db";
 import { requireAdmin, requireStaff } from "@/lib/auth-helpers";
 import { generateLongDescription, generateShortDescription, suggestProductClassification, type ClassificationSuggestion } from "@/services/openai";
+import { loadActiveRubros, suggestRubroForProduct, type RubroSuggestion } from "@/server/categories/ai-rubro";
+import { matchRubroPath } from "@/lib/ai-rubro-path";
+import { tangoPathLabel } from "@/lib/tango-tree";
 import { searchProductImages, searchProductImagesOrError, type SerperImage } from "@/services/serper";
 import { getSetting, setSetting } from "@/lib/settings";
-import { slugify } from "@/lib/utils";
 
 function revalidateProductImages(productId: string) {
   if (productId) {
@@ -78,83 +83,91 @@ export async function saveAiPrompts(input: {
   return { ok: true };
 }
 
+/** Sugerencia de la ficha: marca del catálogo y rubro como ruta del árbol de Tango (nunca uno nuevo). */
+export interface ProductClassificationSuggestion {
+  brand: ClassificationSuggestion["brand"];
+  category: RubroSuggestion | null;
+  /** De dónde salió el rubro, o por qué no hay. */
+  categoryNote: string;
+  rationale?: string;
+}
+
 export async function suggestClassificationAction(
   productId: string
-): Promise<{ ok: boolean; suggestion?: ClassificationSuggestion; error?: string }> {
+): Promise<{ ok: boolean; suggestion?: ProductClassificationSuggestion; error?: string }> {
   await requireStaff("products.edit", { costs: true });
-  const [p, brands, categories, families] = await Promise.all([
-    prisma.product.findUnique({ where: { id: productId } }),
+  const [p, brands] = await Promise.all([
+    prisma.product.findUnique({ where: { id: productId }, include: { brand: { select: { name: true } } } }),
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
-    prisma.category.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
-    prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
   ]);
   if (!p) return { ok: false, error: "Producto no encontrado." };
 
-  const suggestion = await suggestProductClassification({
-    productName: p.normalizedName,
-    productSku: p.internalSku,
-    shortDescription: p.shortDescription,
-    brandsCatalog: brands.map((b) => b.name),
-    categoriesCatalog: categories.map((c) => c.name),
-    familiesCatalog: families.map((f) => f.name),
-  });
-  return { ok: true, suggestion };
+  const [brandSuggestion, rubro] = await Promise.all([
+    // Solo la marca sale de acá: el rubro lo resuelve suggestRubroForProduct (equivalencia o ruta del árbol).
+    suggestProductClassification({
+      productName: p.normalizedName,
+      productSku: p.internalSku,
+      shortDescription: p.shortDescription,
+      brandsCatalog: brands.map((b) => b.name),
+      categoriesCatalog: [],
+      // Familias retiradas: la IA ya no propone ni crea familias (la serie se detecta de los datos del fabricante).
+      familiesCatalog: [],
+    }),
+    suggestRubroForProduct(prisma, {
+      productName: p.normalizedName,
+      sku: p.internalSku ?? p.supplierSku,
+      brand: p.brand?.name,
+      brandId: p.brandId,
+      shortDescription: p.shortDescription,
+      sourceCategoryPath: p.sourceCategoryPath,
+    }),
+  ]);
+  return {
+    ok: true,
+    suggestion: { brand: brandSuggestion.brand, category: rubro.rubro, categoryNote: rubro.note, rationale: brandSuggestion.rationale },
+  };
 }
 
 export async function applyClassificationSuggestion(input: {
   productId: string;
   brandName?: string | null;
-  categoryName?: string | null;
+  /** Ruta del árbol de Tango («SONIDO > BAFLES PASIVOS > BAFLES EXTERIOR»). Se valida exacto; nunca se crea. */
+  rubroPath?: string | null;
+  /** Ignorado: familias retiradas. */
   familyName?: string | null;
-  /** Si true, categoría y familia se crean si no existen. */
-  createIfMissing?: boolean;
-}): Promise<{ ok: boolean; error?: string; createdCategory?: boolean; createdFamily?: boolean }> {
+}): Promise<{ ok: boolean; error?: string; applied?: string[]; notApplied?: string[] }> {
   await requireStaff("products.edit", { costs: true });
-  const data: { brandId?: string | null; categoryId?: string | null; familyId?: string | null } = {};
-  let createdCategory = false;
-  let createdFamily = false;
+  const data: { brandId?: string; categoryId?: string } = {};
+  const applied: string[] = [];
+  const notApplied: string[] = [];
 
   if (input.brandName !== undefined) {
-    if (input.brandName) {
-      // Marcas no se crean automáticamente (precaución: brand es una entidad
-      // con datos comerciales). Solo se aplica si existe.
-      // Si la marca sugerida no existe, se deja la que tenía (nunca se borra).
-      const b = await prisma.brand.findFirst({ where: { name: { equals: input.brandName, mode: "insensitive" } } });
-      if (b) data.brandId = b.id;
-    }
+    // Marcas no se crean automáticamente (precaución: brand es una entidad
+    // con datos comerciales). Solo se aplica si existe; si no, queda la que tenía.
+    const b = input.brandName ? await prisma.brand.findFirst({ where: { name: { equals: input.brandName, mode: "insensitive" } } }) : null;
+    if (b) {
+      data.brandId = b.id;
+      applied.push(`Marca: ${b.name}.`);
+    } else notApplied.push("Marca: no hay una marca del catálogo para aplicar; queda la que tenía.");
   }
-  if (input.categoryName !== undefined) {
-    if (input.categoryName) {
-      // Con el árbol de Tango cargado, solo valen sus rubros y no se crean categorías nuevas.
-      const tango = await isTangoTreeActive(prisma);
-      let c = await prisma.category.findFirst({ where: { name: { equals: input.categoryName, mode: "insensitive" }, ...(tango ? { tangoPath: { not: null } } : {}) } });
-      if (!c && input.createIfMissing && !tango) {
-        c = await prisma.category.create({
-          data: { name: input.categoryName.trim(), slug: slugify(input.categoryName.trim()) },
-        });
-        createdCategory = true;
-      }
-      if (c) data.categoryId = c.id;
-    }
+  if (input.rubroPath !== undefined) {
+    // Solo rubros activos del árbol de Tango, por ruta exacta. Nunca se crean categorías.
+    const rubros = await loadActiveRubros(prisma);
+    const path = matchRubroPath(input.rubroPath, rubros.map((r) => r.tangoPath));
+    const rubro = path ? rubros.find((r) => r.tangoPath === path) : undefined;
+    if (rubro) {
+      data.categoryId = rubro.id;
+      applied.push(`Rubro: ${tangoPathLabel(rubro.tangoPath)}.`);
+    } else notApplied.push("Rubro: no hay una ruta del árbol que coincida; no se cambió.");
   }
-  if (input.familyName !== undefined) {
-    if (input.familyName) {
-      let f = await prisma.productFamily.findFirst({ where: { name: { equals: input.familyName, mode: "insensitive" } } });
-      if (!f && input.createIfMissing) {
-        f = await prisma.productFamily.create({
-          data: { name: input.familyName.trim(), slug: slugify(input.familyName.trim()) },
-        });
-        createdFamily = true;
-      }
-      if (f) data.familyId = f.id;
-    }
+  if (Object.keys(data).length === 0) {
+    return { ok: false, error: notApplied.join(" ") || "No había nada para aplicar: no se cambió nada.", applied, notApplied };
   }
-  if (Object.keys(data).length === 0) return { ok: false, error: "La sugerencia no coincide con marcas, rubros o subrubros existentes: no se cambió nada." };
 
   await prisma.product.update({ where: { id: input.productId }, data });
   revalidatePath(`/admin/products/${input.productId}`);
   revalidatePath(`/admin/products`);
-  return { ok: true, createdCategory, createdFamily };
+  return { ok: true, applied, notApplied };
 }
 
 /**
@@ -293,13 +306,14 @@ export async function searchProductImagesAction(
 
 /**
  * Sube un archivo de imagen a Vercel Blob y lo adjunta al producto.
- * Tope de tamaño: 8 MB. Tipos aceptados: image/*.
+ * Tope de tamaño: 15 MB. El formato se reconoce por el contenido (no por la
+ * extensión): JPEG, PNG, WebP, AVIF, GIF, TIFF, BMP, SVG y HEIC si el
+ * servidor lo soporta. Lo que no es JPEG/PNG/WebP liviano se convierte.
  *
  * Devuelve el id del producto para que el cliente pueda hacer router.refresh()
  * inmediato y ver la imagen en la galería.
  */
-const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
-const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif"];
+const MAX_IMAGE_SIZE = MAX_DOWNLOAD_BYTES;
 
 export async function uploadProductImageFile(
   formData: FormData
@@ -321,12 +335,6 @@ export async function uploadProductImageFile(
         error: `El archivo pesa ${(file.size / 1024 / 1024).toFixed(1)} MB. El tope es ${MAX_IMAGE_SIZE / 1024 / 1024} MB.`,
       };
     }
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return {
-        ok: false,
-        error: `Tipo no soportado (${file.type}). Aceptamos PNG, JPEG, WebP, GIF, AVIF.`,
-      };
-    }
     if (!isBlobConfigured()) {
       return {
         ok: false,
@@ -341,14 +349,18 @@ export async function uploadProductImageFile(
     });
     if (!product) return { ok: false, error: "Producto no encontrado." };
 
-    // Path determinístico: products/<id>/<timestamp>-<sluggified-filename>
-    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
-    const baseName = slugify(file.name.replace(/\.[^.]+$/, "")) || "image";
-    const pathname = `products/${productId}/${Date.now()}-${baseName}.${ext}`;
+    let normalized: NormalizedImage;
+    try {
+      normalized = await normalizeProductImage(Buffer.from(await file.arrayBuffer()));
+    } catch (error) {
+      if (error instanceof ImageRejectError) return { ok: false, error: error.message };
+      throw error;
+    }
 
     let fileUrl: string;
     try {
-      fileUrl = await uploadFile(pathname, Buffer.from(await file.arrayBuffer()), file.type);
+      // products/<id>/<timestamp>-<nombre>.<ext del formato guardado>
+      fileUrl = await storeNormalizedImage(productId, normalized, file.name.replace(/\.[^.]+$/, ""));
     } catch (error) {
       console.error("[blob] foto de producto", error);
       return { ok: false, error: BLOB_UPLOAD_FAILED };
@@ -378,25 +390,61 @@ export async function uploadProductImageFile(
   }
 }
 
-export async function attachProductImage(formData: FormData): Promise<void> {
-  await requireStaff("products.edit", { costs: true });
-  const productId = String(formData.get("productId") || "");
-  const url = String(formData.get("url") || "");
-  const alt = String(formData.get("alt") || "");
-  const isPrimary = formData.get("isPrimary") === "true" || formData.get("isPrimary") === "on";
-  if (!productId || !url) return;
+export interface AttachImageInput {
+  productId: string;
+  url: string;
+  alt?: string;
+  /** Resultado de Serper: página de origen y miniatura de Google (plan B). */
+  pageUrl?: string;
+  thumbnail?: string;
+  isPrimary?: boolean;
+  /** "serper" (búsqueda) o "url" (pegada a mano). */
+  origin?: "serper" | "url";
+}
 
-  if (isPrimary) {
-    await prisma.productImage.updateMany({
-      where: { productId },
-      data: { isPrimary: false },
-    });
+/**
+ * Adjunta una foto de afuera: la descarga como un navegador, la valida por
+ * contenido, la normaliza y la guarda en nuestro almacenamiento. Si no se
+ * puede, devuelve el motivo para mostrarlo en la ficha.
+ */
+export async function attachProductImage(
+  input: AttachImageInput,
+): Promise<{ ok: boolean; error?: string; note?: string }> {
+  await requireStaff("products.edit", { costs: true });
+  const productId = String(input?.productId || "");
+  const url = String(input?.url || "").trim().slice(0, 4000);
+  if (!productId || !url) return { ok: false, error: "Falta la dirección de la imagen." };
+  const product = await prisma.product.findUnique({ where: { id: productId }, select: { id: true, normalizedName: true } });
+  if (!product) return { ok: false, error: "Producto no encontrado." };
+
+  const result = await importRemoteProductImage(
+    productId,
+    { url, pageUrl: input.pageUrl || null, thumbnail: input.thumbnail || null },
+    input.alt || product.normalizedName || "imagen",
+  );
+  if (!result.ok) return { ok: false, error: result.message };
+
+  if (input.isPrimary) {
+    await prisma.productImage.updateMany({ where: { productId }, data: { isPrimary: false } });
   }
   await prisma.productImage.create({
-    data: { productId, url, alt: alt || null, source: "serper", isPrimary },
+    data: {
+      productId,
+      url: result.url,
+      alt: (input.alt || "").slice(0, 300) || product.normalizedName || null,
+      source: input.origin === "url" ? "url" : "serper",
+      isPrimary: Boolean(input.isPrimary),
+    },
   });
   await ensureProductHasPrimaryImage(productId);
   revalidateProductImages(productId);
+  const notes = [
+    result.via === "thumbnail" ? "la original no se pudo bajar: se guardó la miniatura de Google (más chica)" : null,
+    result.via === "og:image" ? "se tomó la foto principal de la página de origen" : null,
+    result.converted ? "se convirtió a un formato compatible" : null,
+    result.stored === "external" ? "quedó enlazada al sitio original (no hay almacenamiento conectado)" : null,
+  ].filter(Boolean);
+  return { ok: true, note: notes.length ? `Imagen agregada: ${notes.join("; ")}.` : undefined };
 }
 
 export async function setPrimaryImage(formData: FormData): Promise<void> {
@@ -529,16 +577,29 @@ export async function bulkSearchImages(
       continue;
     }
     const q = [product.brand?.name, product.normalizedName].filter(Boolean).join(" ");
-    const images = await searchProductImages(q, 1);
-    const first = images[0];
-    if (!first) {
+    // Se prueban los primeros resultados hasta que uno se pueda bajar y guardar
+    // (antes se guardaba el primero tal cual, aunque fuera «x-raw-image» o no cargara).
+    const images = await searchProductImages(q, 4);
+    let storedUrl: string | null = null;
+    for (const candidate of images) {
+      const result = await importRemoteProductImage(
+        id,
+        { url: candidate.url, pageUrl: candidate.pageUrl, thumbnail: candidate.thumbnail },
+        product.normalizedName || q,
+      );
+      if (result.ok) {
+        storedUrl = result.url;
+        break;
+      }
+    }
+    if (!storedUrl) {
       skipped++;
       continue;
     }
     await prisma.productImage.create({
       data: {
         productId: id,
-        url: first.url,
+        url: storedUrl,
         alt: product.normalizedName,
         source: "serper-bulk",
         isPrimary: true,

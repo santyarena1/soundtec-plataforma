@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ export function QrForm({ eventId }: { eventId: string }) {
   const [pending, start] = useTransition();
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
+  useUnsavedChangesGuard(label.trim() !== "");
   return (
     <div className="flex flex-wrap gap-2">
       <Input className="max-w-xs" placeholder="Nuevo QR (ej. Folleto)" value={label} onChange={(e) => setLabel(e.target.value)} />

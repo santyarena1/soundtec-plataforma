@@ -7,6 +7,7 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { Table, THead, TBody, TR, TH, TD, TableEmpty } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { upsertDistributor } from "@/server/actions/admin-catalog";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 
 export const metadata = { title: "Admin · Proveedores" };
 
@@ -24,6 +25,7 @@ export default async function AdminDistributorsPage() {
       <Card>
         <CardContent className="p-6">
           <h2 className="heading-3 mb-3">Nuevo proveedor</h2>
+          <UnsavedArea>
           <form action={upsertDistributor} className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="name" required>Nombre</Label>
@@ -41,6 +43,7 @@ export default async function AdminDistributorsPage() {
               <Button type="submit">Crear proveedor</Button>
             </div>
           </form>
+          </UnsavedArea>
         </CardContent>
       </Card>
 

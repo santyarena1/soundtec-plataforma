@@ -1,13 +1,17 @@
 "use client";
 
 import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { SearchablePick } from "@/components/admin/searchable-pick";
+import { RubroPicker } from "@/components/admin/rubro-picker";
+import type { CategoryNode } from "@/lib/category-tree";
 import { upsertMarginRule, upsertDiscountRule } from "@/server/actions/pricing-rules";
+import { PriceReviewNotice, type ReviewNoticeData } from "@/components/admin/price-review-notice";
 import { cn } from "@/lib/utils";
 import {
   RULE_TARGETS,
@@ -118,6 +122,7 @@ export function RulesForm({
   distributors,
   categories,
   families,
+  lines = [],
   products,
   lockedClientId,
   initial,
@@ -133,8 +138,11 @@ export function RulesForm({
   clients: ClientOpt[];
   brands: Named[];
   distributors: Named[];
-  categories: Named[];
+  /** Árbol de rubros (con cantidades) para el selector único de rubros. */
+  categories: CategoryNode[];
   families: Named[];
+  /** Series del fabricante (alcance LINE). Vacío = no se ofrece. */
+  lines?: Named[];
   products: { id: string; normalizedName: string }[];
   lockedClientId?: string;
   initial?: PricingRuleRow | null;
@@ -167,7 +175,11 @@ export function RulesForm({
   const [active, setActive] = useState(initial?.isActive ?? true);
   const [advanced, setAdvanced] = useState(Boolean(initial) && !editingGroup);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ReviewNoticeData | null>(null);
   const editing = Boolean(initial?.id);
+  // Aviso al salir con la regla a medio cargar o editar (compara contra cómo se abrió el formulario).
+  const draft = { audience, clientIds, target, scopeIds, excludedIds, mode, value, name, active };
+  const tracker = useUnsavedValue(draft);
 
   const resourceOptions = useMemo(() => {
     switch (target) {
@@ -179,12 +191,17 @@ export function RulesForm({
         return categories;
       case "FAMILY":
         return families;
+      case "LINE":
+        return lines;
       case "PRODUCT":
         return products.map((p) => ({ id: p.id, name: p.normalizedName }));
       default:
         return [];
     }
-  }, [target, brands, distributors, categories, families, products]);
+  }, [target, brands, distributors, categories, families, lines, products]);
+  const targetOptions = RULE_TARGETS.filter(
+    (item) => (!item.legacy || item.value === target) && (item.value !== "LINE" || lines.length > 0 || target === "LINE")
+  );
 
   const numericValue = Number(value);
   const parsedOk = Number.isFinite(numericValue) && numericValue !== 0;
@@ -302,30 +319,28 @@ export function RulesForm({
           setError(result.error || "No se pudo guardar.");
           return;
         }
-        const count = result.count || 1;
-        toast.success(
-          editingGroup
-            ? `Se actualizó el grupo (${count} subregla${count === 1 ? "" : "s"}).`
-            : count > 1
-              ? `Se guardó 1 regla con ${count} subreglas.`
-              : editing
-                ? type === "margin"
-                  ? "Regla de precio actualizada."
-                  : "Descuento actualizado."
-                : type === "margin"
-                  ? "Regla de precio creada."
-                  : "Descuento creado."
-        );
+        if (result.review) {
+          setNotice({ ...result.review, title: editing ? "Cambio de regla" : "Regla nueva" });
+          toast.message(
+            result.review.affectedProducts === 0
+              ? "No mueve ningún precio: aplicalo con un clic."
+              : `Mueve el precio de ${result.review.affectedProducts} producto${result.review.affectedProducts === 1 ? "" : "s"}: quedó en Revisión de cambios.`
+          );
+        }
         if (!editing) {
           setName("");
           setScopeIds([]);
           setExcludedIds([]);
+          tracker.markSaved({ ...draft, name: "", scopeIds: [], excludedIds: [] });
         }
-        onSaved?.();
-        try {
-          router.refresh();
-        } catch {
-          window.location.reload();
+        if (editing) onSaved?.();
+        // Mandar a revisión no cambia reglas: no hace falta recargar la pantalla (era lento con la vista «Por producto»).
+        if (!result.review) {
+          try {
+            router.refresh();
+          } catch {
+            window.location.reload();
+          }
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "";
@@ -391,7 +406,7 @@ export function RulesForm({
 
         <Field label="¿Sobre qué?" required>
           <Select value={target} onChange={(e) => onTargetChange(e.target.value as RuleTarget)}>
-            {RULE_TARGETS.map((item) => (
+            {targetOptions.map((item) => (
               <option key={item.value} value={item.value}>
                 {item.label}
               </option>
@@ -399,7 +414,11 @@ export function RulesForm({
           </Select>
         </Field>
 
-        {target !== "ALL" ? (
+        {target === "CATEGORY" ? (
+          <Field label="Rubros (cada uno con sus subrubros)" required>
+            <RubroPicker nodes={categories} multiple values={scopeIds} onValuesChange={setScopeIds} />
+          </Field>
+        ) : target !== "ALL" ? (
           <SearchablePick
             key={target}
             label={RULE_TARGETS.find((item) => item.value === target)?.label || "Recursos"}
@@ -498,6 +517,12 @@ export function RulesForm({
         ) : null}
       </div>
 
+      {notice ? <PriceReviewNotice notice={notice} onDone={() => setNotice(null)} /> : null}
+
+      <p className="text-xs text-muted-foreground">
+        Al guardar no cambia ningún precio todavía: se calcula qué productos se moverían y queda en Precios › Revisión de cambios para aplicarlo.
+      </p>
+
       <div className="flex items-center justify-between gap-3">
         {error ? <p className="text-sm text-destructive">{error}</p> : <span />}
         <div className="flex items-center gap-2">
@@ -514,12 +539,12 @@ export function RulesForm({
           <Button type="submit" disabled={pending}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {editingGroup
-              ? "Guardar todo el grupo"
+              ? "Calcular impacto del grupo"
               : editing
-                ? "Guardar cambios"
+                ? "Calcular impacto del cambio"
                 : comboCount > 1
-                  ? `Crear regla (${comboCount} subreglas)`
-                  : "Crear regla"}
+                  ? `Calcular impacto (${comboCount} subreglas)`
+                  : "Calcular impacto"}
           </Button>
         </div>
       </div>

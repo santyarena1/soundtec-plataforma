@@ -5,6 +5,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
 import { formatUsd } from "@/lib/utils";
 import {
   sendRequest,
@@ -127,6 +128,7 @@ export function DraftRequestEditor({ requestId, items, projectDescription, subto
         {/* Formulario proyecto + envío */}
         <Card>
           <CardContent className="p-5">
+            <UnsavedArea>
             <form action={sendRequest} className="space-y-4">
               <input type="hidden" name="requestId" value={requestId} />
               <div>
@@ -154,6 +156,7 @@ export function DraftRequestEditor({ requestId, items, projectDescription, subto
                 </Button>
               </div>
             </form>
+            </UnsavedArea>
           </CardContent>
         </Card>
       </div>
@@ -284,6 +287,7 @@ function ItemList({
                 </p>
               ) : null}
               <div className="flex items-center gap-2 pt-1">
+                <UnsavedArea className="flex">
                 <form
                   action={updateDraftItemQuantityForm}
                   className="flex items-center gap-1"
@@ -300,6 +304,7 @@ function ItemList({
                     Actualizar
                   </Button>
                 </form>
+                </UnsavedArea>
                 <form action={removeRequestItemForm}>
                   <input type="hidden" name="itemId" value={i.id} />
                   <Button

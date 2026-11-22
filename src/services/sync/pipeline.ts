@@ -4,6 +4,14 @@ import { getConnector, listConnectors } from "./registry";
 import { applyNormalizedProduct } from "./upsert";
 import { asInputJson, toDiffJson } from "./snapshot";
 import type { NormalizedProduct } from "./types";
+import { equivalenceSourceForSync } from "@/lib/new-product-rubro";
+import { isTangoTreeActive } from "@/lib/tango-tree-db";
+
+function uncategorizedFromStats(stats: Prisma.JsonValue | null | undefined): number {
+  if (!stats || typeof stats !== "object" || Array.isArray(stats)) return 0;
+  const value = (stats as Record<string, Prisma.JsonValue>).uncategorizedNew;
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
 
 export interface ProcessBatchResult {
   done: boolean;
@@ -16,6 +24,8 @@ export interface ProcessBatchResult {
   priceChanges: number;
   stockChanges: number;
   errors: number;
+  /** Productos nuevos de esta corrida que quedaron en «Sin categorizar» (sin equivalencia de rubro). */
+  uncategorizedNew: number;
 }
 
 type ExistingProduct = {
@@ -40,6 +50,7 @@ const NON_SCALAR_KEYS = new Set<keyof NormalizedProduct>([
   "rawKey",
   "preserveName",
   "brandName",
+  "supplierCategoryPath",
 ]);
 
 function errorMessage(error: unknown): string {
@@ -208,6 +219,7 @@ export async function processBatch(
       priceChanges: run.priceChanges,
       stockChanges: run.stockChanges,
       errors: run.errors,
+      uncategorizedNew: uncategorizedFromStats(run.stats),
     };
   }
 
@@ -230,6 +242,7 @@ export async function processBatch(
       priceChanges: run.priceChanges,
       stockChanges: run.stockChanges,
       errors: run.errors,
+      uncategorizedNew: uncategorizedFromStats(run.stats),
     };
   }
 
@@ -284,7 +297,10 @@ export async function processBatch(
       matchValues
     );
 
-    const rows = fetched.items.map((item) => {
+    // Con el árbol de Tango la categoría del proveedor no se aplica (ver upsert): no se cuenta como cambio.
+    const categoryLocked = await isTangoTreeActive(prisma);
+    const rows = fetched.items.map((rawItem) => {
+      const item = categoryLocked && rawItem.categoryName !== undefined ? { ...rawItem, categoryName: undefined } : rawItem;
       const existing = existingByMatch.get(item.matchValue.trim());
       const priceChanged =
         !!existing &&
@@ -311,14 +327,17 @@ export async function processBatch(
     let priceChanges = 0;
     let stockChanges = 0;
     let errors = 0;
+    let uncategorizedNew = 0;
+    const equivalenceSource = equivalenceSourceForSync(connector.source);
 
     if (run.mode === "apply") {
       for (const row of rows) {
         try {
           const applied = await prisma.$transaction((tx) =>
-            applyNormalizedProduct(tx, row.item)
+            applyNormalizedProduct(tx, row.item, { equivalenceSource })
           );
           if (applied.action === "create") created++;
+          if (applied.action === "create" && applied.rubroMatched === false) uncategorizedNew++;
           else if (applied.action === "update") updated++;
           else unchanged++;
           if (applied.priceChanged) priceChanges++;
@@ -394,9 +413,17 @@ export async function processBatch(
       fetched.nextOffset ??
       (completed ? fetched.total : run.processed + fetched.items.length);
     const processedIncrement = Math.max(0, nextProcessed - run.processed);
+    // Altas sin equivalencia de rubro: se acumulan en stats para avisar al final de la corrida.
+    let statsWithUncategorized: Prisma.InputJsonValue | undefined;
+    if (uncategorizedNew > 0) {
+      const current = (await prisma.syncRun.findUnique({ where: { id: run.id }, select: { stats: true } }))?.stats;
+      const base = current && typeof current === "object" && !Array.isArray(current) ? (current as Record<string, Prisma.JsonValue>) : {};
+      statsWithUncategorized = toJson({ ...base, uncategorizedNew: uncategorizedFromStats(current) + uncategorizedNew });
+    }
     const updatedRun = await prisma.syncRun.update({
       where: { id: run.id },
       data: {
+        stats: statsWithUncategorized,
         totalItems: run.totalItems === 0 ? fetched.total : undefined,
         processed: { increment: processedIncrement },
         matched: { increment: matched },
@@ -427,6 +454,7 @@ export async function processBatch(
       priceChanges: updatedRun.priceChanges,
       stockChanges: updatedRun.stockChanges,
       errors: updatedRun.errors,
+      uncategorizedNew: uncategorizedFromStats(updatedRun.stats),
     };
   } catch (error) {
     const message = errorMessage(error);
