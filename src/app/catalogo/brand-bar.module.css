@@ -218,3 +218,13 @@
     animation: none;
   }
 }
+
+/* Cajas compartidas en el celular: las marcas se apilan y el separador pasa a ser horizontal. */
+@media (max-width: 639px) {
+  .dividerStack {
+    width: auto;
+    height: 1px;
+    margin: 0 0.75rem;
+    background: linear-gradient(to right, transparent, hsl(var(--border)) 18%, hsl(var(--border)) 82%, transparent);
+  }
+}

@@ -3349,4 +3349,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Detalles: las rutas del panel responden «sin sesión» en lugar de error 500; el vendedor ya no ve un error en consola al abrir el Room Builder; el widget del dólar oculta el MEP cuando la fuente no lo trae; borrar una lista o plantilla de mailing avisa si falla; hay robots.txt para que los buscadores no indexen enlaces privados." },
     ],
   },
+  {
+    id: "ship-2026-11-25-marcas-celular",
+    version: "2.68.1",
+    releasedAt: "2026-11-26T01:00:00.000Z",
+    summary: "Menú de marcas en el celular: los logos se ven bastante más grandes.",
+    items: [
+      { kind: "MEJORA", text: "Samsung Internet (en prueba): su modo oscuro oscurece la página aunque pida «solo claro». Abriendo el sitio con ?claro=samsung se deshace ese oscurecido en ese celular; ?claro=normal lo saca." },
+      { kind: "MEJORA", text: "En el celular las submarcas de SoundTube y Atlona van de a dos por fila (antes de a tres, casi ilegibles) y con logos más altos; si queda una sola, va centrada." },
+      { kind: "MEJORA", text: "Crestron | Crestron Home y Sonance | Blaze se apilan en el celular, una marca arriba de la otra, así cada logo usa todo el ancho. En la computadora el menú queda igual." },
+    ],
+  },
 ];

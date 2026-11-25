@@ -11,7 +11,7 @@ import styles from "./brand-bar.module.css";
 export type BrandMenuBox = { kind: MenuBoxKind; cells: BrandUiCell[]; group?: { href: string; label: string } };
 
 type Size = "hero" | "lg" | "md";
-const LOGO: Record<Size, string> = { hero: "h-14 sm:h-16", lg: "h-12 sm:h-14", md: "h-10 sm:h-11" };
+const LOGO: Record<Size, string> = { hero: "h-14 sm:h-16", lg: "h-12 sm:h-14", md: "h-11" };
 const COMPACT: Record<Size, string> = { hero: "h-16 w-[8rem]", lg: "h-14 w-[7rem]", md: "h-12 w-[6rem]" };
 
 /**
@@ -96,11 +96,14 @@ function Surface({ children, className, group }: { children: React.ReactNode; cl
 function PairBox({ box, ...cellProps }: { box: BrandMenuBox } & CellProps) {
   const linked = !!box.group;
   return (
-    <Surface className="h-24 p-1.5 sm:h-28" group={box.group}>
+    // En el celular las dos marcas van una arriba de la otra: lado a lado quedaban chicas.
+    <Surface className="flex-col p-1.5 sm:h-28 sm:flex-row" group={box.group}>
       {box.cells.map((cell, index) => (
-        <div key={index} className="flex min-w-0 flex-1">
-          {index > 0 ? <span aria-hidden className={cn(styles.divider, "mr-1.5")} /> : null}
-          <MenuCell cell={cell} size="lg" linked={linked} {...cellProps} />
+        <div key={index} className="flex min-w-0 flex-col sm:flex-1 sm:flex-row">
+          {index > 0 ? <span aria-hidden className={cn(styles.divider, styles.dividerStack, "sm:mr-1.5")} /> : null}
+          <div className="flex h-20 min-w-0 sm:h-auto sm:flex-1">
+            <MenuCell cell={cell} size="lg" linked={linked} {...cellProps} />
+          </div>
         </div>
       ))}
     </Surface>
@@ -119,7 +122,8 @@ function GroupBox({ box, ...cellProps }: { box: BrandMenuBox } & CellProps) {
       <span aria-hidden className={cn(styles.divider, styles.dividerResponsive)} />
       <div
         style={{ "--n": rest.length } as React.CSSProperties}
-        className={cn("grid min-w-0 flex-1 gap-1 md:pl-1.5", rest.length % 3 !== 0 && rest.length % 2 === 0 ? "grid-cols-2" : "grid-cols-3", "md:[grid-template-columns:repeat(var(--n),minmax(0,1fr))]")}
+        // En el celular de a dos (de a tres quedaban ilegibles); si sobra una, va centrada a lo ancho.
+        className="grid min-w-0 flex-1 grid-cols-2 gap-1 max-md:[&>*:last-child:nth-child(odd)]:col-span-2 md:pl-1.5 md:[grid-template-columns:repeat(var(--n),minmax(0,1fr))]"
       >
         {rest.map((cell, index) => (
           <div key={index} className="flex h-16 md:h-auto">
@@ -156,7 +160,7 @@ function MenuCell({ cell, size, boxed = false, linked = false, broken, onBroken 
       {brand.comingSoon ? <SoonTag /> : brand.inquiry ? <span className="text-[10px] font-medium leading-none text-primary">Consultá disponibilidad</span> : null}
     </>
   );
-  if (linked) return <span className={cn(shape, "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-2")}>{content}</span>;
+  if (linked) return <span className={cn(shape, "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 sm:px-2")}>{content}</span>;
   return (
     <Link
       href={brand.href}
@@ -164,7 +168,7 @@ function MenuCell({ cell, size, boxed = false, linked = false, broken, onBroken 
       className={cn(
         styles.cell,
         shape,
-        "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-2 outline-none transition-colors duration-200 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 outline-none sm:px-2 transition-colors duration-200 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       )}
     >
       {content}
