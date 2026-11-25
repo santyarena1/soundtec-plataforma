@@ -100,7 +100,7 @@ export function RegenerateLinkAction({ id, phone, name }: { id: string; phone: s
       const r = await regenerateActivationLink(id);
       if (!r.ok) return setError(r.error);
       setError(null);
-      setLink({ url: r.activationUrl, title: "Link nuevo (vence en 72 h). Los anteriores dejan de funcionar." });
+      setLink({ url: r.activationUrl, title: `Link nuevo (vence en 72 h). ${r.mailSent ? "Se lo mandamos por mail. " : "No salió el mail: pasáselo vos. "}Los anteriores dejan de funcionar.` });
     });
 
   if (link) return <ActivationLinkPanel link={link} phone={phone} name={name} onDone={() => { setLink(null); router.refresh(); }} />;

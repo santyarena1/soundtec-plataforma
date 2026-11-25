@@ -19,9 +19,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Suspense } from "react";
 import { calculatePricesForProducts } from "@/lib/pricing";
+import { discountInfoFrom } from "@/lib/price-discount-label";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { buildProductSearchAnd, SEARCH_RANK_SELECT, sortBySearchRelevance } from "@/lib/product-search";
 import { RememberCatalog } from "@/components/catalog/catalog-memory";
+import { isLongDescriptionAiGenerated } from "@/lib/ai-content";
 
 const SEARCH_RANK_CAP = 3000;
 
@@ -234,6 +236,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       priceNacFinalArs: price?.priceNacFinalArs ?? 0,
       markup: price?.markupMultiplier ?? 0,
       marginRule: price?.appliedMarginRule?.name ?? (price?.markupSource === "COEF_VTA" ? "COEF VTA de la ficha" : null),
+      discountInfo: discountInfoFrom(price),
       hasDescription: !!(p.shortDescription?.trim() || p.longDescription?.trim()),
       salePriceUsd: p.salePriceUsd != null ? Number(p.salePriceUsd) : null,
       discountPercent: p.discountPercent ? Number(p.discountPercent) : null,
@@ -246,7 +249,8 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       kind: p.kind as "PRINCIPAL" | "ACCESORIO",
       shortDescription: p.shortDescription || null,
       longDescription: p.longDescription || null,
-      aiGeneratedDescription: p.aiGeneratedDescription,
+      // «IA» solo si la descripción larga la escribió la IA (ver lib/ai-content).
+      aiGeneratedDescription: isLongDescriptionAiGenerated(p),
       aiDescriptionFeedbackStatus: p.aiDescriptionFeedbackStatus,
       openFeedbackCount: openFeedbackMap.get(p.id) || 0,
       isCrestronHomeCompatible: p.isCrestronHomeCompatible,
@@ -265,6 +269,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         priceNacFinalArs: 0,
         markup: 0,
         marginRule: null,
+        discountInfo: null,
         salePriceUsd: null,
         discountPercent: null,
         tariffPosition: null,

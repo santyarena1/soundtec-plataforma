@@ -40,6 +40,8 @@ export type InviteEmailInput = {
   accent?: "black" | "blue";
   invite: { name?: string | null; company?: string | null };
   reminder?: boolean;
+  /** Píxel de apertura (URL absoluta). Solo en el envío real, no en la vista previa. */
+  openPixelUrl?: string;
 };
 
 function detailsTable(details: InfoItem[]): string {
@@ -91,6 +93,7 @@ ${detailsTable(input.details ?? [])}
 <tr><td style="padding:26px 40px 30px"><p style="margin:0;padding-top:18px;border-top:1px solid #f0f1f3;font-size:12px;line-height:1.5;color:#9ca3af">Es tu enlace personal: no lo reenvíes. Si ya confirmaste, al abrirlo ves la información del evento.</p></td></tr>
 </table>
 <p style="margin:18px 0 0;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#9ca3af">Soundtec · Integración audiovisual</p>
+${input.openPixelUrl ? `<img src="${escapeHtml(input.openPixelUrl)}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;opacity:0">` : ""}
 </td></tr></table></body></html>`;
 
   const detailText = (input.details ?? [])

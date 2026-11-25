@@ -14,6 +14,8 @@ import { brandLogoSrc } from "@/lib/brand-logo";
 import { toggleBrandCatalogVisibility } from "@/server/actions/brand-logos";
 import { toggleBrandComingSoon } from "@/server/actions/brand-listing";
 import { UnsavedArea } from "@/components/unsaved-guard/unsaved-area";
+import { BrandLayoutEditor } from "./brand-layout-editor";
+import { loadBrandGroups } from "@/server/catalog/brand-layout";
 
 export const metadata = { title: "Admin · Marcas" };
 
@@ -30,6 +32,9 @@ export default async function AdminBrandsPage() {
       },
     },
   });
+  const brandLayout = await loadBrandGroups();
+  // Para el menú: las marcas que se ven en el catálogo.
+  const layoutBrandNames = brands.filter((b) => b.isActive && !b.hiddenFromCatalog).map((b) => b.name);
 
   return (
     <div className="space-y-6">
@@ -61,6 +66,19 @@ export default async function AdminBrandsPage() {
             </div>
           </form>
           </UnsavedArea>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="heading-3">Grupos de marcas del catálogo</h2>
+          <p className="mb-4 mt-1 text-sm text-muted-foreground">
+            Cada fila es un grupo: la primera marca es la principal y las demás, sus hermanas. El orden de la lista es el orden en
+            el catálogo. Con esto se arman solos el menú de marcas (grupo de 2: caja compartida; de 3 o más: caja ancha; de 1:
+            caja suelta) y la barra de arriba del listado (solo la principal, que despliega a sus hermanas). Las marcas sin grupo
+            van al final, en «Más marcas». En cursiva: todavía no está cargada y se muestra como «Próximamente».
+          </p>
+          <BrandLayoutEditor initial={brandLayout.config} brandNames={layoutBrandNames} />
         </CardContent>
       </Card>
 

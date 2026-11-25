@@ -101,7 +101,7 @@ export function buildProductSheet(
     candidate.brandName ? `Marca: ${candidate.brandName}` : null,
     candidate.categoryName ? `Categoría: ${candidate.categoryName}` : null,
     candidate.modelNumber ? `Modelo: ${candidate.modelNumber}` : null,
-    candidate.internalSku ? `SKU: ${candidate.internalSku}` : null,
+    // Sin Código Tango (internalSku): es interno de Soundtec y el asistente lo ven clientes.
   ].filter(Boolean);
   if (identity.length > 0) lines.push(identity.join(" · "));
 

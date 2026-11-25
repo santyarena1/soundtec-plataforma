@@ -2,7 +2,10 @@ import { canSeeCosts, isPanelRole, permissionsHave } from "@/lib/permissions";
 import { getCurrentPermissions, requireUser } from "@/lib/auth-helpers";
 import Link from "next/link";
 import { resolveCommercialClientId } from "@/lib/client-context";
-import { catalogFilterMeta, getCatalog, listBrandSeriesFacet, listCatalogCategoryTree, listVisibleCatalogBrands } from "@/lib/catalog";
+import { catalogFilterMeta, getCatalog, listBrandSeriesFacet, listCatalogCategoryTree, listQuickFilterCounts, listVisibleCatalogBrands } from "@/lib/catalog";
+import { QuickFilterBar } from "@/components/catalog/quick-filter-bar";
+import { ConditionsToggle } from "@/components/catalog/conditions-toggle";
+import { getConditionsView } from "@/server/catalog/client-conditions";
 import { countActiveCatalogFilters, parseCatalogSearchParams, withoutLegacyFamilyParam } from "@/lib/catalog-url";
 import { redirect } from "next/navigation";
 import { SeriesFilterBar } from "@/components/catalog/series-filter-bar";
@@ -14,6 +17,8 @@ import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 import { CatalogToolbar } from "./catalog-toolbar";
 import { CatalogLayout } from "./catalog-sidebar";
 import { CatalogGrid } from "./catalog-grid";
+import { BrandSections } from "./brand-sections";
+import { getRubroHighlights } from "@/server/catalog/brand-listing-data";
 import { CatalogTable } from "./catalog-table";
 import { CatalogMultiSelectProvider } from "./catalog-multi-select";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -43,7 +48,10 @@ export default async function ProductsPage({
   const internal = isPanelRole(user.role);
   const commercialClientId = internal ? null : await resolveCommercialClientId(user.id);
 
-  const ctx = { commercialClientId, userId: user.id, isAdmin: internal };
+  // «Activá tus descuentos»: clientes con condiciones propias ven lista hasta que lo prenden.
+  const conditions = internal ? null : await getConditionsView(user.id, commercialClientId);
+  const ctx = { commercialClientId, userId: user.id, isAdmin: internal, priceClientId: conditions ? conditions.priceClientId : commercialClientId };
+  const conditionsToggle = conditions?.offerToggle ? <ConditionsToggle on={conditions.conditionsOn} /> : null;
   // Editar precios desde el catálogo: quien gestiona márgenes y ve costos.
   const permissions = internal ? (await getCurrentPermissions()).permissions : null;
   const canEditPrices = !!permissions && permissionsHave(permissions, "margins.manage") && canSeeCosts(permissions);
@@ -59,6 +67,8 @@ export default async function ProductsPage({
     includeOutOfStock: urlState.includeOutOfStock,
     hasDiscount: urlState.hasDiscount,
     favoritesOnly: urlState.favoritesOnly,
+    labelIds: urlState.labelIds,
+    commercialTags: urlState.commercialTags,
     crestronOnly: urlState.crestronOnly,
     kind: urlState.kind,
     minPrice: urlState.minPrice,
@@ -72,17 +82,19 @@ export default async function ProductsPage({
   const showGrid = rawParams.all !== "1" && countActiveCatalogFilters(urlState) === 0;
   const brandsPromise = listVisibleCatalogBrands(ctx);
   if (showGrid) {
-    const listed = await brandsPromise;
+    const [listed, quickCounts] = await Promise.all([brandsPromise, listQuickFilterCounts(filters, ctx)]);
     return (
       <>
         <RememberCatalog memoryKey="portal" />
+        {conditionsToggle ? <div className="mx-auto mb-4 max-w-4xl"><div className="sm:max-w-sm">{conditionsToggle}</div></div> : null}
+        <QuickFilterBar counts={quickCounts} state={urlState} params={rawParams} basePath="/portal/products" className="mx-auto mb-5 max-w-4xl" />
         <BrandGrid brands={listed.brands} total={listed.total} basePath="/portal/products" />
       </>
     );
   }
   const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
 
-  const [listed, { items, total, page, pageSize }, meta, draft, categoryTree, brandSeries] = await Promise.all([
+  const [listed, { items, total, page, pageSize, sections }, meta, draft, categoryTree, brandSeries, quickCounts] = await Promise.all([
     brandsPromise,
     getCatalog(filters, ctx),
     catalogFilterMeta(filters),
@@ -90,8 +102,11 @@ export default async function ProductsPage({
     CUSTOMER_ORDERS_ENABLED ? getActiveDraftSummary(user.id) : null,
     listCatalogCategoryTree(filters, ctx),
     listBrandSeriesFacet(filters, ctx),
+    listQuickFilterCounts(filters, ctx),
   ]);
   const brands = listed.brands;
+  // «Destacar rubro en su marca» en cada tarjeta (equipo con permiso de estrella).
+  const rubroHighlights = canFeature ? await getRubroHighlights(items.map((i) => i.id)) : undefined;
   const categoryProps = {
     nodes: categoryTree,
     activeId: urlState.categoryIds?.[0] ?? null,
@@ -125,7 +140,7 @@ export default async function ProductsPage({
         cantidad → resultados.
       */}
       <div className="xl:grid xl:grid-cols-[16rem_minmax(0,1fr)] xl:gap-8">
-        <CatalogCategoryRail {...categoryProps} />
+        <CatalogCategoryRail {...categoryProps} below={conditionsToggle} />
         <div className="min-w-0 space-y-6">
           <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
@@ -146,7 +161,10 @@ export default async function ProductsPage({
             </div>
           </header>
 
-          <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} basePath="/portal/products" />
+          {/* Celular y tablet (sin columna de rubros): el control va arriba del listado. */}
+          {conditionsToggle ? <div className="xl:hidden sm:max-w-md">{conditionsToggle}</div> : null}
+
+          <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} activeBrandIds={urlState.brandIds} basePath="/portal/products" />
 
           {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
 
@@ -161,6 +179,7 @@ export default async function ProductsPage({
         total={total}
         categoryShownAbove={categoryInPath}
         toolbar={<CatalogToolbar state={urlState} />}
+        quickFilters={<QuickFilterBar counts={quickCounts} state={urlState} params={rawParams} basePath="/portal/products" />}
         lead={<CatalogCategoryBar {...categoryProps} />}
       >
         {items.length === 0 && comingSoonBrand ? null : items.length === 0 ? (
@@ -172,7 +191,9 @@ export default async function ProductsPage({
         ) : urlState.view === "table" ? (
           <CatalogTable items={items} internal={internal} />
         ) : (
-          <CatalogGrid items={items} internal={internal} canFeature={canFeature} withSidebar />
+          <BrandSections sections={sections} items={items}>
+            {(chunk) => <CatalogGrid items={chunk} internal={internal} canFeature={canFeature} rubroHighlights={rubroHighlights} withSidebar />}
+          </BrandSections>
         )}
 
         {totalPages > 1 ? (

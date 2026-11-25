@@ -3,6 +3,7 @@
  * Se guardan en PriceReview.operation y se ejecutan igual al simular (dentro de
  * una transacción que se deshace) y al aplicar.
  */
+import type { PriceRoundingConfig } from "@/lib/price-rounding";
 
 export type RuleKind = "margin" | "discount";
 
@@ -22,13 +23,16 @@ export type PriceOperation =
   /** Descuento propio de productos (campo de la ficha), en lote. null = sacarlo. */
   | { type: "products.setDiscount"; productIds: string[]; discountPercent: number | null }
   /** Unir un rubro con otro: pasa sus productos y lo desactiva. */
-  | { type: "category.merge"; fromId: string; toId: string };
+  | { type: "category.merge"; fromId: string; toId: string }
+  /** Redondeo por tramos (Configuración › Precios): activar, desactivar o cambiar tramos. */
+  | { type: "pricing.rounding"; config: PriceRoundingConfig };
 
-export type PriceReviewArea = "MARGIN" | "DISCOUNT" | "CATEGORY" | "LINE";
+export type PriceReviewArea = "MARGIN" | "DISCOUNT" | "CATEGORY" | "LINE" | "ROUNDING";
 
 export function areaOf(op: PriceOperation): PriceReviewArea {
   if (op.type === "products.setCategory" || op.type === "category.merge") return "CATEGORY";
   if (op.type === "products.setDiscount") return "DISCOUNT";
+  if (op.type === "pricing.rounding") return "ROUNDING";
   return op.kind === "margin" ? "MARGIN" : "DISCOUNT";
 }
 
@@ -37,6 +41,7 @@ export const AREA_LABEL: Record<PriceReviewArea, string> = {
   DISCOUNT: "Descuentos",
   CATEGORY: "Rubros",
   LINE: "Series",
+  ROUNDING: "Redondeo",
 };
 
 export function isPriceOperation(value: unknown): value is PriceOperation {
@@ -48,6 +53,7 @@ export function isPriceOperation(value: unknown): value is PriceOperation {
     type === "rules.delete" ||
     type === "products.setCategory" ||
     type === "products.setDiscount" ||
-    type === "category.merge"
+    type === "category.merge" ||
+    type === "pricing.rounding"
   );
 }

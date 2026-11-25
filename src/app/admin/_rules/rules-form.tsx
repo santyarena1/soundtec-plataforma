@@ -319,6 +319,16 @@ export function RulesForm({
           setError(result.error || "No se pudo guardar.");
           return;
         }
+        if (result.applied) {
+          toast.success("Nombre guardado. No mueve ningún precio, así que no hizo falta revisión.");
+          tracker.markSaved(draft);
+          onSaved?.();
+          router.refresh();
+          return;
+        }
+        // Edición que no mueve precios: el aviso con «Aplicar» tiene que quedar a la vista.
+        // Antes el formulario se cerraba y el cambio quedaba pendiente sin que nadie lo aplicara.
+        const keepOpenForApply = editing && result.review?.affectedProducts === 0;
         if (result.review) {
           setNotice({ ...result.review, title: editing ? "Cambio de regla" : "Regla nueva" });
           toast.message(
@@ -333,7 +343,8 @@ export function RulesForm({
           setExcludedIds([]);
           tracker.markSaved({ ...draft, name: "", scopeIds: [], excludedIds: [] });
         }
-        if (editing) onSaved?.();
+        if (editing && !keepOpenForApply) onSaved?.();
+        if (keepOpenForApply) tracker.markSaved(draft);
         // Mandar a revisión no cambia reglas: no hace falta recargar la pantalla (era lento con la vista «Por producto»).
         if (!result.review) {
           try {
@@ -517,7 +528,15 @@ export function RulesForm({
         ) : null}
       </div>
 
-      {notice ? <PriceReviewNotice notice={notice} onDone={() => setNotice(null)} /> : null}
+      {notice ? (
+        <PriceReviewNotice
+          notice={notice}
+          onDone={() => {
+            setNotice(null);
+            if (editing) onSaved?.();
+          }}
+        />
+      ) : null}
 
       <p className="text-xs text-muted-foreground">
         Al guardar no cambia ningún precio todavía: se calcula qué productos se moverían y queda en Precios › Revisión de cambios para aplicarlo.

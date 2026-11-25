@@ -3,15 +3,33 @@
 import { optimizedImage } from "@/lib/image-url";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ZoomIn, ZoomOut, X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
+import { mergeGalleryMedia, UNSORTED } from "@/lib/product-media";
+import { VideoPlayer } from "@/components/products/video-player";
+import { VideoThumb } from "@/components/products/video-thumb";
 
 interface Image {
   id: string;
   url: string;
   alt?: string | null;
+  isPrimary?: boolean;
+  sortOrder?: number;
+  createdAt?: Date | string;
+}
+
+interface Video {
+  id: string;
+  provider: string;
+  videoId: string;
+  url: string;
+  title?: string | null;
+  sortOrder?: number;
+  createdAt?: Date | string;
 }
 
 interface Props {
   images: Image[];
+  /** Videos de YouTube/Instagram: se intercalan con las fotos según el orden de la ficha. */
+  videos?: Video[];
   productName: string;
 }
 
@@ -45,7 +63,29 @@ function clamp(value: number, min: number, max: number) {
  * doble click y con los botones. Con la imagen ampliada se arrastra para
  * recorrerla.
  */
-export function ProductGallery({ images, productName }: Props) {
+export function ProductGallery({ images: rawImages, videos = [], productName }: Props) {
+  // Fotos y videos en el orden cargado en la ficha (las fotos vienen ordenadas del servidor).
+  const media = mergeGalleryMedia(
+    rawImages.map((img, i) => ({
+      id: img.id,
+      url: img.url,
+      alt: img.alt ?? null,
+      isPrimary: Boolean(img.isPrimary),
+      sortOrder: img.sortOrder ?? UNSORTED,
+      createdAt: img.createdAt ?? new Date(i),
+    })),
+    videos.map((v) => ({
+      id: v.id,
+      provider: v.provider,
+      videoId: v.videoId,
+      url: v.url,
+      title: v.title ?? null,
+      sortOrder: v.sortOrder ?? UNSORTED,
+      createdAt: v.createdAt ?? new Date(0),
+    }))
+  );
+  const images = media.flatMap((item) => (item.kind === "image" ? [item] : []));
+  const [mediaIdx, setMediaIdx] = useState(0);
   const [activeIdx, setActiveIdx] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const [scale, setScale] = useState(1);
@@ -129,6 +169,15 @@ export function ProductGallery({ images, productName }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [lightbox, close, go, images.length, zoomBy, reset]);
 
+  // Al recorrer fotos en el lightbox, la vista principal acompaña.
+  const activeImageId = images[activeIdx]?.id;
+  const mediaKeys = media.map((item) => `${item.kind}:${item.id}`).join("|");
+  useEffect(() => {
+    if (!lightbox || !activeImageId) return;
+    const index = mediaKeys.split("|").indexOf(`image:${activeImageId}`);
+    if (index >= 0) setMediaIdx(index);
+  }, [lightbox, activeImageId, mediaKeys]);
+
   // Con el lightbox abierto la página de atrás no se mueve.
   useEffect(() => {
     if (!lightbox) return;
@@ -139,7 +188,7 @@ export function ProductGallery({ images, productName }: Props) {
     };
   }, [lightbox]);
 
-  if (images.length === 0) {
+  if (media.length === 0) {
     return (
       <div className="aspect-square overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -149,6 +198,7 @@ export function ProductGallery({ images, productName }: Props) {
     );
   }
 
+  const activeMedia = media[mediaIdx] ?? media[0]!;
   const active = images[activeIdx] ?? images[0];
 
   function onWheel(event: React.WheelEvent) {
@@ -199,7 +249,17 @@ export function ProductGallery({ images, productName }: Props) {
 
   return (
     <div className="space-y-3">
-      {/* Imagen principal */}
+      {/* Imagen o video principal */}
+      {activeMedia.kind === "video" ? (
+        <VideoPlayer
+          key={activeMedia.id}
+          provider={activeMedia.provider}
+          videoId={activeMedia.videoId}
+          url={activeMedia.url}
+          title={activeMedia.title}
+          productName={productName}
+        />
+      ) : active ? (
       <button
         type="button"
         onClick={() => setLightbox(true)}
@@ -221,26 +281,46 @@ export function ProductGallery({ images, productName }: Props) {
         <span className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-card/85 px-2 py-1 text-[11px] font-medium text-foreground shadow opacity-0 transition-opacity group-hover:opacity-100">
           <ZoomIn className="h-3 w-3" /> Ampliar
         </span>
-        {images.length > 1 ? (
+        {media.length > 1 ? (
           <span className="pointer-events-none absolute left-3 top-3 inline-flex items-center rounded-full bg-card/85 px-2 py-1 text-[11px] font-medium text-muted-foreground shadow">
-            {activeIdx + 1} / {images.length}
+            {mediaIdx + 1} / {media.length}
           </span>
         ) : null}
       </button>
+      ) : null}
 
       {/* Thumbnails */}
-      {images.length > 1 ? (
+      {media.length > 1 ? (
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-          {images.slice(0, 10).map((img, i) => {
-            const isActive = i === activeIdx;
+          {media.slice(0, 12).map((item, i) => {
+            const isActive = i === mediaIdx;
+            const select = () => {
+              setMediaIdx(i);
+              if (item.kind === "image") setActiveIdx(Math.max(0, images.findIndex((img) => img.id === item.id)));
+              reset();
+            };
+            if (item.kind === "video") {
+              return (
+                <button
+                  key={`video-${item.id}`}
+                  type="button"
+                  onClick={select}
+                  className={`aspect-square overflow-hidden rounded-md border-2 transition-all ${
+                    isActive ? "border-primary ring-2 ring-primary/30" : "border-border opacity-80 hover:opacity-100 hover:border-primary/40"
+                  }`}
+                  aria-label={`Video ${i + 1}`}
+                  aria-current={isActive}
+                >
+                  <VideoThumb provider={item.provider} videoId={item.videoId} title={item.title} />
+                </button>
+              );
+            }
+            const img = item;
             return (
               <button
                 key={img.id}
                 type="button"
-                onClick={() => {
-                  setActiveIdx(i);
-                  reset();
-                }}
+                onClick={select}
                 className={`aspect-square overflow-hidden rounded-md border-2 bg-white transition-all ${
                   isActive
                     ? "border-primary ring-2 ring-primary/30"

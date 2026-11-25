@@ -11,9 +11,9 @@ import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { pickRecentArrivals } from "@/lib/recent-arrivals";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { getVisibleProductsWhere } from "@/lib/catalog";
-import { brandHref, brandsWithLogos, getBrandsWithoutProducts, loadCrestronHomeSettings, withCrestronHome } from "@/lib/catalog-brands";
+import { brandsWithLogos, getBrandsWithoutProducts, loadCrestronHomeSettings, withCrestronHome } from "@/lib/catalog-brands";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
-import { BrandCardCaption } from "@/app/catalogo/brand-grid";
+import { BrandMenu } from "@/app/catalogo/brand-menu";
 import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 import {
   ArrowRight,
@@ -36,19 +36,6 @@ const QUICK_FILTERS = [
 
 const RECENT_PRODUCTS = 6;
 const RECENT_REQUESTS = 5;
-
-function greeting(): string {
-  const hour = Number(
-    new Intl.DateTimeFormat("es-AR", {
-      hour: "numeric",
-      hour12: false,
-      timeZone: "America/Argentina/Buenos_Aires",
-    }).format(new Date())
-  );
-  if (hour < 12) return "Buenos días";
-  if (hour < 20) return "Buenas tardes";
-  return "Buenas noches";
-}
 
 export default async function PortalDashboardPage() {
   const user = await requireUser();
@@ -148,15 +135,12 @@ export default async function PortalDashboardPage() {
           {/* min-w-0: si no, el buscador ensancha la columna y el recorte del hero se come el borde. */}
           <div className="min-w-0">
             <p className="break-words text-xs uppercase tracking-[0.2em] text-primary-foreground/60">
-              {greeting()}, {firstName}
+              Hola, {firstName}
             </p>
             <h1 className="mt-2 text-2xl font-semibold leading-tight sm:text-3xl">
-              ¿Qué necesitás cotizar hoy?
+              Qué necesitás cotizar hoy?
             </h1>
-            <p className="mt-2 max-w-lg text-sm text-primary-foreground/75">
-              Buscá por modelo, marca o palabra clave. Los precios que ves ya incluyen las condiciones de{" "}
-              <span className="font-medium text-primary-foreground">{user.companyName || "tu cuenta"}</span>.
-            </p>
+            <p className="mt-2 max-w-lg text-sm text-primary-foreground/75">Buscá por modelo, marca o palabra clave.</p>
 
             <form action="/portal/products" method="get" className="mt-6 min-w-0">
               <label htmlFor="home-search" className="sr-only">
@@ -259,22 +243,8 @@ export default async function PortalDashboardPage() {
               Ver todos los productos
             </Link>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {brands.map((brand) => (
-              <Link
-                key={brand.id}
-                href={brandHref(brand, "/portal/products")}
-                className="group flex h-28 flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-elevated"
-              >
-                {brand.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={brand.logoUrl} alt={brand.name} className="h-14 w-auto max-w-[92%] object-contain" />
-                ) : (
-                  <span className="text-center text-base font-bold tracking-wide">{brand.name}</span>
-                )}
-                <BrandCardCaption brand={brand} />
-              </Link>
-            ))}
+          <div className="mt-4">
+            <BrandMenu brands={brands} basePath="/portal/products" />
           </div>
         </section>
       ) : null}

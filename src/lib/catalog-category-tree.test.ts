@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildCategoryCountTree, categoryAncestry, categoryChildren } from "./catalog-category-tree";
+import { buildCategoryCountTree, categoryAncestry, categoryChildren, compareCategoryNames } from "./catalog-category-tree";
 
 const nodes = [
   { id: "son", name: "Sonido", parentId: null },
@@ -33,9 +33,37 @@ describe("árbol de rubros del catálogo", () => {
     assert.equal(count("ind"), undefined);
   });
 
-  it("principales e hijos ordenados por cantidad", () => {
-    assert.deepEqual(categoryChildren(null, tree).map((n) => n.id), ["son", "ctl"]);
-    assert.deepEqual(categoryChildren("baf", tree).map((n) => n.id), ["techo", "pared"]);
+  it("principales e hijos en orden alfabético (no por cantidad)", () => {
+    assert.deepEqual(categoryChildren(null, tree).map((n) => n.id), ["ctl", "son"]);
+    assert.deepEqual(categoryChildren("baf", tree).map((n) => n.id), ["pared", "techo"]);
+  });
+
+  it("el orden alfabético respeta acentos, ñ, mayúsculas y números (es-AR)", () => {
+    const names = ["Video", "Ángulos", "audio", "Ñandú", "Nodos", "Accesorios", "Cable 10 m", "Cable 2 m", "Óptica", "Zócalos"];
+    const sorted = [...names].sort(compareCategoryNames);
+    assert.deepEqual(sorted, ["Accesorios", "Ángulos", "audio", "Cable 2 m", "Cable 10 m", "Nodos", "Ñandú", "Óptica", "Video", "Zócalos"]);
+  });
+
+  it("ordena alfabéticamente en todos los niveles del árbol", () => {
+    const deep = buildCategoryCountTree(
+      [
+        { id: "v", name: "Video", parentId: null },
+        { id: "a", name: "Audio", parentId: null },
+        { id: "a2", name: "Parlantes", parentId: "a" },
+        { id: "a1", name: "Amplificadores", parentId: "a" },
+        { id: "a1b", name: "Clase D", parentId: "a1" },
+        { id: "a1a", name: "Clase AB", parentId: "a1" },
+      ],
+      [
+        { categoryId: "v", count: 50 },
+        { categoryId: "a2", count: 30 },
+        { categoryId: "a1b", count: 9 },
+        { categoryId: "a1a", count: 1 },
+      ]
+    );
+    assert.deepEqual(categoryChildren(null, deep).map((n) => n.name), ["Audio", "Video"]);
+    assert.deepEqual(categoryChildren("a", deep).map((n) => n.name), ["Amplificadores", "Parlantes"]);
+    assert.deepEqual(categoryChildren("a1", deep).map((n) => n.name), ["Clase AB", "Clase D"]);
   });
 
   it("arma el camino desde el rubro principal", () => {

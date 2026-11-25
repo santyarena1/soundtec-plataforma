@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { getViewerSession } from "@/lib/auth-helpers";
 import { ButtonLink } from "@/components/ui/button";
 import { getSetting } from "@/lib/settings";
 import { PublicMobileMenu } from "@/components/layout/public-mobile-menu";
@@ -9,8 +9,8 @@ import { CatalogModeExit } from "@/components/catalog-mode/catalog-mode-controls
 export async function PublicNavbar() {
   let session: { user?: { role?: string } } | null = null;
   try {
-    const raw = await (auth as unknown as () => Promise<{ user?: { role?: string } } | null>)();
-    session = raw;
+    // Con «Ver como», el usuario visto (no el admin).
+    session = await getViewerSession();
   } catch {
     session = null;
   }

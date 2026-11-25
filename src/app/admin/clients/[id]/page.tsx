@@ -17,6 +17,7 @@ import { Input, Select, Textarea } from "@/components/ui/input";
 import { ContactFormModal } from "@/components/admin/contact-form-modal";
 import { ContactActions } from "@/components/admin/contact-actions";
 import { CreatePortalAccess, PortalUserActions } from "@/components/admin/portal-user-actions";
+import { ViewAsButton } from "@/components/impersonation/view-as-button";
 import { ActivityForm } from "@/components/admin/activity-form";
 import { ActivityTimeline } from "@/components/admin/activity-timeline";
 import { ClientPricingPanel } from "@/components/admin/client-pricing-panel";
@@ -365,7 +366,11 @@ export default async function Page({ params, searchParams }: { params: { id: str
                       ) : (
                         <span className="font-medium">{u.name}</span>
                       )}
-                      <Badge tone={status.tone}>{status.label}</Badge>
+                      <span className="flex items-center gap-1.5">
+                        {/* «Ver como»: solo admins, y solo accesos que pueden entrar. */}
+                        {ctx.isAdmin && u.isActive ? <ViewAsButton userId={u.id} name={u.name} compact /> : null}
+                        <Badge tone={status.tone}>{status.label}</Badge>
+                      </span>
                     </div>
                     <p className="break-all text-xs text-muted-foreground">{u.email}</p>
                     {status.hint ? <p className="mt-0.5 text-xs text-muted-foreground">{status.hint}</p> : null}

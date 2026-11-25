@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { getExchangeRate } from "@/lib/exchange-rate";
 import { expandCategoryIds } from "@/lib/category-tree";
+import { ROUNDING_SETTING_KEY, parseRoundingSetting, roundPrice, type PriceRoundingConfig } from "@/lib/price-rounding";
 
 /**
  * Motor central de precios.
@@ -58,6 +59,10 @@ import { expandCategoryIds } from "@/lib/category-tree";
  *  - El cliente NUNCA ve baseCost, márgenes ni reglas aplicadas: usar
  *    `toVisibleBreakdown` para devolver solo lo público.
  *  - La posición arancelaria es un costo extra sobre el costo base.
+ *  - Redondeo por tramos (Configuración › Precios, `pricing.rounding`): se
+ *    aplica ACÁ y solo acá, al precio de lista y al final de venta en USD. Todo
+ *    lo demás (ARS, catálogo, ficha, cotizaciones, listas, exportaciones, PDF)
+ *    parte de esos valores, así que muestra lo mismo. Ver src/lib/price-rounding.ts.
  */
 
 export type ViewerRole = "ADMIN" | "SUPER_ADMIN" | "CLIENT";
@@ -171,6 +176,8 @@ export interface AppliedRule {
   percent: number;
   priority: number;
   source: "MARGIN" | "DISCOUNT";
+  /** Regla propia de un cliente (null = general). */
+  clientId?: string | null;
 }
 
 export interface PriceBreakdown {
@@ -185,6 +192,8 @@ export interface PriceBreakdown {
   appliedDiscountRule: AppliedRule | null;
   discountSource: "RULE" | "PRODUCT" | null;
   finalPriceUsd: number;
+  /** Precio final antes del redondeo por tramos (igual a priceUsdFinal si no hay redondeo). */
+  priceUnroundedUsd: number;
   costoNacUsd: number;
   markupMultiplier: number;
   markupSource: MarkupSource;
@@ -213,6 +222,14 @@ interface CalculatePriceOptions {
   /** Si vienen de un batch (catálogo), evita un findMany por producto. */
   marginRules?: PricingMarginRule[];
   discountRules?: PricingDiscountRule[];
+  /** Redondeo por tramos. undefined = leer la configuración vigente; null = sin redondeo. */
+  rounding?: PriceRoundingConfig | null;
+}
+
+/** Redondeo por tramos vigente (el que aprobó una revisión de precios). null = sin redondeo. */
+export async function getPriceRoundingConfig(): Promise<PriceRoundingConfig | null> {
+  const config = parseRoundingSetting(await getSetting(ROUNDING_SETTING_KEY, ""));
+  return config?.enabled ? config : null;
 }
 
 export type MatchablePricingRule = {
@@ -460,7 +477,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
     };
   }
   const hasRuleCache = options.marginRules != null && options.discountRules != null;
-  const [cachedRules, defaultMarkupSetting, exchangeRate] = await Promise.all([
+  const [cachedRules, defaultMarkupSetting, exchangeRate, rounding] = await Promise.all([
     hasRuleCache
       ? Promise.resolve({ marginRules: options.marginRules!, discountRules: options.discountRules! })
       : loadPricingRules(clientId ?? null),
@@ -470,6 +487,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
     options.tcOverride == null
       ? getExchangeRate()
       : Promise.resolve(options.tcOverride),
+    options.rounding === undefined ? getPriceRoundingConfig() : Promise.resolve(options.rounding),
   ]);
   const { marginRules, discountRules } = cachedRules;
 
@@ -522,7 +540,8 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
   const tariffDutyAmount = baseCost * (tariffDutyPercent / 100);
   const landedCost = baseCost + tariffDutyAmount;
   const costoNacUsd = baseCost * (optionalNumber(product.coefNac) ?? 1);
-  const priceBeforeDiscount = costoNacUsd * markupMultiplier;
+  const priceBeforeDiscountRaw = costoNacUsd * markupMultiplier;
+  const priceBeforeDiscount = roundPrice(priceBeforeDiscountRaw, rounding);
 
   let appliedDiscountRule: AppliedRule | null = null;
   let discountPercent = 0;
@@ -559,6 +578,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
       percent: discountPercent,
       priority: clientDiscount.priority,
       source: "DISCOUNT",
+      clientId: clientDiscount.clientId,
     };
     discountSource = "RULE";
   } else if (product.productDiscountPercent && product.productDiscountPercent > 0) {
@@ -575,12 +595,15 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
         percent: discountPercent,
         priority: nonClientDiscount.priority,
         source: "DISCOUNT",
+        clientId: nonClientDiscount.clientId,
       };
       discountSource = "RULE";
     }
   }
 
-  const priceUsdFinal = priceBeforeDiscount * (1 - discountPercent / 100);
+  // El descuento se calcula sobre la lista sin redondear y el resultado se redondea una vez.
+  const priceUnroundedUsd = priceBeforeDiscountRaw * (1 - discountPercent / 100);
+  const priceUsdFinal = roundPrice(priceUnroundedUsd, rounding);
   const priceFobUsd = baseCost * (optionalNumber(product.coefVtaFob) ?? markupMultiplier);
   const ivaPercent = optionalNumber(product.ivaPercent) ?? 21;
   const impIntPercent = optionalNumber(product.impIntPercent) ?? 0;
@@ -603,6 +626,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
           percent: marginPercent,
           priority: margin.priority,
           source: "MARGIN",
+          clientId: margin.clientId,
         }
       : null,
     priceBeforeDiscountUsd: priceBeforeDiscount,
@@ -619,6 +643,7 @@ export async function calculateCustomerPrice(options: CalculatePriceOptions): Pr
     ivaPercent,
     impIntPercent,
     finalPriceUsd: priceUsdFinal,
+    priceUnroundedUsd,
   };
 }
 
@@ -642,17 +667,19 @@ export async function calculatePricesForProducts(
 
   // Una sola lectura de reglas/TC/markup para todo el lote. Antes el catálogo
   // pedía margin+discount por cada producto (miles de queries) y se colgaba.
-  const [defaultMarkupRaw, tc, rules, prepared] = await Promise.all([
+  const [defaultMarkupRaw, tc, rules, prepared, rounding] = await Promise.all([
     getSetting("pricing.default_markup", "1.35"),
     getExchangeRate(),
     loadPricingRules(clientId),
     preparePricingInputs(products),
+    getPriceRoundingConfig(),
   ]);
   return priceProductsWithRules(prepared, clientId, {
     marginRules: rules.marginRules,
     discountRules: rules.discountRules,
     defaultMarkupMultiplier: parsedSetting(defaultMarkupRaw, 1.35),
     tc,
+    rounding,
   });
 }
 
@@ -672,6 +699,8 @@ export interface PricingRuleSet {
   discountRules: PricingDiscountRule[];
   defaultMarkupMultiplier: number;
   tc: number;
+  /** Redondeo por tramos. undefined = el vigente; null = sin redondeo (la revisión pasa el que corresponde). */
+  rounding?: PriceRoundingConfig | null;
 }
 
 /**
@@ -690,6 +719,7 @@ export async function priceProductsWithRules(
     rules.filter((r) => r.isActive && (!r.clientId || r.clientId === clientId));
   const margins = splitByProduct(relevant(ruleSet.marginRules));
   const discounts = splitByProduct(relevant(ruleSet.discountRules));
+  const rounding = ruleSet.rounding === undefined ? await getPriceRoundingConfig() : ruleSet.rounding;
   const results = new Map<string, PriceBreakdown>();
   for (const p of products) {
     const r = await calculateCustomerPrice({
@@ -699,6 +729,7 @@ export async function priceProductsWithRules(
       tcOverride: ruleSet.tc,
       marginRules: margins.forProduct(p.productId),
       discountRules: discounts.forProduct(p.productId),
+      rounding,
     });
     results.set(p.productId, r);
   }

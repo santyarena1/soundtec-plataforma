@@ -4,6 +4,7 @@ import { RELEVANCE_WINDOW_DAYS } from "@/lib/catalog-relevance";
 import { VISITOR_COOKIE } from "@/lib/expo/visitor-cookies";
 import { isCrawlerUserAgent } from "@/lib/expo/welcome-gate";
 import { clientIp, hashIp } from "@/services/ai-assistant/rate-limit";
+import { hasImpersonationCookie } from "@/lib/impersonation/server";
 
 /** Misma persona abriendo la misma ficha dentro de esta ventana cuenta una sola vez. */
 const DEDUPE_MS = 30 * 60 * 1000;
@@ -14,6 +15,8 @@ const DEDUPE_MS = 30 * 60 * 1000;
  */
 export async function recordProductView(productId: string, userId?: string | null): Promise<void> {
   try {
+    // Un admin mirando «como» otro usuario no ensucia las métricas de ese cliente.
+    if (hasImpersonationCookie()) return;
     const hdrs = await headers();
     if (isCrawlerUserAgent(hdrs.get("user-agent"))) return;
     const store = await cookies();

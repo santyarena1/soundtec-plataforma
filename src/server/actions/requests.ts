@@ -14,6 +14,8 @@ import { accessoryAckNote, evaluateAccessoryPolicy } from "@/lib/accessory-conte
 import { getOrCreateActiveDraft } from "@/lib/draft-request";
 import { generateAndStoreQuotePdf } from "@/lib/quote-pdf-store";
 import { CUSTOMER_ORDERS_DISABLED_MESSAGE, CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
+import { orderNotice } from "@/lib/mail/transactional/messages";
+import { notifyTeam } from "@/server/mail/transactional";
 
 function revalidateDraftPaths(requestId: string) {
   revalidatePath("/portal/requests");
@@ -630,6 +632,19 @@ export async function sendRequest(formData: FormData): Promise<void> {
       projectDescription: parsed.data.projectDescription ?? request.projectDescription,
     },
   });
+  const client = request.clientId ? await prisma.client.findUnique({ where: { id: request.clientId }, select: { companyName: true } }).catch(() => null) : null;
+  await notifyTeam("order", (portalUrl) =>
+    orderNotice(
+      {
+        id: request.id,
+        client: client?.companyName ?? user.companyName ?? user.name ?? user.email ?? "Cliente",
+        user: `${user.name ?? ""} (${user.email})`.trim(),
+        items: request.items.length,
+        description: parsed.data.projectDescription ?? request.projectDescription,
+      },
+      portalUrl
+    )
+  );
   revalidatePath("/portal/requests");
   revalidatePath(`/portal/requests/${request.id}`);
   revalidatePath("/admin/requests");

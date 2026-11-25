@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShareListTable } from "./share-list-table";
 import { ShareListCta } from "./share-list-cta";
 import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
-import { auth } from "@/lib/auth";
+import { getViewerSession } from "@/lib/auth-helpers";
 import { headers } from "next/headers";
 import { createHash } from "crypto";
 import Link from "next/link";
@@ -50,7 +50,7 @@ export default async function PublicShareListPage({ params, searchParams }: { pa
     clientId: list.clientId,
     limit: pageSize, offset: (page - 1) * pageSize, includePrices: !list.hidePrices,
   });
-  const [session, setting] = await Promise.all([auth(), prisma.adminSetting.findUnique({ where: { key: "share_lists.contact_email" }, select: { value: true } })]);
+  const [session, setting] = await Promise.all([getViewerSession(), prisma.adminSetting.findUnique({ where: { key: "share_lists.contact_email" }, select: { value: true } })]);
   const email = setting?.value?.trim() || "contacto@soundtec.com.ar";
   const mailto = `mailto:${email}?subject=${encodeURIComponent("Cotización · " + list.name)}`;
 

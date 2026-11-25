@@ -6,23 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ImageIcon, Loader2, Upload, Search, Star, Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
-import {
-  attachProductImage,
-  deleteProductImage,
-  searchProductImagesAction,
-  setPrimaryImage,
-  uploadProductImageFile,
-} from "@/server/actions/product-enrichment";
-import { ConfirmSubmit } from "@/components/ui/confirm-button";
-
-interface Image {
-  id: string;
-  url: string;
-  alt: string | null;
-  isPrimary: boolean;
-  source: string | null;
-}
+import { ImageIcon, Loader2, Upload, Search, AlertCircle, CheckCircle2, Youtube } from "lucide-react";
+import { attachProductImage, searchProductImagesAction, uploadProductImageFile } from "@/server/actions/product-enrichment";
+import { addProductVideoAction } from "@/server/actions/product-media";
+import { GalleryEditor, type GalleryEditorItem } from "./gallery-editor";
 
 interface SerperResult {
   url: string;
@@ -35,20 +22,15 @@ interface SerperResult {
 const IMAGE_ACCEPT = "image/*,.heic,.heif,.avif,.svg,.tif,.tiff,.bmp";
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif|avif|heic|heif|svg|tiff?|bmp)$/i;
 
-function sourceLabel(source: string | null): string {
-  if (!source) return "manual";
-  if (source === "url") return "URL pegada";
-  if (source === "upload") return "archivo";
-  return source;
-}
-
 interface Props {
   productId: string;
   productName: string;
-  images: Image[];
+  /** Fotos y videos en el orden de la galería. */
+  media: GalleryEditorItem[];
 }
 
-export function ProductImagesPanel({ productId, productName, images }: Props) {
+export function ProductImagesPanel({ productId, productName, media }: Props) {
+  const images = media.filter((item) => item.kind === "image");
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,7 +39,7 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [markAsPrimary, setMarkAsPrimary] = useState(!images.some((img) => img.isPrimary));
+  const [markAsPrimary, setMarkAsPrimary] = useState(!images.some((img) => img.kind === "image" && img.isPrimary));
 
   // Serper search
   const [query, setQuery] = useState(productName);
@@ -70,7 +52,29 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
   const [attachErrors, setAttachErrors] = useState<Record<string, string>>({});
   const [attachNote, setAttachNote] = useState<string | null>(null);
   const [pastedUrl, setPastedUrl] = useState("");
-  const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set());
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const [addingVideo, setAddingVideo] = useState(false);
+
+  async function addVideo() {
+    const url = videoUrl.trim();
+    if (!url) return;
+    setAddingVideo(true);
+    setVideoError(null);
+    try {
+      const r = await addProductVideoAction({ productId, url });
+      if (!r.ok) {
+        setVideoError(r.error);
+        return;
+      }
+      setVideoUrl("");
+      router.refresh();
+    } catch {
+      setVideoError("No se pudo agregar el video. Probá de nuevo.");
+    } finally {
+      setAddingVideo(false);
+    }
+  }
 
   async function attachFromUrl(key: string, input: { url: string; alt?: string; pageUrl?: string; thumbnail?: string; origin: "serper" | "url" }) {
     setAttaching(key);
@@ -160,8 +164,8 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <ImageIcon className="h-4 w-4 text-accent" />
-            <h2 className="heading-3">Imágenes del producto</h2>
-            <Badge tone="muted">{images.length}</Badge>
+            <h2 className="heading-3">Fotos y videos del producto</h2>
+            <Badge tone="muted">{media.length}</Badge>
           </div>
           <p className="text-xs text-muted-foreground">
             Archivo, URL pegada o búsqueda: el sistema descarga la foto, la convierte si
@@ -169,83 +173,44 @@ export function ProductImagesPanel({ productId, productName, images }: Props) {
           </p>
         </div>
 
-        {/* ── GALERÍA ── */}
-        {images.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {images.map((img) => (
-              <div
-                key={img.id}
-                className={`relative overflow-hidden rounded-md border ${
-                  img.isPrimary ? "border-accent ring-2 ring-accent/40" : "border-border"
-                }`}
-              >
-                <div className="aspect-square bg-secondary">
-                  {brokenIds.has(img.id) ? (
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center text-[11px] text-destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      No carga: el sitio original ya no la muestra. Quitala y volvé a agregarla.
-                    </div>
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={img.url}
-                      alt={img.alt || ""}
-                      className="h-full w-full object-cover"
-                      onError={() => setBrokenIds((prev) => new Set(prev).add(img.id))}
-                      // Si falló antes de que la página se active, onError ya no se dispara.
-                      ref={(el) => {
-                        if (el && el.complete && el.naturalWidth === 0 && !brokenIds.has(img.id)) {
-                          setBrokenIds((prev) => new Set(prev).add(img.id));
-                        }
-                      }}
-                    />
-                  )}
-                </div>
-                {img.isPrimary && (
-                  <div className="absolute top-1.5 left-1.5">
-                    <Badge tone="accent" className="text-[10px]">
-                      <Star className="h-2.5 w-2.5" /> Principal
-                    </Badge>
-                  </div>
-                )}
-                <div className="flex items-center justify-between gap-1 p-2 bg-card">
-                  <span className="text-[10px] text-muted-foreground truncate" title={sourceLabel(img.source)}>
-                    {sourceLabel(img.source)}
-                  </span>
-                  <div className="flex gap-1.5">
-                    {!img.isPrimary ? (
-                      <form action={setPrimaryImage}>
-                        <input type="hidden" name="id" value={img.id} />
-                        <input type="hidden" name="productId" value={productId} />
-                        <button
-                          type="submit"
-                          className="text-[10px] text-accent hover:underline inline-flex items-center gap-0.5"
-                          title="Marcar como principal"
-                        >
-                          <Star className="h-2.5 w-2.5" />
-                          Principal
-                        </button>
-                      </form>
-                    ) : null}
-                    <form action={deleteProductImage}>
-                      <input type="hidden" name="id" value={img.id} />
-                      <input type="hidden" name="productId" value={productId} />
-                      <ConfirmSubmit
-                        confirmMessage="¿Quitar esta imagen?"
-                        className="text-[10px] text-destructive inline-flex items-center gap-0.5"
-                      >
-                        <Trash2 className="h-2.5 w-2.5" />
-                        Quitar
-                      </ConfirmSubmit>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            ))}
+        {/* ── GALERÍA (fotos y videos, ordenables) ── */}
+        <GalleryEditor productId={productId} items={media} />
+
+        {/* ── VIDEO ── */}
+        <form
+          className="space-y-1.5 rounded-md border border-border p-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void addVideo();
+          }}
+        >
+          <Label htmlFor="productVideoUrl" className="flex items-center gap-1.5">
+            <Youtube className="h-3.5 w-3.5 text-accent" /> Sumar un video de YouTube o Instagram
+          </Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              id="productVideoUrl"
+              type="url"
+              inputMode="url"
+              className="min-w-[16rem] flex-1"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=… · youtu.be/… · instagram.com/reel/…"
+            />
+            <Button type="submit" size="sm" disabled={!videoUrl.trim() || addingVideo}>
+              {addingVideo ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+              Agregar video
+            </Button>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Este producto todavía no tiene imágenes.</p>
-        )}
+          <p className="text-[11px] text-muted-foreground">
+            Se guarda el link, no el archivo. En la ficha aparece con un ícono de play y el reproductor carga recién cuando el cliente lo toca.
+          </p>
+          {videoError ? (
+            <p className="flex items-center gap-1 text-xs text-destructive">
+              <AlertCircle className="h-3 w-3 shrink-0" /> {videoError}
+            </p>
+          ) : null}
+        </form>
 
         {/* ── DROPZONE ── */}
         <div

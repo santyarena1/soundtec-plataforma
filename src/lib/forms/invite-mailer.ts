@@ -1,9 +1,11 @@
 import { simpleParser } from "mailparser";
 import { prisma } from "@/lib/prisma";
-import { createImap, createTransport, findSentFolder, getMailAccount } from "@/lib/mail/account";
+import { createImap, createTransport, findSentFolder, getFormsMailAccount, getMailAccount } from "@/lib/mail/account";
+import { recordExternalSend, smtpBudgetLeft } from "@/server/mail/transactional";
 import { readSettings } from "@/lib/forms/types";
 import { inviteHeaderUrl, inviteUrl } from "@/lib/forms/invites";
 import { renderInviteEmail } from "@/lib/forms/invite-email";
+import { inviteOpenPixelUrl } from "@/lib/forms/invite-tracking";
 
 /** Por tanda: el hosting limita los envíos por hora; con 10 por llamada y pausas no se pasa. */
 export const INVITE_BATCH_SIZE = 10;
@@ -32,14 +34,19 @@ export async function countToSend(formId: string, mode: SendMode, startedAt = ne
  * esta misma corrida. Deja una copia de cada mail en «Enviados» de la casilla.
  */
 export async function sendInviteBatch(formId: string, mode: SendMode, startedAt: Date): Promise<{ sent: number; failed: number; remaining: number; error?: string }> {
-  const account = await getMailAccount();
-  if (!account) return { sent: 0, failed: 0, remaining: 0, error: "Falta configurar la cuenta de correo (Configuración › Correo de envío)." };
+  const account = await getFormsMailAccount();
+  if (!account) return { sent: 0, failed: 0, remaining: 0, error: "Falta configurar la cuenta de correo (Configuración › Correo)." };
   const form = await prisma.form.findUnique({ where: { id: formId }, select: { title: true, token: true, settings: true } });
   if (!form) return { sent: 0, failed: 0, remaining: 0, error: "Ese formulario ya no existe." };
   const settings = readSettings(form.settings);
   const headerUrl = inviteHeaderUrl(settings.logoUrl || settings.welcomeImageUrl);
 
-  const batch = await prisma.formInvite.findMany({ where: whereFor(formId, mode, startedAt), orderBy: { createdAt: "asc" }, take: INVITE_BATCH_SIZE });
+  // Si sale por la casilla del portal, comparte su tope por hora con los demás mails del sistema.
+  const sharesPortalAccount = (await getMailAccount())?.user.toLowerCase() === account.user.toLowerCase();
+  const budget = sharesPortalAccount ? await smtpBudgetLeft() : INVITE_BATCH_SIZE;
+  if (budget <= 0) return { sent: 0, failed: 0, remaining: await countToSend(formId, mode, startedAt), error: "Se llegó al tope de mails por hora de la casilla (Configuración › Correo). Seguí en un rato." };
+
+  const batch = await prisma.formInvite.findMany({ where: whereFor(formId, mode, startedAt), orderBy: { createdAt: "asc" }, take: Math.min(INVITE_BATCH_SIZE, budget) });
   const transport = createTransport(account);
   const raws: Buffer[] = [];
   let sent = 0;
@@ -57,6 +64,7 @@ export async function sendInviteBatch(formId: string, mode: SendMode, startedAt:
       accent: settings.accent,
       invite,
       reminder: mode === "reminder",
+      openPixelUrl: inviteOpenPixelUrl(invite.code),
     });
     const message = {
       from: { name: account.fromName, address: account.user },
@@ -68,6 +76,7 @@ export async function sendInviteBatch(formId: string, mode: SendMode, startedAt:
     try {
       await transport.sendMail(message);
       sent += 1;
+      if (sharesPortalAccount) await recordExternalSend({ kind: "form_invite", to: invite.email, subject: mail.subject, ok: true });
       await prisma.formInvite.update({ where: { id: invite.id }, data: { status: "SENT", sentAt: new Date(), sendCount: { increment: 1 }, lastError: null } });
       // La copia para «Enviados» se arma aparte (el transporte SMTP no la guarda en la casilla).
       const copy = await createRawMessage(message);
@@ -76,6 +85,7 @@ export async function sendInviteBatch(formId: string, mode: SendMode, startedAt:
       failed += 1;
       const text = error instanceof Error ? error.message : String(error);
       await prisma.formInvite.update({ where: { id: invite.id }, data: { status: "FAILED", sendCount: { increment: 1 }, lastError: text.slice(0, 500) } });
+      if (sharesPortalAccount) await recordExternalSend({ kind: "form_invite", to: invite.email, subject: mail.subject, ok: false, error: text });
       // Credenciales o límite del servidor: no tiene sentido seguir con el resto de la tanda.
       if (/auth|login|credentials|535|rate|limit|too many/i.test(text)) {
         transport.close();
@@ -120,7 +130,7 @@ const BOUNCE_SUBJECT = /undeliver|delivery status|delivery failure|failure notic
  * qué invitado eran) y guarda las respuestas por mail de los invitados.
  */
 export async function checkInviteInbox(formId: string): Promise<{ replies: number; bounces: number; error?: string }> {
-  const account = await getMailAccount();
+  const account = await getFormsMailAccount();
   if (!account) return { replies: 0, bounces: 0, error: "Falta configurar la cuenta de correo." };
   const invites = await prisma.formInvite.findMany({ where: { formId, sentAt: { not: null } }, select: { id: true, email: true, sentAt: true, repliedAt: true, status: true } });
   if (!invites.length) return { replies: 0, bounces: 0 };

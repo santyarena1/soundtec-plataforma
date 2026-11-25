@@ -5,6 +5,7 @@ import { ShoppingCart, X, Loader2, CheckSquare, Tag } from "lucide-react";
 import { PriceEditorModal } from "@/components/pricing/price-editor-modal";
 import { bulkAddToDraftSimple } from "@/server/actions/requests";
 import { useRouter } from "next/navigation";
+import { useCompareSelection } from "@/components/compare/compare-store";
 
 interface Props {
   children: React.ReactNode;
@@ -23,6 +24,8 @@ export function CatalogMultiSelectProvider({ children, productIds, canEditPrices
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
+  // Con la barra de «Comparar» abierta, esta se corre arriba para no taparla.
+  const comparing = useCompareSelection().length > 0;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -63,7 +66,7 @@ export function CatalogMultiSelectProvider({ children, productIds, canEditPrices
       {children}
       {editIds ? <PriceEditorModal productIds={editIds} open onClose={() => setEditIds(null)} /> : null}
       {selected.size > 0 && (
-        <div className="fixed bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5rem))] left-1/2 z-50 w-[calc(100vw-1.5rem)] max-w-lg -translate-x-1/2 md:bottom-6">
+        <div className={`fixed left-1/2 z-50 w-[calc(100vw-1.5rem)] max-w-lg -translate-x-1/2 ${comparing ? "bottom-[max(10.75rem,calc(env(safe-area-inset-bottom)+10.25rem))] md:bottom-32" : "bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5rem))] md:bottom-6"}`}>
           <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-primary/30 bg-card px-3 py-3 shadow-2xl ring-1 ring-primary/10 sm:gap-3 sm:px-5">
             <CheckSquare className="h-4 w-4 text-primary shrink-0" />
             <span className="text-sm font-medium">
@@ -199,7 +202,7 @@ export function SelectableCard({
           }}
           aria-label="Editar precio"
           title="Editar precio"
-          className="absolute right-2 top-12 z-10 inline-flex items-center gap-1 rounded-md border border-border bg-card/95 px-2 py-1 text-[11px] font-medium text-foreground opacity-0 shadow-sm transition-opacity hover:bg-secondary group-hover/selectable:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100"
+          className="absolute left-2 top-10 z-10 inline-flex items-center gap-1 rounded-md border border-border bg-card/95 px-2 py-1 text-[11px] font-medium text-foreground opacity-0 shadow-sm transition-opacity hover:bg-secondary group-hover/selectable:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100"
         >
           <Tag className="h-3 w-3" /> Editar precio
         </button>

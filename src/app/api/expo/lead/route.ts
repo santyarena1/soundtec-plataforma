@@ -8,6 +8,8 @@ import { z } from "zod";
 import { saveExpoLead } from "@/services/ai-assistant/leads";
 import { checkAssistantLimits, clientIp, hashIp } from "@/services/ai-assistant/rate-limit";
 import { dismissReminder, getOrCreateSession } from "@/services/ai-assistant/session";
+import { leadNotice } from "@/lib/mail/transactional/messages";
+import { notifyTeam } from "@/server/mail/transactional";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
@@ -60,6 +62,10 @@ export async function POST(req: NextRequest) {
     if (!result.ok) {
       // Sin datos no es un error para el visitante: sigue al chat igual.
       return NextResponse.json({ ok: true, sessionId: session.id, saved: false });
+    }
+    // Solo el primer envío de la sesión avisa al equipo (las correcciones posteriores no).
+    if (result.created) {
+      await notifyTeam("lead", (portalUrl) => leadNotice(parsed.data, portalUrl));
     }
     return NextResponse.json({ ok: true, sessionId: session.id, saved: true });
   } catch (error) {

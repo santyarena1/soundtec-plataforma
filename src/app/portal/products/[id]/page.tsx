@@ -1,3 +1,4 @@
+import { GALLERY_IMAGE_ORDER, GALLERY_VIDEO_ORDER } from "@/lib/product-media";
 import { hasConfigurator, productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -12,6 +13,10 @@ import { evaluateAccessoryPolicy } from "@/lib/accessory-context";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { Badge } from "@/components/ui/badge";
 import { commercialTagFor } from "@/lib/commercial-tags";
+import { CommercialTagBadge, ProductLabelChips } from "@/components/catalog/commercial-tag-badge";
+import { ProductPrice } from "@/components/catalog/product-price";
+import { CompareToggle } from "@/components/compare/compare-toggle";
+import { getConditionsView } from "@/server/catalog/client-conditions";
 import { ProductKeyFeatures } from "@/components/catalog/product-key-features";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { FavoriteButton } from "../favorite-button";
@@ -22,6 +27,8 @@ import { PriceTaxNotice } from "@/components/catalog/price-tax-notice";
 import { CategoryPath } from "@/components/catalog/category-path";
 import { productCategoryCrumbs } from "@/lib/category-tree";
 import { FeaturedStarButton } from "../featured-star-button";
+import { FeaturedRubroButton } from "@/components/catalog/featured-rubro-button";
+import { isLongDescriptionAiGenerated } from "@/lib/ai-content";
 import { AddToRequestPanel } from "./add-to-request-panel";
 import { ProductBundleProvider, BundleStagingPanel } from "./product-bundle";
 import { ProductGallery } from "./product-gallery";
@@ -40,6 +47,7 @@ import { ArrowLeft, Sparkles, FileText } from "lucide-react";
 import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
 import { MoreFromSeries } from "@/components/catalog/more-from-series";
 import { getMoreFromSeries } from "@/lib/catalog";
+import { AdminQuickEdit } from "@/components/admin-quick-edit/admin-quick-edit";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -51,7 +59,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       brand: true,
       category: true,
       series: { select: { id: true, name: true } },
-      images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
+      images: { orderBy: GALLERY_IMAGE_ORDER },
+      videos: { orderBy: GALLERY_VIDEO_ORDER },
+      labels: { select: { label: { select: { id: true, name: true, color: true } } } },
       options: { orderBy: { sortOrder: "asc" } },
       accessories: {
         include: {
@@ -96,6 +106,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   // Admins y equipo interno ven todo el catálogo con precio de venta general; solo los admins ven costos.
   const isAdminViewer = isPanelRole(user.role);
   const commercialClientId = !isAdminViewer ? await resolveCommercialClientId(user.id) : null;
+  // «Activá tus descuentos»: con condiciones propias se ve lista hasta que el cliente lo prende.
+  const priceClientId = commercialClientId ? (await getConditionsView(user.id, commercialClientId)).priceClientId : null;
   if (!isAdminViewer) {
     if (!commercialClientId) notFound();
     if (product.brand?.hiddenFromCatalog) notFound();
@@ -118,7 +130,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   // «Más de la serie»: lo que ve este usuario de la misma serie y marca (no espera al resto).
   const moreFromSeriesPromise = getMoreFromSeries(
     { id: product.id, lineId: product.lineId, brandId: product.brandId },
-    { commercialClientId, userId: user.id, isAdmin: isAdminViewer }
+    { commercialClientId, userId: user.id, isAdmin: isAdminViewer, priceClientId }
   );
 
   // Camino del rubro (el equipo lo ve aunque sea «Sin categorizar» o un rubro viejo).
@@ -162,11 +174,21 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       ivaPercent: product.ivaPercent != null ? Number(product.ivaPercent) : null,
       impIntPercent: product.impIntPercent != null ? Number(product.impIntPercent) : null,
     },
-    clientId: commercialClientId,
+    clientId: priceClientId,
     defaultGlobalMarginPercent: globalMargin,
   });
 
-  const aiFeedback = product.aiGeneratedDescription
+  // Cartel comercial (descuento, A pedido…) y etiquetas del panel, junto al título.
+  const commercialTag = commercialTagFor({
+    commercialTag: product.commercialTag,
+    discountPercent: pricing.discountPercent,
+    priceOnRequest: product.requiresQuote || pricing.finalPriceUsd <= 0,
+  });
+  const productLabels = product.labels.map((l) => l.label).sort((a, b) => a.name.localeCompare(b.name, "es-AR", { sensitivity: "base" }));
+
+  // Cartel «Generado con IA»: solo la descripción larga y solo si la escribió la IA (ver lib/ai-content).
+  const aiLongDescription = isLongDescriptionAiGenerated(product);
+  const aiFeedback = aiLongDescription
       ? await prisma.aiContentFeedback.findFirst({
         where: { type: "PRODUCT_DESCRIPTION", refId: product.id, userId: user.id },
         orderBy: { createdAt: "desc" },
@@ -231,7 +253,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             ivaPercent: p.ivaPercent != null ? Number(p.ivaPercent) : null,
             impIntPercent: p.impIntPercent != null ? Number(p.impIntPercent) : null,
           })),
-          commercialClientId,
+          priceClientId,
           globalMargin
         )
       : new Map();
@@ -304,7 +326,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
         <div className="min-w-0 lg:sticky lg:top-6">
           <ProductGallery
-            images={product.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt }))}
+            images={product.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, isPrimary: i.isPrimary, sortOrder: i.sortOrder, createdAt: i.createdAt }))}
+            videos={product.videos.map((v) => ({ id: v.id, provider: v.provider, videoId: v.videoId, url: v.url, title: v.title, sortOrder: v.sortOrder, createdAt: v.createdAt }))}
             productName={product.normalizedName}
           />
         </div>
@@ -321,28 +344,25 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               {customerCategoryName(product.category) ? ` · ${customerCategoryName(product.category)}` : ""}
               {product.series?.name ? ` · Serie ${product.series.name}` : ""}
             </p>
-            {(() => {
-              const tag = commercialTagFor({
-                commercialTag: product.commercialTag,
-                isDiscontinued: product.isDiscontinued,
-                discountPercent: pricing.discountPercent,
-                priceOnRequest: product.requiresQuote || pricing.finalPriceUsd <= 0,
-              });
-              return tag ? (
-                <p className="flex flex-wrap items-center gap-2">
-                  <span className={`rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${tag.className}`}>{tag.label}</span>
-                  {tag.hint ? <span className="text-sm text-muted-foreground">{tag.hint}</span> : null}
-                </p>
-              ) : null;
-            })()}
+            {commercialTag || productLabels.length ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {commercialTag ? <CommercialTagBadge tag={commercialTag} size="detail" /> : null}
+                <ProductLabelChips labels={productLabels} size="detail" />
+                {commercialTag?.hint ? <span className="text-sm text-muted-foreground">{commercialTag.hint}</span> : null}
+              </div>
+            ) : null}
             <h1 className="heading-2 text-2xl leading-tight sm:text-3xl">{productTitle(product)}</h1>
             {productSubtitle(product) ? <p className="muted-text mt-2">{productSubtitle(product)}</p> : null}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StockBadge status={product.stockStatus} qty={product.stockQuantity} internal={isAdminViewer} />
               {hasConfigurator({ isCustomizable: product.isCustomizable, optionCount: product.options.length }) ? <Badge tone="accent">Configurable</Badge> : null}
               {product.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : <Badge tone="primary">Producto principal</Badge>}
-              {pricing.discountPercent > 0 ? (
+              {pricing.discountPercent > 0 && commercialTag?.kind !== "discount" ? (
                 <Badge tone="success">Descuento {formatPercent(pricing.discountPercent)}</Badge>
+              ) : null}
+              {/* Dato del fabricante, solo para el equipo: al cliente no se le muestra ningún cartel por esto. */}
+              {isAdminViewer && product.isDiscontinued ? (
+                <Badge tone="muted" title="Lo informa el fabricante o el proveedor. No dispara «Últimas unidades».">Discontinuado por el fabricante</Badge>
               ) : null}
               {isAdminViewer && tangoCode(product.internalSku) ? (
                 <span className="text-xs text-muted-foreground">Código Tango: {tangoCode(product.internalSku)}</span>
@@ -363,12 +383,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 </>
               ) : (
                 <>
-                  {pricing.discountPercent > 0 ? (
-                    <p className="text-sm text-muted-foreground line-through">
-                      {formatUsd(pricing.priceBeforeDiscountUsd)}
-                    </p>
-                  ) : null}
-                  <p className="text-3xl font-semibold tracking-tight">{formatUsd(pricing.finalPriceUsd)}</p>
+                  <ProductPrice
+                    finalUsd={pricing.finalPriceUsd}
+                    regularUsd={pricing.priceBeforeDiscountUsd}
+                    discountPercent={pricing.discountPercent}
+                    size="detail"
+                  />
                   <PriceTaxNotice compact />
                 </>
               )}
@@ -393,11 +413,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                   {/* Solo equipo Soundtec: el stock del proveedor, separado de lo que ve el cliente. */}
                   <OriginStockPanel status={product.stockStatus} qty={product.stockQuantity} />
                   {canFeature ? <FeaturedStarButton productId={product.id} isFeatured={product.isFeatured} label /> : null}
+                  {canFeature ? <FeaturedRubroButton productId={product.id} /> : null}
                 </div>
               ) : null}
 
               <div className="pt-2 flex flex-wrap items-center gap-2">
                 <FavoriteButton productId={product.id} isFavorite={!!favItem} label />
+                <CompareToggle variant="button" product={{ id: product.id, name: productTitle(product), brand: product.brand?.name ?? null, image: product.images[0]?.url ?? null }} />
                 {product.isCustomizable && product.options.length > 0 ? (
                   <a href="#configurador" className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-secondary">
                     Configurar producto
@@ -453,14 +475,15 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-accent" />
             <CardTitle>Descripción técnica</CardTitle>
-            {product.aiGeneratedDescription ? (
-              <Badge tone="accent">
-                <Sparkles className="h-3 w-3" /> Generado con IA
-              </Badge>
-            ) : null}
           </div>
           {product.longDescription ? (
             <div className="prose prose-sm max-w-none text-foreground">
+              {/* El cartel va pegado al texto que escribió la IA, no al bloque entero (características y specs son de la ficha). */}
+              {aiLongDescription ? (
+                <Badge tone="accent" className="not-prose">
+                  <Sparkles className="h-3 w-3" /> Descripción generada con IA
+                </Badge>
+              ) : null}
               {product.longDescription.split("\n").map((line, i) => (
                 <p key={i} className="my-2">
                   {line}
@@ -471,9 +494,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <p className="muted-text">Sin descripción detallada cargada.</p>
           )}
 
-          <ProductKeyFeatures features={product.keyFeatures} translated={Boolean(product.translatedAt)} />
-
-          {product.aiGeneratedDescription ? (
+          {aiLongDescription ? (
             <AiContentNotice
               entity="Product"
               refId={product.id}
@@ -481,9 +502,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               existingVerdict={aiFeedback?.verdict ?? null}
               existingComment={aiFeedback?.comment ?? null}
               existingIssues={aiFeedback?.issues ?? []}
-              generatedText={product.longDescription || product.shortDescription || ""}
+              generatedText={product.longDescription || ""}
             />
           ) : null}
+
+          <ProductKeyFeatures features={product.keyFeatures} translated={Boolean(product.translatedAt)} />
         </CardContent>
       </Card>
 
@@ -585,6 +608,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         />
       ) : null}
       </ProductBundleProvider>
+      <AdminQuickEdit productId={product.id} />
     </div>
   );
 }

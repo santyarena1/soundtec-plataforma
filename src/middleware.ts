@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { IMPERSONATION_COOKIE } from "@/lib/impersonation/token";
+import { impersonationGate } from "@/lib/impersonation/middleware-gate";
 
 const PREVIEW_BOTS =
   /facebookexternalhit|facebot|whatsapp|twitterbot|linkedinbot|slackbot|slack-imgproxy|telegrambot|discordbot|skypeuripreview|pinterest|redditbot|applebot|embedly|iframely|vkshare|google-inspectiontool|googlebot|bingbot/i;
@@ -8,7 +10,16 @@ function isPreviewBot(userAgent: string | null): boolean {
   return Boolean(userAgent && PREVIEW_BOTS.test(userAgent));
 }
 
-export default auth((req) => {
+export default auth(async (req) => {
+  // «Ver como este usuario» (admin en solo lectura): frena todo envío antes que nada.
+  const viewCookie = req.cookies.get(IMPERSONATION_COOKIE)?.value;
+  if (viewCookie) {
+    const gate = await impersonationGate(req, viewCookie, req.auth?.user?.id);
+    if (gate) return gate;
+  }
+  // La API entra al middleware solo por «Ver como»; el resto sigue como siempre.
+  if (req.nextUrl.pathname.startsWith("/api/")) return NextResponse.next();
+
   // Server Actions POST al URL de la página. Un 302 acá hace que
   // `await action()` resuelva a undefined y el cliente reviente en `.error`.
   if (req.method === "POST" && req.headers.get("next-action")) {
@@ -23,8 +34,9 @@ export default auth((req) => {
   // Para salir hay que confirmar la clave desde la cinta del catálogo.
   if (req.cookies.get("st_catalogo")?.value === "1" && (pathname.startsWith("/portal") || pathname.startsWith("/admin"))) {
     const product = pathname.match(/^\/portal\/products\/([^/]+)\/?$/);
-    const target = new URL(product ? `/catalogo/${product[1]}` : "/catalogo", req.nextUrl);
-    if (pathname.startsWith("/portal/products")) target.search = req.nextUrl.search;
+    const compare = /^\/portal\/comparar\/?$/.test(pathname);
+    const target = new URL(product ? `/catalogo/${product[1]}` : compare ? "/catalogo/comparar" : "/catalogo", req.nextUrl);
+    if (pathname.startsWith("/portal/products") || compare) target.search = req.nextUrl.search;
     return NextResponse.redirect(target);
   }
   const role = req.auth?.user?.role;
@@ -58,6 +70,12 @@ export default auth((req) => {
   if (pathname.startsWith("/portal")) {
     if (!isLogged) {
       // Un link de producto compartido debe abrir igual: versión pública sin precios.
+      // Una comparación compartida también abre: la pública, sin precios.
+      if (/^\/portal\/comparar\/?$/.test(pathname)) {
+        const publicUrl = new URL("/catalogo/comparar", req.nextUrl);
+        publicUrl.search = req.nextUrl.search;
+        return NextResponse.redirect(publicUrl);
+      }
       const productMatch = pathname.match(/^\/portal\/products(?:\/([^/]+))?\/?$/);
       if (productMatch) {
         const publicUrl = new URL(
@@ -83,5 +101,6 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  // La segunda entrada suma la API (menos NextAuth) solo para frenar envíos durante «Ver como».
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)", "/api/((?!auth/).*)"],
 };

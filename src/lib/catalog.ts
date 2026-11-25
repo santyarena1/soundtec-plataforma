@@ -25,7 +25,9 @@ import { loadProductViewCounts } from "@/server/catalog/product-views";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import { customerHiddenCategoryIds } from "@/lib/customer-hidden-categories";
 import { customerCategoryName, isCustomerTreeNode } from "@/lib/tango-only";
-import { brandListingComparator, categorySortKeys } from "@/lib/brand-listing-order";
+import { createBrandListingIndex, sectionsForPage, type ListingSection } from "@/lib/brand-listing-order";
+import { loadBrandOrder } from "@/server/catalog/brand-listing-data";
+import type { QuickFilterCounts } from "@/lib/catalog-quick-filters";
 import { MORE_FROM_SERIES_MAX, moreFromSeriesQuery, NO_SERIES } from "@/lib/product-lines/series-filter";
 
 /**
@@ -66,6 +68,12 @@ export interface CatalogFilters {
   includeOutOfStock?: boolean;
   hasDiscount?: boolean;
   favoritesOnly?: boolean;
+  /** Solo la vista previa del admin: orden de rubros sin guardar (no sale de la URL). */
+  brandCategoryOrder?: string[];
+  /** Etiquetas del panel (Admin → Etiquetas, ?label=). Con varias, alcanza con una. */
+  labelIds?: string[];
+  /** Carteles comerciales (A_PEDIDO, LIQUIDACION…, ?tag=). Se suman a las etiquetas: alcanza con una. */
+  commercialTags?: string[];
   crestronOnly?: boolean;
   kind?: "PRINCIPAL" | "ACCESORIO" | "any";
   minPrice?: number;
@@ -105,6 +113,8 @@ export interface CatalogProduct {
   /** null en el catálogo público (sin precios). */
   pricing: PriceBreakdown | null;
   isFavorite: boolean;
+  /** Etiquetas del panel que lleva el producto (se ven en la tarjeta y la ficha). */
+  labels: Array<{ id: string; name: string; color: string }>;
 }
 
 export type FacetOption = { id: string; name: string; count: number };
@@ -129,7 +139,18 @@ export type CatalogContext = {
   isAdmin: boolean;
   /** Catálogo público: sin precios, sin stock, sin favoritos. */
   publicMode?: boolean;
+  /**
+   * Con qué cliente se calcula el precio que se muestra, si no es el de
+   * visibilidad: null = precio de lista («Activá tus descuentos» apagado).
+   * Sin definir = el mismo `commercialClientId`.
+   */
+  priceClientId?: string | null;
 };
+
+/** Cliente para el cálculo de precio (lista o con condiciones, ver lib/client-conditions). */
+function pricingClientOf(ctx: CatalogContext): string | null {
+  return ctx.priceClientId !== undefined ? ctx.priceClientId : ctx.commercialClientId;
+}
 
 type ProductRow = Prisma.ProductGetPayload<{
   include: {
@@ -138,6 +159,7 @@ type ProductRow = Prisma.ProductGetPayload<{
     series: { select: { id: true; name: true } };
     images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }]; take: 1 };
     _count: { select: { options: true } };
+    labels: { select: { label: { select: { id: true; name: true; color: true } } } };
   };
 }>;
 
@@ -223,6 +245,12 @@ async function buildCatalogWhere(
     const previous = where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : [];
     where.AND = [...previous, categoryExclusion];
   }
+  // Etiquetas: van al AND (pueden traer su propio OR y no deben pisar el de marcas).
+  const tagWhere = tagFilterWhere(filters);
+  if (Object.keys(tagWhere).length > 0) {
+    const previous = where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : [];
+    where.AND = [...previous, tagWhere];
+  }
   // Mantenemos la referencia al builder OR para compatibilidad con otros llamadores.
   void buildSearchOr;
 
@@ -238,6 +266,22 @@ async function buildCatalogWhere(
 
   void options;
   return where;
+}
+
+/**
+ * Botones de etiqueta (carteles comerciales y etiquetas del panel): alcanza con
+ * que el producto tenga UNA de las tocadas. Se combina (AND) con marca, rubro,
+ * búsqueda, descuento y favoritos. Sin etiquetas tocadas no agrega nada.
+ */
+function tagFilterWhere(filters: CatalogFilters): Prisma.ProductWhereInput {
+  const labelIds = filters.labelIds ?? [];
+  const tags = filters.commercialTags ?? [];
+  const or: Prisma.ProductWhereInput[] = [
+    ...(labelIds.length ? [{ labels: { some: { labelId: { in: labelIds } } } }] : []),
+    ...(tags.length ? [{ commercialTag: { in: tags } }] : []),
+  ];
+  if (or.length === 0) return {};
+  return or.length === 1 ? or[0] : { OR: or };
 }
 
 /**
@@ -309,6 +353,53 @@ export async function listCatalogCategoryTree(filters: CatalogFilters, ctx: Cata
     nodes.filter(isCustomerTreeNode),
     groups.map((g) => ({ categoryId: g.categoryId, count: g._count._all }))
   );
+}
+
+/**
+ * Cuántos productos de los que ve este usuario (con marca, rubro, serie y
+ * búsqueda actuales) tiene cada botón de filtro rápido: etiquetas del panel,
+ * carteles comerciales, descuento y favoritos. Se cuentan sin los botones
+ * tocados, así cada uno dice lo que trae por sí mismo.
+ */
+export async function listQuickFilterCounts(filters: CatalogFilters, ctx: CatalogContext): Promise<QuickFilterCounts> {
+  const where = await buildCatalogWhere(
+    { ...filters, hasDiscount: false, favoritesOnly: false, labelIds: [], commercialTags: [], page: undefined },
+    ctx
+  );
+  if (!where) return { labels: [], tags: [], discount: ctx.publicMode ? null : 0, favorites: ctx.userId && !ctx.publicMode ? 0 : null };
+  const [labelGroups, tagGroups, discount, favorites] = await Promise.all([
+    prisma.productLabel.groupBy({ by: ["labelId"], where: { product: where }, _count: { _all: true } }),
+    prisma.product.groupBy({ by: ["commercialTag"], where: { AND: [where, { commercialTag: { not: null } }] }, _count: { _all: true } }),
+    ctx.publicMode ? Promise.resolve(null) : prisma.product.count({ where: { AND: [where, { discountPercent: { gt: 0 } }] } }),
+    ctx.userId && !ctx.publicMode
+      ? prisma.product.count({ where: { AND: [where, { wishlistItems: { some: { wishlist: { userId: ctx.userId } } } }] } })
+      : Promise.resolve(null),
+  ]);
+  const labelIds = labelGroups.map((g) => g.labelId);
+  const labelRows = labelIds.length
+    ? await prisma.label.findMany({ where: { id: { in: labelIds } }, select: { id: true, name: true, color: true } })
+    : [];
+  const labelCount = new Map(labelGroups.map((g) => [g.labelId, g._count._all]));
+  return {
+    labels: labelRows.map((l) => ({ ...l, count: labelCount.get(l.id) ?? 0 })),
+    tags: tagGroups.filter((g) => g.commercialTag).map((g) => ({ key: g.commercialTag as string, count: g._count._all })),
+    discount,
+    favorites,
+  };
+}
+
+/**
+ * Productos puntuales (comparar) con lo que ve este usuario: visibilidad del
+ * cliente, marcas y rubros ocultos, y su precio. Respeta el orden de `ids`.
+ */
+export async function getCatalogProductsByIds(ids: string[], ctx: CatalogContext): Promise<CatalogProduct[]> {
+  if (ids.length === 0) return [];
+  const where = await getVisibleProductsWhere(ctx);
+  const rows = await prisma.product.findMany({ where: { AND: [where, { id: { in: ids } }] }, include: productInclude });
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const ordered = ids.map((id) => byId.get(id)).filter((r): r is ProductRow => !!r);
+  const items = await mapProductsToCatalogItems(ordered, ctx);
+  return ctx.publicMode ? items.map((i) => ({ ...i, pricing: null })) : items;
 }
 
 /** Nombres de los filtros activos, para las pastillas. No recorre el catálogo. */
@@ -386,13 +477,14 @@ async function mapProductsToCatalogItems(
     ? new Map<string, PriceBreakdown>()
     : await calculatePricesForProducts(
         products.map(toPricingInput),
-        ctx.commercialClientId,
+        pricingClientOf(ctx),
         globalMargin
       );
 
   return products.map((p) => ({
     id: p.id,
-    internalSku: p.internalSku,
+    // Código Tango: solo el equipo de Soundtec. A clientes y visitantes no les llega (ni en los datos).
+    internalSku: ctx.isAdmin && !ctx.publicMode ? p.internalSku : null,
     supplierSku: p.supplierSku,
     modelNumber: p.modelNumber,
     manufacturerItem: p.manufacturerItem,
@@ -416,6 +508,7 @@ async function mapProductsToCatalogItems(
     accessoryRequiredWithPrimary: p.accessoryRequiredWithPrimary,
     pricing: prices.get(p.id) ?? null,
     isFavorite: favSet.has(p.id),
+    labels: p.labels.map((l) => l.label).sort((a, b) => a.name.localeCompare(b.name, "es-AR", { sensitivity: "base" })),
   }));
 }
 
@@ -514,29 +607,32 @@ const productInclude = {
   series: { select: { id: true, name: true } },
   images: productCoverImageInclude,
   _count: { select: { options: true } },
+  labels: { select: { label: { select: { id: true, name: true, color: true } } } },
 } as const;
 
-let categoryKeysCache: { at: number; rows: ReturnType<typeof categorySortKeys> } | null = null;
-
 /**
- * Orden de rubros de la marca abierta (una sola marca, orden «Más relevantes»).
- * null = no se está mirando una marca: queda el orden de siempre.
+ * Orden de rubros de la marca abierta (una sola marca, orden «Más relevantes»,
+ * sin búsqueda). null = no se está mirando una marca: queda el orden de siempre.
+ * Los rubros viejos guardados pasan a su rubro de Tango (ver brand-listing-data).
  */
 async function loadBrandListingOrder(filters: CatalogFilters) {
   const brandId = filters.brandIds?.length === 1 ? filters.brandIds[0] : null;
   if (!brandId || filters.crestronOnly) return null;
-  if (!categoryKeysCache || Date.now() - categoryKeysCache.at > 5 * 60_000) {
-    const rows = await prisma.category.findMany({ select: { id: true, parentId: true, name: true, tangoPath: true } });
-    categoryKeysCache = { at: Date.now(), rows: categorySortKeys(rows) };
-  }
-  const brand = await prisma.brand.findUnique({ where: { id: brandId }, select: { categoryOrder: true } });
-  return { categoryOrder: brand?.categoryOrder ?? [], categories: categoryKeysCache.rows };
+  const state = await loadBrandOrder(brandId, { override: filters.brandCategoryOrder });
+  return state ? createBrandListingIndex({ categoryOrder: state.order, categories: state.categories }) : null;
 }
 
 export async function getCatalog(
   filters: CatalogFilters,
   ctx: CatalogContext
-): Promise<{ items: CatalogProduct[]; total: number; page: number; pageSize: number }> {
+): Promise<{
+  items: CatalogProduct[];
+  total: number;
+  page: number;
+  pageSize: number;
+  /** Dentro de una marca: encabezados (Destacados y rubros), con índices de la página. */
+  sections?: ListingSection[];
+}> {
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(60, Math.max(12, filters.pageSize ?? 24));
 
@@ -567,9 +663,7 @@ export async function getCatalog(
     const byRelevance = compareByRelevance(viewData.views, hasEnoughViews(viewData.total));
     type Light = { id: string; isCrestronHomeCompatible: boolean; price: number; isFeatured: boolean; categoryId: string | null };
     // Dentro de una marca: destacados primero y agrupado por rubro (ver lib/brand-listing-order).
-    const comparator = brandOrder
-      ? brandListingComparator<Light>({ ...brandOrder, fallback: byRelevance })
-      : byRelevance;
+    const comparator = brandOrder ? brandOrder.comparator<Light>(byRelevance) : byRelevance;
     const ordered = rows
       .map((r): Light => ({
         id: r.id,
@@ -584,7 +678,8 @@ export async function getCatalog(
     const byId = new Map(products.map((p) => [p.id, p]));
     const pageProducts = pageIds.map((id) => byId.get(id)).filter((p): p is ProductRow => !!p);
     const items = await mapProductsToCatalogItems(pageProducts, ctx);
-    return { items, total: ordered.length, page, pageSize };
+    const sections = brandOrder ? sectionsForPage(brandOrder.sectionsOf(ordered), start, pageSize) : undefined;
+    return { items, total: ordered.length, page, pageSize, sections };
   }
 
   // ORDEN PRIMARIO: kind ASC → PRINCIPAL sale primero, ACCESORIO después.
@@ -727,7 +822,7 @@ export async function getCatalogSidebarMeta(
       ivaPercent: p.ivaPercent != null ? Number(p.ivaPercent) : null,
       impIntPercent: p.impIntPercent != null ? Number(p.impIntPercent) : null,
     })),
-    ctx.commercialClientId,
+    pricingClientOf(ctx),
     globalMargin
   );
 

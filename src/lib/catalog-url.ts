@@ -1,5 +1,6 @@
 import type { CatalogFilters } from "@/lib/catalog";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
+import { parseLabelParam, parseTagParam } from "@/lib/catalog-quick-filters";
 
 export type CatalogView = "grid" | "table";
 
@@ -44,6 +45,8 @@ export function parseCatalogSearchParams(
     includeOutOfStock: SHOW_STOCK_TO_CUSTOMERS ? params.oos === "1" : true,
     hasDiscount: params.discount === "1",
     favoritesOnly: params.fav === "1",
+    labelIds: parseLabelParam(params.label),
+    commercialTags: parseTagParam(params.tag),
     crestronOnly: params.crestron === "1",
     kind: kind === "PRINCIPAL" || kind === "ACCESORIO" ? kind : "any",
     minPrice: parseNum(typeof params.minPrice === "string" ? params.minPrice : undefined),
@@ -70,6 +73,8 @@ export function countActiveCatalogFilters(
   if (state.stock && state.stock !== "any") n += 1;
   if (state.hasDiscount) n += 1;
   if (state.favoritesOnly) n += 1;
+  if (state.labelIds?.length) n += 1;
+  if (state.commercialTags?.length) n += 1;
   if (state.crestronOnly) n += 1;
   if (state.kind && state.kind !== "any") n += 1;
   if (state.minPrice != null || state.maxPrice != null) n += 1;

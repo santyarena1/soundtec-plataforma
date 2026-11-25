@@ -17,9 +17,9 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/app-url";
 import { ACTIVATION_TTL_MS, createActivationToken } from "@/lib/expo/activation-token";
-import { textToHtml } from "@/lib/expo/html";
 import { generateTemporaryPassword } from "@/lib/passwords";
-import { sendMail } from "@/server/mailer";
+import { accessInviteMail } from "@/lib/mail/transactional/messages";
+import { sendRendered } from "@/server/mail/transactional";
 
 export type AccessMode = "invite" | "temporary";
 
@@ -32,10 +32,6 @@ export async function unusablePasswordHash(): Promise<string> {
   return bcrypt.hash(randomBytes(32).toString("hex"), 12);
 }
 
-function inviteText(name: string, url: string, kind: "staff" | "portal"): string {
-  const where = kind === "staff" ? "al panel de Soundtec" : "al portal de clientes de Soundtec";
-  return `Hola ${name}, te dimos acceso ${where}.\n\nCreá tu contraseña desde este link (vence en 72 horas):\n${url}\n\nSi no esperabas este mail, ignoralo.`;
-}
 
 /**
  * Entrega el acceso. Invalida cualquier link de activación sin usar y sube la
@@ -70,8 +66,7 @@ export async function issueAccess(
   const activationUrl = `${appUrl()}/activar/${token}`;
   let mailSent = false;
   try {
-    const text = inviteText(user.name, activationUrl, kind);
-    mailSent = (await sendMail({ to: user.email, subject: "Tu acceso a Soundtec", text, html: textToHtml(text) })).sent;
+    mailSent = (await sendRendered("access_invite", user.email, (portalUrl) => accessInviteMail({ name: user.name, url: activationUrl, kind }, portalUrl))).sent;
   } catch (error) {
     console.error("[accesos] no se pudo mandar la invitación", error);
   }

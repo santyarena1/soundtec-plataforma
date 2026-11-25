@@ -5,6 +5,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/auth-helpers";
 
+/** El portal y el catálogo público muestran las etiquetas: se refrescan junto con el panel. */
+function revalidateCatalogs() {
+  revalidatePath("/portal", "layout");
+  revalidatePath("/catalogo", "layout");
+}
+
 const labelSchema = z.object({
   name: z.string().min(1).max(60),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#6366f1"),
@@ -26,6 +32,7 @@ export async function upsertLabel(formData: FormData): Promise<void> {
   }
   revalidatePath("/admin/labels");
   revalidatePath("/admin/products");
+  revalidateCatalogs();
 }
 
 export async function deleteLabel(formData: FormData): Promise<void> {
@@ -35,6 +42,7 @@ export async function deleteLabel(formData: FormData): Promise<void> {
   await prisma.label.delete({ where: { id } });
   revalidatePath("/admin/labels");
   revalidatePath("/admin/products");
+  revalidateCatalogs();
 }
 
 export async function setProductLabels(
@@ -53,6 +61,7 @@ export async function setProductLabels(
   ]);
 
   revalidatePath("/admin/products");
+  revalidateCatalogs();
   revalidatePath(`/admin/products/${productId}`);
   return { ok: true };
 }
@@ -77,5 +86,6 @@ export async function bulkSetLabel(
   }
 
   revalidatePath("/admin/products");
+  revalidateCatalogs();
   return { ok: true };
 }

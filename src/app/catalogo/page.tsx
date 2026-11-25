@@ -1,8 +1,9 @@
 import { isCatalogModeOn } from "@/lib/catalog-mode";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { auth } from "@/lib/auth";
-import { catalogFilterMeta, getCatalog, listBrandSeriesFacet, type CatalogContext } from "@/lib/catalog";
+import { getViewerSession } from "@/lib/auth-helpers";
+import { catalogFilterMeta, getCatalog, listBrandSeriesFacet, listQuickFilterCounts, type CatalogContext } from "@/lib/catalog";
+import { QuickFilterBar } from "@/components/catalog/quick-filter-bar";
 import { parseCatalogSearchParams, countActiveCatalogFilters, withoutLegacyFamilyParam } from "@/lib/catalog-url";
 import { redirect } from "next/navigation";
 import { SeriesFilterBar } from "@/components/catalog/series-filter-bar";
@@ -13,6 +14,7 @@ import { StickyAccountCta } from "@/components/catalog/account-cta";
 import { CatalogToolbar } from "@/app/portal/products/catalog-toolbar";
 import { CatalogLayout } from "@/app/portal/products/catalog-sidebar";
 import { CatalogGrid } from "@/app/portal/products/catalog-grid";
+import { BrandSections } from "@/app/portal/products/brand-sections";
 import { CatalogTable } from "@/app/portal/products/catalog-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AssistantEntry } from "@/components/expo/assistant-entry";
@@ -65,7 +67,8 @@ export default async function PublicCatalogPage({
   const legacy = withoutLegacyFamilyParam(BASE_PATH, rawParams);
   if (legacy) redirect(legacy);
   const urlState = parseCatalogSearchParams(rawParams);
-  const session = await auth().catch(() => null);
+  // Con «Ver como», el usuario visto (no el admin).
+  const session = await getViewerSession();
   // En modo catálogo (vendedor mostrándolo) se ve como un visitante: sin atajos al portal.
   const isLogged = !!session?.user && !isCatalogModeOn();
 
@@ -96,6 +99,8 @@ export default async function PublicCatalogPage({
     categoryIds: urlState.categoryIds,
     lineIds: urlState.lineIds,
     crestronOnly: urlState.crestronOnly,
+    labelIds: urlState.labelIds,
+    commercialTags: urlState.commercialTags,
     kind: urlState.kind,
     sort: urlState.sort,
     page: urlState.page,
@@ -103,10 +108,11 @@ export default async function PublicCatalogPage({
     includeOutOfStock: true,
   };
 
-  const [{ items, total, page, pageSize }, meta, brandSeries] = await Promise.all([
+  const [{ items, total, page, pageSize, sections }, meta, brandSeries, quickCounts] = await Promise.all([
     getCatalog(filters, ctx),
     catalogFilterMeta(filters),
     listBrandSeriesFacet(filters, ctx),
+    listQuickFilterCounts(filters, ctx),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   // Para «Lo más buscado» del panel. No espera a la base. El equipo interno no cuenta.
@@ -138,7 +144,7 @@ export default async function PublicCatalogPage({
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <AssistantEntry />
+          <AssistantEntry href="/expo?from=catalogo" />
           {isLogged ? (
             <Link
               href="/portal/products"
@@ -152,7 +158,7 @@ export default async function PublicCatalogPage({
 
       {!isLogged ? <StickyAccountCta /> : null}
 
-      <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} />
+      <BrandBar brands={brands} activeBrandId={activeBrandId ?? (urlState.crestronOnly ? CRESTRON_HOME_ID : null)} activeBrandIds={urlState.brandIds} />
 
       {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
 
@@ -166,6 +172,7 @@ export default async function PublicCatalogPage({
         total={total}
         publicMode
         toolbar={<CatalogToolbar state={urlState} publicMode />}
+        quickFilters={<QuickFilterBar counts={quickCounts} state={urlState} params={rawParams} basePath={BASE_PATH} />}
       >
         {items.length === 0 && comingSoonBrand ? null : items.length === 0 ? (
           <EmptyState
@@ -176,7 +183,7 @@ export default async function PublicCatalogPage({
         ) : urlState.view === "table" ? (
           <CatalogTable items={items} publicMode basePath={BASE_PATH} />
         ) : (
-          <CatalogGrid items={items} publicMode basePath={BASE_PATH} />
+          <BrandSections sections={sections} items={items}>{(chunk) => <CatalogGrid items={chunk} publicMode basePath={BASE_PATH} />}</BrandSections>
         )}
 
         {totalPages > 1 ? (

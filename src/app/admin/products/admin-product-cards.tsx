@@ -1,5 +1,7 @@
 "use client";
 
+import { DiscountNote } from "@/components/pricing/discount-note";
+import type { DiscountInfo } from "@/lib/price-discount-label";
 import { optimizedImage } from "@/lib/image-url";
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import Link from "next/link";
@@ -20,6 +22,7 @@ export type AdminCardRow = {
   priceUsdFinal: number;
   markup: number;
   marginRule: string | null;
+  discountInfo?: DiscountInfo | null;
   stockStatus: string;
   isActive: boolean;
   kind: "PRINCIPAL" | "ACCESORIO";
@@ -100,6 +103,7 @@ export function AdminProductCards({
                     <span className="text-xs text-muted-foreground">Costo {row.cost > 0 ? formatUsd(row.cost) : "—"}</span>
                     <span className="text-base font-semibold tabular-nums">{row.priceUsdFinal > 0 ? formatUsd(row.priceUsdFinal) : "A consultar"}</span>
                   </div>
+                  <DiscountNote info={row.discountInfo} />
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate text-xs text-muted-foreground" title={row.marginRule ?? undefined}>
                       {row.markup > 0 ? `×${Number(row.markup.toFixed(3))}` : ""} {row.marginRule ?? "markup por defecto"}

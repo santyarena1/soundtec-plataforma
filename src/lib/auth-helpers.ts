@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import type { UserRole } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { resolveImpersonation, type ActiveImpersonation } from "@/lib/impersonation/server";
+import { IMPERSONATION_EXIT_PATH } from "@/lib/impersonation/token";
 import {
   canSeeCosts,
   canSeeSalePrices,
@@ -40,7 +42,13 @@ export const CHANGE_PASSWORD_PATH = "/cuenta/clave";
  * de usuario, la sesión vieja deja de servir aunque el JWT no haya vencido.
  * Rol y datos salen de la base, no del token.
  */
-const loadSessionUser = cache(async (): Promise<{ user: CurrentUser; mustChangePassword: boolean } | { invalid: string } | null> => {
+type LoadedSession =
+  | { user: CurrentUser; mustChangePassword: boolean; impersonation: ActiveImpersonation | null }
+  | { invalid: string }
+  | { viewInvalid: string }
+  | null;
+
+const loadSessionUser = cache(async (): Promise<LoadedSession> => {
   const session = await auth();
   if (!session?.user?.id) return null;
   const tokenVersion = (session.user as { sv?: number }).sv;
@@ -52,15 +60,44 @@ const loadSessionUser = cache(async (): Promise<{ user: CurrentUser; mustChangeP
   if (!dbUser.isActive) return { invalid: "inactivo" };
   // Tokens emitidos antes de esta versión no traen `sv`: valen hasta que venzan (30 días sin uso) salvo que se haya invalidado algo.
   if ((tokenVersion ?? 0) !== dbUser.sessionVersion) return { invalid: "cambios" };
+  // «Ver como»: un admin mirando como otro usuario. Desde acá, «quién soy» es el usuario visto
+  // (precios, visibilidad, favoritos, permisos); el admin real queda en `impersonation.actor`.
+  const view = await resolveImpersonation(dbUser);
+  if (view.state === "invalid") return { viewInvalid: view.reason };
+  if (view.state === "active") {
+    const t = view.view.target;
+    return {
+      user: { id: t.id, role: t.role, name: t.name, email: t.email, companyName: t.companyName, clientId: t.clientId },
+      mustChangePassword: false,
+      impersonation: view.view,
+    };
+  }
   return {
     user: { id: dbUser.id, role: dbUser.role, name: dbUser.name, email: dbUser.email, companyName: dbUser.companyName, clientId: dbUser.clientId },
     mustChangePassword: dbUser.mustChangePassword,
+    impersonation: null,
   };
 });
+
+/** Vista «Ver como» activa en este pedido (admin real + usuario visto), o null. */
+export async function getImpersonation(): Promise<ActiveImpersonation | null> {
+  const loaded = await loadSessionUser();
+  return loaded && "user" in loaded ? loaded.impersonation : null;
+}
+
+/**
+ * Reemplazo de `auth()` en pantallas públicas (catálogo, listas, barra): usuario vigente
+ * con la misma forma `{ user }`; con «Ver como», el usuario visto. Nunca redirige ni tira.
+ */
+export async function getViewerSession(): Promise<{ user: CurrentUser } | null> {
+  const loaded = await loadSessionUser().catch(() => null);
+  return loaded && "user" in loaded ? { user: loaded.user } : null;
+}
 
 /** Usuario logueado y vigente, o null (sin redirigir). Para pantallas públicas que cambian si hay sesión. */
 export async function getSessionUser(): Promise<CurrentUser | null> {
   const loaded = await loadSessionUser();
+  if (loaded && "viewInvalid" in loaded) redirect(`${IMPERSONATION_EXIT_PATH}?motivo=${loaded.viewInvalid}`);
   return loaded && "user" in loaded ? loaded.user : null;
 }
 
@@ -68,6 +105,7 @@ export async function requireUser(options?: { allowPasswordChange?: boolean }): 
   const loaded = await loadSessionUser();
   if (!loaded) redirect("/login");
   if ("invalid" in loaded) redirect(`${SIGN_OUT_PATH}?motivo=${loaded.invalid}`);
+  if ("viewInvalid" in loaded) redirect(`${IMPERSONATION_EXIT_PATH}?motivo=${loaded.viewInvalid}`);
   if (loaded.mustChangePassword && !options?.allowPasswordChange) redirect(CHANGE_PASSWORD_PATH);
   return loaded.user;
 }

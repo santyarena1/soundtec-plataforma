@@ -57,7 +57,7 @@ export function BrandDetailPanel({ brand }: { brand: Brand }) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="flex w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl" style={{ maxHeight: "90vh" }}>
+          <div className="flex w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl" style={{ maxHeight: "90vh" }}>
             <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <h2 className="font-semibold">{brand.name}</h2>
               <button onClick={close} className="text-muted-foreground hover:text-foreground">

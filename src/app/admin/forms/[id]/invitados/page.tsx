@@ -5,7 +5,7 @@ import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { readSettings } from "@/lib/forms/types";
 import { DEFAULT_INVITE_MESSAGE } from "@/lib/forms/invite-email";
-import { getMailAccountSummary } from "@/lib/mail/account";
+import { getFormsMailAccount } from "@/lib/mail/account";
 import { InvitesManager } from "./invites-manager";
 
 export const metadata = { title: "Admin · Invitados del formulario" };
@@ -19,7 +19,7 @@ export default async function FormInvitesPage({ params }: { params: Promise<{ id
   });
   if (!form) notFound();
   const settings = readSettings(form.settings);
-  const account = await getMailAccountSummary();
+  const mailAccount = await getFormsMailAccount();
 
   return (
     <div className="space-y-4">
@@ -28,7 +28,7 @@ export default async function FormInvitesPage({ params }: { params: Promise<{ id
       </Link>
       <InvitesManager
         form={{ id: form.id, title: form.title, status: form.status }}
-        account={{ user: account.user, ready: Boolean(account.user && account.hasPassword) }}
+        account={{ user: mailAccount?.user ?? "", ready: Boolean(mailAccount) }}
         message={{
           subject: settings.inviteSubject ?? form.title,
           body: settings.inviteMessage ?? DEFAULT_INVITE_MESSAGE,
@@ -49,6 +49,9 @@ export default async function FormInvitesPage({ params }: { params: Promise<{ id
           status: i.status,
           sentAt: i.sentAt?.toISOString() ?? null,
           openedAt: i.openedAt?.toISOString() ?? null,
+          openCount: i.openCount,
+          clickedAt: i.clickedAt?.toISOString() ?? null,
+          clickCount: i.clickCount,
           respondedAt: i.respondedAt?.toISOString() ?? null,
           repliedAt: i.repliedAt?.toISOString() ?? null,
           replySnippet: i.replySnippet ?? "",

@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { auth, signOut } from "@/lib/auth";
+import { signOut } from "@/lib/auth";
+import { getImpersonation, getSessionUser } from "@/lib/auth-helpers";
+import { ImpersonationBanner } from "@/components/impersonation/impersonation-banner";
 import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
 import { Bookmark, Heart, LayoutDashboard, Package, Send } from "lucide-react";
@@ -7,6 +9,7 @@ import { getSetting } from "@/lib/settings";
 import { DraftMiniCart } from "@/components/portal/draft-mini-cart";
 import { PortalToaster } from "@/components/portal/portal-toaster";
 import { PortalBottomNav } from "@/components/layout/portal-bottom-nav";
+import { CompareTray } from "@/components/compare/compare-tray";
 import { getActiveDraftSummary } from "@/lib/draft-request";
 import { OnboardingHost } from "@/components/onboarding/onboarding-host";
 import { PortalOnboardingButton } from "@/components/onboarding/portal-onboarding-button";
@@ -26,8 +29,11 @@ const comingSoonItems = [
 ];
 
 export async function PortalShell({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  if (!session?.user) redirect("/login?callbackUrl=/portal");
+  // Usuario vigente (validado contra la base). Con «Ver como», el usuario visto.
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) redirect("/login?callbackUrl=/portal");
+  const session = { user: sessionUser };
+  const viewing = await getImpersonation();
   const [appName, draftSummary, onboardingState] = await Promise.all([
     getSetting("app.name", "Soundtec"),
     // Pedidos apagados (src/lib/customer-orders.ts): sin borrador ni flotante.
@@ -42,6 +48,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh min-w-0 max-w-full flex-col">
+      <ImpersonationBanner />
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className="container-page 2xl:max-w-[96rem] flex h-14 min-w-0 items-center justify-between gap-1.5 sm:h-16 sm:gap-2">
           <Link href="/portal" className="flex min-w-0 flex-1 items-center gap-2">
@@ -101,11 +108,13 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
                 Admin
               </ButtonLink>
             )}
-            <form action={handleSignOut}>
-              <button className="shrink-0 px-0.5 text-sm text-muted-foreground hover:text-foreground" type="submit">
-                Salir
-              </button>
-            </form>
+            {viewing ? null : (
+              <form action={handleSignOut}>
+                <button className="shrink-0 px-0.5 text-sm text-muted-foreground hover:text-foreground" type="submit">
+                  Salir
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </header>
@@ -120,9 +129,10 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
       </footer>
 
       {CUSTOMER_ORDERS_ENABLED ? <DraftMiniCart draft={draftSummary} /> : null}
+      <CompareTray basePath="/portal" />
       <PortalBottomNav />
       <PortalToaster />
-      <OnboardingHost surface="portal" initialState={onboardingState} />
+      {viewing ? null : <OnboardingHost surface="portal" initialState={onboardingState} />}
     </div>
   );
 }

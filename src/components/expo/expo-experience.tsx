@@ -11,12 +11,7 @@ import { LeadReminderCard } from "./lead-reminder-card";
 import { ThinkingIndicator } from "./thinking-indicator";
 import type { ChatApiResponse, ChatProduct, ChatTurn, LeadFormValues } from "./types";
 
-const DEFAULT_SUGGESTIONS = [
-  "¿Qué parlantes de embutir en techo tienen?",
-  "Dame 5 opciones de parlantes para exterior",
-  "¿Qué parlantes tienen protección IP66?",
-  "¿Qué productos son compatibles con Crestron Home?",
-];
+import { DEFAULT_PUBLIC_QUESTIONS } from "@/lib/assistant-suggestions";
 
 function productSuggestions(product: ChatProduct): string[] {
   const name = product.name.split(" ").slice(0, 4).join(" ");
@@ -49,6 +44,7 @@ export function ExpoExperience({
   backHref = "/catalogo",
   backLabel = "Catálogo",
   productBase = "/catalogo",
+  suggestions: configuredSuggestions,
 }: {
   initialProduct: ChatProduct | null;
   logoUrl: string;
@@ -67,6 +63,8 @@ export function ExpoExperience({
    * catálogo público y la expo queda la ficha pública.
    */
   productBase?: string;
+  /** Preguntas sugeridas cargadas en el admin para esta pantalla (sin producto de contexto). */
+  suggestions?: string[];
 }) {
   const [contactOpen, setContactOpen] = useState(surface === "EXPO");
   const [contactPending, setContactPending] = useState(false);
@@ -79,7 +77,7 @@ export function ExpoExperience({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const stickToBottom = useRef(true);
 
-  const suggestions = initialProduct ? productSuggestions(initialProduct) : DEFAULT_SUGGESTIONS;
+  const suggestions = initialProduct ? productSuggestions(initialProduct) : (configuredSuggestions ?? DEFAULT_PUBLIC_QUESTIONS);
 
   // Auto-scroll sólo si el visitante ya estaba abajo: si está leyendo una
   // respuesta anterior, no se lo arrastra.

@@ -60,7 +60,7 @@ export const SETTINGS_GROUPS: SettingsSectionGroup[] = [
       {
         href: "/admin/settings/pricing",
         label: "Precios y moneda",
-        description: "Margen global, tipo de cambio de venta y coeficiente de nacionalización.",
+        description: "Markup por defecto, tipo de cambio de venta y redondeo del precio por tramos.",
         icon: Percent,
         scope: "settings.manage",
       },
@@ -104,8 +104,8 @@ export const SETTINGS_GROUPS: SettingsSectionGroup[] = [
       },
       {
         href: "/admin/settings/correo",
-        label: "Correo de envío",
-        description: "Cuenta de mail que manda las invitaciones de formularios y lee sus respuestas.",
+        label: "Correo",
+        description: "Casilla con la que salen los mails del portal, avisos al equipo, «Olvidé mi clave» y últimos envíos.",
         icon: Mail,
         scope: "api_keys.manage",
       },

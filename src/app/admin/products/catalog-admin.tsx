@@ -1,4 +1,6 @@
 "use client";
+import { DiscountNote } from "@/components/pricing/discount-note";
+import type { DiscountInfo } from "@/lib/price-discount-label";
 import { optimizedImage } from "@/lib/image-url";
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
 import { PriceEditorModal } from "@/components/pricing/price-editor-modal";
@@ -61,6 +63,8 @@ interface Row {
   /** Markup aplicado y la regla que lo da. */
   markup: number;
   marginRule: string | null;
+  /** El precio de venta ya incluye un descuento (de producto, regla o cliente). */
+  discountInfo?: DiscountInfo | null;
   hasDescription: boolean;
   salePriceUsd: number | null;
   discountPercent: number | null;
@@ -917,6 +921,7 @@ function renderCell(
       return (
         <div className="whitespace-nowrap">
           <span className="font-medium">{value}</span>
+          {priceView === "usdFinal" ? <DiscountNote info={r.discountInfo} /> : null}
           {r.salePriceUsd != null && r.salePriceUsd > 0 ? (
             <span className="block text-[10px] text-muted-foreground">
               oferta prov.: {formatUsd(r.salePriceUsd)}
@@ -926,7 +931,9 @@ function renderCell(
       );
     }
     case "discount":
-      return showPrices ? (r.discountPercent ? `${r.discountPercent}%` : "—") : "—";
+      if (!showPrices) return "—";
+      if (r.discountInfo) return <DiscountNote info={r.discountInfo} detailed />;
+      return r.discountPercent ? `${r.discountPercent}%` : "—";
     case "tariff":
       if (!showPrices) return "—";
       if (!r.tariffPosition && !r.tariffDutyPercent) return "—";

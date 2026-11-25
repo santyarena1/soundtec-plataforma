@@ -7,12 +7,7 @@ import { Composer } from "./composer";
 import { ThinkingIndicator } from "./thinking-indicator";
 import type { ChatApiResponse, ChatTurn } from "./types";
 
-const SUGGESTIONS = [
-  "¿Qué parlantes tenemos con protección IP66?",
-  "Dame 5 opciones de parlantes para exterior",
-  "¿Qué amplificadores Sonance tenemos?",
-  "¿Qué productos son compatibles con Crestron Home?",
-];
+import { DEFAULT_ADMIN_QUESTIONS } from "@/lib/assistant-suggestions";
 
 let counter = 0;
 function nextId(): string {
@@ -24,7 +19,7 @@ function nextId(): string {
  * Mismo asistente, scope admin: el contexto puede incluir costo base y stock
  * porque la ruta exige sesión de administrador.
  */
-export function AdminAssistantChat() {
+export function AdminAssistantChat({ suggestions = DEFAULT_ADMIN_QUESTIONS }: { suggestions?: string[] }) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -105,7 +100,7 @@ export function AdminAssistantChat() {
         >
           {turns.length === 0 ? (
             <div className="ai-stagger grid gap-2 sm:grid-cols-2">
-              {SUGGESTIONS.map((suggestion) => (
+              {suggestions.map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"

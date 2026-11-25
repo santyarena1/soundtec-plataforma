@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { calculatePricesForProducts } from "@/lib/pricing";
+import { getConditionsView } from "@/server/catalog/client-conditions";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { getGlobalMarginPercent } from "@/lib/settings";
 import { formatUsd } from "@/lib/utils";
@@ -64,7 +65,8 @@ export default async function WishlistPage() {
       ivaPercent: i.product.ivaPercent != null ? Number(i.product.ivaPercent) : null,
       impIntPercent: i.product.impIntPercent != null ? Number(i.product.impIntPercent) : null,
     })),
-    commercialClientId,
+    // «Activá tus descuentos»: lista o con las condiciones de su empresa, como en el catálogo.
+    (await getConditionsView(user.id, commercialClientId)).priceClientId,
     globalMargin
   );
 

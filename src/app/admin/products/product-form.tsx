@@ -1,5 +1,8 @@
 "use client";
 
+import { FeaturedRubroButton } from "@/components/catalog/featured-rubro-button";
+import { DiscountNote } from "@/components/pricing/discount-note";
+import type { DiscountInfo } from "@/lib/price-discount-label";
 import { COMMERCIAL_TAGS } from "@/lib/commercial-tags";
 import { CategoryTreePicker } from "@/components/admin/category-tree-picker";
 import type { CategoryNode } from "@/lib/category-tree";
@@ -87,6 +90,8 @@ interface Props {
     appliedMarginRule: { name: string; scopeType: string } | null;
     costoNacUsd: number;
     salePriceUsd: number | null;
+    /** El precio final ya incluye un descuento: cuánto, sin descuento y de dónde sale. */
+    discountInfo?: DiscountInfo | null;
   };
   tcVenta?: number;
   globalCoefNac?: number;
@@ -416,6 +421,7 @@ export function ProductForm({ product, brands, distributors, categories, series,
                 <p className="mt-1 text-2xl font-bold tabular-nums text-blue-950 dark:text-blue-100">
                   US$ {fmtUsd(enginePricing.priceUsdFinal)}
                 </p>
+                <DiscountNote info={enginePricing.discountInfo} detailed className="mt-1 text-xs" />
                 {enginePricing.markupSource === "DEFAULT" ? null : (
                   <p className="mt-1 text-xs text-muted-foreground">{markupSourceLabel()}</p>
                 )}
@@ -661,14 +667,14 @@ export function ProductForm({ product, brands, distributors, categories, series,
           <div>
             <Label htmlFor="commercialTag">Cartel para el cliente</Label>
             <Select id="commercialTag" name="commercialTag" defaultValue={product?.commercialTag || ""}>
-              <option value="">Automático (oferta si hay descuento)</option>
+              <option value="">Automático («Descuento X%» si tiene descuento)</option>
               {COMMERCIAL_TAGS.map((tag) => (
                 <option key={tag.key} value={tag.key}>
                   {tag.label}
                 </option>
               ))}
             </Select>
-            <p className="mt-1 text-xs text-muted-foreground">Sale sobre la foto en el catálogo y en la ficha.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Sale sobre la foto en el catálogo y en la ficha. «Últimas unidades» es solo para stock propio de Soundtec: el stock o el «discontinuado» de los proveedores no la activan.</p>
           </div>
         </div>
       </div>
@@ -715,6 +721,8 @@ export function ProductForm({ product, brands, distributors, categories, series,
           <input type="checkbox" name="isFeatured" defaultChecked={product?.isFeatured ?? false} />
           <span>★ Destacado en su marca</span>
         </label>
+        {/* Rubro del producto 1.º en el orden de su marca (se guarda al toque, no con el formulario). */}
+        {product?.id ? <FeaturedRubroButton productId={product.id} /> : null}
       </div>
 
       </TabPane>

@@ -2,7 +2,6 @@ import { optimizedImage } from "@/lib/image-url";
 import Link from "next/link";
 import { ArrowRight, ImageOff } from "lucide-react";
 import { productSubtitle, productTitle, tangoCode } from "@/lib/product-display";
-import { formatUsd } from "@/lib/utils";
 import { FavoriteButton } from "./favorite-button";
 import { StockBadge, priceOnRequest } from "./catalog-grid";
 import type { CatalogProduct } from "@/lib/catalog";
@@ -11,6 +10,9 @@ import { SelectableRowControls } from "./catalog-multi-select";
 import { commercialTagFor } from "@/lib/commercial-tags";
 import { seriesChipLabel } from "@/lib/product-lines/chip";
 import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
+import { CommercialTagBadge, ProductLabelChips } from "@/components/catalog/commercial-tag-badge";
+import { ProductPrice } from "@/components/catalog/product-price";
+import { CompareToggle } from "@/components/compare/compare-toggle";
 
 interface TableProps {
   items: CatalogProduct[];
@@ -24,7 +26,6 @@ interface TableProps {
 function promoTag(p: CatalogProduct) {
   return commercialTagFor({
     commercialTag: p.commercialTag,
-    isDiscontinued: p.isDiscontinued,
     discountPercent: p.pricing?.discountPercent ?? null,
     priceOnRequest: priceOnRequest(p),
   });
@@ -42,7 +43,8 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
       {items.map((p) => {
         const href = `${basePath}/${p.id}`;
         const subtitle = productSubtitle(p);
-        const code = tangoCode(p.internalSku);
+        // Código Tango: solo el equipo de Soundtec (en el portal; nunca en el público).
+        const code = internal && !publicMode ? tangoCode(p.internalSku) : null;
         const onRequest = priceOnRequest(p);
         const promo = promoTag(p);
         const crumbs = [p.categoryName, seriesChipLabel(p)].filter(Boolean).join(" · ");
@@ -72,9 +74,10 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
                   Foto a confirmar
                 </span>
               )}
-              {promo ? (
-                <span title={promo.hint} className={`absolute left-3 top-3 rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wide shadow-sm ${promo.className}`}>
-                  {promo.label}
+              {promo || p.labels.length ? (
+                <span className="absolute left-3 top-3 flex flex-col items-start gap-1">
+                  {promo ? <CommercialTagBadge tag={promo} size="row" /> : null}
+                  <ProductLabelChips labels={p.labels} size="row" max={3} />
                 </span>
               ) : null}
             </Link>
@@ -103,6 +106,7 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
                 ) : null}
                 {code ? <span className="rounded-full bg-secondary px-2.5 py-0.5 font-mono text-muted-foreground">Cód. {code}</span> : null}
                 <StockBadge status={p.stockStatus} qty={p.stockQuantity} internal={internal && !publicMode} />
+                <CompareToggle variant="inline" product={{ id: p.id, name: productTitle(p), brand: p.brandName, image: p.primaryImage }} />
                 <Link href={href} className="ml-auto inline-flex items-center gap-1 font-medium text-primary hover:underline">
                   Ver ficha completa <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
@@ -129,10 +133,13 @@ export function CatalogTable({ items, publicMode = false, basePath = "/portal/pr
                       <p className="mt-1 text-lg font-semibold text-foreground">Consultá precio</p>
                     ) : (
                       <>
-                        {p.pricing!.priceBeforeDiscountUsd && p.pricing!.discountPercent > 0 ? (
-                          <p className="mt-1 text-sm tabular-nums text-muted-foreground line-through">{formatUsd(p.pricing!.priceBeforeDiscountUsd)}</p>
-                        ) : null}
-                        <p className="mt-0.5 text-lg font-semibold leading-tight tabular-nums text-foreground sm:text-xl">{formatUsd(p.pricing!.finalPriceUsd)}</p>
+                        <ProductPrice
+                          className="mt-1"
+                          finalUsd={p.pricing!.finalPriceUsd}
+                          regularUsd={p.pricing!.priceBeforeDiscountUsd}
+                          discountPercent={p.pricing!.discountPercent}
+                          size="row"
+                        />
                         <p className="text-xs text-muted-foreground">+ IVA</p>
                       </>
                     )}

@@ -5,6 +5,7 @@ import { getGlobalMarginPercent } from "@/lib/settings";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { buildProductSearchAnd } from "@/lib/product-search";
 import { customerCategoryName } from "@/lib/tango-only";
+import { customerProductCode } from "@/lib/product-display";
 import { expandCategoryIds } from "@/lib/category-tree";
 
 export interface ShareablePriceListFilters {
@@ -148,7 +149,8 @@ export async function resolveShareablePriceListProducts(input: {
 
   return products.map((p) => ({
     id: p.id,
-    sku: p.internalSku,
+    // Lista pública: el código del fabricante, nunca el Código Tango (interno de Soundtec).
+    sku: customerProductCode(p),
     name: p.normalizedName,
     shortDescription: p.shortDescription,
     brandName: p.brand?.name ?? null,

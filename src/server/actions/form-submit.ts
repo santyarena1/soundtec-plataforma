@@ -7,6 +7,15 @@ import { consumeRateLimit } from "@/lib/rate-limit";
 import { clientIp, hashIp } from "@/services/ai-assistant/rate-limit";
 import { loadPublicForm } from "@/lib/forms/public";
 import { formDoneCookie, isQuestionType, validateAnswer, type AnswerValue } from "@/lib/forms/types";
+import { formResponseNotice } from "@/lib/mail/transactional/messages";
+import { notifyTeam } from "@/server/mail/transactional";
+
+function answerText(value: AnswerValue): string {
+  if (value === null || value === undefined) return "";
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "boolean") return value ? "Sí" : "No";
+  return String(value);
+}
 
 export type SubmitFormResult =
   | { ok: true }
@@ -55,6 +64,11 @@ export async function submitFormResponse(input: { token: string; answers: Record
   if (invite) {
     await prisma.formInvite.update({ where: { id: invite.id }, data: { respondedAt: new Date(), responseId: response.id } });
   }
+  const summary = form.blocks
+    .filter((b) => isQuestionType(b.type))
+    .map((b) => ({ label: b.title || "Pregunta", value: answerText(answers[b.id] ?? null) }))
+    .filter((a) => a.value);
+  await notifyTeam("form_response", (portalUrl) => formResponseNotice({ formId: form.id, formTitle: form.title, answers: summary }, portalUrl), form.settings.notifyEmails ?? []);
   // Si vuelve a abrir el enlace desde este navegador, ve directo la pantalla de confirmación.
   (await cookies()).set(formDoneCookie(form.id), "1", {
     httpOnly: true,

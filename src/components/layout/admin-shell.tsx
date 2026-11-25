@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { auth, signOut } from "@/lib/auth";
+import { signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ButtonLink } from "@/components/ui/button";
@@ -10,7 +10,8 @@ import { AdminMobileNav } from "@/components/layout/admin-mobile-nav";
 import { DolarTicker } from "@/components/layout/dolar-ticker";
 import { ChangelogSidebarButton } from "@/components/layout/changelog-sidebar-button";
 import { ChangelogPopup } from "@/components/layout/changelog-popup";
-import { getCurrentPermissions } from "@/lib/auth-helpers";
+import { getCurrentPermissions, getImpersonation, getSessionUser } from "@/lib/auth-helpers";
+import { ImpersonationBanner } from "@/components/impersonation/impersonation-banner";
 import { canSeeCosts, canSeeSalePrices, isPanelRole, permissionsHave } from "@/lib/permissions";
 import { CatalogModeButton } from "@/components/catalog-mode/catalog-mode-controls";
 import { listAllChangelogs } from "@/server/changelog-query";
@@ -20,16 +21,18 @@ import { getOnboardingState } from "@/server/actions/onboarding";
 import { loadReviewStatus } from "@/server/soundtube/review";
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  if (!session?.user) redirect("/login?callbackUrl=/admin");
+  // Usuario vigente (validado contra la base). Con «Ver como», el usuario visto.
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) redirect("/login?callbackUrl=/admin");
+  const viewing = await getImpersonation();
 
   // Valida la sesión contra la base (desactivado, clave reseteada, tipo cambiado).
   const { user, permissions } = await getCurrentPermissions();
   if (!isPanelRole(user.role)) redirect("/portal");
   const showCatalogMode = permissionsHave(permissions, "catalog_mode.use");
 
-  const userName = session.user.name;
-  const userEmail = session.user.email;
+  const userName = sessionUser.name;
+  const userEmail = sessionUser.email;
   const [appName, changelogs, onboardingState, pendingRequests, soundtubeReview] = await Promise.all([
     getSetting("app.name", "Soundtec"),
     listAllChangelogs().catch((err) => {
@@ -97,11 +100,13 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
               <ButtonLink href="/cuenta/seguridad" size="sm" variant="ghost" title="Verificación en dos pasos">
                 Seguridad
               </ButtonLink>
-              <form action={handleSignOut}>
-                <button type="submit" className="h-8 rounded-md border border-border px-3 text-xs hover:bg-secondary">
-                  Salir
-                </button>
-              </form>
+              {viewing ? null : (
+                <form action={handleSignOut}>
+                  <button type="submit" className="h-8 rounded-md border border-border px-3 text-xs hover:bg-secondary">
+                    Salir
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>
@@ -116,6 +121,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-h-dvh flex-col xl:pl-64 print:pl-0">
+        <ImpersonationBanner />
         <header className="sticky top-0 z-40 border-b border-border bg-card px-3 py-2 print:hidden xl:hidden">
           <div className="flex items-center gap-2">
             <AdminMobileNav>
@@ -125,11 +131,13 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
               <BrandMark />
             </div>
             {showCatalogMode ? <CatalogModeButton compact /> : null}
-            <form action={handleSignOut}>
-              <button type="submit" className="shrink-0 text-sm text-muted-foreground hover:text-foreground">
-                Salir
-              </button>
-            </form>
+            {viewing ? null : (
+              <form action={handleSignOut}>
+                <button type="submit" className="shrink-0 text-sm text-muted-foreground hover:text-foreground">
+                  Salir
+                </button>
+              </form>
+            )}
           </div>
         </header>
         <main className="min-w-0 flex-1 overflow-x-auto p-3 pb-24 sm:p-6 lg:p-10 xl:pb-10 print:bg-white print:p-0">
@@ -138,6 +146,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
         <Suspense fallback={null}>
           <HelpDock />
         </Suspense>
+        {viewing ? null : (
         <OnboardingHost
           surface="admin"
           initialState={onboardingState}
@@ -148,7 +157,8 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
             seesSalePrices: canSeeSalePrices(permissions),
           }}
         />
-        <ChangelogPopup entries={changelogs} onboardingState={onboardingState} />
+        )}
+        {viewing ? null : <ChangelogPopup entries={changelogs} onboardingState={onboardingState} />}
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ const isDev = process.env.NODE_ENV !== "production";
 /**
  * Política de contenido: qué puede cargar el navegador. Los scripts inline los
  * necesita Next (sin nonce); lo externo permitido es lo que el sitio usa de verdad:
- * visor 3D (jsDelivr), cotización del dólar (bluelytics) y videos (YouTube/Vimeo).
+ * visor 3D (jsDelivr), cotización del dólar (bluelytics) y videos (YouTube/Vimeo, y los de Instagram de la galería del producto).
  */
 const csp = [
   "default-src 'self'",
@@ -18,7 +18,7 @@ const csp = [
   "font-src 'self' data:",
   "media-src 'self' blob: https:",
   "connect-src 'self' https: blob: data:",
-  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.google.com https://maps.google.com",
+  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.instagram.com https://player.vimeo.com https://www.google.com https://maps.google.com",
   "worker-src 'self' blob:",
   "frame-ancestors 'self'",
   "object-src 'none'",

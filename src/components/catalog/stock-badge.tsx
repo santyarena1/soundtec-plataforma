@@ -35,7 +35,7 @@ export function OriginStockPanel({ status, qty }: { status: string; qty: number 
         </dd>
       </div>
       <div>
-        <dt className="font-semibold uppercase tracking-wider text-muted-foreground">Lo que ve el cliente</dt>
+        <dt className="font-semibold uppercase tracking-wider text-muted-foreground">Stock que ve el cliente</dt>
         <dd className="mt-1">
           <Badge tone="muted">{CUSTOMER_STOCK_LABEL}</Badge>
         </dd>

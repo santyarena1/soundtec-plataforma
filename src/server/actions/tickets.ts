@@ -5,6 +5,13 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPermissions, requireStaff } from "@/lib/auth-helpers";
+import { ticketNotice } from "@/lib/mail/transactional/messages";
+import { notifyTeam } from "@/server/mail/transactional";
+
+/** Aviso por mail a quienes estén cargados en Configuración › Correo › Tickets. */
+async function notifyTicket(input: { title: string; priority: string; description: string; author: string }) {
+  await notifyTeam("ticket", (portalUrl) => ticketNotice(input, portalUrl));
+}
 
 const createSchema = z.object({
   title: z.string().min(3).max(160),
@@ -52,6 +59,7 @@ export async function createTicket(formData: FormData): Promise<void> {
       priority: parsed.data.priority,
     },
   });
+  await notifyTicket({ ...parsed.data, author: admin.name ?? admin.email ?? "Alguien del equipo" });
   revalidatePath("/admin/tickets");
 }
 
@@ -74,14 +82,16 @@ export async function createTicketQuick(input: unknown): Promise<{ ok: true } | 
     parsed.data.userAgent ? `Navegador: ${parsed.data.userAgent}` : null,
   ].filter(Boolean);
 
-  await prisma.developerTicket.create({
+  const ticket = await prisma.developerTicket.create({
     data: {
       createdById: user.id,
       title: parsed.data.title.startsWith("[Ayuda]") ? parsed.data.title : `[Ayuda] ${parsed.data.title}`,
       description: `${contextLines.join("\n")}\n\n${parsed.data.description}`,
       priority: parsed.data.priority,
     },
+    select: { title: true, description: true, priority: true },
   });
+  await notifyTicket({ ...ticket, author: user.name ?? user.email ?? "Alguien del equipo" });
   revalidatePath("/admin/tickets");
   return { ok: true };
 }

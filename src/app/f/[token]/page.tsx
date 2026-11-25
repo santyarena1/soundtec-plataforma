@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { clickPatch, isInviteCode, isLinkPreviewer } from "@/lib/forms/invite-tracking";
 import { notFound } from "next/navigation";
 import { loadPublicForm } from "@/lib/forms/public";
 import { prisma } from "@/lib/prisma";
@@ -19,15 +20,19 @@ function closedLogo(url: string | undefined): string {
   return url ? `/api/forms/logo?u=${encodeURIComponent(url)}` : LOGO;
 }
 
-/** Invitado del enlace personal (?i=…): se anota la primera vez que lo abre. */
+/**
+ * Invitado del enlace personal (?i=…): se anota el clic y, si el píxel no
+ * llegó (imágenes bloqueadas), también la apertura: si abrió el enlace, abrió el mail.
+ * Las vistas previas de enlaces (WhatsApp, buscadores) no cuentan.
+ */
 async function openInvite(formId: string, code: string | undefined) {
-  if (!code || !/^[A-Za-z0-9_-]{8,40}$/.test(code)) return null;
+  if (!isInviteCode(code)) return null;
   const invite = await prisma.formInvite.findFirst({
     where: { formId, code },
-    select: { id: true, code: true, email: true, name: true, company: true, openedAt: true, respondedAt: true },
+    select: { id: true, code: true, email: true, name: true, company: true, openedAt: true, clickedAt: true, respondedAt: true },
   });
-  if (invite && !invite.openedAt) {
-    await prisma.formInvite.update({ where: { id: invite.id }, data: { openedAt: new Date() } }).catch((error) => console.error("[forms] No se pudo anotar la apertura", error));
+  if (invite && !isLinkPreviewer((await headers()).get("user-agent"))) {
+    await prisma.formInvite.update({ where: { id: invite.id }, data: clickPatch(invite, new Date()) }).catch((error) => console.error("[forms] No se pudo anotar el clic", error));
   }
   return invite;
 }

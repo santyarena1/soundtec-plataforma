@@ -1,3 +1,4 @@
+import { GALLERY_IMAGE_ORDER, GALLERY_VIDEO_ORDER } from "@/lib/product-media";
 import { optimizedImage } from "@/lib/image-url";
 import { CategoryPath } from "@/components/catalog/category-path";
 import { productCategoryCrumbs } from "@/lib/category-tree";
@@ -10,7 +11,7 @@ import { customerCategoryName } from "@/lib/tango-only";
 import type { Metadata } from "next";
 import { ogImageUrl, ogMeta } from "@/lib/og/meta";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { getViewerSession } from "@/lib/auth-helpers";
 import { productCoverImageInclude } from "@/lib/product-cover-image";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,7 @@ import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
 import { MoreFromSeries } from "@/components/catalog/more-from-series";
 import { getMoreFromSeries } from "@/lib/catalog";
 import { ProductKeyFeatures } from "@/components/catalog/product-key-features";
+import { AdminQuickEdit } from "@/components/admin-quick-edit/admin-quick-edit";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +63,8 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
         brand: { select: { name: true } },
         category: { select: { name: true } },
         series: { select: { id: true, name: true } },
-        images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
+        images: { orderBy: GALLERY_IMAGE_ORDER },
+        videos: { orderBy: GALLERY_VIDEO_ORDER },
         _count: { select: { options: true } },
         accessories: {
           include: {
@@ -81,7 +84,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
         },
       },
     }),
-    auth().catch(() => null),
+    getViewerSession(),
   ]);
   if (!product) notFound();
   // Rubros que solo ve el equipo (Indumentaria): no tienen ficha pública.
@@ -116,7 +119,8 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
         <div className="lg:sticky lg:top-24">
           <ProductGallery
-            images={product.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt }))}
+            images={product.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, isPrimary: i.isPrimary, sortOrder: i.sortOrder, createdAt: i.createdAt }))}
+            videos={product.videos.map((v) => ({ id: v.id, provider: v.provider, videoId: v.videoId, url: v.url, title: v.title, sortOrder: v.sortOrder, createdAt: v.createdAt }))}
             productName={product.normalizedName}
           />
         </div>
@@ -256,6 +260,7 @@ export default async function PublicProductPage({ params }: { params: Promise<{ 
           </CardContent>
         </Card>
       ))}
+      <AdminQuickEdit productId={product.id} />
     </div>
   );
 }

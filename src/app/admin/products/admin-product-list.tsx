@@ -1,5 +1,7 @@
 "use client";
 
+import { DiscountNote } from "@/components/pricing/discount-note";
+import type { DiscountInfo } from "@/lib/price-discount-label";
 import Link from "next/link";
 import { ChevronRight, Eye, ImageOff, Tag } from "lucide-react";
 import { optimizedImage } from "@/lib/image-url";
@@ -22,6 +24,8 @@ export type AdminListRow = {
   priceNacFinalArs: number;
   markup: number;
   marginRule: string | null;
+  /** El precio de venta ya incluye un descuento (de producto, regla o cliente). */
+  discountInfo?: DiscountInfo | null;
   salePriceUsd: number | null;
   stockStatus: string;
   isActive: boolean;
@@ -194,6 +198,7 @@ export function AdminProductList({
                       {row.cost > 0 ? `Costo ${formatUsd(row.cost)}` : "Sin costo"}
                       {row.markup > 0 ? ` · ×${Number(row.markup.toFixed(3))}` : ""}
                     </p>
+                    {priceView === "usdFinal" ? <DiscountNote info={row.discountInfo} /> : null}
                     {row.salePriceUsd != null && row.salePriceUsd > 0 ? (
                       <p className="text-[10px] text-muted-foreground">oferta prov. {formatUsd(row.salePriceUsd)}</p>
                     ) : null}

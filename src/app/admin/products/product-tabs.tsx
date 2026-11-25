@@ -15,7 +15,7 @@ export const PRODUCT_TABS = [
   { key: "precio", label: "Precio y costos" },
   { key: "comex", label: "Comercio exterior" },
   { key: "contenido", label: "Contenido" },
-  { key: "imagenes", label: "Imágenes" },
+  { key: "imagenes", label: "Fotos y videos" },
   { key: "relaciones", label: "Relaciones" },
   { key: "proveedor", label: "Proveedor" },
 ] as const;

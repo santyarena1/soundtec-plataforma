@@ -2,7 +2,6 @@ import { optimizedImage } from "@/lib/image-url";
 import { productSubtitle, productTitle } from "@/lib/product-display";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { formatUsd } from "@/lib/utils";
 import { FavoriteButton } from "./favorite-button";
 import { Settings2 } from "lucide-react";
 import type { CatalogProduct } from "@/lib/catalog";
@@ -10,8 +9,13 @@ import { AddToDraftButton } from "./add-to-draft-button";
 import { SelectableCard } from "./catalog-multi-select";
 import { StockBadge } from "@/components/catalog/stock-badge";
 import { FeaturedStarButton } from "./featured-star-button";
+import { FeaturedRubroButton } from "@/components/catalog/featured-rubro-button";
+import type { ProductRubroHighlight } from "@/server/catalog/brand-listing-data";
 import { commercialTagFor } from "@/lib/commercial-tags";
 import { seriesChipLabel } from "@/lib/product-lines/chip";
+import { CommercialTagBadge, ProductLabelChips } from "@/components/catalog/commercial-tag-badge";
+import { ProductPrice } from "@/components/catalog/product-price";
+import { CompareToggle } from "@/components/compare/compare-toggle";
 
 interface GridProps {
   items: CatalogProduct[];
@@ -25,6 +29,8 @@ interface GridProps {
   canFeature?: boolean;
   /** Con el sidebar de rubros al lado: 3 columnas hasta que el sidebar sale al margen (1800 px). */
   withSidebar?: boolean;
+  /** Estado de «Destacar rubro en su marca» por producto (solo con canFeature). */
+  rubroHighlights?: Record<string, ProductRubroHighlight>;
 }
 
 /**
@@ -43,7 +49,7 @@ interface GridProps {
  *  │ [ Agregar ]          │
  *  └──────────────────────┘
  */
-export function CatalogGrid({ items, publicMode = false, basePath = "/portal/products", internal = false, canFeature = false, withSidebar = false }: GridProps) {
+export function CatalogGrid({ items, publicMode = false, basePath = "/portal/products", internal = false, canFeature = false, withSidebar = false, rubroHighlights }: GridProps) {
   return (
     <div className={withSidebar ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}>
       {items.map((p) => {
@@ -71,22 +77,28 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                 <div className="absolute right-2 top-2 flex flex-col items-end gap-1.5">
                   <FavoriteButton productId={p.id} isFavorite={p.isFavorite} />
                   {canFeature ? <FeaturedStarButton productId={p.id} isFeatured={p.isFeatured} /> : null}
+                  {canFeature && rubroHighlights?.[p.id] ? <FeaturedRubroButton productId={p.id} initial={rubroHighlights[p.id]} compact /> : null}
                 </div>
               ) : null}
               {(() => {
-                // Cartel comercial (A pedido, liquidación, oferta…): abajo a la izquierda de la foto.
+                // Cartel comercial (descuento, A pedido, liquidación…) y etiquetas del panel: abajo a la izquierda de la foto.
                 const tag = commercialTagFor({
                   commercialTag: p.commercialTag,
-                  isDiscontinued: p.isDiscontinued,
                   discountPercent: p.pricing?.discountPercent ?? null,
                   priceOnRequest: priceOnRequest(p),
                 });
-                return tag ? (
-                  <span title={tag.hint} className={`absolute bottom-2 left-2 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide shadow-sm ${tag.className}`}>
-                    {tag.label}
-                  </span>
-                ) : null;
+                if (!tag && p.labels.length === 0) return null;
+                return (
+                  <div className="pointer-events-none absolute bottom-2 left-2 right-[6.5rem] flex flex-col items-start gap-1">
+                    <ProductLabelChips labels={p.labels} size="card" max={2} />
+                    {tag ? <CommercialTagBadge tag={tag} size="card" /> : null}
+                  </div>
+                );
               })()}
+              {/* Comparar: abajo a la derecha de la foto, lejos de favoritos/estrella y de la casilla. */}
+              <div className="absolute bottom-2 right-2">
+                <CompareToggle variant="card" product={{ id: p.id, name: productTitle(p), brand: p.brandName, image: p.primaryImage }} />
+              </div>
             </div>
 
             <div className="flex flex-1 flex-col p-3.5">
@@ -135,20 +147,16 @@ export function CatalogGrid({ items, publicMode = false, basePath = "/portal/pro
                   </Link>
                 ) : (
                   <>
-                    <div className="flex h-10 items-end justify-between gap-2">
+                    <div className="flex min-h-10 items-end gap-2">
                       {priceOnRequest(p) ? (
                         <p className="text-lg font-semibold leading-none">Consultá precio</p>
                       ) : (
-                        <>
-                          <p className="text-lg font-semibold leading-none tabular-nums">
-                            {formatUsd(p.pricing.finalPriceUsd)}
-                          </p>
-                          {p.pricing.priceBeforeDiscountUsd && p.pricing.discountPercent > 0 ? (
-                            <p className="text-[11px] leading-none text-muted-foreground line-through">
-                              {formatUsd(p.pricing.priceBeforeDiscountUsd)}
-                            </p>
-                          ) : null}
-                        </>
+                        <ProductPrice
+                          finalUsd={p.pricing.finalPriceUsd}
+                          regularUsd={p.pricing.priceBeforeDiscountUsd}
+                          discountPercent={p.pricing.discountPercent}
+                          size="card"
+                        />
                       )}
                     </div>
                     <AddToDraftButton productId={p.id} productName={p.normalizedName} />

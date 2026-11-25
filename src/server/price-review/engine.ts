@@ -23,6 +23,8 @@ import {
 import { diffPrices, touchedAudiences, type ReviewProductMeta, type ReviewRow, type ReviewSummary } from "@/lib/price-review/diff";
 import type { PriceOperation } from "@/lib/price-review/operations";
 import { parseRule, saveRuleRows, type Db } from "@/server/pricing/rule-save";
+import { rulesOnlyRenamed } from "@/lib/price-review/rule-rename";
+import { ROUNDING_SETTING_KEY, parseRoundingSetting, type PriceRoundingConfig } from "@/lib/price-rounding";
 
 type MarginRuleRow = Prisma.MarginRuleGetPayload<object>;
 type DiscountRuleRow = Prisma.DiscountRuleGetPayload<object>;
@@ -32,6 +34,8 @@ interface PricingState {
   discounts: DiscountRuleRow[];
   /** null = todos los productos activos. */
   products: ProductPricingInput[];
+  /** Redondeo por tramos vigente en ese momento (null = sin redondeo). */
+  rounding: PriceRoundingConfig | null;
 }
 
 export interface SimulationResult {
@@ -58,7 +62,7 @@ async function productScope(db: Db, op: PriceOperation): Promise<string[] | null
 }
 
 async function readState(db: Db, productIds: string[] | null): Promise<PricingState> {
-  const [margins, discounts, products, categories] = await Promise.all([
+  const [margins, discounts, products, categories, roundingRow] = await Promise.all([
     db.marginRule.findMany({ orderBy: [{ priority: "asc" }, { createdAt: "desc" }] }),
     db.discountRule.findMany({ orderBy: [{ priority: "asc" }, { createdAt: "desc" }] }),
     db.product.findMany({
@@ -66,11 +70,14 @@ async function readState(db: Db, productIds: string[] | null): Promise<PricingSt
       select: PRICING_PRODUCT_SELECT,
     }),
     db.category.findMany({ select: { id: true, parentId: true } }),
+    db.adminSetting.findUnique({ where: { key: ROUNDING_SETTING_KEY }, select: { value: true } }),
   ]);
+  const rounding = parseRoundingSetting(roundingRow?.value);
   const parents = new Map(categories.map((c) => [c.id, c.parentId]));
   return {
     margins,
     discounts,
+    rounding: rounding?.enabled ? rounding : null,
     products: products.map((p) => ({
       ...toPricingInput(p),
       categoryAncestorIds: p.categoryId ? categoryAncestorsFrom(p.categoryId, parents) : [],
@@ -138,6 +145,15 @@ export async function executeOperation(db: Db, op: PriceOperation): Promise<void
       await db.product.updateMany({ where: { id: { in: op.productIds } }, data: { discountPercent: op.discountPercent } });
       return;
     }
+    case "pricing.rounding": {
+      const value = JSON.stringify(op.config);
+      await db.adminSetting.upsert({
+        where: { key: ROUNDING_SETTING_KEY },
+        update: { value },
+        create: { key: ROUNDING_SETTING_KEY, value, description: "Redondeo del precio de venta por tramos (aprobado en Revisión de cambios)." },
+      });
+      return;
+    }
     case "category.merge": {
       if (op.fromId === op.toId) throw new Error("Elegí otro rubro para unir.");
       const [from, to, activeChildren] = await Promise.all([
@@ -178,12 +194,13 @@ async function runInTransaction(op: PriceOperation, commit: boolean): Promise<{ 
   return captured;
 }
 
-async function pricesFor(state: PricingState, clientId: string | null, base: Omit<PricingRuleSet, "marginRules" | "discountRules">) {
+async function pricesFor(state: PricingState, clientId: string | null, base: Omit<PricingRuleSet, "marginRules" | "discountRules" | "rounding">) {
   const prepared = await preparePricingInputs(state.products);
   const result = await priceProductsWithRules(prepared, clientId, {
     ...base,
     marginRules: state.margins,
     discountRules: state.discounts,
+    rounding: state.rounding,
   });
   return new Map([...result].map(([id, b]) => [id, b.priceUsdFinal]));
 }
@@ -247,8 +264,28 @@ export async function comparePricing(before: PricingState, after: PricingState, 
 
 /** Simula el cambio sin guardar nada. */
 export async function simulateOperation(op: PriceOperation): Promise<SimulationResult> {
+  return (await simulateOperationDetailed(op)).result;
+}
+
+/**
+ * Simula y además dice si el cambio fue solo de nombre (reglas iguales salvo
+ * nombre o nota): esos no mueven precios y se pueden guardar directo.
+ */
+export async function simulateOperationDetailed(op: PriceOperation): Promise<{ result: SimulationResult; namesOnly: boolean }> {
   const { before, after } = await runInTransaction(op, false);
-  return comparePricing(before, after, op.type !== "rule.save" && op.type !== "rules.update" && op.type !== "rules.delete");
+  const namesOnly =
+    op.type === "rule.save" &&
+    (op.kind === "margin"
+      ? rulesOnlyRenamed(before.margins, after.margins) && sameRules(before.discounts, after.discounts)
+      : rulesOnlyRenamed(before.discounts, after.discounts) && sameRules(before.margins, after.margins));
+  const result = await comparePricing(before, after, op.type !== "rule.save" && op.type !== "rules.update" && op.type !== "rules.delete");
+  return { result, namesOnly: namesOnly && result.summary.affectedProducts === 0 };
+}
+
+function sameRules(before: Array<{ id: string; updatedAt?: Date }>, after: Array<{ id: string; updatedAt?: Date }>): boolean {
+  if (before.length !== after.length) return false;
+  const ids = new Set(before.map((r) => r.id));
+  return after.every((r) => ids.has(r.id));
 }
 
 /** Aplica el cambio de verdad y devuelve lo que se movió realmente. */

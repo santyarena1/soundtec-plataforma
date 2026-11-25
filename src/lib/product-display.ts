@@ -37,6 +37,14 @@ export function productSubtitle(p: ProductDisplayInput): string | null {
 const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Código Tango para mostrar (solo en el panel); null si no hay o es un id interno ilegible. */
+/**
+ * Código para mostrarle al cliente (listas compartidas, exportaciones): el del
+ * fabricante. El Código Tango (internalSku) es solo para el equipo de Soundtec.
+ */
+export function customerProductCode(p: { modelNumber?: string | null; manufacturerItem?: string | null; supplierSku?: string | null }): string | null {
+  return [p.modelNumber, p.manufacturerItem, p.supplierSku].map((v) => v?.trim()).find((v) => !!v) ?? null;
+}
+
 export function tangoCode(internalSku: string | null | undefined): string | null {
   const value = clean(internalSku);
   return value && !UUID_LIKE.test(value) ? value : null;

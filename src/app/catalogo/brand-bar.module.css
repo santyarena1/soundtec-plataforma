@@ -1,0 +1,129 @@
+/*
+ * Menú de marcas: un trazo de luz azul Soundtec recorre el borde.
+ * - Al pasar el mouse (o con el teclado): una vuelta suave y continua.
+ * - En la marca elegida: el recuadro fijo + el trazo, muy lento.
+ * Con «reducir movimiento» queda solo el recuadro, sin animación.
+ */
+@property --brand-orbit {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.cell {
+  position: relative;
+  isolation: isolate;
+}
+
+.cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--brand-orbit),
+    transparent 0turn,
+    transparent 0.7turn,
+    hsl(var(--accent) / 0.12) 0.78turn,
+    hsl(var(--accent) / 0.55) 0.9turn,
+    hsl(var(--accent) / 0.95) 0.975turn,
+    transparent 1turn
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.cell:hover::after,
+.cell:focus-visible::after {
+  opacity: 1;
+  animation: brand-orbit 2.8s linear infinite;
+}
+
+.cell[data-active="true"]::after {
+  opacity: 0.9;
+  animation: brand-orbit 9s linear infinite;
+}
+
+@keyframes brand-orbit {
+  to {
+    --brand-orbit: 360deg;
+  }
+}
+
+/* Separador de las cajas compartidas: línea que se desvanece arriba y abajo. */
+.divider {
+  width: 1px;
+  align-self: stretch;
+  margin-block: 0.625rem;
+  background: linear-gradient(to bottom, transparent, hsl(var(--border)) 18%, hsl(var(--border)) 82%, transparent);
+  flex: none;
+}
+
+/* Desplazable con el dedo, sin barra visible. */
+.strip {
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 1rem;
+  overscroll-behavior-x: contain;
+}
+/* En el celular se desvanece a la derecha: avisa que sigue sin mostrar una barra. */
+@media (max-width: 767px) {
+  .strip {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+  }
+}
+.strip::-webkit-scrollbar {
+  display: none;
+}
+.strip > * {
+  scroll-snap-align: start;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell::after,
+  .cell:hover::after,
+  .cell:focus-visible::after,
+  .cell[data-active="true"]::after {
+    animation: none;
+    opacity: 0;
+    transition: none;
+  }
+}
+
+/* En el celular el grupo se apila: el separador pasa a ser horizontal. */
+@media (max-width: 767px) {
+  .dividerResponsive {
+    width: auto;
+    height: 1px;
+    align-self: stretch;
+    margin: 0 0.75rem 0.25rem;
+    background: linear-gradient(to right, transparent, hsl(var(--border)) 18%, hsl(var(--border)) 82%, transparent);
+  }
+}
+
+/* Desplegable de un grupo en la barra: aparece apenas, sin rebote. */
+.panel {
+  animation: panel-in 0.22s ease-out;
+}
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}

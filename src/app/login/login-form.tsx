@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,7 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
         }
         setError(
           result?.code === "too_many_attempts"
-            ? "Demasiados intentos. Por seguridad, esperá 15 minutos y probá de nuevo (o pedí que te reseteen la contraseña)."
+            ? "Demasiados intentos. Por seguridad, esperá 15 minutos y probá de nuevo, o elegí una clave nueva desde «¿Olvidaste tu clave?»."
             : "Credenciales inválidas o usuario inactivo."
         );
         return;
@@ -106,9 +107,14 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password" required>
-          Contraseña
-        </Label>
+        <div className="flex items-baseline justify-between gap-3">
+          <Label htmlFor="password" required>
+            Contraseña
+          </Label>
+          <Link href="/olvide-clave" className="text-xs font-medium text-[#1E3552]/70 underline-offset-4 hover:text-[#1E3552] hover:underline">
+            ¿Olvidaste tu clave?
+          </Link>
+        </div>
         <PasswordInput id="password" name="password" autoComplete="current-password" className="h-11" required />
         <FieldError />
       </div>

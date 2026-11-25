@@ -16,7 +16,10 @@ export function CatalogLayout({
   publicMode = false,
   categoryShownAbove = false,
   lead,
+  quickFilters,
 }: {
+  /** Botones de filtro rápido (una por etiqueta, descuento, favoritos), debajo del buscador. */
+  quickFilters?: React.ReactNode;
   /** A la izquierda de la cantidad: el camino del rubro (y el botón «Rubros» sin sidebar). */
   lead?: React.ReactNode;
   state: CatalogUrlState;
@@ -32,6 +35,7 @@ export function CatalogLayout({
   return (
     <div className="min-w-0 space-y-4">
       {toolbar}
+      {quickFilters}
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex min-w-0 basis-full flex-wrap items-center gap-x-4 gap-y-2 empty:hidden sm:basis-0 sm:flex-1">
           {lead}
@@ -90,14 +94,14 @@ function CatalogActiveFilters({
   if (!publicMode && SHOW_STOCK_TO_CUSTOMERS && state.includeOutOfStock) {
     chips.push({ key: "oos", label: "Mostrando sin stock", clear: () => push({ includeOutOfStock: false }) });
   }
-  if (state.hasDiscount) chips.push({ key: "disc", label: "Con descuento", clear: () => push({ hasDiscount: false }) });
-  if (state.favoritesOnly) chips.push({ key: "fav", label: "Favoritos", clear: () => push({ favoritesOnly: false }) });
+  // Descuento, favoritos y etiquetas se ven prendidos en sus botones (fila de arriba): sin pastilla repetida.
+  const quickActive = !!state.hasDiscount || !!state.favoritesOnly || !!state.labelIds?.length || !!state.commercialTags?.length;
   if (state.crestronOnly) chips.push({ key: "crestron", label: "Crestron Home", clear: () => push({ crestronOnly: false }) });
   if (state.kind && state.kind !== "any") {
     chips.push({ key: "kind", label: state.kind === "PRINCIPAL" ? "Principales" : "Accesorios", clear: () => push({ kind: "any" }) });
   }
 
-  if (chips.length === 0) return null;
+  if (chips.length === 0 && !quickActive) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-2">

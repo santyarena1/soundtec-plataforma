@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ExpoExperience } from "@/components/expo/expo-experience";
 import type { ChatProduct } from "@/components/expo/types";
 import { ogMeta, siteCardUrl } from "@/lib/og/meta";
+import { suggestedQuestionsFor } from "@/server/assistant/suggestions";
 
 export const metadata = {
   title: "Soundtec en la expo",
@@ -62,6 +63,8 @@ export default async function ExpoPage({
   const raw = Array.isArray(params.product) ? params.product[0] : params.product;
   const from = Array.isArray(params.from) ? params.from[0] : params.from;
   const initialProduct = await resolveInitialProduct(raw);
+  // Preguntas sugeridas según de dónde llega: portal, catálogo público o la Expo (QR).
+  const suggestions = await suggestedQuestionsFor(from === "portal" ? "portal" : from === "catalogo" ? "catalogo" : "expo");
 
   // `/expo?from=portal`: llega un usuario con cuenta desde el catálogo del
   // portal. No se le pide contacto y el botón vuelve a su catálogo.
@@ -74,8 +77,9 @@ export default async function ExpoPage({
         backHref="/portal/products"
         backLabel="Volver al catálogo"
         productBase="/portal/products"
+        suggestions={suggestions}
       />
     );
   }
-  return <ExpoExperience initialProduct={initialProduct} logoUrl="/landing/logo_soundtec.png" />;
+  return <ExpoExperience initialProduct={initialProduct} logoUrl="/landing/logo_soundtec.png" suggestions={suggestions} />;
 }

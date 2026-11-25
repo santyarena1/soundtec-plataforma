@@ -74,6 +74,7 @@ model User {
   ownedClients           Client[]                 @relation("ClientOwner")
   clientActivities       ClientActivity[]         @relation("ClientActivityAuthor")
   activationTokens       AccountActivationToken[]
+  passwordResetTokens    PasswordResetToken[]
   ownedRoomProjects      RoomProject[]            @relation("RoomProjectOwner")
   approvedDesignProfiles ProductDesignProfile[]   @relation("DesignProfileApprover")
 
@@ -481,6 +482,8 @@ model Product {
   updatedAt DateTime @updatedAt
 
   images              ProductImage[]
+  /// Videos de YouTube o Instagram de la galería (junto a las fotos).
+  videos              ProductVideo[]
   options             ProductOption[]
   wishlistItems       WishlistItem[]
   views               ProductView[]
@@ -546,6 +549,27 @@ model ProductImage {
   alt       String?
   source    String? // "upload" | "serper" | "supplier" | "scraper"
   isPrimary Boolean  @default(false)
+  /// Lugar en la galería (fotos y videos comparten la numeración; menor = antes).
+  /// 9999 = sin ordenar a mano: va al final, por principal y antigüedad.
+  sortOrder Int      @default(9999)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+/// Video de la galería del producto: solo el link (YouTube o Instagram), no se descarga nada.
+model ProductVideo {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// "youtube" | "instagram"
+  provider  String
+  /// Id del video en la plataforma (YouTube: 11 caracteres; Instagram: el código del post).
+  videoId   String
+  /// Link canónico, armado a partir del id.
+  url       String
+  title     String?
+  sortOrder Int      @default(9999)
   createdAt DateTime @default(now())
 
   @@index([productId])
@@ -2605,7 +2629,14 @@ model FormInvite {
   sentAt       DateTime?
   sendCount    Int       @default(0)
   lastError    String?
+  /// Primera apertura: píxel del mail o, si las imágenes están bloqueadas, el clic en el enlace.
   openedAt     DateTime?
+  /// Aperturas registradas por el píxel (aproximado: hay programas que bloquean imágenes y otros que las precargan).
+  openCount    Int       @default(0)
+  lastOpenedAt DateTime?
+  /// Primer clic en el enlace personal del formulario.
+  clickedAt    DateTime?
+  clickCount   Int       @default(0)
   respondedAt  DateTime?
   responseId   String?
   /// Respuesta por mail (leída de la casilla).
@@ -2759,4 +2790,70 @@ model MailTemplate {
   createdById String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+/// «Ver como este usuario»: cada vez que un admin mira el sistema como otro usuario (solo lectura).
+/// Sin relaciones a User a propósito (aditivo): si se borra un usuario, el registro queda.
+model ImpersonationLog {
+  id           String    @id @default(cuid())
+  adminId      String
+  adminEmail   String
+  targetUserId String
+  targetEmail  String
+  targetRole   String
+  startedAt    DateTime  @default(now())
+  /// Hasta cuándo vale la vista (se corre al renovar).
+  expiresAt    DateTime
+  endedAt      DateTime?
+  /// salir | vencida | renovada-n | invalida
+  endReason    String?
+  renewals     Int       @default(0)
+  ipHash       String?
+
+  @@index([targetUserId, startedAt])
+  @@index([adminId, startedAt])
+}
+
+/// «Olvidé mi clave»: link de un solo uso que vence en 1 h. Solo se guarda el hash.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  /// Hash de la IP que lo pidió (nunca la IP en claro).
+  ipHash    String?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Cada mail transaccional que manda el sistema (invitaciones, avisos internos,
+/// recuperar clave, pruebas). Para «Últimos envíos» en Configuración › Correo,
+/// reintentar los que fallaron y respetar el límite por hora del hosting.
+model MailLog {
+  id        String    @id @default(cuid())
+  /// access_invite, account_approved, password_reset, notice_order, test…
+  kind      String
+  /// Destinatarios separados por coma.
+  to        String
+  subject   String
+  /// QUEUED (esperando cupo) · SENT · FAILED · SKIPPED (sin canal configurado)
+  status    String    @default("QUEUED")
+  /// smtp | resend
+  channel   String?
+  error     String?
+  messageId String?
+  attempts  Int       @default(0)
+  /// Contenido cifrado con ENCRYPTION_KEY para poder reintentar. Se borra al salir bien.
+  payload   String?
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([channel, sentAt])
 }

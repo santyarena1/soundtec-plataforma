@@ -21,10 +21,14 @@ import { LabelSelector } from "@/components/admin/label-selector";
 import { getSetting } from "@/lib/settings";
 import { PortalDataPanel } from "./portal-data-panel";
 import { calculateCustomerPrice } from "@/lib/pricing";
+import { discountInfoFrom } from "@/lib/price-discount-label";
+import { GALLERY_IMAGE_ORDER, GALLERY_VIDEO_ORDER, mergeGalleryMedia } from "@/lib/product-media";
 import { BackToCatalogLink } from "@/components/catalog/catalog-memory";
 import { ProductTabsProvider, TabPane } from "../product-tabs";
 import { PricingRulesPanel } from "./pricing-rules-panel";
 import { loadProductPricingRules } from "@/server/actions/product-pricing-rules";
+import { OpenPortalEditLink } from "@/components/admin-quick-edit/admin-quick-edit";
+import { isLongDescriptionAiGenerated } from "@/lib/ai-content";
 
 function SectionHeader({
   id,
@@ -66,7 +70,8 @@ export default async function AdminProductEditPage({ params }: { params: Promise
     where: { id },
     include: {
       brand: { select: { name: true } },
-      images: true,
+      images: { orderBy: GALLERY_IMAGE_ORDER },
+      videos: { orderBy: GALLERY_VIDEO_ORDER },
       options: true,
       accessories: {
         where: { kind: { in: ["ACCESSORY", "INCLUDED"] } },
@@ -145,9 +150,10 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         actions={
           <>
             {product.isActive ? <Badge tone="success">Activo</Badge> : <Badge tone="muted">Inactivo</Badge>}
-            {product.aiGeneratedDescription ? <Badge tone="accent">Desc. IA</Badge> : null}
+            {isLongDescriptionAiGenerated(product) ? <Badge tone="accent">Desc. larga IA</Badge> : null}
             {product.isCustomizable ? <Badge tone="warning">Personalizable</Badge> : null}
             {product.kind === "ACCESORIO" ? <Badge tone="warning">Accesorio</Badge> : <Badge tone="primary">Principal</Badge>}
+            {permissionsHave(access.permissions, "products.edit") ? <OpenPortalEditLink productId={product.id} isActive={product.isActive} /> : null}
             {permissionsHave(access.permissions, "margins.manage") ? <EditPriceButton productId={product.id} /> : null}
           </>
         }
@@ -155,7 +161,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
 
       <ProductTabsProvider
         counts={{
-          imagenes: product.images.length,
+          imagenes: product.images.length + product.videos.length,
           relaciones: product.options.length + product.accessories.length + compatRules.length,
         }}
       >
@@ -243,6 +249,7 @@ export default async function AdminProductEditPage({ params }: { params: Promise
                 : null,
               costoNacUsd: priceBreakdown.costoNacUsd,
               salePriceUsd: product.salePriceUsd == null ? null : Number(product.salePriceUsd),
+              discountInfo: discountInfoFrom(priceBreakdown),
             }}
             tcVenta={parseFloat(tcVentaStr) || 0}
             globalCoefNac={parseFloat(globalCoefStr) || 35}
@@ -285,13 +292,14 @@ export default async function AdminProductEditPage({ params }: { params: Promise
       <ProductImagesPanel
         productId={product.id}
         productName={product.normalizedName}
-        images={product.images.map((i) => ({
-          id: i.id,
-          url: i.url,
-          alt: i.alt,
-          isPrimary: i.isPrimary,
-          source: i.source,
-        }))}
+        media={(() => {
+          const sources = new Map(product.images.map((i) => [i.id, i.source]));
+          return mergeGalleryMedia(product.images, product.videos).map((item) => ({
+            ...item,
+            createdAt: new Date(item.createdAt).toISOString(),
+            source: item.kind === "image" ? sources.get(item.id) ?? null : null,
+          }));
+        })()}
       />
 
       </TabPane>

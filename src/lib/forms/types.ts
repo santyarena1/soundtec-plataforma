@@ -129,7 +129,7 @@ export const formSettingsSchema = z
     endMapQuery: z.string().max(1000).optional(),
     endMapResolved: z.string().max(4000).optional(),
     endAgenda: z.array(agendaItemSchema).max(40).optional(),
-    /** Mails que reciben aviso de cada respuesta (cuando esté Resend). */
+    /** Mails que reciben aviso de cada respuesta (además de los de Configuración › Correo). */
     notifyEmails: z.array(z.string().email()).max(20).optional(),
     /** Fondo: blanco liso, blanco con degradé azul, gris claro u oscuro (azul Soundtec). */
     theme: z.enum(["white", "light", "gray", "dark"]).optional(),

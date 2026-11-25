@@ -97,7 +97,8 @@ async function writeProductShortDescription(
   const next = clipToWords(text);
   await prisma.product.update({
     where: { id: product.id },
-    data: { shortDescription: next, aiGeneratedDescription: true },
+    // Solo el corto: aiGeneratedDescription es de la descripción LARGA (cartel «Generado con IA» de la ficha).
+    data: { shortDescription: next },
   });
   return next;
 }

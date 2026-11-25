@@ -36,11 +36,13 @@ function categoryHref(basePath: string, baseQuery: string, categoryId: string | 
  * es largo). Está siempre, aunque una búsqueda no deje rubros, para que la
  * página no cambie de forma. Tablet y celular usan el botón «Rubros».
  */
-export function CatalogCategoryRail({ nodes, activeId, params, basePath }: TreeProps) {
+export function CatalogCategoryRail({ nodes, activeId, params, basePath, below }: TreeProps & { below?: React.ReactNode }) {
   return (
     <aside aria-label="Rubros del catálogo" className="hidden xl:block">
-      <div className="sticky top-20">
+      <div className="sticky top-20 space-y-4">
         <CategoryTreeNav nodes={nodes} activeId={activeId} basePath={basePath} baseQuery={baseQueryOf(params)} />
+        {/* Debajo de los rubros: «Activá tus descuentos» (solo clientes con condiciones propias). */}
+        {below}
       </div>
     </aside>
   );

@@ -60,6 +60,7 @@ function rules(margins: unknown[], discounts: unknown[] = []): PricingRuleSet {
     discountRules: discounts as PricingRuleSet["discountRules"],
     defaultMarkupMultiplier: 1.35,
     tc: 1000,
+    rounding: null,
   };
 }
 

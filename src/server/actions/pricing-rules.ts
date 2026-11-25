@@ -12,7 +12,7 @@ import { expandCategoryIds } from "@/lib/category-tree";
 import type { RuleTarget } from "@/lib/pricing-scope";
 import { describeRuleScope, parseRule, saveRuleError } from "@/server/pricing/rule-save";
 import { validateRubroIds } from "@/server/categories/rubros";
-import { proposePriceReview, type ProposedReview } from "@/server/price-review/reviews";
+import { proposeOrApplyRename, proposePriceReview, type ProposedReview } from "@/server/price-review/reviews";
 import type { PriceOperation, RuleKind } from "@/lib/price-review/operations";
 
 function revalidatePricing() {
@@ -30,7 +30,8 @@ function rethrowIfRedirect(err: unknown) {
   if (digest.includes("NEXT_REDIRECT") || digest.includes("NEXT_NOT_FOUND")) throw err;
 }
 
-export type RuleSaveResult = { ok: boolean; error?: string; review?: ProposedReview };
+/** `applied`: se guardó directo (cambio solo de nombre, no mueve precios). */
+export type RuleSaveResult = { ok: boolean; error?: string; review?: ProposedReview; applied?: boolean };
 
 const SCOPE_BY_KIND = { margin: "margins.manage", discount: "discounts.manage" } as const;
 
@@ -69,7 +70,15 @@ async function proposeRuleSave(kind: RuleKind, formData: FormData): Promise<Rule
   const scopeText = await describeRuleScope(prisma, parsed.data.target, scopeIds);
   const title = `${editing ? "Editar" : "Nueva"} ${kind === "margin" ? "regla de margen" : "regla de descuento"}: ${valueText} · ${scopeText} · ${clientCount ? `${clientCount} cliente${clientCount === 1 ? "" : "s"}` : "todos los clientes"}${parsed.data.isActive ? "" : " (inactiva)"}`;
   try {
-    const review = await proposePriceReview(op, title, actorOf(user));
+    // Solo cambió el nombre: no mueve precios, se guarda directo (queda registrado como aplicado).
+    const outcome = editing
+      ? await proposeOrApplyRename(op, `Renombrar ${kind === "margin" ? "regla de margen" : "regla de descuento"}: ${parsed.data.name}`, actorOf(user))
+      : { applied: false as const, review: await proposePriceReview(op, title, actorOf(user)) };
+    if (outcome.applied) {
+      revalidatePricing();
+      return { ok: true, applied: true };
+    }
+    const review = outcome.review;
     revalidatePath("/admin/price-reviews");
     revalidatePath(kind === "margin" ? "/admin/margins" : "/admin/discounts");
     return { ok: true, review };

@@ -436,7 +436,12 @@ export async function POST(req: NextRequest) {
       if (!contentProtected && detail.htmlContent) {
         const es = translationMaps?.htmlContents.get(detail.htmlContent);
         if (force || !currentProduct.htmlContent?.trim()) productUpdate.htmlContent = es ?? detail.htmlContent;
-        if (force || !currentProduct.longDescription?.trim()) productUpdate.longDescription = (es ?? detail.htmlContent).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        if (force || !currentProduct.longDescription?.trim()) {
+          productUpdate.longDescription = (es ?? detail.htmlContent).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+          // Texto de la ficha oficial: ya no es «Generado con IA».
+          productUpdate.aiGeneratedDescription = false;
+          productUpdate.aiDescriptionFeedbackStatus = null;
+        }
       }
       if (specs.length > 0) productUpdate.specifications = specs as unknown as object;
       if (docs.length > 0) productUpdate.documents = docs as unknown as object;

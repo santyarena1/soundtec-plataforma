@@ -20,6 +20,9 @@ type Invite = {
   status: string;
   sentAt: string | null;
   openedAt: string | null;
+  openCount: number;
+  clickedAt: string | null;
+  clickCount: number;
   respondedAt: string | null;
   repliedAt: string | null;
   replySnippet: string;
@@ -39,12 +42,13 @@ function shortDate(iso: string | null): string {
   return new Date(iso).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-/** Estado que se muestra: el más avanzado (respondió > abrió > enviado). */
+/** Estado que se muestra: el más avanzado (respondió > hizo clic > abrió > enviado). */
 function stage(i: Invite): { label: string; tone: string } {
   if (i.respondedAt) return { label: "Respondió", tone: "bg-emerald-100 text-emerald-800" };
   if (i.status === "BOUNCED") return { label: "Rebotó", tone: "bg-red-100 text-red-800" };
   if (i.status === "FAILED") return { label: "No salió", tone: "bg-red-100 text-red-800" };
-  if (i.openedAt) return { label: "Abrió", tone: "bg-sky-100 text-sky-800" };
+  if (i.clickedAt) return { label: "Abrió el enlace", tone: "bg-indigo-100 text-indigo-800" };
+  if (i.openedAt) return { label: "Abrió el mail", tone: "bg-sky-100 text-sky-800" };
   if (i.status === "SENT") return { label: "Enviado", tone: "bg-slate-100 text-slate-700" };
   return { label: "Sin enviar", tone: "bg-amber-100 text-amber-900" };
 }
@@ -73,10 +77,11 @@ export function InvitesManager({
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const counts = useMemo(() => {
-    const c = { total: invites.length, pending: 0, sent: 0, opened: 0, responded: 0, problems: 0, waiting: 0 };
+    const c = { total: invites.length, pending: 0, sent: 0, opened: 0, clicked: 0, responded: 0, problems: 0, waiting: 0 };
     for (const i of invites) {
       if (i.respondedAt) c.responded += 1;
       if (i.openedAt) c.opened += 1;
+      if (i.clickedAt) c.clicked += 1;
       if (i.status === "SENT") c.sent += 1;
       if (i.status === "PENDING" || i.status === "FAILED") c.pending += 1;
       if (i.status === "FAILED" || i.status === "BOUNCED") c.problems += 1;
@@ -205,8 +210,9 @@ export function InvitesManager({
   }
 
   function downloadCsv() {
-    const rows = [["Nombre", "Email", "Empresa", "Estado", "Enviado", "Abrió", "Respondió", "Respuesta por mail"]];
-    for (const i of invites) rows.push([i.name, i.email, i.company, stage(i).label, shortDate(i.sentAt), shortDate(i.openedAt), shortDate(i.respondedAt), i.replySnippet.replace(/\s+/g, " ")]);
+    const rows = [["Nombre", "Email", "Empresa", "Estado", "Enviado", "Abrió el mail", "Aperturas", "Abrió el enlace", "Respondió", "Respuesta por mail"]];
+    for (const i of invites)
+      rows.push([i.name, i.email, i.company, stage(i).label, shortDate(i.sentAt), shortDate(i.openedAt), String(i.openCount), shortDate(i.clickedAt), shortDate(i.respondedAt), i.replySnippet.replace(/\s+/g, " ")]);
     const csv = "﻿" + rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(";")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
@@ -238,7 +244,7 @@ export function InvitesManager({
           <p>
             Falta cargar la cuenta de mail que manda las invitaciones.{" "}
             <Link href="/admin/settings/correo" className="font-semibold underline">
-              Configuración › Correo de envío
+              Configuración › Correo
             </Link>
           </p>
         </div>
@@ -317,6 +323,7 @@ export function InvitesManager({
           <Stat label="Sin enviar" value={counts.pending} />
           <Stat label="Enviados" value={counts.sent} />
           <Stat label="Abrieron" value={counts.opened} />
+          <Stat label="Abrieron el enlace" value={counts.clicked} />
           <Stat label="Respondieron" value={counts.responded} strong />
           {counts.problems ? <Stat label="Con problemas" value={counts.problems} warn /> : null}
           <div className="ml-auto flex flex-wrap gap-2">
@@ -344,6 +351,10 @@ export function InvitesManager({
             </button>
           </div>
         </div>
+
+        <p className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
+          La apertura es aproximada: algunos programas de correo bloquean las imágenes (no se ve aunque lo hayan leído) y otros las cargan solos (Apple Mail). Si la persona abre el enlace, cuenta también como apertura.
+        </p>
 
         {progress ? (
           <div className="border-b border-border bg-primary/5 px-4 py-3">
@@ -378,7 +389,7 @@ export function InvitesManager({
 
         {visible.length ? (
           <div className="overflow-x-auto p-4 pt-2">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[860px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="w-8 py-2">
@@ -393,7 +404,8 @@ export function InvitesManager({
                   <th className="py-2">Empresa</th>
                   <th className="py-2">Estado</th>
                   <th className="py-2">Enviado</th>
-                  <th className="py-2">Abrió</th>
+                  <th className="py-2">Abrió el mail</th>
+                  <th className="py-2">Abrió el enlace</th>
                   <th className="py-2">Respondió</th>
                 </tr>
               </thead>
@@ -420,7 +432,14 @@ export function InvitesManager({
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${st.tone}`}>{st.label}</span>
                       </td>
                       <td className="py-2.5 pr-3 text-xs text-muted-foreground">{shortDate(i.sentAt)}</td>
-                      <td className="py-2.5 pr-3 text-xs text-muted-foreground">{shortDate(i.openedAt)}</td>
+                      <td className="py-2.5 pr-3 text-xs text-muted-foreground">
+                        {shortDate(i.openedAt)}
+                        {i.openCount > 1 ? <span className="block text-[11px]">{i.openCount} veces</span> : null}
+                      </td>
+                      <td className="py-2.5 pr-3 text-xs text-muted-foreground">
+                        {shortDate(i.clickedAt)}
+                        {i.clickCount > 1 ? <span className="block text-[11px]">{i.clickCount} veces</span> : null}
+                      </td>
                       <td className="py-2.5 text-xs text-muted-foreground">{shortDate(i.respondedAt)}</td>
                     </tr>
                   );

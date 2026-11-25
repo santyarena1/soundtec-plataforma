@@ -5,7 +5,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { areaOf, isPriceOperation, type PriceOperation } from "@/lib/price-review/operations";
-import { commitOperation, simulateOperation, type SimulationResult } from "@/server/price-review/engine";
+import { commitOperation, simulateOperation, simulateOperationDetailed, type SimulationResult } from "@/server/price-review/engine";
 
 export interface ReviewActor {
   id: string;
@@ -26,7 +26,28 @@ function toJson(value: unknown): Prisma.InputJsonValue {
 
 /** Simula el cambio y lo deja pendiente en «Revisión de cambios». No toca precios. */
 export async function proposePriceReview(op: PriceOperation, title: string, actor: ReviewActor): Promise<ProposedReview> {
-  const result = await simulateOperation(op);
+  return createPendingReview(op, title, actor, await simulateOperation(op));
+}
+
+/**
+ * Para altas y ediciones de reglas: si el cambio es SOLO de nombre (o nota) no
+ * mueve precios, así que se guarda directo y queda registrado como aplicado.
+ * Si no, queda pendiente en Revisión de cambios como siempre.
+ */
+export async function proposeOrApplyRename(
+  op: PriceOperation,
+  title: string,
+  actor: ReviewActor
+): Promise<{ applied: true } | { applied: false; review: ProposedReview }> {
+  const { result, namesOnly } = await simulateOperationDetailed(op);
+  if (namesOnly) {
+    await applyAndRecord(op, title, actor);
+    return { applied: true };
+  }
+  return { applied: false, review: await createPendingReview(op, title, actor, result) };
+}
+
+async function createPendingReview(op: PriceOperation, title: string, actor: ReviewActor, result: SimulationResult): Promise<ProposedReview> {
   const review = await prisma.priceReview.create({
     data: {
       area: areaOf(op),

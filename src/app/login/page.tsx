@@ -55,10 +55,10 @@ export default async function LoginPage({
             </Link>
           </p>
           <p className="text-xs text-[#1E3552]/55">
-            ¿Olvidaste tu clave? Escribinos a{" "}
-            <a className="underline-offset-4 hover:underline" href="mailto:contacto@soundtec.com.ar">
-              contacto@soundtec.com.ar
-            </a>
+            ¿Olvidaste tu clave?{" "}
+            <Link href="/olvide-clave" className="font-semibold text-[#1E3552] underline-offset-4 hover:underline">
+              Elegí una nueva
+            </Link>
           </p>
         </>
       }

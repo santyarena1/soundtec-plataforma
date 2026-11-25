@@ -4,6 +4,7 @@ import { SEARCH_MAX_PER_HOUR, decideSearchLog, normalizeSearchQuery } from "@/li
 import { VISITOR_COOKIE } from "@/lib/expo/visitor-cookies";
 import { isCrawlerUserAgent } from "@/lib/expo/welcome-gate";
 import { clientIp, hashIp } from "@/services/ai-assistant/rate-limit";
+import { hasImpersonationCookie } from "@/lib/impersonation/server";
 
 export type CatalogSearchSurface = "portal" | "catalogo";
 
@@ -24,6 +25,8 @@ export function logCatalogSearch(input: {
   try {
     // Solo la primera página: paginar no es buscar otra vez.
     if (input.page && input.page > 1) return;
+    // Un admin mirando «como» otro usuario no registra búsquedas a su nombre.
+    if (hasImpersonationCookie()) return;
     const query = normalizeSearchQuery(input.query);
     if (!query) return;
     const hdrs = headers();

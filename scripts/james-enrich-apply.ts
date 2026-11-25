@@ -197,8 +197,9 @@ async function main() {
       const curLong = stripHtml(p.longDescription);
       if (!curLong || curLong === stripHtml(p.htmlContent) || curLong.toUpperCase() === stripHtml(p.originalName).toUpperCase()) {
         set("longDescription", p.longDescription, e.longDescriptionEs);
-        set("aiGeneratedDescription", p.aiGeneratedDescription, true);
-        set("aiDescriptionFeedbackStatus", p.aiDescriptionFeedbackStatus, "PENDING");
+        // Traducción de la ficha oficial (portal + PDF del fabricante): no es «Generado con IA».
+        set("aiGeneratedDescription", p.aiGeneratedDescription, false);
+        set("aiDescriptionFeedbackStatus", p.aiDescriptionFeedbackStatus, null);
         wroteSpanish = true;
       } else log.notes.push("ya tenía descripción larga: se conserva");
     }

@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { signOut } from "@/lib/auth";
+import { IMPERSONATION_COOKIE } from "@/lib/impersonation/token";
 
 const REASONS = new Set(["inactivo", "cambios", "usuario", "clave"]);
 
@@ -10,5 +12,7 @@ const REASONS = new Set(["inactivo", "cambios", "usuario", "clave"]);
 export async function GET(req: Request) {
   const motivo = new URL(req.url).searchParams.get("motivo") ?? "";
   const reason = REASONS.has(motivo) ? motivo : "cerrada";
+  // Una vista «Ver como» abierta no sobrevive al cierre de la sesión del admin.
+  cookies().delete(IMPERSONATION_COOKIE);
   await signOut({ redirectTo: `/login?sesion=${reason}` });
 }

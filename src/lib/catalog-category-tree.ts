@@ -7,7 +7,17 @@ export type CategoryCountNode = { id: string; name: string; parentId: string | n
 
 type RawNode = { id: string; name: string; parentId: string | null };
 
-/** Nodos con productos (propios o de sus subrubros), ordenados por cantidad y nombre. */
+/**
+ * Orden alfabético de rubros como lo lee un argentino: sin distinguir mayúsculas
+ * ni acentos («Áudio» junto a «Audio»), la ñ en su lugar y los números por valor.
+ */
+const CATEGORY_COLLATOR = new Intl.Collator("es-AR", { sensitivity: "base", numeric: true });
+
+export function compareCategoryNames(a: string, b: string): number {
+  return CATEGORY_COLLATOR.compare(a.trim(), b.trim());
+}
+
+/** Nodos con productos (propios o de sus subrubros), en orden alfabético en todos los niveles. */
 export function buildCategoryCountTree(
   nodes: RawNode[],
   groups: Array<{ categoryId: string | null; count: number }>
@@ -33,7 +43,7 @@ export function buildCategoryCountTree(
       parentId: n.parentId && counts.has(n.parentId) ? n.parentId : null,
       count: counts.get(n.id) ?? 0,
     }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "es"));
+    .sort((a, b) => compareCategoryNames(a.name, b.name) || a.id.localeCompare(b.id));
 }
 
 /** Camino desde el rubro principal hasta el nodo («Sonido», «Bafles», «Techo»). Vacío si no está. */

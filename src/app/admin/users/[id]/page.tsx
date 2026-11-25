@@ -10,10 +10,21 @@ import { UserFormModal } from "@/components/admin/user-form-modal";
 import { UserActions } from "@/components/admin/user-actions";
 import { formatDate } from "@/lib/utils";
 import { USER_TYPE_LABEL, loadUserFormOptions } from "@/server/users-ui";
+import { ViewAsButton } from "@/components/impersonation/view-as-button";
+import { canImpersonate } from "@/lib/impersonation/token";
+import { listImpersonationLogs } from "@/server/impersonation";
 
 export const metadata = { title: "Admin · Usuario" };
 
-export default async function Page({ params }: { params: { id: string } }) {
+const VIEW_END_LABEL: Record<string, string> = {
+  salir: "Salió",
+  vencida: "Venció",
+  sesion: "Cerró sesión",
+  admin: "Admin sin permiso",
+  objetivo: "Usuario cambió",
+};
+
+export default async function Page({ params, searchParams }: { params: { id: string }; searchParams?: { vista?: string } }) {
   const { user: actor, permissions: actorPerms, isAdmin } = await requireStaff(["users.view", "clients.portal_users"]);
   const seesTeam = permissionsHave(actorPerms, "users.view");
   const [user, options, pendingInvite] = await Promise.all([
@@ -42,6 +53,9 @@ export default async function Page({ params }: { params: { id: string } }) {
     baseRole: user.role,
     customPermissions: user.customRole?.isActive ? parsePermissions(user.customRole.permissionsJson) : null,
   });
+  // «Ver como este usuario»: solo admins, nunca sobre otro admin ni sobre uno mismo.
+  const canViewAs = isAdmin && canImpersonate(actor, user).ok;
+  const viewLogs = isAdmin ? await listImpersonationLogs(user.id, 10) : [];
   const priceLabel = PRICE_ACCESS_OPTIONS.find((o) => o.value === (effective.fullAccess ? "full" : effective.priceAccess ?? "none"))?.label;
 
   return (
@@ -53,18 +67,28 @@ export default async function Page({ params }: { params: { id: string } }) {
         title={user.name}
         description={user.email}
         actions={
-          canManageThis ? (
-            <UserFormModal
-              user={user}
-              clients={options.clients}
-              roles={options.roles}
-              isSuper={actor.role === "SUPER_ADMIN"}
-              isAdmin={actor.role === "ADMIN" || actor.role === "SUPER_ADMIN"}
-              triggerLabel="Editar usuario"
-            />
+          canManageThis || canViewAs ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {canViewAs ? <ViewAsButton userId={user.id} name={user.name} /> : null}
+              {canManageThis ? (
+                <UserFormModal
+                  user={user}
+                  clients={options.clients}
+                  roles={options.roles}
+                  isSuper={actor.role === "SUPER_ADMIN"}
+                  isAdmin={actor.role === "ADMIN" || actor.role === "SUPER_ADMIN"}
+                  triggerLabel="Editar usuario"
+                />
+              ) : null}
+            </div>
           ) : null
         }
       />
+      {searchParams?.vista && searchParams.vista !== "salir" ? (
+        <p className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
+          {searchParams.vista === "vencida" ? "La vista «Ver como» venció (30 minutos). Volviste a tu usuario." : "La vista «Ver como» se cerró porque dejó de ser válida. Volviste a tu usuario."}
+        </p>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <Badge tone={user.role === "CLIENT" ? "muted" : "primary"}>{USER_TYPE_LABEL[user.role]}</Badge>
         {user.customRole && user.role !== "ADMIN" && user.role !== "SUPER_ADMIN" ? <Badge tone="accent">{user.customRole.name}</Badge> : null}
@@ -150,7 +174,40 @@ export default async function Page({ params }: { params: { id: string } }) {
           ) : null}
         </CardContent>
       </Card>
+
+      {isAdmin && (canViewAs || viewLogs.length) ? <ViewLogCard logs={viewLogs} /> : null}
     </div>
+  );
+}
+
+function ViewLogCard({ logs }: { logs: Awaited<ReturnType<typeof listImpersonationLogs>> }) {
+  return (
+    <Card>
+      <CardContent className="space-y-2 p-5">
+        <h2 className="font-semibold">Vistas de admin</h2>
+        <p className="text-xs text-muted-foreground">Cada vez que un administrador miró el sistema como este usuario (solo lectura).</p>
+        {logs.length ? (
+          <ul className="divide-y divide-border text-sm" data-testid="vistas-admin">
+            {logs.map((l) => {
+              const open = !l.endedAt && l.expiresAt > new Date();
+              return (
+                <li key={l.id} className="flex flex-wrap items-baseline justify-between gap-2 py-1.5">
+                  <span className="min-w-0 break-all">{l.adminEmail}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {l.startedAt.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" })}
+                    {" · "}
+                    {open ? "en curso" : l.endedAt ? `${VIEW_END_LABEL[l.endReason ?? ""] ?? "Terminó"} ${l.endedAt.toLocaleTimeString("es-AR", { timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" })}` : "venció sin salir"}
+                    {l.renewals ? ` · renovada ${l.renewals}×` : ""}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">Ningún administrador miró como este usuario.</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

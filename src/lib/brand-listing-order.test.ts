@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { brandListingComparator, categorySortKeys, type BrandListingItem } from "./brand-listing-order";
+import {
+  brandListingComparator,
+  categorySortKeys,
+  commonCategoryAncestor,
+  matchCategoryByName,
+  createBrandListingIndex,
+  ordinal,
+  resolveCategoryOrder,
+  rubroHighlightFor,
+  sectionsForPage,
+  toggleRubroFirst,
+  type BrandListingItem,
+} from "./brand-listing-order";
 import { hiddenCategoryIdsFrom, isCustomerHiddenCategory } from "./customer-hidden-categories";
 import { CUSTOMER_STOCK_LABEL, ORIGIN_STOCK_LABEL, SHOW_STOCK_TO_CUSTOMERS, originStockText } from "./stock-display";
 
@@ -74,6 +86,140 @@ describe("orden al entrar a una marca", () => {
 
   it("un id de rubro que ya no existe no rompe el orden", () => {
     assert.equal(order(rows, ["borrado", "video"])[0], "video-1");
+  });
+});
+
+// Árbol de 4 niveles como el de Tango: SONIDO > BAFLES PASIVOS > (COLGANTES · DE EMBUTIR > TECHO, PARED) · BAFLES ACTIVOS > IP
+const tango = categorySortKeys([
+  { id: "S", parentId: null, name: "Sonido", tangoPath: "SONIDO" },
+  { id: "BP", parentId: "S", name: "Bafles pasivos", tangoPath: "SONIDO > BAFLES PASIVOS" },
+  { id: "COL", parentId: "BP", name: "Bafles colgantes", tangoPath: "SONIDO > BAFLES PASIVOS > BAFLES COLGANTES" },
+  { id: "EMB", parentId: "BP", name: "Bafles de embutir", tangoPath: "SONIDO > BAFLES PASIVOS > BAFLES DE EMBUTIR" },
+  { id: "TEC", parentId: "EMB", name: "Techo", tangoPath: "SONIDO > BAFLES PASIVOS > BAFLES DE EMBUTIR > TECHO" },
+  { id: "PAR", parentId: "EMB", name: "Pared", tangoPath: "SONIDO > BAFLES PASIVOS > BAFLES DE EMBUTIR > PARED" },
+  { id: "BA", parentId: "S", name: "Bafles activos", tangoPath: "SONIDO > BAFLES ACTIVOS" },
+  { id: "IP", parentId: "BA", name: "Bafles IP", tangoPath: "SONIDO > BAFLES ACTIVOS > BAFLES IP" },
+  { id: "ACC", parentId: "S", name: "Accesorios", tangoPath: "SONIDO > ACCESORIOS" },
+  { id: "REJ", parentId: "ACC", name: "Rejillas", tangoPath: "SONIDO > ACCESORIOS > REJILLAS" },
+  // Categoría vieja (sin ruta de Tango), desactivada, y «Sin categorizar».
+  { id: "VIEJA", parentId: null, name: "Parlantes", tangoPath: null, isActive: false },
+  { id: "SINCAT", parentId: null, name: "Sin categorizar", tangoPath: null },
+]);
+const tangoRows = [
+  row("techo-1", "TEC"),
+  row("pared-1", "PAR"),
+  row("colg-1", "COL"),
+  row("ip-1", "IP"),
+  row("rej-1", "REJ"),
+  row("viejo-1", "VIEJA"),
+  row("sincat-1", "SINCAT"),
+  row("sin-rubro", null),
+];
+const indexFor = (categoryOrder: string[]) => createBrandListingIndex({ categoryOrder, categories: tango });
+const sortWith = (rows: Row[], categoryOrder: string[]) => [...rows].sort(indexFor(categoryOrder).comparator<Row>(byName));
+
+describe("orden por marca con el árbol de Tango", () => {
+  it("un rubro elegido de nivel 2 trae todos sus subrubros (nivel 3 y 4) y los agrupa por nivel 3", () => {
+    const sorted = sortWith(tangoRows, ["BP"]);
+    assert.deepEqual(sorted.map((r) => r.name).slice(0, 3), ["colg-1", "pared-1", "techo-1"]);
+    const sections = indexFor(["BP"]).sectionsOf(sorted);
+    assert.deepEqual(
+      sections.map((s) => [s.title, s.chosenPosition]),
+      [
+        ["Bafles colgantes", 0],
+        ["Bafles de embutir", 0],
+        // No elegidos: por ruta, con encabezado de nivel 3.
+        ["Rejillas", null],
+        ["Bafles IP", null],
+        ["Otros productos", null],
+      ]
+    );
+    assert.equal(sections[1].context, "Sonido › Bafles pasivos");
+  });
+
+  it("un subrubro de nivel 4 elegido sale primero con su propio encabezado y le gana al padre", () => {
+    const sorted = sortWith(tangoRows, ["TEC", "BP"]);
+    assert.deepEqual(sorted.map((r) => r.name).slice(0, 3), ["techo-1", "colg-1", "pared-1"]);
+    assert.equal(indexFor(["TEC", "BP"]).sectionsOf(sorted)[0].title, "Techo");
+  });
+
+  it("rubros viejos, «Sin categorizar» y sin rubro van al final, en «Otros productos»", () => {
+    const sorted = sortWith(tangoRows, []).map((r) => r.name);
+    assert.deepEqual(sorted.slice(-3).sort(), ["sin-rubro", "sincat-1", "viejo-1"]);
+    // Sin orden elegido: rubros por ruta alfabética (ACCESORIOS < BAFLES ACTIVOS < BAFLES PASIVOS).
+    assert.deepEqual(sorted.slice(0, 5), ["rej-1", "ip-1", "colg-1", "pared-1", "techo-1"]);
+  });
+
+  it("los destacados forman la sección «Destacados» arriba de todo", () => {
+    const starred = tangoRows.map((r) => (r.name === "rej-1" || r.name === "viejo-1" ? { ...r, isFeatured: true } : r));
+    const sorted = sortWith(starred, ["IP"]);
+    assert.deepEqual(sorted.map((r) => r.name).slice(0, 3), ["rej-1", "viejo-1", "ip-1"]);
+    const sections = indexFor(["IP"]).sectionsOf(sorted);
+    assert.deepEqual(sections.slice(0, 2).map((s) => [s.kind, s.title, s.startIndex]), [
+      ["featured", "Destacados", 0],
+      ["rubro", "Bafles IP", 2],
+    ]);
+  });
+
+  it("las secciones de una página repiten arriba la que viene de la anterior", () => {
+    const sorted = sortWith(tangoRows, ["BP"]);
+    const all = indexFor(["BP"]).sectionsOf(sorted);
+    const page2 = sectionsForPage(all, 2, 3); // productos 3 a 5: techo-1, rej-1, ip-1
+    assert.deepEqual(page2.map((s) => [s.title, s.startIndex, Boolean(s.continued)]), [
+      ["Bafles de embutir", 0, true],
+      ["Rejillas", 1, false],
+      ["Bafles IP", 2, false],
+    ]);
+  });
+});
+
+describe("orden guardado con rubros viejos", () => {
+  it("pasa los viejos a su equivalente de Tango y descarta los que no tienen, avisando", () => {
+    const resolved = resolveCategoryOrder(["IP", "VIEJA", "BORRADO", "SINCAT", "IP"], tango, new Map([["VIEJA", "BP"]]));
+    assert.deepEqual(resolved.order, ["IP", "BP"]);
+    assert.deepEqual(resolved.migrated, [{ from: "VIEJA", fromName: "Parlantes", to: "BP" }]);
+    assert.deepEqual(resolved.dropped.map((d) => d.id), ["BORRADO", "SINCAT"]);
+  });
+
+  it("el equivalente de una categoría vieja es el rubro común donde terminaron sus productos (nivel 2 o más)", () => {
+    assert.equal(commonCategoryAncestor(["TEC", "COL"], tango), "BP");
+    assert.equal(commonCategoryAncestor(["TEC"], tango), "TEC");
+    // Repartidos entre pasivos y activos: solo comparten «Sonido» (nivel 1), no alcanza.
+    assert.equal(commonCategoryAncestor(["TEC", "IP"], tango), null);
+    assert.equal(commonCategoryAncestor([], tango), null);
+  });
+
+  it("sin reclasificación registrada, se busca el rubro de la marca con el mismo nombre (si hay uno solo)", () => {
+    const candidates = [
+      { id: "COL", name: "Bafles colgantes" },
+      { id: "BP", name: "Bafles pasivos" },
+      { id: "TEC", name: "Techo" },
+    ];
+    assert.equal(matchCategoryByName("Bafle pasivo", candidates), "BP");
+    assert.equal(matchCategoryByName("TECHO", candidates), "TEC");
+    assert.equal(matchCategoryByName("Bafles", candidates), null);
+    assert.equal(matchCategoryByName("Techo", [...candidates, { id: "TEC2", name: "Techos" }]), null);
+    assert.equal(matchCategoryByName(null, candidates), null);
+  });
+});
+
+describe("destacar rubro desde un producto", () => {
+  it("el rubro del producto es su nivel 3 y muestra dónde está en el orden", () => {
+    const order = ["IP", "BP"];
+    const h = rubroHighlightFor(indexFor(order), order, "TEC");
+    assert.equal(h?.rubroId, "EMB");
+    assert.equal(h?.position, null);
+    assert.deepEqual(h?.coveredBy, { id: "BP", name: "Bafles pasivos", position: 1 });
+    assert.equal(rubroHighlightFor(indexFor(order), order, "VIEJA"), null);
+  });
+
+  it("destacar lo pone 1.º (sin duplicar) y quitarlo lo saca del orden", () => {
+    assert.deepEqual(toggleRubroFirst(["IP", "BP"], "EMB", true), ["EMB", "IP", "BP"]);
+    assert.deepEqual(toggleRubroFirst(["IP", "EMB", "BP"], "EMB", true), ["EMB", "IP", "BP"]);
+    assert.deepEqual(toggleRubroFirst(["EMB", "IP"], "EMB", false), ["IP"]);
+    const order = toggleRubroFirst(["IP", "BP"], "EMB", true);
+    assert.equal(rubroHighlightFor(indexFor(order), order, "PAR")?.position, 0);
+    assert.equal(ordinal(0), "1.º");
   });
 });
 

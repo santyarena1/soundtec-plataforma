@@ -26,6 +26,7 @@ export function FavoriteButton({ productId, isFavorite, label = false }: Favorit
       <button
         type="submit"
         disabled={pending}
+        data-mutates=""
         title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
         className={cn(
           "inline-flex h-8 items-center gap-1 rounded-full border border-border bg-card px-2 text-xs transition-colors hover:border-accent",

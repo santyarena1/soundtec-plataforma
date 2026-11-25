@@ -13,10 +13,11 @@ import { z } from "zod";
 import { ACTIVITY_OPTIONS, accountRequestSchema } from "@/lib/expo/account-request-schema";
 import { ACTIVATION_TTL_MS, createActivationToken } from "@/lib/expo/activation-token";
 import { cuitVariants, formatCuit, isValidCuit, normalizeCuit } from "@/lib/expo/cuit";
-import { textToHtml } from "@/lib/expo/html";
 import { LEAD_COOKIE, QR_COOKIE, VISITOR_COOKIE } from "@/lib/expo/visitor-cookies";
 import { findLiveQr, recordVisit } from "@/server/expo/visits";
-import { accountRequestRecipients, sendMail } from "@/server/mailer";
+import { accountApprovedMail, accountRejectedMail, accountRequestNotice, accountRequestReceivedMail } from "@/lib/mail/transactional/messages";
+import { getTransactionalSettings } from "@/lib/mail/transactional/settings";
+import { notifyTeam, sendRendered } from "@/server/mail/transactional";
 import { requireStaff } from "@/lib/auth-helpers";
 import { replaceClientDiscounts } from "@/server/clients/conditions";
 
@@ -62,23 +63,29 @@ export async function submitAccountRequest(formData: FormData): Promise<SubmitRe
   });
   await recordVisit({ visitorId, qrId: qr?.id, type: "ACCOUNT_REQUEST" });
   await notifyAdmins(data).catch((error) => console.error("[cuentas] no se pudo avisar la solicitud", error));
+  await confirmToApplicant(data).catch((error) => console.error("[cuentas] no se pudo confirmar la solicitud", error));
   return { ok: true };
 }
 
 type NotifyData = Pick<AccountRequest, "fullName" | "company" | "cuit" | "email" | "phone" | "activity"> & { activityOther?: string | null };
 
-async function notifyAdmins(data: NotifyData): Promise<void> {
-  const to = await accountRequestRecipients();
-  if (!to.length) return;
-  const text = `Nueva solicitud de cuenta\n\n${data.fullName} — ${data.company} (CUIT ${formatCuit(data.cuit)})\n${data.email} · ${data.phone}\nActividad: ${data.activity}${data.activityOther ? ` (${data.activityOther})` : ""}\n\nRevisala en /admin/account-requests`;
-  await sendMail({ to, subject: `Nueva solicitud de cuenta: ${data.company}`, text, html: textToHtml(text) });
+async function notifyAdmins(data: NotifyData, requestedBy?: string | null): Promise<void> {
+  const activity = `${data.activity}${data.activityOther ? ` (${data.activityOther})` : ""}`;
+  await notifyTeam("account_request", (portalUrl) => accountRequestNotice({ ...data, cuit: formatCuit(data.cuit), activity, requestedBy }, portalUrl));
+}
+
+/** «Recibimos tu solicitud» al que la pidió desde la web (se puede apagar en Configuración › Correo). */
+async function confirmToApplicant(data: NotifyData): Promise<void> {
+  const settings = await getTransactionalSettings();
+  if (!settings.clientToggles.account_request_received) return;
+  await sendRendered("account_request_received", data.email, (portalUrl) => accountRequestReceivedMail({ name: data.fullName, company: data.company }, portalUrl));
 }
 
 export type ApproveResult =
   | { ok: true; activationUrl: string; mailSent: boolean; linkedExistingClient: boolean; clientName: string }
   | { ok: false; error: string };
 
-export type LinkResult = { ok: true; activationUrl: string } | { ok: false; error: string };
+export type LinkResult = { ok: true; activationUrl: string; mailSent?: boolean } | { ok: false; error: string };
 
 /** El error que se muestra al admin cuando otra acción ya resolvió la solicitud. */
 class AlreadyReviewedError extends Error {}
@@ -149,10 +156,9 @@ async function createAccountFor(
 }
 
 /** Manda el mail de activación. Nunca tira: si falla, el admin usa el link. */
-async function sendActivationMail(to: string, name: string, activationUrl: string): Promise<boolean> {
+async function sendActivationMail(to: string, name: string, company: string, activationUrl: string): Promise<boolean> {
   try {
-    const text = `Hola ${name}, tu cuenta de cliente de Soundtec está aprobada.\n\nCreá tu contraseña acá (vence en 72 horas):\n${activationUrl}`;
-    const mail = await sendMail({ to, subject: "Activá tu cuenta de Soundtec", text, html: textToHtml(text) });
+    const mail = await sendRendered("account_approved", to, (portalUrl) => accountApprovedMail({ name, company, url: activationUrl }, portalUrl));
     return mail.sent;
   } catch (error) {
     console.error("[cuentas] no se pudo enviar el mail de activación", error);
@@ -194,7 +200,7 @@ export async function approveAccountRequest(id: string, options: ApproveOptions 
   }
 
   const activationUrl = `${appUrl()}/activar/${token}`;
-  const mailSent = await sendActivationMail(req.email, req.fullName, activationUrl);
+  const mailSent = await sendActivationMail(req.email, req.fullName, result.clientName, activationUrl);
   revalidatePath("/admin/account-requests");
   revalidatePath("/admin/clients");
   return { ok: true, activationUrl, mailSent, ...result };
@@ -207,7 +213,7 @@ export async function approveAccountRequest(id: string, options: ApproveOptions 
 export async function regenerateActivationLink(requestId: string): Promise<LinkResult> {
   await requireStaff("account_requests.review");
   try {
-    const req = await prisma.accountRequest.findUnique({ where: { id: requestId }, select: { status: true, createdUserId: true } });
+    const req = await prisma.accountRequest.findUnique({ where: { id: requestId }, select: { status: true, createdUserId: true, email: true, fullName: true, company: true } });
     if (!req || req.status !== "APPROVED" || !req.createdUserId) return { ok: false, error: "La solicitud no está aprobada." };
     const userId = req.createdUserId;
     const used = await prisma.accountActivationToken.findFirst({ where: { userId, usedAt: { not: null } }, select: { id: true } });
@@ -217,11 +223,23 @@ export async function regenerateActivationLink(requestId: string): Promise<LinkR
       prisma.accountActivationToken.deleteMany({ where: { userId, usedAt: null } }),
       prisma.accountActivationToken.create({ data: { userId, tokenHash, expiresAt: new Date(Date.now() + ACTIVATION_TTL_MS) } }),
     ]);
-    return { ok: true, activationUrl: `${appUrl()}/activar/${token}` };
+    const activationUrl = `${appUrl()}/activar/${token}`;
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true, companyName: true } });
+    const mailSent = await sendActivationMail(user?.email ?? req.email, user?.name ?? req.fullName, user?.companyName ?? req.company, activationUrl);
+    return { ok: true, activationUrl, mailSent };
   } catch (error) {
     console.error("[cuentas] no se pudo regenerar el link de activación", error);
     return { ok: false, error: "No se pudo generar el link. Probá de nuevo." };
   }
+}
+
+/** Aviso cordial al solicitante (sin el motivo interno). Apagado por defecto: se prende en Configuración › Correo. */
+async function notifyRejection(id: string): Promise<void> {
+  const settings = await getTransactionalSettings();
+  if (!settings.clientToggles.account_rejected) return;
+  const req = await prisma.accountRequest.findUnique({ where: { id }, select: { email: true, fullName: true, company: true } });
+  if (!req) return;
+  await sendRendered("account_rejected", req.email, (portalUrl) => accountRejectedMail({ name: req.fullName, company: req.company }, portalUrl));
 }
 
 export async function rejectAccountRequest(id: string, reason: string): Promise<{ ok: boolean; error?: string }> {
@@ -238,6 +256,7 @@ export async function rejectAccountRequest(id: string, reason: string): Promise<
     console.error("[cuentas] no se pudo rechazar la solicitud", error);
     return { ok: false, error: "No se pudo rechazar la solicitud. Probá de nuevo." };
   }
+  await notifyRejection(id).catch((error) => console.error("[cuentas] no se pudo avisar el rechazo", error));
   revalidatePath("/admin/account-requests");
   return { ok: true };
 }
@@ -298,7 +317,7 @@ export async function submitStaffAccountRequest(input: StaffAccountRequestInput)
       staffNote: data.staffNote || null,
     },
   });
-  await notifyAdmins({ ...data, activityOther: data.activityOther ?? null }).catch((error) => console.error("[cuentas] no se pudo avisar la solicitud", error));
+  await notifyAdmins({ ...data, activityOther: data.activityOther ?? null }, user.name ?? user.email).catch((error) => console.error("[cuentas] no se pudo avisar la solicitud", error));
   revalidatePath("/admin/account-requests");
   return { ok: true };
 }

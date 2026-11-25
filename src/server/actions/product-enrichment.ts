@@ -14,6 +14,8 @@ import { matchRubroPath } from "@/lib/ai-rubro-path";
 import { tangoPathLabel } from "@/lib/tango-tree";
 import { searchProductImages, searchProductImagesOrError, type SerperImage } from "@/services/serper";
 import { getSetting, setSetting } from "@/lib/settings";
+import { moveProductImageFirst } from "@/server/catalog/product-gallery";
+import { GALLERY_IMAGE_ORDER } from "@/lib/product-media";
 
 function revalidateProductImages(productId: string) {
   if (productId) {
@@ -24,7 +26,7 @@ function revalidateProductImages(productId: string) {
   revalidatePath("/portal/products");
 }
 
-/** Si hay fotos pero ninguna es principal, marca la más vieja. El listado la usa de tapa. */
+/** Si hay fotos pero ninguna es principal, marca la primera de la galería. El listado la usa de tapa. */
 async function ensureProductHasPrimaryImage(productId: string) {
   if (!productId) return;
   const primary = await prisma.productImage.findFirst({
@@ -34,7 +36,7 @@ async function ensureProductHasPrimaryImage(productId: string) {
   if (primary) return;
   const first = await prisma.productImage.findFirst({
     where: { productId },
-    orderBy: { createdAt: "asc" },
+    orderBy: GALLERY_IMAGE_ORDER,
     select: { id: true },
   });
   if (!first) return;
@@ -171,8 +173,9 @@ export async function applyClassificationSuggestion(input: {
 }
 
 /**
- * Genera la descripción corta y la persiste. Marca aiGeneratedDescription=true
- * porque el corto también es contenido IA (incluso si el largo no lo es).
+ * Genera la descripción corta y la persiste. NO toca aiGeneratedDescription:
+ * ese flag es de la descripción larga (cartel «Generado con IA» de la ficha) y
+ * marcarlo acá hacía que una descripción oficial saliera como generada con IA.
  */
 export async function generateProductShortDescription(
   productId: string
@@ -204,7 +207,7 @@ export async function generateProductShortDescription(
 
     await prisma.product.update({
       where: { id: productId },
-      data: { shortDescription: text, aiGeneratedDescription: true },
+      data: { shortDescription: text },
     });
     revalidatePath(`/admin/products/${productId}`);
     revalidatePath(`/portal/products/${productId}`);
@@ -228,13 +231,9 @@ export async function saveProductDescriptions(input: {
     await requireStaff("products.edit", { costs: true });
     const data: Record<string, unknown> = {};
     if (typeof input.short === "string") data.shortDescription = input.short || null;
-    if (typeof input.long === "string") {
-      data.longDescription = input.long || null;
-      if (input.long) {
-        data.aiGeneratedDescription = true;
-        data.aiDescriptionFeedbackStatus = "PENDING";
-      }
-    }
+    // Guardado a mano: no cambia la marca de IA (si era un texto generado y se
+    // retocó, sigue marcado; si era de la ficha oficial, no pasa a ser «IA»).
+    if (typeof input.long === "string") data.longDescription = input.long || null;
     if (Object.keys(data).length === 0) return { ok: true };
     await prisma.product.update({ where: { id: input.productId }, data });
     revalidatePath(`/admin/products/${input.productId}`);
@@ -372,7 +371,7 @@ export async function uploadProductImageFile(
         data: { isPrimary: false },
       });
     }
-    await prisma.productImage.create({
+    const created = await prisma.productImage.create({
       data: {
         productId,
         url: fileUrl,
@@ -380,7 +379,10 @@ export async function uploadProductImageFile(
         source: "upload",
         isPrimary,
       },
+      select: { id: true },
     });
+    // La principal es la primera de la galería: si se pidió principal, va adelante.
+    if (isPrimary) await moveProductImageFirst(productId, created.id);
     await ensureProductHasPrimaryImage(productId);
     revalidateProductImages(productId);
     return { ok: true, url: fileUrl };
@@ -427,7 +429,7 @@ export async function attachProductImage(
   if (input.isPrimary) {
     await prisma.productImage.updateMany({ where: { productId }, data: { isPrimary: false } });
   }
-  await prisma.productImage.create({
+  const created = await prisma.productImage.create({
     data: {
       productId,
       url: result.url,
@@ -435,7 +437,9 @@ export async function attachProductImage(
       source: input.origin === "url" ? "url" : "serper",
       isPrimary: Boolean(input.isPrimary),
     },
+    select: { id: true },
   });
+  if (input.isPrimary) await moveProductImageFirst(productId, created.id);
   await ensureProductHasPrimaryImage(productId);
   revalidateProductImages(productId);
   const notes = [
@@ -455,10 +459,8 @@ export async function setPrimaryImage(formData: FormData): Promise<void> {
   // La imagen tiene que ser de este producto: si no, no se toca nada.
   const image = await prisma.productImage.findFirst({ where: { id, productId }, select: { id: true } });
   if (!image) return;
-  await prisma.$transaction([
-    prisma.productImage.updateMany({ where: { productId }, data: { isPrimary: false } }),
-    prisma.productImage.update({ where: { id }, data: { isPrimary: true } }),
-  ]);
+  // Principal = primera de la galería: se lleva adelante y queda marcada.
+  await moveProductImageFirst(productId, id);
   revalidateProductImages(productId);
 }
 
