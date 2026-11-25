@@ -46,10 +46,11 @@ const nextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
-  // Chromium para HTML→PDF de cotizaciones (no empaquetar en el bundle de webpack).
-  // serverExternalPackages es de Next 15; en 14 la clave vive en experimental.
-  serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
   experimental: {
+    // El build de Vercel se quedaba sin memoria (OOM, 2026-11-25): menos workers en paralelo.
+    cpus: 1,
+    workerThreads: false,
+    // Chromium para HTML→PDF de cotizaciones (no empaquetar en el bundle de webpack).
     serverComponentsExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
     /**
      * El binario de Chromium viene como archivos sueltos dentro del paquete y

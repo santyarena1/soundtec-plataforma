@@ -3204,4 +3204,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "Ficha del admin: «Editar en la vista del portal» abre la ficha del portal con el panel ya abierto (Ctrl/Cmd+clic, en otra pestaña). Cada sección guarda por separado, avisa si quedan cambios sin guardar al cerrar o salir y refresca la ficha del portal, el catálogo y el admin." },
     ],
   },
+  {
+    id: "ship-2026-11-25-build-memoria",
+    version: "2.60.1",
+    releasedAt: "2026-11-25T03:00:00.000Z",
+    summary: "Publicación: el armado del sistema usa menos memoria.",
+    items: [
+      { kind: "FIX", text: "El armado en Vercel se quedaba sin memoria con todo lo nuevo; ahora compila con menos procesos en paralelo y más memoria disponible." },
+    ],
+  },
 ];
