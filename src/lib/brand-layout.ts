@@ -156,6 +156,8 @@ export type MenuBoxKind = "pair" | "group" | "single";
 export interface MenuBox<B extends LayoutBrand> {
   kind: MenuBoxKind;
   cells: LayoutCell<B>[];
+  /** Cada marca a su propio listado (Crestron | Crestron Home); si no, la caja entera lleva al grupo junto. */
+  separate: boolean;
 }
 
 const PER_ROW: Record<MenuBoxKind, number> = { group: 1, pair: 2, single: 3 };
@@ -170,7 +172,7 @@ export function packMenuRows<B extends LayoutBrand>(groups: ResolvedGroup<B>[]):
       rows.push(current);
       current = [];
     }
-    current.push({ kind, cells: group.cells });
+    current.push({ kind, cells: group.cells, separate: group.separate });
   }
   if (current.length) rows.push(current);
   return rows;
@@ -197,4 +199,23 @@ export function buildBarEntries<B extends LayoutBrand>(resolved: ResolvedBrandGr
   }
   entries.push(...resolved.extras.map((brand): BarEntry<B> => ({ type: "brand", brand })));
   return entries;
+}
+
+/* ───────────── Enlace a un grupo entero ───────────── */
+
+/**
+ * Listado filtrado por todas las marcas reales del grupo (?brand=a&brand=b…).
+ * Quedan afuera las «Próximamente» sin cargar y las marcas virtuales (Crestron
+ * Home filtra por compatibilidad, no por marca). Sin marcas reales: null.
+ */
+export function groupHref<B extends LayoutBrand & { query?: string }>(cells: LayoutCell<B>[], basePath: string): { href: string; ids: string[] } | null {
+  const ids = cells.flatMap((cell) => (cell.type === "brand" && !cell.brand.query ? [cell.brand.id] : []));
+  if (!ids.length) return null;
+  return { href: `${basePath}?${ids.map((id) => `brand=${encodeURIComponent(id)}`).join("&")}`, ids };
+}
+
+/** Texto para lectores de pantalla: «Ver todas las marcas de Atlona: Atlona, Hall Tech, …». */
+export function groupAriaLabel<B extends LayoutBrand>(cells: LayoutCell<B>[]): string {
+  const names = cells.map((cell) => (cell.type === "brand" ? cell.brand.name : cell.name));
+  return `Ver todas las marcas de ${names[0]}: ${names.join(", ")}`;
 }

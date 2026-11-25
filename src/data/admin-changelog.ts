@@ -3105,18 +3105,6 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     ],
   },
   {
-    id: "ship-2026-11-24-menu-de-marcas-agrupado",
-    version: "2.54.0",
-    releasedAt: "2026-11-24T21:00:00.000Z",
-    summary: "Marcas agrupadas como el boceto: el menú para elegir marca (catálogo e inicio del portal) muestra las cajas compartidas y las familias SoundTube y Atlona; la barra arriba de los resultados muestra solo la marca principal de cada grupo, que despliega sus submarcas.",
-    items: [
-      { kind: "NUEVO", text: "Menú de marcas («¿Qué marca buscás?» del catálogo y «Explorar por marca» del inicio del portal) armado como el boceto (pedidos 18 y 19): Crestron | Crestron Home y Sonance + Blaze en cajas compartidas; SoundTube con Phase Technology, Rockustics, SolidDrive, Soundsphere, dARTS e Induction Dynamics; Atlona con Hall Technologies, Javelin, Gain Audio y Captivate; y de a tres James · TRUFIG · IPORT, Bluesound Professional · BrightSign · Dante, FlatPanel · Work Pro · Yamaha. Cada logo lleva a su marca. En el celular los grupos se apilan, sin desbordar." },
-      { kind: "NUEVO", text: "Barra de marcas arriba de los resultados: ya no aparecen todas sueltas, solo la principal de cada grupo (Sonance, SoundTube, Atlona y las sueltas). Al tocar una principal se despliegan debajo sus submarcas y «Ver todas», que filtra el grupo entero junto. Tocar una submarca filtra solo esa; la principal queda marcada y el desplegable muestra cuál está elegida. Crestron y Crestron Home van siempre separadas, con el rótulo «Crestron Home · Residencial»." },
-      { kind: "NUEVO", text: "Admin › Marcas › «Grupos de marcas del catálogo»: una fila por grupo (principal + hermanas) y su orden, con el boceto ya cargado. Con eso se arman solos el menú y la barra; «Separadas en la barra» es para casos como Crestron / Crestron Home. Las marcas sin grupo van al final, en «Más marcas» (con un botón para sumarlas). Una marca todavía no cargada (Work Pro, Yamaha) aparece como «Próximamente». «Volver al boceto original» deshace todo." },
-      { kind: "MEJORA", text: "Logos más grandes y siempre a color. Al pasar el mouse, un trazo de luz azul da la vuelta al borde de la marca; la marca elegida lleva un recuadro y el mismo trazo, muy lento. Con «reducir movimiento» del sistema queda solo el recuadro." },
-    ],
-  },
-  {
     id: "ship-2026-11-24-ver-como-usuario",
     version: "2.55.0",
     releasedAt: "2026-11-24T22:00:00.000Z",
@@ -3211,6 +3199,19 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
     summary: "Publicación: el armado del sistema usa menos memoria.",
     items: [
       { kind: "FIX", text: "El armado en Vercel se quedaba sin memoria con todo lo nuevo; ahora compila con menos procesos en paralelo y más memoria disponible." },
+    ],
+  },
+  {
+    id: "ship-2026-11-24-menu-de-marcas-agrupado",
+    version: "2.61.0",
+    releasedAt: "2026-11-24T23:30:00.000Z",
+    summary: "Marcas agrupadas como el boceto: en el menú para elegir marca cada grupo es una sola caja que abre todas sus marcas juntas; la barra arriba de los resultados muestra solo la principal de cada grupo, que despliega sus submarcas.",
+    items: [
+      { kind: "NUEVO", text: "Menú de marcas («¿Qué marca buscás?» del catálogo y «Explorar por marca» del inicio del portal) armado como el boceto (pedidos 18 y 19): Crestron | Crestron Home, Sonance + Blaze, SoundTube con Phase Technology, Rockustics, SolidDrive, Soundsphere, dARTS e Induction Dynamics, Atlona con Hall Technologies, Javelin, Gain Audio y Captivate, y de a tres James · TRUFIG · IPORT, Bluesound Professional · BrightSign · Dante, FlatPanel · Work Pro · Yamaha." },
+      { kind: "MEJORA", text: "En el menú no se elige una marca suelta dentro de un grupo: la caja entera (Sonance + Blaze, SoundTube, Atlona) es un solo enlace y, toques el logo que toques, abre el listado con todas las marcas del grupo. Crestron | Crestron Home sigue con dos mitades, cada una a su marca. Las cajas sueltas llevan a su marca." },
+      { kind: "NUEVO", text: "Barra de marcas arriba de los resultados: solo la principal de cada grupo (Sonance, SoundTube, Atlona y las sueltas). Al tocarla se despliegan debajo sus submarcas y «Ver todas», que filtra el grupo entero. Al llegar desde el menú el grupo ya aparece abierto con «Ver todas» marcado, y desde ahí se puede elegir una submarca. Crestron y Crestron Home van siempre separadas, con el rótulo «Crestron Home · Residencial»." },
+      { kind: "NUEVO", text: "Admin › Marcas › «Grupos de marcas del catálogo»: una fila por grupo (principal + hermanas) y su orden, con el boceto ya cargado; con eso se arman solos el menú y la barra. «Separadas en la barra» es para casos como Crestron / Crestron Home. Las marcas sin grupo van al final, en «Más marcas». Una marca todavía no cargada (Work Pro, Yamaha) aparece como «Próximamente». «Volver al boceto original» deshace todo." },
+      { kind: "MEJORA", text: "Logos más grandes y siempre a color. Al pasar el mouse un trazo de luz azul recorre el borde de la caja; la marca elegida en la barra lleva un recuadro y el mismo trazo, muy lento. Con «reducir movimiento» del sistema queda solo el recuadro." },
     ],
   },
 ];

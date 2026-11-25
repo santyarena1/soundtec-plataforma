@@ -1,5 +1,5 @@
 import type { CatalogBrand } from "@/lib/catalog-brands";
-import { buildBarEntries } from "@/lib/brand-layout";
+import { buildBarEntries, groupHref } from "@/lib/brand-layout";
 import { groupBrands } from "@/server/catalog/brand-layout";
 import { toBrandUiItem, toUiCell } from "./brand-menu";
 import { BrandBarClient, type BrandBarEntry } from "./brand-bar-client";
@@ -25,13 +25,13 @@ export async function BrandBar({
   const entries: BrandBarEntry[] = buildBarEntries(resolved).map((entry): BrandBarEntry => {
     if (entry.type !== "family") return entry;
     // «Ver todas»: las marcas reales del grupo juntas (?brand=a&brand=b…).
-    const ids = entry.members.flatMap((cell) => (cell.type === "brand" && !cell.brand.query ? [cell.brand.id] : []));
+    const all = groupHref(entry.members, basePath);
     return {
       type: "family",
       lead: entry.lead,
       members: entry.members.map(toUiCell),
-      memberIds: ids,
-      allHref: `${basePath}?${ids.map((id) => `brand=${encodeURIComponent(id)}`).join("&")}`,
+      memberIds: all?.ids ?? [],
+      allHref: all?.href ?? entry.lead.href,
     };
   });
   const active = activeBrandIds?.length ? activeBrandIds : activeBrandId ? [activeBrandId] : [];

@@ -4,6 +4,8 @@ import {
   DEFAULT_BRAND_GROUPS,
   brandKey,
   buildBarEntries,
+  groupAriaLabel,
+  groupHref,
   packMenuRows,
   parseBrandGroups,
   resolveBrandGroups,
@@ -115,5 +117,33 @@ describe("barra de marcas", () => {
     const st = entries.find((e) => e.type === "family" && e.lead.name === "SoundTube");
     assert.ok(st && st.type === "family");
     assert.deepEqual(names(st.members), ["SoundTube", "Phase Technology", "Rockustics", "SolidDrive", "Soundsphere", "dARTS", "Induction Dynamics"]);
+  });
+});
+
+describe("enlace a un grupo entero (menú de marcas)", () => {
+  const resolved = resolveBrandGroups(DEFAULT_BRAND_GROUPS, REAL, REAL.map((x) => x.name));
+  const rows = packMenuRows(resolved.groups);
+  const atlona = rows.flat().find((box) => box.cells[0].type === "brand" && box.cells[0].brand.name === "Atlona")!;
+
+  it("lleva al listado con todas las marcas del grupo juntas", () => {
+    const ids = ["Atlona", "Hall Tech", "Javelin", "Gain Audio", "Captivate"].map((n) => REAL.find((x) => x.name === n)!.id);
+    assert.equal(groupHref(atlona.cells, "/catalogo")?.href, "/catalogo?" + ids.map((id) => "brand=" + id).join("&"));
+  });
+  it("tiene un aria-label que nombra a todas", () => {
+    assert.equal(groupAriaLabel(atlona.cells), "Ver todas las marcas de Atlona: Atlona, Hall Tech, Javelin, Gain Audio, Captivate");
+  });
+  it("Crestron | Crestron Home queda «separadas»: cada mitad a su marca", () => {
+    assert.equal(rows[0][0].separate, true);
+    assert.equal(rows[0][1].separate, false);
+  });
+  it("deja afuera las «Próximamente» sin cargar y las marcas virtuales", () => {
+    type Q = { id: string; name: string; query?: string };
+    const cells: LayoutCell<Q>[] = [
+      { type: "brand", brand: { id: "a", name: "A" } },
+      { type: "brand", brand: { id: "ch", name: "Crestron Home", query: "crestron=1" } },
+      { type: "soon", name: "Yamaha" },
+    ];
+    assert.equal(groupHref(cells, "/portal/products")?.href, "/portal/products?brand=a");
+    assert.equal(groupHref<Q>([{ type: "soon", name: "Yamaha" }], "/x"), null);
   });
 });

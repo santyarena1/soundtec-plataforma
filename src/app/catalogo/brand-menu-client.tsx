@@ -7,7 +7,8 @@ import type { MenuBoxKind } from "@/lib/brand-layout";
 import { BrandLogo, BrandName, SoonTag, useBrokenLogos, type BrandUiCell, type BrandUiItem } from "./brand-ui";
 import styles from "./brand-bar.module.css";
 
-export type BrandMenuBox = { kind: MenuBoxKind; cells: BrandUiCell[] };
+/** `group`: la caja entera es un solo enlace al grupo (todas sus marcas juntas). */
+export type BrandMenuBox = { kind: MenuBoxKind; cells: BrandUiCell[]; group?: { href: string; label: string } };
 
 type Size = "hero" | "lg" | "md";
 const LOGO: Record<Size, string> = { hero: "h-14 sm:h-16", lg: "h-12 sm:h-14", md: "h-10 sm:h-11" };
@@ -70,21 +71,36 @@ export function BrandMenuClient({ rows, extras }: { rows: BrandMenuBox[][]; extr
 
 type CellProps = { broken: ReadonlySet<string>; onBroken: (id: string) => void };
 
-function Surface({ children, className }: { children: React.ReactNode; className?: string }) {
+const SURFACE = "flex min-w-0 items-stretch rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgb(15_23_42/0.04)]";
+
+/** Caja del menú. Con `group`, toda la caja es un enlace (y el trazo del borde la recorre entera). */
+function Surface({ children, className, group }: { children: React.ReactNode; className?: string; group?: BrandMenuBox["group"] }) {
+  if (!group) return <div className={cn(SURFACE, className)}>{children}</div>;
   return (
-    <div className={cn("flex min-w-0 items-stretch rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgb(15_23_42/0.04)]", className)}>
+    <Link
+      href={group.href}
+      aria-label={group.label}
+      title={group.label}
+      className={cn(
+        SURFACE,
+        styles.cell,
+        "outline-none transition-[background-color,border-color] duration-200 hover:border-foreground/15 hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring",
+        className
+      )}
+    >
       {children}
-    </div>
+    </Link>
   );
 }
 
 function PairBox({ box, ...cellProps }: { box: BrandMenuBox } & CellProps) {
+  const linked = !!box.group;
   return (
-    <Surface className="h-24 p-1.5 sm:h-28">
+    <Surface className="h-24 p-1.5 sm:h-28" group={box.group}>
       {box.cells.map((cell, index) => (
         <div key={index} className="flex min-w-0 flex-1">
           {index > 0 ? <span aria-hidden className={cn(styles.divider, "mr-1.5")} /> : null}
-          <MenuCell cell={cell} size="lg" {...cellProps} />
+          <MenuCell cell={cell} size="lg" linked={linked} {...cellProps} />
         </div>
       ))}
     </Surface>
@@ -94,10 +110,11 @@ function PairBox({ box, ...cellProps }: { box: BrandMenuBox } & CellProps) {
 /** Grupo: la principal grande a la izquierda (arriba en el celular) y sus hermanas al lado. */
 function GroupBox({ box, ...cellProps }: { box: BrandMenuBox } & CellProps) {
   const [lead, ...rest] = box.cells;
+  const linked = !!box.group;
   return (
-    <Surface className="flex-col p-1.5 md:h-28 md:flex-row">
+    <Surface className="flex-col p-1.5 md:h-28 md:flex-row" group={box.group}>
       <div className="flex h-24 md:h-auto md:w-[24%] md:min-w-[12rem] md:max-w-[17rem] md:flex-none">
-        <MenuCell cell={lead} size="hero" {...cellProps} />
+        <MenuCell cell={lead} size="hero" linked={linked} {...cellProps} />
       </div>
       <span aria-hidden className={cn(styles.divider, styles.dividerResponsive)} />
       <div
@@ -106,7 +123,7 @@ function GroupBox({ box, ...cellProps }: { box: BrandMenuBox } & CellProps) {
       >
         {rest.map((cell, index) => (
           <div key={index} className="flex h-16 md:h-auto">
-            <MenuCell cell={cell} size="md" {...cellProps} />
+            <MenuCell cell={cell} size="md" linked={linked} {...cellProps} />
           </div>
         ))}
       </div>
@@ -114,7 +131,8 @@ function GroupBox({ box, ...cellProps }: { box: BrandMenuBox } & CellProps) {
   );
 }
 
-function MenuCell({ cell, size, boxed = false, broken, onBroken }: { cell: BrandUiCell; size: Size; boxed?: boolean } & CellProps) {
+/** `linked`: está dentro de una caja-enlace de grupo; se dibuja sin enlace propio. */
+function MenuCell({ cell, size, boxed = false, linked = false, broken, onBroken }: { cell: BrandUiCell; size: Size; boxed?: boolean; linked?: boolean } & CellProps) {
   const shape = boxed ? "-m-px rounded-2xl border border-transparent" : "rounded-xl";
   if (cell.type === "soon") {
     return (
@@ -132,6 +150,13 @@ function MenuCell({ cell, size, boxed = false, broken, onBroken }: { cell: Brand
     );
   }
   const brand = cell.brand;
+  const content = (
+    <>
+      <BrandLogo brand={brand} heightClass={LOGO[size]} compactClass={COMPACT[size]} broken={broken} onBroken={onBroken} nameClass={size === "md" ? "text-xs" : "text-base"} />
+      {brand.comingSoon ? <SoonTag /> : brand.inquiry ? <span className="text-[10px] font-medium leading-none text-primary">Consultá disponibilidad</span> : null}
+    </>
+  );
+  if (linked) return <span className={cn(shape, "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-2")}>{content}</span>;
   return (
     <Link
       href={brand.href}
@@ -142,8 +167,7 @@ function MenuCell({ cell, size, boxed = false, broken, onBroken }: { cell: Brand
         "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-2 outline-none transition-colors duration-200 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       )}
     >
-      <BrandLogo brand={brand} heightClass={LOGO[size]} compactClass={COMPACT[size]} broken={broken} onBroken={onBroken} nameClass={size === "md" ? "text-xs" : "text-base"} />
-      {brand.comingSoon ? <SoonTag /> : brand.inquiry ? <span className="text-[10px] font-medium leading-none text-primary">Consultá disponibilidad</span> : null}
+      {content}
     </Link>
   );
 }
