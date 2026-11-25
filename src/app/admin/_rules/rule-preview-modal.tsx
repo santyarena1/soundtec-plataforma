@@ -63,6 +63,9 @@ export function RulePreviewModal({
   const [known, setKnown] = useState<Record<string, RulePreviewProduct>>({});
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<PreviewView>("cards");
+  // Por contenido, no por referencia: el formulario arma un arreglo nuevo en cada render
+  // (con «Todo el catálogo» era `[]` cada vez) y cada destilde volvía a pedir los 200 productos.
+  const scopeKey = scopeIds.join(",");
 
   useEffect(() => {
     try {
@@ -132,7 +135,7 @@ export function RulePreviewModal({
     };
     // excludedIds se manda para hidratar nombres; no refetch en cada destilde.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, debounced, target, scopeIds, productMode]);
+  }, [open, debounced, target, scopeKey, productMode]);
 
   const excepted = productMode
     ? []

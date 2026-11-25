@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { applyPriceReviewAction } from "@/server/actions/price-reviews";
 
@@ -15,13 +15,24 @@ export interface ReviewNoticeData {
   affectedRows: number;
   up: number;
   down: number;
+  /** Ya había una revisión pendiente con este mismo cambio: se reutilizó. */
+  reused?: boolean;
 }
 
 /**
  * Resultado de mandar un cambio a revisión: cuántos precios mueve y qué hacer.
  * Si no mueve ninguno, se aplica acá con un clic (queda registrado igual).
  */
-export function PriceReviewNotice({ notice, onDone }: { notice: ReviewNoticeData; onDone?: () => void }) {
+export function PriceReviewNotice({
+  notice,
+  onDone,
+  onDismiss,
+}: {
+  notice: ReviewNoticeData;
+  onDone?: () => void;
+  /** Cerrar el aviso sin aplicar (el cambio sigue en Revisión de cambios). */
+  onDismiss?: () => void;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const zero = notice.affectedProducts === 0;
@@ -56,6 +67,8 @@ export function PriceReviewNotice({ notice, onDone }: { notice: ReviewNoticeData
     >
       {zero ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertTriangle className="h-4 w-4 shrink-0" />}
       <span className="min-w-0 flex-1">
+        {notice.title ? <b>{notice.title}: </b> : null}
+        {notice.reused ? <>Ya estaba pendiente de revisión con lo mismo (no se duplicó). </> : null}
         {zero ? (
           <>No mueve ningún precio. Todavía no se guardó: aplicalo y queda registrado en Revisión de cambios.</>
         ) : (
@@ -77,6 +90,17 @@ export function PriceReviewNotice({ notice, onDone }: { notice: ReviewNoticeData
       <Link href={`/admin/price-reviews/${notice.id}`} className="text-sm font-medium underline underline-offset-2">
         {zero ? "Ver registro" : "Ver lista y aplicar"}
       </Link>
+      {onDismiss ? (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Cerrar aviso"
+          title="Cerrar el aviso. El cambio sigue pendiente en Revisión de cambios."
+          className="rounded p-0.5 opacity-70 hover:opacity-100"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
     </div>
   );
 }

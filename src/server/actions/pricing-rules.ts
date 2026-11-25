@@ -1,14 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { familyScopeProductWhere } from "@/lib/pricing";
 import { requireStaff } from "@/lib/auth-helpers";
 import { RuleScopeType } from "@prisma/client";
 import { badgeLabel, isManufacturerPromoLabel } from "@/lib/manufacturer-promo";
-import { expandCategoryIds } from "@/lib/category-tree";
+import { expandCategoryIds, listCategoryTree, type CategoryNode } from "@/lib/category-tree";
 import type { RuleTarget } from "@/lib/pricing-scope";
 import { describeRuleScope, parseRule, saveRuleError } from "@/server/pricing/rule-save";
 import { validateRubroIds } from "@/server/categories/rubros";
@@ -30,8 +29,11 @@ function rethrowIfRedirect(err: unknown) {
   if (digest.includes("NEXT_REDIRECT") || digest.includes("NEXT_NOT_FOUND")) throw err;
 }
 
-/** `applied`: se guardó directo (cambio solo de nombre, no mueve precios). */
-export type RuleSaveResult = { ok: boolean; error?: string; review?: ProposedReview; applied?: boolean };
+/**
+ * `applied`: se guardó directo (cambio solo de nombre, no mueve precios).
+ * `unchanged`: no había nada distinto para guardar.
+ */
+export type RuleSaveResult = { ok: boolean; error?: string; review?: ProposedReview; applied?: boolean; unchanged?: boolean };
 
 const SCOPE_BY_KIND = { margin: "margins.manage", discount: "discounts.manage" } as const;
 
@@ -72,15 +74,19 @@ async function proposeRuleSave(kind: RuleKind, formData: FormData): Promise<Rule
   try {
     // Solo cambió el nombre: no mueve precios, se guarda directo (queda registrado como aplicado).
     const outcome = editing
-      ? await proposeOrApplyRename(op, `Renombrar ${kind === "margin" ? "regla de margen" : "regla de descuento"}: ${parsed.data.name}`, actorOf(user))
+      ? await proposeOrApplyRename(
+          op,
+          { rename: `Renombrar ${kind === "margin" ? "regla de margen" : "regla de descuento"}: ${parsed.data.name}`, review: title },
+          actorOf(user)
+        )
       : { applied: false as const, review: await proposePriceReview(op, title, actorOf(user)) };
     if (outcome.applied) {
+      if ("unchanged" in outcome && outcome.unchanged) return { ok: true, applied: true, unchanged: true };
       revalidatePricing();
       return { ok: true, applied: true };
     }
     const review = outcome.review;
-    revalidatePath("/admin/price-reviews");
-    revalidatePath(kind === "margin" ? "/admin/margins" : "/admin/discounts");
+    revalidatePendingViews(kind);
     return { ok: true, review };
   } catch (err) {
     rethrowIfRedirect(err);
@@ -97,38 +103,93 @@ export async function upsertDiscountRule(formData: FormData): Promise<RuleSaveRe
   return proposeRuleSave("discount", formData);
 }
 
-/** Borrar una regla o su grupo también pasa por revisión: lleva a la revisión creada. */
-async function proposeRuleDelete(kind: RuleKind, where: { id?: string; groupId?: string }): Promise<void> {
+/** Lo que muestra «pendiente de revisión»: la revisión y la pantalla de la regla. */
+function revalidatePendingViews(kind: RuleKind) {
+  revalidatePath("/admin/price-reviews");
+  revalidatePath(kind === "margin" ? "/admin/margins" : "/admin/discounts");
+  revalidatePath("/admin/clients", "layout");
+}
+
+export type RuleReviewResult = { ok: true; review: ProposedReview } | { ok: false; error: string };
+
+const ruleRefSchema = z.object({
+  kind: z.enum(["margin", "discount"]),
+  ids: z.array(z.string().min(1)).max(500).optional(),
+  groupId: z.string().min(1).optional(),
+});
+
+async function findRules(kind: RuleKind, where: { id?: { in: string[] }; groupId?: string }) {
+  return kind === "margin"
+    ? prisma.marginRule.findMany({ where, select: { id: true, name: true, isActive: true } })
+    : prisma.discountRule.findMany({ where, select: { id: true, name: true, isActive: true } });
+}
+
+/**
+ * Borrar una regla, varias o un grupo entero (con sus excepciones). No se borra
+ * directo: queda en Revisión de cambios y la tabla la marca como pendiente.
+ */
+export async function proposeRuleRemoval(input: { kind: RuleKind; ids?: string[]; groupId?: string }): Promise<RuleReviewResult> {
+  const parsed = ruleRefSchema.safeParse(input);
+  if (!parsed.success || (!parsed.data.ids?.length && !parsed.data.groupId)) return { ok: false, error: "Elegí qué regla borrar." };
+  const { kind, ids, groupId } = parsed.data;
   const { user } = await requireStaff(SCOPE_BY_KIND[kind], { costs: true });
-  const rows =
-    kind === "margin"
-      ? await prisma.marginRule.findMany({ where, select: { id: true, name: true, scopeType: true, scopeId: true, clientId: true } })
-      : await prisma.discountRule.findMany({ where, select: { id: true, name: true, scopeType: true, scopeId: true, clientId: true } });
-  if (!rows.length) return;
-  const title = `Borrar ${kind === "margin" ? "regla de margen" : "regla de descuento"}: ${rows[0].name}${rows.length > 1 ? ` (y ${rows.length - 1} subreglas)` : ""}`;
-  const review = await proposePriceReview({ type: "rules.delete", kind, ids: rows.map((r) => r.id) }, title, actorOf(user));
-  revalidatePricing();
-  redirect(`/admin/price-reviews/${review.id}`);
+  try {
+    const rows = await findRules(kind, groupId ? { groupId } : { id: { in: ids! } });
+    if (!rows.length) return { ok: false, error: "La regla ya no existe. Recargá la página." };
+    const title = `Borrar ${kind === "margin" ? "regla de margen" : "regla de descuento"}: ${rows[0].name}${rows.length > 1 ? ` (y ${rows.length - 1} subreglas)` : ""}`;
+    const review = await proposePriceReview({ type: "rules.delete", kind, ids: rows.map((r) => r.id).sort() }, title, actorOf(user));
+    revalidatePendingViews(kind);
+    return { ok: true, review };
+  } catch (err) {
+    console.error("proposeRuleRemoval", err);
+    return { ok: false, error: "No se pudo calcular el impacto del borrado. Probá de nuevo." };
+  }
 }
 
-export async function deleteMarginRule(formData: FormData): Promise<void> {
-  const id = String(formData.get("id") || "");
-  if (id) await proposeRuleDelete("margin", { id });
+/** Activar o desactivar reglas (una o un grupo) desde la tabla: también pasa por Revisión de cambios. */
+export async function proposeRulesActive(input: { kind: RuleKind; ids?: string[]; groupId?: string; active: boolean }): Promise<RuleReviewResult> {
+  const parsed = ruleRefSchema.safeParse(input);
+  if (!parsed.success || (!parsed.data.ids?.length && !parsed.data.groupId) || typeof input.active !== "boolean") {
+    return { ok: false, error: "Elegí qué regla cambiar." };
+  }
+  const { kind, ids, groupId } = parsed.data;
+  const { user } = await requireStaff(SCOPE_BY_KIND[kind], { costs: true });
+  try {
+    // El grupo entero incluye sus excepciones: tienen que quedar igual que las reglas.
+    const rows = await findRules(kind, groupId ? { groupId } : { id: { in: ids! } });
+    const targets = rows.filter((r) => r.isActive !== input.active);
+    if (!targets.length) return { ok: false, error: input.active ? "Ya está activa." : "Ya está inactiva." };
+    const title = `${input.active ? "Activar" : "Desactivar"} ${kind === "margin" ? "regla de margen" : "regla de descuento"}: ${rows[0].name}${rows.length > 1 ? ` (y ${rows.length - 1} subreglas)` : ""}`;
+    const review = await proposePriceReview(
+      { type: "rules.update", kind, ids: targets.map((r) => r.id).sort(), data: { isActive: input.active } },
+      title,
+      actorOf(user)
+    );
+    revalidatePendingViews(kind);
+    return { ok: true, review };
+  } catch (err) {
+    console.error("proposeRulesActive", err);
+    return { ok: false, error: "No se pudo calcular el impacto. Probá de nuevo." };
+  }
 }
 
-export async function deleteMarginRuleGroup(formData: FormData): Promise<void> {
-  const groupId = String(formData.get("groupId") || "");
-  if (groupId) await proposeRuleDelete("margin", { groupId });
+/**
+ * Productos para el selector «Producto(s)» de las reglas. Se piden recién cuando
+ * se elige ese alcance (antes viajaban ~3.600 nombres con cada carga de la pantalla).
+ */
+export async function listRuleProductOptions(): Promise<Array<{ id: string; normalizedName: string }>> {
+  await requireStaff(["margins.manage", "discounts.manage"], { costs: true });
+  return prisma.product.findMany({
+    orderBy: { normalizedName: "asc" },
+    select: { id: true, normalizedName: true },
+    take: 6000,
+  });
 }
 
-export async function deleteDiscountRule(formData: FormData): Promise<void> {
-  const id = String(formData.get("id") || "");
-  if (id) await proposeRuleDelete("discount", { id });
-}
-
-export async function deleteDiscountRuleGroup(formData: FormData): Promise<void> {
-  const groupId = String(formData.get("groupId") || "");
-  if (groupId) await proposeRuleDelete("discount", { groupId });
+/** Árbol de rubros para el selector de las reglas y los filtros de «Por producto» (se pide al usarlo). */
+export async function listRuleCategoryTree(): Promise<CategoryNode[]> {
+  await requireStaff(["margins.manage", "discounts.manage"], { costs: true });
+  return listCategoryTree();
 }
 
 export type RulePreviewProduct = {

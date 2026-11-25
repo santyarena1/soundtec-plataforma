@@ -190,6 +190,40 @@ export async function describeRuleScope(db: Db, target: RuleTarget, ids: string[
   return list.length > 3 ? `${shown} y ${list.length - 3} más` : shown;
 }
 
+type RuleRowLike = {
+  id: string;
+  name: string;
+  clientId: string | null;
+  scopeId: string | null;
+  marginPercent?: unknown;
+  markupMultiplier?: unknown;
+  discountPercent?: unknown;
+};
+
+/** ¿El nombre de la subregla lo puso alguien, o es el automático de sus valores de antes? */
+export function hasCustomName(
+  row: RuleRowLike,
+  parsed: Pick<ParsedRule, "data">,
+  clientNames: Map<string, string>,
+  resources: Map<string, string>
+): boolean {
+  const markup = row.markupMultiplier != null ? Number(row.markupMultiplier) : 0;
+  const kind = parsed.data.kind;
+  const mode = kind === "margin" && markup > 0 ? "markup" : "margin";
+  const value =
+    kind === "discount" ? Number(row.discountPercent ?? 0) : mode === "markup" ? markup : Number(row.marginPercent ?? 0);
+  const auto = autoRuleName({
+    kind,
+    mode,
+    value,
+    audience: row.clientId ? "client" : "all",
+    clientName: row.clientId ? clientNames.get(row.clientId) : null,
+    target: parsed.data.target,
+    resourceName: row.scopeId ? resources.get(row.scopeId) : null,
+  });
+  return row.name.trim() !== "" && row.name !== auto;
+}
+
 function newGroupId() {
   const uuid = globalThis.crypto?.randomUUID?.();
   if (uuid) return `grp_${uuid.replace(/-/g, "")}`;
@@ -254,8 +288,8 @@ export async function saveRuleRows(
       kind === "margin"
         ? await db.marginRule.findMany({ where: { groupId } })
         : await db.discountRule.findMany({ where: { groupId } });
-    const existingByKey = new Map(
-      existing.filter((row) => !row.isExemption).map((row) => [comboKey(row.clientId, row.scopeId), row.id])
+    const existingRows = new Map(
+      existing.filter((row) => !row.isExemption).map((row) => [comboKey(row.clientId, row.scopeId), row as RuleRowLike])
     );
     const keep = new Set<string>();
     for (const combo of combos) {
@@ -275,7 +309,13 @@ export async function saveRuleRows(
         target: parsed.data.target,
         resourceName: combo.scopeId ? resources.get(combo.scopeId) : null,
       });
-      const name = parsed.data.customName || generated;
+      const key = comboKey(resolved.clientId, resolved.scopeId);
+      const previous = existingRows.get(key);
+      // «Editar todo» abre el nombre vacío: sin nombre nuevo, una subregla con nombre
+      // propio lo conserva (antes se pisaba con el automático y se perdía).
+      const name =
+        parsed.data.customName ||
+        (previous && hasCustomName(previous, parsed, clientNames, resources) ? previous.name : generated);
       const base = {
         name,
         priority: autoPriority(resolved.scopeType, Boolean(resolved.clientId)),
@@ -287,8 +327,7 @@ export async function saveRuleRows(
         groupId,
         isExemption: false,
       };
-      const key = comboKey(resolved.clientId, resolved.scopeId);
-      const existingId = existingByKey.get(key);
+      const existingId = previous?.id;
       if (kind === "margin") {
         const data = { ...base, marginPercent: parsed.data.percent, markupMultiplier: parsed.data.markupMultiplier };
         if (existingId) await db.marginRule.update({ where: { id: existingId }, data });
@@ -380,8 +419,10 @@ export async function saveRuleRows(
     }
   }
 
+  // Editar UNA subregla (o sumar una al grupo) solo toca las excepciones de sus clientes:
+  // antes borraba las de los otros clientes del grupo.
   const exemptionCount = groupId
-    ? await syncExemptionRows(db, kind, groupId, parsed, excludeProductIds, clientNames)
+    ? await syncExemptionRows(db, kind, groupId, parsed, excludeProductIds, clientNames, { onlyOwnClients: true })
     : 0;
   return combos.length + exemptionCount;
 }
@@ -392,12 +433,15 @@ async function syncExemptionRows(
   groupId: string,
   parsed: Extract<ReturnType<typeof parseRule>, { ok: true }>,
   excludeProductIds: string[],
-  clientNames: Map<string, string>
+  clientNames: Map<string, string>,
+  options: { onlyOwnClients?: boolean } = {}
 ) {
-  const existing =
+  const ownClients = new Set(parsed.data.combos.map((combo) => combo.clientId || ""));
+  const all =
     kind === "margin"
       ? await db.marginRule.findMany({ where: { groupId, isExemption: true } })
       : await db.discountRule.findMany({ where: { groupId, isExemption: true } });
+  const existing = options.onlyOwnClients ? all.filter((row) => ownClients.has(row.clientId || "")) : all;
 
   if (parsed.data.target === "PRODUCT" || excludeProductIds.length === 0) {
     for (const row of existing) {

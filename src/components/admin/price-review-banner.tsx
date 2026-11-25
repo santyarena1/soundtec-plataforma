@@ -7,11 +7,20 @@ import { prisma } from "@/lib/prisma";
  * aplican directo, pasan por «Revisión de cambios» con la lista de precios
  * que se mueven. Muestra cuántas revisiones esperan.
  */
-export async function PriceReviewBanner({ area }: { area: "MARGIN" | "DISCOUNT" }) {
-  const [own, all] = await Promise.all([
-    prisma.priceReview.count({ where: { status: "PENDING", area } }).catch(() => 0),
-    prisma.priceReview.count({ where: { status: "PENDING" } }).catch(() => 0),
-  ]);
+export async function PriceReviewBanner({
+  area,
+  counts,
+}: {
+  area: "MARGIN" | "DISCOUNT";
+  /** Si la pantalla ya los contó junto con el resto de sus datos, no se vuelven a pedir. */
+  counts?: { own: number; all: number };
+}) {
+  const [own, all] = counts
+    ? [counts.own, counts.all]
+    : await Promise.all([
+        prisma.priceReview.count({ where: { status: "PENDING", area } }).catch(() => 0),
+        prisma.priceReview.count({ where: { status: "PENDING" } }).catch(() => 0),
+      ]);
   return (
     <div className="sticky top-0 z-20 flex flex-wrap items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-sm">
       <ShieldCheck className="h-5 w-5 shrink-0 text-amber-700" />

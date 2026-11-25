@@ -50,7 +50,11 @@ export async function discardPriceReviewAction(id: string): Promise<Result> {
   if (!guard) return { ok: false, error: "La revisión no existe." };
   try {
     await discardPriceReview(id, guard.actor);
+    // La regla deja de figurar «pendiente de revisión» en Márgenes/Descuentos.
     revalidatePath("/admin/price-reviews");
+    revalidatePath("/admin/margins");
+    revalidatePath("/admin/discounts");
+    revalidatePath("/admin/clients", "layout");
     return { ok: true };
   } catch (err) {
     return { ok: false, error: message(err, "No se pudo descartar.") };

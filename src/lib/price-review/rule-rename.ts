@@ -42,3 +42,23 @@ export function rulesOnlyRenamed(before: readonly RuleLike[], after: readonly Ru
   }
   return renamed;
 }
+
+/**
+ * true si las reglas quedaron exactamente iguales (mismos ids y valores; la
+ * fecha de edición no cuenta). Guardar sin tocar nada no tiene que crear una
+ * revisión vacía.
+ */
+export function rulesUnchanged(before: readonly RuleLike[], after: readonly RuleLike[]): boolean {
+  if (before.length !== after.length) return false;
+  const previous = new Map(before.map((rule) => [rule.id, rule]));
+  for (const rule of after) {
+    const old = previous.get(rule.id);
+    if (!old) return false;
+    const keys = new Set([...Object.keys(old), ...Object.keys(rule)]);
+    for (const key of keys) {
+      if (key === "updatedAt") continue;
+      if (comparable(old[key]) !== comparable(rule[key])) return false;
+    }
+  }
+  return true;
+}

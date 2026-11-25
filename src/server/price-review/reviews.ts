@@ -4,7 +4,9 @@
  */
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { areaOf, isPriceOperation, type PriceOperation } from "@/lib/price-review/operations";
+import { areaOf, isPriceOperation, type PriceOperation, type RuleKind } from "@/lib/price-review/operations";
+import { orphanedByDeletion, ruleEditKey } from "@/lib/price-review/pending";
+import { invalidateCoverageCache } from "@/server/pricing/coverage-cache";
 import { commitOperation, simulateOperation, simulateOperationDetailed, type SimulationResult } from "@/server/price-review/engine";
 
 export interface ReviewActor {
@@ -18,14 +20,66 @@ export interface ProposedReview {
   affectedRows: number;
   up: number;
   down: number;
+  /** true: ya había una revisión pendiente idéntica (doble clic, mismo cambio dos veces) y se devolvió esa. */
+  reused?: boolean;
 }
 
 function toJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
+/**
+ * Una revisión pendiente con exactamente el mismo cambio (doble clic en
+ * «Calcular impacto», el mismo borrado dos veces): se devuelve esa en vez de
+ * crear otra igual.
+ */
+async function findIdenticalPending(op: PriceOperation): Promise<ProposedReview | null> {
+  const existing = await prisma.priceReview.findFirst({
+    where: { status: "PENDING", area: areaOf(op), operation: { equals: toJson(op) } },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, affectedProducts: true, affectedRows: true, summary: true },
+  });
+  if (!existing) return null;
+  const summary = (existing.summary ?? {}) as { up?: number; down?: number };
+  return {
+    id: existing.id,
+    affectedProducts: existing.affectedProducts,
+    affectedRows: existing.affectedRows,
+    up: summary.up ?? 0,
+    down: summary.down ?? 0,
+    reused: true,
+  };
+}
+
+/**
+ * Una edición nueva de una regla (o grupo) reemplaza a las ediciones pendientes
+ * anteriores de esa misma regla: si no, aplicar la vieja después pisaba lo último.
+ * Quedan descartadas y con la nota en «quién decidió».
+ */
+async function supersedeOlderEdits(op: PriceOperation, keepId: string, actor: ReviewActor): Promise<void> {
+  const key = ruleEditKey(op);
+  if (!key) return;
+  const pending = await prisma.priceReview.findMany({
+    where: { status: "PENDING", area: areaOf(op), id: { not: keepId } },
+    select: { id: true, operation: true },
+  });
+  const older = pending.filter((row) => ruleEditKey(row.operation) === key).map((row) => row.id);
+  if (!older.length) return;
+  await prisma.priceReview.updateMany({
+    where: { id: { in: older }, status: "PENDING" },
+    data: {
+      status: "DISCARDED",
+      decidedById: actor.id,
+      decidedByName: `${actor.name ?? "—"} (reemplazada por un cambio más nuevo de la misma regla)`.slice(0, 190),
+      decidedAt: new Date(),
+    },
+  });
+}
+
 /** Simula el cambio y lo deja pendiente en «Revisión de cambios». No toca precios. */
 export async function proposePriceReview(op: PriceOperation, title: string, actor: ReviewActor): Promise<ProposedReview> {
+  const duplicate = await findIdenticalPending(op);
+  if (duplicate) return duplicate;
   return createPendingReview(op, title, actor, await simulateOperation(op));
 }
 
@@ -36,15 +90,20 @@ export async function proposePriceReview(op: PriceOperation, title: string, acto
  */
 export async function proposeOrApplyRename(
   op: PriceOperation,
-  title: string,
+  titles: { rename: string; review: string },
   actor: ReviewActor
-): Promise<{ applied: true } | { applied: false; review: ProposedReview }> {
-  const { result, namesOnly } = await simulateOperationDetailed(op);
+): Promise<{ applied: true; unchanged?: boolean } | { applied: false; review: ProposedReview }> {
+  const duplicate = await findIdenticalPending(op);
+  if (duplicate) return { applied: false, review: duplicate };
+  const { result, namesOnly, unchanged } = await simulateOperationDetailed(op);
+  // Guardar sin tocar nada: no hay nada que revisar ni registrar.
+  if (unchanged) return { applied: true, unchanged: true };
   if (namesOnly) {
-    await applyAndRecord(op, title, actor);
+    await applyAndRecord(op, titles.rename, actor);
     return { applied: true };
   }
-  return { applied: false, review: await createPendingReview(op, title, actor, result) };
+  // Una edición de valor/alcance lleva el título de la edición (antes decía «Renombrar…» aunque cambiara el valor).
+  return { applied: false, review: await createPendingReview(op, titles.review, actor, result) };
 }
 
 async function createPendingReview(op: PriceOperation, title: string, actor: ReviewActor, result: SimulationResult): Promise<ProposedReview> {
@@ -64,6 +123,7 @@ async function createPendingReview(op: PriceOperation, title: string, actor: Rev
     },
     select: { id: true },
   });
+  await supersedeOlderEdits(op, review.id, actor);
   return {
     id: review.id,
     affectedProducts: result.summary.affectedProducts,
@@ -79,6 +139,7 @@ async function createPendingReview(op: PriceOperation, title: string, actor: Rev
  */
 export async function applyAndRecord(op: PriceOperation, title: string, actor: ReviewActor): Promise<SimulationResult> {
   const result = await commitOperation(op);
+  invalidateCoverageCache();
   await prisma.priceReview.create({
     data: {
       status: "APPLIED",
@@ -121,10 +182,12 @@ export async function applyPriceReview(id: string, actor: ReviewActor): Promise<
   if (claimed.count === 0) throw new Error("Esta revisión ya se aplicó o se descartó.");
   try {
     const result = await commitOperation(op);
+    invalidateCoverageCache();
     await prisma.priceReview.update({
       where: { id },
       data: { appliedResult: toJson({ ...result.summary, simulatedProducts: review.affectedProducts }), error: null },
     });
+    if (op.type === "rules.delete") await discardOrphanedReviews(op.kind, op.ids, actor);
     return { affectedProducts: result.summary.affectedProducts, simulated: review.affectedProducts };
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se pudo aplicar.";
@@ -134,6 +197,26 @@ export async function applyPriceReview(id: string, actor: ReviewActor): Promise<
     });
     throw err;
   }
+}
+
+/** Revisiones pendientes que editaban o activaban reglas que se acaban de borrar: se descartan solas. */
+async function discardOrphanedReviews(kind: RuleKind, ids: string[], actor: ReviewActor): Promise<void> {
+  const deleted = new Set(ids);
+  const pending = await prisma.priceReview.findMany({
+    where: { status: "PENDING", area: kind === "margin" ? "MARGIN" : "DISCOUNT" },
+    select: { id: true, operation: true },
+  });
+  const orphaned = pending.filter((row) => orphanedByDeletion(row.operation, kind, deleted)).map((row) => row.id);
+  if (!orphaned.length) return;
+  await prisma.priceReview.updateMany({
+    where: { id: { in: orphaned }, status: "PENDING" },
+    data: {
+      status: "DISCARDED",
+      decidedById: actor.id,
+      decidedByName: `${actor.name ?? "—"} (la regla se borró)`.slice(0, 190),
+      decidedAt: new Date(),
+    },
+  });
 }
 
 export async function discardPriceReview(id: string, actor: ReviewActor): Promise<void> {

@@ -12,6 +12,8 @@ import { RubroPicker } from "@/components/admin/rubro-picker";
 import type { CategoryNode } from "@/lib/category-tree";
 import { upsertMarginRule, upsertDiscountRule } from "@/server/actions/pricing-rules";
 import { PriceReviewNotice, type ReviewNoticeData } from "@/components/admin/price-review-notice";
+import { PendingReviewChip } from "@/components/admin/pricing-rules-table";
+import type { PendingRuleReview } from "@/lib/price-review/pending";
 import { cn } from "@/lib/utils";
 import {
   RULE_TARGETS,
@@ -25,6 +27,7 @@ import {
 } from "@/lib/pricing-scope";
 import type { PricingRuleRow } from "@/components/admin/pricing-rules-table";
 import { RulePreviewModal } from "./rule-preview-modal";
+import { useRuleCategories, useRuleProducts } from "./use-rule-products";
 
 type ClientOpt = { id: string; name: string; companyName?: string | null };
 type Named = { id: string; name: string };
@@ -133,6 +136,8 @@ export function RulesForm({
   presetScopeIds,
   presetClientId,
   presetGroupId,
+  onReview,
+  pendingReview,
 }: {
   type: "margin" | "discount";
   clients: ClientOpt[];
@@ -153,6 +158,13 @@ export function RulesForm({
   presetScopeIds?: string[];
   presetClientId?: string | null;
   presetGroupId?: string;
+  /**
+   * Si está, el aviso de «quedó en Revisión de cambios» lo muestra la pantalla
+   * (sobrevive a que el formulario se cierre o se vacíe). Si no, lo muestra el formulario.
+   */
+  onReview?: (notice: ReviewNoticeData) => void;
+  /** La regla que se edita ya tiene un cambio esperando revisión. */
+  pendingReview?: PendingRuleReview | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -181,6 +193,10 @@ export function RulesForm({
   const draft = { audience, clientIds, target, scopeIds, excludedIds, mode, value, name, active };
   const tracker = useUnsavedValue(draft);
 
+  // La lista completa de productos se pide recién al elegir «Producto(s)».
+  const { products: productOptions, loading: productsLoading, error: productsError } = useRuleProducts(target === "PRODUCT", products);
+  // El árbol de rubros también se pide al elegir «Rubro(s)» (si la pantalla no lo trajo).
+  const { categories: categoryNodes, error: categoriesError } = useRuleCategories(target === "CATEGORY", categories);
   const resourceOptions = useMemo(() => {
     switch (target) {
       case "BRAND":
@@ -188,17 +204,17 @@ export function RulesForm({
       case "DISTRIBUTOR":
         return distributors;
       case "CATEGORY":
-        return categories;
+        return categoryNodes;
       case "FAMILY":
         return families;
       case "LINE":
         return lines;
       case "PRODUCT":
-        return products.map((p) => ({ id: p.id, name: p.normalizedName }));
+        return productOptions.map((p) => ({ id: p.id, name: p.normalizedName }));
       default:
         return [];
     }
-  }, [target, brands, distributors, categories, families, lines, products]);
+  }, [target, brands, distributors, categoryNodes, families, lines, productOptions]);
   const targetOptions = RULE_TARGETS.filter(
     (item) => (!item.legacy || item.value === target) && (item.value !== "LINE" || lines.length > 0 || target === "LINE")
   );
@@ -319,6 +335,12 @@ export function RulesForm({
           setError(result.error || "No se pudo guardar.");
           return;
         }
+        if (result.unchanged) {
+          toast.message("No había cambios para guardar.");
+          tracker.markSaved(draft);
+          if (editing) onSaved?.();
+          return;
+        }
         if (result.applied) {
           toast.success("Nombre guardado. No mueve ningún precio, así que no hizo falta revisión.");
           tracker.markSaved(draft);
@@ -326,33 +348,37 @@ export function RulesForm({
           router.refresh();
           return;
         }
-        // Edición que no mueve precios: el aviso con «Aplicar» tiene que quedar a la vista.
-        // Antes el formulario se cerraba y el cambio quedaba pendiente sin que nadie lo aplicara.
-        const keepOpenForApply = editing && result.review?.affectedProducts === 0;
-        if (result.review) {
-          setNotice({ ...result.review, title: editing ? "Cambio de regla" : "Regla nueva" });
-          toast.message(
-            result.review.affectedProducts === 0
-              ? "No mueve ningún precio: aplicalo con un clic."
-              : `Mueve el precio de ${result.review.affectedProducts} producto${result.review.affectedProducts === 1 ? "" : "s"}: quedó en Revisión de cambios.`
-          );
+        const review = result.review;
+        if (!review) {
+          router.refresh();
+          return;
         }
+        const reviewNotice: ReviewNoticeData = { ...review, title: editing ? "Cambio de regla" : "Regla nueva" };
+        toast.message(
+          review.reused
+            ? "Ese mismo cambio ya estaba pendiente de revisión: no se duplicó."
+            : review.affectedProducts === 0
+              ? "No mueve ningún precio: aplicalo con un clic."
+              : `Mueve el precio de ${review.affectedProducts} producto${review.affectedProducts === 1 ? "" : "s"}: quedó en Revisión de cambios.`
+        );
         if (!editing) {
           setName("");
           setScopeIds([]);
           setExcludedIds([]);
           tracker.markSaved({ ...draft, name: "", scopeIds: [], excludedIds: [] });
+        } else {
+          tracker.markSaved(draft);
         }
-        if (editing && !keepOpenForApply) onSaved?.();
-        if (keepOpenForApply) tracker.markSaved(draft);
-        // Mandar a revisión no cambia reglas: no hace falta recargar la pantalla (era lento con la vista «Por producto»).
-        if (!result.review) {
-          try {
-            router.refresh();
-          } catch {
-            window.location.reload();
-          }
+        if (onReview) {
+          // La pantalla muestra el aviso y marca la regla «pendiente de revisión» en la tabla.
+          onReview(reviewNotice);
+          if (editing) onSaved?.();
+          return;
         }
+        // Dentro de un modal: el aviso queda en el formulario. Una edición que no mueve
+        // precios queda abierta para poder tocar «Aplicar».
+        setNotice(reviewNotice);
+        if (editing && review.affectedProducts > 0) onSaved?.();
       } catch (err) {
         const message = err instanceof Error ? err.message : "";
         setError(
@@ -372,6 +398,12 @@ export function RulesForm({
   return (
     <>
     <form onSubmit={handleSubmit} className="space-y-5">
+      {pendingReview ? (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          Esta regla ya tiene un cambio esperando revisión. Si calculás uno nuevo, reemplaza al anterior (el viejo queda descartado).{" "}
+          <PendingReviewChip entry={pendingReview} />
+        </div>
+      ) : null}
       <div className="grid grid-cols-1 items-start gap-x-4 gap-y-5 sm:grid-cols-2">
         {lockedClientId ? (
           <>
@@ -427,7 +459,8 @@ export function RulesForm({
 
         {target === "CATEGORY" ? (
           <Field label="Rubros (cada uno con sus subrubros)" required>
-            <RubroPicker nodes={categories} multiple values={scopeIds} onValuesChange={setScopeIds} />
+            <RubroPicker nodes={categoryNodes} multiple values={scopeIds} onValuesChange={setScopeIds} />
+            {categoriesError ? <p className="text-xs text-destructive">No se pudo cargar el árbol de rubros. Recargá la página.</p> : null}
           </Field>
         ) : target !== "ALL" ? (
           <SearchablePick
@@ -436,7 +469,13 @@ export function RulesForm({
             options={resourceOptions}
             values={scopeIds}
             onValuesChange={setScopeIds}
-            placeholder="Escribí y marcá todas las que quieras…"
+            placeholder={
+              target === "PRODUCT" && productsLoading
+                ? "Cargando productos…"
+                : target === "PRODUCT" && productsError
+                  ? "No se pudo cargar la lista de productos. Recargá la página."
+                  : "Escribí y marcá todas las que quieras…"
+            }
             required
             multiple
           />

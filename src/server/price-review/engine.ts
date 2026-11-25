@@ -23,7 +23,7 @@ import {
 import { diffPrices, touchedAudiences, type ReviewProductMeta, type ReviewRow, type ReviewSummary } from "@/lib/price-review/diff";
 import type { PriceOperation } from "@/lib/price-review/operations";
 import { parseRule, saveRuleRows, type Db } from "@/server/pricing/rule-save";
-import { rulesOnlyRenamed } from "@/lib/price-review/rule-rename";
+import { rulesOnlyRenamed, rulesUnchanged } from "@/lib/price-review/rule-rename";
 import { ROUNDING_SETTING_KEY, parseRoundingSetting, type PriceRoundingConfig } from "@/lib/price-rounding";
 
 type MarginRuleRow = Prisma.MarginRuleGetPayload<object>;
@@ -61,28 +61,41 @@ async function productScope(db: Db, op: PriceOperation): Promise<string[] | null
   return null;
 }
 
-async function readState(db: Db, productIds: string[] | null): Promise<PricingState> {
-  const [margins, discounts, products, categories, roundingRow] = await Promise.all([
+/** Reglas y redondeo (lo que cambian las operaciones de reglas). */
+async function readRules(db: Db): Promise<Omit<PricingState, "products">> {
+  const [margins, discounts, roundingRow] = await Promise.all([
     db.marginRule.findMany({ orderBy: [{ priority: "asc" }, { createdAt: "desc" }] }),
     db.discountRule.findMany({ orderBy: [{ priority: "asc" }, { createdAt: "desc" }] }),
+    db.adminSetting.findUnique({ where: { key: ROUNDING_SETTING_KEY }, select: { value: true } }),
+  ]);
+  const rounding = parseRoundingSetting(roundingRow?.value);
+  return { margins, discounts, rounding: rounding?.enabled ? rounding : null };
+}
+
+/** Productos con sus ancestros de rubro (null = todos los activos). */
+async function readProducts(db: Db, productIds: string[] | null): Promise<ProductPricingInput[]> {
+  const [products, categories] = await Promise.all([
     db.product.findMany({
       where: productIds ? { id: { in: productIds } } : { isActive: true },
       select: PRICING_PRODUCT_SELECT,
     }),
     db.category.findMany({ select: { id: true, parentId: true } }),
-    db.adminSetting.findUnique({ where: { key: ROUNDING_SETTING_KEY }, select: { value: true } }),
   ]);
-  const rounding = parseRoundingSetting(roundingRow?.value);
   const parents = new Map(categories.map((c) => [c.id, c.parentId]));
-  return {
-    margins,
-    discounts,
-    rounding: rounding?.enabled ? rounding : null,
-    products: products.map((p) => ({
-      ...toPricingInput(p),
-      categoryAncestorIds: p.categoryId ? categoryAncestorsFrom(p.categoryId, parents) : [],
-    })),
-  };
+  return products.map((p) => ({
+    ...toPricingInput(p),
+    categoryAncestorIds: p.categoryId ? categoryAncestorsFrom(p.categoryId, parents) : [],
+  }));
+}
+
+async function readState(db: Db, productIds: string[] | null): Promise<PricingState> {
+  const [rules, products] = await Promise.all([readRules(db), readProducts(db, productIds)]);
+  return { ...rules, products };
+}
+
+/** Operaciones que no tocan productos ni rubros: el catálogo se lee una sola vez y fuera de la transacción. */
+function touchesOnlyRules(op: PriceOperation): boolean {
+  return op.type === "rule.save" || op.type === "rules.update" || op.type === "rules.delete" || op.type === "pricing.rounding";
 }
 
 function formDataFrom(entries: Array<[string, string]>): FormData {
@@ -103,8 +116,16 @@ export async function executeOperation(db: Db, op: PriceOperation): Promise<void
         const single = String(form.get(one) || "");
         return many.length ? many : single ? [single] : [];
       };
+      const editedId = form.get("id")?.toString() || undefined;
+      if (editedId && form.get("replaceGroup") !== "on") {
+        const exists =
+          op.kind === "margin"
+            ? await db.marginRule.count({ where: { id: editedId } })
+            : await db.discountRule.count({ where: { id: editedId } });
+        if (!exists) throw new Error("La regla que se editaba ya no existe (se borró después). Descartá esta revisión.");
+      }
       await saveRuleRows(db, op.kind, parsed, {
-        id: form.get("id")?.toString() || undefined,
+        id: editedId,
         groupId: form.get("groupId")?.toString() || undefined,
         replaceGroup: form.get("replaceGroup") === "on",
         excludeProductIds: ids("excludeProductIds", "excludeProductId"),
@@ -176,6 +197,7 @@ export async function executeOperation(db: Db, op: PriceOperation): Promise<void
 
 /** Corre el cambio en una transacción; si `commit` es false la deshace. Devuelve el estado antes y después. */
 async function runInTransaction(op: PriceOperation, commit: boolean): Promise<{ before: PricingState; after: PricingState }> {
+  if (touchesOnlyRules(op)) return runRulesInTransaction(op, commit);
   let captured: { before: PricingState; after: PricingState } | null = null;
   try {
     await prisma.$transaction(async (tx) => {
@@ -194,8 +216,40 @@ async function runInTransaction(op: PriceOperation, commit: boolean): Promise<{ 
   return captured;
 }
 
-async function pricesFor(state: PricingState, clientId: string | null, base: Omit<PricingRuleSet, "marginRules" | "discountRules" | "rounding">) {
-  const prepared = await preparePricingInputs(state.products);
+/**
+ * Igual que runInTransaction pero para cambios de reglas/redondeo: adentro de la
+ * transacción solo se leen las reglas (antes y después); el catálogo, que no
+ * cambia, se lee una vez en paralelo. Antes se leían ~3.600 productos y ~2.000
+ * rubros dos veces, una detrás de la otra, en cada «Calcular impacto».
+ */
+async function runRulesInTransaction(op: PriceOperation, commit: boolean): Promise<{ before: PricingState; after: PricingState }> {
+  const productsRead = readProducts(prisma, null);
+  // Si la transacción falla antes de esperarlo, que no quede un rechazo sin atender.
+  productsRead.catch(() => undefined);
+  let captured: { before: Omit<PricingState, "products">; after: Omit<PricingState, "products"> } | null = null;
+  try {
+    await prisma.$transaction(async (tx) => {
+      const before = await readRules(tx);
+      await executeOperation(tx, op);
+      const after = await readRules(tx);
+      captured = { before, after };
+      if (!commit) throw new RollbackSignal();
+    }, TX_OPTIONS);
+  } catch (err) {
+    if (!(err instanceof RollbackSignal)) throw err;
+  }
+  const rules = captured as { before: Omit<PricingState, "products">; after: Omit<PricingState, "products"> } | null;
+  if (!rules) throw new Error("No se pudo simular el cambio.");
+  const products = await productsRead;
+  return { before: { ...rules.before, products }, after: { ...rules.after, products } };
+}
+
+async function pricesFor(
+  state: PricingState,
+  prepared: ProductPricingInput[],
+  clientId: string | null,
+  base: Omit<PricingRuleSet, "marginRules" | "discountRules" | "rounding">
+) {
   const result = await priceProductsWithRules(prepared, clientId, {
     ...base,
     marginRules: state.margins,
@@ -235,13 +289,18 @@ export async function comparePricing(before: PricingState, after: PricingState, 
     ).map((c) => [c.id, c.companyName || c.contactName || c.id])
   );
 
+  // Familias y rubros se resuelven una vez por estado, no una vez por cliente (eran consultas repetidas).
+  // readState lee familyId y familia de cada producto: no hace falta volver a pedirlos.
+  const preparedBefore = await preparePricingInputs(before.products, { familiaLoaded: true });
+  const preparedAfter =
+    after.products === before.products ? preparedBefore : await preparePricingInputs(after.products, { familiaLoaded: true });
   const prices = [];
   for (const clientId of audiences) {
     prices.push({
       clientId,
       name: clientId ? `Cliente: ${clientNames.get(clientId) ?? clientId}` : "Lista general",
-      before: await pricesFor(before, clientId, base),
-      after: await pricesFor(after, clientId, base),
+      before: await pricesFor(before, preparedBefore, clientId, base),
+      after: await pricesFor(after, preparedAfter, clientId, base),
     });
   }
 
@@ -271,15 +330,21 @@ export async function simulateOperation(op: PriceOperation): Promise<SimulationR
  * Simula y además dice si el cambio fue solo de nombre (reglas iguales salvo
  * nombre o nota): esos no mueven precios y se pueden guardar directo.
  */
-export async function simulateOperationDetailed(op: PriceOperation): Promise<{ result: SimulationResult; namesOnly: boolean }> {
+export async function simulateOperationDetailed(
+  op: PriceOperation
+): Promise<{ result: SimulationResult; namesOnly: boolean; unchanged: boolean }> {
   const { before, after } = await runInTransaction(op, false);
+  const unchanged =
+    op.type === "rule.save" && rulesUnchanged(before.margins, after.margins) && rulesUnchanged(before.discounts, after.discounts);
   const namesOnly =
     op.type === "rule.save" &&
     (op.kind === "margin"
       ? rulesOnlyRenamed(before.margins, after.margins) && sameRules(before.discounts, after.discounts)
       : rulesOnlyRenamed(before.discounts, after.discounts) && sameRules(before.margins, after.margins));
+  // Sin ningún cambio en las reglas no hay precios que comparar (ahorra simular todo el catálogo).
+  if (unchanged) return { result: diffPrices([], new Map()), namesOnly: false, unchanged };
   const result = await comparePricing(before, after, op.type !== "rule.save" && op.type !== "rules.update" && op.type !== "rules.delete");
-  return { result, namesOnly: namesOnly && result.summary.affectedProducts === 0 };
+  return { result, namesOnly: namesOnly && result.summary.affectedProducts === 0, unchanged };
 }
 
 function sameRules(before: Array<{ id: string; updatedAt?: Date }>, after: Array<{ id: string; updatedAt?: Date }>): boolean {

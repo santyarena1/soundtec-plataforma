@@ -3315,4 +3315,19 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Ficha de cliente con «Ver como» activo: completar el contacto principal es una escritura y la vista de solo lectura la frenaba con un error; ahora la ficha abre igual." },
     ],
   },
+  {
+    id: "ship-2026-11-25-margenes-sin-bugs",
+    version: "2.67.1",
+    releasedAt: "2026-11-25T23:30:00.000Z",
+    summary: "Márgenes y Descuentos: lo que queda pendiente de revisión se marca en la tabla, no se pierden excepciones ni nombres al editar grupos, y la pantalla abre bastante más rápido.",
+    items: [
+      { kind: "MEJORA", text: "Cada regla con un cambio esperando en Revisión de cambios muestra un chip «Cambio / Desactivación / Borrado pendiente de revisión» que lleva a esa revisión. Las altas que todavía no se aplicaron se listan arriba de la tabla. El aviso de «quedó en revisión» queda a la vista aunque el formulario se cierre." },
+      { kind: "MEJORA", text: "Activar, desactivar y quitar reglas (o un grupo entero) desde la tabla, con confirmación al quitar y sin salir de la pantalla. Todo sigue pasando por Revisión de cambios." },
+      { kind: "MEJORA", text: "Sin revisiones duplicadas: el mismo cambio pedido dos veces (doble clic) devuelve la revisión que ya estaba; una edición nueva de la misma regla reemplaza a la anterior (queda descartada como «reemplazada»); al aplicar un borrado se descartan solas las revisiones pendientes de esas reglas. Guardar sin tocar nada avisa «No había cambios» en vez de crear una revisión vacía. Las ediciones de valor ya no se titulan «Renombrar…»." },
+      { kind: "FIX", text: "Editar UNA subregla de un grupo borraba las excepciones de productos de los otros clientes del grupo. «Editar todo» pisaba los nombres propios de las subreglas con el automático." },
+      { kind: "FIX", text: "Error de hidratación por las fechas «Creada …» (ahora 23/10/2026 18:23, igual en servidor y navegador). Al volver con «atrás» después de aplicar una revisión, la tabla se actualiza sola. El estado de un grupo con todas las subreglas inactivas dice «Inactiva» (antes «Mixta»)." },
+      { kind: "FIX", text: "«Por producto»: ya no se calcula al abrir Márgenes (antes se calculaba siempre aunque estuvieras en «Reglas») ni cambia la URL a esa pestaña sin que la abras; la búsqueda espera a que termines de escribir; la selección se mantiene al pasar de página; un vendedor con permiso solo de Descuentos ya puede usarla." },
+      { kind: "MEJORA", text: "Velocidad: la tabla muestra las reglas de a 50 con buscador (lo pendiente y lo recién guardado siempre a la vista) y los grupos grandes arrancan cerrados; el árbol de rubros y la lista de productos se piden recién al elegir «Rubro(s)» o «Producto(s)». La pantalla pasó de ~2 MB a ~0,5 MB y el armado en el servidor de ~3-4 s a ~0,4 s. En «Por producto» el cálculo de todo el catálogo se hace una vez y filtrar o pasar de página lo reutiliza; «Calcular impacto» lee el catálogo una sola vez (≈ la mitad de tiempo)." },
+    ],
+  },
 ];

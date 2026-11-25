@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { rulesOnlyRenamed } from "./rule-rename";
+import { rulesOnlyRenamed, rulesUnchanged } from "./rule-rename";
 
 const rule = (id: string, extra: Record<string, unknown> = {}) => ({
   id,
@@ -43,4 +43,12 @@ test("sin cambios, o con reglas agregadas/borradas, no es un renombre", () => {
   assert.equal(rulesOnlyRenamed([rule("a")], [rule("a", { name: "x" }), rule("b")]), false);
   assert.equal(rulesOnlyRenamed([rule("a"), rule("b")], [rule("a", { name: "x" })]), false);
   assert.equal(rulesOnlyRenamed([rule("a")], [rule("c", { name: "x" })]), false);
+});
+
+test("guardar sin tocar nada: las reglas quedan iguales (la fecha de edición no cuenta)", () => {
+  assert.equal(rulesUnchanged([rule("a"), rule("b")], [rule("a", { updatedAt: new Date() }), rule("b")]), true);
+  assert.equal(rulesUnchanged([rule("a")], [rule("a", { name: "otro" })]), false);
+  assert.equal(rulesUnchanged([rule("a")], [rule("a", { priority: 15 })]), false);
+  assert.equal(rulesUnchanged([rule("a")], [rule("a"), rule("b")]), false);
+  assert.equal(rulesUnchanged([rule("a")], [rule("c")]), false);
 });

@@ -1,117 +1,42 @@
 import { requireStaff } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { PriceLogicHint } from "@/components/admin/price-logic-hint";
 import { PriceReviewBanner } from "@/components/admin/price-review-banner";
-import { categoryLabelMap, lineOptions, listCategoryTree } from "@/lib/category-tree";
 import { PricingRulesWorkspace } from "../_rules/workspace";
-import { deleteMarginRule, deleteMarginRuleGroup } from "@/server/actions/pricing-rules";
-import { toFiniteNumber, toPricingRuleRow, attachRuleExemptions } from "@/lib/pricing-scope";
+import { loadRulesPageData } from "@/server/pricing/rules-page-data";
 
 export const metadata = { title: "Admin · Márgenes" };
 
 export default async function AdminMarginsPage() {
   await requireStaff("margins.manage", { costs: true });
   try {
-    const [rules, clients, brands, distributors, categories, families, products] =
-      await Promise.all([
-      prisma.marginRule.findMany({ orderBy: [{ priority: "asc" }, { createdAt: "desc" }] }),
-      prisma.client.findMany({
-        where: { isActive: true },
-        orderBy: { companyName: "asc" },
-        select: { id: true, companyName: true, contactName: true },
-      }),
-      prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-      prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-      listCategoryTree(),
-      prisma.productFamily.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-      prisma.product.findMany({
-        orderBy: { normalizedName: "asc" },
-        select: { id: true, normalizedName: true },
-        take: 4000,
-      }),
-    ]);
+    const data = await loadRulesPageData("margin");
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Márgenes"
+          description="Definí el markup o el margen sobre el costo nacionalizado. La regla más específica gana. Cada regla queda con fecha de alta y se puede editar."
+        />
 
-  const clientMap = new Map(clients.map((c) => [c.id, c.companyName || c.contactName || c.id]));
-  const lines = await lineOptions();
-  const resourceMaps: Record<string, Map<string, string>> = {
-    BRAND: new Map(brands.map((b) => [b.id, b.name])),
-    DISTRIBUTOR: new Map(distributors.map((d) => [d.id, d.name])),
-    CATEGORY: await categoryLabelMap(),
-    LINE: new Map(lines.map((l) => [l.id, l.name])),
-    FAMILY: new Map(families.map((f) => [f.id, f.name])),
-    PRODUCT: new Map(products.map((p) => [p.id, p.normalizedName])),
-  };
+        <PriceReviewBanner area="MARGIN" counts={data.pendingCounts} />
 
-  const extraProductIds = [
-    ...new Set(
-      rules
-        .filter((r) => r.scopeType === "PRODUCT" && r.scopeId && !resourceMaps.PRODUCT.has(r.scopeId))
-        .map((r) => r.scopeId as string)
-    ),
-  ];
-  if (extraProductIds.length) {
-    const extra = await prisma.product.findMany({
-      where: { id: { in: extraProductIds } },
-      select: { id: true, normalizedName: true },
-    });
-    for (const p of extra) resourceMaps.PRODUCT.set(p.id, p.normalizedName);
-  }
+        <PriceLogicHint variant="margin" />
 
-  const rows = attachRuleExemptions(
-    rules.map((r) =>
-      toPricingRuleRow({
-        id: r.id,
-        name: r.name,
-        scopeType: r.scopeType,
-        scopeId: r.scopeId,
-        clientId: r.clientId,
-        isActive: r.isActive,
-        createdAt: r.createdAt,
-        updatedAt: r.updatedAt,
-        percent: toFiniteNumber(r.marginPercent),
-        markupMultiplier: r.markupMultiplier != null ? toFiniteNumber(r.markupMultiplier) : null,
-        groupId: r.groupId,
-        isExemption: r.isExemption,
-        clientName: r.clientId ? clientMap.get(r.clientId) ?? null : null,
-        resourceName: r.scopeId ? resourceMaps[r.scopeType]?.get(r.scopeId) ?? null : null,
-      })
-    )
-  );
-
-  const clientOpts = clients.map((c) => ({
-    id: c.id,
-    name: c.contactName || c.companyName,
-    companyName: c.companyName,
-  }));
-
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Márgenes"
-        description="Definí el markup o el margen sobre el costo nacionalizado. La regla más específica gana. Cada regla queda con fecha de alta y se puede editar."
-      />
-
-      <PriceReviewBanner area="MARGIN" />
-
-      <PriceLogicHint variant="margin" />
-
-      <PricingRulesWorkspace
-        kind="margin"
-        rows={rows}
-        empty="Todavía no hay reglas de precio."
-        deleteAction={deleteMarginRule}
-        deleteGroupAction={deleteMarginRuleGroup}
-        clients={clientOpts}
-        brands={brands}
-        distributors={distributors}
-        categories={categories}
-        families={families}
-        lines={lines}
-        products={products}
-      />
-    </div>
-  );
+        <PricingRulesWorkspace
+          kind="margin"
+          rows={data.rows}
+          pending={data.pending}
+          renderedAt={data.renderedAt}
+          empty="Todavía no hay reglas de precio."
+          clients={data.clients}
+          brands={data.brands}
+          distributors={data.distributors}
+          families={data.families}
+          lines={data.lines}
+          products={data.products}
+        />
+      </div>
+    );
   } catch (err) {
     console.error("AdminMarginsPage", err);
     return (

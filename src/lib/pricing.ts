@@ -393,7 +393,8 @@ function familyIdFromFamiliaText(
  * vinculado el ID.
  */
 async function resolveFamilyIds(
-  products: ProductPricingInput[]
+  products: ProductPricingInput[],
+  options: { familiaLoaded?: boolean } = {}
 ): Promise<Map<string, string | null>> {
   const resolved = new Map<string, string | null>();
   for (const product of products) {
@@ -402,7 +403,8 @@ async function resolveFamilyIds(
   const missing = products.filter((product) => !resolved.get(product.productId));
   if (missing.length === 0) return resolved;
 
-  const needsDb = missing.filter((product) => !normalizeTaxonomyName(product.familia));
+  // familiaLoaded: el texto FAMILIA ya vino de la base (aunque sea vacío): no hay nada más que leer.
+  const needsDb = options.familiaLoaded ? [] : missing.filter((product) => !normalizeTaxonomyName(product.familia));
   const [families, rows] = await Promise.all([
     prisma.productFamily.findMany({ select: { id: true, name: true } }),
     needsDb.length > 0
@@ -684,8 +686,16 @@ export async function calculatePricesForProducts(
 }
 
 /** Completa familia (por texto) y ancestros de rubro de un lote, para no resolverlos uno por uno. */
-export async function preparePricingInputs(products: ProductPricingInput[]): Promise<ProductPricingInput[]> {
-  const [familyIds, ancestors] = await Promise.all([resolveFamilyIds(products), resolveCategoryAncestors(products)]);
+/**
+ * `familiaLoaded`: los productos se leyeron con `familyId` y `familia` (por ejemplo con
+ * PRICING_PRODUCT_SELECT): no se vuelven a pedir los que no tienen familia (con todo el
+ * catálogo eran miles de ids en una consulta que no traía nada nuevo).
+ */
+export async function preparePricingInputs(
+  products: ProductPricingInput[],
+  options: { familiaLoaded?: boolean } = {}
+): Promise<ProductPricingInput[]> {
+  const [familyIds, ancestors] = await Promise.all([resolveFamilyIds(products, options), resolveCategoryAncestors(products)]);
   return products.map((p) => ({
     ...p,
     familyId: familyIds.get(p.productId) ?? p.familyId,

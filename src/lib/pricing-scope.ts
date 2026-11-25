@@ -1,5 +1,5 @@
 import type { RuleScopeType } from "@prisma/client";
-import { formatDate } from "@/lib/utils";
+import { APP_TIME_ZONE } from "@/lib/utils";
 
 export const RULE_TARGETS = [
   { value: "ALL", label: "Todo el catálogo", legacy: false },
@@ -144,13 +144,35 @@ export function scopeTypeToForm(
   return { audience, target: "ALL" };
 }
 
-export function formatRuleTimestamp(createdAt: string | Date, updatedAt?: string | Date | null) {
-  const created = formatDate(createdAt);
+const STABLE_DATE_PARTS = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  timeZone: APP_TIME_ZONE,
+});
+
+/**
+ * «23/10/2026 18:23» en hora de Buenos Aires. Solo números: el servidor y el
+ * navegador lo escriben igual. Con `dateStyle` uno ponía «p. m.» con espacio
+ * fino y el otro con espacio común, y la tabla de reglas daba error de hidratación.
+ */
+export function formatStableDateTime(value: string | Date): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (!Number.isFinite(date.getTime())) return "—";
+  const parts = Object.fromEntries(STABLE_DATE_PARTS.formatToParts(date).map((p) => [p.type, p.value]));
+  return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`;
+}
+
+export function formatRuleTimestamp(createdAt: string | Date, updatedAt?: string | Date | null): string {
+  const created = formatStableDateTime(createdAt);
   if (!updatedAt) return `Creada ${created}`;
   const createdMs = new Date(createdAt).getTime();
   const updatedMs = new Date(updatedAt).getTime();
   if (Number.isFinite(createdMs) && Number.isFinite(updatedMs) && updatedMs - createdMs > 2000) {
-    return `Creada ${created} · Editada ${formatDate(updatedAt)}`;
+    return `Creada ${created} · Editada ${formatStableDateTime(updatedAt)}`;
   }
   return `Creada ${created}`;
 }

@@ -4,14 +4,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { PricingRulesWorkspace } from "@/app/admin/_rules/workspace";
 import { VisibilityRulesWorkspace } from "@/app/admin/visibility/visibility-rules-workspace";
 import { attachRuleExemptions, toFiniteNumber, toPricingRuleRow } from "@/lib/pricing-scope";
-import {
-  deleteDiscountRule,
-  deleteDiscountRuleGroup,
-  deleteMarginRule,
-  deleteMarginRuleGroup,
-  deleteVisibility,
-  toggleVisibilityCanView,
-} from "@/server/actions/pricing-rules";
+import { deleteVisibility, toggleVisibilityCanView } from "@/server/actions/pricing-rules";
 export async function ClientPricingPanel({
   clientId,
   clientName,
@@ -93,8 +86,6 @@ export async function ClientPricingPanel({
               lockedClientId={clientId}
               rows={rows(discount, "discount")}
               empty="Este cliente no tiene descuentos propios."
-              deleteAction={deleteDiscountRule}
-              deleteGroupAction={deleteDiscountRuleGroup}
               {...common}
             />
           ),
@@ -108,8 +99,6 @@ export async function ClientPricingPanel({
               lockedClientId={clientId}
               rows={rows(margin, "margin")}
               empty="Este cliente no tiene reglas de margen propias."
-              deleteAction={deleteMarginRule}
-              deleteGroupAction={deleteMarginRuleGroup}
               {...common}
             />
           ),
