@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { key: "campanas", href: "/admin/mailing", label: "Campañas" },
+  { key: "enviados", href: "/admin/mailing/enviados", label: "Enviados" },
   { key: "listas", href: "/admin/mailing/listas", label: "Listas" },
   { key: "plantillas", href: "/admin/mailing/plantillas", label: "Plantillas" },
   { key: "bajas", href: "/admin/mailing/bajas", label: "Bajas y rebotes" },

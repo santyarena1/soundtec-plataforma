@@ -38,6 +38,7 @@ import {
   RefreshCw,
   ScrollText,
   Wrench,
+  Inbox,
 } from "lucide-react";
 import type { PermissionScope } from "@/lib/permissions";
 import { SETTINGS_SECTIONS } from "@/lib/settings-sections";
@@ -134,6 +135,7 @@ const groups: NavGroup[] = [
         icon: Settings2,
         anyScope: SETTINGS_SECTIONS.map((s) => s.scope),
       },
+      { href: "/admin/correo", label: "Correo del portal", icon: Inbox, adminOnly: true },
       { href: "/admin/landing", label: "Página pública", icon: Globe2, scope: "landing.manage" },
       { href: "/admin/feedback", label: "Revisión de textos IA", icon: MessageSquare, scope: "ai.manage" },
       { href: "/admin/ayuda", label: "Ayuda y tutorial", icon: BookOpen },

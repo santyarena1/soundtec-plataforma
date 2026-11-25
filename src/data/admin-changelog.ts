@@ -3214,4 +3214,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Logos más grandes y siempre a color. Al pasar el mouse un trazo de luz azul recorre el borde de la caja; la marca elegida en la barra lleva un recuadro y el mismo trazo, muy lento. Con «reducir movimiento» del sistema queda solo el recuadro." },
     ],
   },
+  {
+    id: "ship-2026-11-25-correo-del-portal",
+    version: "2.62.0",
+    releasedAt: "2026-11-25T04:00:00.000Z",
+    summary: "Correo del portal: los admins ven la casilla portal@ entera (carpetas, búsqueda, mensajes, adjuntos y conversación) y una línea de tiempo con cada movimiento. En Campañas por mail, pestaña «Enviados» con todo lo que salió por noreply@ y su estado.",
+    items: [
+      { kind: "NUEVO", text: "Sistema › Correo del portal (solo admins): carpetas de la casilla (Recibidos, Enviados, Spam, Papelera y las demás) con contadores, listado paginado con remitente, asunto, fecha, adjunto y sin leer, búsqueda por de / para / asunto / texto, rango de fechas y «Sin leer». Abrir un mensaje NO lo marca como leído; el único cambio posible es «Marcar como leído / no leído» (en «Ver como», nada)." },
+      { kind: "NUEVO", text: "Vista del mensaje: encabezados (y los completos), cuerpo con formato en un marco aislado sin scripts ni formularios, imágenes remotas bloqueadas hasta tocar «Mostrar imágenes», versión texto, adjuntos que se bajan directo de la casilla y la conversación (respuestas y lo que se le había mandado, entre Recibidos y Enviados)." },
+      { kind: "NUEVO", text: "Rebotes del servidor (MAILER-DAEMON, «Undelivered…») marcados en el listado; al abrirlos se ve a qué dirección no llegó, el código y el motivo, y los mails del sistema que se le mandaron a esa dirección." },
+      { kind: "NUEVO", text: "Pestaña «Actividad»: en una sola línea de tiempo los mails que mandó el sistema (tipo, destinatario, estado, error, intentos), lo recibido y los rebotes, y las invitaciones de Formularios con apertura, respuesta y rebote. Filtros por tipo, estado, período (7 a 90 días) y búsqueda; enlace al mensaje o al formulario." },
+      { kind: "NUEVO", text: "Campañas por mail › «Enviados»: todos los mails de campañas con destinatario, campaña, fecha, estado (entregado, abrió, clic, rebote, queja, baja, falló) y último evento con fecha. Totales arriba (tocarlos filtra), filtros por campaña, estado y fechas, búsqueda por mail y «Exportar a Excel» con los mismos filtros." },
+      { kind: "NUEVO", text: "«Traer de Resend» en Enviados: consulta en Resend el último evento de los mails de los últimos 30 días sin entrega confirmada y completa lo que faltó del webhook (hasta 40 por clic, respetando el límite de pedidos)." },
+    ],
+  },
 ];

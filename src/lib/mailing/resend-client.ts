@@ -128,3 +128,10 @@ export async function verifyDomain(options: ResendOptions, id: string): Promise<
 export async function setDomainTracking(options: ResendOptions, id: string, tracking: { open: boolean; click: boolean }): Promise<ResendResult<{ id: string }>> {
   return call<{ id: string }>(options, "PATCH", `/domains/${encodeURIComponent(id)}`, { open_tracking: tracking.open, click_tracking: tracking.click });
 }
+
+export type ResendEmailStatus = { id: string; last_event?: string; created_at?: string; to?: string[] };
+
+/** Estado de un mail ya enviado (GET /emails/{id}): sirve para completar eventos que no llegaron por webhook. */
+export async function getEmail(options: ResendOptions, id: string): Promise<ResendResult<ResendEmailStatus>> {
+  return call<ResendEmailStatus>(options, "GET", `/emails/${encodeURIComponent(id)}`);
+}
