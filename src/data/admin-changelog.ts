@@ -3378,4 +3378,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "La prueba ?claro=samsung invertía los colores en cualquier navegador donde se hubiera abierto ese link (también en PC). Se quitó por completo." },
     ],
   },
+  {
+    id: "ship-2026-11-25-prueba-modo-oscuro",
+    version: "2.68.4",
+    releasedAt: "2026-11-26T02:00:00.000Z",
+    summary: "Página de prueba aislada para el modo oscuro de Samsung Internet.",
+    items: [
+      { kind: "MEJORA", text: "Nueva página /pruebas/modo-oscuro.html para probar en un Samsung real si se puede detectar y compensar su modo oscuro. No cambia nada del resto del sitio ni guarda nada en el navegador." },
+    ],
+  },
 ];

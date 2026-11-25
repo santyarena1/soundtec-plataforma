@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Prueba modo oscuro forzado</title>
+<script>
+/* Modo de prueba por query: ?optout=1 agrega color-scheme only light (lo que ya tiene prod).
+   ?fix=auto  -> detecta oscurecido forzado y compensa
+   ?fix=force -> compensa siempre (para ver el efecto en un navegador sin oscurecido)
+   ?fix=off   -> no compensa (default) */
+(function () {
+  var q = new URLSearchParams(location.search);
+  if (q.get('optout') === '1') {
+    var m = document.createElement('meta'); m.name = 'color-scheme'; m.content = 'only light';
+    document.head.appendChild(m);
+    document.documentElement.style.colorScheme = 'only light';
+  }
+  var fix = q.get('fix') || 'off';
+  window.__fixMode = fix;
+  if (fix === 'force') document.documentElement.classList.add('fd-comp');
+})();
+</script>
+<!-- Detector + compensación: candidato a ir inline en <head> de layout.tsx -->
+<script>
+(function () {
+  var SVG_WHITE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IndoaXRlIi8+PC9zdmc+';
+  function probe(cb) {
+    try {
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var c = document.createElement('canvas'); c.width = 1; c.height = 1;
+          var ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+          var d = ctx.getImageData(0, 0, 1, 1).data;
+          cb(d[0] < 250 || d[1] < 250 || d[2] < 250, [d[0], d[1], d[2]]);
+        } catch (e) { cb(false, 'err ' + e.message); }
+      };
+      img.onerror = function () { cb(false, 'img error'); };
+      img.src = SVG_WHITE;
+    } catch (e) { cb(false, 'err ' + e.message); }
+  }
+  window.__probe = probe;
+  probe(function (dark, rgb) {
+    window.__probeResult = { dark: dark, rgb: rgb };
+    if (dark && window.__fixMode === 'auto') document.documentElement.classList.add('fd-comp');
+    var el = document.getElementById('probe');
+    if (el) el.textContent = 'probe: ' + JSON.stringify(window.__probeResult) + ' | UA Samsung: ' + /SamsungBrowser/i.test(navigator.userAgent) + ' | prefers dark: ' + matchMedia('(prefers-color-scheme: dark)').matches + ' | clase fd-comp: ' + document.documentElement.classList.contains('fd-comp');
+  });
+})();
+</script>
+<style>
+  :root { --bg:#fcfcfd; --text:#1f2a37; --navy:#1e3a5f; --card:#ffffff; --muted:#6b7280; --accent:#f59e0b; --border:#e5e7eb; }
+  html { background: var(--bg); color: var(--text); }
+  body { margin:0; font-family: system-ui, sans-serif; background: var(--bg); }
+  header { background: var(--navy); color:#fff; padding:16px; }
+  main { padding:16px; }
+  .card { background: var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px; }
+  .muted { color: var(--muted); }
+  .btn { display:inline-block; background: var(--navy); color:#fff; padding:10px 16px; border-radius:8px; }
+  .btn2 { display:inline-block; background: var(--accent); color:#111; padding:10px 16px; border-radius:8px; }
+  .sw { display:inline-block; width:56px; height:56px; border-radius:6px; margin:4px; border:1px solid #ccc; }
+  .photo { width:120px; height:80px; display:block; }
+  #probe { font: 12px monospace; word-break: break-all; }
+
+  /* ===== Compensación (doble inversión) — solo cuando se detecta oscurecido forzado ===== */
+  html.fd-comp { filter: invert(1) hue-rotate(180deg); }
+  /* Contenido que el navegador NO oscurece (fotos, video, canvas, iframes): re-invertir para dejarlo igual */
+  html.fd-comp img, html.fd-comp video, html.fd-comp canvas, html.fd-comp iframe, html.fd-comp [data-fd-keep] { filter: invert(1) hue-rotate(180deg); }
+  /* Superficies oscuras de marca: el navegador ya las deja oscuras → re-invertir para neutralizar */
+  html.fd-comp [data-fd-dark] { filter: invert(1) hue-rotate(180deg); }
+  html.fd-comp [data-fd-dark] img, html.fd-comp [data-fd-dark] video, html.fd-comp [data-fd-dark] canvas { filter: none; }
+</style>
+</head>
+<body>
+<header data-fd-dark>
+  <strong>SOUNDTEC (header navy)</strong> <span style="opacity:.8">texto blanco sobre #1e3a5f</span>
+</header>
+<main>
+  <p style="font-size:15px"><b>Modo:</b> <span id="modo"></span> · <a href="?fix=off">sin arreglo</a> · <a href="?fix=auto">arreglo automático</a> · <a href="?fix=force">arreglo forzado</a></p>
+  <p id="probe">probe: …</p>
+  <div class="card">
+    <h2 style="margin-top:0;color:var(--navy)">Título navy sobre tarjeta blanca</h2>
+    <p>Texto principal #1f2a37 sobre #ffffff.</p>
+    <p class="muted">Texto secundario #6b7280.</p>
+    <span class="btn" data-fd-dark>Botón navy</span>
+    <span class="btn2">Botón ámbar</span>
+  </div>
+  <div class="card">
+    <span class="sw" id="sw-bg" style="background:#fcfcfd"></span>
+    <span class="sw" id="sw-navy" style="background:#1e3a5f"></span>
+    <span class="sw" id="sw-white" style="background:#ffffff"></span>
+    <span class="sw" id="sw-accent" style="background:#f59e0b"></span>
+    <span class="sw" id="sw-gray" style="background:#e5e7eb"></span>
+  </div>
+  <div class="card">
+    <img class="photo" id="photo" alt="foto" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='80'%3E%3Crect width='120' height='80' fill='%23ff5714'/%3E%3Ccircle cx='60' cy='40' r='25' fill='%23ffffff'/%3E%3C/svg%3E">
+    <canvas id="cv" width="120" height="80"></canvas>
+  </div>
+</main>
+<script>
+  document.getElementById("modo").textContent = window.__fixMode;
+  var cv = document.getElementById('cv').getContext('2d'); cv.fillStyle = '#1e3a5f'; cv.fillRect(0,0,120,80); cv.fillStyle='#fcfcfd'; cv.fillRect(30,20,60,40);
+</script>
+</body>
+</html>
