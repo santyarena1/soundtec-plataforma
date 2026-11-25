@@ -518,15 +518,3 @@ body.quote-focus-mode .xl\:pl-64 {
   }
 }
 
-/* Samsung Internet en prueba (ver SAMSUNG_UNFORCE en layout.tsx): su modo oscuro aclara lo claro y deja lo
-   oscuro; acá se invierte todo para volver a los colores de siempre. Fotos y videos (que Samsung no toca)
-   y las superficies azules de la marca (que Samsung tampoco toca) se vuelven a invertir. */
-html.st-unforce {
-  filter: invert(1) hue-rotate(180deg);
-}
-html.st-unforce :is(img, video, canvas, iframe, picture, .bg-primary, .bg-accent, .bg-foreground) {
-  filter: invert(1) hue-rotate(180deg);
-}
-html.st-unforce :is(.bg-primary, .bg-accent, .bg-foreground) :is(img, video, canvas, iframe, picture, .bg-primary, .bg-accent, .bg-foreground) {
-  filter: none;
-}

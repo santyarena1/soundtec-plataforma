@@ -3369,4 +3369,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "El modo de prueba para el oscurecido de Samsung Internet no se activaba en algunos celulares. Ahora, con ?claro=samsung, se aplica siempre en ese navegador hasta entrar con ?claro=normal." },
     ],
   },
+  {
+    id: "ship-2026-11-25-sin-prueba-samsung",
+    version: "2.68.3",
+    releasedAt: "2026-11-26T01:30:00.000Z",
+    summary: "Se quitó la prueba de Samsung Internet: el sitio vuelve a verse claro en todos lados.",
+    items: [
+      { kind: "FIX", text: "La prueba ?claro=samsung invertía los colores en cualquier navegador donde se hubiera abierto ese link (también en PC). Se quitó por completo." },
+    ],
+  },
 ];
