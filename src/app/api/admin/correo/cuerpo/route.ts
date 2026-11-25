@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { toMailboxError } from "@/lib/mail-viewer/errors";
-import { prepareViewerHtml, textToViewerHtml, viewerCsp } from "@/lib/mail-viewer/sanitize";
+import { textToViewerHtml, viewerCsp } from "@/lib/mail-viewer/sanitize";
 import { parseUid } from "@/lib/mail-viewer/search";
-import { getMailbox, openMessage, requireFolder } from "@/server/mail-viewer/service";
+import { getMailbox, openMessage, preparedHtml, requireFolder } from "@/server/mail-viewer/service";
 
 export const dynamic = "force-dynamic";
 
@@ -33,11 +33,11 @@ export async function GET(req: Request) {
   if (!folder || folder.length > 300 || !uid) return page(textToViewerHtml("Pedido inválido."), false, 400);
   try {
     const { provider } = await getMailbox();
-    await requireFolder(provider, folder);
-    const message = await openMessage(provider, folder, uid);
-    if (!message.html) return page(textToViewerHtml(message.detail.text || "(Mensaje sin texto)"), false);
-    const { html } = prepareViewerHtml(message.html, { allowRemoteImages: allowImages, inlineImages: message.inlineImages });
-    return page(html, allowImages);
+    // Carpeta y mensaje en paralelo (los dos suelen estar ya en memoria).
+    const [, message] = await Promise.all([requireFolder(provider, folder), openMessage(provider, folder, uid)]);
+    const prepared = preparedHtml(message, allowImages);
+    if (!prepared) return page(textToViewerHtml(message.detail.text || "(Mensaje sin texto)"), false);
+    return page(prepared.html, allowImages);
   } catch (error) {
     const e = toMailboxError(error);
     return page(textToViewerHtml(e.message), false, e.code === "not_found" || e.code === "invalid" ? 404 : 502);

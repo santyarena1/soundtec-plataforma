@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { listDate, shortAddress, viewerHref, type ViewerState } from "@/lib/mail-viewer/links";
 import type { FolderInfo, MessagePage } from "@/lib/mail-viewer/types";
+import { MessageLink, ViewerGetForm, WarmMessages } from "./client-bits";
 
 /** Pestañas del visor: Bandeja | Actividad. */
 export function ViewerTabs({ active }: { active: "bandeja" | "actividad" }) {
@@ -71,7 +72,7 @@ export function FolderNav({ folders, state }: { folders: FolderInfo[]; state: Vi
 export function SearchBar({ state }: { state: ViewerState }) {
   const f = state.filters;
   return (
-    <form action="/admin/correo" className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-card p-2.5">
+    <ViewerGetForm action="/admin/correo" className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-card p-2.5 data-[pending]:opacity-70">
       <input type="hidden" name="carpeta" value={state.folder} />
       <label className="min-w-[180px] flex-1">
         <span className="sr-only">Buscar</span>
@@ -107,7 +108,7 @@ export function SearchBar({ state }: { state: ViewerState }) {
           Limpiar
         </Link>
       ) : null}
-    </form>
+    </ViewerGetForm>
   );
 }
 
@@ -118,16 +119,19 @@ export function MessageList({ page, state, sentFolder }: { page: MessagePage; st
   }
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card">
+      {state.uid ? null : <WarmMessages folder={page.folder} uids={page.messages.map((m) => m.uid)} />}
       <ul className="divide-y divide-border">
         {page.messages.map((m) => {
           const active = state.uid === m.uid;
           const who = sentFolder ? `Para: ${m.to.map((t) => t.name || t.address).join(", ") || "—"}` : shortAddress(m.from);
           return (
             <li key={m.uid}>
-              <Link
+              <MessageLink
                 href={viewerHref(state, { uid: m.uid })}
+                folder={page.folder}
+                uid={m.uid}
+                current={active}
                 className={cn("block px-3 py-2.5 transition-colors hover:bg-secondary/60", active && "bg-primary/5 ring-1 ring-inset ring-primary/30")}
-                aria-current={active ? "true" : undefined}
               >
                 <div className="flex items-center gap-2">
                   {!m.seen ? <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Sin leer" /> : null}
@@ -143,7 +147,7 @@ export function MessageList({ page, state, sentFolder }: { page: MessagePage; st
                   <span className={cn("truncate text-[13px]", !m.seen ? "font-medium" : "text-muted-foreground")}>{m.subject || "(sin asunto)"}</span>
                   {m.hasAttachments ? <Paperclip className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Con adjuntos" /> : null}
                 </div>
-              </Link>
+              </MessageLink>
             </li>
           );
         })}
@@ -164,6 +168,62 @@ export function MessageList({ page, state, sentFolder }: { page: MessagePage; st
             </Link>
           ) : null}
         </span>
+      </div>
+    </div>
+  );
+}
+
+/* Esqueletos: la página aparece al toque y cada parte se completa cuando llega de la casilla. */
+
+function Bar({ className, width }: { className?: string; width?: string }) {
+  return <span className={cn("block animate-pulse rounded bg-secondary", className)} style={width ? { width } : undefined} />;
+}
+
+export function FolderNavSkeleton() {
+  return (
+    <div className="flex gap-1 lg:flex-col" aria-busy="true" aria-label="Cargando carpetas">
+      {[70, 60, 75, 50, 65].map((w, i) => (
+        <div key={i} className="flex shrink-0 items-center gap-2 px-2.5 py-2">
+          <Bar className="h-4 w-4" />
+          <Bar className="h-3" width={`${w}px`} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function MessageListSkeleton({ rows = 10 }: { rows?: number }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-card" aria-busy="true" aria-label="Cargando mensajes">
+      <ul className="divide-y divide-border">
+        {Array.from({ length: rows }, (_, i) => (
+          <li key={i} className="space-y-1.5 px-3 py-3">
+            <div className="flex items-center gap-2">
+              <Bar className="h-3.5 w-40" />
+              <Bar className="ml-auto h-3 w-10" />
+            </div>
+            <Bar className={cn("h-3", i % 3 === 0 ? "w-3/4" : i % 3 === 1 ? "w-1/2" : "w-2/3")} />
+          </li>
+        ))}
+      </ul>
+      <p className="border-t border-border px-3 py-2 text-xs text-muted-foreground">Leyendo la casilla…</p>
+    </div>
+  );
+}
+
+export function MessageSkeleton() {
+  return (
+    <div className="space-y-3" aria-busy="true" aria-label="Abriendo el mensaje">
+      <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+        <Bar className="h-5 w-2/3" />
+        <Bar className="h-3 w-1/2" />
+        <Bar className="h-3 w-1/3" />
+      </div>
+      <div className="space-y-2 rounded-lg border border-border bg-card p-4">
+        {[90, 80, 95, 60, 85, 40].map((w, i) => (
+          <Bar key={i} className="h-3" width={`${w}%`} />
+        ))}
+        <p className="pt-2 text-xs text-muted-foreground">Abriendo el mensaje…</p>
       </div>
     </div>
   );

@@ -123,11 +123,17 @@ export async function parseMessage(
   source: Buffer,
   fetched: FetchedLike,
   folder: string,
-  options: { tooLarge: boolean; ownAddresses: string[]; attachments?: AttachmentInfo[] }
+  options: {
+    tooLarge: boolean;
+    ownAddresses: string[];
+    attachments?: AttachmentInfo[];
+    /** Encabezado original cuando `source` es un mensaje armado con algunas partes (mime-parts). */
+    headerLines?: Array<{ key: string; line: string }>;
+  }
 ): Promise<ParsedMessage> {
   const parsed = await simpleParser(source, { skipTextToHtml: true, skipImageLinks: true, maxHtmlLengthToParse: 3 * 1024 * 1024 });
   const summary = summaryFromFetch(fetched, folder);
-  const headers = (parsed.headerLines ?? []).slice(0, MAX_HEADER_LINES).map((h) => {
+  const headers = (options.headerLines ?? parsed.headerLines ?? []).slice(0, MAX_HEADER_LINES).map((h) => {
     const colon = h.line.indexOf(":");
     return { key: colon > 0 ? h.line.slice(0, colon) : h.key, value: (colon > 0 ? h.line.slice(colon + 1) : h.line).replace(/\r?\n[ \t]+/g, " ").trim().slice(0, 2000) };
   });

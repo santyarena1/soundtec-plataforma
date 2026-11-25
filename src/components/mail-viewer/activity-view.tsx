@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { AlertTriangle, ClipboardList, Inbox, Send, Undo2 } from "lucide-react";
+import { AlertTriangle, ClipboardList, Inbox, Loader2, Send, Undo2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDate } from "@/lib/utils";
 import { ACTIVITY_STATE_LABELS, ACTIVITY_TYPE_LABELS, type ActivityFilters, type ActivityItem, type ActivityState, type ActivityType } from "@/lib/mail-viewer/activity";
+import { ViewerGetForm } from "./client-bits";
 
 const TYPE_ICON: Record<ActivityType, typeof Send> = { system: Send, received: Inbox, bounce: Undo2, form: ClipboardList };
 const STATE_TONE: Record<ActivityState, "success" | "destructive" | "warning" | "muted"> = { ok: "success", error: "destructive", pending: "warning", info: "muted" };
@@ -32,6 +33,7 @@ export function ActivityView({
   page,
   inboxError,
   truncated,
+  inboxPending = false,
 }: {
   items: ActivityItem[];
   counts: Record<ActivityType, number>;
@@ -40,6 +42,8 @@ export function ActivityView({
   page: number;
   inboxError: string | null;
   truncated: boolean;
+  /** Lo de la casilla todavía no llegó: se muestra lo de la base y se avisa. */
+  inboxPending?: boolean;
 }) {
   const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const current = Math.min(page, pages);
@@ -47,6 +51,11 @@ export function ActivityView({
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   return (
     <div className="space-y-4">
+      {inboxPending ? (
+        <p className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground" aria-live="polite">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> Sumando lo recibido en la casilla (respuestas y rebotes)…
+        </p>
+      ) : null}
       {inboxError ? (
         <p className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -85,13 +94,13 @@ export function ActivityView({
             </Chip>
           ))}
         </div>
-        <form action="/admin/correo" className="flex gap-2">
+        <ViewerGetForm action="/admin/correo" className="flex gap-2">
           <input type="hidden" name="vista" value="actividad" />
           {filters.type ? <input type="hidden" name="tipo" value={filters.type} /> : null}
           {filters.state ? <input type="hidden" name="estado" value={filters.state} /> : null}
           {days !== 14 ? <input type="hidden" name="dias" value={days} /> : null}
           <input name="q" defaultValue={filters.q} placeholder="Buscar por mail, asunto o formulario" className="h-9 w-full rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary/60" />
-        </form>
+        </ViewerGetForm>
       </div>
 
       {visible.length ? (

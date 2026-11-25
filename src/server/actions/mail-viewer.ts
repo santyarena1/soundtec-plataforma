@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getImpersonation, requireAdmin } from "@/lib/auth-helpers";
 import { toMailboxError } from "@/lib/mail-viewer/errors";
 import { parseUid } from "@/lib/mail-viewer/search";
-import { getMailbox, requireFolder, setSeen } from "@/server/mail-viewer/service";
+import { getMailbox, invalidateListings, requireFolder, setSeen } from "@/server/mail-viewer/service";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -26,5 +26,21 @@ export async function setMessageSeenAction(input: { folder: string; uid: number;
     return { ok: false, error: toMailboxError(error).message };
   }
   revalidatePath("/admin/correo");
+  return { ok: true };
+}
+
+/**
+ * «Actualizar» del visor: descarta carpetas, listados, conversaciones y lo
+ * recibido de «Actividad» para que se vuelvan a pedir. Los mensajes ya abiertos
+ * quedan (un mensaje no cambia de contenido). No escribe en la casilla.
+ */
+export async function refreshMailboxAction(): Promise<Result> {
+  await requireAdmin();
+  try {
+    const { provider } = await getMailbox();
+    invalidateListings(provider);
+  } catch (error) {
+    return { ok: false, error: toMailboxError(error).message };
+  }
   return { ok: true };
 }

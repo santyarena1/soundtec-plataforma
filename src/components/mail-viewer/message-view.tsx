@@ -24,7 +24,6 @@ function AddressRow({ label, list }: { label: string; list: MailAddress[] }) {
 export function MessageView({
   detail,
   state,
-  folders,
   thread,
   blockedImages,
   readOnly,
@@ -32,14 +31,13 @@ export function MessageView({
 }: {
   detail: MessageDetail;
   state: ViewerState;
-  folders: FolderInfo[];
-  thread: MessageSummary[];
+  /** Conversación: llega aparte (no demora el mensaje). */
+  thread?: React.ReactNode;
   blockedImages: number;
   readOnly: boolean;
   relatedLogs: RelatedLog[];
 }) {
   const files = detail.attachments.filter((a) => !a.inline || !detail.hasHtml);
-  const folderName = (path: string) => folders.find((f) => f.path === path)?.label ?? path;
   return (
     <article className="space-y-3" aria-label="Mensaje">
       <div className="flex flex-wrap items-center gap-2">
@@ -149,31 +147,38 @@ export function MessageView({
         blockedImages={blockedImages}
       />
 
-      {thread.length ? (
-        <section className="rounded-lg border border-border bg-card p-3">
-          <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <MessagesSquare className="h-3.5 w-3.5" /> Conversación ({thread.length})
-          </p>
-          <ol className="space-y-1">
-            {thread.map((m) => {
-              const current = m.folder === detail.folder && m.uid === detail.uid;
-              return (
-                <li key={`${m.folder}:${m.uid}`}>
-                  <Link
-                    href={viewerHref(state, { folder: m.folder, uid: m.uid, page: 1, filters: { q: "", from: null, to: null, unread: false } })}
-                    className={cn("flex items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-secondary/60", current && "bg-primary/5 font-semibold")}
-                  >
-                    <span className="w-16 shrink-0 tabular-nums text-muted-foreground">{listDate(m.date)}</span>
-                    <span className="w-20 shrink-0 truncate text-muted-foreground">{folderName(m.folder)}</span>
-                    <span className="truncate">{shortAddress(m.from)}</span>
-                    <span className="truncate text-muted-foreground">— {m.subject}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-      ) : null}
+      {thread}
     </article>
+  );
+}
+
+/** Conversación del mensaje abierto (mensajes relacionados en Recibidos y Enviados). */
+export function ThreadList({ detail, state, folders, thread }: { detail: MessageDetail; state: ViewerState; folders: FolderInfo[]; thread: MessageSummary[] }) {
+  if (!thread.length) return null;
+  const folderName = (path: string) => folders.find((f) => f.path === path)?.label ?? path;
+  return (
+    <section className="rounded-lg border border-border bg-card p-3">
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <MessagesSquare className="h-3.5 w-3.5" /> Conversación ({thread.length})
+      </p>
+      <ol className="space-y-1">
+        {thread.map((m) => {
+          const current = m.folder === detail.folder && m.uid === detail.uid;
+          return (
+            <li key={`${m.folder}:${m.uid}`}>
+              <Link
+                href={viewerHref(state, { folder: m.folder, uid: m.uid, page: 1, filters: { q: "", from: null, to: null, unread: false } })}
+                className={cn("flex items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-secondary/60", current && "bg-primary/5 font-semibold")}
+              >
+                <span className="w-16 shrink-0 tabular-nums text-muted-foreground">{listDate(m.date)}</span>
+                <span className="w-20 shrink-0 truncate text-muted-foreground">{folderName(m.folder)}</span>
+                <span className="truncate">{shortAddress(m.from)}</span>
+                <span className="truncate text-muted-foreground">— {m.subject}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }

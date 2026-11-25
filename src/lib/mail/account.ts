@@ -112,7 +112,8 @@ export function createTransport(account: MailAccount) {
   });
 }
 
-export function createImap(account: MailAccount) {
+/** `extra` ajusta el cliente (p. ej. el visor de correo, que deja la conexión abierta y la reusa). */
+export function createImap(account: MailAccount, extra: Partial<ConstructorParameters<typeof ImapFlow>[0]> = {}) {
   return new ImapFlow({
     host: account.host,
     port: account.imapPort,
@@ -120,6 +121,7 @@ export function createImap(account: MailAccount) {
     auth: { user: account.user, pass: account.password },
     logger: false,
     socketTimeout: 30_000,
+    ...extra,
   });
 }
 

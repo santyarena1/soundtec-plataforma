@@ -3274,4 +3274,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "Se vaciaron las descripciones largas que decían «No hay datos disponibles.» (PowerZone Connect 1008, rejilla 4\" SM MKII y RS600I-BK) para poder regenerarlas; dejan de mostrar el cartel «Generado con IA»." },
     ],
   },
+  {
+    id: "ship-2026-11-25-correo-rapido",
+    version: "2.66.0",
+    releasedAt: "2026-11-25T23:00:00.000Z",
+    summary: "Sistema › Correo del portal mucho más rápido: la página aparece al toque, la casilla queda conectada entre clic y clic, y abrir un mail ya no baja los adjuntos.",
+    items: [
+      { kind: "MEJORA", text: "La conexión con la casilla queda abierta unos minutos y se reusa: antes cada clic volvía a entrar a portal@soundtec.com.ar (conectar, cifrar y loguearse, unas 10 idas y vueltas con InMotion). Ahora cambiar de carpeta, paginar, buscar o abrir un mail es una o dos consultas." },
+      { kind: "MEJORA", text: "La página ya no espera a la casilla: el encabezado y el buscador aparecen enseguida, y carpetas, listado y mensaje se completan solos (con un esqueleto mientras llegan). La conversación del mail se suma después, sin demorar el mensaje." },
+      { kind: "MEJORA", text: "Abrir un mail con adjuntos pesados trae solo el texto, el HTML y las imágenes del cuerpo; los adjuntos se bajan recién al tocarlos, y la descarga va en tramos grandes (un PDF de 1,5 MB pasó de ~11 s a ~2 s en la prueba)." },
+      { kind: "MEJORA", text: "Precarga: los tres primeros mails del listado y el que tenés debajo del mouse se traen antes del clic, así se abren al instante. Un mail ya abierto queda 10 minutos en memoria (el cuerpo con formato no se vuelve a pedir)." },
+      { kind: "MEJORA", text: "Actividad muestra primero lo que registró el sistema (mails enviados e invitaciones) y suma lo recibido en la casilla cuando llega, con un aviso mientras tanto." },
+      { kind: "MEJORA", text: "Buscar y «Actualizar» ya no recargan toda la página. «Actualizar» vuelve a pedir carpetas, listados y actividad, pero no los mails ya abiertos (un mail no cambia)." },
+    ],
+  },
 ];
