@@ -130,8 +130,9 @@ const COLUMNS: Omit<ColumnInfo, "coveragePercent" | "sample">[] = [
 ];
 
 export async function GET() {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
 
     const totalCount = await prisma.product.count();
 

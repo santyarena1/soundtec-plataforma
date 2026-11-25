@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { z } from "zod";
-import { requireStaff } from "@/lib/auth-helpers";
+import { requireRoomProjectAccess } from "@/server/room-builder/access";
 import { prisma } from "@/lib/prisma";
 import {
   boundsFromPolygon,
@@ -40,7 +40,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  await requireStaff("room_builder.use");
+  await requireRoomProjectAccess(params.id);
   const project = await getRoomProject(params.id);
   if (!project || project.kind === "hub") {
     return NextResponse.json({ ok: false, error: "Proyecto inválido" }, { status: 404 });

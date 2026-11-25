@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { canSeeSalePricesNow, requireStaff } from "@/lib/auth-helpers";
+import { canSeeSalePricesNow } from "@/lib/auth-helpers";
+import { requireRoomProjectAccess } from "@/server/room-builder/access";
 import { exportBomCsv, exportCablesCsv, exportDrawings } from "@/server/room-builder/exports";
 import { CSV_BOM, exportFileName } from "@/services/room-builder/exports/csv";
 
@@ -15,7 +16,7 @@ const csvResponse = (csv: string, fileName: string) =>
  * drawings (SVG de plano y diagrama para pasarlos a PNG en el navegador).
  */
 export async function GET(req: Request, { params }: { params: { id: string } }) {
-  await requireStaff("room_builder.use");
+  await requireRoomProjectAccess(params.id);
   const url = new URL(req.url);
   const kind = url.searchParams.get("kind");
   try {

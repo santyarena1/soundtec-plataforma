@@ -21,6 +21,7 @@ import { resendEnvelope, resolveReplyTo, smtpFrom } from "@/lib/mail/transaction
 import type { NoticeKind } from "@/lib/mail/transactional/kinds";
 import type { RenderedMail } from "@/lib/mail/transactional/template";
 import { getResendKey, getTransactionalSettings, noticeRecipients } from "@/lib/mail/transactional/settings";
+import { mailClaimWhere, SENDING_STATUS } from "@/lib/mail/transactional/claim";
 
 const HOUR_MS = 60 * 60 * 1000;
 const IMAP_COPY_TIMEOUT_MS = 12_000;
@@ -107,7 +108,11 @@ async function saveLog(patch: LogPatch, id?: string): Promise<string> {
 }
 
 async function runtime(): Promise<Runtime> {
-  const [account, settings, resendKey] = await Promise.all([getMailAccount().catch(() => null), getTransactionalSettings(), getResendKey()]);
+  const [account, settings, resendKey] = await Promise.all([getMailAccount().catch((error) => {
+    // Sin casilla los mails sensibles quedan sin salir: que quede rastro (p. ej. cambió ENCRYPTION_KEY).
+    console.error("[correo] no se pudo leer la casilla de envío", error);
+    return null;
+  }), getTransactionalSettings(), getResendKey()]);
   const simulated = isSimulatedTransport();
   const sender = account?.user ?? (simulated ? SIMULATED_SENDER : null);
   const config: DeliveryConfig = {
@@ -191,7 +196,15 @@ export async function retryMailLog(id: string): Promise<RetryOutcome> {
   const mail = parsePayload(decryptSecret(row.payload));
   if (!mail) return { ok: false, error: "No se pudo leer el contenido guardado (¿cambió ENCRYPTION_KEY?)." };
   const { deps } = await runtime();
-  return { ok: true, result: await deliver(deps, mail, { logId: row.id }) };
+  // Reserva atómica: si otra corrida (cron o botón) ya la tomó, no se manda dos veces.
+  const claimed = await prisma.mailLog.updateMany({ where: mailClaimWhere(row.id, Date.now()), data: { status: SENDING_STATUS } });
+  if (claimed.count !== 1) return { ok: false, error: "Ese mail ya se está mandando." };
+  try {
+    return { ok: true, result: await deliver(deps, mail, { logId: row.id }) };
+  } catch (error) {
+    await prisma.mailLog.update({ where: { id: row.id }, data: { status: row.status, error: errorText(error) } }).catch(() => undefined);
+    throw error;
+  }
 }
 
 /**

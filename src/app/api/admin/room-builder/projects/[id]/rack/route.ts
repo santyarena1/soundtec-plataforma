@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
-import { requireStaff } from "@/lib/auth-helpers";
+import { requireRoomProjectAccess } from "@/server/room-builder/access";
 import { prisma } from "@/lib/prisma";
 import { getRoomProject } from "@/services/room-builder/project-service";
 import { projectRackInputs, roomRackInput } from "@/services/room-builder/rack/rack-db";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * rack/rack-elevation.ts para reordenar sin volver al servidor.
  */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  await requireStaff("room_builder.use");
+  await requireRoomProjectAccess(params.id);
   try {
     const project = await getRoomProject(params.id);
     if (!project) return NextResponse.json({ ok: false, error: "Proyecto no encontrado" }, { status: 404 });
@@ -35,7 +35,7 @@ const orderSchema = z.object({
 
 /** Guarda el orden del frente del rack (rackOrder en la escena); null vuelve al orden lógico. */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  await requireStaff("room_builder.use");
+  await requireRoomProjectAccess(params.id);
   const parsed = orderSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Datos inválidos" }, { status: 400 });
   const targetId = parsed.data.rackId ?? params.id;

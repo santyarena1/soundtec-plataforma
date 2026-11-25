@@ -17,8 +17,9 @@ function normalizePriceMapping(mapping: Record<string, string>): Record<string, 
 
 // GET — devuelve el mapping persistido + el catálogo de paths agrupados
 export async function GET() {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const raw = await getSetting(MAPPING_KEY, "{}");
     let mapping: Record<string, string> = {};
     try {
@@ -44,8 +45,9 @@ export async function GET() {
 
 // POST — guarda el mapping (debounced auto-save desde la UI)
 export async function POST(req: NextRequest) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const body = (await req.json().catch(() => ({}))) as { mapping?: Record<string, string> };
     if (!body.mapping || typeof body.mapping !== "object") {
       return NextResponse.json({ ok: false, error: "Falta mapping" }, { status: 400 });

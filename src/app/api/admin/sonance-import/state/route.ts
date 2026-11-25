@@ -13,8 +13,9 @@ type Target = "categoria" | "familia" | "rubro" | "subrubro";
 // POST — auto-save user's in-flight edits (translations, target, createNew)
 // para que sobrevivan a un refresh sin necesidad de aplicar todavía.
 export async function POST(req: NextRequest) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const body = (await req.json().catch(() => ({}))) as {
       translations?: Record<string, string>;
       target?: Target;
@@ -52,8 +53,9 @@ export async function POST(req: NextRequest) {
 
 // GET — returns the saved createNew flag (so the client can hydrate on mount)
 export async function GET() {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const raw = await getSetting(STATE_KEY, "");
     let createNew = false;
     if (raw) {

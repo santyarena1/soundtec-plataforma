@@ -23,10 +23,14 @@ export async function authorizeHistoryIngest(): Promise<
     where: { id: session.user.id },
     select: {
       role: true,
+      isActive: true,
+      sessionVersion: true,
       customRole: { select: { permissionsJson: true, isActive: true } },
     },
   });
-  if (!dbUser) {
+  // Mismo criterio que requireUser: usuario dado de baja o sesión invalidada no pasa.
+  const tokenVersion = (session.user as { sv?: number }).sv ?? 0;
+  if (!dbUser || !dbUser.isActive || tokenVersion !== dbUser.sessionVersion) {
     return { ok: false, error: "Sesión expirada. Volvé a iniciar sesión." };
   }
 

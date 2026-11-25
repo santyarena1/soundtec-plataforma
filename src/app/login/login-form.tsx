@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/input";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { PasswordInput } from "@/components/ui/password-input";
+import { CLIENT_PAUSED_MESSAGE } from "@/lib/client-access";
 
 /** API de credenciales del navegador (Chrome/Edge); no está en los tipos de TS. */
 type PasswordCredentialCtor = new (form: HTMLFormElement) => Credential;
@@ -72,6 +73,10 @@ export function LoginForm({ callbackUrl, initialError }: LoginFormProps) {
         return;
       }
       if (!result || result.error) {
+        if (result?.code === "account_paused") {
+          setError(CLIENT_PAUSED_MESSAGE);
+          return;
+        }
         if (result?.code === "totp_invalid") {
           setError("El código no es correcto o ya venció. Fijate el que muestra ahora la app.");
           return;

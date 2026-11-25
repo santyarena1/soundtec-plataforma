@@ -3,10 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { loadQuoteForUser, requireQuotePermission } from "@/lib/quote-access";
-import {
-  inferClassifierPicks,
-  listQuoteClassifiers,
-} from "@/lib/quote-classifiers";
+import { applyQuoteClassifierPicks, readClassifierPicksFromForm } from "@/lib/quote-classifier-picks";
 
 function revalidateClassifiers(quoteId?: string) {
   revalidatePath("/admin/settings/quotes/clasificadores");
@@ -15,45 +12,9 @@ function revalidateClassifiers(quoteId?: string) {
   if (quoteId) revalidatePath(`/admin/quotes/${quoteId}`);
 }
 
-export async function readClassifierPicksFromForm(formData: FormData) {
-  const classifiers = await listQuoteClassifiers();
-  const picks: Record<string, string> = {};
-  for (const classifier of classifiers) {
-    const value = String(formData.get(`classifier_${classifier.id}`) || "").trim();
-    if (value) picks[classifier.id] = value;
-  }
-  const prompt = String(formData.get("intentPrompt") || formData.get("brief") || "");
-  const inferred = inferClassifierPicks(prompt, classifiers);
-  for (const [classifierId, optionId] of Object.entries(inferred)) {
-    if (!picks[classifierId]) picks[classifierId] = optionId;
-  }
-  return { classifiers, picks, prompt };
-}
-
-export async function applyQuoteClassifierPicks(quoteId: string, picks: Record<string, string>) {
-  const classifiers = await listQuoteClassifiers();
-  const valid = new Set(classifiers.flatMap((item) => item.options.map((option) => option.id)));
-  await prisma.quoteClassifierPick.deleteMany({ where: { quoteId } });
-  const rows = Object.entries(picks).filter(([, optionId]) => valid.has(optionId));
-  if (rows.length) {
-    await prisma.quoteClassifierPick.createMany({
-      data: rows.map(([classifierId, optionId]) => ({ quoteId, classifierId, optionId })),
-    });
-  }
-  const labels = classifiers
-    .map((classifier) => {
-      const option = classifier.options.find((item) => item.id === picks[classifier.id]);
-      return option?.label;
-    })
-    .filter(Boolean);
-  await prisma.quote.update({
-    where: { id: quoteId },
-    data: { projectType: labels[0] || null },
-  });
-}
-
 export async function saveQuoteClassifierPicks(formData: FormData): Promise<void> {
   const quoteId = String(formData.get("quoteId") || "");
+  await requireQuotePermission("quotes.edit");
   const loaded = await loadQuoteForUser(quoteId);
   if (!loaded.quote) return;
   const { picks } = await readClassifierPicksFromForm(formData);

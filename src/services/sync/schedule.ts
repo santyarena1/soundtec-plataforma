@@ -1,6 +1,7 @@
 import type { SyncSourceKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSetting, setSetting } from "@/lib/settings";
+import { isDueAt } from "./tick";
 
 export type ScheduledSource = "crestron" | "crestron-web" | "sonance" | "soundtube" | "hall-research-web";
 
@@ -105,30 +106,17 @@ export async function saveSchedule(cfg: SyncScheduleConfig): Promise<void> {
   await setSetting(SCHEDULE_KEY, JSON.stringify(cfg));
 }
 
+/** Le toca una corrida nueva (ver isDueAt: hora ART elegida y margen sobre el intervalo). */
 export function isDue(
   source: ScheduledSource,
   cfg: SyncScheduleConfig,
   nowUtcMs: number,
   lastRunMs: number | null
 ): boolean {
-  const schedule = cfg[source];
-  if (!schedule.enabled) return false;
-  const artHour = Math.floor(
-    ((new Date(nowUtcMs).getUTCHours() - 3) + 24) % 24
-  );
-  if (
-    schedule.atHourArg != null &&
-    artHour !== schedule.atHourArg
-  ) {
-    return false;
-  }
-  if (lastRunMs == null) return true;
-  return (
-    nowUtcMs - lastRunMs >=
-    schedule.everyHours * 3_600_000
-  );
+  return isDueAt(cfg[source], nowUtcMs, lastRunMs);
 }
 
+/** Inicio de la última corrida aplicada completa: el intervalo se cuenta de inicio a inicio. */
 export async function lastCompletedRunMs(
   source: ScheduledSource
 ): Promise<number | null> {
@@ -142,8 +130,8 @@ export async function lastCompletedRunMs(
   const run = await prisma.syncRun.findFirst({
     // Solo cuenta una aplicación real: una vista previa manual no reemplaza la corrida programada.
     where: { source: sourceKind[source], status: "COMPLETED", mode: "apply" },
-    orderBy: { finishedAt: "desc" },
-    select: { finishedAt: true },
+    orderBy: { startedAt: "desc" },
+    select: { startedAt: true },
   });
-  return run?.finishedAt?.getTime() ?? null;
+  return run?.startedAt?.getTime() ?? null;
 }

@@ -29,7 +29,8 @@ function publicScene(scene: RoomScene): RoomScene {
     brief: null,
     wiring: null,
     autoFixes: null,
-    devices: scene.devices.map((d) => ({ ...d, imageUrl: httpOnly(d.imageUrl) })),
+    // Sin precios: las láminas y el BOM del enlace salen sin precio, la escena tampoco lo lleva.
+    devices: scene.devices.map((d) => ({ ...d, imageUrl: httpOnly(d.imageUrl), generic: d.generic ? { ...d.generic, priceUsd: null } : d.generic })),
   };
 }
 

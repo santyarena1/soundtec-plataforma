@@ -6,7 +6,7 @@ import { fillMissingQuoteProductImages } from "@/lib/quote-product-images";
 import { fillMissingShortDescriptions } from "@/lib/product-short-description";
 import { formatClassifierSummary, listQuoteClassifiers } from "@/lib/quote-classifiers";
 import { loadQuotePatternSuggestions } from "@/lib/quote-pattern-suggest";
-import { suggestHistoricalCompanions } from "@/server/actions/quote-history";
+import { suggestHistoricalCompanions } from "@/lib/quote-history-companions";
 import {
   QUOTE_OPENAI_MISSING_KEY,
   SOUNDTEC_VOICE,

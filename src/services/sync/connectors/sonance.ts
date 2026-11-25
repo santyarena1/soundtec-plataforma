@@ -123,6 +123,13 @@ function runCacheKey(): string {
   return onlyJamesRun() ? `${RUN_CACHE_KEY}.james` : RUN_CACHE_KEY;
 }
 const RUN_CACHE_MAX_AGE_MS = 30 * 60_000;
+/**
+ * Al retomar una corrida a medias (el cron la sigue en el próximo tick) se usa el
+ * mismo listado con el que arrancó: rearmarlo tarda ~2 min de los 5 que tiene la
+ * función y, si el portal cambió el orden, el offset saltearía o repetiría productos.
+ * Las cookies viejas se renuevan solas (reintento ante 401/403).
+ */
+const RUN_CACHE_RESUME_MAX_AGE_MS = 3 * 24 * 60 * 60_000;
 
 /**
  * Cuenta de facturación de JAMES en my.sonance.com (ej. "5580105J"). El mismo
@@ -221,10 +228,10 @@ function parseRunCache(raw: string): RunCache | undefined {
   }
 }
 
-function cacheIsFresh(cache: RunCache | undefined): cache is RunCache {
+function cacheIsFresh(cache: RunCache | undefined, maxAgeMs = RUN_CACHE_MAX_AGE_MS): cache is RunCache {
   if (!cache) return false;
   const savedAt = new Date(cache.savedAt).getTime();
-  return Number.isFinite(savedAt) && Date.now() - savedAt < RUN_CACHE_MAX_AGE_MS;
+  return Number.isFinite(savedAt) && Date.now() - savedAt < maxAgeMs;
 }
 
 /**
@@ -528,7 +535,7 @@ export const sonanceConnector: ProductSourceConnector = {
     const offset = Math.max(0, opts?.offset ?? 0);
     const batchSize = Math.max(1, Math.min(100, opts?.batchSize ?? 25));
     const storedCache = parseRunCache(await getSetting(runCacheKey(), ""));
-    const cache = offset === 0 || !cacheIsFresh(storedCache)
+    const cache = offset === 0 || !cacheIsFresh(storedCache, RUN_CACHE_RESUME_MAX_AGE_MS)
       ? await buildRunCache()
       : storedCache;
     const total = cache.total;

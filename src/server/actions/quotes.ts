@@ -33,7 +33,10 @@ import { quoteListUnitUsd } from "@/lib/quote-unit-price";
 import { storeQuoteBlob } from "@/server/actions/quote-images";
 import { resolveCommercialClientId } from "@/lib/client-context";
 import { fillMissingShortDescription } from "@/lib/product-short-description";
-import { applyQuoteClassifierPicks, readClassifierPicksFromForm } from "@/server/actions/quote-classifiers";
+import { requestAccessWhere } from "@/server/requests/access";
+import { requireStaff } from "@/lib/auth-helpers";
+import { canAccessClient } from "@/server/clients/access";
+import { applyQuoteClassifierPicks, readClassifierPicksFromForm } from "@/lib/quote-classifier-picks";
 
 async function defaultTerms() {
   return {
@@ -82,8 +85,15 @@ type QuoteShellInput = {
   revisionSummary?: string;
 };
 
-/** Crea el cascarón de una COT: número, plantilla fija, términos y alternativa default. */
+/**
+ * Crea el cascarón de una COT: número, plantilla fija, términos y alternativa default.
+ * Al exportarse desde un archivo "use server" también se puede llamar suelta: solo el
+ * equipo, a su propio nombre y para clientes a los que tiene acceso.
+ */
 export async function createQuoteShell(input: QuoteShellInput) {
+  const staff = await requireStaff();
+  if (input.ownerId !== staff.user.id) throw new Error("No se puede crear una cotización a nombre de otra persona.");
+  if (input.clientId && !(await canAccessClient(staff, input.clientId))) throw new Error("Este cliente está a cargo de otra persona.");
   await ensureQuoteProfiles();
   const profile =
     (input.profileKey
@@ -408,8 +418,8 @@ export async function createQuoteFromRequest(input: {
   }
 
   try {
-    const request = await prisma.customerRequest.findUnique({
-      where: { id: input.requestId },
+    const request = await prisma.customerRequest.findFirst({
+      where: { id: input.requestId, ...(await requestAccessWhere()) },
       include: {
         user: { select: { name: true, companyName: true, email: true, clientId: true } },
         items: {

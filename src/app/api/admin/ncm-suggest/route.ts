@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { z } from "zod";
+import { requireAdmin } from "@/lib/auth-helpers";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { suggestNcmPosition } from "@/services/openai";
 import type { NcmResult } from "@/app/api/admin/ncm-search/route";
@@ -75,11 +77,14 @@ async function searchPcram(q: string): Promise<NcmResult[]> {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Solo admins (como la pantalla NCM): cada consulta scrapea pcram.net y gasta OpenAI.
+  const user = await requireAdmin();
+  const rate = await consumeRateLimit(`ncm-suggest:${user.id}`, 30, 10 * 60_000);
+  if (!rate.ok) return NextResponse.json({ error: "Demasiadas consultas seguidas. Probá en unos minutos." }, { status: 429 });
 
-  const { productId } = await req.json() as { productId: string };
-  if (!productId) return NextResponse.json({ error: "Missing productId" }, { status: 400 });
+  const body = z.object({ productId: z.string().min(1).max(64) }).safeParse(await req.json().catch(() => null));
+  if (!body.success) return NextResponse.json({ error: "Missing productId" }, { status: 400 });
+  const { productId } = body.data;
 
   const product = await prisma.product.findUnique({
     where: { id: productId },

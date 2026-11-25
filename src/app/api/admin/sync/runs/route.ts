@@ -13,8 +13,9 @@ const SOURCES = new Set<SyncSourceKind>([
 ]);
 
 export async function GET(req: NextRequest) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const sourceParam = req.nextUrl.searchParams.get("source");
     if (sourceParam && !SOURCES.has(sourceParam as SyncSourceKind)) {
       throw new Error(`Invalid sync source: ${sourceParam}`);

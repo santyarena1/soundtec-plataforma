@@ -9,8 +9,9 @@ export async function POST(
   _req: Request,
   ctx: { params: Promise<{ runId: string }> }
 ) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const { runId } = await ctx.params;
     const result = await rollbackSyncRun(runId);
     if (!result.ok && result.error && result.restored === 0 && result.deactivated === 0) {

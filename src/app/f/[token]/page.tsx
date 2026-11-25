@@ -4,7 +4,7 @@ import { clickPatch, isInviteCode, isLinkPreviewer } from "@/lib/forms/invite-tr
 import { notFound } from "next/navigation";
 import { loadPublicForm } from "@/lib/forms/public";
 import { prisma } from "@/lib/prisma";
-import { formDoneCookie, readSettings } from "@/lib/forms/types";
+import { formDoneCookie, readSettings, toPublicFormSettings } from "@/lib/forms/types";
 import { appUrl } from "@/lib/app-url";
 import { ogImageUrl } from "@/lib/og/meta";
 import { getCurrentPermissions, getSessionUser } from "@/lib/auth-helpers";
@@ -111,7 +111,7 @@ export default async function PublicFormPage({ params, searchParams }: { params:
       token={form.token}
       title={form.title}
       logoUrl={LOGO}
-      settings={form.settings}
+      settings={toPublicFormSettings(form.settings)}
       blocks={form.blocks}
       preview={preview}
       alreadyDone={alreadyDone}

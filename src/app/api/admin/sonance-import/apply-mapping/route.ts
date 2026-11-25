@@ -396,8 +396,9 @@ function coerceForField(
 // ── main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const body = (await req.json().catch(() => ({}))) as ApplyMappingRequest;
     const batchSize = Math.max(1, Math.min(50, body.batchSize ?? 25));
     const offset = Math.max(0, body.offset ?? 0);

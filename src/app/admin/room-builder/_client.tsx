@@ -49,7 +49,7 @@ type EnrichStats = {
   byRole: Array<{ designRole: string | null; count: number }>;
 };
 
-export function RoomBuilderHome() {
+export function RoomBuilderHome({ canEnrich = false }: { canEnrich?: boolean }) {
   const [hubs, setHubs] = useState<HubPreset[]>([]);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [stats, setStats] = useState<EnrichStats | null>(null);
@@ -62,11 +62,11 @@ export function RoomBuilderHome() {
     const [tRes, pRes, eRes] = await Promise.all([
       fetch("/api/admin/room-builder/templates"),
       fetch("/api/admin/room-builder/projects"),
-      fetch("/api/admin/room-builder/enrich"),
+      canEnrich ? fetch("/api/admin/room-builder/enrich") : Promise.resolve(null),
     ]);
     const tJson = await tRes.json();
     const pJson = await pRes.json();
-    const eJson = await eRes.json();
+    const eJson = eRes ? await eRes.json().catch(() => ({ ok: false })) : { ok: false };
     if (tJson.ok) {
       setHubs(tJson.hubs);
       if (!hubKey && tJson.hubs[0]) setHubKey(tJson.hubs[0].key);

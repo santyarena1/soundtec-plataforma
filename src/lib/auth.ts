@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import type { UserRole } from "@prisma/client";
 import { parsePermissions, type Permissions } from "@/lib/permissions";
 import { allowIpAttempt, clearFailedLogins, isEmailLocked, loginIpHash, recordFailedLogin } from "@/lib/login-guard";
+import { isClientAccessPaused } from "@/lib/client-access";
 
 /** Demasiados intentos: el formulario lo muestra con su propio mensaje. */
 class TooManyAttempts extends CredentialsSignin {
@@ -17,6 +18,10 @@ class TotpRequired extends CredentialsSignin {
 }
 class TotpInvalid extends CredentialsSignin {
   code = "totp_invalid";
+}
+/** Clave correcta, pero la empresa del usuario está pausada (Client inactivo). */
+class AccountPaused extends CredentialsSignin {
+  code = "account_paused";
 }
 
 // Hash de una clave cualquiera: si el email no existe se compara igual, así la
@@ -78,9 +83,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email },
-          include: { customRole: { select: { permissionsJson: true, isActive: true } } },
+          include: { customRole: { select: { permissionsJson: true, isActive: true } }, client: { select: { isActive: true } } },
         });
         const ok = await bcrypt.compare(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
+        // Solo con la clave correcta se avisa que la empresa está pausada (no delata cuentas a terceros).
+        if (user && ok && isClientAccessPaused(user)) throw new AccountPaused();
         if (!user || !user.isActive || !ok) {
           await recordFailedLogin(email);
           return null;

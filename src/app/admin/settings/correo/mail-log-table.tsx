@@ -24,6 +24,7 @@ const STATUS: Record<string, { label: string; tone: string }> = {
   FAILED: { label: "Falló", tone: "bg-red-100 text-red-800" },
   SKIPPED: { label: "Sin casilla", tone: "bg-amber-100 text-amber-900" },
   QUEUED: { label: "En cola", tone: "bg-sky-100 text-sky-800" },
+  SENDING: { label: "Enviando", tone: "bg-sky-100 text-sky-800" },
 };
 
 const CHANNEL: Record<string, string> = { smtp: "Casilla", resend: "Resend" };

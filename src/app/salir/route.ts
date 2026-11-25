@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import { signOut } from "@/lib/auth";
 import { IMPERSONATION_COOKIE } from "@/lib/impersonation/token";
+import { CLIENT_PAUSED_REASON } from "@/lib/client-access";
 
-const REASONS = new Set(["inactivo", "cambios", "usuario", "clave"]);
+const REASONS = new Set(["inactivo", "cambios", "usuario", "clave", CLIENT_PAUSED_REASON]);
 
 /**
  * Cierra la sesión del navegador y vuelve al login con el motivo. Lo usa

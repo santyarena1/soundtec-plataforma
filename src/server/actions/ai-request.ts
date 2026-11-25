@@ -3,11 +3,12 @@
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/auth-helpers";
 import { suggestRequestResponse } from "@/services/openai";
+import { requestAccessWhere } from "@/server/requests/access";
 
 export async function generateRequestAiSuggestion(requestId: string) {
   await requireStaff("requests.respond");
-  const request = await prisma.customerRequest.findUnique({
-    where: { id: requestId },
+  const request = await prisma.customerRequest.findFirst({
+    where: { id: requestId, ...(await requestAccessWhere()) },
     include: { items: { include: { product: { select: { normalizedName: true } } } } },
   });
   if (!request) return { ok: false, error: "Pedido no encontrado" } as const;

@@ -66,8 +66,10 @@ export async function getOrCreateSession(input: {
 }): Promise<SessionState> {
   if (input.sessionId) {
     const existing = await prisma.aiChatSession.findUnique({ where: { id: input.sessionId } });
-    // Una sesión de otra superficie nunca se reutiliza: el scope cambia.
-    if (existing && existing.surface === (input.surface as AiChatSurface)) return toState(existing);
+    // Una sesión de otra superficie nunca se reutiliza: el scope cambia. Tampoco la de otra
+    // persona: con el id de una sesión ajena se heredaría su historial como contexto.
+    const sameOwner = (existing?.userId ?? null) === (input.userId ?? null);
+    if (existing && sameOwner && existing.surface === (input.surface as AiChatSurface)) return toState(existing);
   }
   const created = await prisma.aiChatSession.create({
     data: {

@@ -166,7 +166,12 @@ export async function deleteList(input: { id: string }): Promise<Result> {
   const pending = await prisma.mailCampaign.findMany({ where: { status: { in: ["DRAFT", "SCHEDULED"] } }, select: { name: true, audience: true } });
   const using = pending.filter((c) => JSON.stringify(c.audience ?? {}).includes(`"${input.id}"`)).map((c) => c.name);
   if (using.length) return { ok: false, error: `La usan estas campañas sin mandar: ${using.slice(0, 3).join(", ")}. Sacala de ahí primero.` };
-  await prisma.mailingList.delete({ where: { id: input.id } }).catch(() => null);
+  try {
+    await prisma.mailingList.delete({ where: { id: input.id } });
+  } catch (error) {
+    console.error("[mailing] no se pudo borrar la lista", error);
+    return { ok: false, error: "No se pudo borrar la lista." };
+  }
   revalidate();
   return { ok: true };
 }

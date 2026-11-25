@@ -88,8 +88,9 @@ function categoryLabelFor(target: CategoryTarget, product: {
 
 // GET → preview (fetch Crestron data and diff against DB, nothing is saved)
 export async function GET() {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
 
     const [target, translations, crestronItems] = await Promise.all([
       loadTarget(),
@@ -199,8 +200,9 @@ async function upsertCategoryByName(name: string): Promise<string> {
 
 // POST → apply changes. Body: { translations, target }
 export async function POST(req: NextRequest) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
 
     const body = (await req.json().catch(() => ({}))) as {
       translations?: Record<string, string>;

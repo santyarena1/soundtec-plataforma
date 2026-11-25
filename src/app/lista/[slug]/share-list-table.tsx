@@ -4,23 +4,7 @@ import { useState } from "react";
 import { formatUsd } from "@/lib/utils";
 import { StockBadge } from "@/app/portal/products/catalog-grid";
 import { Search } from "lucide-react";
-
-interface Item {
-  id: string;
-  name: string;
-  sku: string | null;
-  shortDescription: string | null;
-  brandName: string | null;
-  categoryName: string | null;
-  stockStatus: string;
-  stockQuantity: number | null;
-  imageUrl: string | null;
-  pricing: {
-    finalPriceUsd: number;
-    priceBeforeDiscountUsd: number;
-    discountPercent: number;
-  } | null;
-}
+import type { PublicShareListItem as Item } from "@/lib/share-list-public";
 
 interface Props {
   items: Item[];
@@ -91,18 +75,18 @@ export function ShareListTable({ items, showSku, showStock, hidePrices }: Props)
                   )}
                   {showStock && (
                     <div className="mt-1">
-                      <StockBadge status={item.stockStatus} qty={item.stockQuantity} />
+                      {item.stock ? <StockBadge status={item.stock.status} qty={item.stock.quantity} /> : null}
                     </div>
                   )}
                 </div>
                 {!hidePrices && (
                   <div className="shrink-0 text-right">
-                    {item.pricing && item.pricing.discountPercent > 0 && (
+                    {item.price && item.price.discountPercent > 0 && (
                       <p className="text-xs text-muted-foreground line-through">
-                        {formatUsd(item.pricing.priceBeforeDiscountUsd)}
+                        {formatUsd(item.price.beforeDiscountUsd)}
                       </p>
                     )}
-                    <p className="font-semibold">{item.pricing ? formatUsd(item.pricing.finalPriceUsd) : "—"}</p>
+                    <p className="font-semibold">{item.price ? formatUsd(item.price.finalUsd) : "—"}</p>
                   </div>
                 )}
               </div>
@@ -144,17 +128,17 @@ export function ShareListTable({ items, showSku, showStock, hidePrices }: Props)
                     <td className="px-3 py-2.5">{item.categoryName || "—"}</td>
                     {showStock && (
                       <td className="px-3 py-2.5">
-                        <StockBadge status={item.stockStatus} qty={item.stockQuantity} />
+                        {item.stock ? <StockBadge status={item.stock.status} qty={item.stock.quantity} /> : null}
                       </td>
                     )}
                     {!hidePrices && (
                       <td className="px-3 py-2.5 text-right font-semibold">
-                        {item.pricing && item.pricing.discountPercent > 0 && (
+                        {item.price && item.price.discountPercent > 0 && (
                           <span className="mr-2 text-xs font-normal text-muted-foreground line-through">
-                            {formatUsd(item.pricing.priceBeforeDiscountUsd)}
+                            {formatUsd(item.price.beforeDiscountUsd)}
                           </span>
                         )}
-                        {item.pricing ? formatUsd(item.pricing.finalPriceUsd) : "—"}
+                        {item.price ? formatUsd(item.price.finalUsd) : "—"}
                       </td>
                     )}
                   </tr>

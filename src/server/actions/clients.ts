@@ -344,7 +344,11 @@ export async function toggleClientActive(f: FormData): Promise<ActionResult> {
     prisma.client.update({ where: { id: id! }, data: { isActive: !c.isActive } }),
     // Empresa desactivada: sus usuarios del portal quedan afuera (y se cierran sus sesiones).
     ...(c.isActive
-      ? [prisma.user.updateMany({ where: { clientId: id!, role: "CLIENT", isActive: true }, data: { isActive: false, sessionVersion: { increment: 1 } } })]
+      ? [
+          prisma.user.updateMany({ where: { clientId: id!, role: "CLIENT", isActive: true }, data: { isActive: false, sessionVersion: { increment: 1 } } }),
+          // Los links de activación pendientes tampoco sirven más.
+          prisma.accountActivationToken.deleteMany({ where: { usedAt: null, user: { clientId: id!, role: "CLIENT" } } }),
+        ]
       : []),
   ]);
   refresh(id!);
@@ -428,7 +432,9 @@ export async function setPrimaryContact(f: FormData): Promise<ActionResult> {
 
 /** Clientes viejos con contacto solo en la empresa: lo pasa a la lista de contactos. */
 export async function ensurePrimaryContact(clientId: string): Promise<ActionResult> {
-  await requireStaff(["clients.view", "clients.view_all"]);
+  // Solo en clientes propios (o con «Ver todos»): antes creaba contactos en clientes de otro vendedor.
+  const access = await staffForClient(clientId, ["clients.view", "clients.view_all"]);
+  if ("error" in access) return { ok: false, error: access.error };
   const c = await prisma.client.findUnique({
     where: { id: clientId },
     select: { contactName: true, email: true, phone: true, _count: { select: { contacts: true } } },

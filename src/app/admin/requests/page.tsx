@@ -19,6 +19,7 @@ import {
   type RequestStatus,
 } from "@/lib/request-status";
 import { Inbox, MessageSquare, ArrowRight } from "lucide-react";
+import { requestAccessWhere } from "@/server/requests/access";
 
 export const metadata = { title: "Admin · Pedidos" };
 
@@ -42,6 +43,8 @@ export default async function AdminRequestsPage({
   searchParams?: Promise<{ status?: string; q?: string; type?: string; from?: string; to?: string; sort?: string }>;
 }) {
   await requireStaff("requests.view");
+  // Vendedor sin «Ver todos los clientes»: solo los pedidos de sus clientes.
+  const scope = await requestAccessWhere();
   const params = searchParams ? await searchParams : {};
 
   const status = params.status && FILTERABLE.includes(params.status as RequestStatus) ? (params.status as RequestStatus) : null;
@@ -70,7 +73,7 @@ export default async function AdminRequestsPage({
 
   const [requests, grouped] = await Promise.all([
     prisma.customerRequest.findMany({
-      where,
+      where: { AND: [where, scope] },
       orderBy: { updatedAt: sort === "oldest" ? "asc" : "desc" },
       take: 100,
       include: {
@@ -84,7 +87,7 @@ export default async function AdminRequestsPage({
         _count: { select: { items: true, messages: true } },
       },
     }),
-    prisma.customerRequest.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.customerRequest.groupBy({ by: ["status"], where: scope, _count: { _all: true } }),
   ]);
 
   const countByStatus = new Map(grouped.map((g) => [g.status as RequestStatus, g._count._all]));

@@ -3330,4 +3330,23 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Velocidad: la tabla muestra las reglas de a 50 con buscador (lo pendiente y lo recién guardado siempre a la vista) y los grupos grandes arrancan cerrados; el árbol de rubros y la lista de productos se piden recién al elegir «Rubro(s)» o «Producto(s)». La pantalla pasó de ~2 MB a ~0,5 MB y el armado en el servidor de ~3-4 s a ~0,4 s. En «Por producto» el cálculo de todo el catálogo se hace una vez y filtrar o pasar de página lo reutiliza; «Calcular impacto» lee el catálogo una sola vez (≈ la mitad de tiempo)." },
     ],
   },
+  {
+    id: "ship-2026-11-25-auditoria-seguridad",
+    version: "2.68.0",
+    releasedAt: "2026-11-26T00:30:00.000Z",
+    summary: "Arreglos de la auditoría: la lista de precios compartida ya no muestra costos, una empresa pausada no entra al portal, cada vendedor ve solo sus salas y los pedidos de sus clientes, la sincronización de Sonance retoma sola y el deploy no puede borrar datos.",
+    items: [
+      { kind: "FIX", text: "Celulares con modo oscuro: el sitio queda siempre claro. Fondo y texto van pintados a mano en todas las pantallas y la página usa la señal «solo claro» que indica Chrome para no oscurecerla." },
+      { kind: "FIX", text: "Lista de precios compartida (/lista/…): el navegador recibía costo, margen, coeficiente, nombre de la regla y el stock aunque la lista no lo mostrara. Ahora solo viaja lo que la lista muestra: precio final en USD, descuento, y el stock únicamente si la lista lo tiene activado." },
+      { kind: "FIX", text: "Formulario público (/f/…) y enlace del Room Builder: ya no viajan los mails internos que reciben avisos, los textos de la invitación ni el precio cargado en los equipos genéricos de la escena 3D." },
+      { kind: "FIX", text: "Empresa desactivada: sus usuarios del portal ya no pueden entrar («Tu cuenta está pausada. Escribinos a comercial@soundtec.com.ar»), las sesiones abiertas se cortan en el próximo clic, los links de activación pendientes se anulan y no se puede activar una cuenta de una empresa pausada." },
+      { kind: "MEJORA", text: "Room Builder: cada vendedor abre, edita, comparte y emite revisiones solo de sus salas y proyectos. Los admins (y quien ve las cotizaciones de todos) siguen viendo todo." },
+      { kind: "MEJORA", text: "Pedidos: un vendedor sin «Ver todos los clientes» ve y responde solo los pedidos de sus clientes (mismo criterio que la ficha del cliente)." },
+      { kind: "FIX", text: "Sincronización: una corrida que quedó a medias (como la de Sonance, 675 de 1.242) se retoma sola en cada hora hasta terminar, sin rearmar el listado del proveedor ni cortar un lote a la mitad. El «cada 168 h» vuelve a ser cada 7 días (antes se corría a 8)." },
+      { kind: "FIX", text: "Abrir una cotización emitida ya no le reescribe los textos de plantilla: queda igual a lo que recibió el cliente." },
+      { kind: "FIX", text: "Correo: la cola ya no puede mandar dos veces el mismo mail si el envío automático y el botón «Enviar cola» coinciden." },
+      { kind: "MEJORA", text: "Seguridad: el deploy ya no acepta cambios de base que borren datos (si hace falta uno, el deploy frena). Acciones internas de cotizaciones, clasificadores e historial dejan de poder llamarse sueltas; NCM y verificación de logos solo para el equipo autorizado; tope de intentos al cambiar la clave; los roles a medida no pueden dar precios de venta a quien no los ve; las sesiones del asistente IA no se comparten entre personas." },
+      { kind: "FIX", text: "Detalles: las rutas del panel responden «sin sesión» en lugar de error 500; el vendedor ya no ve un error en consola al abrir el Room Builder; el widget del dólar oculta el MEP cuando la fuente no lo trae; borrar una lista o plantilla de mailing avisa si falla; hay robots.txt para que los buscadores no indexen enlaces privados." },
+    ],
+  },
 ];

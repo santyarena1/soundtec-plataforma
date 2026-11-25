@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireStaff } from "@/lib/auth-helpers";
+import { requireRoomProjectAccess } from "@/server/room-builder/access";
 import { buildProposalPdf } from "@/server/room-builder/proposal-pdf";
 import { parseSheetFormat, SHEET_FORMAT_KEYS } from "@/services/room-builder/sheets/sheet-format";
 import { F501_VARIANTS, type F501Variant } from "@/services/room-builder/sheets/f501";
@@ -21,7 +21,7 @@ const schema = z.object({
 
 /** Láminas técnicas en PDF: de un ambiente (con sus vistas 3D) o del proyecto completo. */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  await requireStaff("room_builder.use");
+  await requireRoomProjectAccess(params.id);
   const parsed = schema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ ok: false, error: "Vistas inválidas" }, { status: 400 });
   try {

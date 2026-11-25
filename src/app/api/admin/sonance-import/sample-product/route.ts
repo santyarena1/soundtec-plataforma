@@ -28,8 +28,9 @@ interface PayloadIndex {
  * `sku=XXX`: devuelve ese específico si está disponible.
  */
 export async function GET(req: NextRequest) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const wantRandom = req.nextUrl.searchParams.get("random") === "1";
     const wantSku = req.nextUrl.searchParams.get("sku")?.trim();
 

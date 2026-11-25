@@ -3,7 +3,7 @@
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireStaff } from "@/lib/auth-helpers";
+import { checkRoomProjectAccess, ROOM_PROJECT_NOT_FOUND } from "@/server/room-builder/access";
 import { appUrl } from "@/lib/app-url";
 import { ensureRoomBuilderSchema } from "@/services/room-builder/ensure-schema";
 
@@ -43,7 +43,8 @@ async function readShare(projectId: string): Promise<RoomProjectShare> {
 
 /** Estado del enlace para el cliente de un proyecto o sala. */
 export async function getRoomProjectShare(projectId: string): Promise<{ ok: true; share: RoomProjectShare } | { ok: false; error: string }> {
-  await requireStaff("room_builder.use");
+  const access = await checkRoomProjectAccess(projectId);
+  if (!access.allowed) return { ok: false, error: ROOM_PROJECT_NOT_FOUND };
   const id = idSchema.safeParse(projectId);
   if (!id.success) return { ok: false, error: "Proyecto inválido." };
   try {
@@ -57,7 +58,8 @@ export async function getRoomProjectShare(projectId: string): Promise<{ ok: true
 
 /** Crea o renueva el enlace: un token nuevo invalida el anterior y las visitas vuelven a cero. */
 export async function createRoomProjectShare(projectId: string, days: number): Promise<{ ok: true; share: RoomProjectShare } | { ok: false; error: string }> {
-  await requireStaff("room_builder.use");
+  const access = await checkRoomProjectAccess(projectId);
+  if (!access.allowed) return { ok: false, error: ROOM_PROJECT_NOT_FOUND };
   const parsed = createSchema.safeParse({ projectId, days });
   if (!parsed.success) return { ok: false, error: `Elegí un vencimiento de ${DAYS.join(", ")} días.` };
   try {
@@ -76,7 +78,8 @@ export async function createRoomProjectShare(projectId: string, days: number): P
 
 /** Desactiva el enlace: se borra el token y la dirección deja de funcionar. */
 export async function disableRoomProjectShare(projectId: string): Promise<{ ok: true; share: RoomProjectShare } | { ok: false; error: string }> {
-  await requireStaff("room_builder.use");
+  const access = await checkRoomProjectAccess(projectId);
+  if (!access.allowed) return { ok: false, error: ROOM_PROJECT_NOT_FOUND };
   const id = idSchema.safeParse(projectId);
   if (!id.success) return { ok: false, error: "Proyecto inválido." };
   try {

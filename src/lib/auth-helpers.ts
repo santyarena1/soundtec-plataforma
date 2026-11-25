@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveImpersonation, type ActiveImpersonation } from "@/lib/impersonation/server";
 import { IMPERSONATION_EXIT_PATH } from "@/lib/impersonation/token";
+import { CLIENT_PAUSED_REASON, isClientAccessPaused } from "@/lib/client-access";
 import {
   canSeeCosts,
   canSeeSalePrices,
@@ -73,10 +74,13 @@ const loadSessionUser = cache(async (): Promise<LoadedSession> => {
       mustChangePassword: true,
       onboardingJson: true,
       customRole: { select: { permissionsJson: true, isActive: true } },
+      client: { select: { isActive: true } },
     },
   });
   if (!dbUser) return { invalid: "usuario" };
   if (!dbUser.isActive) return { invalid: "inactivo" };
+  // Empresa pausada: la sesión abierta se corta en el próximo pedido.
+  if (isClientAccessPaused(dbUser)) return { invalid: CLIENT_PAUSED_REASON };
   // Tokens emitidos antes de esta versión no traen `sv`: valen hasta que venzan (30 días sin uso) salvo que se haya invalidado algo.
   if ((tokenVersion ?? 0) !== dbUser.sessionVersion) return { invalid: "cambios" };
   // «Ver como»: un admin mirando como otro usuario. Desde acá, «quién soy» es el usuario visto

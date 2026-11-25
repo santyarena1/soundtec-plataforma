@@ -6,6 +6,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { getEquipmentBrands, totalProducts } from "@/lib/catalog-brands";
 import { countCustomerVisibleProducts } from "@/lib/catalog";
 import { ogMeta, siteCardUrl } from "@/lib/og/meta";
+import { CLIENT_PAUSED_MESSAGE, CLIENT_PAUSED_REASON } from "@/lib/client-access";
 
 // Los enlaces del portal y del panel, para quien no inició sesión (como WhatsApp al armar la vista previa), llegan acá.
 export const metadata = {
@@ -18,6 +19,7 @@ const SESSION_NOTICES: Record<string, string> = {
   inactivo: "Tu usuario está desactivado. Si es un error, escribinos.",
   cambios: "Cambiaron tus accesos o tu clave. Volvé a ingresar.",
   usuario: "Tu usuario ya no existe.",
+  [CLIENT_PAUSED_REASON]: CLIENT_PAUSED_MESSAGE,
   cerrada: "Cerraste la sesión.",
 };
 

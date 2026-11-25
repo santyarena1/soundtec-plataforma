@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/auth-helpers";
 import { LOGO_MIME_TYPES, MAX_LOGO_BYTES, isDataUrl, parseLogoDataUrl } from "@/lib/brand-logo";
 import { normalizeLogo } from "@/server/brand-logo-normalize";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
+import { checkRemoteImageUrl, isPrivateIp } from "@/lib/remote-image/url-guard";
 
 export type LogoResult = { ok: true } | { ok: false; error: string };
 
@@ -16,31 +19,52 @@ function revalidateBrandViews(): void {
   revalidatePath("/portal/products");
 }
 
+const MAX_REDIRECTS = 3;
+
+/** La URL apunta a un host público (también después de resolver el DNS): el servidor no consulta la red interna. */
+async function publicImageUrl(raw: string): Promise<URL | null> {
+  const check = checkRemoteImageUrl(raw);
+  if (!check.ok) return null;
+  const host = check.url.hostname.replace(/^\[|\]$/g, "");
+  if (isIP(host)) return check.url;
+  try {
+    const addresses = await lookup(host, { all: true });
+    return addresses.length && addresses.every((a) => !isPrivateIp(a.address)) ? check.url : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Verifica que una URL sea una imagen accesible (no una página web).
- * Solo http(s) y sin hosts locales.
+ * Solo http(s) públicos: cada redirección se vuelve a validar (protección SSRF).
  */
 export async function checkImageUrl(raw: string): Promise<LogoResult> {
-  let url: URL;
+  await requireStaff("brands.manage");
+  const first = await publicImageUrl(String(raw ?? ""));
+  if (!first) return { ok: false, error: "Usá una URL pública (https://…)." };
+  let url: URL = first;
   try {
-    url = new URL(raw.trim());
-  } catch {
-    return { ok: false, error: "La URL no es válida." };
-  }
-  if (!/^https?:$/.test(url.protocol) || /^(localhost|127\.|10\.|192\.168\.|169\.254\.|\[?::1)/i.test(url.hostname)) {
-    return { ok: false, error: "Usá una URL pública (https://…)." };
-  }
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), redirect: "follow" });
-    const type = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
-    if (!res.ok) return { ok: false, error: `La URL respondió con error ${res.status}.` };
-    if (!type.startsWith("image/")) {
-      return {
-        ok: false,
-        error: "Esa URL es una página web, no una imagen. Abrí el logo, hacé clic derecho → «Copiar dirección de imagen», o subí el archivo.",
-      };
+    for (let hop = 0; ; hop++) {
+      const res: Response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), redirect: "manual" });
+      const location: string | null = res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
+      if (location) {
+        const next: URL | null = hop < MAX_REDIRECTS ? await publicImageUrl(new URL(location, url).toString()) : null;
+        if (!next) return { ok: false, error: "La URL redirige a una dirección que no se puede usar. Probá subir el archivo." };
+        url = next;
+        continue;
+      }
+      const type = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+      await res.body?.cancel().catch(() => undefined);
+      if (!res.ok) return { ok: false, error: `La URL respondió con error ${res.status}.` };
+      if (!type.startsWith("image/")) {
+        return {
+          ok: false,
+          error: "Esa URL es una página web, no una imagen. Abrí el logo, hacé clic derecho → «Copiar dirección de imagen», o subí el archivo.",
+        };
+      }
+      return { ok: true };
     }
-    return { ok: true };
   } catch {
     return { ok: false, error: "No se pudo abrir la URL. Probá subir el archivo." };
   }

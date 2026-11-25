@@ -58,8 +58,9 @@ function validateSchedule(value: unknown): SyncScheduleConfig {
 }
 
 export async function GET() {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     return NextResponse.json({ ok: true, schedule: await getSchedule() });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown schedule error";
@@ -68,8 +69,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const schedule = validateSchedule(await req.json());
     await saveSchedule(schedule);
     return NextResponse.json({ ok: true, schedule });

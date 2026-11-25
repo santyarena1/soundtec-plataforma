@@ -12,8 +12,9 @@ export interface TranslateResponse {
 }
 
 export async function POST(req: NextRequest) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const body = (await req.json().catch(() => ({}))) as { items?: unknown };
     const items = Array.isArray(body.items)
       ? body.items.filter((x): x is string => typeof x === "string" && x.trim().length > 0)

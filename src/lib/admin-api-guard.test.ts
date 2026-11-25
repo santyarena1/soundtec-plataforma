@@ -25,6 +25,7 @@ const GUARDS = [
   "generateQuoteFromBrief",
   "ensureQuoteProductShortDescriptions",
   "authorizeHistoryIngest",
+  "requireRoomProjectAccess",
 ];
 
 function routes(dir: string): string[] {

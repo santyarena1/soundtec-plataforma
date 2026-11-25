@@ -16,6 +16,7 @@ import { generateAndStoreQuotePdf } from "@/lib/quote-pdf-store";
 import { CUSTOMER_ORDERS_DISABLED_MESSAGE, CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 import { orderNotice } from "@/lib/mail/transactional/messages";
 import { notifyTeam } from "@/server/mail/transactional";
+import { requestAccessWhere } from "@/server/requests/access";
 
 function revalidateDraftPaths(requestId: string) {
   revalidatePath("/portal/requests");
@@ -669,7 +670,7 @@ export async function postRequestMessage(formData: FormData): Promise<void> {
   if (isStaff) await requireStaff("requests.respond");
   const request = await prisma.customerRequest.findFirst({
     where: isStaff
-      ? { id: parsed.data.requestId }
+      ? { id: parsed.data.requestId, ...(await requestAccessWhere()) }
       : { id: parsed.data.requestId, userId: user.id },
   });
   if (!request) return;
@@ -728,8 +729,8 @@ export async function adminRespondRequest(input: {
   const parsed = adminRespondSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Revisá el estado y la respuesta antes de guardar." };
 
-  const request = await prisma.customerRequest.findUnique({
-    where: { id: parsed.data.requestId },
+  const request = await prisma.customerRequest.findFirst({
+    where: { id: parsed.data.requestId, ...(await requestAccessWhere()) },
     select: { id: true, status: true },
   });
   if (!request) return { ok: false, error: "El pedido ya no existe." };
@@ -762,8 +763,8 @@ export async function adminSetRequestStatus(input: { requestId: string; status: 
     .safeParse(input);
   if (!parsed.success) return { ok: false, error: "Estado inválido." };
 
-  const request = await prisma.customerRequest.findUnique({
-    where: { id: parsed.data.requestId },
+  const request = await prisma.customerRequest.findFirst({
+    where: { id: parsed.data.requestId, ...(await requestAccessWhere()) },
     select: { id: true },
   });
   if (!request) return { ok: false, error: "El pedido ya no existe." };
@@ -786,8 +787,8 @@ export async function adminSendRequestMessage(input: {
   const parsed = messageSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "El mensaje no puede estar vacío." };
 
-  const request = await prisma.customerRequest.findUnique({
-    where: { id: parsed.data.requestId },
+  const request = await prisma.customerRequest.findFirst({
+    where: { id: parsed.data.requestId, ...(await requestAccessWhere()) },
     select: { id: true },
   });
   if (!request) return { ok: false, error: "El pedido ya no existe." };
@@ -824,8 +825,8 @@ export async function adminSearchProductsForRequest(input: {
   const query = (input.query || "").trim();
   if (query.length < 2) return { ok: true, products: [] };
 
-  const request = await prisma.customerRequest.findUnique({
-    where: { id: input.requestId },
+  const request = await prisma.customerRequest.findFirst({
+    where: { id: input.requestId, ...(await requestAccessWhere()) },
     select: { id: true, userId: true, clientId: true },
   });
   if (!request) return { ok: false, error: "El pedido ya no existe.", products: [] };
@@ -931,7 +932,7 @@ export async function addAdminSuggestion(input: {
   });
   if (!parsed.success) return { ok: false, error: "Datos inválidos." };
 
-  const request = await prisma.customerRequest.findUnique({ where: { id: parsed.data.requestId } });
+  const request = await prisma.customerRequest.findFirst({ where: { id: parsed.data.requestId, ...(await requestAccessWhere()) } });
   if (!request) return { ok: false, error: "El pedido ya no existe." };
 
   const product = await prisma.product.findUnique({
@@ -941,8 +942,8 @@ export async function addAdminSuggestion(input: {
   if (!product) return { ok: false, error: "El producto no existe o fue dado de baja." };
 
   const replaced = parsed.data.replacesItemId
-    ? await prisma.customerRequestItem.findUnique({
-        where: { id: parsed.data.replacesItemId },
+    ? await prisma.customerRequestItem.findFirst({
+        where: { id: parsed.data.replacesItemId, requestId: request.id },
         select: { productId: true, product: { select: { normalizedName: true } } },
       })
     : null;
@@ -985,8 +986,8 @@ export async function adminUpdateRequestItem(input: {
     .safeParse(input);
   if (!parsed.success) return { ok: false, error: "La cantidad debe ser un número entre 1 y 9999." };
 
-  const item = await prisma.customerRequestItem.findUnique({
-    where: { id: parsed.data.itemId },
+  const item = await prisma.customerRequestItem.findFirst({
+    where: { id: parsed.data.itemId, request: await requestAccessWhere() },
     select: { id: true, requestId: true },
   });
   if (!item) return { ok: false, error: "El ítem ya no existe." };
@@ -1002,8 +1003,8 @@ export async function adminUpdateRequestItem(input: {
 
 export async function adminRemoveRequestItem(input: { itemId: string }): Promise<ActionResult> {
   await requireStaff("requests.respond");
-  const item = await prisma.customerRequestItem.findUnique({
-    where: { id: input.itemId },
+  const item = await prisma.customerRequestItem.findFirst({
+    where: { id: input.itemId, request: await requestAccessWhere() },
     select: { id: true, requestId: true },
   });
   if (!item) return { ok: false, error: "El ítem ya no existe." };
@@ -1021,12 +1022,14 @@ export async function removeRequestItem(formData: FormData): Promise<{ ok: boole
   const user = await requireUser();
   const itemId = String(formData.get("itemId") || "");
   if (!itemId) return { ok: false, error: "ID inválido" };
-  const item = await prisma.customerRequestItem.findUnique({
-    where: { id: itemId },
+  const isStaff = user.role !== "CLIENT";
+  // Desde el panel: hace falta poder responder pedidos y que el pedido sea de un cliente propio.
+  if (isStaff) await requireStaff("requests.respond");
+  const item = await prisma.customerRequestItem.findFirst({
+    where: isStaff ? { id: itemId, request: await requestAccessWhere() } : { id: itemId },
     include: { request: true },
   });
   if (!item) return { ok: false, error: "Ítem no encontrado" };
-  const isStaff = user.role !== "CLIENT";
   if (!isStaff && !CUSTOMER_ORDERS_ENABLED) return ORDERS_OFF;
   if (!isStaff && item.request.userId !== user.id) return { ok: false, error: "No autorizado" };
   await prisma.customerRequestItem.delete({ where: { id: itemId } });
@@ -1040,8 +1043,8 @@ export async function attachQuoteAsRequestResponse(input: {
   quoteId: string;
 }): Promise<ActionResult> {
   const { user: admin } = await requireStaff("requests.respond");
-  const request = await prisma.customerRequest.findUnique({
-    where: { id: input.requestId },
+  const request = await prisma.customerRequest.findFirst({
+    where: { id: input.requestId, ...(await requestAccessWhere()) },
     select: { id: true, status: true, adminResponse: true, userId: true },
   });
   if (!request) return { ok: false, error: "El pedido ya no existe." };

@@ -12,8 +12,9 @@ export async function POST(
   req: Request,
   ctx: { params: Promise<{ runId: string }> }
 ) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const { runId } = await ctx.params;
     const body = (await req.json().catch(() => ({}))) as { batchSize?: unknown };
     const requested = Number(body.batchSize);

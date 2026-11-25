@@ -10,8 +10,9 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ slug: string }> }
 ) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const { slug } = await ctx.params;
     const body = (await req.json().catch(() => ({}))) as { mode?: unknown };
     if (body.mode !== "preview" && body.mode !== "apply") {

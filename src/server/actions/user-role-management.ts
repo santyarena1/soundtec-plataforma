@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
-import { ALL_SCOPES, PERMISSION_GROUPS, canSeeCosts, type PermissionScope, type Permissions } from "@/lib/permissions";
+import { ALL_SCOPES, PERMISSION_GROUPS, canSeeCosts, canSeeSalePrices, parsePermissions, type PermissionScope, type Permissions } from "@/lib/permissions";
 
 type Result = { ok: true; id: string } | { ok: false; error: string };
 
@@ -55,6 +55,7 @@ export async function upsertCustomRoleVisual(input: {
     const extra = cleanScopes.filter((s) => !actorPerms.scopes.includes(s));
     if (extra.length) return { ok: false, error: "No podés dar permisos que vos no tenés." };
     if (data.permissions.priceAccess === "full" && !canSeeCosts(actorPerms)) return { ok: false, error: "No podés dar acceso a costos." };
+    if (data.permissions.priceAccess === "sale" && !canSeeSalePrices(actorPerms)) return { ok: false, error: "No podés dar acceso a precios de venta." };
   }
   const permissions: Permissions = {
     scopes: cleanScopes,
@@ -88,9 +89,16 @@ export async function upsertCustomRoleVisual(input: {
 
 /** Duplicar un rol para armar uno parecido. */
 export async function duplicateCustomRole(id: string): Promise<Result> {
-  await requireStaff("roles.manage");
+  const { permissions: actorPerms, isAdmin } = await requireStaff("roles.manage");
   const role = await prisma.customRole.findUnique({ where: { id } });
   if (!role) return { ok: false, error: "El rol no existe." };
+  if (!isAdmin) {
+    // Mismo control que al crear: no se copia un rol con más permisos que los propios.
+    const perms = parsePermissions(role.permissionsJson as unknown);
+    if (perms.fullAccess || perms.scopes.some((s) => !actorPerms.scopes.includes(s))) return { ok: false, error: "No podés copiar un rol con permisos que vos no tenés." };
+    if (perms.priceAccess === "full" && !canSeeCosts(actorPerms)) return { ok: false, error: "No podés dar acceso a costos." };
+    if (perms.priceAccess === "sale" && !canSeeSalePrices(actorPerms)) return { ok: false, error: "No podés dar acceso a precios de venta." };
+  }
   let name = `${role.name} (copia)`;
   for (let i = 2; await prisma.customRole.findFirst({ where: { name }, select: { id: true } }); i++) name = `${role.name} (copia ${i})`;
   const copy = await prisma.customRole.create({

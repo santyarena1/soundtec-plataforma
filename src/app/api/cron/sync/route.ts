@@ -7,8 +7,11 @@ import {
   isDue,
   lastCompletedRunMs,
 } from "@/services/sync/schedule";
+import { syncTickAction } from "@/services/sync/tick";
 
 export const maxDuration = 300;
+/** Se dejan ~50 s de margen al corte de Vercel (300 s) para cerrar el lote y responder. */
+const TIME_BUDGET_MS = 250_000;
 export const dynamic = "force-dynamic";
 
 const SOURCE_KIND: Record<"crestron" | "crestron-web" | "sonance" | "soundtube" | "hall-research-web", SyncSourceKind> = {
@@ -35,9 +38,19 @@ const RUN_COUNTERS_SELECT = {
   finishedAt: true,
 } as const;
 
+/** Corrida aplicándose que quedó a medias (el cron la retoma en cada tick hasta terminar). */
+async function unfinishedApplyRun(source: SyncSource) {
+  return prisma.syncRun.findFirst({
+    where: { source: SOURCE_KIND[source], mode: "apply", status: { in: ["RUNNING", "APPLYING"] } },
+    orderBy: { startedAt: "desc" },
+    select: { id: true },
+  });
+}
+
 async function executeSource(
   source: SyncSource,
-  mode: "preview" | "apply"
+  mode: "preview" | "apply",
+  deadlineMs: number
 ) {
   const existing = await prisma.syncRun.findFirst({
     where: {
@@ -52,7 +65,7 @@ async function executeSource(
     ? existing.id
     : (await startRun(source, mode, "CRON")).runId;
 
-  await runToCompletion(runId);
+  await runToCompletion(runId, undefined, undefined, { deadlineMs });
   const counters = await prisma.syncRun.findUnique({
     where: { id: runId },
     select: RUN_COUNTERS_SELECT,
@@ -73,6 +86,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  const deadlineMs = Date.now() + TIME_BUDGET_MS;
   try {
     const sourceParam = req.nextUrl.searchParams.get("source");
     if (
@@ -93,7 +107,7 @@ export async function GET(req: NextRequest) {
           { status: 400 }
         );
       }
-      const result = await executeSource(sourceParam, modeParam);
+      const result = await executeSource(sourceParam, modeParam, deadlineMs);
       return NextResponse.json({
         ok: true,
         runId: result.runId,
@@ -108,16 +122,23 @@ export async function GET(req: NextRequest) {
     const results = [];
     for (const source of sources) {
       try {
-        const lastRunMs = await lastCompletedRunMs(source);
-        if (!isDue(source, schedule, nowUtcMs, lastRunMs)) {
+        if (Date.now() >= deadlineMs) {
+          results.push({ source, ran: false, reason: "no_time" });
+          continue;
+        }
+        const enabled = schedule[source].enabled;
+        const hasUnfinishedRun = enabled && !!(await unfinishedApplyRun(source));
+        const due = enabled && !hasUnfinishedRun && isDue(source, schedule, nowUtcMs, await lastCompletedRunMs(source));
+        const action = syncTickAction({ enabled, due, hasUnfinishedRun });
+        if (action === "skip") {
           results.push({
             source,
             ran: false,
-            reason: schedule[source].enabled ? "not_due" : "disabled",
+            reason: enabled ? "not_due" : "disabled",
           });
           continue;
         }
-        const result = await executeSource(source, "apply");
+        const result = await executeSource(source, "apply", deadlineMs);
         results.push({
           source,
           ran: true,

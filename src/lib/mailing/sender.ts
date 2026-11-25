@@ -115,10 +115,12 @@ export async function materializeCampaign(campaignId: string): Promise<{ ok: tru
     });
   }
   const total = await prisma.mailCampaignRecipient.count({ where: { campaignId } });
-  await prisma.mailCampaign.update({
-    where: { id: campaignId },
+  // Solo arranca si nadie la pausó o canceló mientras se armaba la cola.
+  const started = await prisma.mailCampaign.updateMany({
+    where: { id: campaignId, status: campaign.status },
     data: { status: "SENDING", startedAt: new Date(), simulated: config.simulate, note: null },
   });
+  if (started.count !== 1) return { ok: false, error: "La campaña cambió de estado mientras se preparaba. Revisala y volvé a intentar." };
   return { ok: true, total };
 }
 

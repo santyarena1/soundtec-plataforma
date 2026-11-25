@@ -99,8 +99,9 @@ async function savePayloadIndex(idx: PayloadIndex) {
 // ── main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const body = (await req.json().catch(() => ({}))) as SyncFullRequest;
     const batchSize = Math.max(1, Math.min(50, body.batchSize ?? 25));
 

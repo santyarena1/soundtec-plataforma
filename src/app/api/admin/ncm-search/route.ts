@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth-helpers";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 interface TaxEntry {
   position: string;
@@ -87,12 +88,12 @@ function parseNcmTable(
 }
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // Solo admins (como la pantalla NCM) (cada búsqueda consulta pcram.net).
+  const user = await requireAdmin();
+  const rate = await consumeRateLimit(`ncm-search:${user.id}`, 60, 10 * 60_000);
+  if (!rate.ok) return NextResponse.json({ error: "Demasiadas consultas seguidas." }, { status: 429 });
 
-  const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
+  const q = (req.nextUrl.searchParams.get("q")?.trim() ?? "").slice(0, 120);
   if (q.length < 3) return NextResponse.json([]);
 
   try {

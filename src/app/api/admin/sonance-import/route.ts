@@ -161,8 +161,9 @@ async function buildPreviewFromProducts(
 // so the user can leave the page and resume without re-fetching.
 // Query param `?cached=1` returns the cached payload if available.
 export async function GET(req: NextRequest) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const wantCached = req.nextUrl.searchParams.get("cached") === "1";
 
     if (wantCached) {
@@ -235,8 +236,9 @@ async function upsertCategoryByName(name: string): Promise<string> {
 
 // PUT — apply changes. Body: { items, createNew, translations, target }
 export async function PUT(req: NextRequest) {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
 
     const body = (await req.json().catch(() => ({}))) as {
       items?: SonancePreviewItem[];

@@ -25,6 +25,7 @@ import { RequestConversation, type ConversationMessage } from "./request-convers
 import { RequestItemsPanel, type RequestItemRow } from "./request-items-panel";
 import { CreateQuoteCard, type QuotePreviewLine } from "./create-quote-card";
 import { parseQuoteAttachments } from "@/lib/request-quote-link";
+import { requestAccessWhere } from "@/server/requests/access";
 
 export default async function AdminRequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,8 +33,9 @@ export default async function AdminRequestDetailPage({ params }: { params: Promi
   const { permissions } = await getCurrentPermissions();
   const canCreateQuote = permissions.fullAccess || permissionsHave(permissions, "quotes.create");
 
-  const request = await prisma.customerRequest.findUnique({
-    where: { id },
+  // Pedido de un cliente a cargo de otro vendedor: como si no existiera.
+  const request = await prisma.customerRequest.findFirst({
+    where: { id, ...(await requestAccessWhere()) },
     include: {
       user: true,
       items: {

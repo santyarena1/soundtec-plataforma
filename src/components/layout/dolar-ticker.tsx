@@ -121,11 +121,14 @@ export function DolarTicker({ compact = false }: { compact?: boolean }) {
               <span className="text-center text-xs font-semibold tabular-nums text-blue-600">${fmt(data.blue.buy)}</span>
               <span className="text-center text-xs font-semibold tabular-nums text-blue-600">${fmt(data.blue.sell)}</span>
             </div>
-            <div className="grid grid-cols-3 gap-1 items-center">
-              <span className="text-[11px] text-muted-foreground">MEP</span>
-              <span className="text-center text-xs font-semibold tabular-nums text-green-600">${fmt(data.mep.buy)}</span>
-              <span className="text-center text-xs font-semibold tabular-nums text-green-600">${fmt(data.mep.sell)}</span>
-            </div>
+            {/* Bluelytics dejó de mandar el MEP: sin dato no se muestra «$0». */}
+            {data.mep.buy > 0 || data.mep.sell > 0 ? (
+              <div className="grid grid-cols-3 gap-1 items-center">
+                <span className="text-[11px] text-muted-foreground">MEP</span>
+                <span className="text-center text-xs font-semibold tabular-nums text-green-600">${fmt(data.mep.buy)}</span>
+                <span className="text-center text-xs font-semibold tabular-nums text-green-600">${fmt(data.mep.sell)}</span>
+              </div>
+            ) : null}
           </div>
           <p className="mt-2 text-[10px] text-muted-foreground/60">Actualizado {data.updatedAt} · cada 5 min</p>
         </>

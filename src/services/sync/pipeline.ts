@@ -6,6 +6,7 @@ import { asInputJson, toDiffJson } from "./snapshot";
 import type { NormalizedProduct } from "./types";
 import { equivalenceSourceForSync } from "@/lib/new-product-rubro";
 import { isTangoTreeActive } from "@/lib/tango-tree-db";
+import { hasTimeForBatch } from "./tick";
 
 function uncategorizedFromStats(stats: Prisma.JsonValue | null | undefined): number {
   if (!stats || typeof stats !== "object" || Array.isArray(stats)) return 0;
@@ -471,12 +472,18 @@ export async function processBatch(
 export async function runToCompletion(
   runId: string,
   batchSize = 25,
-  maxBatches = 200
+  maxBatches = 200,
+  options?: { deadlineMs?: number }
 ): Promise<void> {
   const limit = Math.max(0, Math.trunc(maxBatches));
   let previous = -1;
+  let slowestBatchMs = 0;
   for (let batch = 0; batch < limit; batch++) {
+    // Con tope de tiempo (cron): no arranca un lote que Vercel cortaría a la mitad; sigue en el próximo tick.
+    if (options?.deadlineMs && !hasTimeForBatch(Date.now(), options.deadlineMs, slowestBatchMs)) return;
+    const batchStart = Date.now();
     const result = await processBatch(runId, batchSize);
+    slowestBatchMs = Math.max(slowestBatchMs, Date.now() - batchStart);
     if (result.done) return;
     // Sin avance: otro proceso tiene reservado el lote (o el proveedor no devolvió nada). Se corta acá.
     if (result.processed === previous) return;

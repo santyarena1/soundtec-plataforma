@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireStaff } from "@/lib/auth-helpers";
+import { requireRoomProjectAccess } from "@/server/room-builder/access";
 import { autoFillProjectSlots, getRoomProject } from "@/services/room-builder";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export async function POST(
   _req: Request,
   { params }: { params: { id: string } },
 ) {
-  await requireStaff("room_builder.use");
+  await requireRoomProjectAccess(params.id);
   try {
     const result = await autoFillProjectSlots(params.id, {
       includeOptional: false,

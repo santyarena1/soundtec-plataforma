@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth-helpers";
 import { authorizeRoomBuilderBridge } from "@/lib/room-builder-bridge-auth";
 import {
   designProfileStats,
@@ -20,10 +20,11 @@ const schema = z.object({
 async function assertEnrichAccess(req: NextRequest) {
   const bridgeDenied = authorizeRoomBuilderBridge(req);
   if (!bridgeDenied) return null;
-  const session = await auth();
+  // Rol leído de la base (no del JWT, que puede tener hasta 30 días).
+  const user = await getSessionUser().catch(() => null);
   if (
-    session?.user?.role === "ADMIN" ||
-    session?.user?.role === "SUPER_ADMIN"
+    user?.role === "ADMIN" ||
+    user?.role === "SUPER_ADMIN"
   ) {
     return null;
   }

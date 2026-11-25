@@ -29,8 +29,8 @@ test("crear, compartir, responder y ver las respuestas", async ({ browser, baseU
   await title.blur();
   await expect.poll(async () => (await prisma.form.findUnique({ where: { id: formId! } }))?.title, { timeout: 60_000 }).toBe("Evento E2E");
 
-  // Pregunta de opción única.
-  await panel.getByRole("button", { name: "Agregar pregunta o contenido" }).click();
+  // Pregunta de opción única (cada pregunta es una pantalla nueva).
+  await panel.getByRole("button", { name: "Nueva pantalla" }).click();
   await panel.getByRole("button", { name: /^Opción única/ }).click();
   await expect.poll(() => prisma.formBlock.count({ where: { formId: formId! } }), { timeout: 60_000 }).toBe(3);
   await panel.getByLabel("Pregunta").fill("¿Venís acompañado?");
@@ -39,7 +39,7 @@ test("crear, compartir, responder y ver las respuestas", async ({ browser, baseU
     .toBe("¿Venís acompañado?");
 
   // Mapa al final.
-  await panel.getByRole("button", { name: "Agregar pregunta o contenido" }).click();
+  await panel.getByRole("button", { name: "Nueva pantalla" }).click();
   await panel.getByRole("button", { name: /^Mapa/ }).click();
   await expect.poll(() => prisma.formBlock.count({ where: { formId: formId! } }), { timeout: 60_000 }).toBe(4);
   await panel.getByPlaceholder("Av. Alicia Moreau de Justo 1150, CABA").fill("Av. Alicia Moreau de Justo 1150, CABA");
@@ -61,7 +61,7 @@ test("crear, compartir, responder y ver las respuestas", async ({ browser, baseU
   // Alguien sin sesión responde por el enlace.
   await visitor.goto(`/f/${form.token}`, { waitUntil: "networkidle" });
   await visitor.getByRole("button", { name: /Comenzar/ }).click();
-  // Orden: nombre, opción (se insertó después del nombre), mapa (después de la opción) y email al final.
+  // Orden: nombre, opción, mapa (las pantallas nuevas entran antes del email) y email al final.
   await visitor.getByPlaceholder("Escribí tu respuesta…").fill("Ana Pérez");
   await visitor.keyboard.press("Enter");
   await visitor.getByRole("button", { name: /Opción 2/ }).click();

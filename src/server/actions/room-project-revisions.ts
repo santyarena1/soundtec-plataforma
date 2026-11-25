@@ -7,7 +7,7 @@
  */
 
 import { z } from "zod";
-import { requireStaff } from "@/lib/auth-helpers";
+import { checkRoomProjectAccess, ROOM_PROJECT_NOT_FOUND } from "@/server/room-builder/access";
 import { issueRevision, loadRevisions, removeLastRevision } from "@/server/room-builder/revisions";
 import { REVISION_STATUSES, type Revision, type RevisionStatus } from "@/services/room-builder/revisions";
 
@@ -22,7 +22,8 @@ const issueSchema = z.object({
 });
 
 export async function getRoomProjectRevisions(projectId: string): Promise<Result> {
-  await requireStaff("room_builder.use");
+  const access = await checkRoomProjectAccess(projectId);
+  if (!access.allowed) return { ok: false, error: ROOM_PROJECT_NOT_FOUND };
   const id = idSchema.safeParse(projectId);
   if (!id.success) return { ok: false, error: "Proyecto inválido." };
   try {
@@ -35,7 +36,9 @@ export async function getRoomProjectRevisions(projectId: string): Promise<Result
 }
 
 export async function issueRoomProjectRevision(input: { projectId: string; status: string; description: string }): Promise<Result> {
-  const { user } = await requireStaff("room_builder.use");
+  const access = await checkRoomProjectAccess(input?.projectId);
+  if (!access.allowed) return { ok: false, error: ROOM_PROJECT_NOT_FOUND };
+  const { user } = access;
   const parsed = issueSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   try {
@@ -48,7 +51,8 @@ export async function issueRoomProjectRevision(input: { projectId: string; statu
 }
 
 export async function removeRoomProjectRevision(projectId: string, code: string): Promise<Result> {
-  await requireStaff("room_builder.use");
+  const access = await checkRoomProjectAccess(projectId);
+  if (!access.allowed) return { ok: false, error: ROOM_PROJECT_NOT_FOUND };
   const id = idSchema.safeParse(projectId);
   if (!id.success || !/^[A-Z]{1,3}$/.test(code)) return { ok: false, error: "Datos inválidos." };
   try {

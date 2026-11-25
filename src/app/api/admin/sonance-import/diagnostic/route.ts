@@ -12,8 +12,9 @@ export const dynamic = "force-dynamic";
  *  - Configurables: cuántos productos están marcados como customizable.
  */
 export async function GET() {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
 
     const allBrands = await prisma.brand.findMany({
       orderBy: { name: "asc" },

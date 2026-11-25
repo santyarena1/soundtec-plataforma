@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth-helpers";
 import { passwordProblem } from "@/lib/passwords";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -19,6 +20,10 @@ export async function changeOwnPassword(formData: FormData): Promise<Result> {
   const confirm = String(formData.get("confirm") ?? "");
   if (!current) return { ok: false, error: "Ingresá tu clave actual." };
   if (next !== confirm) return { ok: false, error: "Las dos claves nuevas no coinciden." };
+
+  // Tope de intentos sobre la clave actual (una sesión robada no puede probar claves sin fin).
+  const rate = await consumeRateLimit(`change-password:${user.id}`, 8, 15 * 60_000);
+  if (!rate.ok) return { ok: false, error: "Demasiados intentos. Esperá 15 minutos y probá de nuevo." };
 
   const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { passwordHash: true, email: true, name: true } });
   if (!dbUser) return { ok: false, error: "Usuario inexistente." };

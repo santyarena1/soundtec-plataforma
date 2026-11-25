@@ -13,8 +13,9 @@ export const dynamic = "force-dynamic";
  * y compararlas con las que el código de sync conoce (BRAND_SLUGS).
  */
 export async function GET() {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     const session = await openSession();
 
     // Categories tree con maxDepth=1

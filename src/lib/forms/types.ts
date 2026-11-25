@@ -151,6 +151,17 @@ export function readSettings(value: unknown): FormSettings {
   return parsed.success ? parsed.data : {};
 }
 
+/** Campos internos (avisos al equipo e invitación por mail) que no viajan a la página pública. */
+const PRIVATE_SETTINGS = ["notifyEmails", "inviteSubject", "inviteMessage", "inviteButton"] as const;
+export type PublicFormSettings = Omit<FormSettings, (typeof PRIVATE_SETTINGS)[number]>;
+
+/** Lo que el navegador del que responde necesita: presentación, sin mails internos ni textos de invitación. */
+export function toPublicFormSettings(settings: FormSettings): PublicFormSettings {
+  const out: Record<string, unknown> = { ...settings };
+  for (const key of PRIVATE_SETTINGS) delete out[key];
+  return out as PublicFormSettings;
+}
+
 export type PublicBlock = {
   id: string;
   type: BlockType;

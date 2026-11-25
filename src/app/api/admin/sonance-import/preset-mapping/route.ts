@@ -80,8 +80,9 @@ const RECOMMENDED_MAPPING: Record<string, string> = {
 };
 
 export async function GET() {
+  // Fuera del try: el redirect de «sin sesión» no se convierte en un 500.
+  await requireAdmin();
   try {
-    await requireAdmin();
     return NextResponse.json({
       ok: true,
       mapping: RECOMMENDED_MAPPING,

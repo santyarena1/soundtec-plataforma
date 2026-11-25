@@ -13,6 +13,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ogImageUrl, ogMeta } from "@/lib/og/meta";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
+import { toPublicShareListItems } from "@/lib/share-list-public";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -50,6 +51,9 @@ export default async function PublicShareListPage({ params, searchParams }: { pa
     clientId: list.clientId,
     limit: pageSize, offset: (page - 1) * pageSize, includePrices: !list.hidePrices,
   });
+  // Solo lo que la lista muestra cruza al navegador: nada de costo, margen, regla ni stock oculto.
+  const showStock = list.showStock && SHOW_STOCK_TO_CUSTOMERS;
+  const publicItems = toPublicShareListItems(items, { showSku: list.showSku, showStock, hidePrices: list.hidePrices });
   const [session, setting] = await Promise.all([getViewerSession(), prisma.adminSetting.findUnique({ where: { key: "share_lists.contact_email" }, select: { value: true } })]);
   const email = setting?.value?.trim() || "contacto@soundtec.com.ar";
   const mailto = `mailto:${email}?subject=${encodeURIComponent("Cotización · " + list.name)}`;
@@ -77,9 +81,9 @@ export default async function PublicShareListPage({ params, searchParams }: { pa
           </p>
         ) : (
           <ShareListTable
-            items={items}
+            items={publicItems}
             showSku={list.showSku}
-            showStock={list.showStock && SHOW_STOCK_TO_CUSTOMERS}
+            showStock={showStock}
             hidePrices={list.hidePrices}
           />
         )}

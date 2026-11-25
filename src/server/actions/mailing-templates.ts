@@ -101,7 +101,12 @@ export async function duplicateTemplate(input: { id: string }): Promise<Result<{
 
 export async function deleteTemplate(input: { id: string }): Promise<Result> {
   await guard();
-  await prisma.mailTemplate.delete({ where: { id: input.id } }).catch(() => null);
+  try {
+    await prisma.mailTemplate.delete({ where: { id: input.id } });
+  } catch (error) {
+    console.error("[mailing] no se pudo borrar la plantilla", error);
+    return { ok: false, error: "No se pudo borrar la plantilla (¿la usa alguna campaña?)." };
+  }
   revalidatePath("/admin/mailing/plantillas");
   return { ok: true };
 }

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashActivationToken } from "@/lib/expo/activation-token";
 import { passwordProblem } from "@/lib/passwords";
+import { CLIENT_PAUSED_MESSAGE, isClientAccessPaused } from "@/lib/client-access";
 
 const schema = z
   .object({ token: z.string().min(20), password: z.string().max(200), confirm: z.string() })
@@ -17,6 +18,7 @@ const schema = z
 const INVALID_LINK = "El link venció o ya se usó. Pedinos uno nuevo.";
 
 class TokenUnavailableError extends Error {}
+class ClientPausedError extends Error {}
 
 export async function activateAccount(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
   const parsed = schema.safeParse(Object.fromEntries(formData));
@@ -32,7 +34,12 @@ export async function activateAccount(formData: FormData): Promise<{ ok: true } 
         data: { usedAt: now },
       });
       if (claimed.count === 0) throw new TokenUnavailableError();
-      const row = await tx.accountActivationToken.findUniqueOrThrow({ where: { tokenHash }, select: { userId: true } });
+      const row = await tx.accountActivationToken.findUniqueOrThrow({
+        where: { tokenHash },
+        select: { userId: true, user: { select: { role: true, client: { select: { isActive: true } } } } },
+      });
+      // Empresa pausada: no se activa (y el link sigue sin usar por si la reactivan).
+      if (isClientAccessPaused(row.user)) throw new ClientPausedError();
       await tx.user.update({
         where: { id: row.userId },
         data: { passwordHash, isActive: true, mustChangePassword: false, passwordChangedAt: now, sessionVersion: { increment: 1 } },
@@ -40,6 +47,7 @@ export async function activateAccount(formData: FormData): Promise<{ ok: true } 
     });
   } catch (error) {
     if (error instanceof TokenUnavailableError) return { ok: false, error: INVALID_LINK };
+    if (error instanceof ClientPausedError) return { ok: false, error: CLIENT_PAUSED_MESSAGE };
     console.error("[activar] no se pudo activar la cuenta", error);
     return { ok: false, error: "No pudimos activar la cuenta. Probá de nuevo en unos minutos." };
   }
