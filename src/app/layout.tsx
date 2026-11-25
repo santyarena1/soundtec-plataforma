@@ -77,9 +77,10 @@ export const viewport: Viewport = {
 /**
  * Samsung Internet oscurece las páginas con su propio modo oscuro e ignora «solo claro». En prueba:
  * con ?claro=samsung (queda guardado; ?claro=normal lo saca) se invierte la página entera para
- * deshacer ese oscurecido. Solo actúa en Samsung Internet con el modo oscuro del sistema.
+ * deshacer ese oscurecido. Mientras está en prueba se aplica siempre que esté activado (sin mirar
+ * navegador ni modo del sistema), así se puede comparar en el celular.
  */
-const SAMSUNG_UNFORCE = `(function(){try{var s=location.search,k="st-samsung-claro";if(s.indexOf("claro=samsung")>-1)localStorage.setItem(k,"1");if(s.indexOf("claro=normal")>-1)localStorage.removeItem(k);if(localStorage.getItem(k)==="1"&&/SamsungBrowser/i.test(navigator.userAgent)&&matchMedia("(prefers-color-scheme: dark)").matches)document.documentElement.classList.add("st-unforce")}catch(e){}})();`;
+const SAMSUNG_UNFORCE = `(function(){try{var s=location.search,k="st-samsung-claro";if(s.indexOf("claro=samsung")>-1)localStorage.setItem(k,"1");if(s.indexOf("claro=normal")>-1)localStorage.removeItem(k);if(localStorage.getItem(k)==="1")document.documentElement.classList.add("st-unforce")}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -3360,4 +3360,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Crestron | Crestron Home y Sonance | Blaze se apilan en el celular, una marca arriba de la otra, así cada logo usa todo el ancho. En la computadora el menú queda igual." },
     ],
   },
+  {
+    id: "ship-2026-11-25-samsung-prueba-2",
+    version: "2.68.2",
+    releasedAt: "2026-11-26T01:00:00.000Z",
+    summary: "Prueba de Samsung Internet: ?claro=samsung se aplica siempre, sin depender de cómo se detecta el navegador.",
+    items: [
+      { kind: "FIX", text: "El modo de prueba para el oscurecido de Samsung Internet no se activaba en algunos celulares. Ahora, con ?claro=samsung, se aplica siempre en ese navegador hasta entrar con ?claro=normal." },
+    ],
+  },
 ];
