@@ -3239,4 +3239,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Errores claros: sin clave de OpenAI avisa que hay que cargarla en Configuración › Integraciones; si la IA falla o contesta que no tiene datos del producto («Lo siento, no hay datos…»), no se pone ese texto en el campo y se explica qué completar (corta o especificaciones) para que lo intente de nuevo." },
     ],
   },
+  {
+    id: "ship-2026-11-25-como-funciona",
+    version: "2.63.1",
+    releasedAt: "2026-11-25T18:00:00.000Z",
+    summary: "Textos nuevos de «Cómo funciona» en la web.",
+    items: [
+      { kind: "MEJORA", text: "«Cómo funciona» con los textos nuevos: buscá en el catálogo, activá tus descuentos, envialo al equipo y recibí tu cotización. Los dos últimos pasos dicen «Próximamente» mientras los pedidos estén pausados." },
+    ],
+  },
 ];

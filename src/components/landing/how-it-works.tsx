@@ -1,25 +1,31 @@
-import { FileText, ListChecks, Search, Send } from "lucide-react";
+import { FileText, Percent, Search, Send } from "lucide-react";
+import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
+/** Pasos 03 y 04 dependen de los pedidos del portal: mientras estén pausados, llevan «Próximamente». */
 const STEPS = [
   {
     icon: Search,
     title: "Buscá en el catálogo",
-    text: "Miles de productos con fichas técnicas completas: especificaciones, imágenes en alta, documentos, accesorios compatibles y qué viene incluido en la caja.",
+    text: "Miles de productos con fichas técnicas, imágenes, documentación, accesorios compatibles y mucho más. Agregá tus favoritos para encontrarlos rápidamente.",
+    soon: false,
   },
   {
-    icon: ListChecks,
-    title: "Armá tu pedido",
-    text: "Sumá cantidades, configurá opciones y accesorios, y guardá listas por proyecto. El precio que ves ya tiene las condiciones de tu cuenta.",
+    icon: Percent,
+    title: "Activá tus descuentos",
+    text: "Debajo de Rubros, hacé clic en «Activá tus descuentos» para ver los precios con las condiciones comerciales acordadas con tu empresa. Si no los activás, verás los precios de lista.",
+    soon: false,
   },
   {
     icon: Send,
-    title: "Enviálo al equipo",
-    text: "Con un clic tu pedido llega a Soundtec. Podés adjuntar el contexto del proyecto y conversar por el mismo canal.",
+    title: "Envialo al equipo",
+    text: "En cualquier momento, envianos tu selección en forma de pedido y contanos sobre el proyecto. Nuestro equipo te responderá con una cotización, sin compromiso de compra.",
+    soon: !CUSTOMER_ORDERS_ENABLED,
   },
   {
     icon: FileText,
-    title: "Recibí la cotización",
-    text: "Te devolvemos una cotización formal en PDF, con seguimiento de estado en el portal y todo el historial guardado.",
+    title: "Recibí tu cotización",
+    text: "Recibí tu cotización formal en PDF y seguí su estado. Si el proyecto avanza, confirmá el pedido. Todo queda guardado.",
+    soon: !CUSTOMER_ORDERS_ENABLED,
   },
 ] as const;
 
@@ -33,8 +39,9 @@ export function HowItWorks() {
             De la búsqueda a la cotización, sin mails ni planillas.
           </h2>
           <p className="muted-text mt-4 text-base">
-            El portal reemplaza el ida y vuelta de listas de precios en Excel. Todo lo que necesitás para
-            presupuestar un proyecto está en un solo lugar y siempre actualizado.
+            El portal SOUNDTEC reemplaza las interminables listas de precios por una plataforma online, siempre
+            actualizada. Consultá precios, stock y prepará tus pedidos, con nuestro equipo de especialistas para
+            ayudarte.
           </p>
         </div>
 
@@ -52,7 +59,12 @@ export function HowItWorks() {
                   0{index + 1}
                 </span>
               </div>
-              <h3 className="mt-5 text-lg font-semibold tracking-tight">{step.title}</h3>
+              <h3 className="mt-5 flex flex-wrap items-baseline gap-x-2 text-lg font-semibold tracking-tight">
+                {step.title}
+                {step.soon ? (
+                  <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Próximamente</span>
+                ) : null}
+              </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.text}</p>
             </li>
           ))}
