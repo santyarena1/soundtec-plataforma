@@ -87,9 +87,15 @@ export default async function AdminProductEditPage({ params }: { params: Promise
   });
   if (!product) notFound();
   const canSeeRules = access.permissions.fullAccess || permissionsHave(access.permissions, "margins.manage") || permissionsHave(access.permissions, "discounts.manage");
-  const pricingRules = canSeeRules ? await loadProductPricingRules(product.id) : null;
-
-  const [brands, distributors, categories, series, tcVentaStr, globalCoefStr, allLabels, priceBreakdown] = await Promise.all([
+  // Todo lo que depende solo del producto va en una tanda (antes eran tres viajes seguidos).
+  const [pricingRules, [ruleRows, lineRows, seriesNames], [brands, distributors, categories, series, tcVentaStr, globalCoefStr, allLabels, priceBreakdown]] = await Promise.all([
+    canSeeRules ? loadProductPricingRules(product.id) : Promise.resolve(null),
+    Promise.all([
+      prisma.compatibilityRule.findMany({ where: { productId: product.id }, orderBy: { createdAt: "asc" }, include: { category: { select: { name: true, tangoPath: true } }, brand: { select: { name: true } } } }),
+      prisma.product.findMany({ where: { line: { not: null } }, distinct: ["line"], select: { line: true }, orderBy: { line: "asc" }, take: 500 }),
+      prisma.productLine.findMany({ distinct: ["name"], select: { name: true }, orderBy: { name: "asc" } }),
+    ]),
+    Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     listCategoryTree(),
@@ -116,13 +122,9 @@ export default async function AdminProductEditPage({ params }: { params: Promise
         impIntPercent: product.impIntPercent == null ? null : Number(product.impIntPercent),
       },
     }),
+    ]),
   ]);
   // «Compatible con»: reglas por rubro, marca o línea, y las líneas conocidas para sugerir.
-  const [ruleRows, lineRows, seriesNames] = await Promise.all([
-    prisma.compatibilityRule.findMany({ where: { productId: product.id }, orderBy: { createdAt: "asc" }, include: { category: { select: { name: true, tangoPath: true } }, brand: { select: { name: true } } } }),
-    prisma.product.findMany({ where: { line: { not: null } }, distinct: ["line"], select: { line: true }, orderBy: { line: "asc" }, take: 500 }),
-    prisma.productLine.findMany({ distinct: ["name"], select: { name: true }, orderBy: { name: "asc" } }),
-  ]);
   const compatRules = await Promise.all(ruleRows.map(async (r) => ({ id: r.id, label: describeRule(r), count: await prisma.product.count({ where: await ruleWhere(r, product.id) }) })));
   // Sugerencias: las series cargadas y, de respaldo, los textos viejos de `line`.
   const knownLines = [...new Set([...seriesNames.map((s) => s.name), ...lineRows.map((l) => l.line!).filter(Boolean)])].sort((a, b) => a.localeCompare(b, "es"));

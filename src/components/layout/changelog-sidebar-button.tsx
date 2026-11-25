@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ScrollText } from "lucide-react";
 import { CHANGELOG_SEEN_EVENT, unreadChangelogEntries } from "@/lib/changelog-seen";
-import { displayChangelogVersion, latestChangelogVersion, type ChangelogEntryView } from "@/lib/changelog";
+import { displayChangelogVersion, latestChangelogVersion, type ChangelogIndexEntry } from "@/lib/changelog";
 
-export function ChangelogSidebarButton({ entries }: { entries: ChangelogEntryView[] }) {
+export function ChangelogSidebarButton({ entries }: { entries: ChangelogIndexEntry[] }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {

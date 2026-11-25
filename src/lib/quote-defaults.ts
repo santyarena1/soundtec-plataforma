@@ -1,7 +1,12 @@
+import * as React from "react";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { QUOTE_SETTING_KEYS } from "@/lib/quote-settings";
 import { SOUNDTEC_PHONE, displayCompanyPhone } from "@/lib/company-contact";
+
+/** Memo por pedido (React.cache de Next): el editor llama varias veces a lo mismo en un render. Fuera de Next (scripts, tests) no memoiza. */
+const perRequest: <T extends (...args: never[]) => unknown>(fn: T) => T =
+  (React as unknown as { cache?: <T>(fn: T) => T }).cache ?? ((fn) => fn);
 
 export const QUOTE_STEPS = [
   { id: 1, key: "datos", title: "Cliente" },
@@ -285,26 +290,8 @@ export const PROFILES = [
   },
 ] as const;
 
-export type ImagePlacement = { width: number; align: "left" | "center" | "right" };
-
-export const DEFAULT_BRANDS_PLACEMENT: ImagePlacement = { width: 100, align: "center" };
-export const DEFAULT_ISO_PLACEMENT: ImagePlacement = { width: 30, align: "center" };
-
-/** El ancho va en % del ancho útil de la hoja, así la imagen sigue fluyendo con el texto. */
-function parsePlacement(width: string, align: string, fallbackWidth: number): ImagePlacement {
-  const parsed = Number(width);
-  const safeWidth = Number.isFinite(parsed) && parsed >= 10 && parsed <= 100 ? parsed : fallbackWidth;
-  const safeAlign = align === "left" || align === "right" ? align : "center";
-  return { width: safeWidth, align: safeAlign };
-}
-
-export function resolveImagePlacement(
-  placement: ImagePlacement | null | undefined,
-  fallback: ImagePlacement
-): ImagePlacement {
-  if (!placement || typeof placement.width !== "number") return fallback;
-  return parsePlacement(String(placement.width), placement.align || fallback.align, fallback.width);
-}
+import { DEFAULT_BRANDS_PLACEMENT, DEFAULT_ISO_PLACEMENT, parsePlacement } from "@/lib/quote-image-placement";
+export { DEFAULT_BRANDS_PLACEMENT, DEFAULT_ISO_PLACEMENT, resolveImagePlacement, type ImagePlacement } from "@/lib/quote-image-placement";
 
 export async function getCompanyIdentity() {
   const [
@@ -360,42 +347,68 @@ export async function getCompanyIdentity() {
   };
 }
 
-export async function ensureQuoteProfiles() {
+/**
+ * Deja en la base los tipos base de cotización y la versión vigente de cada texto.
+ * Antes hacía ~60 escrituras seguidas en cada llamada, y la llaman el editor, la
+ * cotización rápida, la nueva y la configuración en cada carga: ahora lee lo que hay
+ * (dos consultas) y escribe solo lo que falta o cambió. El resultado es el mismo.
+ */
+export const ensureQuoteProfiles = perRequest(syncQuoteProfiles);
+
+async function syncQuoteProfiles(): Promise<void> {
+  const [profiles, blocks] = await Promise.all([
+    prisma.quoteContentProfile.findMany({
+      where: { key: { in: PROFILES.map((p) => p.key) } },
+      select: { key: true, name: true, description: true, sectionKeys: true, isDefault: true },
+    }),
+    prisma.quoteBlock.findMany({
+      where: { key: { in: QUOTE_MODULES.map((m) => m.key) } },
+      select: { key: true, version: true, title: true, category: true, isActive: true },
+    }),
+  ]);
+  const profileByKey = new Map(profiles.map((p) => [p.key, p]));
   for (const p of PROFILES) {
+    const current = profileByKey.get(p.key);
+    const sectionKeys = [...p.sectionKeys];
+    const same =
+      current &&
+      current.name === p.name &&
+      (current.description ?? null) === (p.description ?? null) &&
+      current.isDefault === p.isDefault &&
+      JSON.stringify(current.sectionKeys) === JSON.stringify(sectionKeys);
+    if (same) continue;
     await prisma.quoteContentProfile.upsert({
       where: { key: p.key },
-      update: {
-        name: p.name,
-        description: p.description,
-        sectionKeys: [...p.sectionKeys],
-        isDefault: p.isDefault,
-      },
-      create: {
-        key: p.key,
-        name: p.name,
-        description: p.description,
-        sectionKeys: [...p.sectionKeys],
-        isDefault: p.isDefault,
-      },
+      update: { name: p.name, description: p.description, sectionKeys, isDefault: p.isDefault },
+      create: { key: p.key, name: p.name, description: p.description, sectionKeys, isDefault: p.isDefault },
     });
   }
   for (const m of QUOTE_MODULES) {
     const version = moduleVersion(m);
+    const ofKey = blocks.filter((b) => b.key === m.key);
+    const current = ofKey.find((b) => b.version === version);
     // El body sólo se escribe al crear la versión: si la editaste desde la
     // configuración del módulo, tu texto manda hasta que suba la versión.
-    await prisma.quoteBlock.upsert({
-      where: { key_version: { key: m.key, version } },
-      update: { title: m.title, category: m.kind, isActive: true },
-      create: { key: m.key, version, title: m.title, category: m.kind, body: m.body, isActive: true },
-    });
-    await prisma.quoteBlock.updateMany({
-      where: { key: m.key, version: { not: version }, isActive: true },
-      data: { isActive: false },
-    });
+    if (!current || current.title !== m.title || current.category !== m.kind || !current.isActive) {
+      await prisma.quoteBlock.upsert({
+        where: { key_version: { key: m.key, version } },
+        update: { title: m.title, category: m.kind, isActive: true },
+        create: { key: m.key, version, title: m.title, category: m.kind, body: m.body, isActive: true },
+      });
+    }
+    if (ofKey.some((b) => b.version !== version && b.isActive)) {
+      await prisma.quoteBlock.updateMany({
+        where: { key: m.key, version: { not: version }, isActive: true },
+        data: { isActive: false },
+      });
+    }
   }
 }
 
-export async function resolveQuoteModuleBodies(): Promise<Record<string, string>> {
+/** Texto vigente de cada módulo (lo cargado en la base o el de plantilla). Una lectura por pedido. */
+export const resolveQuoteModuleBodies = perRequest(loadQuoteModuleBodies);
+
+async function loadQuoteModuleBodies(): Promise<Record<string, string>> {
   await ensureQuoteProfiles();
   const blocks = await prisma.quoteBlock.findMany({ where: { isActive: true } });
   const byKey = new Map(blocks.map((b) => [b.key, b.body]));
@@ -418,12 +431,22 @@ export async function resolveDefaultProfileId() {
   return fallback?.id ?? null;
 }
 
-export async function ensureQuoteSections(quoteId: string, profileKey = "tecnico") {
-  const quote = await prisma.quote.findUnique({
-    where: { id: quoteId },
-    include: { sections: true, contentProfile: true },
-  });
-  if (!quote) return;
+type QuoteForSections = NonNullable<Awaited<ReturnType<typeof loadQuoteForSections>>>;
+
+function loadQuoteForSections(quoteId: string) {
+  return prisma.quote.findUnique({ where: { id: quoteId }, include: { sections: true, contentProfile: true } });
+}
+
+/**
+ * Completa y actualiza las secciones de plantilla. Devuelve cuántas filas cambió (0 = nada que recargar).
+ * `preloaded`: la cotización ya leída por el que llama (con secciones y tipo), para no volver a pedirla.
+ */
+export async function ensureQuoteSections(quoteId: string, profileKey = "tecnico", preloaded?: QuoteForSections): Promise<number> {
+  const quote = preloaded ?? (await loadQuoteForSections(quoteId));
+  if (!quote) return 0;
+  // Abrir una cotización emitida no la reescribe: queda igual a lo que recibió el cliente.
+  if (quote.status === "ISSUED" || quote.status === "SUPERSEDED" || quote.status === "ARCHIVED") return 0;
+  let changed = 0;
   const bodies = await resolveQuoteModuleBodies();
   const key = quote.contentProfile?.key || profileKey;
   const enabled = new Set(
@@ -438,6 +461,7 @@ export async function ensureQuoteSections(quoteId: string, profileKey = "tecnico
 
     if (!section.body.trim()) {
       await prisma.quoteSection.update({ where: { id: section.id }, data: { body: nextBody } });
+      changed += 1;
       continue;
     }
 
@@ -451,6 +475,7 @@ export async function ensureQuoteSections(quoteId: string, profileKey = "tecnico
       where: { id: section.id },
       data: { title: def.title, body: nextBody, sourceBlockVersion: version },
     });
+    changed += 1;
   }
   let sort = quote.sections.reduce((m, s) => Math.max(m, s.sortOrder), -1);
   for (const mod of QUOTE_MODULES) {
@@ -472,8 +497,23 @@ export async function ensureQuoteSections(quoteId: string, profileKey = "tecnico
         sourceBlockVersion: moduleVersion(mod),
       },
     });
+    changed += 1;
   }
   // Las secciones nuevas toman la versión de texto que corresponde (tipo y rubro).
   const { applyTextVariantsToQuote } = await import("@/lib/quote-text-variants-apply");
-  await applyTextVariantsToQuote(quoteId);
+  // Sin cambios, las secciones leídas siguen vigentes: se reusan en vez de volver a leer la cotización.
+  const variants = await applyTextVariantsToQuote(
+    quoteId,
+    changed === 0
+      ? {
+          status: quote.status,
+          audience: quote.audience,
+          contentProfile: quote.contentProfile
+            ? { key: quote.contentProfile.key, baseKey: quote.contentProfile.baseKey, audience: quote.contentProfile.audience }
+            : null,
+          sections: quote.sections.map((s) => ({ id: s.id, type: s.type, body: s.body, source: s.source, variantSlug: s.variantSlug })),
+        }
+      : undefined
+  );
+  return changed + variants.changed;
 }

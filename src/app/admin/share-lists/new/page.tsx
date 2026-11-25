@@ -1,3 +1,4 @@
+import { shareListBaseUrl } from "@/lib/share-list-url";
 import { requireStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
@@ -34,6 +35,7 @@ export default async function NewShareListPage({ searchParams }: { searchParams:
             categories={categories}
             families={families}
             distributors={distributors}
+            publicBaseUrl={shareListBaseUrl()}
             products={products.map((p) => ({ id: p.id, name: p.normalizedName, sku: p.internalSku }))}
             initialProductIds={requestedIds}
           />

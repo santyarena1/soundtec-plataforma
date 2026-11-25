@@ -15,6 +15,9 @@ export type ChangelogEntryView = {
   items: ChangelogItem[];
 };
 
+/** Lo mínimo para saber qué novedades faltan ver y cuál es la versión actual. */
+export type ChangelogIndexEntry = Pick<ChangelogEntryView, "id" | "version" | "releasedAt">;
+
 export const CHANGELOG_KIND_STYLE: Record<ChangelogKind, { label: string; className: string }> = {
   NUEVO: { label: "NUEVO", className: "bg-emerald-600 text-white" },
   FIX: { label: "FIX", className: "bg-orange-500 text-white" },

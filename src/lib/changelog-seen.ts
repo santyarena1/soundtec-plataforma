@@ -1,5 +1,3 @@
-import type { ChangelogEntryView } from "@/lib/changelog";
-
 export const CHANGELOG_SEEN_KEY = "soundtec.admin.changelog.seen";
 export const CHANGELOG_SEEN_EVENT = "soundtec-changelog-seen";
 
@@ -19,7 +17,7 @@ export function readSeenChangelogIds(): string[] {
   }
 }
 
-export function unreadChangelogEntries(entries: ChangelogEntryView[]): ChangelogEntryView[] {
+export function unreadChangelogEntries<T extends { id: string }>(entries: readonly T[]): T[] {
   const seen = new Set(readSeenChangelogIds());
   return entries.filter((entry) => !seen.has(entry.id));
 }

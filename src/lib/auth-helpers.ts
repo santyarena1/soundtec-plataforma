@@ -42,8 +42,15 @@ export const CHANGE_PASSWORD_PATH = "/cuenta/clave";
  * de usuario, la sesión vieja deja de servir aunque el JWT no haya vencido.
  * Rol y datos salen de la base, no del token.
  */
+type RealUserExtras = {
+  /** Rol a medida del usuario real (para no repetir la consulta en getCurrentPermissions). */
+  customRole: { permissionsJson: unknown; isActive: boolean } | null;
+  /** Estado del paseo de bienvenida del usuario real. */
+  onboardingJson: unknown;
+};
+
 type LoadedSession =
-  | { user: CurrentUser; mustChangePassword: boolean; impersonation: ActiveImpersonation | null }
+  | { user: CurrentUser; mustChangePassword: boolean; impersonation: ActiveImpersonation | null; real: RealUserExtras }
   | { invalid: string }
   | { viewInvalid: string }
   | null;
@@ -54,7 +61,19 @@ const loadSessionUser = cache(async (): Promise<LoadedSession> => {
   const tokenVersion = (session.user as { sv?: number }).sv;
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, role: true, name: true, email: true, companyName: true, clientId: true, isActive: true, sessionVersion: true, mustChangePassword: true },
+    select: {
+      id: true,
+      role: true,
+      name: true,
+      email: true,
+      companyName: true,
+      clientId: true,
+      isActive: true,
+      sessionVersion: true,
+      mustChangePassword: true,
+      onboardingJson: true,
+      customRole: { select: { permissionsJson: true, isActive: true } },
+    },
   });
   if (!dbUser) return { invalid: "usuario" };
   if (!dbUser.isActive) return { invalid: "inactivo" };
@@ -63,6 +82,7 @@ const loadSessionUser = cache(async (): Promise<LoadedSession> => {
   // «Ver como»: un admin mirando como otro usuario. Desde acá, «quién soy» es el usuario visto
   // (precios, visibilidad, favoritos, permisos); el admin real queda en `impersonation.actor`.
   const view = await resolveImpersonation(dbUser);
+  const real: RealUserExtras = { customRole: dbUser.customRole, onboardingJson: dbUser.onboardingJson };
   if (view.state === "invalid") return { viewInvalid: view.reason };
   if (view.state === "active") {
     const t = view.view.target;
@@ -70,14 +90,25 @@ const loadSessionUser = cache(async (): Promise<LoadedSession> => {
       user: { id: t.id, role: t.role, name: t.name, email: t.email, companyName: t.companyName, clientId: t.clientId },
       mustChangePassword: false,
       impersonation: view.view,
+      real,
     };
   }
   return {
     user: { id: dbUser.id, role: dbUser.role, name: dbUser.name, email: dbUser.email, companyName: dbUser.companyName, clientId: dbUser.clientId },
     mustChangePassword: dbUser.mustChangePassword,
     impersonation: null,
+    real,
   };
 });
+
+/**
+ * Estado del paseo de bienvenida del usuario real de la sesión, leído en la misma
+ * consulta que valida la sesión (los layouts lo piden en cada pantalla).
+ */
+export async function getSessionOnboardingJson(): Promise<unknown> {
+  const loaded = await loadSessionUser().catch(() => null);
+  return loaded && "user" in loaded ? loaded.real.onboardingJson : null;
+}
 
 /** Vista «Ver como» activa en este pedido (admin real + usuario visto), o null. */
 export async function getImpersonation(): Promise<ActiveImpersonation | null> {
@@ -136,11 +167,18 @@ export async function requireClient() {
 export const getCurrentPermissions = cache(
   async (): Promise<{ user: CurrentUser; permissions: Permissions }> => {
     const user = await requireUser();
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { customRole: { select: { permissionsJson: true, isActive: true } } },
-    });
-    const customPerms = dbUser?.customRole?.isActive ? parsePermissions(dbUser.customRole.permissionsJson as unknown) : null;
+    const loaded = await loadSessionUser();
+    // Sin «Ver como», el rol a medida ya vino con la sesión; viendo como otro, se lee el del usuario visto.
+    const customRole =
+      loaded && "user" in loaded && !loaded.impersonation
+        ? loaded.real.customRole
+        : (
+            await prisma.user.findUnique({
+              where: { id: user.id },
+              select: { customRole: { select: { permissionsJson: true, isActive: true } } },
+            })
+          )?.customRole ?? null;
+    const customPerms = customRole?.isActive ? parsePermissions(customRole.permissionsJson as unknown) : null;
     const permissions = resolveEffectivePermissions({ baseRole: user.role, customPermissions: customPerms });
     return { user, permissions };
   }

@@ -4,17 +4,35 @@ import { useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 interface Tab { id: string; label: string; content: ReactNode }
-interface Props { tabs: Tab[]; defaultTab?: string; syncParam?: string }
+interface Props {
+  tabs: Tab[];
+  defaultTab?: string;
+  syncParam?: string;
+  /** Monta cada pestaña recién la primera vez que se abre (y después la deja montada). Para pestañas que cargan datos pesados. */
+  lazy?: boolean;
+  /** Anota la pestaña en la URL sin volver a pedirle la pantalla al servidor. */
+  shallow?: boolean;
+}
 
-export function Tabs({ tabs, defaultTab, syncParam }: Props) {
+export function Tabs({ tabs, defaultTab, syncParam, lazy, shallow }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [active, setActive] = useState(defaultTab || tabs[0]?.id || "");
+  const initial = defaultTab || tabs[0]?.id || "";
+  const [active, setActive] = useState(initial);
+  const [visited, setVisited] = useState<ReadonlySet<string>>(() => new Set([initial]));
 
   function select(id: string) {
     setActive(id);
+    if (!visited.has(id)) setVisited(new Set([...visited, id]));
     if (!syncParam) return;
+    if (shallow) {
+      // Next 14.2 sincroniza useSearchParams con history.replaceState: sin ida y vuelta al servidor.
+      const next = new URLSearchParams(window.location.search);
+      next.set(syncParam, id);
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}?${next.toString()}`);
+      return;
+    }
     const next = new URLSearchParams(searchParams.toString());
     next.set(syncParam, id);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
@@ -30,7 +48,11 @@ export function Tabs({ tabs, defaultTab, syncParam }: Props) {
           </button>
         ))}
       </div>
-      {tabs.map((tab) => <div key={tab.id} role="tabpanel" className={active === tab.id ? "" : "hidden"}>{tab.content}</div>)}
+      {tabs.map((tab) => (
+        <div key={tab.id} role="tabpanel" className={active === tab.id ? "" : "hidden"}>
+          {!lazy || visited.has(tab.id) ? tab.content : null}
+        </div>
+      ))}
     </div>
   );
 }

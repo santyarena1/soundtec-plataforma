@@ -1,7 +1,7 @@
 "use client";
 
 import { LiveQuoteCanvas, type LiveModule } from "@/components/quotes/live-quote-canvas";
-import type { ImagePlacement } from "@/lib/quote-defaults";
+import type { ImagePlacement } from "@/lib/quote-image-placement";
 
 export type TemplateModule = {
   key: string;

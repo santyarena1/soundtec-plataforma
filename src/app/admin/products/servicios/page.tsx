@@ -1,7 +1,7 @@
 import { requireAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
-import { listCategoryTree, categoryPathLabel } from "@/lib/category-tree";
+import { listCategoryTree, categoryPathLabels } from "@/lib/category-tree";
 import { ensureQuoteServicesLoaded, linkServiceCategories } from "@/server/quote-services";
 import { ServicesBoard, type ServiceRow } from "./services-board";
 
@@ -18,7 +18,9 @@ export default async function ServicesPage() {
   ]);
   const servicesRoot = nodes.find((n) => n.level === 1 && n.name.toLowerCase() === "servicios");
   // El selector de rubro muestra solo la rama SERVICIOS (si el árbol de Tango está cargado).
-  const branch = servicesRoot ? nodes.filter((n) => n.id === servicesRoot.id || isUnder(n.id, servicesRoot.id, nodes)) : [];
+  const parentOf = new Map(nodes.map((n) => [n.id, n.parentId]));
+  const branch = servicesRoot ? nodes.filter((n) => n.id === servicesRoot.id || isUnder(n.id, servicesRoot.id, parentOf)) : [];
+  const labels = categoryPathLabels(nodes);
   const rows: ServiceRow[] = services.map((s) => ({
     id: s.id,
     name: s.name,
@@ -26,7 +28,7 @@ export default async function ServicesPage() {
     priceUsd: s.priceUsd == null ? null : Number(s.priceUsd),
     ivaPercent: Number(s.ivaPercent),
     categoryId: s.categoryId,
-    categoryLabel: s.categoryId ? categoryPathLabel(s.categoryId, nodes) : null,
+    categoryLabel: s.categoryId ? labels.get(s.categoryId) ?? null : null,
     isActive: s.isActive,
   }));
   return (
@@ -40,8 +42,11 @@ export default async function ServicesPage() {
   );
 }
 
-function isUnder(id: string, rootId: string, nodes: Array<{ id: string; parentId: string | null }>): boolean {
-  const parent = new Map(nodes.map((n) => [n.id, n.parentId]));
-  for (let p = parent.get(id); p; p = parent.get(p)) if (p === rootId) return true;
+function isUnder(id: string, rootId: string, parent: Map<string, string | null>): boolean {
+  const seen = new Set<string>();
+  for (let p = parent.get(id); p && !seen.has(p); p = parent.get(p)) {
+    if (p === rootId) return true;
+    seen.add(p);
+  }
   return false;
 }

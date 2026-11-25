@@ -10,16 +10,26 @@ import { sanitizeQuoteHtml } from "@/lib/quote-richtext";
  * a mano o la versión elegida a mano en esa cotización no se pisa. Las emitidas
  * no se tocan.
  */
-export async function applyTextVariantsToQuote(quoteId: string): Promise<{ changed: number }> {
-  const quote = await prisma.quote.findUnique({
-    where: { id: quoteId },
-    select: {
-      status: true,
-      audience: true,
-      contentProfile: { select: { key: true, baseKey: true, audience: true } },
-      sections: { select: { id: true, type: true, body: true, source: true, variantSlug: true } },
-    },
-  });
+/** Lo que hace falta de la cotización (si el que llama ya la tiene leída, se evita otra consulta). */
+export type QuoteForVariants = {
+  status: string;
+  audience: string | null;
+  contentProfile: { key: string; baseKey: string | null; audience: string | null } | null;
+  sections: Array<{ id: string; type: string; body: string; source: string; variantSlug: string | null }>;
+};
+
+export async function applyTextVariantsToQuote(quoteId: string, preloaded?: QuoteForVariants): Promise<{ changed: number }> {
+  const quote: QuoteForVariants | null =
+    preloaded ??
+    (await prisma.quote.findUnique({
+      where: { id: quoteId },
+      select: {
+        status: true,
+        audience: true,
+        contentProfile: { select: { key: true, baseKey: true, audience: true } },
+        sections: { select: { id: true, type: true, body: true, source: true, variantSlug: true } },
+      },
+    }));
   if (!quote) return { changed: 0 };
 
   const targets = quote.sections.filter((s) => isVariantBlockKey(s.type) && s.source === "TEMPLATE");

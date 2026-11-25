@@ -3297,4 +3297,22 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "FIX", text: "El editor de cotizaciones, Configuración › Cotizaciones › Plantilla y «Nueva lista de precios» mostraban «No se pudo actualizar esta pantalla». El bloqueo de escrituras de «Ver como» se estaba ejecutando también en el navegador; ahora corre solo en el servidor." },
     ],
   },
+  {
+    id: "ship-2026-11-25-admin-mas-rapido",
+    version: "2.67.0",
+    releasedAt: "2026-11-26T00:00:00.000Z",
+    summary: "Panel admin más rápido: cotizaciones (editor, rápida, nueva y configuración) dejan de reescribir la plantilla en cada carga, cada pantalla pesa unos 450 KB menos y el listado y la ficha de productos hacen menos viajes a la base.",
+    items: [
+      { kind: "MEJORA", text: "Editor de cotización, cotización rápida, nueva cotización y Configuración › Cotizaciones: al abrirse ya no reescriben los tipos de documento y los textos de la plantilla (eran unas 60 escrituras seguidas por carga). Ahora leen lo que hay y escriben solo si falta algo. En la prueba local el editor pasó de ~45 s a ~8 s, la rápida de ~12 s a ~1 s y la configuración de ~25 s a ~2 s; en producción la diferencia es menor pero se nota." },
+      { kind: "MEJORA", text: "El editor de cotización ya no vuelve a leer toda la cotización si no hubo nada que completar, y trae las versiones de texto en una sola consulta." },
+      { kind: "MEJORA", text: "Cada pantalla del admin traía el changelog completo (~270 novedades, dos veces): ahora viaja solo la lista de versiones y el texto de las novedades se pide recién cuando aparece el aviso. Las pantallas simples pasaron de ~570 KB a ~110 KB. El aviso muestra las 12 más nuevas y un enlace al changelog completo." },
+      { kind: "MEJORA", text: "El primer pedido de cada servidor ya no sincroniza el changelog en la base (~300 escrituras): lo hace el deploy." },
+      { kind: "MEJORA", text: "Sesión: el usuario, su rol y el estado del paseo de bienvenida se leen en una sola consulta por pantalla (antes, tres)." },
+      { kind: "MEJORA", text: "Productos (listado y ficha), Interesados y la cotización rápida: las consultas independientes van en paralelo, el árbol de rubros se lee una vez y las rutas de rubros se arman en un solo paso (con ~2.000 rubros era cuadrático)." },
+      { kind: "MEJORA", text: "Inicio: los números de arriba se cargan en segundo plano y no frenan el resto de la pantalla." },
+      { kind: "MEJORA", text: "El editor de cotización y la plantilla del PDF cargaban en el navegador código del servidor (Prisma y configuración): ~160 KB menos de JavaScript en cada uno." },
+      { kind: "MEJORA", text: "Listas compartibles (nueva y editar): el formulario arrastraba al navegador el código del servidor de las listas (~170 KB de JavaScript). La dirección pública para copiar ahora la arma el servidor." },
+      { kind: "FIX", text: "Ficha de cliente con «Ver como» activo: completar el contacto principal es una escritura y la vista de solo lectura la frenaba con un error; ahora la ficha abre igual." },
+    ],
+  },
 ];

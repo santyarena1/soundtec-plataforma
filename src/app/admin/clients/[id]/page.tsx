@@ -56,7 +56,8 @@ export default async function Page({ params, searchParams }: { params: { id: str
   const canCommercial = can("clients.commercial");
   const seesAllQuotes = can("quotes.view_all");
 
-  await ensurePrimaryContact(id);
+  // Completa el contacto principal si falta. Es una escritura: con «Ver como» (solo lectura) la base la frena y la ficha tiene que abrir igual.
+  await ensurePrimaryContact(id).catch(() => null);
   const [client, requests, quotes, movements, activities, discounts, otherDiscounts] = await Promise.all([
     prisma.client.findUnique({
       where: { id },

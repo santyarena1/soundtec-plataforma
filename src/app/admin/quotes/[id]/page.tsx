@@ -6,7 +6,7 @@ import { TAX_MODES } from "@/lib/quote-totals";
 import { getDeliveryOptions } from "@/lib/quote-settings";
 import { Settings } from "lucide-react";
 import { ensureQuoteSections, getCompanyIdentity, moduleByKey, parseQuoteStep, QUOTE_STEPS } from "@/lib/quote-defaults";
-import { isVariantBlockKey, listBlockVariants } from "@/lib/quote-block-variants";
+import { isVariantBlockKey, listAllBlockVariants } from "@/lib/quote-block-variants";
 import { resolveBrandsDisplayMode } from "@/lib/quote-brands";
 import { listBrandLibrary } from "@/server/actions/quote-brands";
 import { SectionVariantPicker } from "@/components/quotes/section-variant-picker";
@@ -86,17 +86,19 @@ export default async function QuoteEditorPage({
   const { quote: raw, forbidden, permissions, user } = await loadQuoteForUser(id);
   if (forbidden) notFound();
   if (!raw) notFound();
+  let sectionChanges = 0;
   try {
-    await ensureQuoteSections(id);
+    sectionChanges = await ensureQuoteSections(id, undefined, raw);
   } catch (error) {
     console.error("[QuoteEditor] no se pudieron sincronizar secciones", error);
   }
-  const { quote } = await loadQuoteForUser(id);
+  // Solo se vuelve a leer la cotización (consulta grande) si la sincronización cambió algo.
+  const quote = sectionChanges > 0 ? (await loadQuoteForUser(id)).quote : raw;
   if (!quote) notFound();
 
   const productIds = quote.items.map((i) => i.productId).filter((pid): pid is string => Boolean(pid));
   const variantBlockKeys = [...new Set(quote.sections.map((s) => s.type).filter(isVariantBlockKey))];
-  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms, identity, classifiers, documentTypes, audiences, patterns, brandLibrary, ...variantLists] =
+  const [clients, deliveryOptions, catalogImages, accessories, signer, prevTerms, identity, classifiers, documentTypes, audiences, patterns, brandLibrary, allVariants] =
     await Promise.all([
     prisma.client.findMany({
       where: { isActive: true },
@@ -136,11 +138,12 @@ export default async function QuoteEditorPage({
     listQuoteAudiences(),
     loadQuotePatternSuggestions(quote.id),
     listBrandLibrary(),
-    ...variantBlockKeys.map((key) => listBlockVariants(key)),
+    // Una sola lectura de las versiones de texto (antes, una consulta por cada texto con versiones).
+    variantBlockKeys.length ? listAllBlockVariants() : Promise.resolve({} as Awaited<ReturnType<typeof listAllBlockVariants>>),
   ]);
 
   const variantsByBlock = Object.fromEntries(
-    variantBlockKeys.map((key, index) => [key, variantLists[index] as Awaited<ReturnType<typeof listBlockVariants>>])
+    variantBlockKeys.map((key) => [key, allVariants[key] ?? []])
   );
   const brandsMode = resolveBrandsDisplayMode(quote.brandsMode, identity.brandsDisplayMode);
   const brandLogos = quote.brandSelections.map((row) => ({

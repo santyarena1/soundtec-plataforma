@@ -28,7 +28,8 @@ export async function listCategoryTree(): Promise<CategoryNode[]> {
   ]);
   const countById = new Map(counts.map((row) => [row.categoryId, row._count._all]));
   if (tango.length) {
-    return tango.map((c) => ({ ...c, level: c.level ?? 1, count: countById.get(c.id) ?? 0, pendingTango: c.pendingTango || undefined }));
+    // Sin claves vacías: el árbol (~2.000 nodos) viaja a varias pantallas y cada «pendingTango: undefined» sumaba bytes.
+    return tango.map(({ pendingTango, ...c }) => ({ ...c, level: c.level ?? 1, count: countById.get(c.id) ?? 0, ...(pendingTango ? { pendingTango: true } : {}) }));
   }
   const flat = await prisma.category.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } });
   return flat.map((c) => ({ ...c, parentId: null, level: 1 }));
@@ -38,9 +39,9 @@ export async function listCategoryTree(): Promise<CategoryNode[]> {
  * Opciones para filtrar por rubro: cada nodo que tiene productos (él o algo
  * debajo), con la ruta completa como nombre y ordenado por ruta.
  */
-export async function categoryFilterOptions(): Promise<Array<{ id: string; name: string }>> {
+export async function categoryFilterOptions(tree?: CategoryNode[]): Promise<Array<{ id: string; name: string }>> {
   const [nodes, counts] = await Promise.all([
-    listCategoryTree(),
+    tree ? Promise.resolve(tree) : listCategoryTree(),
     prisma.product.groupBy({ by: ["categoryId"], _count: { _all: true }, where: { categoryId: { not: null } } }),
   ]);
   const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -52,9 +53,10 @@ export async function categoryFilterOptions(): Promise<Array<{ id: string; name:
       current = current.parentId ? byId.get(current.parentId) : undefined;
     }
   }
+  const labels = categoryPathLabels(nodes);
   return nodes
     .filter((n) => used.has(n.id))
-    .map((n) => ({ id: n.id, name: categoryPathLabel(n.id, nodes) }))
+    .map((n) => ({ id: n.id, name: labels.get(n.id) ?? n.name }))
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
 }
 
@@ -63,12 +65,38 @@ export function categoryPathLabel(id: string | null | undefined, nodes: Category
   if (!id) return "";
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const parts: string[] = [];
+  const seen = new Set<string>();
   let current = byId.get(id);
-  while (current) {
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id);
     parts.unshift(current.name);
     current = current.parentId ? byId.get(current.parentId) : undefined;
   }
   return parts.join(" › ");
+}
+
+/**
+ * Rutas legibles de todos los nodos de una vez. categoryPathLabel rearma el índice
+ * en cada llamada: usada nodo por nodo con ~2.000 rubros era cuadrática y frenaba
+ * el listado de productos. Acá cada ruta se arma una vez y se reutiliza para los hijos.
+ */
+export function categoryPathLabels(nodes: ReadonlyArray<Pick<CategoryNode, "id" | "name" | "parentId">>): Map<string, string> {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const labels = new Map<string, string>();
+  const visiting = new Set<string>();
+  const labelOf = (id: string): string => {
+    const known = labels.get(id);
+    if (known !== undefined) return known;
+    const node = byId.get(id)!;
+    visiting.add(id);
+    const parent = node.parentId && byId.has(node.parentId) && !visiting.has(node.parentId) ? labelOf(node.parentId) : "";
+    visiting.delete(id);
+    const label = parent ? `${parent} › ${node.name}` : node.name;
+    labels.set(id, label);
+    return label;
+  };
+  for (const n of nodes) labelOf(n.id);
+  return labels;
 }
 
 let parentsCache: { at: number; rows: Array<{ id: string; parentId: string | null }> } | null = null;
@@ -128,8 +156,9 @@ export async function productCategoryCrumbs(
 /** Nombre para mostrar de cualquier categoría: ruta completa si es del árbol, el nombre si es vieja. */
 export async function categoryLabelMap(): Promise<Map<string, string>> {
   const rows = await prisma.category.findMany({ select: { id: true, name: true, parentId: true, tangoPath: true } });
-  const nodes = rows.map((r) => ({ id: r.id, name: r.name, parentId: r.parentId, level: 1 }));
-  return new Map(rows.map((r) => [r.id, r.tangoPath ? categoryPathLabel(r.id, nodes) : r.name]));
+  // Todas las rutas de una vez (nodo por nodo con categoryPathLabel tardaba más de un segundo por pantalla).
+  const paths = categoryPathLabels(rows);
+  return new Map(rows.map((r) => [r.id, r.tangoPath ? paths.get(r.id) ?? r.name : r.name]));
 }
 
 /** Series del fabricante para elegir en reglas (alcance «Serie»): «Sonance · Landscape». */

@@ -6,11 +6,31 @@ declare global {
   var __prismaClient: PrismaClient | undefined;
 }
 
-export const prisma =
-  global.__prismaClient ||
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+/**
+ * Medidor de consultas (solo local): con PERF_PRISMA_LOG=<archivo> cada consulta se
+ * anota en ese archivo como «ms<TAB>sql». Lo lee scripts/perf-admin.ts para contar
+ * consultas y su duración por pantalla. Sin la variable no cambia nada.
+ */
+const PERF_LOG_FILE =
+  typeof window === "undefined" && process.env.NEXT_RUNTIME !== "edge" ? process.env.PERF_PRISMA_LOG : undefined;
+
+function createClient(): PrismaClient {
+  const base: Array<"error" | "warn"> = process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"];
+  if (!PERF_LOG_FILE) return new PrismaClient({ log: base });
+  const client = new PrismaClient({ log: [...base, { emit: "event", level: "query" }] });
+  // Sin import estático: este archivo llega (sin usarse) a bundles de cliente y de Edge.
+  const { appendFileSync } = (process as unknown as { getBuiltinModule: (id: string) => typeof import("fs") }).getBuiltinModule("fs");
+  (client as unknown as { $on: (e: "query", cb: (ev: { duration: number; query: string }) => void) => void }).$on("query", (ev) => {
+    try {
+      appendFileSync(PERF_LOG_FILE, `${ev.duration}\t${ev.query.replace(/\s+/g, " ").slice(0, 400)}\n`);
+    } catch {
+      // medidor local: si no se puede escribir, se ignora
+    }
   });
+  return client;
+}
+
+export const prisma = global.__prismaClient || createClient();
 
 if (process.env.NODE_ENV !== "production") {
   global.__prismaClient = prisma;

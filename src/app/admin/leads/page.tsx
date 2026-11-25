@@ -65,51 +65,54 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     prisma.visitorLead.count({ where: { ...where, interest: { not: null } } }),
   ]);
 
-  // Si después pidieron cuenta (por el lead o por el mismo mail), se muestra el estado.
-  const requests = leads.length
-    ? await prisma.accountRequest.findMany({
-        where: {
-          OR: [
-            { leadId: { in: leads.map((l) => l.id) } },
-            { email: { in: leads.map((l) => l.email), mode: "insensitive" } },
-          ],
-        },
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          leadId: true,
-          email: true,
-          status: true,
-          company: true,
-          activity: true,
-          activityOther: true,
-          location: true,
-          fullName: true,
-        },
-      })
-    : [];
+  const visitorIds = [...new Set(leads.map((l) => l.visitorId))];
+  // Todo lo que depende de la página de leads va en una tanda (antes eran tres viajes seguidos).
+  const [requests, visitGroups, brandViewRows] = await Promise.all([
+    // Si después pidieron cuenta (por el lead o por el mismo mail), se muestra el estado.
+    leads.length
+      ? prisma.accountRequest.findMany({
+          where: {
+            OR: [
+              { leadId: { in: leads.map((l) => l.id) } },
+              { email: { in: leads.map((l) => l.email), mode: "insensitive" } },
+            ],
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            leadId: true,
+            email: true,
+            status: true,
+            company: true,
+            activity: true,
+            activityOther: true,
+            location: true,
+            fullName: true,
+          },
+        })
+      : Promise.resolve([]),
+    visitorIds.length
+      ? prisma.expoVisit.groupBy({
+          by: ["visitorId", "type"],
+          where: { visitorId: { in: visitorIds } },
+          _count: { _all: true },
+        })
+      : Promise.resolve([]),
+    visitorIds.length
+      ? prisma.expoVisit.findMany({
+          where: { visitorId: { in: visitorIds }, type: "BRAND_VIEW", brandId: { not: null } },
+          select: { visitorId: true, brandId: true },
+          distinct: ["visitorId", "brandId"],
+        })
+      : Promise.resolve([]),
+  ]);
   const requestFor = (lead: { id: string; email: string }) =>
     requests.find((r) => r.leadId === lead.id) ??
     requests.find((r) => r.email.toLowerCase() === lead.email.toLowerCase());
 
-  const visitorIds = [...new Set(leads.map((l) => l.visitorId))];
-  const visitGroups = visitorIds.length
-    ? await prisma.expoVisit.groupBy({
-        by: ["visitorId", "type"],
-        where: { visitorId: { in: visitorIds } },
-        _count: { _all: true },
-      })
-    : [];
   const visitCount = (visitorId: string, type: string) =>
     visitGroups.find((g) => g.visitorId === visitorId && g.type === type)?._count._all ?? 0;
 
-  const brandViewRows = visitorIds.length
-    ? await prisma.expoVisit.findMany({
-        where: { visitorId: { in: visitorIds }, type: "BRAND_VIEW", brandId: { not: null } },
-        select: { visitorId: true, brandId: true },
-        distinct: ["visitorId", "brandId"],
-      })
-    : [];
   const brandIds = [...new Set(brandViewRows.map((r) => r.brandId!).filter(Boolean))];
   const brands = brandIds.length
     ? await prisma.brand.findMany({ where: { id: { in: brandIds } }, select: { id: true, name: true } })

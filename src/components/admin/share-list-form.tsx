@@ -13,7 +13,8 @@ import {
   previewShareListCount,
   regenerateShareSlug,
 } from "@/server/actions/shareable-price-lists";
-import { shareListPublicUrl, type ShareablePriceListFilters } from "@/lib/shareable-price-list";
+import type { ShareablePriceListFilters } from "@/lib/shareable-price-list";
+import { shareListPublicUrl } from "@/lib/share-list-url";
 import { ShareListProductSearch, type ShareProductOption } from "@/components/admin/share-list-product-search";
 import { RubroPicker } from "@/components/admin/rubro-picker";
 import type { CategoryNode } from "@/lib/category-tree";
@@ -42,6 +43,8 @@ interface Props {
   distributors: Option[];
   products: ShareProductOption[];
   initialProductIds?: string[];
+  /** Base de la dirección pública (la arma el servidor: en el navegador no están sus variables). */
+  publicBaseUrl: string;
 }
 
 function FilterSection({
@@ -108,6 +111,7 @@ export function ShareListForm({
   distributors,
   products,
   initialProductIds = [],
+  publicBaseUrl,
 }: Props) {
   const router = useRouter();
   const guardedRouter = useGuardedRouter();
@@ -131,7 +135,7 @@ export function ShareListForm({
   const fields = useFormDirty(formRef, { saveOnSubmit: false });
   const sets = useUnsavedValue({ brandIds, categoryIds, familyIds, distributorIds, productIds, excludeProductIds });
 
-  const publicUrl = slug ? shareListPublicUrl(slug) : "";
+  const publicUrl = slug ? shareListPublicUrl(slug, publicBaseUrl) : "";
 
   function toggle(setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) {
     setter((prev) => {

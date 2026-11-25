@@ -13,7 +13,7 @@ import { CompareTray } from "@/components/compare/compare-tray";
 import { getActiveDraftSummary } from "@/lib/draft-request";
 import { OnboardingHost } from "@/components/onboarding/onboarding-host";
 import { PortalOnboardingButton } from "@/components/onboarding/portal-onboarding-button";
-import { getOnboardingState } from "@/server/actions/onboarding";
+import { getSessionOnboardingState } from "@/server/onboarding-state";
 import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 
 const navItems = [
@@ -38,7 +38,7 @@ export async function PortalShell({ children }: { children: React.ReactNode }) {
     getSetting("app.name", "Soundtec"),
     // Pedidos apagados (src/lib/customer-orders.ts): sin borrador ni flotante.
     CUSTOMER_ORDERS_ENABLED ? getActiveDraftSummary(session.user.id) : null,
-    getOnboardingState(),
+    getSessionOnboardingState(),
   ]);
 
   async function handleSignOut() {

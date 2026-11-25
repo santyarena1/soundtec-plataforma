@@ -14,7 +14,7 @@ import {
   DEFAULT_ISO_PLACEMENT,
   resolveImagePlacement,
   type ImagePlacement,
-} from "@/lib/quote-defaults";
+} from "@/lib/quote-image-placement";
 import { formatUsd } from "@/lib/utils";
 import { displayImageCaption } from "@/lib/quote-image-caption";
 import { buildQuoteZones } from "@/lib/quote-item-groups";

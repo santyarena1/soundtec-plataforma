@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { DEFAULT_BRANDS_PLACEMENT, resolveImagePlacement, type ImagePlacement } from "@/lib/quote-defaults";
+import { DEFAULT_BRANDS_PLACEMENT, resolveImagePlacement, type ImagePlacement } from "@/lib/quote-image-placement";
 
 function marginFor(align: ImagePlacement["align"]) {
   if (align === "center") return "0 auto";

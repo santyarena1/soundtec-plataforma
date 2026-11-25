@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Database, FileSpreadsheet, LifeBuoy, Package, RefreshCw, Send, Sparkles, Users } from "lucide-react";
 import { requireStaff } from "@/lib/auth-helpers";
@@ -36,8 +37,8 @@ const TONES = {
   muted: "bg-muted text-muted-foreground",
 } as const;
 
-/** Inicio del admin: los atajos y los números del sistema que ya tenía, más los atajos del equipo. */
-async function AdminShortcuts({ firstName, shortcuts }: { firstName: string; shortcuts: Shortcut[] }) {
+/** Números del sistema: van en streaming para que el resto del inicio no los espere. */
+async function AdminStats() {
   const [totalProducts, catalogProducts, totalUsers, activeRequests, pendingFeedback, pendingImports, openTickets] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     // Lo que ven los visitantes (catálogo, pantalla del stand, login): solo marcas activas y visibles.
@@ -58,6 +59,41 @@ async function AdminShortcuts({ firstName, shortcuts }: { firstName: string; sho
     { label: "Tickets abiertos", value: openTickets, icon: LifeBuoy, tone: "muted" as const, href: "/admin/tickets" },
   ];
 
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6" data-tour="dash-stats">
+      {stats.map((s) => (
+        <Link
+          key={s.label}
+          href={s.href}
+          className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 shadow-card transition-shadow hover:shadow-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${TONES[s.tone]}`}>
+            <s.icon className="h-4 w-4" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-lg font-semibold leading-tight tabular-nums">{s.value.toLocaleString("es-AR")}</span>
+            <span className="block truncate text-xs text-muted-foreground" title={s.hint}>
+              {s.label}
+            </span>
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6" aria-hidden>
+      {Array.from({ length: 6 }, (_, i) => (
+        <div key={i} className="h-[58px] animate-pulse rounded-lg border border-border bg-card" />
+      ))}
+    </div>
+  );
+}
+
+/** Inicio del admin: los atajos y los números del sistema que ya tenía, más los atajos del equipo. */
+function AdminShortcuts({ firstName, shortcuts }: { firstName: string; shortcuts: Shortcut[] }) {
   // Equivalentes de sistema para el admin (además de los del equipo).
   const adminShortcuts: Shortcut[] = [
     ...shortcuts,
@@ -86,25 +122,9 @@ async function AdminShortcuts({ firstName, shortcuts }: { firstName: string; sho
         }
       />
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6" data-tour="dash-stats">
-        {stats.map((s) => (
-          <Link
-            key={s.label}
-            href={s.href}
-            className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 shadow-card transition-shadow hover:shadow-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${TONES[s.tone]}`}>
-              <s.icon className="h-4 w-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-lg font-semibold leading-tight tabular-nums">{s.value.toLocaleString("es-AR")}</span>
-              <span className="block truncate text-xs text-muted-foreground" title={s.hint}>
-                {s.label}
-              </span>
-            </span>
-          </Link>
-        ))}
-      </div>
+      <Suspense fallback={<StatsSkeleton />}>
+        <AdminStats />
+      </Suspense>
 
       <ShortcutGrid shortcuts={adminShortcuts} className="lg:grid-cols-4" />
     </div>

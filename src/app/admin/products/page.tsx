@@ -87,14 +87,16 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const stockStatuses = multi(params.stock);
   const activeFilter =
     params.active === "yes" ? true : params.active === "no" ? false : undefined;
-  const openFeedback = await prisma.aiContentFeedback.groupBy({ by: ["refId"], where: { type: "PRODUCT_DESCRIPTION", verdict: "HAS_ERRORS", resolvedAt: null }, _count: { _all: true } });
-  const openFeedbackMap = new Map(openFeedback.map((f) => [f.refId, f._count._all]));
-  const crestronMissingCount = await prisma.product.count({ where: { isActive: true, ...CRESTRON_MISSING_WHERE } });
-  const uncategorizedCount = await countUncategorizedProducts();
-
   // El mismo armado que usa «activar/desactivar los que coinciden».
   const filters = parseAdminProductFilters(params as Record<string, string | string[] | undefined>);
-  const where: Prisma.ProductWhereInput = await buildAdminProductWhere(filters);
+  // En paralelo: antes iban una detrás de otra (cuatro viajes a la base antes de empezar el listado).
+  const [openFeedback, crestronMissingCount, uncategorizedCount, where] = await Promise.all([
+    prisma.aiContentFeedback.groupBy({ by: ["refId"], where: { type: "PRODUCT_DESCRIPTION", verdict: "HAS_ERRORS", resolvedAt: null }, _count: { _all: true } }),
+    prisma.product.count({ where: { isActive: true, ...CRESTRON_MISSING_WHERE } }),
+    countUncategorizedProducts(),
+    buildAdminProductWhere(filters) as Promise<Prisma.ProductWhereInput>,
+  ]);
+  const openFeedbackMap = new Map(openFeedback.map((f) => [f.refId, f._count._all]));
 
   const orderBy: Prisma.ProductOrderByWithRelationInput =
     SORT_MAP[params.sort || DEFAULT_SORT] ?? { normalizedName: "asc" };
@@ -161,7 +163,9 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   }
 
   const pageIds = rankedPageIds ? rankedPageIds.slice((page - 1) * pageSize, page * pageSize) : null;
-  const [productsUnordered, total, brands, categories, seriesRows, distributors, allLabels] = await Promise.all([
+  // Un solo árbol de rubros para el selector y para el filtro (antes se leía dos veces).
+  const treePromise = listCategoryTree();
+  const [productsUnordered, total, brands, categories, seriesRows, distributors, allLabels, rubroNodes] = await Promise.all([
     prisma.product.findMany({
       where: pageIds ? { id: { in: pageIds } } : where,
       orderBy,
@@ -180,10 +184,11 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       orderBy: { name: "asc" },
       select: { id: true, name: true, _count: { select: { products: true } } },
     }),
-    categoryFilterOptions(),
+    treePromise.then((tree) => categoryFilterOptions(tree)),
     prisma.productLine.findMany({ orderBy: [{ brand: { name: "asc" } }, { name: "asc" }], select: { id: true, name: true, brandId: true, brand: { select: { name: true } } } }),
     prisma.distributor.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.label.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true } }),
+    treePromise,
   ]);
   const categoryLabels = new Map(categories.map((c) => [c.id, c.name]));
 
@@ -375,7 +380,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
               }}
               brands={brands.map((b) => ({ id: b.id, name: b.name }))}
               categories={categories}
-              rubroNodes={await listCategoryTree()}
+              rubroNodes={rubroNodes}
               seriesOptions={seriesRows.map((s) => ({ id: s.id, brandId: s.brandId, name: `${s.brand.name} · ${s.name}` }))}
               distributors={showPrices ? distributors : []}
               allLabels={allLabels}

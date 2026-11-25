@@ -14,7 +14,7 @@ export const metadata = { title: "Admin · Cotización rápida" };
 
 export default async function QuickQuotePage({ searchParams }: { searchParams: { editar?: string } }) {
   const { permissions } = await requireQuotePermission("quotes.create");
-  const [clients, validity, owners, priceLists, defaultIva, defaultProfile, defaultTaxMode, documentTypes, editing] = await Promise.all([
+  const [clients, validity, owners, priceLists, defaultIva, defaultProfile, defaultTaxMode, documentTypes, editing, audiences] = await Promise.all([
     prisma.client.findMany({ where: { isActive: true }, orderBy: { companyName: "asc" }, select: { id: true, companyName: true } }),
     getSetting(QUOTE_SETTING_KEYS.validityDays, "5"),
     prisma.user.findMany({ where: { role: { in: ["ADMIN", "SUPER_ADMIN"] }, isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -24,6 +24,7 @@ export default async function QuickQuotePage({ searchParams }: { searchParams: {
     getSetting(QUOTE_SETTING_KEYS.defaultTaxMode, "NOTE"),
     listDocumentTypes(),
     searchParams.editar ? loadQuickQuoteForEdit(searchParams.editar) : Promise.resolve(null),
+    listQuoteAudiences(),
   ]);
   if (searchParams.editar && !editing) notFound();
   const initial: QuickInitial | null = editing
@@ -48,7 +49,7 @@ export default async function QuickQuotePage({ searchParams }: { searchParams: {
           taxMode: defaultTaxMode === "ADDED" || defaultTaxMode === "NONE" ? defaultTaxMode : "NOTE",
         }}
         documentTypes={documentTypes.map((t) => ({ key: t.key, name: t.name, audience: t.audience }))}
-        audiences={await listQuoteAudiences()}
+        audiences={audiences}
         initial={initial}
       />
     </div>

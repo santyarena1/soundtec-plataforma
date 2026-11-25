@@ -14,10 +14,10 @@ import { getCurrentPermissions, getImpersonation, getSessionUser } from "@/lib/a
 import { ImpersonationBanner } from "@/components/impersonation/impersonation-banner";
 import { canSeeCosts, canSeeSalePrices, isPanelRole, permissionsHave } from "@/lib/permissions";
 import { CatalogModeButton } from "@/components/catalog-mode/catalog-mode-controls";
-import { listAllChangelogs } from "@/server/changelog-query";
+import { listChangelogIndex } from "@/server/changelog-query";
 import { HelpDock } from "@/components/help/help-system";
 import { OnboardingHost } from "@/components/onboarding/onboarding-host";
-import { getOnboardingState } from "@/server/actions/onboarding";
+import { getSessionOnboardingState } from "@/server/onboarding-state";
 import { loadReviewStatus } from "@/server/soundtube/review";
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
@@ -35,11 +35,9 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
   const userEmail = sessionUser.email;
   const [appName, changelogs, onboardingState, pendingRequests, soundtubeReview] = await Promise.all([
     getSetting("app.name", "Soundtec"),
-    listAllChangelogs().catch((err) => {
-      console.error("changelog unread", err);
-      return [];
-    }),
-    getOnboardingState(),
+    // Solo el índice (id, versión, fecha): el texto lo pide el aviso cuando hace falta.
+    listChangelogIndex(),
+    getSessionOnboardingState(),
     permissionsHave(permissions, "account_requests.review")
       ? prisma.accountRequest.count({ where: { status: "PENDING" } }).catch(() => 0)
       : Promise.resolve(0),

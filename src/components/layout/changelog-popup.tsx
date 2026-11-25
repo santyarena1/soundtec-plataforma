@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { Modal } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,8 @@ import {
   markChangelogIdsSeen,
   unreadChangelogEntries,
 } from "@/lib/changelog-seen";
-import type { ChangelogEntryView } from "@/lib/changelog";
+import type { ChangelogEntryView, ChangelogIndexEntry } from "@/lib/changelog";
+import { loadChangelogEntries } from "@/server/actions/changelog";
 import {
   ONBOARDING_ACTIVE_EVENT,
   ONBOARDING_INACTIVE_EVENT,
@@ -19,17 +21,23 @@ import {
 } from "@/lib/onboarding/events";
 import type { OnboardingState } from "@/lib/onboarding/types";
 
+/**
+ * Aviso de novedades. Recibe solo el índice (id, versión, fecha): el texto de las
+ * novedades sin ver se pide recién cuando el aviso tiene que abrirse, así cada
+ * pantalla del admin no carga el changelog entero.
+ */
 export function ChangelogPopup({
   entries,
   onboardingState,
 }: {
-  entries: ChangelogEntryView[];
+  entries: ChangelogIndexEntry[];
   /** Si el paseo de bienvenida está pendiente o en curso, no tapamos el onboarding. */
   onboardingState?: OnboardingState;
 }) {
   const pathname = usePathname();
   const hideHere = pathname.startsWith("/admin/changelog");
-  const [unread, setUnread] = useState<ChangelogEntryView[] | null>(null);
+  const [unread, setUnread] = useState<ChangelogIndexEntry[] | null>(null);
+  const [details, setDetails] = useState<{ key: string; entries: ChangelogEntryView[] } | null>(null);
   const [open, setOpen] = useState(false);
   const [onboardingBlocks, setOnboardingBlocks] = useState(() => {
     const status = onboardingState?.admin?.status;
@@ -75,16 +83,38 @@ export function ChangelogPopup({
     }
   }, [onboardingState?.admin?.status]);
 
+  const unreadKey = (unread ?? []).map((entry) => entry.id).join("|");
+  const shouldShow = Boolean(unread && unread.length > 0 && !hideHere && !onboardingBlocks);
+
   useEffect(() => {
-    setOpen(Boolean(unread && unread.length > 0 && !hideHere && !onboardingBlocks));
-  }, [unread, hideHere, onboardingBlocks]);
+    if (!shouldShow) {
+      setOpen(false);
+      return;
+    }
+    if (details?.key === unreadKey) {
+      setOpen(true);
+      return;
+    }
+    let cancelled = false;
+    loadChangelogEntries(unreadKey.split("|"))
+      .then((loaded) => {
+        if (cancelled || loaded.length === 0) return;
+        setDetails({ key: unreadKey, entries: loaded });
+        setOpen(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [shouldShow, unreadKey, details?.key]);
 
   function dismiss() {
     markChangelogIdsSeen((unread || []).map((entry) => entry.id));
     setOpen(false);
   }
 
-  if (!unread || unread.length === 0) return null;
+  if (!unread || unread.length === 0 || !details) return null;
+  const hidden = unread.length - details.entries.length;
 
   return (
     <Modal
@@ -100,7 +130,16 @@ export function ChangelogPopup({
         </Button>
       }
     >
-      <ChangelogTimeline entries={unread} />
+      <ChangelogTimeline entries={details.entries} />
+      {hidden > 0 ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Y {hidden} {hidden === 1 ? "novedad anterior" : "novedades anteriores"} sin ver:{" "}
+          <Link href="/admin/changelog" onClick={dismiss} className="font-medium text-accent hover:underline">
+            ver el changelog completo
+          </Link>
+          .
+        </p>
+      ) : null}
     </Modal>
   );
 }
