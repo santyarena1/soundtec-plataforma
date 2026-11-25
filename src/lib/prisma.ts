@@ -43,8 +43,10 @@ async function requestIsReadOnlyView(): Promise<boolean> {
 // ya frena los envíos; esto cubre lo que corre en lecturas (GET).
 const GUARDED = Symbol.for("soundtec.prisma.readOnlyViewGuard");
 const guarded = prisma as PrismaClient & { [GUARDED]?: boolean };
-// En Edge (middleware) Prisma no corre: ahí no se registra nada (el middleware importa auth, que importa esto).
-if (process.env.NEXT_RUNTIME !== "edge" && !guarded[GUARDED]) {
+// Solo en el servidor. En Edge (middleware) Prisma no corre. En el navegador, si un componente cliente
+// importa sin querer algo que usa Prisma, el cliente es un sustituto que tira error apenas se lo toca:
+// eso rompía el editor de cotizaciones (25/11).
+if (typeof window === "undefined" && process.env.NEXT_RUNTIME !== "edge" && !guarded[GUARDED]) {
   guarded[GUARDED] = true;
   prisma.$use(async (params, next) => {
     if (WRITE_ACTIONS.has(params.action) && !(params.model && WRITABLE_DURING_VIEW.has(params.model)) && (await requestIsReadOnlyView())) {

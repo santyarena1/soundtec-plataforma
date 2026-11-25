@@ -3288,4 +3288,13 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Buscar y «Actualizar» ya no recargan toda la página. «Actualizar» vuelve a pedir carpetas, listados y actividad, pero no los mails ya abiertos (un mail no cambia)." },
     ],
   },
+  {
+    id: "ship-2026-11-25-editor-cotizaciones",
+    version: "2.66.1",
+    releasedAt: "2026-11-25T23:30:00.000Z",
+    summary: "Vuelve a abrir el editor de cotizaciones.",
+    items: [
+      { kind: "FIX", text: "El editor de cotizaciones, Configuración › Cotizaciones › Plantilla y «Nueva lista de precios» mostraban «No se pudo actualizar esta pantalla». El bloqueo de escrituras de «Ver como» se estaba ejecutando también en el navegador; ahora corre solo en el servidor." },
+    ],
+  },
 ];
