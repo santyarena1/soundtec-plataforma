@@ -3228,4 +3228,15 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "NUEVO", text: "«Traer de Resend» en Enviados: consulta en Resend el último evento de los mails de los últimos 30 días sin entrega confirmada y completa lo que faltó del webhook (hasta 40 por clic, respetando el límite de pedidos)." },
     ],
   },
+  {
+    id: "ship-2026-11-25-edicion-rapida-ia",
+    version: "2.63.0",
+    releasedAt: "2026-11-25T05:00:00.000Z",
+    summary: "Edición rápida de la ficha: «Generar con IA» para la descripción corta y la larga. El texto queda en el campo para revisarlo y se guarda recién con «Guardar textos».",
+    items: [
+      { kind: "NUEVO", text: "Edición rápida › Textos: botones «Generar con IA» / «Regenerar con IA» junto a la descripción corta y la larga, con los mismos generadores y prompts que la ficha del admin (Asistente IA de la ficha). Usan lo que está escrito en el panel (nombre, corta) como contexto. El resultado va al campo con la marca «Recién generada, sin guardar»: no se guarda solo, se revisa, se retoca y se guarda con «Guardar textos» (o «Descartar»)." },
+      { kind: "MEJORA", text: "Cartel «Descripción generada con IA»: si la larga que se guarda salió del botón de IA (aunque se haya retocado), queda marcada como generada por IA y la ficha muestra el cartel. Un guardado a mano sin usar la IA no pone ni saca la marca. La corta nunca lleva cartel." },
+      { kind: "MEJORA", text: "Errores claros: sin clave de OpenAI avisa que hay que cargarla en Configuración › Integraciones; si la IA falla o contesta que no tiene datos del producto («Lo siento, no hay datos…»), no se pone ese texto en el campo y se explica qué completar (corta o especificaciones) para que lo intente de nuevo." },
+    ],
+  },
 ];

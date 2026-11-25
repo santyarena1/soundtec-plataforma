@@ -14,7 +14,8 @@ import { prisma } from "@/lib/prisma";
 import { listCategoryTree, type CategoryNode } from "@/lib/category-tree";
 import { GALLERY_IMAGE_ORDER, GALLERY_VIDEO_ORDER, mergeGalleryMedia } from "@/lib/product-media";
 import { mergeFieldTimestamps } from "@/lib/field-timestamps";
-import { cleanDocs, cleanFeatures, cleanSpecs, docsFromJson, featuresFromJson, specsFromJson, type DocRow, type SpecRow } from "@/lib/quick-edit/content";
+import { isLongDescriptionAiGenerated } from "@/lib/ai-content";
+import { aiFlagsForTextSave, cleanDocs, cleanFeatures, cleanSpecs, docsFromJson, featuresFromJson, specsFromJson, type DocRow, type SpecRow } from "@/lib/quick-edit/content";
 import type { QuickEditAccess } from "@/lib/quick-edit/access";
 import type { GalleryEditorItem } from "@/app/admin/products/[id]/gallery-editor";
 import type { RelationItem } from "@/app/admin/products/[id]/accessories-panel";
@@ -95,7 +96,7 @@ export async function loadQuickEdit(productId: string): Promise<{ ok: true; data
         modelNumber: product.modelNumber,
         shortDescription: product.shortDescription ?? "",
         longDescription: product.longDescription ?? "",
-        aiGenerated: product.aiGeneratedDescription,
+        aiGenerated: isLongDescriptionAiGenerated(product),
         keyFeatures: featuresFromJson(product.keyFeatures),
         featuresInSpanish: product.translatedAt != null,
         specifications: specsFromJson(product.specifications),
@@ -138,6 +139,8 @@ const textsSchema = z.object({
   name: z.string().trim().min(2, "El nombre necesita al menos 2 caracteres.").max(280, "El nombre: máximo 280 caracteres."),
   shortDescription: z.string().max(500, "La descripción corta: máximo 500 caracteres."),
   longDescription: z.string().max(20000, "La descripción larga: máximo 20.000 caracteres."),
+  /** La larga salió del botón de IA del panel (aunque después se retocara). */
+  longFromAi: z.boolean().optional(),
 });
 
 /** Nombre visible y descripciones (con la acción de la ficha del admin). */
@@ -145,11 +148,19 @@ export async function saveQuickEditTexts(input: z.input<typeof textsSchema>): Pr
   await requireQuickEdit();
   const parsed = textsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
-  return saveProductPatch(parsed.data.productId, {
+  const saved = await saveProductPatch(parsed.data.productId, {
     normalizedName: parsed.data.name,
     shortDescription: parsed.data.shortDescription.trim() || null,
     longDescription: parsed.data.longDescription.trim() || null,
   });
+  if (!saved.ok) return saved;
+  // Cartel «Generado con IA»: solo si la larga que se guarda salió de la IA (src/lib/ai-content.ts).
+  const aiFlags = aiFlagsForTextSave({ longFromAi: parsed.data.longFromAi ?? false, longDescription: parsed.data.longDescription });
+  if (aiFlags) {
+    await prisma.product.update({ where: { id: parsed.data.productId }, data: aiFlags });
+    refreshProductViews(parsed.data.productId);
+  }
+  return saved;
 }
 
 type JsonField = "keyFeatures" | "specifications" | "documents";

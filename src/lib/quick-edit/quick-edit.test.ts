@@ -4,7 +4,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Prisma, RuleScopeType } from "@prisma/client";
 import { quickEditAccess } from "./access";
-import { cleanDocs, cleanFeatures, cleanSpecs, docsFromJson, specsFromJson } from "./content";
+import { aiFlagsForTextSave, isAiRefusal, cleanDocs, cleanFeatures, cleanSpecs, docsFromJson, isLongDescriptionPlaceholder, specsFromJson } from "./content";
+import { isLongDescriptionAiGenerated } from "@/lib/ai-content";
 import { applyPriceDraft, markupForTargetPrice, parseDecimal, planPriceSave, simulateDiscountRules, simulateMarginRules, type ProductPriceFields } from "./price-draft";
 import { calculateCustomerPrice, type ProductPricingInput } from "@/lib/pricing";
 import type { Permissions } from "@/lib/permissions";
@@ -35,16 +36,16 @@ test("todas las acciones de la edición rápida validan el permiso antes de hace
   const root = join(__dirname, "..", "..");
   const shared = readFileSync(join(root, "server", "quick-edit", "shared.ts"), "utf8");
   assert.match(shared, /requireStaff\("products\.edit", \{ costs: true \}\)/);
-  for (const file of ["quick-edit.ts", "quick-edit-pricing.ts"]) {
+  for (const file of ["quick-edit.ts", "quick-edit-pricing.ts", "quick-edit-ai.ts"]) {
     const source = readFileSync(join(root, "server", "actions", file), "utf8");
     assert.match(source, /^"use server";/);
     const bodies = source.split(/\nexport async function /).slice(1);
-    assert.ok(bodies.length >= 3, `${file}: se esperaban acciones exportadas`);
+    assert.ok(bodies.length >= 2, `${file}: se esperaban acciones exportadas`);
     for (const body of bodies) {
       const name = body.slice(0, body.indexOf("("));
       const guard = body.indexOf("await requireQuickEdit()");
       assert.ok(guard > 0, `${file} › ${name} no llama a requireQuickEdit`);
-      for (const touch of ["prisma.", "saveProductPatch(", "proposePriceReview("]) {
+      for (const touch of ["prisma.", "saveProductPatch(", "proposePriceReview(", "generateShortDescription(", "generateLongDescription(", "loadContext("]) {
         const at = body.indexOf(touch);
         assert.ok(at === -1 || at > guard, `${file} › ${name} toca datos antes del permiso`);
       }
@@ -214,4 +215,29 @@ test("precio final buscado → markup, y números en castellano", () => {
   assert.equal(parseDecimal("1.8"), 1.8);
   assert.equal(parseDecimal(""), null);
   assert.equal(parseDecimal("abc"), null);
+});
+
+// ── IA en Textos ──
+
+test("guardar una larga generada con IA la marca (cartel); un guardado a mano no toca la marca", () => {
+  const long = "Amplificador de 8 canales para instalaciones residenciales con control por red y salida de 60 W por canal.";
+  const flags = aiFlagsForTextSave({ longFromAi: true, longDescription: long });
+  assert.deepEqual(flags, { aiGeneratedDescription: true, aiDescriptionFeedbackStatus: "PENDING" });
+  assert.equal(isLongDescriptionAiGenerated({ ...flags!, longDescription: long }), true);
+  assert.equal(aiFlagsForTextSave({ longFromAi: false, longDescription: long }), null);
+  assert.equal(aiFlagsForTextSave({ longFromAi: true, longDescription: "   " }), null);
+});
+
+test("el relleno del generador largo (sin IA o con error) no se ofrece como resultado", () => {
+  assert.equal(isLongDescriptionPlaceholder("SA-8 — descripción profesional no disponible en este momento."), true);
+  assert.equal(isLongDescriptionPlaceholder("SA-8 (Sonance) — descripción técnica profesional pendiente de generar. "), true);
+  assert.equal(isLongDescriptionPlaceholder(""), true);
+  assert.equal(isLongDescriptionPlaceholder("Amplificador de ocho canales para audio distribuido."), false);
+});
+
+test("una respuesta de «no sé» de la IA no se ofrece como descripción", () => {
+  assert.equal(isAiRefusal("Lo siento, no hay datos disponibles sobre el modelo SW-HS-3-C de Crestron."), true);
+  assert.equal(isAiRefusal("No tengo información sobre este producto."), true);
+  assert.equal(isAiRefusal("La licencia SW-HS-3-C habilita la agenda de salas en la nube de Crestron."), false);
+  assert.equal(isAiRefusal("No requiere servidor local: la agenda corre en la nube."), false);
 });

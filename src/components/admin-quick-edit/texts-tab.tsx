@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Plus } from "lucide-react";
+import { Loader2, Plus, Sparkles, Wand2 } from "lucide-react";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUnsavedValue } from "@/hooks/use-unsaved-changes-guard";
 import { saveQuickEditContent, saveQuickEditTexts, type QuickEditData } from "@/server/actions/quick-edit";
 import type { SpecRow } from "@/lib/quick-edit/content";
+import { draftQuickEditLongDescription, draftQuickEditShortDescription, type AiDraftResult } from "@/server/actions/quick-edit-ai";
 import { CharCount, RowTools, SaveBar, SectionHead, moveInList, useFeedback } from "./parts";
 
 interface TabProps {
@@ -35,15 +36,40 @@ export function TextsTab({ data, onSaved, onDirty }: TabProps) {
   const [contentFeedback, setContentFeedback] = useFeedback();
   const [savingTexts, startTexts] = useTransition();
   const [savingContent, startContent] = useTransition();
+  // IA: el texto generado va al campo para revisarlo; se guarda recién con «Guardar textos».
+  const [aiBusy, setAiBusy] = useState<"short" | "long" | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiFresh, setAiFresh] = useState<{ short: boolean; long: boolean }>({ short: false, long: false });
+  const [longFromAi, setLongFromAi] = useState(false);
+
+  async function generate(field: "short" | "long") {
+    setAiError(null);
+    setAiBusy(field);
+    try {
+      const input = { productId: p.id, name: texts.name, shortDescription: texts.short, longDescription: texts.long };
+      const result: AiDraftResult = field === "short" ? await draftQuickEditShortDescription(input) : await draftQuickEditLongDescription(input);
+      if (!result.ok) return setAiError(result.error);
+      setTexts((t) => ({ ...t, [field]: result.text }));
+      setAiFresh((f) => ({ ...f, [field]: true }));
+      if (field === "long") setLongFromAi(true);
+    } catch {
+      setAiError("No se pudo hablar con la IA. Probá de nuevo.");
+    } finally {
+      setAiBusy(null);
+    }
+  }
 
   function saveTexts() {
     setTextsFeedback(null);
     startTexts(async () => {
       try {
-        const result = await saveQuickEditTexts({ productId: p.id, name: texts.name, shortDescription: texts.short, longDescription: texts.long });
+        const result = await saveQuickEditTexts({ productId: p.id, name: texts.name, shortDescription: texts.short, longDescription: texts.long, longFromAi });
         if (!result.ok) return setTextsFeedback({ tone: "error", text: result.error });
         textsGuard.markSaved();
-        setTextsFeedback({ tone: "ok", text: result.notice ?? "Textos guardados. La ficha ya muestra los nuevos." });
+        const markedAi = longFromAi && !!texts.long.trim();
+        setAiFresh({ short: false, long: false });
+        setLongFromAi(false);
+        setTextsFeedback({ tone: "ok", text: result.notice ?? (markedAi ? "Textos guardados. La descripción larga queda marcada como generada con IA." : "Textos guardados. La ficha ya muestra los nuevos.") });
         onSaved();
       } catch (error) {
         setTextsFeedback({ tone: "error", text: errorText(error) });
@@ -101,18 +127,32 @@ export function TextsTab({ data, onSaved, onDirty }: TabProps) {
           </dl>
           <div>
             <div className="flex items-baseline justify-between">
-              <Label htmlFor="qe-short">Descripción corta</Label>
-              <CharCount value={texts.short} max={500} />
+              <Label htmlFor="qe-short">Descripción corta{aiFresh.short ? <AiMark /> : null}</Label>
+              <span className="flex items-center gap-2">
+                <AiButton busy={aiBusy === "short"} disabled={aiBusy !== null || savingTexts} filled={!!texts.short.trim()} onClick={() => void generate("short")} what="descripción corta" />
+                <CharCount value={texts.short} max={500} />
+              </span>
             </div>
             <Textarea id="qe-short" rows={3} value={texts.short} onChange={(e) => setTexts({ ...texts, short: e.target.value })} placeholder="Una o dos líneas: qué es y para qué sirve." />
           </div>
           <div>
             <div className="flex items-baseline justify-between">
-              <Label htmlFor="qe-long">Descripción larga</Label>
-              <CharCount value={texts.long} max={20000} />
+              <Label htmlFor="qe-long">Descripción larga{aiFresh.long ? <AiMark /> : null}</Label>
+              <span className="flex items-center gap-2">
+                <AiButton busy={aiBusy === "long"} disabled={aiBusy !== null || savingTexts} filled={!!texts.long.trim()} onClick={() => void generate("long")} what="descripción larga" />
+                <CharCount value={texts.long} max={20000} />
+              </span>
             </div>
             <Textarea id="qe-long" rows={10} value={texts.long} onChange={(e) => setTexts({ ...texts, long: e.target.value })} className="font-[450] leading-relaxed" />
-            <p className="mt-1 text-[11px] text-muted-foreground">Cada renglón se muestra como un párrafo.{p.aiGenerated ? " Esta descripción figura como generada con IA." : ""}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Cada renglón se muestra como un párrafo.
+              {longFromAi ? " Generada con IA: revisala antes de guardar. Al guardar, la ficha muestra el cartel «Descripción generada con IA»." : p.aiGenerated ? " Esta descripción figura como generada con IA." : ""}
+            </p>
+            {aiError ? (
+              <p role="alert" className="mt-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {aiError}
+              </p>
+            ) : null}
           </div>
         </div>
         <SaveBar
@@ -120,7 +160,11 @@ export function TextsTab({ data, onSaved, onDirty }: TabProps) {
           pending={savingTexts}
           feedback={textsFeedback}
           onSave={saveTexts}
-          onDiscard={() => setTexts({ name: p.name, short: p.shortDescription, long: p.longDescription })}
+          onDiscard={() => {
+            setTexts({ name: p.name, short: p.shortDescription, long: p.longDescription });
+            setAiFresh({ short: false, long: false });
+            setLongFromAi(false);
+          }}
           label="Guardar textos"
         />
       </section>
@@ -188,6 +232,29 @@ export function TextsTab({ data, onSaved, onDirty }: TabProps) {
         />
       </section>
     </div>
+  );
+}
+
+function AiMark() {
+  return (
+    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 align-middle text-[10px] font-medium text-accent">
+      <Sparkles className="h-3 w-3" /> Recién generada, sin guardar
+    </span>
+  );
+}
+
+function AiButton({ busy, disabled, filled, onClick, what }: { busy: boolean; disabled: boolean; filled: boolean; onClick: () => void; what: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={`${filled ? "Regenerar" : "Generar"} la ${what} con IA: queda en el campo para revisarla antes de guardar`}
+      className="inline-flex h-7 items-center gap-1.5 rounded-full border border-accent/30 bg-accent/[0.06] px-2.5 text-[11px] font-medium text-accent transition-colors hover:bg-accent/15 disabled:opacity-50"
+    >
+      {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+      {busy ? "Generando…" : filled ? "Regenerar con IA" : "Generar con IA"}
+    </button>
   );
 }
 

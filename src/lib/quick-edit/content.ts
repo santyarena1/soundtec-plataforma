@@ -108,3 +108,26 @@ export function cleanDocs(input: unknown): Parsed<Array<{ name: string; nameEs: 
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   return { ok: true, data: parsed.data.map((d) => ({ name: d.name, nameEs: d.name, url: d.url })) };
 }
+
+/**
+ * Marca de IA al guardar los textos de la edición rápida (criterio de src/lib/ai-content.ts):
+ * si la descripción larga que se guarda salió del botón de IA (aunque después se retocara a mano),
+ * queda marcada como generada (flag + estado de revisión) para el cartel «Generado con IA».
+ * Si no se usó la IA, no se toca la marca: un guardado a mano no la pone ni la saca.
+ */
+export function aiFlagsForTextSave(input: { longFromAi: boolean; longDescription: string }): { aiGeneratedDescription: true; aiDescriptionFeedbackStatus: "PENDING" } | null {
+  if (!input.longFromAi || !input.longDescription.trim()) return null;
+  return { aiGeneratedDescription: true, aiDescriptionFeedbackStatus: "PENDING" };
+}
+
+/** El generador largo devuelve un texto de relleno cuando la IA falla: no sirve como resultado. */
+export function isLongDescriptionPlaceholder(text: string): boolean {
+  const t = text.trim();
+  return !t || /descripción profesional no disponible en este momento\.?$/i.test(t) || /descripción técnica profesional pendiente de generar/i.test(t);
+}
+
+/** La IA contestó que no sabe del producto («Lo siento, no hay datos…»): no es una descripción. */
+export function isAiRefusal(text: string): boolean {
+  const start = text.trim().slice(0, 160).toLowerCase();
+  return /^(lo siento|lamentablemente|disculp|no (tengo|hay|cuento con|dispongo de|puedo))/.test(start) || /\bcomo (modelo de lenguaje|ia)\b/.test(start);
+}
