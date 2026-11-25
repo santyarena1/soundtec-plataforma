@@ -3248,4 +3248,18 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "«Cómo funciona» con los textos nuevos: buscá en el catálogo, activá tus descuentos, envialo al equipo y recibí tu cotización. Los dos últimos pasos dicen «Próximamente» mientras los pedidos estén pausados." },
     ],
   },
+  {
+    id: "ship-2026-11-25-resultados-unificados",
+    version: "2.64.0",
+    releasedAt: "2026-11-25T19:00:00.000Z",
+    summary: "Resultados del catálogo: una sola grilla sin títulos por rubro ni «Destacados», las series debajo de los rubros, y la barra de marcas filtra el grupo entero apenas tocás la principal (Crestron ahora es un grupo con Crestron Home adentro).",
+    items: [
+      { kind: "MEJORA", text: "Barra de marcas de los resultados: tocar una marca con submarcas (SoundTube, Atlona, Sonance, Crestron) filtra ya todo el grupo («Ver todas») y abre debajo sus submarcas para afinar si querés. Tocarla de nuevo con el grupo entero elegido solo abre o cierra el desplegable (no la deselecciona); con una submarca elegida, vuelve a «Ver todas»." },
+      { kind: "MEJORA", text: "Animación del desplegable: se abre suave (alto y fundido), una flecha lo une con la marca tocada, las submarcas entran en cascada y un realce se desliza hasta lo elegido. El filtro se aplica en el momento; con «reducir movimiento» del sistema aparece sin animación." },
+      { kind: "MEJORA", text: "Crestron en la barra es un grupo más: principal Crestron con Crestron Home adentro. «Ver todas» muestra todos los productos Crestron; Crestron Home sigue filtrando por compatibilidad. En el menú de marcas (la grilla para entrar) sigue la caja dividida Crestron | Crestron Home." },
+      { kind: "MEJORA", text: "Admin › Marcas: la opción del grupo pasa a llamarse «Caja dividida en el menú» (solo cambia el menú; en la barra los grupos van siempre juntos)." },
+      { kind: "MEJORA", text: "Filtro «Series» del fabricante: pasa a la columna izquierda, debajo de Rubros, con el mismo estilo (lista con cantidades, la elegida marcada y «Limpiar serie»). En tablet y celular va en el mismo botón «Rubros y series». Aparece con una marca, un grupo de marcas o Crestron Home cuando hay 2 o más series; en un grupo, dos series con el mismo nombre llevan la marca." },
+      { kind: "MEJORA", text: "Resultados unificados: se sacaron los encabezados «Destacados» y por rubro (y la línea «sigue de la página anterior»). El orden de la marca se mantiene (destacados primero, después los rubros en el orden elegido) pero en una sola grilla continua; el cliente no ve estrellas ni marcas, el equipo sigue viendo la estrella para destacar. La vista previa «Así lo ve el cliente» de Admin › Marcas muestra la misma grilla continua, numerada." },
+    ],
+  },
 ];

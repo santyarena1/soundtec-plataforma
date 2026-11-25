@@ -63,10 +63,8 @@ export interface ListingSection {
   context: string | null;
   /** Lugar en el orden elegido (0 = primero) o null si sale por nombre. */
   chosenPosition: number | null;
-  /** Índice del primer producto de la sección (en la lista o en la página). */
+  /** Índice del primer producto de la sección en la lista ordenada. */
   startIndex: number;
-  /** La sección empezó en una página anterior. */
-  continued?: boolean;
 }
 
 const LAST = "￿";
@@ -192,22 +190,6 @@ export function brandListingComparator<T extends BrandListingItem>(options: {
   fallback: (a: T, b: T) => number;
 }): (a: T, b: T) => number {
   return createBrandListingIndex(options).comparator(options.fallback);
-}
-
-/**
- * Las secciones que caen en una página: la que viene de la página anterior se
- * repite arriba (marcada `continued`) para que la página no arranque sin título.
- */
-export function sectionsForPage(sections: readonly ListingSection[], start: number, pageSize: number): ListingSection[] {
-  const end = start + pageSize;
-  const out: ListingSection[] = [];
-  sections.forEach((section, i) => {
-    const next = sections[i + 1]?.startIndex ?? Number.POSITIVE_INFINITY;
-    if (next <= start || section.startIndex >= end) return;
-    const continued = section.startIndex < start;
-    out.push({ ...section, startIndex: Math.max(0, section.startIndex - start), ...(continued ? { continued } : {}) });
-  });
-  return out;
 }
 
 /** Ruta legible de cada rubro, para agrupar («SONIDO > BAFLES PASIVOS»). */

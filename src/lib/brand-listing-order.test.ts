@@ -9,7 +9,6 @@ import {
   ordinal,
   resolveCategoryOrder,
   rubroHighlightFor,
-  sectionsForPage,
   toggleRubroFirst,
   type BrandListingItem,
 } from "./brand-listing-order";
@@ -161,15 +160,15 @@ describe("orden por marca con el árbol de Tango", () => {
     ]);
   });
 
-  it("las secciones de una página repiten arriba la que viene de la anterior", () => {
-    const sorted = sortWith(tangoRows, ["BP"]);
-    const all = indexFor(["BP"]).sectionsOf(sorted);
-    const page2 = sectionsForPage(all, 2, 3); // productos 3 a 5: techo-1, rej-1, ip-1
-    assert.deepEqual(page2.map((s) => [s.title, s.startIndex, Boolean(s.continued)]), [
-      ["Bafles de embutir", 0, true],
-      ["Rejillas", 1, false],
-      ["Bafles IP", 2, false],
-    ]);
+  it("resultados en una sola grilla continua: destacados primero, rubros en su orden y la página 2 sigue donde terminó la 1", () => {
+    const starred = tangoRows.map((r) => (r.name === "rej-1" ? { ...r, isFeatured: true } : r));
+    const sorted = sortWith(starred, ["BP"]).map((r) => r.name);
+    const pageSize = 3;
+    const pages = [0, 1, 2].map((p) => sorted.slice(p * pageSize, (p + 1) * pageSize));
+    // Sin cortes ni repeticiones entre páginas: la lista es la misma, partida en trozos.
+    assert.deepEqual(pages.flat(), sorted.slice(0, pageSize * 3));
+    assert.deepEqual(pages[0], ["rej-1", "colg-1", "pared-1"]);
+    assert.deepEqual(pages[1].slice(0, 2), ["techo-1", "ip-1"]);
   });
 });
 

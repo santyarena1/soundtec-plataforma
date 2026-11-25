@@ -15,12 +15,32 @@ export function seriesFilterWhere(lineIds: string[]): Prisma.ProductWhereInput {
   return { lineId: { in: ids } };
 }
 
+/** Se está mirando una marca o un grupo de marcas (también Crestron Home, que filtra por compatibilidad). */
+export function isBrandScope(scope: { brandIds?: string[]; crestronOnly?: boolean }): boolean {
+  return (scope.brandIds?.length ?? 0) > 0 || !!scope.crestronOnly;
+}
+
 /**
- * El filtro «Serie» de la página de una marca aparece solo si hay una sola
- * marca elegida y esa marca tiene 2 o más series con productos visibles.
+ * El filtro «Series» (columna izquierda, debajo de Rubros) aparece cuando se
+ * mira una marca o un grupo de marcas y entre los resultados hay 2 o más series.
  */
-export function shouldShowSeriesFilter(brandIds: string[] | undefined, seriesCount: number): boolean {
-  return (brandIds?.length ?? 0) === 1 && seriesCount >= 2;
+export function shouldShowSeriesFilter(scope: { brandIds?: string[]; crestronOnly?: boolean }, seriesCount: number): boolean {
+  return isBrandScope(scope) && seriesCount >= 2;
+}
+
+/**
+ * Series para el filtro, por nombre. En un grupo de marcas dos series pueden
+ * llamarse igual: a esas se les suma la marca («Serie · Marca»).
+ */
+export function seriesFacetOptions(
+  rows: ReadonlyArray<{ id: string; name: string; brandName: string; count: number }>
+): Array<{ id: string; name: string; count: number }> {
+  const key = (name: string) => name.trim().toLowerCase();
+  const times = new Map<string, number>();
+  for (const row of rows) times.set(key(row.name), (times.get(key(row.name)) ?? 0) + 1);
+  return rows
+    .map((row) => ({ id: row.id, name: (times.get(key(row.name)) ?? 0) > 1 ? `${row.name} · ${row.brandName}` : row.name, count: row.count }))
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
 }
 
 export const MORE_FROM_SERIES_MAX = 8;

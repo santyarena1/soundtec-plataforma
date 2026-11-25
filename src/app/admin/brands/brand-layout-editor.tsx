@@ -133,9 +133,9 @@ export function BrandLayoutEditor({ initial, brandNames }: { initial: BrandGroup
               ) : null}
             </ul>
             {group.brands.length > 1 ? (
-              <label className="flex items-center gap-1.5 text-xs text-muted-foreground" title="En la barra del listado cada marca aparece por su cuenta (como Crestron y Crestron Home)">
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground" title="En el menú de marcas la caja se divide y cada marca lleva a su propio listado (como Crestron | Crestron Home). En la barra de resultados el grupo va siempre junto: la principal filtra el grupo entero y despliega las demás.">
                 <input type="checkbox" checked={group.separate ?? false} onChange={(e) => patch(index, { separate: e.target.checked || undefined })} />
-                Separadas en la barra
+                Caja dividida en el menú
               </label>
             ) : null}
             <div className="flex items-center">

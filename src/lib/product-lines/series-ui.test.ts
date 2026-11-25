@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { moreFromSeriesTitle, seriesChipLabel } from "./chip";
-import { moreFromSeriesQuery, NO_SERIES, seriesFilterWhere, shouldShowSeriesFilter } from "./series-filter";
+import { moreFromSeriesQuery, NO_SERIES, seriesFacetOptions, seriesFilterWhere, shouldShowSeriesFilter } from "./series-filter";
 
 describe("chip de serie en la tarjeta", () => {
   it("muestra «Serie X» con el nombre de la marca, sin traducir", () => {
@@ -22,13 +22,25 @@ describe("chip de serie en la tarjeta", () => {
   });
 });
 
-describe("filtro «Serie» de la marca", () => {
-  it("aparece solo con una marca elegida y 2 o más series", () => {
-    assert.equal(shouldShowSeriesFilter(["crestron"], 10), true);
-    assert.equal(shouldShowSeriesFilter(["crestron"], 1), false);
-    assert.equal(shouldShowSeriesFilter(["crestron", "sonance"], 10), false);
-    assert.equal(shouldShowSeriesFilter([], 10), false);
-    assert.equal(shouldShowSeriesFilter(undefined, 10), false);
+describe("filtro «Series» de la marca (columna izquierda, debajo de Rubros)", () => {
+  it("aparece con una marca o un grupo de marcas y 2 o más series", () => {
+    assert.equal(shouldShowSeriesFilter({ brandIds: ["crestron"] }, 10), true);
+    assert.equal(shouldShowSeriesFilter({ brandIds: ["crestron"] }, 1), false);
+    assert.equal(shouldShowSeriesFilter({ brandIds: ["soundtube", "phase"] }, 3), true);
+    assert.equal(shouldShowSeriesFilter({ brandIds: [] }, 10), false);
+    assert.equal(shouldShowSeriesFilter({}, 10), false);
+  });
+  it("Crestron Home (filtra por compatibilidad, sin marca en la URL) también cuenta como marca", () => {
+    assert.equal(shouldShowSeriesFilter({ crestronOnly: true }, 2), true);
+    assert.equal(shouldShowSeriesFilter({ crestronOnly: true }, 1), false);
+  });
+  it("en un grupo, dos series con el mismo nombre llevan la marca; el resto por nombre", () => {
+    const options = seriesFacetOptions([
+      { id: "1", name: "Signature", brandName: "SoundTube", count: 4 },
+      { id: "2", name: "Signature", brandName: "Phase Technology", count: 2 },
+      { id: "3", name: "Atmos", brandName: "SoundTube", count: 1 },
+    ]);
+    assert.deepEqual(options.map((o) => o.name), ["Atmos", "Signature · Phase Technology", "Signature · SoundTube"]);
   });
 
   it("where por serie; «none» trae los sin serie", () => {

@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/auth-helpers";
 import { getCatalog } from "@/lib/catalog";
 import { productTitle } from "@/lib/product-display";
-import { createBrandListingIndex, rubroHighlightFor, toggleRubroFirst, type ListingSection } from "@/lib/brand-listing-order";
+import { createBrandListingIndex, rubroHighlightFor, toggleRubroFirst } from "@/lib/brand-listing-order";
 import { loadBrandOrder, type ProductRubroHighlight } from "@/server/catalog/brand-listing-data";
 
 /**
@@ -137,7 +137,6 @@ export interface BrandPreviewItem {
 export interface BrandPreview {
   total: number;
   items: BrandPreviewItem[];
-  sections: ListingSection[];
 }
 
 const PREVIEW_SIZE = 24;
@@ -162,7 +161,6 @@ export async function previewBrandListing(brandId: string, order: string[]): Pro
       isFeatured: item.isFeatured,
       categoryName: item.categoryName,
     })),
-    sections: result.sections ?? [],
   };
 }
 

@@ -6,7 +6,8 @@ import { catalogFilterMeta, getCatalog, listBrandSeriesFacet, listQuickFilterCou
 import { QuickFilterBar } from "@/components/catalog/quick-filter-bar";
 import { parseCatalogSearchParams, countActiveCatalogFilters, withoutLegacyFamilyParam } from "@/lib/catalog-url";
 import { redirect } from "next/navigation";
-import { SeriesFilterBar } from "@/components/catalog/series-filter-bar";
+import { SeriesFilterPanel, hasSeriesFilter } from "@/components/catalog/series-filter-panel";
+import { CategoryDropdown } from "@/app/portal/products/catalog-category-client";
 import { CRESTRON_HOME_ID, getCatalogBrands, totalProducts } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
 import { BrandBar } from "@/app/catalogo/brand-bar";
@@ -14,7 +15,6 @@ import { StickyAccountCta } from "@/components/catalog/account-cta";
 import { CatalogToolbar } from "@/app/portal/products/catalog-toolbar";
 import { CatalogLayout } from "@/app/portal/products/catalog-sidebar";
 import { CatalogGrid } from "@/app/portal/products/catalog-grid";
-import { BrandSections } from "@/app/portal/products/brand-sections";
 import { CatalogTable } from "@/app/portal/products/catalog-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AssistantEntry } from "@/components/expo/assistant-entry";
@@ -108,7 +108,7 @@ export default async function PublicCatalogPage({
     includeOutOfStock: true,
   };
 
-  const [{ items, total, page, pageSize, sections }, meta, brandSeries, quickCounts] = await Promise.all([
+  const [{ items, total, page, pageSize }, meta, brandSeries, quickCounts] = await Promise.all([
     getCatalog(filters, ctx),
     catalogFilterMeta(filters),
     listBrandSeriesFacet(filters, ctx),
@@ -120,6 +120,14 @@ export default async function PublicCatalogPage({
   if (!viewerRole || viewerRole === "CLIENT" || isCatalogModeOn()) {
     logCatalogSearch({ query: urlState.search, results: total, surface: "catalogo", page, userId: viewerRole === "CLIENT" && !isCatalogModeOn() ? session?.user?.id : null });
   }
+
+  // Series del fabricante: el catálogo público no tiene columna de rubros, va en su desplegable arriba del listado.
+  const seriesProps = { series: brandSeries, brandIds: urlState.brandIds, crestronOnly: urlState.crestronOnly, activeIds: urlState.lineIds, params: rawParams, basePath: BASE_PATH };
+  const seriesLead = hasSeriesFilter(seriesProps) ? (
+    <CategoryDropdown label="Series">
+      <SeriesFilterPanel {...seriesProps} variant="panel" />
+    </CategoryDropdown>
+  ) : null;
 
   const pageHref = (target: number) => {
     const p = new URLSearchParams();
@@ -162,8 +170,6 @@ export default async function PublicCatalogPage({
 
       {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
 
-      <SeriesFilterBar series={brandSeries} brandIds={urlState.brandIds} activeIds={urlState.lineIds} params={rawParams} basePath={BASE_PATH} />
-
       {/* Marca «Próximamente» sin productos: solo el aviso, sin «0 resultados» ni buscador vacío. */}
       {comingSoonBrand && total === 0 ? null : (
       <CatalogLayout
@@ -173,6 +179,7 @@ export default async function PublicCatalogPage({
         publicMode
         toolbar={<CatalogToolbar state={urlState} publicMode />}
         quickFilters={<QuickFilterBar counts={quickCounts} state={urlState} params={rawParams} basePath={BASE_PATH} />}
+        lead={seriesLead}
       >
         {items.length === 0 && comingSoonBrand ? null : items.length === 0 ? (
           <EmptyState
@@ -183,7 +190,8 @@ export default async function PublicCatalogPage({
         ) : urlState.view === "table" ? (
           <CatalogTable items={items} publicMode basePath={BASE_PATH} />
         ) : (
-          <BrandSections sections={sections} items={items}>{(chunk) => <CatalogGrid items={chunk} publicMode basePath={BASE_PATH} />}</BrandSections>
+          // Una sola grilla continua (destacados primero, después los rubros en el orden de la marca), sin títulos.
+          <CatalogGrid items={items} publicMode basePath={BASE_PATH} />
         )}
 
         {totalPages > 1 ? (

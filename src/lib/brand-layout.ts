@@ -7,8 +7,9 @@
  * Con los grupos se arman solos:
  * - el menú de marcas (pantalla para elegir marca): grupos de 2 en caja
  *   compartida, de 3 o más en caja ancha, de 1 en caja suelta (de a 3 por fila);
- * - la barra arriba del listado: solo la principal de cada grupo, que despliega
- *   sus hermanas; «separadas» muestra cada marca del grupo por su cuenta.
+ * - la barra arriba del listado: solo la principal de cada grupo; al tocarla
+ *   filtra el grupo entero y despliega sus hermanas para afinar. «Separadas»
+ *   solo cambia el menú (cada marca de la caja lleva a su propio listado).
  *
  * Este módulo no toca la base, así se prueba sin datos.
  */
@@ -19,7 +20,7 @@ export const BRAND_LAYOUT_SETTING_KEY = "catalog.brand_layout";
 const brandName = z.string().trim().min(1).max(80);
 const groupSchema = z.object({
   brands: z.array(brandName).min(1).max(12),
-  /** En la barra, cada marca del grupo por su cuenta (Crestron y Crestron Home). */
+  /** En el menú de marcas, cada marca de la caja a su propio listado (Crestron | Crestron Home). La barra no lo usa. */
   separate: z.boolean().optional(),
 });
 const groupsSchema = z.object({ groups: z.array(groupSchema).max(60) });
@@ -191,7 +192,8 @@ export function buildBarEntries<B extends LayoutBrand>(resolved: ResolvedBrandGr
   const entries: BarEntry<B>[] = [];
   for (const group of resolved.groups) {
     const [lead] = group.cells;
-    if (group.separate || group.cells.length === 1 || lead.type !== "brand") {
+    // «Separadas» no aplica a la barra: Crestron + Crestron Home es un grupo más.
+    if (group.cells.length === 1 || lead.type !== "brand") {
       entries.push(...group.cells);
       continue;
     }
@@ -212,6 +214,45 @@ export function groupHref<B extends LayoutBrand & { query?: string }>(cells: Lay
   const ids = cells.flatMap((cell) => (cell.type === "brand" && !cell.brand.query ? [cell.brand.id] : []));
   if (!ids.length) return null;
   return { href: `${basePath}?${ids.map((id) => `brand=${encodeURIComponent(id)}`).join("&")}`, ids };
+}
+
+/* ───────────── Barra: tocar la principal de un grupo ───────────── */
+
+/** Mismas marcas, sin importar el orden. */
+export function sameIdSet(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const set = new Set(a);
+  return b.every((id) => set.has(id));
+}
+
+/**
+ * Qué hace tocar la principal de un grupo en la barra:
+ * - «filter»: si el grupo entero no es el filtro actual (otra marca, ninguna o
+ *   una submarca elegida), filtra ya por todo el grupo («Ver todas») y abre el desplegable;
+ * - «toggle»: si ya está filtrado el grupo entero, no se deselecciona: solo abre
+ *   o cierra el desplegable de submarcas.
+ */
+export function leadTapAction(activeIds: readonly string[], groupIds: readonly string[]): "filter" | "toggle" {
+  return groupIds.length > 0 && sameIdSet(activeIds, groupIds) ? "toggle" : "filter";
+}
+
+/**
+ * Qué está elegido dentro del desplegable de un grupo: «all» (Ver todas), una
+ * submarca (su id, también la virtual Crestron Home) o null (no es este grupo).
+ */
+export function groupSelection(activeIds: readonly string[], groupIds: readonly string[], memberIds: readonly string[]): string | null {
+  if (groupIds.length > 0 && sameIdSet(activeIds, groupIds)) return "all";
+  if (activeIds.length === 1 && memberIds.includes(activeIds[0])) return activeIds[0];
+  return null;
+}
+
+/**
+ * Submarcas del desplegable: se saca la que sería igual a «Ver todas» (en
+ * Crestron, «Ver todas» ya es todo Crestron; queda Crestron Home para afinar).
+ */
+export function panelMembers<B extends LayoutBrand>(members: LayoutCell<B>[], groupIds: readonly string[]): LayoutCell<B>[] {
+  if (groupIds.length !== 1) return members;
+  return members.filter((cell) => cell.type !== "brand" || cell.brand.id !== groupIds[0]);
 }
 
 /** Texto para lectores de pantalla: «Ver todas las marcas de Atlona: Atlona, Hall Tech, …». */

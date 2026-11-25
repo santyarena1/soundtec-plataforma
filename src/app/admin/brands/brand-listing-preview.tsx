@@ -1,12 +1,13 @@
 "use client";
 
-import { Loader2, Star } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { optimizedImage } from "@/lib/image-url";
 import type { BrandPreview } from "@/server/actions/brand-listing";
 
 /**
  * «Así lo ve el cliente»: los primeros productos de la marca en el orden real
- * (destacados arriba, después cada rubro con su encabezado), como en el portal.
+ * (destacados arriba, después los rubros en el orden elegido) en una sola
+ * grilla continua, sin títulos ni estrellas, como en el portal.
  */
 export function BrandListingPreview({
   brandName,
@@ -39,42 +40,22 @@ export function BrandListingPreview({
         {preview && preview.items.length === 0 ? (
           <p className="py-6 text-center text-xs text-muted-foreground">{brandName} no tiene productos visibles para clientes.</p>
         ) : null}
-        {preview?.sections.length
-          ? preview.sections.map((section, i) => {
-              const items = preview.items.slice(section.startIndex, preview.sections[i + 1]?.startIndex ?? preview.items.length);
-              return (
-                <div key={`${section.key}-${section.startIndex}`} className="mb-3 last:mb-0">
-                  <p className="sticky top-0 z-[1] -mx-3 flex items-baseline gap-1.5 bg-secondary/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur">
-                    {section.kind === "featured" ? <Star className="h-3 w-3 shrink-0 fill-current text-accent" aria-hidden /> : null}
-                    <span className="truncate">{section.title}</span>
-                    {section.chosenPosition != null ? (
-                      <span className="shrink-0 rounded bg-accent/15 px-1 font-medium normal-case tracking-normal text-accent">
-                        {section.chosenPosition + 1}.º en el orden
-                      </span>
-                    ) : section.kind === "rubro" ? (
-                      <span className="shrink-0 font-normal normal-case tracking-normal text-muted-foreground">por nombre</span>
-                    ) : null}
-                  </p>
-                  <ul className="mt-1 space-y-1">
-                    {items.map((item) => (
-                      <li key={item.id} className="flex items-center gap-2 rounded-md bg-card px-1.5 py-1 text-xs">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded bg-white">
-                          {item.image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={optimizedImage(item.image, 96) ?? undefined} alt="" className="h-full w-full object-contain" loading="lazy" />
-                          ) : null}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate font-medium" title={item.title}>
-                          {item.title}
-                        </span>
-                        {item.categoryName ? <span className="hidden shrink-0 truncate text-muted-foreground sm:inline">{item.categoryName}</span> : null}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })
-          : null}
+        {preview?.items.length ? (
+          <ol className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+            {preview.items.map((item, index) => (
+              <li key={item.id} className="flex min-w-0 flex-col overflow-hidden rounded-md border border-border bg-card" title={item.categoryName ? `${item.title} · ${item.categoryName}` : item.title}>
+                <span className="relative flex aspect-[4/3] items-center justify-center bg-white">
+                  {item.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={optimizedImage(item.image, 256) ?? undefined} alt="" className="h-full w-full object-contain p-1" loading="lazy" />
+                  ) : null}
+                  <span className="absolute left-1 top-1 rounded bg-background/85 px-1 text-[10px] font-medium tabular-nums text-muted-foreground">{index + 1}</span>
+                </span>
+                <span className="line-clamp-2 px-1.5 py-1 text-[11px] font-medium leading-snug">{item.title}</span>
+              </li>
+            ))}
+          </ol>
+        ) : null}
         {preview && preview.total > preview.items.length ? (
           <p className="pt-1 text-center text-[11px] text-muted-foreground">… y {preview.total - preview.items.length} más, en el mismo orden.</p>
         ) : null}

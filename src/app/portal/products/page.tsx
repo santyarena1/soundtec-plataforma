@@ -8,7 +8,7 @@ import { ConditionsToggle } from "@/components/catalog/conditions-toggle";
 import { getConditionsView } from "@/server/catalog/client-conditions";
 import { countActiveCatalogFilters, parseCatalogSearchParams, withoutLegacyFamilyParam } from "@/lib/catalog-url";
 import { redirect } from "next/navigation";
-import { SeriesFilterBar } from "@/components/catalog/series-filter-bar";
+import { SeriesFilterPanel, hasSeriesFilter } from "@/components/catalog/series-filter-panel";
 import { CRESTRON_HOME_ID } from "@/lib/catalog-brands";
 import { BrandGrid } from "@/app/catalogo/brand-grid";
 import { BrandBar } from "@/app/catalogo/brand-bar";
@@ -17,7 +17,6 @@ import { CUSTOMER_ORDERS_ENABLED } from "@/lib/customer-orders";
 import { CatalogToolbar } from "./catalog-toolbar";
 import { CatalogLayout } from "./catalog-sidebar";
 import { CatalogGrid } from "./catalog-grid";
-import { BrandSections } from "./brand-sections";
 import { getRubroHighlights } from "@/server/catalog/brand-listing-data";
 import { CatalogTable } from "./catalog-table";
 import { CatalogMultiSelectProvider } from "./catalog-multi-select";
@@ -94,7 +93,7 @@ export default async function ProductsPage({
   }
   const activeBrandId = urlState.brandIds?.length === 1 ? urlState.brandIds[0] : null;
 
-  const [listed, { items, total, page, pageSize, sections }, meta, draft, categoryTree, brandSeries, quickCounts] = await Promise.all([
+  const [listed, { items, total, page, pageSize }, meta, draft, categoryTree, brandSeries, quickCounts] = await Promise.all([
     brandsPromise,
     getCatalog(filters, ctx),
     catalogFilterMeta(filters),
@@ -107,7 +106,13 @@ export default async function ProductsPage({
   const brands = listed.brands;
   // «Destacar rubro en su marca» en cada tarjeta (equipo con permiso de estrella).
   const rubroHighlights = canFeature ? await getRubroHighlights(items.map((i) => i.id)) : undefined;
+  // Series del fabricante: debajo de Rubros (columna en PC; mismo desplegable en tablet y celular).
+  const seriesProps = { series: brandSeries, brandIds: urlState.brandIds, crestronOnly: urlState.crestronOnly, activeIds: urlState.lineIds, params: rawParams, basePath: "/portal/products" };
+  const series = hasSeriesFilter(seriesProps)
+    ? { sidebar: <SeriesFilterPanel {...seriesProps} />, panel: <SeriesFilterPanel {...seriesProps} variant="panel" /> }
+    : null;
   const categoryProps = {
+    series,
     nodes: categoryTree,
     activeId: urlState.categoryIds?.[0] ?? null,
     params: rawParams,
@@ -168,8 +173,6 @@ export default async function ProductsPage({
 
           {comingSoonBrand ? <ComingSoonBanner brand={comingSoonBrand} /> : null}
 
-          <SeriesFilterBar series={brandSeries} brandIds={urlState.brandIds} activeIds={urlState.lineIds} params={rawParams} basePath="/portal/products" />
-
       {/* Marca «Próximamente» sin productos: solo el aviso, sin «0 resultados» ni buscador vacío. */}
       {onlyComingSoon ? null : (
       <CatalogMultiSelectProvider productIds={items.map((i) => i.id)} canEditPrices={canEditPrices} canOrder={CUSTOMER_ORDERS_ENABLED}>
@@ -191,9 +194,8 @@ export default async function ProductsPage({
         ) : urlState.view === "table" ? (
           <CatalogTable items={items} internal={internal} />
         ) : (
-          <BrandSections sections={sections} items={items}>
-            {(chunk) => <CatalogGrid items={chunk} internal={internal} canFeature={canFeature} rubroHighlights={rubroHighlights} withSidebar />}
-          </BrandSections>
+          // Una sola grilla continua (destacados primero, después los rubros en el orden de la marca), sin títulos.
+          <CatalogGrid items={items} internal={internal} canFeature={canFeature} rubroHighlights={rubroHighlights} withSidebar />
         )}
 
         {totalPages > 1 ? (

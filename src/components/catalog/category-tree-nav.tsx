@@ -15,6 +15,8 @@ type Props = {
   baseQuery: string;
   /** sidebar: panel fijo de PC; panel: desplegable de tablet y celular. */
   variant?: "sidebar" | "panel";
+  /** En la columna de PC con otro panel debajo (Series): el árbol cede alto y se desplaza adentro. */
+  shrinkable?: boolean;
 };
 
 const normalize = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
@@ -31,7 +33,7 @@ function hrefFor(basePath: string, baseQuery: string, categoryId: string | null)
  * línea guía, un solo rubro principal abierto a la vez y buscador. Se recorre
  * con el teclado (flechas, Enter, Inicio y Fin).
  */
-export function CategoryTreeNav({ nodes, activeId, basePath, baseQuery, variant = "sidebar" }: Props) {
+export function CategoryTreeNav({ nodes, activeId, basePath, baseQuery, variant = "sidebar", shrinkable = false }: Props) {
   const { byId, children } = useMemo(() => {
     const byId = new Map(nodes.map((n) => [n.id, n]));
     const children = new Map<string | null, CategoryCountNode[]>();
@@ -230,7 +232,8 @@ export function CategoryTreeNav({ nodes, activeId, basePath, baseQuery, variant 
       aria-label="Rubros"
       className={cn(
         "flex flex-col rounded-xl border border-border bg-card shadow-sm",
-        variant === "sidebar" ? "max-h-[calc(100dvh-7rem)]" : "max-h-[70vh]"
+        variant === "sidebar" ? "max-h-[calc(100dvh-7rem)]" : "max-h-[70vh]",
+        shrinkable && "min-h-[14rem] shrink"
       )}
     >
       <div className="space-y-2 border-b border-border p-3">

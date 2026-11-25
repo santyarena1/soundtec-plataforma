@@ -6,6 +6,10 @@ import {
   buildBarEntries,
   groupAriaLabel,
   groupHref,
+  groupSelection,
+  leadTapAction,
+  panelMembers,
+  sameIdSet,
   packMenuRows,
   parseBrandGroups,
   resolveBrandGroups,
@@ -107,9 +111,9 @@ describe("menú de marcas (boceto)", () => {
 describe("barra de marcas", () => {
   const entries = buildBarEntries(resolveBrandGroups(DEFAULT_BRAND_GROUPS, [...REAL, b("z", "Zeta")], REAL.map((x) => x.name)));
   const label = (e: (typeof entries)[number]) => (e.type === "family" ? `${e.lead.name}+${e.members.length - 1}` : e.type === "brand" ? e.brand.name : `soon:${e.name}`);
-  it("solo la principal de cada grupo; Crestron y Crestron Home siempre separadas; las sueltas al final", () => {
+  it("solo la principal de cada grupo (Crestron también, con Crestron Home adentro); las sueltas al final", () => {
     assert.deepEqual(entries.map(label), [
-      "Crestron", "Crestron Home", "SONANCE+1", "SoundTube+6", "Atlona+4", "JAMES", "TRUFIG", "IPORT",
+      "Crestron+1", "SONANCE+1", "SoundTube+6", "Atlona+4", "JAMES", "TRUFIG", "IPORT",
       "Bluesound Professional", "BrightSign", "Dante", "FlatPanel Audio", "soon:Work Pro", "soon:Yamaha", "Zeta",
     ]);
   });
@@ -145,5 +149,56 @@ describe("enlace a un grupo entero (menú de marcas)", () => {
     ];
     assert.equal(groupHref(cells, "/portal/products")?.href, "/portal/products?brand=a");
     assert.equal(groupHref<Q>([{ type: "soon", name: "Yamaha" }], "/x"), null);
+  });
+});
+
+describe("barra: tocar la principal de un grupo", () => {
+  const atlonaGroup = ["atlona", "hall", "javelin"];
+  it("sin filtro, con otra marca o con una submarca elegida: filtra ya el grupo entero", () => {
+    assert.equal(leadTapAction([], atlonaGroup), "filter");
+    assert.equal(leadTapAction(["sonance"], atlonaGroup), "filter");
+    assert.equal(leadTapAction(["hall"], atlonaGroup), "filter");
+  });
+  it("con el grupo entero ya elegido (en cualquier orden) no se deselecciona: solo abre o cierra el desplegable", () => {
+    assert.equal(leadTapAction(["javelin", "atlona", "hall"], atlonaGroup), "toggle");
+    assert.equal(sameIdSet(["a", "b"], ["b", "a"]), true);
+    assert.equal(sameIdSet(["a"], ["a", "b"]), false);
+  });
+  it("en el desplegable queda marcado «Ver todas» o la submarca elegida", () => {
+    assert.equal(groupSelection(["hall", "atlona", "javelin"], atlonaGroup, atlonaGroup), "all");
+    assert.equal(groupSelection(["hall"], atlonaGroup, atlonaGroup), "hall");
+    assert.equal(groupSelection(["sonance"], atlonaGroup, atlonaGroup), null);
+  });
+});
+
+describe("Crestron en la barra: grupo con Crestron Home por compatibilidad", () => {
+  type Q = { id: string; name: string; query?: string };
+  const crestron: Q = { id: "cr", name: "Crestron" };
+  const home: Q = { id: "crestron-home", name: "Crestron Home", query: "crestron=1" };
+  const resolved = resolveBrandGroups<Q>(DEFAULT_BRAND_GROUPS, [crestron, home], ["Crestron", "Crestron Home"]);
+  const family = buildBarEntries(resolved).find((e) => e.type === "family");
+
+  it("es un grupo normal: principal Crestron con Crestron Home adentro", () => {
+    assert.ok(family && family.type === "family");
+    assert.equal(family.lead.id, "cr");
+    assert.deepEqual(names(family.members as LayoutCell<B>[]), ["Crestron", "Crestron Home"]);
+  });
+  it("«Ver todas» es todo Crestron (?brand=crestron): Crestron Home ya está adentro y no se filtra por marca", () => {
+    assert.ok(family && family.type === "family");
+    assert.deepEqual(groupHref(family.members, "/portal/products"), { href: "/portal/products?brand=cr", ids: ["cr"] });
+  });
+  it("en el desplegable queda Crestron Home para afinar (su enlace sigue siendo por compatibilidad)", () => {
+    assert.ok(family && family.type === "family");
+    const members = panelMembers(family.members, ["cr"]);
+    assert.deepEqual(members.map((c) => (c.type === "brand" ? c.brand.query ?? c.brand.id : c.name)), ["crestron=1"]);
+  });
+  it("tocar Crestron filtra todo Crestron; con Crestron Home elegida, el grupo está activo y la submarca marcada", () => {
+    assert.equal(leadTapAction(["crestron-home"], ["cr"]), "filter");
+    assert.equal(leadTapAction(["cr"], ["cr"]), "toggle");
+    assert.equal(groupSelection(["crestron-home"], ["cr"], ["cr", "crestron-home"]), "crestron-home");
+    assert.equal(groupSelection(["cr"], ["cr"], ["cr", "crestron-home"]), "all");
+  });
+  it("el menú de marcas sigue con la caja dividida (Crestron | Crestron Home)", () => {
+    assert.equal(packMenuRows(resolved.groups)[0][0].separate, true);
   });
 });

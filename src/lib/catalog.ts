@@ -25,10 +25,10 @@ import { loadProductViewCounts } from "@/server/catalog/product-views";
 import { SHOW_STOCK_TO_CUSTOMERS } from "@/lib/stock-display";
 import { customerHiddenCategoryIds } from "@/lib/customer-hidden-categories";
 import { customerCategoryName, isCustomerTreeNode } from "@/lib/tango-only";
-import { createBrandListingIndex, sectionsForPage, type ListingSection } from "@/lib/brand-listing-order";
+import { createBrandListingIndex } from "@/lib/brand-listing-order";
 import { loadBrandOrder } from "@/server/catalog/brand-listing-data";
 import type { QuickFilterCounts } from "@/lib/catalog-quick-filters";
-import { MORE_FROM_SERIES_MAX, moreFromSeriesQuery, NO_SERIES } from "@/lib/product-lines/series-filter";
+import { isBrandScope, MORE_FROM_SERIES_MAX, moreFromSeriesQuery, NO_SERIES, seriesFacetOptions } from "@/lib/product-lines/series-filter";
 
 /**
  * Construye el OR del filtro de búsqueda extendido. Buscar SIMULTÁNEAMENTE en:
@@ -630,8 +630,6 @@ export async function getCatalog(
   total: number;
   page: number;
   pageSize: number;
-  /** Dentro de una marca: encabezados (Destacados y rubros), con índices de la página. */
-  sections?: ListingSection[];
 }> {
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(60, Math.max(12, filters.pageSize ?? 24));
@@ -678,8 +676,8 @@ export async function getCatalog(
     const byId = new Map(products.map((p) => [p.id, p]));
     const pageProducts = pageIds.map((id) => byId.get(id)).filter((p): p is ProductRow => !!p);
     const items = await mapProductsToCatalogItems(pageProducts, ctx);
-    const sections = brandOrder ? sectionsForPage(brandOrder.sectionsOf(ordered), start, pageSize) : undefined;
-    return { items, total: ordered.length, page, pageSize, sections };
+    // Una sola grilla continua: el orden (destacados y rubros) se respeta, sin encabezados.
+    return { items, total: ordered.length, page, pageSize };
   }
 
   // ORDEN PRIMARIO: kind ASC → PRINCIPAL sale primero, ACCESORIO después.
@@ -896,20 +894,21 @@ export async function getCatalogFilterOptions() {
 }
 
 /**
- * Series de la marca abierta, con cuántos productos ve este usuario con los
- * filtros actuales (sin contar el filtro de serie, así se puede pasar de una a
- * otra). Solo con una marca elegida; para el filtro «Serie» de la marca.
+ * Series de la marca (o del grupo de marcas, o Crestron Home) abierta, con
+ * cuántos productos ve este usuario con los filtros actuales (sin contar el
+ * filtro de serie, así se puede pasar de una a otra). Para el filtro «Series»
+ * de la columna izquierda.
  */
 export async function listBrandSeriesFacet(filters: CatalogFilters, ctx: CatalogContext): Promise<FacetOption[]> {
-  if (filters.brandIds?.length !== 1 || filters.crestronOnly) return [];
+  if (!isBrandScope(filters)) return [];
   const where = await buildCatalogWhere({ ...filters, lineIds: [], page: undefined }, ctx);
   if (!where) return [];
   const groups = await prisma.product.groupBy({ by: ["lineId"], where: { AND: [where, { lineId: { not: null } }] }, _count: { _all: true } });
   const ids = groups.map((g) => g.lineId).filter((id): id is string => !!id);
   if (!ids.length) return [];
-  const rows = await prisma.productLine.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } });
+  const rows = await prisma.productLine.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, brand: { select: { name: true } } } });
   const count = new Map(groups.map((g) => [g.lineId, g._count._all]));
-  return rows.map((r) => ({ id: r.id, name: r.name, count: count.get(r.id) ?? 0 })).sort((a, b) => a.name.localeCompare(b.name, "es"));
+  return seriesFacetOptions(rows.map((r) => ({ id: r.id, name: r.name, brandName: r.brand.name, count: count.get(r.id) ?? 0 })));
 }
 
 

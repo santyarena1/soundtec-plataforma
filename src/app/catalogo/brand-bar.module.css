@@ -112,18 +112,109 @@
   }
 }
 
-/* Desplegable de un grupo en la barra: aparece apenas, sin rebote. */
-.panel {
-  animation: panel-in 0.22s ease-out;
+/*
+ * Desplegable de un grupo en la barra.
+ * - Se abre con altura (grid-template-rows 0fr → 1fr) + fundido, sin rebote.
+ * - Una flecha lo une con la principal elegida y se desliza al cambiar de grupo.
+ * - Las submarcas entran en cascada (35 ms entre una y otra).
+ * - Un realce se desliza hasta lo elegido («Ver todas» o una submarca).
+ * Con «reducir movimiento» todo aparece en su lugar, sin animación.
+ */
+.panelWrap {
+  --ease-panel: cubic-bezier(0.22, 1, 0.36, 1);
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 0.28s var(--ease-panel),
+    opacity 0.2s ease,
+    visibility 0s linear 0.28s;
+}
+.panelWrap[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows 0.3s var(--ease-panel),
+    opacity 0.26s ease,
+    visibility 0s;
+}
+.panelClip {
+  min-height: 0;
+  overflow: hidden;
+}
+.panelInner {
+  position: relative;
+  padding-top: 0.625rem;
+}
+.panelWrap[data-open="true"] .panel {
+  animation: panel-in 0.3s var(--ease-panel) both;
 }
 @keyframes panel-in {
   from {
-    opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-6px);
   }
 }
+
+/* Flecha que une la principal con su desplegable. */
+.caret {
+  position: absolute;
+  top: 0.25rem;
+  left: -0.4375rem;
+  z-index: 1;
+  width: 0.875rem;
+  height: 0.875rem;
+  pointer-events: none;
+  transition: transform 0.32s var(--ease-panel, ease);
+}
+.caret::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  rotate: 45deg;
+  border-top: 1px solid hsl(var(--border));
+  border-left: 1px solid hsl(var(--border));
+  border-top-left-radius: 3px;
+  background: hsl(var(--card));
+}
+
+/* Submarcas en cascada: cada una con su índice (--i). */
+.panelWrap[data-open="true"] .stagger {
+  animation: chip-in 0.34s var(--ease-panel) both;
+  animation-delay: calc(60ms + var(--i, 0) * 35ms);
+}
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Realce debajo de lo elegido: se desliza de «Ver todas» a la submarca (y vuelve). */
+.mark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Ancho base de 100 px: el ancho real va con scaleX (solo transform, sin relayout). */
+  width: 100px;
+  height: 2px;
+  border-radius: 999px;
+  transform-origin: 0 0;
+  background: linear-gradient(90deg, hsl(var(--accent) / 0.2), hsl(var(--accent)), hsl(var(--accent) / 0.2));
+  pointer-events: none;
+  transition: transform 0.32s var(--ease-panel, ease);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .panel {
+  .panelWrap,
+  .panelWrap[data-open="true"],
+  .caret,
+  .mark {
+    transition: none;
+  }
+  .panelWrap[data-open="true"] .panel,
+  .panelWrap[data-open="true"] .stagger {
     animation: none;
   }
 }
