@@ -5,7 +5,7 @@ import { confirmDiscard, useUnsavedChangesGuard } from "@/hooks/use-unsaved-chan
 import { stableSerialize } from "@/lib/unsaved-guard/core";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, X } from "lucide-react";
-import { previewBulkDescriptions, saveBulkDescriptions, type DescriptionType } from "@/server/actions/product-enrichment";
+import { previewBulkDescriptions, saveBulkDescriptions, type BulkDescriptionSummary, type DescriptionType } from "@/server/actions/product-enrichment";
 
 interface Props {
   selectedIds: string[];
@@ -20,6 +20,13 @@ interface ResultRow {
   short: string | null;
   long: string | null;
   error?: string;
+  noData?: boolean;
+}
+
+function summaryText(s: BulkDescriptionSummary): string {
+  const parts = [`${s.generated} generada${s.generated === 1 ? "" : "s"}`, `${s.noData} sin datos`];
+  if (s.failed) parts.push(`${s.failed} con error`);
+  return parts.join(" · ");
 }
 
 export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
@@ -28,6 +35,7 @@ export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
   const [rows, setRows] = useState<ResultRow[]>([]);
   const [edited, setEdited] = useState<Record<string, { short?: string; long?: string }>>({});
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [summary, setSummary] = useState<BulkDescriptionSummary | null>(null);
   const [pending, start] = useTransition();
   // Lo generado por la IA no está guardado hasta «Guardar todo».
   const [savedEdited, setSavedEdited] = useState<string | null>(null);
@@ -42,6 +50,7 @@ export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
     start(async () => {
       const r = await previewBulkDescriptions(selectedIds, type);
       setRows(r.results);
+      setSummary(r.summary);
       const initial: Record<string, { short?: string; long?: string }> = {};
       for (const row of r.results) {
         initial[row.id] = { short: row.short ?? undefined, long: row.long ?? undefined };
@@ -53,10 +62,13 @@ export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
 
   function save() {
     start(async () => {
-      const items = Object.entries(edited).map(([id, v]) => ({ id, short: v.short, long: v.long }));
+      // Las filas sin datos o con error no tienen nada que guardar.
+      const items = Object.entries(edited)
+        .filter(([, v]) => (v.short ?? "").trim() || (v.long ?? "").trim())
+        .map(([id, v]) => ({ id, short: v.short, long: v.long }));
       const r = await saveBulkDescriptions(items);
       setSavedEdited(stableSerialize(Object.fromEntries(items.map(({ id, short, long }) => [id, { short, long }]))));
-      setSaveMsg(`Guardados: ${r.saved} productos.`);
+      setSaveMsg(`Guardados: ${r.saved} productos.${r.noData ? ` ${r.noData} sin guardar: el texto era una respuesta de «sin datos» de la IA.` : ""}`);
     });
   }
 
@@ -108,6 +120,16 @@ export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
 
           {step === "review" && (
             <div className="space-y-4">
+              {summary ? (
+                <p className="rounded-md border border-border bg-muted/40 px-4 py-2 text-sm">
+                  <span className="font-medium">Resumen:</span> {summaryText(summary)}
+                  {summary.noData ? (
+                    <span className="block text-xs text-muted-foreground">
+                      «Sin datos»: la IA no encontró información de esos modelos y no se propone texto. Completá la descripción corta o las especificaciones y probá de nuevo.
+                    </span>
+                  ) : null}
+                </p>
+              ) : null}
               {saveMsg ? (
                 <p className="rounded-md bg-success/10 px-4 py-2 text-sm text-success">{saveMsg}</p>
               ) : (
@@ -117,10 +139,15 @@ export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
                 <div key={row.id} className="rounded-lg border border-border p-4 space-y-2">
                   <p className="text-sm font-medium truncate">{row.name}</p>
                   {row.error ? (
-                    <p className="text-xs text-destructive">{row.error}</p>
-                  ) : (
+                    <p className={row.noData ? "text-xs text-warning" : "text-xs text-destructive"}>
+                      {row.noData ? "Sin datos · " : ""}
+                      {row.error}
+                    </p>
+                  ) : null}
+                  {/* Con «Ambas», si una salió bien se muestra solo esa; la que no tenía datos no se propone. */}
+                  {!row.error || row.short || row.long ? (
                     <>
-                      {(type === "short" || type === "both") && (
+                      {(type === "short" || type === "both") && (!row.error || row.short) && (
                         <div>
                           <p className="mb-1 text-xs font-medium text-muted-foreground">Descripción corta</p>
                           <textarea
@@ -131,7 +158,7 @@ export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
                           />
                         </div>
                       )}
-                      {(type === "long" || type === "both") && (
+                      {(type === "long" || type === "both") && (!row.error || row.long) && (
                         <div>
                           <p className="mb-1 text-xs font-medium text-muted-foreground">Descripción larga</p>
                           <textarea
@@ -143,7 +170,7 @@ export function BulkDescriptionsModal({ selectedIds, onClose }: Props) {
                         </div>
                       )}
                     </>
-                  )}
+                  ) : null}
                 </div>
               ))}
             </div>

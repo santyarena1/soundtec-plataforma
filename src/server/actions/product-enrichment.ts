@@ -14,6 +14,8 @@ import { matchRubroPath } from "@/lib/ai-rubro-path";
 import { tangoPathLabel } from "@/lib/tango-tree";
 import { searchProductImages, searchProductImagesOrError, type SerperImage } from "@/services/serper";
 import { getSetting, setSetting } from "@/lib/settings";
+import { AI_NO_DATA_ERROR, checkAiDescription } from "@/lib/ai-text-guard";
+import { DESCRIPTION_PRODUCT_INCLUDE, longDescriptionInput } from "@/lib/ai-description-context";
 import { moveProductImageFirst } from "@/server/catalog/product-gallery";
 import { GALLERY_IMAGE_ORDER } from "@/lib/product-media";
 
@@ -172,6 +174,9 @@ export async function applyClassificationSuggestion(input: {
   return { ok: true, applied, notApplied };
 }
 
+/** Resultado de «Generar con IA»: `noData` = la IA no tenía datos del modelo (no se guardó nada). */
+export type DescriptionActionResult = { ok: boolean; description?: string; error?: string; noData?: boolean };
+
 /**
  * Genera la descripción corta y la persiste. NO toca aiGeneratedDescription:
  * ese flag es de la descripción larga (cartel «Generado con IA» de la ficha) y
@@ -179,7 +184,7 @@ export async function applyClassificationSuggestion(input: {
  */
 export async function generateProductShortDescription(
   productId: string
-): Promise<{ ok: boolean; description?: string; error?: string }> {
+): Promise<DescriptionActionResult> {
   try {
     await requireStaff("products.edit", { costs: true });
     const p = await prisma.product.findUnique({
@@ -201,17 +206,19 @@ export async function generateProductShortDescription(
       },
       noFallback: true,
     });
-    if (!text) {
+    const verdict = checkAiDescription(text);
+    if (!verdict.ok) {
+      if (verdict.reason === "no_data") return { ok: false, noData: true, error: AI_NO_DATA_ERROR };
       return { ok: false, error: "La IA no pudo generar la descripción. Revisá la clave de OpenAI o probá de nuevo." };
     }
 
     await prisma.product.update({
       where: { id: productId },
-      data: { shortDescription: text },
+      data: { shortDescription: verdict.text },
     });
     revalidatePath(`/admin/products/${productId}`);
     revalidatePath(`/portal/products/${productId}`);
-    return { ok: true, description: text };
+    return { ok: true, description: verdict.text };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error desconocido";
     return { ok: false, error: msg };
@@ -247,33 +254,34 @@ export async function saveProductDescriptions(input: {
 
 export async function generateProductDescription(
   productId: string
-): Promise<{ ok: boolean; description?: string; error?: string }> {
+): Promise<DescriptionActionResult> {
   try {
     await requireStaff("products.edit", { costs: true });
     const p = await prisma.product.findUnique({
       where: { id: productId },
-      include: { brand: true, category: true },
+      include: DESCRIPTION_PRODUCT_INCLUDE,
     });
     if (!p) return { ok: false, error: "Producto no encontrado." };
 
-    const text = await generateLongDescription({
-      name: p.normalizedName,
-      brand: p.brand?.name,
-      category: p.category?.name,
-      short: p.shortDescription || undefined,
-    });
+    const text = await generateLongDescription(longDescriptionInput(p));
+    // Negativa («Lo siento, no hay datos…») o relleno: no se guarda.
+    const verdict = checkAiDescription(text);
+    if (!verdict.ok) {
+      if (verdict.reason === "no_data") return { ok: false, noData: true, error: AI_NO_DATA_ERROR };
+      return { ok: false, error: "La IA no pudo generar la descripción. Revisá la clave de OpenAI o probá de nuevo." };
+    }
 
     await prisma.product.update({
       where: { id: productId },
       data: {
-        longDescription: text,
+        longDescription: verdict.text,
         aiGeneratedDescription: true,
         aiDescriptionFeedbackStatus: "PENDING",
       },
     });
     revalidatePath(`/admin/products/${productId}`);
     revalidatePath(`/portal/products/${productId}`);
-    return { ok: true, description: text };
+    return { ok: true, description: verdict.text };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error desconocido";
     return { ok: false, error: msg };
@@ -472,78 +480,136 @@ export interface BulkDescriptionResult {
   short: string | null;
   long: string | null;
   error?: string;
+  /** La IA no tenía datos del modelo (para alguno de los textos pedidos): no se propone nada. */
+  noData?: boolean;
+}
+
+export interface BulkDescriptionSummary {
+  generated: number;
+  noData: number;
+  failed: number;
+}
+
+type DraftOutcome = { text: string | null; noData: boolean; failed: boolean };
+
+function draftOutcome(raw: string): DraftOutcome {
+  const verdict = checkAiDescription(raw);
+  if (verdict.ok) return { text: verdict.text, noData: false, failed: false };
+  return { text: null, noData: verdict.reason === "no_data", failed: verdict.reason !== "no_data" };
 }
 
 /**
  * Genera descripciones en modo PREVIEW (sin guardar) para editar antes de confirmar.
+ * Las negativas de la IA («no hay datos…») y el relleno no se proponen: se cuentan como «sin datos».
  */
 export async function previewBulkDescriptions(
   productIds: string[],
   type: DescriptionType
-): Promise<{ ok: boolean; results: BulkDescriptionResult[] }> {
+): Promise<{ ok: boolean; results: BulkDescriptionResult[]; summary: BulkDescriptionSummary }> {
   await requireStaff("products.edit", { costs: true });
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
-    include: { brand: true, category: true },
+    include: DESCRIPTION_PRODUCT_INCLUDE,
   });
 
   const results: BulkDescriptionResult[] = [];
+  const summary: BulkDescriptionSummary = { generated: 0, noData: 0, failed: 0 };
   for (const p of products) {
     try {
+      const outcomes: DraftOutcome[] = [];
       let short: string | null = null;
       let long: string | null = null;
       if (type === "short" || type === "both") {
-        short = await generateShortDescription({ name: p.normalizedName, brand: p.brand?.name, category: p.category?.name });
+        const o = draftOutcome(
+          await generateShortDescription({
+            name: p.normalizedName,
+            brand: p.brand?.name,
+            category: p.category?.name,
+            facts: { modelNumber: p.modelNumber, specifications: p.specifications, keyFeatures: p.keyFeatures, longDescription: p.longDescription },
+            noFallback: true,
+          })
+        );
+        short = o.text;
+        outcomes.push(o);
       }
       if (type === "long" || type === "both") {
-        long = await generateLongDescription({ name: p.normalizedName, brand: p.brand?.name, category: p.category?.name, short: p.shortDescription || undefined });
+        const o = draftOutcome(await generateLongDescription(longDescriptionInput(p)));
+        long = o.text;
+        outcomes.push(o);
       }
-      results.push({ id: p.id, name: p.normalizedName, short, long });
+      const noData = outcomes.some((o) => o.noData);
+      const failed = !noData && outcomes.some((o) => o.failed);
+      if (noData) summary.noData++;
+      else if (failed) summary.failed++;
+      else summary.generated++;
+      results.push({
+        id: p.id,
+        name: p.normalizedName,
+        short,
+        long,
+        ...(noData ? { noData: true, error: AI_NO_DATA_ERROR } : failed ? { error: "La IA no pudo generar el texto. Probá de nuevo." } : {}),
+      });
     } catch (e) {
+      console.error("previewBulkDescriptions error", p.id, e);
+      summary.failed++;
       results.push({ id: p.id, name: p.normalizedName, short: null, long: null, error: "Error al generar" });
     }
   }
-  return { ok: true, results };
+  return { ok: true, results, summary };
 }
 
 /**
  * Guarda las descripciones revisadas/editadas desde el modal.
+ * Un texto que sigue siendo una negativa o relleno de IA no se guarda (se cuenta como «sin datos»).
  */
 export async function saveBulkDescriptions(
   items: Array<{ id: string; short?: string | null; long?: string | null }>
-): Promise<{ ok: boolean; saved: number }> {
+): Promise<{ ok: boolean; saved: number; noData: number }> {
   await requireStaff("products.edit", { costs: true });
   let saved = 0;
+  let noData = 0;
   for (const item of items) {
     const data: Record<string, unknown> = {};
-    if (item.short !== undefined) data.shortDescription = item.short || null;
-    if (item.long !== undefined) {
-      data.longDescription = item.long || null;
-      data.aiGeneratedDescription = Boolean(item.long);
-      data.aiDescriptionFeedbackStatus = item.long ? "PENDING" : null;
+    let rejected = false;
+    if (typeof item.short === "string" && item.short.trim()) {
+      const v = checkAiDescription(item.short);
+      if (v.ok) data.shortDescription = v.text;
+      else rejected = true;
     }
+    if (typeof item.long === "string" && item.long.trim()) {
+      const v = checkAiDescription(item.long);
+      if (v.ok) {
+        data.longDescription = v.text;
+        data.aiGeneratedDescription = true;
+        data.aiDescriptionFeedbackStatus = "PENDING";
+      } else rejected = true;
+    }
+    if (rejected) noData++;
     if (Object.keys(data).length) {
       await prisma.product.update({ where: { id: item.id }, data });
       saved++;
     }
   }
   revalidatePath("/admin/products");
-  return { ok: true, saved };
+  return { ok: true, saved, noData };
 }
 
 /**
  * Genera descripciones largas con IA para varios productos en lote (modo directo, sin preview).
+ * Los que la IA no tiene datos no se tocan y se cuentan aparte.
  */
 export async function bulkGenerateDescriptions(
   productIds: string[]
-): Promise<{ ok: boolean; processed: number; errors: number }> {
+): Promise<{ ok: boolean; processed: number; errors: number; noData: number }> {
   await requireStaff("products.edit", { costs: true });
   let processed = 0;
   let errors = 0;
+  let noData = 0;
   for (const id of productIds) {
     try {
       const r = await generateProductDescription(id);
       if (r.ok) processed++;
+      else if (r.noData) noData++;
       else errors++;
     } catch (e) {
       console.error("bulkGenerateDescriptions error", e);
@@ -551,7 +617,7 @@ export async function bulkGenerateDescriptions(
     }
   }
   revalidatePath("/admin/products");
-  return { ok: true, processed, errors };
+  return { ok: true, processed, errors, noData };
 }
 
 /**

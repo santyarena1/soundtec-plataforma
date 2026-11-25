@@ -119,15 +119,3 @@ export function aiFlagsForTextSave(input: { longFromAi: boolean; longDescription
   if (!input.longFromAi || !input.longDescription.trim()) return null;
   return { aiGeneratedDescription: true, aiDescriptionFeedbackStatus: "PENDING" };
 }
-
-/** El generador largo devuelve un texto de relleno cuando la IA falla: no sirve como resultado. */
-export function isLongDescriptionPlaceholder(text: string): boolean {
-  const t = text.trim();
-  return !t || /descripción profesional no disponible en este momento\.?$/i.test(t) || /descripción técnica profesional pendiente de generar/i.test(t);
-}
-
-/** La IA contestó que no sabe del producto («Lo siento, no hay datos…»): no es una descripción. */
-export function isAiRefusal(text: string): boolean {
-  const start = text.trim().slice(0, 160).toLowerCase();
-  return /^(lo siento|lamentablemente|disculp|no (tengo|hay|cuento con|dispongo de|puedo))/.test(start) || /\bcomo (modelo de lenguaje|ia)\b/.test(start);
-}

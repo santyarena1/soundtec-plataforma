@@ -14,6 +14,7 @@ import {
   rewriteQuoteTemplateBlock,
 } from "@/services/quote-orchestrator";
 import { fillMissingShortDescriptions, regenerateProductShortDescription } from "@/lib/product-short-description";
+import { AI_NO_DATA_ERROR } from "@/lib/ai-text-guard";
 import { recordQuoteSnapshot } from "@/lib/quote-edit-history";
 import { revalidatePath } from "next/cache";
 
@@ -199,7 +200,8 @@ export async function regenerateQuoteProductShortDescription(input: {
     };
   }
   try {
-    const text = await regenerateProductShortDescription(input.productId);
+    const { text, noData } = await regenerateProductShortDescription(input.productId);
+    if (noData) return { ok: false, error: `${AI_NO_DATA_ERROR} La ficha no se cambió.` };
     if (!text) return { ok: false, error: "La IA no devolvió una descripción utilizable; la ficha no se cambió." };
     revalidatePath(`/admin/quotes/${input.quoteId}`);
     revalidatePath("/admin/products");

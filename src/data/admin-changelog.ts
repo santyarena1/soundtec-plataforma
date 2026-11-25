@@ -3262,4 +3262,16 @@ export const SHIPPED_ADMIN_CHANGELOG: ShippedChangelogEntry[] = [
       { kind: "MEJORA", text: "Resultados unificados: se sacaron los encabezados «Destacados» y por rubro (y la línea «sigue de la página anterior»). El orden de la marca se mantiene (destacados primero, después los rubros en el orden elegido) pero en una sola grilla continua; el cliente no ve estrellas ni marcas, el equipo sigue viendo la estrella para destacar. La vista previa «Así lo ve el cliente» de Admin › Marcas muestra la misma grilla continua, numerada." },
     ],
   },
+  {
+    id: "ship-2026-11-25-ia-sin-datos",
+    version: "2.65.0",
+    releasedAt: "2026-11-25T22:00:00.000Z",
+    summary: "Descripciones con IA: si la IA contesta que no tiene datos del modelo («Lo siento, no hay datos disponibles…»), ya no se guarda en la ficha. Y la descripción larga se escribe con la ficha completa del producto.",
+    items: [
+      { kind: "MEJORA", text: "Ficha del admin, edición rápida y «Regenerar» de la planilla de cotización: si la IA responde que no tiene datos del modelo, o devuelve un texto de relleno, no se guarda nada y aparece «La IA no encontró datos de este modelo: completá la descripción corta o las especificaciones y probá de nuevo»." },
+      { kind: "MEJORA", text: "Generar descripciones en lote (listado de productos): los modelos sin datos no proponen texto y se cuentan aparte en el resumen («N generadas · M sin datos»). Con «Ambas», si una de las dos salió bien se muestra solo esa. Al guardar, un texto que sigue siendo una negativa de la IA no se guarda." },
+      { kind: "MEJORA", text: "La descripción larga con IA ahora usa especificaciones, características destacadas, serie, rubro completo, categoría del fabricante y un extracto de la ficha oficial cuando la hay (antes solo nombre, marca, rubro y corta). La IA tiene la instrucción de no inventar datos y de avisar cuando no tiene información, en vez de escribir una disculpa." },
+      { kind: "FIX", text: "Se vaciaron las descripciones largas que decían «No hay datos disponibles.» (PowerZone Connect 1008, rejilla 4\" SM MKII y RS600I-BK) para poder regenerarlas; dejan de mostrar el cartel «Generado con IA»." },
+    ],
+  },
 ];

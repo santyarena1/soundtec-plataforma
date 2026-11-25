@@ -9,14 +9,21 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { generateLongDescription, generateShortDescription, getOpenAiClient } from "@/services/openai";
-import { isAiRefusal, isLongDescriptionPlaceholder } from "@/lib/quick-edit/content";
+import { AI_NO_DATA_ERROR, checkAiDescription } from "@/lib/ai-text-guard";
+import { DESCRIPTION_PRODUCT_INCLUDE, longDescriptionInput } from "@/lib/ai-description-context";
 import { requireQuickEdit } from "@/server/quick-edit/shared";
 
 export type AiDraftResult = { ok: true; text: string } | { ok: false; error: string };
 
 const NO_KEY = "No hay clave de IA configurada: cargala en Configuración › Integraciones (OpenAI) y probá de nuevo.";
 const FAILED = "La IA no pudo generar el texto. Probá de nuevo en unos segundos.";
-const NO_DATA = "La IA no encontró datos suficientes de este producto para escribir una descripción confiable. Completá la descripción corta o las especificaciones y probá de nuevo, o escribila a mano.";
+const NO_DATA = AI_NO_DATA_ERROR;
+
+function toDraft(text: string): AiDraftResult {
+  const verdict = checkAiDescription(text);
+  if (verdict.ok) return { ok: true, text: verdict.text };
+  return { ok: false, error: verdict.reason === "no_data" ? NO_DATA : FAILED };
+}
 
 const inputSchema = z.object({
   productId: z.string().min(1).max(64),
@@ -31,7 +38,7 @@ async function loadContext(input: z.input<typeof inputSchema>) {
   if (!parsed.success) return null;
   const p = await prisma.product.findUnique({
     where: { id: parsed.data.productId },
-    include: { brand: { select: { name: true } }, category: { select: { name: true } } },
+    include: DESCRIPTION_PRODUCT_INCLUDE,
   });
   if (!p) return null;
   return {
@@ -62,8 +69,7 @@ export async function draftQuickEditShortDescription(input: z.input<typeof input
       },
       noFallback: true,
     });
-    if (!text.trim()) return { ok: false, error: FAILED };
-    return isAiRefusal(text) ? { ok: false, error: NO_DATA } : { ok: true, text: text.trim() };
+    return toDraft(text);
   } catch (error) {
     console.error("[quick-edit] IA descripción corta", error);
     return { ok: false, error: FAILED };
@@ -77,14 +83,9 @@ export async function draftQuickEditLongDescription(input: z.input<typeof inputS
   if (!ctx) return { ok: false, error: "Producto no encontrado." };
   if (!(await getOpenAiClient())) return { ok: false, error: NO_KEY };
   try {
-    const text = await generateLongDescription({
-      name: ctx.name,
-      brand: ctx.product.brand?.name,
-      category: ctx.product.category?.name,
-      short: ctx.short.trim() || undefined,
-    });
-    if (isLongDescriptionPlaceholder(text)) return { ok: false, error: FAILED };
-    return isAiRefusal(text) ? { ok: false, error: NO_DATA } : { ok: true, text: text.trim() };
+    // Lo escrito en el panel (nombre, corta) manda sobre lo guardado.
+    const text = await generateLongDescription(longDescriptionInput(ctx.product, { name: ctx.name, short: ctx.short }));
+    return toDraft(text);
   } catch (error) {
     console.error("[quick-edit] IA descripción larga", error);
     return { ok: false, error: FAILED };

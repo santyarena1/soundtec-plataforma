@@ -13,6 +13,8 @@
 
 import OpenAI from "openai";
 import { getSetting } from "@/lib/settings";
+import { AI_NO_DATA_INSTRUCTION } from "@/lib/ai-text-guard";
+import { longFactsForPrompt, shortFactsForPrompt, type DescriptionFacts, type LongDescriptionInput } from "@/lib/ai-description-context";
 
 const CANONICAL_FIELDS = [
   "sku",
@@ -147,7 +149,7 @@ Respondé sólo un JSON con un array "items" en este formato exacto:
   }
 }
 
-export async function generateLongDescription(input: { name: string; brand?: string; category?: string; short?: string }): Promise<string> {
+export async function generateLongDescription(input: LongDescriptionInput): Promise<string> {
   const client = await getClient();
   if (!client) {
     return `${input.name} (${input.brand || "marca"}) — descripción técnica profesional pendiente de generar. ${input.short || ""}`;
@@ -156,6 +158,7 @@ export async function generateLongDescription(input: { name: string; brand?: str
     const model = await getModel();
     const customSystemPrompt = await getSetting("ai.prompt.long_description", "");
     const systemPrompt = customSystemPrompt || "Sos un copywriter técnico B2B para productos audiovisuales profesionales. Escribís en español, neutro, claro, sin marketing barato.";
+    const facts = input.facts ? longFactsForPrompt(input.facts) : "";
     const resp = await client.chat.completions.create({
       model,
       messages: [
@@ -165,9 +168,13 @@ export async function generateLongDescription(input: { name: string; brand?: str
           content: `Generá una descripción larga (4-7 oraciones) para:
 Producto: ${input.name}
 Marca: ${input.brand || "—"}
-Categoría: ${input.category || "—"}
+Rubro: ${input.category || "—"}
 Resumen previo: ${input.short || "—"}
-Indicá usos típicos, integración y datos técnicos relevantes sólo si los conocés. No inventes datos numéricos críticos.`,
+${facts ? `Datos de la ficha (fuente principal; usalos y no los contradigas):
+${facts}` : "No hay ficha técnica cargada."}
+Indicá qué es, usos típicos, integración y datos técnicos relevantes, solo los que estén en los datos o que conozcas con certeza de este modelo exacto. No inventes datos numéricos, protocolos ni compatibilidades.
+${AI_NO_DATA_INSTRUCTION}
+Devolvé solo la descripción, sin título ni comillas.`,
         },
       ],
     });
@@ -179,38 +186,7 @@ Indicá usos típicos, integración y datos técnicos relevantes sólo si los co
 }
 
 /** Datos de ficha que se le pasan a la IA para que no tenga que adivinar. */
-export type ShortDescriptionFacts = {
-  originalName?: string | null;
-  modelNumber?: string | null;
-  specifications?: unknown;
-  keyFeatures?: unknown;
-  longDescription?: string | null;
-};
-
-function factsForPrompt(facts: ShortDescriptionFacts): string {
-  const lines: string[] = [];
-  if (facts.originalName) lines.push(`Nombre del proveedor: ${facts.originalName.slice(0, 200)}`);
-  if (facts.modelNumber) lines.push(`Modelo: ${facts.modelNumber}`);
-  if (Array.isArray(facts.keyFeatures)) {
-    const kf = facts.keyFeatures.filter((f): f is string => typeof f === "string" && f.trim().length > 0).slice(0, 6);
-    if (kf.length) lines.push(`Características: ${kf.map((f) => f.trim().slice(0, 140)).join(" | ")}`);
-  }
-  if (Array.isArray(facts.specifications)) {
-    const specs = facts.specifications
-      .map((row) => {
-        if (!row || typeof row !== "object") return "";
-        const o = row as Record<string, unknown>;
-        const label = String(o.labelEs ?? o.label ?? "").trim();
-        const value = String(o.valueEs ?? o.value ?? "").trim();
-        return label && value ? `${label.slice(0, 50)}: ${value.slice(0, 100)}` : "";
-      })
-      .filter(Boolean)
-      .slice(0, 10);
-    if (specs.length) lines.push(`Specs: ${specs.join(" | ")}`);
-  }
-  if (facts.longDescription?.trim()) lines.push(`Ficha: ${facts.longDescription.replace(/\s+/g, " ").trim().slice(0, 600)}`);
-  return lines.join("\n");
-}
+export type ShortDescriptionFacts = DescriptionFacts;
 
 /**
  * Descripción corta de catálogo. Con `noFallback`, si no hay clave o la IA
@@ -239,7 +215,7 @@ export async function generateShortDescription(input: {
     const lengthRule = input.compact
       ? "El resultado DEBE tener entre 15 y 20 palabras: una sola frase, qué es y para qué sirve. Sin adjetivos vacíos ni preguntas."
       : "Generá una descripción corta (1-2 oraciones, máximo 120 palabras). Sé directo: qué es y para qué sirve. Sin adjetivos vacíos.";
-    const facts = input.facts ? factsForPrompt(input.facts) : "";
+    const facts = input.facts ? shortFactsForPrompt(input.facts) : "";
     const resp = await client.chat.completions.create({
       model,
       messages: [
@@ -253,6 +229,7 @@ Marca: ${input.brand || "—"}
 ${input.facts ? "Categoría de catálogo (amplia, no define qué es el equipo)" : "Categoría"}: ${input.category || "—"}
 ${facts ? `Datos de la ficha (única fuente de capacidades):
 ${facts}` : "No hay ficha técnica: decí solo qué tipo de equipo es, sin capacidades."}
+${AI_NO_DATA_INSTRUCTION}
 ${input.avoid ? `Escribí una versión distinta a esta, no la copies: "${input.avoid}"` : ""}
 Devolvé solo la frase, sin comillas.`,
         },

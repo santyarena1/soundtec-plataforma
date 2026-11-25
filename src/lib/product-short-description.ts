@@ -2,17 +2,21 @@ import { prisma } from "@/lib/prisma";
 import { clipToWords } from "@/lib/quote-product-line";
 import { generateShortDescription } from "@/services/openai";
 import { hasProductFacts } from "@/lib/quote-ai-items";
+import { checkAiDescription } from "@/lib/ai-text-guard";
 
 /** Tope de descripciones que se generan por pedido (cada una es una llamada paga). */
 export const SHORT_DESCRIPTION_BATCH_LIMIT = 5;
 const SHORT_DESCRIPTION_CONCURRENCY = 3;
 
+/** Resultado de escribir la corta: `noData` = sin ficha o la IA dijo que no tiene datos del modelo. */
+export type ShortDescriptionWrite = { text: string | null; noData?: boolean };
+
 export async function fillMissingShortDescription(productId: string): Promise<string | null> {
-  return writeProductShortDescription(productId, { replace: false });
+  return (await writeProductShortDescription(productId, { replace: false })).text;
 }
 
 /** Reescribe la descripción corta del producto y la deja guardada en el catálogo. */
-export async function regenerateProductShortDescription(productId: string): Promise<string | null> {
+export async function regenerateProductShortDescription(productId: string): Promise<ShortDescriptionWrite> {
   return writeProductShortDescription(productId, { replace: true });
 }
 
@@ -58,18 +62,18 @@ export async function fillMissingShortDescriptions(
 async function writeProductShortDescription(
   productId: string,
   options: { replace: boolean }
-): Promise<string | null> {
+): Promise<ShortDescriptionWrite> {
   const product = await prisma.product.findUnique({
     where: { id: productId },
     include: { brand: true, category: true },
   });
-  if (!product) return null;
+  if (!product) return { text: null };
   const current = product.shortDescription?.trim() || "";
-  if (current && !options.replace) return current;
+  if (current && !options.replace) return { text: current };
 
   // Sin ficha ni nombre descriptivo no hay de dónde sacar qué es el equipo: la
   // IA terminaba adivinando por la categoría. Mejor dejarlo vacío.
-  if (!hasProductFacts(product)) return null;
+  if (!hasProductFacts(product)) return { text: null, noData: true };
 
   const text = await generateShortDescription({
     name: product.normalizedName,
@@ -89,17 +93,19 @@ async function writeProductShortDescription(
 
   // Sin texto real no se guarda nada: antes se escribía un relleno genérico
   // («X: solución para Y») que después quedaba en el catálogo como si fuera ficha.
-  if (!text || /pendiente|no disponible|\[a confirmar\]/i.test(text)) {
-    console.error("[short-description] la IA no devolvió texto utilizable", productId);
-    return null;
+  // Tampoco las negativas de la IA («Lo siento, no hay datos…» o el marcador de sin datos).
+  const verdict = checkAiDescription(text);
+  if (!verdict.ok || /pendiente|no disponible/i.test(verdict.text)) {
+    console.error("[short-description] la IA no devolvió texto utilizable", productId, verdict.ok ? "relleno" : verdict.reason);
+    return { text: null, noData: !verdict.ok && verdict.reason === "no_data" };
   }
 
-  const next = clipToWords(text);
+  const next = clipToWords(verdict.text);
   await prisma.product.update({
     where: { id: product.id },
     // Solo el corto: aiGeneratedDescription es de la descripción LARGA (cartel «Generado con IA» de la ficha).
     data: { shortDescription: next },
   });
-  return next;
+  return { text: next };
 }
 
